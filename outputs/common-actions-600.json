@@ -1,0 +1,4202 @@
+[
+  {
+    "id": "PMS-001",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Show projects I can access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-002",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: List active project records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-003",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Show the project portfolio",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-004",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Which projects are visible to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-005",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Get the accessible project list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-006",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Display my project directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-007",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Find our project records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-008",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Show projects available in this workspace",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-009",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: List the projects for my team",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-010",
+    "module": "PMS",
+    "intent": "projects.list",
+    "text": "PMS: Give me the visible project names",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-011",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Show tasks in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-012",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: List project work items",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-013",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Get the current project task list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-014",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Display this project's tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-015",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Find visible project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-016",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Show the project backlog tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-017",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: List the tasks available in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-018",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Which project tasks can I access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-019",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Show work recorded for this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-020",
+    "module": "PMS",
+    "intent": "tasks.list",
+    "text": "PMS: Give me the visible PMS task list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-021",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Show project tasks due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-022",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: List today's project deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-023",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Which project tasks must be finished today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-024",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Show PMS work with a due date of today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-025",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Get today's due project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-026",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Find project tasks scheduled to be due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-027",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Display the due-today project queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-028",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: Show tasks reaching their project deadline today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-029",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: List project work due before today ends",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-030",
+    "module": "PMS",
+    "intent": "tasks.today",
+    "text": "PMS: What project task deadlines fall today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-031",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Show overdue project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-032",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: List late project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-033",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Find project tasks past their deadline",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-034",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Which project tasks have missed their due date",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-035",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Display overdue PMS assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-036",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Show project work with expired deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-037",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Get the late project task queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-038",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: List project tasks that are past due",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-039",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: Show missed project task deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-040",
+    "module": "PMS",
+    "intent": "tasks.overdue",
+    "text": "PMS: What project tasks should already be finished",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-041",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Show blocked project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-042",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: List stuck project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-043",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Which project tasks have blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-044",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Find blocked work in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-045",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Display project tasks with blocked status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-046",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Get the project blocker list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-047",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Show PMS work that is stuck",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-048",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: List tasks blocked in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-049",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: Show project work waiting on blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-050",
+    "module": "PMS",
+    "intent": "tasks.blocked",
+    "text": "PMS: What project tasks cannot move forward because they are blocked",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-051",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Show project tasks assigned to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-052",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: List my project assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-053",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: What project tasks do I own",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-054",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Get my PMS work list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-055",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Display project work allocated to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-056",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Find tasks assigned to me in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-057",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Show my current project workload",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-058",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: List the project tasks I am responsible for",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-059",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Which tasks in this project are mine",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-060",
+    "module": "PMS",
+    "intent": "tasks.mine",
+    "text": "PMS: Give me my project task assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-061",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Show high priority project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-062",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: List urgent project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-063",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Find critical project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-064",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Which PMS tasks have high priority",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-065",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Display the urgent project task queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-066",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Get project tasks marked high priority",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-067",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Show critical tasks in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-068",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: List high priority PMS assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-069",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Show project work requiring urgent attention",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-070",
+    "module": "PMS",
+    "intent": "tasks.high",
+    "text": "PMS: Which project work items have an urgent priority",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-071",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Show unassigned project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-072",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: List project tasks without an owner",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-073",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Which project tasks have no assignee",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-074",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Find unallocated project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-075",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Display ownerless project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-076",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Get PMS tasks awaiting assignment",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-077",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Show project work without an assignee",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-078",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: List tasks with no owner in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-079",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Which project tasks are waiting for assignment",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-080",
+    "module": "PMS",
+    "intent": "tasks.unassigned",
+    "text": "PMS: Show unassigned work in the project backlog",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-081",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Check today's project reminders",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-082",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Show my PMS reminders for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-083",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: List project reminders due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-084",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: What project reminders are scheduled today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-085",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Get today's project reminder schedule",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-086",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Display project reminders falling today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-087",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Show today's reminder alerts for PMS",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-088",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Find project reminders due before today ends",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-089",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Which project reminder notifications are due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-090",
+    "module": "PMS",
+    "intent": "reminders.today",
+    "text": "PMS: Show the project reminder list for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-091",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: What are today's project jobs",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-092",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: Show my project priorities for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-093",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: What project work should I do today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-094",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: List today's PMS jobs",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-095",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: Give me today's project work priorities",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-096",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: What project jobs need my attention today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-097",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: Show my daily project work plan",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-098",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: What should I work on in this project today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-099",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: List project jobs to focus on today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-100",
+    "module": "PMS",
+    "intent": "jobs.today",
+    "text": "PMS: Show the project jobs on my plate today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-101",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Create a project task called \"Prepare the project kickoff agenda\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-102",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Add a project task called \"Confirm the release acceptance criteria\" due tomorrow",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-103",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Make a project task called \"Review the API contract\" with high priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-104",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Prepare a fresh project task called \"Test the password reset flow\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-105",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Draft a project task called \"Document the deployment checklist\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-106",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Create a project task called \"Verify the production backup\" due next monday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-107",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Add a project task called \"Review accessibility findings\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-108",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Create a project task called \"Run the regression test suite\" with low priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-109",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Prepare a project task called \"Confirm the client handover checklist\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-110",
+    "module": "PMS",
+    "intent": "tasks.create",
+    "text": "PMS: Create a project task called \"Review the sprint demo\" and assign it to any eligible user",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-111",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Set project task #101 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-112",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Make project task #102 urgent priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-113",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Change project task #103 priority to low",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-114",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Raise project task #104 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-115",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Update project task #105 priority to medium",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-116",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Set PMS task #106 priority to critical",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-117",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Make project task #107 low priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-118",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Change PMS task #108 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-119",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Update project task #109 priority to urgent",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-120",
+    "module": "PMS",
+    "intent": "tasks.priority",
+    "text": "PMS: Mark project task #110 as high priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-121",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Mark project task #101 as done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-122",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Set project task #102 status to in progress",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-123",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Change PMS task #103 to blocked",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-124",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Complete project task #104",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-125",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Finish PMS task #105",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-126",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Set project task #106 status to to do",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-127",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Update project task #107 status to done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-128",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Mark PMS task #108 as in progress",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-129",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Change project task #109 to done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-130",
+    "module": "PMS",
+    "intent": "tasks.status",
+    "text": "PMS: Set PMS task #110 status to blocked",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-131",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Create a project milestone called \"Requirements approved\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-132",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Add a milestone called \"Design sign-off\" due tomorrow",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-133",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Prepare a project milestone called \"Development complete\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-134",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Draft a milestone called \"User acceptance testing complete\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-135",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Create a milestone called \"Security review complete\" due next monday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-136",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Make a project milestone called \"Production release\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-137",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Add a project milestone called \"Client training complete\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-138",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Create a milestone called \"Data migration verified\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-139",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Prepare a milestone called \"Final customer acceptance\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-140",
+    "module": "PMS",
+    "intent": "milestone.create",
+    "text": "PMS: Create a project milestone called \"Project closure approved\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-141",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Schedule project task #101 starting tomorrow",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-142",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Plan dates for project task #102 from next monday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-143",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Suggest a schedule for task #103 starting today",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-144",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Prepare task #104 dates starting in 3 days",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-145",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Schedule task #105 from next friday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-146",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Draft task #106 schedule for tomorrow",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-147",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Schedule project task #107 starting in 2 weeks",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-148",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Plan dates for task #108 starting next tuesday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-149",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Suggest a schedule for project task #109 starting today",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-150",
+    "module": "PMS",
+    "intent": "tasks.schedule",
+    "text": "PMS: Prepare task #110 dates starting next wednesday",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "PMS-151",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Show project task dependencies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-152",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: List task prerequisites in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-153",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Which project tasks depend on other tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-154",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Display project dependency links",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-155",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Find dependency blockers in this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-156",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Get the task dependency list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-157",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Show prerequisites for project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-158",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: List project task dependency relationships",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-159",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: Show the project dependency graph links",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-160",
+    "module": "PMS",
+    "intent": "dependencies",
+    "text": "PMS: What project work has task dependencies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-161",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Show team capacity for this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-162",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Preview project workload capacity this week",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-163",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: What is the project team's availability",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-164",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Check project resource capacity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-165",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Show a project capacity scenario",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-166",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Display available project team capacity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-167",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: What bandwidth does this project team have",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-168",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Get project workload capacity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-169",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Preview resource availability for this project",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-170",
+    "module": "PMS",
+    "intent": "capacity",
+    "text": "PMS: Show the team's project workload scenario",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-171",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Show saved project playbooks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-172",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: List reusable project plans",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-173",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Inspect project playbooks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-174",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Show project memory and playbooks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-175",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Display saved project automation rules",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-176",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Get the reusable project playbook list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-177",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Show my saved PMS playbooks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-178",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: List project working preferences in memory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-179",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Inspect the project's saved rules",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-180",
+    "module": "PMS",
+    "intent": "playbooks",
+    "text": "PMS: Show available project plan playbooks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-181",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Summarize this project's progress",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-182",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Give me a PMS overview",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-183",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Show the project status summary",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-184",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Brief me on current project work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-185",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Review this project's activity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-186",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Provide a summary of project tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-187",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Give me a project progress recap",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-188",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Summarize the current project task status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-189",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Show an overview of this project's work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-190",
+    "module": "PMS",
+    "intent": "summary",
+    "text": "PMS: Brief me on this project's delivery status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-191",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Show project delivery risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-192",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Which project tasks put delivery at risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-193",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Review project deadline risks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-194",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Find project delivery blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-195",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Show PMS deadlines at risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-196",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Summarize overdue project delivery risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-197",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Which project tasks threaten the delivery date",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-198",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Review the project's delivery risk signals",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-199",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: Show risks from missed project deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "PMS-200",
+    "module": "PMS",
+    "intent": "risk",
+    "text": "PMS: What project delivery risks need attention",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-001",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Show leads I can access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-002",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: List visible lead records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-003",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Get our lead list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-004",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Display the CRM lead directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-005",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Which leads are available to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-006",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Find our current leads",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-007",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Show the accessible leads",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-008",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: List my visible sales leads",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-009",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Give me the CRM lead records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-010",
+    "module": "CRM",
+    "intent": "leads.list",
+    "text": "CRM: Show leads in my authorized scope",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-011",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Find leads named Cedar",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-012",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Search leads for Harbor",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-013",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Look up lead Juniper",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-014",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Show leads matching Meridian",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-015",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Locate Beacon leads",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-016",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Filter leads by Willow",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-017",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Find leads named Summit",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-018",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Search leads for Northwind",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-019",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Look up lead Pinecrest",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-020",
+    "module": "CRM",
+    "intent": "leads.search",
+    "text": "CRM: Show leads matching Riverside",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-021",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Show CRM contacts",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-022",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: List customer contact records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-023",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Get visible business contacts",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-024",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Display the contact directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-025",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Find contacts I can access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-026",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Which contacts are visible to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-027",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Show our customer contact list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-028",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: List the CRM contact directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-029",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Get accessible contact records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-030",
+    "module": "CRM",
+    "intent": "contacts.list",
+    "text": "CRM: Display contacts in my authorized scope",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-031",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Show customer companies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-032",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: List visible customers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-033",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Get the customer account directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-034",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Display accessible customer companies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-035",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Find our customer records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-036",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Which customers can I access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-037",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Show the CRM company list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-038",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: List customer organization records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-039",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Get visible customer accounts",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-040",
+    "module": "CRM",
+    "intent": "customers.list",
+    "text": "CRM: Display our customer directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-041",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Show CRM deals",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-042",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: List visible sales opportunities",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-043",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Display the deal pipeline",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-044",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Get accessible deal records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-045",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Find our sales opportunities",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-046",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Which deals can I access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-047",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Show the current opportunity list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-048",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: List CRM opportunity records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-049",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Get the visible sales pipeline",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-050",
+    "module": "CRM",
+    "intent": "deals.list",
+    "text": "CRM: Display deals in my authorized scope",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-051",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Show CRM follow-up tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-052",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: List customer follow-up work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-053",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Get the visible CRM task list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-054",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Display sales follow-up tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-055",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Find our CRM work tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-056",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: What CRM tasks can I access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-057",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Show tasks recorded in CRM",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-058",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: List accessible follow-up tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-059",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Display customer work items in CRM",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-060",
+    "module": "CRM",
+    "intent": "tasks.list",
+    "text": "CRM: Give me the CRM follow-up task queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-061",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Show CRM tasks due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-062",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: List customer follow-ups due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-063",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: What sales follow-up tasks are due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-064",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Display today's due CRM work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-065",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Get CRM tasks with today's deadline",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-066",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Find follow-ups reaching their due date today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-067",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Show the due-today CRM task queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-068",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: List customer work with a deadline of today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-069",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: What CRM task deadlines fall today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-070",
+    "module": "CRM",
+    "intent": "tasks.today",
+    "text": "CRM: Show follow-up work due before today ends",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-071",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Show overdue CRM tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-072",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: List late customer follow-ups",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-073",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Find CRM tasks past their due date",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-074",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: What follow-up deadlines have been missed",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-075",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Display overdue customer work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-076",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Get late sales follow-up tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-077",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Show CRM work with expired deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-078",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: List follow-ups that are past due",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-079",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Which CRM tasks should already be completed",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-080",
+    "module": "CRM",
+    "intent": "tasks.overdue",
+    "text": "CRM: Show the overdue CRM follow-up queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-081",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Show blocked CRM tasks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-082",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: List stuck customer follow-ups",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-083",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Which CRM tasks have blocked status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-084",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Find blocked sales follow-up work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-085",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Display CRM work waiting on blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-086",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Get the blocked customer task queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-087",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Show follow-up tasks that are stuck",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-088",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: List customer work with blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-089",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Which follow-up tasks cannot move forward because they are blocked",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-090",
+    "module": "CRM",
+    "intent": "tasks.blocked",
+    "text": "CRM: Show blocked work recorded in CRM",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-091",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Show CRM tasks assigned to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-092",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: List my customer follow-ups",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-093",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: What CRM work do I own",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-094",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Get my sales follow-up assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-095",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Display the CRM tasks I am responsible for",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-096",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Find follow-ups assigned to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-097",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Show my current CRM workload",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-098",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: List my CRM task assignments",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-099",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Which customer follow-up tasks are mine",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-100",
+    "module": "CRM",
+    "intent": "tasks.mine",
+    "text": "CRM: Give me my CRM work list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-101",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Check today's CRM reminders",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-102",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Show customer reminders due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-103",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: List my CRM reminder schedule for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-104",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: What follow-up reminders are due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-105",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Get today's customer reminder alerts",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-106",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Display reminders for CRM work today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-107",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Find lead reminders due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-108",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Show today's CRM reminder notifications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-109",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: Which customer reminders fall today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-110",
+    "module": "CRM",
+    "intent": "reminders.today",
+    "text": "CRM: List reminders for sales follow-ups today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-111",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: What are today's CRM jobs",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-112",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: Show my customer work priorities for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-113",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: What CRM work should I do today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-114",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: List today's sales follow-up jobs",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-115",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: Give me my CRM priorities today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-116",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: What customer jobs need my attention today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-117",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: Show my daily CRM work plan",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-118",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: What CRM work is on my plate today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-119",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: List customer jobs to focus on today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-120",
+    "module": "CRM",
+    "intent": "jobs.today",
+    "text": "CRM: Show the CRM jobs I should handle today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-121",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Create a CRM task called \"Call the new inbound lead\" due tomorrow",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-122",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Add a customer follow-up called \"Confirm the discovery call\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-123",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Prepare a fresh customer follow-up called \"Review the renewal quotation\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-124",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Create a CRM task called \"Send the requested product specification\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-125",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Draft a customer follow-up called \"Check the proposal decision\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-126",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Make a CRM task called \"Confirm the purchase order\" with high priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-127",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Add a CRM task called \"Review the stalled opportunity\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-128",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Create a customer follow-up called \"Collect the contract signature\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-129",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Prepare a CRM task called \"Schedule the customer onboarding call\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-130",
+    "module": "CRM",
+    "intent": "tasks.create",
+    "text": "CRM: Create a CRM task called \"Request post-delivery feedback\" with low priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-131",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Set CRM task #201 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-132",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Make CRM task #202 urgent priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-133",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Change CRM task #203 priority to low",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-134",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Raise CRM task #204 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-135",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Update CRM task #205 priority to medium",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-136",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Set task #206 priority to critical",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-137",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Make CRM task #207 low priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-138",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Change task #208 priority to high",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-139",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Update CRM task #209 priority to urgent",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-140",
+    "module": "CRM",
+    "intent": "tasks.priority",
+    "text": "CRM: Mark CRM task #210 as high priority",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-141",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Mark CRM task #201 as done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-142",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Set CRM task #202 status to in progress",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-143",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Change CRM task #203 to blocked",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-144",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Complete CRM task #204",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-145",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Finish CRM task #205",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-146",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Set CRM task #206 status to to do",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-147",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Update CRM task #207 status to done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-148",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Mark CRM task #208 as in progress",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-149",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Change CRM task #209 to done",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-150",
+    "module": "CRM",
+    "intent": "tasks.status",
+    "text": "CRM: Set CRM task #210 status to blocked",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-151",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Add note to lead #201: Customer requested a callback tomorrow.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-152",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Record an internal note for lead #202: Procurement review is pending.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-153",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Write a note on lead #203: Product demonstration completed.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-154",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Save lead #204 note: Customer asked for the technical specification.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-155",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Prepare a note for lead #205: Decision maker will review the quotation.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-156",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Attach a note to lead #206: Renewal discussion is planned for Friday.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-157",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Add internal note to lead #207: Customer confirmed the preferred meeting time.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-158",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Record a note for lead #208: Contract questions need legal review.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-159",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Write internal note on lead #209: Proposal feedback received.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-160",
+    "module": "CRM",
+    "intent": "note.create",
+    "text": "CRM: Save lead #210 note: Follow-up requested after the product trial.",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "CRM-161",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Prepare an email to all leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-162",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Draft a message for all leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-163",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Send an email to every lead",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-164",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Prepare outreach to all leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-165",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Email all visible leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-166",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Message every CRM lead",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-167",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Draft a customer outreach email to all leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-168",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Prepare a message to every lead",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-169",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Send a CRM email message to all leads",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-170",
+    "module": "CRM",
+    "intent": "leads.message",
+    "text": "CRM: Draft an email for every lead",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-171",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Remind me about lead #201 tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-172",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Set a reminder for CRM task #202",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-173",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Schedule a CRM reminder for lead #203",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-174",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Create a customer reminder for task #204 tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-175",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Add a follow-up reminder for lead #205",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-176",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Prepare a reminder for deal #206",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-177",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Remind me about CRM task #207 in 3 days",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-178",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Set a CRM reminder for lead #208 next monday",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-179",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Create a follow-up reminder for task #209",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-180",
+    "module": "CRM",
+    "intent": "reminders.create",
+    "text": "CRM: Schedule a customer reminder for deal #210 tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "CRM-181",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Summarize CRM activity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-182",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Give me a customer work overview",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-183",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Show the CRM task summary",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-184",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Brief me on sales follow-up work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-185",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Review customer relationship activity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-186",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Provide a summary of CRM work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-187",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Give me a CRM activity recap",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-188",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Summarize the visible customer follow-ups",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-189",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Show an overview of current CRM work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-190",
+    "module": "CRM",
+    "intent": "summary",
+    "text": "CRM: Brief me on the CRM follow-up queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-191",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Show CRM delivery risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-192",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Which CRM tasks put delivery at risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-193",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Review customer follow-up risks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-194",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Find CRM delivery blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-195",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Show CRM deadlines at risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-196",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Summarize overdue customer work risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-197",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Which follow-ups threaten customer delivery",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-198",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Review the CRM delivery risk signals",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-199",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: Show risks from missed customer deadlines",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "CRM-200",
+    "module": "CRM",
+    "intent": "risk",
+    "text": "CRM: What CRM delivery risks need attention",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-001",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Show the employee directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-002",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: List coworkers I can access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-003",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Get visible employee directory records",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-004",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Display the staff directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-005",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Find our employee list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-006",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Which employees can I see",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-007",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Show the company employee directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-008",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: List accessible coworker profiles",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-009",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Get the staff contact directory",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-010",
+    "module": "HRMS",
+    "intent": "directory",
+    "text": "HRMS: Display employees in my authorized scope",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-011",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Find employee named Maya",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-012",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Search employees for Arjun",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-013",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Look up colleague Leena",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-014",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Display staff matching Kiran",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-015",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Locate employee Nisha",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-016",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Filter employee directory by Dev",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-017",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Find employee named Isha",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-018",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Search employees for Omar",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-019",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Look up colleague Riya",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-020",
+    "module": "HRMS",
+    "intent": "directory.search",
+    "text": "HRMS: Display staff matching Asha",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-021",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Show my leave balance",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-022",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: How much annual leave do I have",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-023",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Check my remaining leave days",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-024",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Get my available leave entitlement",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-025",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Display my unused leave balance",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-026",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: What is my current leave balance",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-027",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Show my remaining time off balance",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-028",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Check the leave days available to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-029",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: Get my personal leave balance",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-030",
+    "module": "HRMS",
+    "intent": "leave.balance",
+    "text": "HRMS: How many leave days remain for me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-031",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Show my leave requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-032",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: List the leave applications I submitted",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-033",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Get my time off request status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-034",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Display my personal leave applications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-035",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Check the status of my leave requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-036",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: What leave requests have I made",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-037",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Show leave applications submitted by me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-038",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: List my requested time off",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-039",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Get my personal leave request history",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-040",
+    "module": "HRMS",
+    "intent": "leave.mine",
+    "text": "HRMS: Display my submitted leave requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-041",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Show pending leave approvals",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-042",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: List leave requests awaiting manager approval",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-043",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Get the leave approval queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-044",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Which leave requests need review",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-045",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Display pending staff leave applications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-046",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Find leave approvals waiting for a decision",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-047",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Show employee leave requests pending approval",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-048",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: List leave requests awaiting approval decisions",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-049",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Get the pending employee leave review queue",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-050",
+    "module": "HRMS",
+    "intent": "leave.pending",
+    "text": "HRMS: Which staff leave applications need approval",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-051",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Show team leave this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-052",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Who is away this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-053",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Display the team leave calendar",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-054",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Get this month's staff time off calendar",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-055",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Show approved team leave for this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-056",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Who is absent on leave this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-057",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: List this month's employee leave calendar",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-058",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Display team availability this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-059",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Show staff leave scheduled for this month",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-060",
+    "module": "HRMS",
+    "intent": "leave.team",
+    "text": "HRMS: Get the monthly team time off view",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-061",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Show published HR policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-062",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: List employee policy documents",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-063",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Find published staff policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-064",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Display the company leave policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-065",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Get the employee handbook policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-066",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: What HR policy documents are available",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-067",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Show the published employee policy list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-068",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: List available company HR policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-069",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Find the published staff handbook policies",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-070",
+    "module": "HRMS",
+    "intent": "policies",
+    "text": "HRMS: Display HR policies I can access",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-071",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Show my HR tickets",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-072",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: List my employee helpdesk requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-073",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Get my HR support ticket status",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-074",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Display HR issues I raised",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-075",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Check my helpdesk tickets",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-076",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: What HR tickets have I created",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-077",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Show the support requests I submitted",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-078",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: List my HR helpdesk issues",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-079",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Get my personal HR ticket list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-080",
+    "module": "HRMS",
+    "intent": "tickets.mine",
+    "text": "HRMS: Display my employee support requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-081",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Show available leave types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-082",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: List the time off categories I can request",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-083",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Get configured leave categories",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-084",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Which leave types are available to me",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-085",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Display the leave type list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-086",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Find available employee leave types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-087",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Show personal time off request categories",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-088",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: List the configured employee leave types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-089",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: What leave categories can I apply for",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-090",
+    "module": "HRMS",
+    "intent": "leave.types",
+    "text": "HRMS: Get the available leave request types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-091",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Show HR helpdesk categories",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-092",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: List employee support request categories",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-093",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Get the available HR issue types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-094",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Which helpdesk ticket categories are configured",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-095",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Display HR support issue categories",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-096",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Find available helpdesk request types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-097",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Show the employee helpdesk category list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-098",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: List configured HR ticket types",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-099",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: What support categories can I use for an HR ticket",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-100",
+    "module": "HRMS",
+    "intent": "ticket.categories",
+    "text": "HRMS: Get the HR helpdesk request category list",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-101",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Check today's HR reminders",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-102",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Show my HRMS reminders due today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-103",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: List employee request reminders for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-104",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: What HR reminders are scheduled today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-105",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Get today's leave reminder alerts",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-106",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Display the HR reminder schedule for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-107",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Find HR reminders due before today ends",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-108",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Show today's employee support reminders",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-109",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: Which HR reminder notifications fall today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-110",
+    "module": "HRMS",
+    "intent": "reminders.today",
+    "text": "HRMS: List my HR work reminders for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-111",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: What are today's HR jobs",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-112",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: Show my HR priorities for today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-113",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: What employee requests need attention today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-114",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: List today's HRMS work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-115",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: Give me today's personal HR work priorities",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-116",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: What HR jobs should I handle today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-117",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: Show my daily HR work plan",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-118",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: What HR work is on my plate today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-119",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: List employee support jobs to focus on today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-120",
+    "module": "HRMS",
+    "intent": "jobs.today",
+    "text": "HRMS: Show the HR requests I should review today",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-121",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Apply for annual leave tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-122",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Request personal leave next monday",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-123",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Submit a leave request for tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-124",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Create my leave application for next friday",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-125",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Prepare a time off request for tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-126",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Apply for leave in 3 days",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-127",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Request a day off tomorrow",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-128",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Submit my annual leave application",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-129",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Prepare my personal leave request",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-130",
+    "module": "HRMS",
+    "intent": "leave.create",
+    "text": "HRMS: Create a leave request for next tuesday",
+    "behavior": "needs_details"
+  },
+  {
+    "id": "HRMS-131",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Create an HR ticket called \"Correct my attendance entry\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-132",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Raise an HR ticket called \"Request an employment verification letter\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-133",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Open an HR support ticket called \"Report a payroll discrepancy\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-134",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Prepare an HR ticket called \"Update my emergency contact\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-135",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Submit an HR ticket called \"Request laptop access\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-136",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Log an HR ticket called \"Check reimbursement request status\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-137",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Create a helpdesk ticket called \"Clarify leave policy eligibility\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-138",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Raise a helpdesk ticket called \"Request onboarding documents\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-139",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Open an HR ticket called \"Report an access card problem\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-140",
+    "module": "HRMS",
+    "intent": "ticket.create",
+    "text": "HRMS: Create an HR ticket called \"Request an experience certificate\"",
+    "behavior": "reviewed_draft"
+  },
+  {
+    "id": "HRMS-141",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Approve leave request #301",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-142",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Accept employee leave request #302",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-143",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Grant leave application #303",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-144",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Approve staff time off #304",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-145",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Authorize leave request #305",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-146",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Confirm leave approval #306",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-147",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Approve employee leave #307",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-148",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Accept staff leave application #308",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-149",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Grant employee time off request #309",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-150",
+    "module": "HRMS",
+    "intent": "leave.approve",
+    "text": "HRMS: Approve leave application #310",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-151",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Show employee salaries",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-152",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Display payroll details",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-153",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: List staff bank account details",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-154",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Get employee compensation information",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-155",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Show confidential salary records",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-156",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Calculate payroll payments",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-157",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Show employee payroll payment details",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-158",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Display staff salary records",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-159",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: Get the confidential payroll information",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-160",
+    "module": "HRMS",
+    "intent": "payroll",
+    "text": "HRMS: List employee salary payment records",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-161",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Show today's employee attendance",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-162",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Who checked in today",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-163",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Display staff attendance records",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-164",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Get employee check-in records",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-165",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: List today's staff check-ins",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-166",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Show the employee attendance log",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-167",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Display daily employee attendance",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-168",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Get today's attendance entries",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-169",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: List staff attendance for today",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-170",
+    "module": "HRMS",
+    "intent": "attendance",
+    "text": "HRMS: Show the daily staff check-in log",
+    "behavior": "native_handoff"
+  },
+  {
+    "id": "HRMS-171",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Show my rejected leave requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-172",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: List my declined leave applications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-173",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Find rejected time off requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-174",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Display my leave requests marked rejected",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-175",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Get my rejected leave applications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-176",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Which of my leave requests were declined",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-177",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Show my declined time off requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-178",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: List my personal leave applications marked rejected",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-179",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Find my rejected annual leave applications",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-180",
+    "module": "HRMS",
+    "intent": "leave.rejected",
+    "text": "HRMS: Display the leave requests of mine that were declined",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-181",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Summarize my HR work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-182",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Give me an HRMS overview",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-183",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Show my HR request summary",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-184",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Brief me on my employee requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-185",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Review my HR activity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-186",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Provide a personal HR work overview",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-187",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Give me a recap of my HR requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-188",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Summarize my employee support activity",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-189",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Show an overview of my HR work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-190",
+    "module": "HRMS",
+    "intent": "summary",
+    "text": "HRMS: Brief me on the status of my HR requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-191",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Show HR request delivery risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-192",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Review pending HR support risks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-193",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Find overdue employee support work",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-194",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Which HR requests need risk review",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-195",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Summarize HR support blockers",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-196",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Show employee request risks",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-197",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Review HR request deadlines at risk",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-198",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Find HR support issues needing attention",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-199",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: Show risks from overdue HR requests",
+    "behavior": "authorized_read"
+  },
+  {
+    "id": "HRMS-200",
+    "module": "HRMS",
+    "intent": "risk",
+    "text": "HRMS: What HR support delivery risks need attention",
+    "behavior": "authorized_read"
+  }
+]

@@ -42,6 +42,11 @@ def classify(text):
     command = normalize(command)
     if not re.match(r'^(?:please\s+)?(?:draft|write|compose|prepare|summari[sz]e|suggest|extract|improve|polish|rewrite|shorten|condense|change|translate|explain|simplify|identify|pull|turn|break)\b', command, re.I):
         return None
+    # Explicitly naming a new record belongs to the action planner, even when
+    # its wording resembles a follow-up email in the writing corpus.
+    from app.ai_operator.conversational_actions import clean, VERB, OBJECT
+    if re.match(r'^'+VERB+r'\s+'+OBJECT+r'\s+(?:called|named|titled)\b', clean(command), re.I):
+        return None
     bundle = model()
     counts = features(command)
     raw = {k: (1 + math.log(n)) * bundle['idf'][k] for k, n in counts.items() if k in bundle['idf']}
@@ -152,6 +157,10 @@ def actions(text):
 
 def chat_plan(text):
     command, separator, source = text.partition(':')
+    # A live project reference without supplied notes belongs to native reads.
+    # Explicit source text after a colon remains an extractive writing request.
+    if not separator and re.match(r'^\s*(?:please\s+)?summari[sz]e\s+(?:this|our|my|the current)\s+project\b',command,re.I):
+        return None
     skill = classify(command)
     if not skill:
         return None

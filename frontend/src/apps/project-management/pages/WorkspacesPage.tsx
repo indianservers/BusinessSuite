@@ -244,7 +244,7 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
       else if (manages) { openModal("project"); setNotice("Create your first project before adding work items."); }
       else setNotice("Ask a workspace admin to create the first project.");
     } else if (intent === "project" && manages) openModal("project");
-    else if (intent === "user" && manages) setAddingPeople(true);
+    else if (intent === "user" && manages) openModal("invite");
     else if (intent === "workspace" && canCreateWorkspace) openModal("workspace");
     else setNotice("Your workspace role does not allow this action.");
     setParams(current => { const next = new URLSearchParams(current); next.delete("new"); next.delete("project"); return next; }, { replace: true });

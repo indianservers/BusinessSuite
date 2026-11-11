@@ -47,9 +47,9 @@ def enable(client,h,value):
     r=client.post(ROOT+f'/{value["id"]}/activate',headers=h,json={'preview_hash':value['preview_hash']});assert r.status_code==200,r.text
 
 
-@pytest.mark.parametrize('frequency',['daily','monthly'])
+@pytest.mark.parametrize('frequency',['daily','monthly','custom'])
 def test_schedule_prepares_one_private_review_and_waits_for_approval(client,db,frequency):
-    h,_,_,value,spec=draft(client,db,frequency=frequency,expires_at=(datetime.now(timezone.utc)+timedelta(days=90)).isoformat())
+    h,_,_,value,spec=draft(client,db,frequency=frequency,expires_at=(datetime.now(timezone.utc)+timedelta(days=90)).isoformat(),**({'interval':3,'interval_unit':'days'} if frequency=='custom' else {}))
     assert client.post(ROOT+'/preview',headers=h,json=spec).json()['id']==value['id']
     first=datetime.fromisoformat(spec['scheduled_at'])+timedelta(seconds=1)
     assert asyncio.run(dispatch(db,client.app,first))['processed']==0
@@ -71,6 +71,9 @@ def test_schedule_prepares_one_private_review_and_waits_for_approval(client,db,f
         from app.ai_operator.agent_schedules import next_agent_occurrence
         from app.ai_operator.reminders import utc
         assert utc(job.run_at)==next_agent_occurrence(value['spec'],first+timedelta(minutes=4))
+    if frequency=='custom':
+        from app.ai_operator.reminders import utc
+        assert utc(job.run_at)==datetime.fromisoformat(spec['scheduled_at'])+timedelta(days=3)
 
 
 def test_schedule_hash_revision_expiry_and_private_ownership(client,db):
@@ -78,6 +81,9 @@ def test_schedule_hash_revision_expiry_and_private_ownership(client,db):
     assert client.post(ROOT+f'/{value["id"]}/activate',headers=h,json={'preview_hash':'0'*64}).status_code==409
     other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant'])
     assert client.post(ROOT+f'/{value["id"]}/cancel',headers=other).status_code==404
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=other).status_code==404
+    assert client.post(ROOT+f'/{value["id"]}/resume',headers=other,json={'preview_hash':value['preview_hash']}).status_code==404
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).status_code==409
     enable(client,h,value)
     body={k:agent[k] for k in ('name','instructions','modules','tools','memory','workspace_id','project_id','provider','skill_ids','connection_ids','environment','mcp_ids')}
     body.update(revision=1,instructions='A changed profile must be reviewed again.')
@@ -162,3 +168,104 @@ def test_schedule_waits_for_corrected_followup_and_tracks_its_receipt(client,db)
     db.refresh(job);assert job.payload_json['occurrences'][-1]['run_id']==corrected['id']
     assert job.payload_json['occurrences'][-1]['status']=='succeeded'
     assert db.query(CRMTask).one().priority=='High'
+
+
+def test_pause_skips_missed_occurrences_and_resume_requires_exact_review(client,db,monkeypatch):
+    from app.ai_operator import agent_schedules as schedules
+    h,_,_,value,spec=draft(client,db);enable(client,h,value)
+    first=datetime.fromisoformat(spec['scheduled_at'])
+    r=client.post(ROOT+f'/{value["id"]}/pause',headers=h);assert r.status_code==200,r.text
+    assert r.json()['status']=='paused' and r.json()['next_at'] is None
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).json()['controls']==r.json()['controls']
+    later=first+timedelta(days=1,hours=2)
+    assert asyncio.run(dispatch(db,client.app,later))['processed']==0
+    monkeypatch.setattr(schedules,'now',lambda:later)
+    assert client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':'0'*64}).status_code==409
+    resumed=client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']})
+    assert resumed.status_code==200,resumed.text
+    assert resumed.json()['status']=='active' and datetime.fromisoformat(resumed.json()['next_at'])>later
+    assert [i['action'] for i in resumed.json()['controls']]==['paused','resumed']
+    assert db.query(SuiteRun).count()==0
+
+
+def test_pause_waiting_preserves_review_and_recovers_same_occurrence(client,db,monkeypatch):
+    from app.ai_operator import agent_schedules as schedules
+    h,_,_,value,spec=draft(client,db);enable(client,h,value)
+    first=datetime.fromisoformat(spec['scheduled_at'])+timedelta(seconds=1)
+    asyncio.run(dispatch(db,client.app,first));db.expire_all();job=db.get(Job,value['id']);pending=job.payload_json['pending']
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).json()['status']=='paused'
+    assert asyncio.run(dispatch(db,client.app,first+timedelta(minutes=2)))['processed']==0
+    assert db.query(CRMTask).count()==0 and db.query(SuiteRun).count()==1
+    monkeypatch.setattr(schedules,'now',lambda:first+timedelta(minutes=3))
+    resumed=client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']})
+    assert resumed.status_code==200 and resumed.json()['pending']['run_id']==pending['run_id']
+    asyncio.run(dispatch(db,client.app,first+timedelta(minutes=4)))
+    assert db.query(SuiteRun).count()==1 and db.query(CRMTask).count()==0
+    db.refresh(job);assert job.status=='agent_waiting'
+
+
+@pytest.mark.parametrize('resume_during_planning',[False,True])
+def test_pause_during_planning_fences_late_result_and_resumes_without_duplicates(client,db,monkeypatch,resume_during_planning):
+    from app.ai_operator import agent_schedules as schedules
+    h,_,_,value,spec=draft(client,db);enable(client,h,value)
+    first=datetime.fromisoformat(spec['scheduled_at'])+timedelta(seconds=1)
+    original=schedules.prepare_agent
+    async def pause_before_response(*args,**kwargs):
+        result=await original(*args,**kwargs)
+        assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).status_code==200
+        if resume_during_planning:
+            assert client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']}).status_code==200
+        return result
+    monkeypatch.setattr(schedules,'now',lambda:first)
+    monkeypatch.setattr(schedules,'prepare_agent',pause_before_response)
+    assert asyncio.run(dispatch(db,client.app,first))['processed']==0
+    db.expire_all();job=db.get(Job,value['id'])
+    assert job.status==('agent_preparing' if resume_during_planning else 'agent_paused')
+    assert 'run_id' not in job.payload_json['pending'] and db.query(SuiteRun).count()==1
+    if not resume_during_planning:
+        assert client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']}).status_code==200
+    monkeypatch.setattr(schedules,'prepare_agent',original)
+    assert asyncio.run(dispatch(db,client.app,first+timedelta(seconds=1)))['processed']==1
+    db.refresh(job);assert job.status=='agent_waiting' and job.payload_json['pending']['run_id']
+    assert db.query(SuiteRun).count()==1 and db.query(CRMTask).count()==0
+
+
+def test_planning_error_cannot_replace_a_concurrent_pause(client,db,monkeypatch):
+    from app.ai_operator import agent_schedules as schedules
+    h,_,_,value,spec=draft(client,db);enable(client,h,value)
+    async def interrupted(*args,**kwargs):
+        assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).status_code==200
+        raise RuntimeError('Synthetic late network failure')
+    monkeypatch.setattr(schedules,'prepare_agent',interrupted)
+    asyncio.run(dispatch(db,client.app,datetime.fromisoformat(spec['scheduled_at'])+timedelta(seconds=1)))
+    db.expire_all();assert db.get(Job,value['id']).status=='agent_paused'
+
+
+def test_paused_schedule_expires_without_starting_any_conversation(client,db):
+    h,_,_,value,spec=draft(client,db);enable(client,h,value)
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).status_code==200
+    assert asyncio.run(dispatch(db,client.app,datetime.fromisoformat(spec['expires_at'])))['processed']==0
+    db.expire_all();assert db.get(Job,value['id']).status=='agent_expired'
+    assert db.query(SuiteRun).count()==0
+
+
+@pytest.mark.parametrize('mutation',['expiry','revision','session','once'])
+def test_resume_checks_expiry_revision_session_and_missed_one_time_run(client,db,monkeypatch,mutation):
+    from app.ai_operator import agent_schedules as schedules
+    from app.models.user import UserSession
+    h,_,agent,value,spec=draft(client,db,frequency='once' if mutation=='once' else 'daily');enable(client,h,value)
+    assert client.post(ROOT+f'/{value["id"]}/pause',headers=h).status_code==200
+    instant=datetime.fromisoformat(spec['scheduled_at'])+timedelta(minutes=1)
+    if mutation=='expiry':instant=datetime.fromisoformat(spec['expires_at'])
+    elif mutation=='revision':
+        from app.ai_operator.assistant_models import AssistantConversation
+        row=db.get(AssistantConversation,agent['id']);row.references={**row.references,'revision':2};db.commit()
+    elif mutation=='session':
+        row=db.get(Job,value['id']);db.get(UserSession,row.payload_json['security_context']['session_id']).status='Revoked';db.commit()
+    monkeypatch.setattr(schedules,'now',lambda:instant)
+    result=client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']})
+    if mutation in ('expiry','once'):
+        assert result.status_code==200,result.text
+        assert result.json()['status']==('expired' if mutation=='expiry' else 'complete') and result.json()['next_at'] is None
+    else:assert result.status_code in (401,403,409),result.text
+    assert db.query(SuiteRun).count()==0

@@ -74,13 +74,25 @@ def main():
     workplace_v4=workplace_v4_benchmark()
     from app.ai_operator.workplace_actions_v5 import benchmark as workplace_v5_benchmark
     workplace_v5=workplace_v5_benchmark()
+    common=None
+    if (folder/'commands.json').exists():
+        from app.ai_operator.common_actions import examples as common_examples
+        from app.ai_operator.local_features import features
+        key=lambda r:(r['module'],tuple(sorted(features(r['text']).items())))
+        fitted={key(r) for r in json.loads((folder/'commands.json').read_text(encoding='utf-8'))}
+        if all(key(r) in fitted for r in common_examples()):
+            from app.ai_operator.common_action_evaluation import benchmark as common_benchmark
+            common=common_benchmark()
     report={'total':len(rows),'passed':len(rows)-len(failures),'by_kind':counts,'failures':failures,'natural_actions':natural,'workplace_actions':workplace,'workplace_actions_v2':workplace_v2,'workplace_actions_v3':workplace_v3,'workplace_actions_v4':workplace_v4,'workplace_actions_v5':workplace_v5,
             'existing_development':{'passed':len(development)-len(recognition_failures),'total':len(development),'failures':recognition_failures},
             'authored_training_recognition':{'passed':len(authored)-len(exemplar_failures),'total':len(authored),'failures':exemplar_failures},
             'limits':'Synthetic authored planning cases, not independent language tests. No business actions, permission checks or deliveries are executed here; separate native integration tests cover those.'}
     (folder/'conversation-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+    if common is not None:
+        report['common_actions']=common
+        (folder/'conversation-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2),flush=True)
-    if failures or recognition_failures or exemplar_failures or natural['failures'] or workplace['failures'] or workplace_v2['failures'] or workplace_v3['failures'] or workplace_v3['training_fit']['failures'] or workplace_v4['failures'] or workplace_v4['training_fit']['failures'] or workplace_v5['failures'] or workplace_v5['training_fit']['failures']:raise SystemExit(1)
+    if failures or recognition_failures or exemplar_failures or natural['failures'] or workplace['failures'] or workplace_v2['failures'] or workplace_v3['failures'] or workplace_v3['training_fit']['failures'] or workplace_v4['failures'] or workplace_v4['training_fit']['failures'] or workplace_v5['failures'] or workplace_v5['training_fit']['failures'] or common and common['failures']:raise SystemExit(1)
 
 
 if __name__=='__main__':main()

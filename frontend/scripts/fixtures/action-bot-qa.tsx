@@ -19,12 +19,20 @@ let agentWorkflows:any[]=[];
 let builder:any=null;const builderMessages:any[]=[];
 let coordinator:any=null;const coordinatorMessages:any[]=[];
 let librarySkills:any[]=[];const libraryVersions=new Map<number,any[]>();
+let publications:any[]=[];
 const chatFiles=new Map<number,any[]>();let fileSeq=0;
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
 api.defaults.adapter=async config=>{
  const path=config.url||'',body=typeof config.data==='string'?JSON.parse(config.data):config.data;
  requests.push({path,method:config.method,body});let data:any={};
  if(path.endsWith('/builder/model-status'))data={active:true,tensorflow_version:'2.20.0',training_commands:640};
+ else if(path.endsWith('/agents/library'))data={items:publications,can_publish:true};
+ else if(path.endsWith('/library/targets'))data={members:[{id:7,label:'robot-fixture@example.com'}],teams:[]};
+ else if(path.endsWith('/library/preview')){const source=(body.asset_type==='agent'?savedAgents:librarySkills).find(s=>s.id===body.source_id);const definition={name:source.name,instructions:source.instructions,tools:source.tools,modules:source.modules||['CRM'],provider:source.provider||'preferred',workspace_id:null,project_id:null,skills:[],omitted:{private_memory:source.memory?.length||0,connection_bindings:0,mcp_bindings:0,conversation_history:true}};data={id:901,asset_type:body.asset_type,status:'draft',revision:1,definition,definition_hash:'e'.repeat(64),audience:body.audience,can_manage:true,can_prepare_edition:true,can_install:false,source_id:source.id,installed:null,pending:{definition,audience:body.audience,preview_hash:'f'.repeat(64),proposed_revision:1}};publications=[data]}
+ else if(/\/library\/901\/publish$/.test(path)){Object.assign(publications[0],{status:'active',can_install:true,pending:null});data=publications[0]}
+ else if(/\/library\/901\/install$/.test(path)){const p=publications[0];const asset={id:971,...p.definition,revision:1,memory:[],connection_ids:[],mcp_ids:[],skill_ids:[],library_origin:{publication_id:901,revision:1,component:p.asset_type}};if(p.asset_type==='agent')savedAgents.push(asset);else librarySkills.push(asset);p.installed={id:971,revision:1,publication_revision:1};data={asset_type:p.asset_type,asset}}
+ else if(/\/library\/901\/revoke$/.test(path)){Object.assign(publications[0],{status:'revoked',revision:2,can_install:false,pending:null});data=publications[0]}
+ else if(/\/library\/901\/versions$/.test(path))data={items:[{revision:1,status:'active',definition:publications[0].definition}],retention:'Current edition and up to twenty previous publication transitions.'};
  else if(path.endsWith('/agents/coordinator'))data={items:coordinator?[coordinator]:[]};
  else if(path.endsWith('/coordinator/messages')){coordinator={context_id:82,revision:(coordinator?.revision||0)+1,draft:{name:body.text.startsWith('Call it ')?body.text.slice(8):'Customer recovery',nodes:[{agent_id:71,instructions:'Create CRM task called Customer recovery',depends_on:[]}]},agents:{'71':{name:'Delivery coordinator'}},preview_hash:'d'.repeat(64),provider:'local'};coordinatorMessages.push({text:body.text});data=coordinator}
  else if(path.endsWith('/coordinator/82/apply')){const flow={id:301,name:coordinator.draft.name,status:'preview',spec:{nodes:coordinator.draft.nodes},agents:coordinator.agents,nodes:[{step:1,state:'pending'}],preview_hash:'b'.repeat(64)};agentWorkflows.push(flow);coordinator={...coordinator,workflow_id:301};data={...coordinator,workflow_preview:flow}}
@@ -42,6 +50,8 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/agents/schedules'))data={items:agentSchedules};
  else if(path.endsWith('/agents/schedules/preview')){data={id:91,status:'preview',spec:body,agent_name:'Delivery coordinator',agent_revision:1,preview_hash:'a'.repeat(64),occurrences:[]};agentSchedules.push(data)}
  else if(path.endsWith('/agents/schedules/91/activate')){agentSchedules[0].status='active';data=agentSchedules[0]}
+ else if(path.endsWith('/agents/schedules/91/pause')){agentSchedules[0]={...agentSchedules[0],status:'paused',next_at:null,paused_at:new Date().toISOString(),controls:[{action:'paused',at:new Date().toISOString()}]};data=agentSchedules[0]}
+ else if(path.endsWith('/agents/schedules/91/resume')){agentSchedules[0]={...agentSchedules[0],status:'active',paused_at:null,controls:[...agentSchedules[0].controls,{action:'resumed',at:new Date().toISOString()}]};data=agentSchedules[0]}
  else if(path.endsWith('/agents/schedules/91/cancel')){agentSchedules[0].status='cancelled';data=agentSchedules[0]}
  else if(path.endsWith('/catalog/skills')){if(config.method==='post'){data={id:11,...body,revision:1};librarySkills.push(data);libraryVersions.set(11,[{...data}])}else data={items:librarySkills}}
  else if(path.endsWith('/catalog/skills/11/versions'))data={items:[...(libraryVersions.get(11)||[])].reverse(),current_revision:librarySkills[0]?.revision};

@@ -18,7 +18,7 @@
  .hrms-document-upload > div { padding: 12px; }
  .hrms-document-upload > div:first-child h3 { display: none; }
  .hrms-document-upload form > .grid, .hrms-document-chooser .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
- .hrms-document-upload [data-save-action] { display: none; }
+ .smart-create-window .hrms-document-upload [data-save-action] { display: none; }
  .hrms-document-upload .mobile-disclosure, .hrms-documents .mobile-disclosure { padding: 0; margin: 12px 0; }
  .hrms-document-upload .mobile-disclosure > summary, .hrms-documents .mobile-disclosure > summary { padding: 8px 12px; }
  .hrms-document-upload .mobile-disclosure > div, .hrms-documents .mobile-disclosure > div { padding: 0 12px 12px; }

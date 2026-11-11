@@ -39,6 +39,8 @@ def task_plan(intent, data, context, sources):
         if len(title)>220:return ask('Please use a title of at most 220 characters.')
         if slots.get('due_date'):payload['due_date']=slots['due_date']
         if name=='tasks.create':
+            if module=='PMS' and slots.get('assignee_user_ids'):
+                payload['assignee_user_ids']=slots['assignee_user_ids']
             if module=='PMS':payload['task_key']='AI-'+re.sub(r'[^a-zA-Z0-9]','',data.request_key)[:16]
             tool=module.lower()+'.create_task'
         elif name=='milestone.create':

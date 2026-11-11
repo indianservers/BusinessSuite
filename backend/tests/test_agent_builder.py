@@ -22,6 +22,40 @@ def send(client,h,text,prior=None,**extra):
 def profiles(db):return db.query(AssistantConversation).filter(AssistantConversation.references['saved_agent'].as_boolean()==True).count()
 
 
+@pytest.mark.parametrize('cadence',['every fortnight','every 0 days','every 400 weeks','every 10 minutes'])
+def test_local_builder_clarifies_unsupported_recurrence_instead_of_silently_running_daily(cadence):
+    from app.ai_operator.agent_builder import local_draft
+    draft=local_draft('Create a CRM sales assistant that shows overdue tasks '+cadence,None,'CRM')
+    assert draft.question
+
+
+def test_conversational_custom_recurrence_survives_followups_and_reviewed_save(client,db):
+    h,_,_,_=setup_suite(client,db)
+    first,_=send(client,h,'Create a CRM sales assistant that shows overdue tasks every two days at 9 am')
+    assert not first['question'] and first['schedule']['frequency']=='custom'
+    assert first['schedule']['interval']==2 and first['schedule']['interval_unit']=='days'
+    followup,_=send(client,h,'Every three weeks at 10 am',first)
+    assert not followup['question'] and followup['schedule']['interval']==3 and followup['schedule']['interval_unit']=='weeks'
+    assert followup['draft']['run_prompt']==first['draft']['run_prompt']
+    result=client.post(ROOT+f'/{followup["context_id"]}/apply',headers=h,json={'preview_hash':followup['preview_hash']})
+    assert result.status_code==200,result.text
+    schedule=result.json()['schedule_preview']
+    assert schedule['status']=='preview' and schedule['spec']['interval']==3 and schedule['spec']['interval_unit']=='weeks'
+    assert db.query(SuiteRun).count()==0
+
+
+def test_cloud_builder_custom_rule_uses_the_same_reviewed_scheduler(client,db,monkeypatch):
+    h,_,_,_=setup_suite(client,db)
+    mock_provider(monkeypatch,{'name':'Sales coordinator','instructions':'Review authorized tasks.','tools':['crm.tasks'],'memory':[],
+        'run_prompt':'Show overdue tasks','schedule':{'frequency':'custom','interval':4,'interval_unit':'weeks','at':'10:00','expires_days':90},'question':None})
+    draft,_=send(client,h,'Create a sales coordinator every four weeks',provider='gemini')
+    assert draft['schedule']['frequency']=='custom' and draft['schedule']['interval']==4
+    response=client.post(ROOT+f'/{draft["context_id"]}/apply',headers=h,json={'preview_hash':draft['preview_hash']})
+    assert response.status_code==200,response.text
+    assert response.json()['schedule_preview']['spec']['interval_unit']=='weeks'
+    assert response.json()['schedule_preview']['status']=='preview' and db.query(SuiteRun).count()==0
+
+
 def test_builder_followups_review_and_compound_save_are_idempotent(client,db):
     h,_,_,_=setup_suite(client,db)
     first,body=send(client,h,'Create a delivery coordinator that checks delayed projects every morning')

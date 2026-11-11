@@ -69,6 +69,19 @@ def test_fresh_workplace_failure_blocks_activation_and_keeps_previous_release(ca
     assert json.loads((root/'active.json').read_text())['job_id']==226
 
 
+@pytest.mark.parametrize('common',[
+    {'total':600,'passed':599,'by_module':{'PMS':199,'CRM':200,'HRMS':200},'failures':[{'id':'PMS-068'}]},
+    {'total':600,'passed':600,'by_module':{'PMS':200,'CRM':200},'failures':[]},
+])
+def test_common_catalog_failure_or_missing_module_blocks_release(candidate,common):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':237}))
+    write('conversation-evaluation.json',{'total':684,'passed':684,'failures':[],'common_actions':common})
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==237
+
+
 @pytest.mark.parametrize('scenario_passed,fit_passed',[(269,270),(270,269)])
 def test_third_batch_cannot_activate_with_failed_scenario_or_training_draft(candidate,scenario_passed,fit_passed):
     root,folder,write=candidate

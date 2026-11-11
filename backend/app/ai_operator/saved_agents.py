@@ -80,7 +80,7 @@ def owned(db,user,ident,lock=False):
 
 def public(row):
     return {'id':row.id,**row.references['config'],'revision':row.references['revision'],
-        'execution':'reviewed','trigger_support':'Manual and reviewed recurring preparation; PMS playbooks, monitors and consent-bound event rules remain available through allowed tools.'}
+        'library_origin':row.references.get('library_origin'),'execution':'reviewed','trigger_support':'Manual and reviewed recurring preparation; PMS playbooks, monitors and consent-bound event rules remain available through allowed tools.'}
 
 
 @router.get('')
@@ -146,7 +146,7 @@ def context(db,user,data,parent):
         raise HTTPException(409,'Finish or cancel the pending draft before switching agents, or start a new chat')
     ident=data.agent_id or ((parent.result or {}).get('request',{}).get('agent_id') if parent and parent.status in ('needs_clarification','awaiting_approval') else None)
     if not ident:return None
-    row=owned(db,user,ident);profile=public(row)
+    row=owned(db,user,ident);runtime_access(db,user,row);profile=public(row)
     profile['skills']=[public_skill(owned_skill(db,user,i)) for i in profile['skill_ids']]
     from app.ai_operator.agent_mcp import owned as mcp_owned,public as mcp_public
     profile['mcp_tools']=[mcp_public(mcp_owned(db,user,i)) for i in profile['mcp_ids']]
@@ -193,7 +193,7 @@ def owned_skill(db,user,ident,lock=False):
     return row
 
 
-def public_skill(row):return {'id':row.id,**row.references['config'],'revision':row.references['revision']}
+def public_skill(row):return {'id':row.id,**row.references['config'],'revision':row.references['revision'],'library_origin':row.references.get('library_origin')}
 
 
 def skill_version(db,row):
@@ -226,28 +226,33 @@ def skills(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depen
     return {'items':[public_skill(owned_skill(db,user,r.id)) for r in rows]}
 
 
+def store_skill(db,user,data,row=None,origin=None):
+    """Stage a skill and its version history in the caller's transaction."""
+    modules=sorted({TOOLS[t].module for t in data.tools if t in TOOLS})
+    scope=access(db,user,Config(name=data.name,instructions=data.instructions,modules=modules,tools=data.tools,workspace_id=data.workspace_id))
+    if row:
+        if data.revision!=row.references['revision']:raise HTTPException(409,'Skill changed; reload before editing')
+        if data.workspace_id!=row.workspace_id:raise HTTPException(422,'Skill workspace cannot change')
+        skill_version(db,row)
+        row.references={**row.references,'revision':data.revision+1,'config':data.model_dump(exclude={'revision'})};row.title=data.name
+    else:
+        if db.query(AssistantConversation.id).filter_by(user_id=user.id,organization_id=company(user),deleted_at=None).filter(AssistantConversation.references['agent_skill'].as_boolean()==True).count()>=50:raise HTTPException(422,'Archive unused skills before adding more')
+        row=AssistantConversation(user_id=user.id,organization_id=company(user),workspace_id=data.workspace_id,title=data.name,
+            references={'agent_skill':True,'scope_key':scope,'revision':1,'config':data.model_dump(exclude={'revision'})})
+        db.add(row);db.flush()
+    if origin is not None:row.references={**row.references,'library_origin':origin}
+    skill_version(db,row);audit(db,user,row,'skill_updated' if data.revision else 'skill_created')
+    return row
+
+
 @router.post('/catalog/skills')
 def create_skill(data:Skill,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    modules=sorted({TOOLS[t].module for t in data.tools if t in TOOLS})
-    validated=Config(name=data.name,instructions=data.instructions,modules=modules,tools=data.tools,workspace_id=data.workspace_id)
-    scope=access(db,user,validated)
-    if db.query(AssistantConversation.id).filter_by(user_id=user.id,organization_id=company(user),deleted_at=None).filter(AssistantConversation.references['agent_skill'].as_boolean()==True).count()>=50:raise HTTPException(422,'Archive unused skills before adding more')
-    row=AssistantConversation(user_id=user.id,organization_id=company(user),workspace_id=data.workspace_id,title=data.name,
-        references={'agent_skill':True,'scope_key':scope,'revision':1,'config':data.model_dump(exclude={'revision'})})
-    db.add(row);db.flush();skill_version(db,row);audit(db,user,row,'skill_created');db.commit();return public_skill(row)
+    row=store_skill(db,user,data);db.commit();return public_skill(row)
 
 
 @router.put('/catalog/skills/{ident}')
 def update_skill(ident:int,data:Skill,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=owned_skill(db,user,ident,True)
-    if data.revision!=row.references['revision']:raise HTTPException(409,'Skill changed; reload before editing')
-    if data.workspace_id!=row.workspace_id:raise HTTPException(422,'Skill workspace cannot change')
-    modules=sorted({TOOLS[t].module for t in data.tools if t in TOOLS})
-    access(db,user,Config(name=data.name,instructions=data.instructions,modules=modules,tools=data.tools,workspace_id=data.workspace_id))
-    skill_version(db,row)
-    row.references={**row.references,'revision':data.revision+1,'config':data.model_dump(exclude={'revision'})};row.title=data.name
-    skill_version(db,row)
-    audit(db,user,row,'skill_updated');db.commit();return public_skill(row)
+    row=store_skill(db,user,data,owned_skill(db,user,ident,True));db.commit();return public_skill(row)
 
 
 @router.delete('/catalog/skills/{ident}')
@@ -258,8 +263,14 @@ def archive_skill(ident:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 def enforce(db,user,run,steps):
     ident=(run.result or {}).get('request',{}).get('agent_id')
     if not ident:return
-    profile=public(owned(db,user,ident))
+    row=owned(db,user,ident);runtime_access(db,user,row);profile=public(row)
     if profile['revision']!=(run.result or {}).get('agent',{}).get('revision'):raise HTTPException(409,'Agent changed since planning; prepare a fresh review')
     current={str(i):owned_skill(db,user,i).references['revision'] for i in profile['skill_ids']}
     if current!=(run.result or {}).get('agent',{}).get('skill_revisions',{}):raise HTTPException(409,'Agent skill changed since planning; prepare a fresh review')
     if any(s.tool not in profile['tools'] for s in steps):raise HTTPException(403,'Tool is outside this agent scope')
+
+
+def runtime_access(db,user,row):
+    from app.ai_operator.agent_library import validate_origin
+    validate_origin(db,user,row)
+    for ident in row.references.get('config',{}).get('skill_ids',[]):validate_origin(db,user,owned_skill(db,user,ident))

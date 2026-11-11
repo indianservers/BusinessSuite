@@ -75,7 +75,8 @@ function PortalRoot() {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* Commit the destination and its loading state together for lazy pages. */}
+      <BrowserRouter useTransitions={false}>
         <ErrorBoundary><PortalRoot /></ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>

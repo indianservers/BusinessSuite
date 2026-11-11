@@ -3,7 +3,7 @@
 Starting a workflow grants preparation, not approval of future business actions.
 Each agent retains its own tool/module restrictions and a persistent conversation.
 """
-import re
+import asyncio,re
 from datetime import timedelta
 from types import SimpleNamespace
 from uuid import UUID,uuid5,NAMESPACE_URL
@@ -37,6 +37,7 @@ class Workflow(Strict):
     workspace_id:int|None=Field(default=None,gt=0)
     nodes:list[Node]=Field(min_length=1,max_length=8)
     timezone:str='Asia/Kolkata'
+    parallel_limit:int=Field(default=2,ge=1,le=3)
 
     @model_validator(mode='after')
     def valid(self):
@@ -73,6 +74,7 @@ def public(run):
     data=run.result
     return {'id':run.id,'name':run.command,'workspace_id':run.workspace_id,'status':run.status.removeprefix('workflow_'),
         'preview_hash':run.request_hash,'spec':data['spec'],'agents':data['agents'],'nodes':data['nodes'],
+        'planning_wave':data.get('planning_wave'),
         'error':run.error_code,'issue':data.get('issue'),'cancel_errors':data.get('cancel_errors',[]),'created_at':run.created_at,'execution':'Agents prepare independently; each action draft requires review.'}
 
 
@@ -103,6 +105,8 @@ def preview(data:Workflow,db:Session=Depends(get_db),user:User=Depends(get_curre
     previous=db.query(SuiteRun.id).filter_by(user_id=user.id,request_key=key).first()
     if previous:
         run=owned(db,user,previous[0])
+        if 'parallel_limit' not in data.model_fields_set and 'parallel_limit' not in run.result['spec']:
+            hashed=digest({'spec':{k:v for k,v in spec.items() if k!='parallel_limit'},'agents':agents,'branch_id':branch.branch_id})
         if run.request_hash!=hashed:raise HTTPException(409,'Request key belongs to another workflow')
         return public(run)
     if db.query(SuiteRun.id).filter_by(user_id=user.id,scope_key=scope).filter(SuiteRun.status.like('workflow_%'),SuiteRun.status.notin_(['workflow_succeeded','workflow_cancelled'])).count()>=30:
@@ -212,15 +216,13 @@ async def stop(ident:int,request:Request,db:Session=Depends(get_db),user:User=De
     if run.status=='workflow_succeeded':return public(run)
     run.status='workflow_cancelled';run.lease_until=None;db.commit();errors=[];updates={}
     for node,spec in zip(run.result['nodes'],run.result['spec']['nodes']):
-        if not node.get('run_id'):continue
         try:
-            child=occurrence_run(db,user,node,spec['agent_id'])
-            if child.status not in TERMINAL:
-                response=await api_call(request.app,request.headers.get('authorization',''),'POST',f'/ai-operator/suite/runs/{child.id}/cancel')
-                status=response['status']
-            else:status=child.status
-            updates[node['step']]={'run_id':child.id,'run_status':status,'state':'done' if status in ('answered','succeeded') else 'stopped'}
+            update=await stop_child(request.app,request.headers.get('authorization',''),db,user,node,spec)
+            if update:
+                updates[node['step']]=update
+                if update['run_status'] not in TERMINAL:errors.append(node['step'])
         except HTTPException:errors.append(node['step'])
+
     run=owned(db,user,ident,True);run.result={**run.result,'cancel_errors':errors,'nodes':[{**n,**updates.get(n['step'],{})} for n in run.result['nodes']]};audit(db,user,run,'stopped');db.commit()
     return {**public(run),'cancel_errors':errors}
 
@@ -239,12 +241,87 @@ def instructions(db,user,spec,nodes):
     return VARIABLE.sub(substitute,spec['instructions'])
 
 
-async def dispatch(db,app,instant=None,limit=5):
+def discover_child(db,user,node,spec):
+    if not node.get('request_key'):return None
+    from app.ai_operator.suite import owned as run_owned
+    value=db.query(SuiteRun.id).filter_by(user_id=user.id,request_key=node['request_key']).first()
+    if not value:return None
+    child=run_owned(db,user,value[0]);request=(child.result or {}).get('request',{})
+    if request.get('conversation_id')!=node.get('conversation_id') or request.get('agent_id')!=spec['agent_id']:raise HTTPException(409,'Recovered child scope changed')
+    return child
+
+
+async def stop_child(app,authorization,db,user,node,spec):
+    from app.ai_operator.suite import api_call
+    if not node.get('run_id'):
+        found=discover_child(db,user,node,spec)
+        if not found:return None
+        node={**node,'run_id':found.id}
+    child=occurrence_run(db,user,node,spec['agent_id'])
+    status=child.status
+    if status not in TERMINAL:
+        result=await api_call(app,authorization,'POST',f'/ai-operator/suite/runs/{child.id}/cancel')
+        status=result['status']
+    return {'run_id':child.id,'run_status':status,'state':'done' if status in ('answered','succeeded') else 'stopped' if status in TERMINAL else 'stopping'}
+
+
+def handoff_context(db,user,data,parent=None):
+    """Approved dependency answers are data, never agent instructions or grants."""
+    if not data.workflow_id:return []
+    flow=owned(db,user,data.workflow_id);grant(db,user,flow)
+    if flow.status in ('workflow_preview','workflow_succeeded','workflow_cancelled'):raise HTTPException(409,'Workflow is not preparing this step')
+    if not 1<=data.workflow_step<=len(flow.result['spec']['nodes']):raise HTTPException(404,'Workflow step not found')
+    node=flow.result['nodes'][data.workflow_step-1];spec=flow.result['spec']['nodes'][data.workflow_step-1]
+    if node.get('conversation_id')!=data.conversation_id or spec['agent_id']!=data.agent_id or flow.workspace_id!=data.workspace_id:
+        raise HTTPException(403,'Workflow step does not match this agent conversation')
+    branch=db.info.get('branch_context')
+    if getattr(branch,'branch_id',None)!=flow.snapshots['branch_id']:raise HTTPException(403,'Workflow branch changed')
+    prior=(parent.result or {}).get('request',{}) if parent else {}
+    correction=bool(parent and parent.status in ('needs_clarification','awaiting_approval','failed') and prior.get('workflow_id')==flow.id and prior.get('workflow_step')==data.workflow_step)
+    if not correction and data.text!=instructions(db,user,spec,flow.result['nodes']):raise HTTPException(409,'Workflow instructions changed; use its existing conversation review')
+    from app.ai_operator.suite_conversations import owned as chat_owned
+    packets=[]
+    for position in spec['depends_on']:
+        source_node=flow.result['nodes'][position-1];source_spec=flow.result['spec']['nodes'][position-1]
+        if source_node['state']!='done' or not source_node.get('run_id'):raise HTTPException(409,'Workflow dependency is not complete')
+        chat_owned(db,user,source_node['conversation_id'])
+        child=occurrence_run(db,user,source_node,source_spec['agent_id'])
+        if child.status not in ('answered','succeeded'):raise HTTPException(409,'Workflow dependency needs review')
+        prefix=f'w{flow.id}:step{position}:'
+        source={'id':prefix+'answer','kind':'agent_answer','tool':'agent.workflow_answer','record_id':child.id,
+            'label':flow.result['agents'][str(source_spec['agent_id'])]['name']+' answer',
+            'href':f'/?bot_conversation={source_node["conversation_id"]}'+(f'&workspace={flow.workspace_id}' if flow.workspace_id else ''),
+            'retrieved_at':now().isoformat()}
+        citations=[{**c,'id':prefix+c['id']} for c in (child.result or {}).get('citations',[])[:5]]
+        receipts=[{k:v for k,v in r.items() if k in {'step','tool','status','record_id','artifact_id','artifact_revision'}} for r in child.receipts or [] if r.get('status')=='succeeded'][:6]
+        answer=(child.plan or {}).get('summary','')[:1000]
+        if child.status=='succeeded':answer=f'{len(receipts)} confirmed action receipts in this bounded handoff. Original reviewed proposal: '+answer[:800]
+        packets.append({'step':position,'run_id':child.id,'agent_name':flow.result['agents'][str(source_spec['agent_id'])]['name'],
+            'status':child.status,'answer':answer,'receipts':receipts,
+            'sources':[source,*citations],'trust':'Prior specialist assertion, not independently verified fact. Receipts confirm only the listed actions. Re-read current business facts through authorized tools when required.'})
+    from app.ai_agents.security import bounded_result
+    bounded=bounded_result(db,user,packets)
+    if isinstance(bounded,dict) and bounded.get('truncated'):raise HTTPException(422,'Dependency results exceed the disclosure budget; narrow this workflow')
+    return bounded
+
+
+def local_handoff_answer(packets):
+    lines=['Specialist dependency answers (bounded, not independently verified facts):'];ids=[]
+    for packet in packets:
+        line=f"Step {packet['step']} · {packet['agent_name']}: {packet['answer'][:450]}"
+        if sum(map(len,lines))+len(line)>1900:break
+        lines.append(line);ids.append(packet['sources'][0]['id'])
+    return {'summary':'\n'.join(lines),'steps':[],'source_ids':ids}
+
+
+async def dispatch(db,app,instant=None,limit=5,workflow_id=None):
     from app.access.service import activate_run_context,release_run_context,background_scope
     from app.ai_operator import suite_conversations as chats
     instant=instant or now();processed=0
-    ids=db.query(SuiteRun.id).filter(SuiteRun.status.in_(['workflow_active','workflow_running','workflow_waiting','workflow_paused']),
-        or_(SuiteRun.lease_until==None,SuiteRun.lease_until<=instant)).order_by(SuiteRun.id).limit(min(limit,20)).all()
+    candidates=db.query(SuiteRun.id).filter(SuiteRun.status.in_(['workflow_active','workflow_running','workflow_waiting','workflow_paused']),
+        or_(SuiteRun.lease_until==None,SuiteRun.lease_until<=instant))
+    if workflow_id is not None:candidates=candidates.filter(SuiteRun.id==workflow_id)
+    ids=candidates.order_by(SuiteRun.id).limit(min(limit,20)).all()
     for (ident,) in ids:
         run=db.query(SuiteRun).filter_by(id=ident).with_for_update(skip_locked=True).first()
         if not run or not run.result or not run.result.get('agent_workflow'):continue
@@ -272,40 +349,62 @@ async def dispatch(db,app,instant=None,limit=5):
                     run.result={**data,'nodes':nodes};db.commit();continue
                 if all(n['state']=='done' for n in nodes):
                     run.status='workflow_succeeded';run.lease_until=None;run.error_code=None;run.result={**data,'nodes':nodes};db.commit();processed+=1;continue
-                target=next((n for n,s in zip(nodes,specs) if n['state'] in ('pending','planning') and all(nodes[d-1]['state']=='done' for d in s['depends_on'])),None)
-                if not target:
+                ready=[n for n,s in zip(nodes,specs) if n['state'] in ('pending','planning') and all(nodes[d-1]['state']=='done' for d in s['depends_on'])][:data['spec'].get('parallel_limit',1)]
+                if not ready:
                     run.status='workflow_waiting';run.lease_until=instant+timedelta(seconds=10);run.result={**data,'nodes':nodes};db.commit();continue
-                index=target['step'];spec=specs[index-1];frozen=data['agents'][str(spec['agent_id'])]
-                prompt=instructions(db,actor,spec,nodes)
-                if not target.get('conversation_id'):
-                    chat=chats.create(db,actor,chats.ConversationInput(title=f"{run.command}: {index}. {frozen['name']}"[:160],workspace_id=run.workspace_id),commit=False)
-                    target.update(conversation_id=chat['id'],request_key=str(uuid5(NAMESPACE_URL,f'agent-workflow:{run.id}:{index}')))
-                target['state']='planning';run.result={**data,'nodes':nodes};db.commit()
-                prepared=await prepare_agent(app,actor.id,run.session_id,company(actor),run.snapshots['branch_id'],{
-                    'request_key':target['request_key'],'text':prompt,'agent_id':spec['agent_id'],'provider':'preferred',
-                    'timezone':data['spec']['timezone'],'workspace_id':run.workspace_id,'project_id':frozen['project_id'],'conversation_id':target['conversation_id']})
+                commands=[]
+                for target in ready:
+                    index=target['step'];spec=specs[index-1];frozen=data['agents'][str(spec['agent_id'])]
+                    prompt=instructions(db,actor,spec,nodes)
+                    if not target.get('conversation_id'):
+                        chat=chats.create(db,actor,chats.ConversationInput(title=f"{run.command}: {index}. {frozen['name']}"[:160],workspace_id=run.workspace_id),commit=False)
+                        target.update(conversation_id=chat['id'],request_key=str(uuid5(NAMESPACE_URL,f'agent-workflow:{run.id}:{index}')))
+                    target['state']='planning';target.pop('planning_error',None)
+                    commands.append({'request_key':target['request_key'],'text':prompt,'agent_id':spec['agent_id'],'provider':'preferred',
+                        'timezone':data['spec']['timezone'],'workspace_id':run.workspace_id,'project_id':frozen['project_id'],'conversation_id':target['conversation_id'],
+                        'workflow_id':run.id,'workflow_step':index})
+                run.result={**data,'nodes':nodes,'planning_wave':{'steps':[n['step'] for n in ready],'concurrency':len(ready)}};db.commit()
+                # No worker Session or ORM instances are used by concurrent
+                # calls. Each canonical request obtains its own request session.
+                user_id,session_id,company_id,branch_id=actor.id,run.session_id,company(actor),run.snapshots['branch_id']
+                prepared=await asyncio.gather(*(prepare_agent(app,user_id,session_id,company_id,branch_id,c) for c in commands),return_exceptions=True)
                 db.expire_all();run=db.query(SuiteRun).filter_by(id=ident).with_for_update().one()
                 if run.status!='workflow_cancelled' and (run.status!='workflow_running' or not run.lease_until or utc(run.lease_until)!=utc(claim_until)):
                     db.rollback();continue  # A newer worker owns this checkpoint.
-                nodes=[dict(n) for n in run.result['nodes']];target=nodes[index-1];target.update(run_id=prepared['id'],run_status=prepared['status'],state='running')
+                nodes=[dict(n) for n in run.result['nodes']];failed=False
+                for command,response in zip(commands,prepared):
+                    target=nodes[command['workflow_step']-1]
+                    if isinstance(response,BaseException):
+                        if run.status=='workflow_cancelled':
+                            recovered=discover_child(db,actor,target,specs[command['workflow_step']-1])
+                            if recovered:response={'id':recovered.id,'status':recovered.status}
+                    if isinstance(response,BaseException):
+                        failed=True;target['planning_error']=f'PLANNING_HTTP_{response.status_code}' if isinstance(response,HTTPException) else 'PLANNING_RESPONSE_UNAVAILABLE'
+                        continue  # Recovery reuses this exact conversation/key.
+                    target.update(run_id=response['id'],run_status=response['status'],state='running')
+                    if run.status=='workflow_cancelled':
+                        from app.core.security import create_access_token
+                        from app.ai_operator.suite import api_call
+                        token=create_access_token(str(user_id),session_id=session_id,expires_delta=timedelta(minutes=1))
+                        try:
+                            update=await stop_child(app,'Bearer '+token,db,actor,target,specs[command['workflow_step']-1])
+                            if update:
+                                target.update(update)
+                                if update['run_status'] not in TERMINAL:
+                                    run.result={**run.result,'cancel_errors':sorted(set([*run.result.get('cancel_errors',[]),target['step']]))}
+                        except HTTPException:
+                            run.result={**run.result,'cancel_errors':sorted(set([*run.result.get('cancel_errors',[]),target['step']]))}
+                            run.error_code='CHILD_CANCELLATION_NEEDS_REVIEW'
                 run.result={**run.result,'nodes':nodes}
-                if run.status=='workflow_cancelled':
-                    from app.core.security import create_access_token
-                    from app.ai_operator.suite import api_call
-                    token=create_access_token(str(actor.id),session_id=run.session_id,expires_delta=timedelta(minutes=1))
-                    try:
-                        if prepared['status'] not in TERMINAL:
-                            await api_call(app,'Bearer '+token,'POST',f'/ai-operator/suite/runs/{prepared["id"]}/cancel')
-                        target.update(state='done' if prepared['status'] in ('answered','succeeded') else 'failed',run_status=prepared['status'] if prepared['status'] in TERMINAL else 'cancelled')
-                        run.result={**run.result,'nodes':nodes};run.error_code=None
-                    except HTTPException:
-                        run.result={**run.result,'cancel_errors':sorted(set([*run.result.get('cancel_errors',[]),index]))}
-                        run.error_code='CHILD_CANCELLATION_NEEDS_REVIEW'
-                else:run.status='workflow_active';run.lease_until=None
+                if run.status!='workflow_cancelled':
+                    run.status='workflow_blocked' if failed else 'workflow_active';run.lease_until=None
+                    run.error_code='WORKFLOW_PLANNING_RESPONSE_UNAVAILABLE' if failed else None
+                    if failed:run.result={**run.result,'issue':'A planning response was unavailable. Completed child plans are retained. Resume to recover the same request keys; no action was approved.'}
                 db.commit();processed+=1
+
         except Exception as exc:
             db.rollback();run=db.query(SuiteRun).filter_by(id=ident).with_for_update().first()
-            if run and run.status!='workflow_cancelled':
+            if run and run.status=='workflow_running' and run.lease_until and utc(run.lease_until)==utc(claim_until):
                 run.status='workflow_blocked';run.error_code=f'WORKFLOW_HTTP_{exc.status_code}' if isinstance(exc,HTTPException) else 'WORKFLOW_SCOPE_OR_PLANNING_CHANGED'
                 run.result={**run.result,'issue':str(exc.detail)[:300] if isinstance(exc,HTTPException) else 'Workflow preparation stopped. Review its scope and child conversations before resuming.'}
                 run.lease_until=None;db.commit()

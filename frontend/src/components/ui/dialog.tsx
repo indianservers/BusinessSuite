@@ -43,6 +43,12 @@ export const DialogContent = React.forwardRef<
         if (document.activeElement?.matches('[data-record-picker][aria-expanded="true"]')) { event.preventDefault(); return; }
         props.onEscapeKeyDown?.(event);
       }}
+      onFocusOutside={event => {
+        props.onFocusOutside?.(event);
+        // Modal forms trap focus themselves while keeping record-sync panels
+        // available. Focus restoration from a closing menu must not dismiss them.
+        if (state.modal) event.preventDefault();
+      }}
       className={cn(
         "fixed left-1/2 top-1/2 z-50 grid min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-background p-4 shadow-xl sm:p-6",
         className,

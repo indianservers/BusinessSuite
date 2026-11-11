@@ -15,6 +15,19 @@ ROOT='/api/v1/ai-operator/suite/agents/workflows'
 SUITE='/api/v1/ai-operator/suite'
 
 
+@pytest.fixture(autouse=True)
+def isolate_fixture_planning_sessions(monkeypatch):
+    # The API fixture deliberately shares one SQLAlchemy Session. Production
+    # requests use separate sessions. Serialize native fixture HTTP work only;
+    # concurrency tests below assert overlapping calls before this boundary.
+    from app.ai_operator import agent_workflows
+    real=agent_workflows.prepare_agent;locks={}
+    async def prepare(*args,**kwargs):
+        loop=asyncio.get_running_loop();lock=locks.setdefault(loop,asyncio.Lock())
+        async with lock:return await real(*args,**kwargs)
+    monkeypatch.setattr(agent_workflows,'prepare_agent',prepare)
+
+
 def make(client,db):
     h,user,_,_=setup_suite(client,db)
     first=profile(client,h);second=profile(client,h,tools=['crm.task','crm.update_task'])
@@ -142,7 +155,6 @@ def test_independent_agents_prepare_before_either_action_is_approved(client,db):
         {'agent_id':first['id'],'instructions':'Create CRM task called First independent draft'},
         {'agent_id':second['id'],'instructions':'Create CRM task called Second independent draft'}]})
     flow=r.json();start(client,h,flow)
-    assert process(client,db)['processed']==1
     assert process(client,db)['processed']==1
     nodes=state(client,h,flow)['nodes'];assert all(n.get('run_id') for n in nodes)
     assert all(client.get(SUITE+f'/runs/{n["run_id"]}',headers=h).json()['status']=='awaiting_approval' for n in nodes)

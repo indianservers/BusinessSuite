@@ -19,13 +19,13 @@ from app.ai_operator.saved_agents import Config,access,store,public as profile_p
 from app.ai_operator.agent_templates import templates
 from app.ai_operator.service import digest
 from app.ai_agents.security import company,verify,seal
+from app.ai_operator.agent_recurrence import Recurrence
 
 router=APIRouter(prefix='/suite/agents/builder',tags=['Conversational agent builder'])
 Provider=Literal['preferred','local','gemini','openai','claude']
 
 
-class ScheduleRule(Strict):
-    frequency:Literal['daily','weekly','once']='daily'
+class ScheduleRule(Recurrence):
     at:str=Field(default='09:00',pattern=r'^(?:[01]\d|2[0-3]):[0-5]\d$')
     weekday:int|None=Field(default=None,ge=0,le=6)
     expires_days:int=Field(default=30,ge=1,le=365)
@@ -115,10 +115,19 @@ def local_draft(text,previous,module,prediction=None):
         if any(t not in TOOLS for t in explicit):draft.question='One requested tool is unavailable. Choose from the approved tool catalog.'
         else:draft.tools=list(dict.fromkeys([*draft.tools,*explicit]))[:40]
     if re.search(r'\b(?:no schedule|remove (?:the )?schedule|manual only|unschedule)\b',lower):draft.schedule=None
-    elif re.search(r'\bevery\b|\bdaily\b|\bweekly\b|\bat\s+\d',lower):
+    elif re.search(r'\bevery\b|\b(?:daily|weekly|monthly|hourly)\b|\bat\s+\d',lower):
         rule=draft.schedule or ScheduleRule()
-        if re.search(r'\bweekly\b|every (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)',lower):rule.frequency='weekly'
-        elif re.search(r'\bdaily\b|every (?:day|morning|evening)',lower):rule.frequency='daily'
+        custom=re.search(r'\bevery\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(hours?|days?|weeks?|months?)\b',lower)
+        if custom:
+            words={'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12}
+            interval=int(custom[1]) if custom[1].isdigit() else words[custom[1]]
+            if 1<=interval<=365:rule.frequency='custom';rule.interval=interval;rule.interval_unit=custom[2].rstrip('s')+'s'
+            else:draft.question='Choose a recurrence interval from 1 to 365.'
+        elif re.search(r'\bhourly\b|every hour\b',lower):rule.frequency='custom';rule.interval=1;rule.interval_unit='hours'
+        elif re.search(r'\bweekly\b|every (?:week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',lower):rule.frequency='weekly';rule.interval=None;rule.interval_unit=None
+        elif re.search(r'\bmonthly\b|every month\b',lower):rule.frequency='monthly';rule.interval=None;rule.interval_unit=None
+        elif re.search(r'\bdaily\b|every (?:day|morning|evening)\b',lower):rule.frequency='daily';rule.interval=None;rule.interval_unit=None
+        elif re.search(r'\bevery\b',lower):draft.question='Which interval should I use? Choose a number of hours, days, weeks or months.'
         weekday=re.search(r'\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',lower)
         if weekday:rule.weekday='monday tuesday wednesday thursday friday saturday sunday'.split().index(weekday[1])
         clock=re.search(r'\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b',lower)
@@ -134,7 +143,7 @@ def local_draft(text,previous,module,prediction=None):
             days=int(expiry[1])
             if 1<=days<=365:rule.expires_days=days
             else:draft.question='Choose an expiry from 1 to 365 days.'
-        if re.search(r'weekdays|monthly|hourly|every \d+ (?:hours?|minutes?)',lower):draft.question='This builder currently supports daily or weekly schedules. Which cadence should I prepare?'
+        if re.search(r'weekdays|every (?:\d+ )?minutes?\b',lower):draft.question='Choose hours, calendar days, weeks or months for this schedule.'
         draft.schedule=rule
     memory=re.search(r'(?i)\bremember\s*:\s*(.+)',text)
     if memory:draft.memory=list(dict.fromkeys([*draft.memory,memory[1].strip()]))[:20]
@@ -156,7 +165,8 @@ def schedule_spec(rule,zone):
     # Round-trip normalizes a nonexistent daylight-saving wall time.
     first=first.astimezone(timezone.utc)
     expiry=min(first+timedelta(days=rule.expires_days),datetime.now(timezone.utc)+timedelta(days=365))
-    return {'scheduled_at':first.isoformat(),'expires_at':expiry.isoformat(),'timezone':zone,'frequency':rule.frequency}
+    return {'scheduled_at':first.isoformat(),'expires_at':expiry.isoformat(),'timezone':zone,'frequency':rule.frequency,
+        **({'interval':rule.interval,'interval_unit':rule.interval_unit} if rule.frequency=='custom' else {})}
 
 
 def constraints_for(text,prior):
@@ -259,7 +269,7 @@ def message(data:Message,request:Request,db:Session=Depends(get_db),user:User=De
         if not config:raise HTTPException(409,'Builder provider is unavailable')
         from app.ai_agents.security_catalog import SUITE
         tools=[{'name':t,'module':v.module,'description':v.description} for t,v in TOOLS.items() if t in SUITE]
-        outbound={'task':'Author a private non-executable agent configuration. Retain unchanged prior choices. Ask a question when necessary. Select only listed tool names. Do not invent IDs, configure connections, execute actions or activate schedules. Schedule options: daily, weekly, once, 24-hour time, weekday 0=Monday, expiry 1..365 days. Required business rights are checked separately by the application.',
+        outbound={'task':'Author a private non-executable agent configuration. Retain unchanged prior choices. Ask a question when necessary. Select only listed tool names. Do not invent IDs, configure connections, execute actions or activate schedules. Schedule options: daily, weekly, monthly, once or custom. Custom recurrence requires interval 1..365 and interval_unit hours/days/weeks/months; all other frequencies require both interval fields null. Use 24-hour time, weekday 0=Monday, expiry 1..365 days. Required business rights are checked separately by the application.',
             'request':data.text,'previous_draft':previous_draft,'templates':templates(),'tools':tools,'timezone':data.timezone}
         prompt=AiDataRedactionService().redact_text(json.dumps(outbound))
         draft=Draft.model_validate(generate_json(db,user,config,prompt=prompt,schema=Draft.model_json_schema(),purpose='agent_builder',output_type=Draft,usage_scope=scope,module='CROSS'))

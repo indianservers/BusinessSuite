@@ -39,10 +39,13 @@ def semantic_intent(command,module):
         if read:
             if re.search(r'\brisk|delivery.*block',text):return 'risk'
             if re.search(r'summary|summariz|overview|brief',text):return 'summary'
+            if module=='CRM' and re.search(r'\bleads?\s+(?:records?|list)\b',text) and not re.search(r'\b(?:named|matching|containing|search)\b',text):return 'leads.list'
+            if module=='PMS' and re.search(r'dependenc|prerequisit|depend on',text):return 'dependencies'
             if re.search(r'blocked|stuck|blockers',text):return 'tasks.blocked'
             if re.search(r'overdue|\blate\b|past due|missed.*deadline|deadlines?.*missed',text):return 'tasks.overdue'
             if re.search(r'unassigned|no (?:owner|assignee)|without\s+(?:an?\s+)?(?:owner|assignees?)\b|ownerless|(?:awaiting|pending|waiting for) assignment',text):return 'tasks.unassigned' if module=='PMS' else None
-            if re.search(r'(?:my|\bI\b|\bme\b).*assign|assign.*(?:me|my)|tasks I own',text,re.I):return 'tasks.mine'
+            if re.search(r'\b(?:my|i|me)\b.*\bassign\w*|\bassign\w*\b.*\b(?:me|my)\b|\btasks I own\b',text,re.I):return 'tasks.mine'
+            if 'today' in text and re.search(r'\b(?:task|tasks|follow[- ]?ups?|work)\b',text) and re.search(r'\bdue\b|deadline',text):return 'tasks.today'
             if module=='PMS' and re.search(r'bandwidth|capacity|resource.*availability|team availability',text):return 'capacity'
             if module=='PMS' and re.search(r'dependenc|prerequisit|depend on',text):return 'dependencies'
     if module=='Sales':
@@ -55,6 +58,7 @@ def semantic_intent(command,module):
                 if 'today' in text:return 'invoices.today'
         if re.search(r'sales.*(?:perform|figures|dashboard|totals)',text):return 'sales.dashboard'
     if module=='HRMS' and read:
+        if re.search(r'\b(?:summary|overview|recap|brief)\b',text):return 'summary'
         if re.search(r'vacation|leave|time off',text):
             if re.search(r'awaiting.*(?:decision|approv)|pending.*approv|approv.*queue',text):return 'leave.pending'
             if re.search(r'reject|declin|turned down|denied',text):return 'leave.rejected'

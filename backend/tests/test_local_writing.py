@@ -41,6 +41,30 @@ def test_held_out_writing_phrases(command, skill):
     assert classify(command) == skill
 
 
+@pytest.mark.parametrize('naming',['called','named','titled'])
+def test_named_customer_follow_up_routes_to_record_creation(naming):
+    from app.ai_operator.workflows import local_plan
+    title='Review the distributor renewal'
+    text=f'Prepare a fresh customer follow-up {naming} {title}'
+    assert classify(text) is None
+    assert chat_plan(text) is None
+    data=SimpleNamespace(text=text,module='CRM',project_id=None,
+        request_key='named-follow-up-regression',timezone='Asia/Kolkata')
+    plan,_=local_plan(data,None,None)
+    assert not plan.get('question')
+    assert len(plan['steps'])==1
+    assert plan['steps'][0]['tool']=='crm.create_task'
+    assert plan['steps'][0]['payload']['title']==title
+
+
+def test_customer_follow_up_email_still_routes_to_writing():
+    text='Prepare a customer follow-up email'
+    assert classify(text)=='follow_up'
+    plan=chat_plan(text+': Renewal review is due Friday.')
+    assert not plan.get('question') and not plan['steps']
+    assert 'Friday' in plan['summary']
+
+
 def test_writing_chat_skill_is_read_only_and_leaves_pending_workflow_unchanged():
     from app.ai_operator.workflows import local_plan
     source='Draft client email: Renewal R-742 is pending review Friday.'

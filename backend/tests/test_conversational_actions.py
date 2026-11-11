@@ -9,6 +9,41 @@ from app.ai_operator.conversational_actions import compose
 
 ROOT='/api/v1/ai-operator/suite'
 
+
+@pytest.mark.parametrize('selector',['any eligible user','exact'])
+def test_local_project_creation_assigns_authorized_member_after_review(client,db,selector):
+    h,user,project,_=setup_suite(client,db)
+    from app.apps.project_management.models import PMSProject
+    workspace=db.get(PMSProject,project).workspace_id
+    assignee=user.email if selector=='exact' else selector
+    response=client.post(ROOT+'/commands',headers=h,json={
+        'request_key':str(uuid4()),'provider':'local','module':'PMS',
+        'workspace_id':workspace,'project_id':project,
+        'text':f'Create a task called "Assigned local test" with low priority and assign it to {assignee}'})
+    assert response.status_code==200,response.text
+    draft=response.json()
+    assert draft['status']=='awaiting_approval',draft
+    assert draft['plan']['steps'][0]['payload']['assignee_user_ids']==[user.id]
+    assert draft['plan']['steps'][0]['payload']['title']=='Assigned local test'
+    assert not db.query(PMSTask).filter_by(title='Assigned local test').count()
+    approve(client,h,draft);tick(client,db)
+    final=client.get(f'{ROOT}/runs/{draft["id"]}',headers=h).json()
+    assert final['status']=='succeeded',final
+    assert db.query(PMSTask).filter_by(title='Assigned local test').count()==1
+
+
+def test_local_assignment_missing_member_never_creates_unassigned_task(client,db):
+    h,_,project,_=setup_suite(client,db)
+    from app.apps.project_management.models import PMSProject
+    response=client.post(ROOT+'/commands',headers=h,json={
+        'request_key':str(uuid4()),'provider':'local','module':'PMS',
+        'workspace_id':db.get(PMSProject,project).workspace_id,'project_id':project,
+        'text':'Create a task called "Missing owner" and assign it to nobody@example.invalid'})
+    assert response.status_code==200,response.text
+    assert response.json()['status']=='needs_clarification',response.text
+    assert not response.json()['plan']['steps']
+    assert not db.query(PMSTask).filter_by(title='Missing owner').count()
+
 def send(client,h,chat,text,**extra):
     r=client.post(ROOT+'/commands',headers=h,json={'request_key':str(uuid4()),'provider':'local','conversation_id':chat,'text':text,**extra})
     assert r.status_code==200,r.text

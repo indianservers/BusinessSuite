@@ -5,7 +5,7 @@ import httpx
 from app.core.config import settings
 
 
-def main():
+def main(local_only=False):
     root='/api/v1/ai-operator/suite';agents=[];designs=[];flows=[];children=[]
     with httpx.Client(base_url='http://127.0.0.1:1534',timeout=120) as client:
         r=client.post('/api/v1/auth/login',json={'email':settings.BOOTSTRAP_ADMIN_EMAIL,'password':settings.BOOTSTRAP_ADMIN_PASSWORD})
@@ -16,6 +16,7 @@ def main():
                 r=client.post(root+'/agents',json={'name':name,'instructions':'Read authorized source snapshots only. Do not prepare mutations. State bounded coverage.','modules':[module],'tools':[tool],'provider':'local'})
                 assert r.is_success;agents.append(r.json()['id'])
             for provider,text in [('gemini','Use only Synthetic CRM Reader and Synthetic Project Reader for two independent read-only reviews. The exact first instructions must be Show CRM tasks. The exact second instructions must be List PMS projects. No changes, schedules, connectors or outgoing messages.'),('local','Synthetic CRM Reader: Show CRM tasks; Synthetic Project Reader: List PMS projects')]:
+                if local_only and provider!='local':continue
                 r=client.post(root+'/agents/coordinator/messages',json={'request_key':str(uuid4()),'provider':provider,'text':text})
                 assert r.is_success,f'{provider} coordinator HTTP {r.status_code}'
                 draft=r.json();designs.append(draft['context_id'])
@@ -46,4 +47,7 @@ def main():
             for ident in agents:assert client.delete(root+f'/agents/{ident}').is_success
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--local-only',action='store_true')
+    main(local_only=parser.parse_args().local_only)

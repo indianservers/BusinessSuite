@@ -8628,7 +8628,7 @@ function defaultRecordFor(kind: CRMPageKind, id: number, title: string): CRMReco
     notes: "New CRM contact",
   };
   if (kind === "deals") return { name: `${title} ${id}`, company: "New Account", owner: "Karan Shah", stage: "Prospecting", amount: 500000, probability: "10%", closeDate: "2026-06-15" };
-  if (kind === "tickets") return { number: `TCK-${1100 + id}`, subject: "New customer request", priority: "Medium", status: "Open", company: "New Account", owner: "Support Desk" };
+  if (kind === "tickets") return { number: `TCK-${crypto.randomUUID()}`, subject: "New customer request", priority: "Medium", status: "Open", company: "New Account", owner: "Support Desk" };
   return { name: `${title} ${id}`, owner: "Ananya Rao", status: "New", nextFollowUp: "2026-05-14" };
 }
 

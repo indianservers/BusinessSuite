@@ -463,6 +463,14 @@ function validateGridResult<T>(result: GridResult<T>): GridResult<T> {
 }
 
 export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
+  const user=useAuthStore(state=>state.user);
+  // Reset synchronously at the identity boundary. A passive reset can render the
+  // previous account's saved names/preview once, and persist them under the new key.
+  const scope=JSON.stringify([user?.id,user?.access?.companyId,user?.role,user?.primary_role,user?.is_superuser,user?.access?.grants,props.userId,props.organizationId,props.workspaceId,props.gridId,props.personalScope]);
+  return <ScopedDataGrid key={scope} {...props}/>;
+}
+
+function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
   const [focused, setFocused] = useState<T>();
   const [previewRows,setPreviewRows] = useState<T[]>([]);
   const [previewNotice,setPreviewNotice] = useState("");

@@ -35,6 +35,11 @@ def assess(folder,baseline=None):
     def metric(value,minimum,maximum=1):return type(value) in (int,float) and math.isfinite(value) and minimum<=value<=maximum
     report=read(folder/'evaluation.json');dialogue=read(folder/'dialogue-evaluation.json')
     conversations=read(folder/'conversation-evaluation.json');unseen=read(folder/'unseen-dialogue-evaluation.json');native=read(folder/'action-release-evaluation.json')
+    common=conversations.get('common_actions')
+    if common is not None:
+        check('Common action catalog routing',common.get('total')==600 and common.get('passed')==600 and
+            common.get('by_module')=={'PMS':200,'CRM':200,'HRMS':200} and not common.get('failures'),
+            f"{common.get('passed',0)}/{common.get('total',0)}",'all 600 authored routing checks, 200 per module')
     for module in ('CRM','PMS','HRMS'):
         item=report['modules'][module]
         check(module+' training coverage',item['training_commands']>=1000,item['training_commands'],'at least 1,000 authored/reviewed commands')

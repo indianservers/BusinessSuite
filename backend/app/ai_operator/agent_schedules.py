@@ -7,7 +7,7 @@ import hmac
 import calendar
 from datetime import datetime,timedelta,timezone
 from types import SimpleNamespace
-from uuid import UUID,uuid5,NAMESPACE_URL
+from uuid import UUID,uuid4,uuid5,NAMESPACE_URL
 from typing import Literal
 import httpx
 from fastapi import APIRouter,Depends,HTTPException
@@ -21,19 +21,19 @@ from app.ai_operator.suite_tools import Strict
 from app.ai_operator.reminders import now,utc,next_occurrence
 from app.ai_agents.security import company,seal,verify
 from app.ai_operator.service import digest
+from app.ai_operator.agent_recurrence import Recurrence,next_custom_occurrence
 
 router=APIRouter(prefix='/suite/agents/schedules',tags=['Agent schedules'])
 KIND='ai_agent_schedule'
 
 
-class Schedule(Strict):
+class Schedule(Recurrence):
     request_key:UUID
     agent_id:int=Field(gt=0)
     prompt:str=Field(min_length=1,max_length=6000)
     scheduled_at:datetime
     expires_at:datetime
     timezone:str='Asia/Kolkata'
-    frequency:Literal['once','daily','weekly','monthly']='daily'
 
     @model_validator(mode='after')
     def valid(self):
@@ -54,8 +54,8 @@ class Activation(Strict):
 
 
 def snapshot(db,user,ident):
-    from app.ai_operator.saved_agents import owned,public,owned_skill
-    profile=public(owned(db,user,ident))
+    from app.ai_operator.saved_agents import owned,public,owned_skill,runtime_access
+    row=owned(db,user,ident);runtime_access(db,user,row);profile=public(row)
     from app.apps.power_apps.integrations.vault import connection
     from app.ai_operator.agent_mcp import owned as mcp_owned
     return {'agent_id':ident,'revision':profile['revision'],
@@ -69,7 +69,7 @@ def owned(db,user,ident,lock=False):
     from app.ai_operator.suite import authorize
     authorize(db,user,None)
     q=db.query(Job).filter_by(id=ident,job_type=KIND,created_by=user.id,organization_id=company(user))
-    row=(q.with_for_update() if lock else q).first()
+    row=(q.with_for_update().populate_existing() if lock else q).first()
     if not row:raise HTTPException(404,'Agent schedule not found')
     verify(db,user,row.payload_json['security_context'],history=True)
     return row
@@ -79,8 +79,9 @@ def public(row):
     data=row.payload_json
     return {'id':row.id,'status':row.status.removeprefix('agent_'),'spec':data['spec'],
         'agent_name':data['snapshot']['name'],'agent_revision':data['snapshot']['revision'],'workspace_id':data['snapshot']['workspace_id'],
-        'next_at':row.run_at,'preview_hash':data['preview_hash'],'error':row.last_error,
+        'next_at':utc(row.run_at) if row.run_at and row.status!='agent_paused' else None,'preview_hash':data['preview_hash'],'error':row.last_error,
         'occurrences':data.get('occurrences',[]),'pending':data.get('pending'),
+        'paused_at':data.get('paused_at'),'controls':data.get('controls',[]),
         'execution':'Read and prepare only; every proposed change requires review.'}
 
 
@@ -93,7 +94,7 @@ def preview(data:Schedule,db:Session=Depends(get_db),user:User=Depends(get_curre
     branch=db.info.get('branch_context')
     if not branch or not branch.branch_id:raise HTTPException(422,'Select a concrete branch before scheduling an agent')
     frozen=snapshot(db,user,data.agent_id)
-    spec=data.model_dump(mode='json',exclude={'request_key'})
+    spec=data.model_dump(mode='json',exclude={'request_key'},exclude_none=True)
     value={'spec':spec,'snapshot':frozen,'branch_id':branch.branch_id};hashed=digest(value)
     previous=db.query(Job).filter_by(job_type=KIND,organization_id=company(user),created_by=user.id).filter(Job.payload_json['ai_request_key'].as_string()==str(data.request_key)).first()
     if previous:
@@ -144,10 +145,58 @@ def listing(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
 @router.post('/{ident}/cancel')
 def cancel(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=owned(db,user,ident,True)
-    row.status='agent_cancelled';row.run_at=None;db.commit();return public(row)
+    if row.status!='agent_cancelled':
+        row.status='agent_cancelled';row.run_at=None
+        control(db,user,row,'cancelled',now());db.commit()
+    return public(row)
+
+
+def control(db,user,row,action,instant):
+    from app.ai_agents.services.audit import AiAuditService
+    row.payload_json={**row.payload_json,'controls':[*row.payload_json.get('controls',[]),{'action':action,'at':instant.isoformat(),'status':row.status}][-30:]}
+    AiAuditService(db).log(user=user,agent_id=None,module='CROSS',action='agent_schedule.'+action,
+        input_json={'schedule_id':row.id},output_json={'status':row.status},status='success')
+
+
+@router.post('/{ident}/pause')
+def pause(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=owned(db,user,ident,True)
+    if row.status=='agent_paused':return public(row)
+    if row.status not in ('agent_active','agent_waiting','agent_preparing'):raise HTTPException(409,'Only an active schedule can be paused')
+    instant=now()
+    row.payload_json={**row.payload_json,'paused_status':row.status,'paused_run_at':utc(row.run_at).isoformat() if row.run_at else None,'paused_at':instant.isoformat()}
+    # The worker wakes only to expire a paused schedule, never to prepare it.
+    row.status='agent_paused';row.run_at=datetime.fromisoformat(row.payload_json['spec']['expires_at'])
+    control(db,user,row,'paused',instant);db.commit();return public(row)
+
+
+@router.post('/{ident}/resume')
+def resume(ident:int,data:Activation,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=owned(db,user,ident,True)
+    if row.status!='agent_paused' or not hmac.compare_digest(data.preview_hash,row.payload_json['preview_hash']):raise HTTPException(409,'Review the paused schedule before resuming')
+    instant=now()
+    if instant>=datetime.fromisoformat(row.payload_json['spec']['expires_at']):
+        row.status='agent_expired';row.run_at=None
+        control(db,user,row,'expired',instant);db.commit();return public(row)
+    grant(db,user,row,True)
+    payload=row.payload_json;previous=payload['paused_status']
+    if previous=='agent_active':
+        previous_at=datetime.fromisoformat(payload['paused_run_at'])
+        next_at=previous_at if previous_at>instant else next_agent_occurrence(payload['spec'],instant)
+        row.run_at=next_at
+        row.status='agent_active' if next_at and next_at<datetime.fromisoformat(payload['spec']['expires_at']) else 'agent_complete'
+        if row.status=='agent_complete':row.run_at=None
+    else:
+        # Recover the same occurrence and deterministic request key. A response
+        # from its pre-pause worker must not overwrite the resumed lease.
+        pending={**payload['pending'],'claimed_at':(instant-timedelta(minutes=5)).isoformat(),'lease':str(uuid4())}
+        payload={**payload,'pending':pending};row.status=previous;row.run_at=instant
+    row.payload_json={**payload,'paused_at':None,'paused_status':None,'paused_run_at':None};row.last_error=None
+    control(db,user,row,'resumed',instant);db.commit();return public(row)
 
 
 def next_agent_occurrence(spec,current):
+    if spec['frequency']=='custom':return next_custom_occurrence(spec,current)
     if spec['frequency']!='monthly':return next_occurrence(spec,current)
     from zoneinfo import ZoneInfo
     zone=ZoneInfo(spec['timezone'])
@@ -209,17 +258,20 @@ async def dispatch(db,app,instant=None,limit=5):
     instant=instant or now();processed=0
     # One occurrence is in flight per schedule. The deterministic request key
     # recovers a committed plan if a worker dies before recording its receipt.
-    candidates=db.query(Job.id).filter(Job.job_type==KIND,Job.status.in_(['agent_active','agent_waiting','agent_preparing']),Job.run_at<=instant).order_by(Job.run_at,Job.id).limit(min(limit,20)).all()
+    candidates=db.query(Job.id).filter(Job.job_type==KIND,Job.status.in_(['agent_active','agent_waiting','agent_preparing','agent_paused']),Job.run_at<=instant).order_by(Job.run_at,Job.id).limit(min(limit,20)).all()
     for (ident,) in candidates:
-        row=db.query(Job).filter_by(id=ident,job_type=KIND).with_for_update(skip_locked=True).first()
-        if not row or row.status not in ('agent_active','agent_waiting','agent_preparing'):continue
+        row=db.query(Job).filter_by(id=ident,job_type=KIND).with_for_update(skip_locked=True).populate_existing().first()
+        if not row or row.status not in ('agent_active','agent_waiting','agent_preparing','agent_paused'):
+            db.rollback();continue
         if row.run_at is None or utc(row.run_at)>instant:
             db.rollback();continue
-        actor=None
+        actor=None;claimed_lease=None
         try:
             data=row.payload_json
             if instant>=datetime.fromisoformat(data['spec']['expires_at']):
                 row.status='agent_expired';row.run_at=None;db.commit();continue
+            if row.status=='agent_paused':
+                db.rollback();continue
             if row.status=='agent_preparing' and datetime.fromisoformat(data['pending']['claimed_at'])>instant-timedelta(minutes=5):
                 db.rollback();continue
             actor=db.query(User).filter_by(id=row.created_by,is_active=True).first()
@@ -239,20 +291,22 @@ async def dispatch(db,app,instant=None,limit=5):
                     claimed=db.query(Job).filter_by(id=row.id,status='agent_active',run_at=row.run_at).update({'status':'agent_preparing','run_at':instant+timedelta(minutes=5)},synchronize_session=False)
                     if not claimed:db.rollback();continue
                     conversation=chats.create(db,actor,chats.ConversationInput(title=f"Scheduled: {data['snapshot']['name']}"[:160],workspace_id=data['snapshot']['workspace_id']),commit=False)
-                    pending={'occurrence':occurrence,'conversation_id':conversation['id'],
+                    pending={'occurrence':occurrence,'conversation_id':conversation['id'],'lease':str(uuid4()),
                         'request_key':str(uuid5(NAMESPACE_URL,f'businesssuite:{row.organization_id}:{row.id}:{occurrence}')),'claimed_at':instant.isoformat()}
                     row.status='agent_preparing';row.run_at=instant+timedelta(minutes=5);row.payload_json={**data,'pending':pending};db.commit()
                 else:
-                    pending={**data['pending'],'claimed_at':instant.isoformat()}
+                    pending={**data['pending'],'claimed_at':instant.isoformat(),'lease':str(uuid4())}
                     claimed=db.query(Job).filter_by(id=row.id,status='agent_preparing',run_at=row.run_at).update({'run_at':instant+timedelta(minutes=5),'payload_json':{**data,'pending':pending}},synchronize_session=False)
                     if not claimed:db.rollback();continue
                     row.run_at=instant+timedelta(minutes=5);row.payload_json={**data,'pending':pending};db.commit()
+                claimed_lease=pending['lease']
                 prepared=await prepare_agent(app,actor.id,data['security_context']['session_id'],row.organization_id,data['branch_id'],{
                         'request_key':pending['request_key'],'text':data['spec']['prompt'],'agent_id':data['spec']['agent_id'],
                         'provider':'preferred','timezone':data['spec']['timezone'],'workspace_id':data['snapshot']['workspace_id'],
                         'project_id':data['snapshot']['project_id'],'conversation_id':pending['conversation_id']})
                 db.expire_all();row=db.query(Job).filter_by(id=ident,job_type=KIND).with_for_update().one()
-                if row.status!='agent_preparing':continue  # Cancelled while the model was planning.
+                if row.status!='agent_preparing' or (row.payload_json.get('pending') or {}).get('lease')!=claimed_lease:
+                    db.rollback();continue  # Paused, cancelled or a newer recovery owns this occurrence.
                 run=prepared;pending={**row.payload_json['pending'],'run_id':run['id']}
                 row.payload_json={**row.payload_json,'pending':pending};row.last_error=None
                 if run['status'] in ('answered','succeeded','failed','cancelled'):
@@ -268,8 +322,9 @@ async def dispatch(db,app,instant=None,limit=5):
                 db.commit();processed+=1
         except Exception:
             db.rollback();row=db.query(Job).filter_by(id=ident,job_type=KIND).with_for_update().first()
-            if row and row.status!='agent_cancelled':
+            if row and row.status in ('agent_active','agent_waiting','agent_preparing') and (claimed_lease is None or (row.payload_json.get('pending') or {}).get('lease')==claimed_lease):
                 row.status='agent_blocked';row.last_error='Owner session, scope, agent revision or planning no longer permits this schedule. Review its conversation and prepare a new schedule.';db.commit()
+            else:db.rollback()
         finally:
             if actor:actor.__dict__.pop('_suite_session_id',None)
             release_run_context(db)

@@ -1,0 +1,3487 @@
+{
+  "verifiedAt": "2026-11-11T09:55:00.115Z",
+  "baseRevision": "ddbf9f2fabcae8b6918330a9224555f9c0ffbe38",
+  "workingTreeIncludesUncommittedFixes": true,
+  "environment": {
+    "browser": "Playwright Chromium",
+    "viewports": [
+      "1440 × 950",
+      "390 × 950"
+    ],
+    "timezone": "Asia/Kolkata",
+    "actor": "Disposable QA administrator",
+    "frontend": "Production Vite build",
+    "backend": "Real FastAPI HTTP endpoints",
+    "database": "Fresh disposable SQLite from current ORM metadata",
+    "apiMocks": false,
+    "outboundDeliveryWorkers": false,
+    "limitation": "Responsive mobile viewport; physical mobile devices and other permission roles were not tested."
+  },
+  "totals": {
+    "checks": 139,
+    "apiSaves": 125,
+    "navigation": 14
+  },
+  "checks": [
+    {
+      "module": "pms",
+      "action": "Task",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794387476117"
+    },
+    {
+      "module": "pms",
+      "action": "Quick task",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794387476117"
+    },
+    {
+      "module": "pms",
+      "action": "Subtask",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 7
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/7",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794387841141"
+    },
+    {
+      "module": "pms",
+      "action": "Project",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects",
+        "status": 200,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/projects/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Story",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/5",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794387841141"
+    },
+    {
+      "module": "pms",
+      "action": "Bug",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/6",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794387841141"
+    },
+    {
+      "module": "pms",
+      "action": "Add existing person",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/people-management/memberships/bulk",
+        "status": 200
+      },
+      "readback": {
+        "endpoint": "/project-management/workspaces/1/members",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/people-management/memberships/bulk",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "pms",
+      "action": "List",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Reminder",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/record-360/work/queue/items",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Time Tracked",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/time-logs",
+        "status": 200,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/time-logs?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/time-logs",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Document",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/docs",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/docs/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/docs",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Private note",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Folder",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/file-folders",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/file-folders?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/file-folders",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Page",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Sheet",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Artifact",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Clip",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Workspace",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspace-directory",
+        "status": 201,
+        "id": "2"
+      },
+      "readback": {
+        "endpoint": "/project-management/workspace-directory/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspace-directory",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "User / invitation",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspaces/1/invitations",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/workspaces/1/invitations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "pms",
+      "action": "Space",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspace-directory",
+        "status": 201,
+        "id": "3"
+      },
+      "readback": {
+        "endpoint": "/project-management/workspace-directory/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspace-directory",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Conversation",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/collaboration/workspaces/1/chat/conversations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Private conversation created; no message sent.",
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "pms",
+      "action": "Form",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/forms/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387841141"
+    },
+    {
+      "module": "pms",
+      "action": "Custom Field",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/custom-fields",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/custom-fields?include_archived=true",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Dashboard",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/dashboards",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/dashboards/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/dashboards",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "Tag",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/tags",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/tag-manager",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/tags",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "pms",
+      "action": "View List",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/saved-views",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/project-management/saved-views",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/saved-views",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Whiteboard",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "personalLayoutReload": true,
+      "note": "Personal card view; no standalone whiteboard record API.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Workspace",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspace-directory",
+        "status": 201,
+        "id": "4"
+      },
+      "readback": {
+        "endpoint": "/project-management/workspace-directory/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/workspace-directory",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Space",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspace-directory",
+        "status": 201,
+        "id": "5"
+      },
+      "readback": {
+        "endpoint": "/project-management/workspace-directory/5",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/workspace-directory",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Task",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 8
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/8",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "Quick task",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 11
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/11",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "Subtask",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 12
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/12",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "Project",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects",
+        "status": 200,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/projects/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "Document",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/docs",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/docs/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/docs",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Private note",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Story",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 9
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/9",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "Bug",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 10
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/10",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "User / invitation",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/workspaces/1/invitations",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/workspaces/1/invitations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "pms",
+      "action": "Form",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/forms/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "pms",
+      "action": "List",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Folder",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/file-folders",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/file-folders?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/file-folders",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Conversation",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/collaboration/workspaces/1/chat/conversations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Private conversation created; no message sent.",
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "pms",
+      "action": "Page",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "pms",
+      "action": "Custom Field",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/custom-fields",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/custom-fields?include_archived=true",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/custom-fields",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Dashboard",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/dashboards",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/dashboards/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/dashboards",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Tag",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/tags",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/tag-manager",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/tags",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "Reminder",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/record-360/work/queue/items",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Time Tracked",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/time-logs",
+        "status": 200,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/time-logs?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/time-logs",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "pms",
+      "action": "View List",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/saved-views",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/project-management/saved-views",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/saved-views",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Whiteboard",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [],
+      "personalLayoutReload": true,
+      "note": "Personal card view; no standalone whiteboard record API.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "pms",
+      "action": "Sheet",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389608697"
+    },
+    {
+      "module": "pms",
+      "action": "Artifact",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389608697"
+    },
+    {
+      "module": "pms",
+      "action": "Clip",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/files/upload",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/project-management/files?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/files/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389608697"
+    },
+    {
+      "module": "crm",
+      "action": "Add Lead",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/lead-management/leads",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/lead-management/leads/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Contact",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/contacts",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/crm/contacts/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Company",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/master-data/companies",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/master-data/companies/1?source=crm",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/master-data/companies",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Add Customer",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/master-data/companies",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/master-data/companies/2?source=crm",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/master-data/companies",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Deal",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/deals",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/deals/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389730166"
+    },
+    {
+      "module": "crm",
+      "action": "Reminder",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/tasks",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/tasks/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Task",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 16
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/16",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Activity",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/activities",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/activities?per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "crm",
+      "action": "Product",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/catalog/items",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/catalog/items/product/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/catalog/items",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Service",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/catalog/items",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/catalog/items/service/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/catalog/items",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Quote",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/quotes",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/quotes/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/quotes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "crm",
+      "action": "Support ticket",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/tickets",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/crm/tickets?per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/tickets",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "crm",
+      "action": "Campaign",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/communication/campaigns",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/communication/campaigns",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/communication/campaigns",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Draft only; campaign not launched.",
+      "run": "CREATEQA-1794389730166"
+    },
+    {
+      "module": "crm",
+      "action": "Email",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/communication/emails/draft",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/communication/timeline/lead/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/communication/emails/draft",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Server draft only; no email sent.",
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "crm",
+      "action": "Subtask",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 15
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/15",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "List",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "crm",
+      "action": "Time Tracked",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/time-logs",
+        "status": 200,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/project-management/time-logs?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/time-logs",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Note",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 7
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/7",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "crm",
+      "action": "Folder",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/folders",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/folders",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Document",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/docs",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/project-management/docs/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/docs",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Page",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/5",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Sheet",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Artifact",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Clip",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Form",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/forms/1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "crm",
+      "action": "Custom Field",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/custom-fields",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/crm/custom-fields?entityType=leads&per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Dashboard",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/dashboard",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390552418"
+    },
+    {
+      "module": "crm",
+      "action": "Tag",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/lead-management/leads",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Record tags are edited on existing CRM records; no standalone tag create form.",
+      "run": "CREATEQA-1794390552418"
+    },
+    {
+      "module": "crm",
+      "action": "View List",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/productivity/shared-views",
+        "status": 200
+      },
+      "readback": {
+        "endpoint": "/crm/productivity/shared-views",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/productivity/shared-views",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "crm",
+      "action": "Whiteboard",
+      "width": 1440,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/lead-management/leads",
+        "matched": true
+      },
+      "writes": [],
+      "personalLayoutReload": true,
+      "note": "Personal card view; no standalone whiteboard record API.",
+      "run": "CREATEQA-1794390865581"
+    },
+    {
+      "module": "crm",
+      "action": "Space",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/workspace-directory",
+        "status": 201,
+        "id": "4b4de9731f7f43a4b84e394cbbbd4df1"
+      },
+      "readback": {
+        "endpoint": "/crm/workspace-directory/4b4de9731f7f43a4b84e394cbbbd4df1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/workspace-directory",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388791942"
+    },
+    {
+      "module": "crm",
+      "action": "Conversation",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/collaboration/workspaces/1/chat/conversations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Private conversation created; no message sent.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "crm",
+      "action": "Add Lead",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/lead-management/leads",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/lead-management/leads/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "View List",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/productivity/shared-views",
+        "status": 200
+      },
+      "readback": {
+        "endpoint": "/crm/productivity/shared-views",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/productivity/shared-views",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794390552418"
+    },
+    {
+      "module": "crm",
+      "action": "Whiteboard",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/lead-management/leads",
+        "matched": true
+      },
+      "writes": [],
+      "personalLayoutReload": true,
+      "note": "Personal card view; no standalone whiteboard record API.",
+      "run": "CREATEQA-1794390865581"
+    },
+    {
+      "module": "crm",
+      "action": "Contact",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/contacts",
+        "status": 201,
+        "id": 7
+      },
+      "readback": {
+        "endpoint": "/crm/contacts/7",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Company",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/master-data/companies",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/master-data/companies/3?source=crm",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/master-data/companies",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Add Customer",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/master-data/companies",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/master-data/companies/4?source=crm",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/master-data/companies",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Deal",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/deals",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/deals/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389730166"
+    },
+    {
+      "module": "crm",
+      "action": "Reminder",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/tasks",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/tasks/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Note",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 8
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/8",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "crm",
+      "action": "Task",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+        "status": 201,
+        "id": 14
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/14",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/task-studio/projects/1/tasks",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Activity",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/activities",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/crm/activities?per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "crm",
+      "action": "Product",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/catalog/items",
+        "status": 201,
+        "id": 3
+      },
+      "readback": {
+        "endpoint": "/catalog/items/product/3",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/catalog/items",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Service",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/catalog/items",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/catalog/items/service/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/catalog/items",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Quote",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/quotes",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/quotes/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/quotes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "crm",
+      "action": "Support ticket",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/tickets",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/crm/tickets?per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/tickets",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "crm",
+      "action": "Campaign",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/communication/campaigns",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/communication/campaigns",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/communication/campaigns",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Draft only; campaign not launched.",
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "crm",
+      "action": "Form",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/forms/5",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "Email",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/communication/emails/draft",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/communication/timeline/lead/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/communication/emails/draft",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Server draft only; no email sent.",
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "crm",
+      "action": "Subtask",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/tasks",
+        "status": 200,
+        "id": 13
+      },
+      "readback": {
+        "endpoint": "/project-management/tasks/13",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/tasks",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "crm",
+      "action": "List",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/project-management/tasks",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390454234"
+    },
+    {
+      "module": "crm",
+      "action": "Folder",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/folders",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/folders",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Space",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/workspace-directory",
+        "status": 201,
+        "id": "5220e31f2da743dfb76d2e50b5d99281"
+      },
+      "readback": {
+        "endpoint": "/crm/workspace-directory/5220e31f2da743dfb76d2e50b5d99281",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/workspace-directory",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Document",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/projects/1/docs",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/project-management/docs/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/projects/1/docs",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Conversation",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/collaboration/workspaces/1/chat/conversations",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "Private conversation created; no message sent.",
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "crm",
+      "action": "Page",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/6",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "crm",
+      "action": "Custom Field",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/custom-fields",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/crm/custom-fields?entityType=leads&per_page=100",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Dashboard",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/dashboard",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Mapped existing workspace; no standalone record is created by this action.",
+      "run": "CREATEQA-1794390552418"
+    },
+    {
+      "module": "crm",
+      "action": "Tag",
+      "width": 390,
+      "status": "passed",
+      "kind": "navigation",
+      "readback": {
+        "endpoint": "/crm/lead-management/leads",
+        "matched": true
+      },
+      "writes": [],
+      "note": "Record tags are edited on existing CRM records; no standalone tag create form.",
+      "run": "CREATEQA-1794390552418"
+    },
+    {
+      "module": "crm",
+      "action": "Time Tracked",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/time-logs",
+        "status": 200,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/project-management/time-logs?project_id=1",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/time-logs",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Sheet",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Artifact",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "crm",
+      "action": "Clip",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/crm/file-workspace/upload",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/crm/file-workspace",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/crm/file-workspace/upload",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389414844"
+    },
+    {
+      "module": "hrms",
+      "action": "Add employee",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/employees/",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/employees/4",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/employees/",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "hrms",
+      "action": "Bulk add employees",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/imports/hrms/batches/38c85fe5-e957-4a04-b973-1a8b3f6d1b27/commit",
+        "status": 200,
+        "id": "38c85fe5-e957-4a04-b973-1a8b3f6d1b27"
+      },
+      "readback": {
+        "endpoint": "/employees/?search=CreateImport1794389980400",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/data-transfer/inspect",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/upload",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/batches/38c85fe5-e957-4a04-b973-1a8b3f6d1b27/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/batches/38c85fe5-e957-4a04-b973-1a8b3f6d1b27/commit",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "hrms",
+      "action": "Correct attendance",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/employees/workbench/attendance/2/correct",
+        "status": 200
+      },
+      "readback": {
+        "endpoint": "/attendance/employee/2?from_date=2026-11-01&to_date=2026-11-30",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/employees/workbench/attendance/2/correct",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "utcRoundTrip": true,
+      "run": "CREATEQA-1794390623853"
+    },
+    {
+      "module": "hrms",
+      "action": "Apply for leave",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/leave/apply",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/leave/my-requests",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/leave/apply",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "hrms",
+      "action": "Support ticket",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/helpdesk/tickets",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/helpdesk/tickets",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/helpdesk/tickets",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "hrms",
+      "action": "Submit expense",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/expenses/claims",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/expenses/claims",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/expenses/claims",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "hrms",
+      "action": "Generate letter",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/documents/studio/issue",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/documents/studio/issued",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/documents/studio/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/documents/studio/issue",
+          "method": "POST",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/documents/studio/preview",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "note": "QA PDF issued in disposable database.",
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "hrms",
+      "action": "Note",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 9
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/9",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "hrms",
+      "action": "Upload document",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/documents/certificates",
+        "status": 201,
+        "id": 4
+      },
+      "readback": {
+        "endpoint": "/documents/certificates?employee_id=2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/documents/certificates",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390758722"
+    },
+    {
+      "module": "hrms",
+      "action": "Form",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/forms/2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794387604443"
+    },
+    {
+      "module": "hrms",
+      "action": "Asset",
+      "width": 1440,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/assets/",
+        "status": 201,
+        "id": 1
+      },
+      "readback": {
+        "endpoint": "/assets/?search=CREATEQA-1794389932762%20asset",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/assets/",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "hrms",
+      "action": "Add employee",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/employees/",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/employees/5",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/employees/",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "hrms",
+      "action": "Bulk add employees",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/imports/hrms/batches/b0b16035-7d46-412f-93c0-8edbc73ee69a/commit",
+        "status": 200,
+        "id": "b0b16035-7d46-412f-93c0-8edbc73ee69a"
+      },
+      "readback": {
+        "endpoint": "/employees/?search=CreateImport1794389988695",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/data-transfer/inspect",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/upload",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/batches/b0b16035-7d46-412f-93c0-8edbc73ee69a/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/imports/hrms/batches/b0b16035-7d46-412f-93c0-8edbc73ee69a/commit",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "run": "CREATEQA-1794389932762"
+    },
+    {
+      "module": "hrms",
+      "action": "Correct attendance",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/employees/workbench/attendance/2/correct",
+        "status": 200
+      },
+      "readback": {
+        "endpoint": "/attendance/employee/2?from_date=2026-11-01&to_date=2026-11-30",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/employees/workbench/attendance/2/correct",
+          "method": "POST",
+          "status": 200
+        }
+      ],
+      "utcRoundTrip": true,
+      "run": "CREATEQA-1794390623853"
+    },
+    {
+      "module": "hrms",
+      "action": "Generate letter",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/documents/studio/issue",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/documents/studio/issued",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/documents/studio/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/documents/studio/issue",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "note": "QA PDF issued in disposable database.",
+      "run": "CREATEQA-1794389699355"
+    },
+    {
+      "module": "hrms",
+      "action": "Apply for leave",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/leave/apply",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/leave/my-requests",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/leave/apply",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388646980"
+    },
+    {
+      "module": "hrms",
+      "action": "Note",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/project-management/notes",
+        "status": 201,
+        "id": 10
+      },
+      "readback": {
+        "endpoint": "/project-management/notes/10",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/project-management/notes",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794388967425"
+    },
+    {
+      "module": "hrms",
+      "action": "Support ticket",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/helpdesk/tickets",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/helpdesk/tickets",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/helpdesk/tickets",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390115378"
+    },
+    {
+      "module": "hrms",
+      "action": "Submit expense",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/expenses/claims",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/expenses/claims",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/expenses/claims",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "hrms",
+      "action": "Upload document",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/documents/certificates",
+        "status": 201,
+        "id": 5
+      },
+      "readback": {
+        "endpoint": "/documents/certificates?employee_id=2",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/documents/certificates",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794390758722"
+    },
+    {
+      "module": "hrms",
+      "action": "Form",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/forms",
+        "status": 201,
+        "id": 6
+      },
+      "readback": {
+        "endpoint": "/forms/6",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/forms",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389020237"
+    },
+    {
+      "module": "hrms",
+      "action": "Asset",
+      "width": 390,
+      "status": "passed",
+      "kind": "api-save",
+      "saved": {
+        "path": "/api/v1/assets/",
+        "status": 201,
+        "id": 2
+      },
+      "readback": {
+        "endpoint": "/assets/?search=CREATEQA-1794389932762%20asset",
+        "matched": true
+      },
+      "writes": [
+        {
+          "path": "/api/v1/assets/",
+          "method": "POST",
+          "status": 201
+        }
+      ],
+      "run": "CREATEQA-1794389932762"
+    }
+  ]
+}

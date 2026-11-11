@@ -1,6 +1,25 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('organization library requires publication and install reviews without starting an agent',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Shared recovery helper');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare clear recovery followups.');await page.getByRole('textbox',{name:'Agent memory',exact:true}).fill('My private writing preference.');
+ await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();
+ await page.getByRole('combobox',{name:'Library agent source',exact:true}).selectOption('71');
+ await page.getByRole('combobox',{name:'Library agent audience',exact:true}).selectOption('members');await page.getByRole('checkbox',{name:'robot-fixture@example.com',exact:true}).check();
+ await page.getByRole('button',{name:'Preview agent publication',exact:true}).click();
+ const review=page.getByRole('article',{name:'Shared definition publication preview',exact:true});await expect(review).toContainText('1 private memory entries');await expect(review).not.toContainText('My private writing preference.');await expect(review).toContainText('robot-fixture@example.com');await expect(page.getByRole('combobox',{name:'Library agent audience',exact:true})).toBeDisabled();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/publish')).length)).toBe(0);
+ await page.getByRole('button',{name:'Publish this exact definition',exact:true}).click();
+ const asset=page.getByRole('article',{name:'Shared agent 901',exact:true});await asset.getByText('Review shared definition',{exact:true}).click();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/install')).length)).toBe(0);
+ await asset.getByRole('button',{name:'Install private agent',exact:true}).click();await expect(page.getByRole('status')).toContainText('Private agent #971 installed');
+ await asset.getByRole('button',{name:'Versions of shared agent #901',exact:true}).click();await expect(page.getByRole('region',{name:'Shared definition versions',exact:true})).toContainText('Revision 1');
+ await asset.getByRole('button',{name:'Revoke shared agent #901',exact:true}).click();await expect(asset).toContainText('revoked');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')||r.path.endsWith('/approve')).length)).toBe(0);
+});
+
 test('coordinator preserves followups and creates an inactive reviewed workflow',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  await page.getByRole('tab',{name:'Workflows',exact:true}).click();
@@ -92,15 +111,24 @@ test('saved agents expose reviewed tools skills MCP and schedules',async({page})
  await page.getByRole('textbox',{name:'Scheduled agent instructions',exact:true}).fill('Prepare delivery followup tasks');
  await page.getByLabel('Agent schedule first run',{exact:true}).fill('2027-01-01T09:00');
  await page.getByLabel('Agent schedule expiry',{exact:true}).fill('2027-01-31T09:00');
+ await page.getByLabel('Agent schedule frequency',{exact:true}).selectOption('custom');await page.getByLabel('Agent schedule interval',{exact:true}).fill('3');await page.getByLabel('Agent schedule interval unit',{exact:true}).selectOption('weeks');
  await page.getByRole('button',{name:'Preview scheduled agent',exact:true}).click();
  await expect(page.getByRole('article',{name:'Agent schedule preview',exact:true})).toContainText('Reads and drafts only');
+ await expect(page.getByRole('article',{name:'Agent schedule preview',exact:true})).toContainText('Every 3 weeks');
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/activate')).length)).toBe(0);
  await page.getByRole('button',{name:'Activate this exact schedule',exact:true}).click();
  await expect(page.getByText('Agent · active',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Pause agent schedule',exact:true}).click();await expect(page.getByText('Agent · paused',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Review resume',exact:true}).click();
+ const resumeReview=page.getByRole('region',{name:'Resume agent schedule review',exact:true});await expect(resumeReview).toContainText('Proposed changes still need separate review');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/resume')).length)).toBe(0);
+ await resumeReview.getByRole('button',{name:'Keep paused',exact:true}).click();await expect(resumeReview).toHaveCount(0);
+ await page.getByRole('button',{name:'Review resume',exact:true}).click();await page.getByRole('button',{name:'Resume this exact schedule',exact:true}).click();await expect(page.getByText('Agent · active',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Cancel agent schedule',exact:true}).click();
  await expect(page.getByText('Agent · cancelled',{exact:true})).toBeVisible();
  await page.getByRole('tab',{name:'Workflows',exact:true}).click();
  await page.getByRole('textbox',{name:'Agent workflow name',exact:true}).fill('Delivery handoff');
+ await page.getByRole('combobox',{name:'Agent planning concurrency',exact:true}).selectOption('3');
  await page.getByRole('combobox',{name:'Workflow step 1 agent',exact:true}).selectOption('71');
  await page.getByRole('textbox',{name:'Workflow step 1 instructions',exact:true}).fill('Create a CRM followup draft');
  await page.getByRole('button',{name:'Add agent step',exact:true}).click();
@@ -108,6 +136,7 @@ test('saved agents expose reviewed tools skills MCP and schedules',async({page})
  await page.getByRole('textbox',{name:'Workflow step 2 instructions',exact:true}).fill('Prepare the next followup');
  await page.getByRole('button',{name:'Preview agent workflow',exact:true}).click();
  await expect(page.getByRole('article',{name:'Agent workflow preview',exact:true})).toContainText('After step 1');
+ await expect(page.getByRole('article',{name:'Agent workflow preview',exact:true})).toContainText('At most 3 independent planning calls at once');
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/301/start')).length)).toBe(0);
  await page.getByRole('button',{name:'Start this exact workflow',exact:true}).click();
  await expect(page.getByRole('list',{name:'Delivery handoff progress',exact:true})).toBeVisible();

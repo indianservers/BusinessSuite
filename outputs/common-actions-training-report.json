@@ -1,0 +1,225 @@
+{
+  "catalog": "common-actions-200-v1",
+  "requests_per_module": {
+    "PMS": 200,
+    "CRM": 200,
+    "HRMS": 200
+  },
+  "intent_families_per_module": 20,
+  "active_local_job_id": 239,
+  "runtime_verified_via_api": true,
+  "training_examples": {
+    "CRM": 1393,
+    "PMS": 1382,
+    "Sales": 120,
+    "HRMS": 1380
+  },
+  "catalog_routing": {
+    "passed": 600,
+    "total": 600
+  },
+  "separate_wording": {
+    "total": 60,
+    "neural_passed": 56,
+    "parser_passed": 60,
+    "limits": "Frozen synthetic development wording, distinct after feature normalization; never used to fit this release. 20 probes per module are not production accuracy evidence."
+  },
+  "native_tests": {
+    "tests": 139,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "release_gate": {
+    "policy": "action-model-release-v1",
+    "passed": true,
+    "checks": [
+      {
+        "name": "Common action catalog routing",
+        "passed": true,
+        "actual": "600/600",
+        "required": "all 600 authored routing checks, 200 per module"
+      },
+      {
+        "name": "CRM training coverage",
+        "passed": true,
+        "actual": 1393,
+        "required": "at least 1,000 authored/reviewed commands"
+      },
+      {
+        "name": "CRM exemplar fit",
+        "passed": true,
+        "actual": 1.0,
+        "required": "at least 0.99 on training exemplars; not generalization"
+      },
+      {
+        "name": "CRM internal validation",
+        "passed": true,
+        "actual": 1.0,
+        "required": "at least 0.80; synthetic internal split"
+      },
+      {
+        "name": "CRM numeric parity",
+        "passed": true,
+        "actual": 2.4279073218558267e-07,
+        "required": "at most 0.00001"
+      },
+      {
+        "name": "PMS training coverage",
+        "passed": true,
+        "actual": 1382,
+        "required": "at least 1,000 authored/reviewed commands"
+      },
+      {
+        "name": "PMS exemplar fit",
+        "passed": true,
+        "actual": 1.0,
+        "required": "at least 0.99 on training exemplars; not generalization"
+      },
+      {
+        "name": "PMS internal validation",
+        "passed": true,
+        "actual": 0.95,
+        "required": "at least 0.80; synthetic internal split"
+      },
+      {
+        "name": "PMS numeric parity",
+        "passed": true,
+        "actual": 2.7062429974744617e-07,
+        "required": "at most 0.00001"
+      },
+      {
+        "name": "HRMS training coverage",
+        "passed": true,
+        "actual": 1380,
+        "required": "at least 1,000 authored/reviewed commands"
+      },
+      {
+        "name": "HRMS exemplar fit",
+        "passed": true,
+        "actual": 1.0,
+        "required": "at least 0.99 on training exemplars; not generalization"
+      },
+      {
+        "name": "HRMS internal validation",
+        "passed": true,
+        "actual": 0.95,
+        "required": "at least 0.80; synthetic internal split"
+      },
+      {
+        "name": "HRMS numeric parity",
+        "passed": true,
+        "actual": 2.580800831930574e-07,
+        "required": "at most 0.00001"
+      },
+      {
+        "name": "Dialogue development",
+        "passed": true,
+        "actual": 0.8896713615023474,
+        "required": "at least 0.85; development data"
+      },
+      {
+        "name": "Dialogue numeric parity",
+        "passed": true,
+        "actual": 2.66991634356728e-07,
+        "required": "at most 0.00001"
+      },
+      {
+        "name": "Authored conversation scenarios",
+        "passed": true,
+        "actual": "684/684",
+        "required": "all scenarios; at least 600"
+      },
+      {
+        "name": "Conversational action programs",
+        "passed": true,
+        "actual": "120/120",
+        "required": "all authored workflow probes; at least 100"
+      },
+      {
+        "name": "Workplace action regressions",
+        "passed": true,
+        "actual": "180/180",
+        "required": "all realistic authored scenarios; at least 150"
+      },
+      {
+        "name": "Workplace action batch 2",
+        "passed": true,
+        "actual": "150/150",
+        "required": "all fresh authored scenarios; at least 150"
+      },
+      {
+        "name": "Workplace action batch 3",
+        "passed": true,
+        "actual": "270/270",
+        "required": "all fresh authored scenarios; at least 250"
+      },
+      {
+        "name": "Workplace batch 3 command fit",
+        "passed": true,
+        "actual": "270/270",
+        "required": "all authored training commands prepare exact drafts; not generalization"
+      },
+      {
+        "name": "Workplace action batch 4",
+        "passed": true,
+        "actual": {
+          "scenarios": "150/150",
+          "fit": "150/150"
+        },
+        "required": "all 150+ fresh authored scenarios and training draft checks"
+      },
+      {
+        "name": "Workplace action batch 5",
+        "passed": true,
+        "actual": {
+          "scenarios": "150/150",
+          "fit": "150/150"
+        },
+        "required": "all 150+ fresh title-reference scenarios and training draft checks"
+      },
+      {
+        "name": "Frozen unseen dialogue",
+        "passed": true,
+        "actual": 0.7583333333333333,
+        "required": "at least 0.75 on 120+ frozen synthetic probes"
+      },
+      {
+        "name": "Canonical actions and safety",
+        "passed": true,
+        "actual": {
+          "tests": 139,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "required": "all native integration tests; at least 20, none skipped"
+      },
+      {
+        "name": "Uploaded test",
+        "passed": true,
+        "actual": "56/60",
+        "required": "at least 0.80; never used as training labels"
+      },
+      {
+        "name": "Regression dialogue_development",
+        "passed": true,
+        "actual": 0.8896713615023474,
+        "required": "at least 0.8697"
+      },
+      {
+        "name": "Regression unseen_dialogue",
+        "passed": true,
+        "actual": 0.7583333333333333,
+        "required": "at least 0.7383"
+      }
+    ],
+    "scores": {
+      "dialogue_development": 0.8896713615023474,
+      "unseen_dialogue": 0.7583333333333333
+    },
+    "limitations": "Small authored and synthetic evaluations, not production accuracy or a competitor benchmark. Neural predictions never authorize actions. Sales remains experimental. No customer queries or uploads are imported automatically."
+  },
+  "model_path": "C:\\Indian Servers\\ERPTrainedModel\\training\\platform\\runs\\239\\model\\bundle.json",
+  "limitations": "600 curated requests across existing intent families, not 600 distinct executable tools or a measured frequency ranking. Payroll, attendance and manager leave decisions remain native module handoffs. Wording probes were not fitted; parser fixes were informed by inspected development results."
+}

@@ -30,6 +30,10 @@ from app.ai_operator.artifacts import router as artifact_router
 router.include_router(artifact_router)
 from app.ai_operator.saved_agents import router as saved_agents_router
 router.include_router(saved_agents_router)
+from app.ai_operator.skill_packages import router as skill_packages_router
+router.include_router(skill_packages_router)
+from app.ai_operator.agent_library import router as agent_library_router
+router.include_router(agent_library_router)
 from app.ai_operator.agent_connectors import router as agent_connectors_router
 router.include_router(agent_connectors_router)
 from app.ai_operator.agent_mcp import router as agent_mcp_router

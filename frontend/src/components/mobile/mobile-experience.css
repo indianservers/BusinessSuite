@@ -58,8 +58,8 @@
 @media(min-width:768px){.mobile-only-panel,.mobile-stepper,.mobile-tools-trigger{display:none!important}}
 
 @media(max-width:767px){
- .mobile-create-list{display:grid;gap:5px;overflow-y:auto;min-height:0;max-height:55dvh;overscroll-behavior:contain}
- .mobile-create-list>button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 8px;border-radius:16px;text-align:left;min-height:68px}
+ .mobile-experience-sheet .mobile-create-list{display:grid;grid-auto-rows:max-content;align-content:start;gap:5px;overflow-y:auto;min-height:0;max-height:55dvh;overscroll-behavior:contain}
+ .mobile-experience-sheet .mobile-create-list>button{display:flex;align-items:center;gap:12px;width:100%;height:auto;padding:10px 8px;border-radius:16px;text-align:left;min-height:84px;white-space:normal}
  .mobile-create-list>button:hover,.mobile-create-list>button:focus-visible{background:hsl(var(--primary)/.07)}
  .mobile-create-list>button:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:-2px}
  .mobile-create-list>button:disabled{opacity:.4}
