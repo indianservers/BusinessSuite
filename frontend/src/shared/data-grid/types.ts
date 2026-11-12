@@ -170,6 +170,7 @@ export type GridAction<T> = {
 export type SharedDataGridProps<T> = {
   /** Compact nested table controls without discarding personal views or summaries. */
   compactControls?: boolean;
+  mobileToolsCollapsible?: boolean;
   /** Place the existing saved-view control in a collection-owned toolbar. */
   savedViewsHost?: HTMLElement | null;
   savedViewsExtra?: ReactNode;

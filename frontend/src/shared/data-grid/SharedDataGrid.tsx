@@ -630,6 +630,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     [views, setViews] = useState<GridSavedView[]>(initial.views);
   const mobile = useMobile();
   const [mobileTable, setMobileTable] = useRouteViewState(`grid:${gridId}:mobile-table`, false);
+  const [mobileToolsHost,setMobileToolsHost]=useState<HTMLDivElement|null>(null);
+  const placeMobileTools=(content:ReactNode)=>mobile&&props.mobileToolsCollapsible&&mobileToolsHost?createPortal(content,mobileToolsHost):content;
   const [selecting, setSelecting] = useState(false);
   const quickColumns = columns.filter(column => /^quick actions$/i.test(column.title));
   const quickIds = quickColumns.map(column => column.id);
@@ -1819,6 +1821,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       {!props.compactControls && statistics}
       {!props.compactControls && visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
+        toolsHostRef={setMobileToolsHost}
+        collapse={mobile && props.mobileToolsCollapsible}
         search={search}
         hideSearch={props.hideSearch}
         searchPlaceholder={props.dataScope === "loaded" ? "Search loaded records…" : undefined}
@@ -1863,11 +1867,11 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           />
         </button>
       </GridToolbar>
-      {mobile && <div className="udg-mobile-presets" aria-label="Quick filters">
+      {mobile && placeMobileTools(<div className="udg-mobile-presets" aria-label="Quick filters">
         {props.selectionEnabled !== false && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(value => !value); if (selecting) emitSelection([]); }}>{selecting ? "Done selecting" : "Select records"}</button>}
         {presets.map(preset => <button type="button" key={preset.label} aria-pressed={hasMobilePreset(query.filters, preset)} onClick={() => changeQuery({ ...query, filters: toggleMobilePreset(query.filters, preset, presets), page: 1 })}>{preset.label}</button>)}
         {baseLayout.view === "grid" && <button type="button" onClick={() => setMobileTable(value => !value)}>{mobileTable ? "Cards view" : "Table view"}</button>}
-      </div>}
+      </div>)}
       {undoEdit && <div className="udg-edit-undo" role="status"><span>Change saved</span><button type="button" disabled={undoBusy || request.isFetching || !!edit || !permissions.edit || !onEdit} onClick={async () => {
         const row = visibleRecords.find(record => getRowId(record) === undoEdit.row), column = columns.find(column => column.id === undoEdit.column);
         if (!row || !column || String(column.accessor ? column.accessor(row) ?? "" : (row as Record<string, unknown>)[column.id] ?? "") !== undoEdit.after) { setActionError("This record changed. Open it to review the latest value before editing."); setUndoEdit(undefined); return; }
@@ -1970,8 +1974,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         }}
         onDragEnd={dragEnd}
       >
-        <GroupingPanel columns={columns} query={query} change={changeQuery} loadedOnly={props.dataScope === "loaded"}
-          expandAll={() => void expandLoadedGroups()} collapseAll={() => setExpanded({})} expanding={expandingAll}/>
+        {placeMobileTools(<GroupingPanel columns={columns} query={query} change={changeQuery} loadedOnly={props.dataScope === "loaded"}
+          expandAll={() => void expandLoadedGroups()} collapseAll={() => setExpanded({})} expanding={expandingAll}/>)}
         {layout.view === "grid" ? (
           <div
             className="udg-scroll"

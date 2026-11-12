@@ -56,3 +56,6 @@
  .udg-mobile-filter > .udg-dialog-footer button {min-height:44px}
  .udg-mobile-filter > .udg-dialog-footer .udg-primary {grid-column:1/-1}
 }
+
+.udg-mobile-tools>summary{cursor:pointer;min-height:44px;padding:10px 12px;font-size:12px;font-weight:600;border-bottom:1px solid hsl(var(--border))}
+.udg-mobile-tools>summary:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:-2px}

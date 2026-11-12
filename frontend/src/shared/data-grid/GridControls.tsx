@@ -422,6 +422,8 @@ export function GridToolbar({
   reset,
   searchPlaceholder,
   hideSearch,
+  collapse = false,
+  toolsHostRef,
 }: {
   search: string;
   setSearch: (s: string) => void;
@@ -436,8 +438,10 @@ export function GridToolbar({
   reset: () => void;
   searchPlaceholder?: string;
   hideSearch?: boolean;
+  collapse?: boolean;
+  toolsHostRef?: (node:HTMLDivElement|null)=>void;
 }) {
-  return (
+  const toolbar = (
     <div className="udg-toolbar">
       {!hideSearch && <label className="udg-search">
         <Search size={16} />
@@ -536,6 +540,7 @@ export function GridToolbar({
       {extra}
     </div>
   );
+  return collapse ? <details className="udg-mobile-tools"><summary>Grid tools{filterCount>0&&` · ${filterCount} filters`}</summary>{toolbar}<div ref={toolsHostRef}/></details> : toolbar;
 }
 
 export function ColumnValueFilter<T>({

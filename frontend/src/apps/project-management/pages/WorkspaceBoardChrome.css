@@ -84,3 +84,24 @@
 .wb-filter-snapshot{border-top:1px solid hsl(var(--border));padding-top:10px;margin-top:8px;font-size:12px}
 .wb-filter-snapshot p{color:hsl(var(--muted-foreground));margin:6px 0;line-height:1.5}
 .wb-filter-snapshot button{margin:4px 6px 0 0}
+
+/* Keep the collection search visible; disclose secondary filters on phones. */
+.ws-collection-filters,.ws-collection-filter-fields{display:contents}
+.ws-collection-filters>summary{display:none}
+.wb-reference .ws-collection-filter-fields>label{display:flex;align-items:center;gap:6px;background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:8px;padding:10px 12px;min-height:42px}
+@media(max-width:767px){
+ .wb-reference .wb-overview>summary>span{display:none}
+ .wb-reference .ws-viewbar{flex-wrap:nowrap;gap:6px}
+ .wb-reference .ws-viewbar>div[role=tablist]{flex-basis:0;flex:1;min-width:0}
+ .wb-reference .wb-view-actions{gap:6px;margin-left:0}
+ .wb-reference .wb-view-actions .suite-new-trigger{min-width:0;min-height:44px;padding:8px 10px}
+ .wb-reference .wb-board-options>summary{min-height:44px;padding:10px 12px}
+ .wb-reference .ws-filterbar{margin-bottom:8px}
+ .wb-reference .wb-task-search{min-width:0;flex-basis:0;flex:1}
+ .ws-collection-filters{display:block;position:relative;flex:none}
+ .ws-collection-filters>summary{display:flex;align-items:center;min-height:44px;padding:8px 12px;border:1px solid hsl(var(--border));border-radius:8px;background:hsl(var(--background));font-size:12px;cursor:pointer}
+ .ws-collection-filters[open]>.ws-collection-filter-fields{display:flex;flex-direction:column;gap:8px;position:absolute;right:0;top:calc(100% + 4px);width:min(340px,calc(100vw - 28px));max-height:65dvh;overflow:auto;z-index:45;padding:12px;background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:10px;box-shadow:0 8px 24px #17213926}
+ .ws-collection-filter-fields>label{width:100%}
+ .ws-collection-filter-fields>label>select{flex:1;min-width:0}
+ .ws-collection-filters>summary:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+}
