@@ -34,6 +34,10 @@ from app.ai_operator.artifact_analysis import router as artifact_analysis_router
 router.include_router(artifact_analysis_router)
 from app.ai_operator.artifact_templates import router as artifact_template_router
 router.include_router(artifact_template_router)
+from app.ai_operator.artifact_shares import router as artifact_share_router
+router.include_router(artifact_share_router)
+from app.ai_operator.shared_artifact_questions import router as shared_artifact_question_router
+router.include_router(shared_artifact_question_router)
 from app.ai_operator.saved_agents import router as saved_agents_router
 router.include_router(saved_agents_router)
 from app.ai_operator.skill_packages import router as skill_packages_router

@@ -40,7 +40,7 @@ def source_link(tool, row, project_id=None):
 def issue_sources(context, retrieved_at):
     result = []
     for index, packet in enumerate(context, 1):
-        if packet['tool'].endswith('.dashboard_panel'):
+        if packet['tool'].endswith(('.dashboard_panel','.shared_artifact')):
             value=packet['records']
             if isinstance(value,dict) and isinstance(value.get('source_citation'),dict):result.append(value['source_citation'])
             continue

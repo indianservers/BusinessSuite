@@ -194,6 +194,8 @@ def evidence(item):
 
 def enforce_sources(db,user,run):
     from app.ai_operator import artifacts
+    from app.ai_operator.shared_artifact_questions import revalidate
+    revalidate(db,user,(run.result or {}).get('citations',[]))
     for source in (run.result or {}).get('citations',[]):
         match=re.fullmatch(r'artifact:(\d+):v(\d+)',str(source.get('id','')))
         if match:artifacts.public(db,user,artifacts.owned(db,user,int(match[1])),int(match[2]))

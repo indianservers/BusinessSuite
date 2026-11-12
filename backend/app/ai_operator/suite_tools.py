@@ -230,6 +230,9 @@ for _artifact_module in ('CRM','PMS','HRMS'):
     TOOLS[f'{_prefix}.dashboard_panel']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts/dashboard-panel/current',
         'Read one authorized dashboard panel at its pinned source version, including server-computed table statistics and an exact artifact citation. Never substitute the latest source revision. Category filters are read only.',
         fields=('artifact_id','position','dashboard_revision','category_query'),model='app.ai_operator.artifact_questions:PanelRead')
+    TOOLS[f'{_prefix}.shared_artifact']=Tool(_artifact_module,'GET','/ai-operator/suite/artifact-shares/read/current',
+        'Read an approved shared publication or one dashboard panel. Current audience, source liveness, module/project and agent permissions apply. Use publication IDs, never private artifact IDs. Cite source_citation.id; statistics are server-computed snapshots.',
+        fields=('share_id','edition','position','category_query'),model='app.ai_operator.shared_artifact_questions:Read')
 for _report_module in ('CRM', 'PMS', 'HRMS', 'SRM'):
     TOOLS[f'{_report_module.lower()}.report'] = Tool(_report_module, 'GET', f'/ai-operator/suite/reports/{_report_module}',
         'Preview a deterministic filtered report. Respect complete/partial coverage and currency groups; no export or write.',
@@ -291,7 +294,7 @@ def catalog():
 
 def minimize_source(name, value):
     if name.endswith('.search_knowledge'):return value
-    if name.endswith(('.artifact','.artifacts','.dashboard_panel','.connector_read')):
+    if name.endswith(('.artifact','.artifacts','.dashboard_panel','.shared_artifact','.connector_read')):
         return value
     if name.endswith('.report'):
         return value  # Reporting already minimizes and caps every source record.

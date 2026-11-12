@@ -73,6 +73,8 @@ def test_manual_review_bridge(client, db):
             "workspace":wid,"project":pid,"tasks":task_ids,"role":name,"other_workspace":other_workspace}
 
     task_writes=[]
+    fail_status_reads=set()
+    injected_read_failures=[]
     def evidence():
         db.expire_all()
         return {"workspace":wid,"project":pid,"tasks":[{
@@ -80,7 +82,7 @@ def test_manual_review_bridge(client, db):
             "updated_at":row.updated_at.isoformat() if row.updated_at else None,
             "comments":db.query(PMSComment).filter_by(task_id=row.id).count(),
         } for row in db.query(PMSTask).filter(PMSTask.id.in_(task_ids+other_tasks)).order_by(PMSTask.id)],
-        "approvals":[{"id":row.id,"status":row.status} for row in db.query(WorkflowInstance).all()],"task_writes":list(task_writes)}
+        "approvals":[{"id":row.id,"status":row.status} for row in db.query(WorkflowInstance).all()],"task_writes":list(task_writes),"injected_read_failures":list(injected_read_failures)}
 
     (review/"baseline.json").write_text(json.dumps(evidence()),encoding="utf-8")
 
@@ -88,6 +90,16 @@ def test_manual_review_bridge(client, db):
         def log_message(self,*args): pass
         def forward(self):
             parsed=urlsplit(self.path)
+            if self.command=="POST" and parsed.path=="/api/_qa/fail-next-status-read":
+                task_id=int(parse_qs(parsed.query).get("task",["0"])[0])
+                if task_id not in task_ids:self.send_error(400,"Unknown disposable task");return
+                fail_status_reads.add(f"{BASE}/tasks/{task_id}/transition-approvals")
+                self.send_response(204);self.send_header("Content-Length","0");self.end_headers();return
+            if self.command=="GET" and parsed.path in fail_status_reads:
+                fail_status_reads.remove(parsed.path);injected_read_failures.append({"path":parsed.path,"status":503})
+                body=b'{"detail":"Injected local status-choice read failure"}'
+                self.send_response(503);self.send_header("Content-Type","application/json");self.send_header("Cache-Control","no-store");self.send_header("Content-Length",str(len(body)))
+                self.end_headers();self.wfile.write(body);return
             if self.command=="GET" and parsed.path in {"/api/_qa/bootstrap","/api/_qa/evidence"}:
                 if parsed.path.endswith("bootstrap"):
                     name=parse_qs(parsed.query).get("role",["member"])[0]

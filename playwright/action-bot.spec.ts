@@ -255,6 +255,40 @@ test('scheduled conversation link restores the requested private conversation wi
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
 });
 
+test('shared publication questions open the shared citation without requesting private source artifacts',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();const input=page.getByRole('textbox',{name:'Message action bot'});
+ await input.fill('create chart sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('button',{name:'Approve these exact actions'}).click();await page.getByRole('tab',{name:'Results',exact:true}).click();
+ await page.getByRole('button',{name:'Share selected artifact version',exact:true}).click();await page.getByRole('checkbox',{name:'Artifact share member robot-fixture@example.com',exact:true}).check();await page.getByRole('button',{name:'Preview artifact share',exact:true}).click();await page.getByRole('button',{name:'Publish this exact artifact and audience',exact:true}).click();
+ await page.getByRole('tab',{name:'Artifacts',exact:true}).click();await page.getByRole('article',{name:'Shared artifact 841',exact:true}).getByRole('button',{name:'Ask bot about shared artifact',exact:true}).click();await expect(input).toHaveValue('Analyze shared artifact #841');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')).length)).toBe(1);
+ await page.getByRole('button',{name:'Send bot message'}).click();await expect(page.getByText('The authorized shared USD snapshot totals 300; INR totals 50.',{exact:true}).first()).toBeVisible();
+ const before=await page.evaluate(()=>(window as any).__botRequests.length);await page.getByRole('button',{name:'Regional amounts (shared edition 1)',exact:true}).click();await expect(page.getByRole('article',{name:'Shared artifact 841',exact:true})).toBeVisible();
+ const reads=await page.evaluate((start)=>(window as any).__botRequests.slice(start),before);expect(reads.some((r:any)=>r.path.endsWith('/artifact-shares/841/content')&&r.params.revision===1)).toBe(true);expect(reads.some((r:any)=>/\/artifacts\/\d+$/.test(r.path))).toBe(false);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(1);
+});
+
+test('artifact sharing reviews exact audience before publication and revocation blocks shared reads',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('textbox',{name:'Message action bot'}).fill('create chart sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('button',{name:'Approve these exact actions'}).click();await page.getByRole('tab',{name:'Results',exact:true}).click();
+ await page.getByRole('button',{name:'Share selected artifact version',exact:true}).click();
+ await expect(page.getByRole('combobox',{name:'Artifact share audience',exact:true})).toHaveValue('members');await expect(page.getByRole('button',{name:'Preview artifact share',exact:true})).toBeDisabled();
+ await page.getByRole('checkbox',{name:'Artifact share member robot-fixture@example.com',exact:true}).check();await page.getByRole('button',{name:'Preview artifact share',exact:true}).click();
+ const review=page.getByRole('region',{name:'Artifact sharing preview',exact:true});await expect(review).toContainText('robot-fixture@example.com');await expect(review).toContainText('source version 1');await expect(review).toContainText('Regional amounts');
+ await expect(review.getByRole('region',{name:'Unsaved chart preview',exact:true}).getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 300');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>/artifact-shares\/\d+\/publish$/.test(r.path)).length)).toBe(0);
+ await page.getByRole('button',{name:'Publish this exact artifact and audience',exact:true}).click();await expect(review).toHaveCount(0);
+ await page.getByRole('tab',{name:'Artifacts',exact:true}).click();const library=page.getByRole('region',{name:'Shared artifact library',exact:true});const shared=library.getByRole('article',{name:'Shared artifact 841',exact:true});await expect(shared).toContainText('source version 1');
+ const analysis=shared.getByRole('region',{name:'Shared artifact 841 analysis',exact:true});await expect(analysis.getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 300');await analysis.getByRole('textbox',{name:'Chart category filter',exact:true}).fill('North');await expect(analysis.getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 100');
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Workspace',exact:true}).click();
+ await expect.poll(()=>shared.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+ await mkdir('../.local/artifact-shares',{recursive:true});await page.screenshot({path:'../.local/artifact-shares/mobile.png',fullPage:true});
+ const download=page.waitForEvent('download');await shared.getByRole('button',{name:'Download shared XLSX',exact:true}).click();expect((await download).suggestedFilename()).toBe('shared-artifact-841-edition-1.xlsx');
+ await expect(shared.getByRole('button',{name:'Edit through conversation',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Revoke share #841',exact:true}).click();await shared.getByRole('button',{name:'Reload shared artifact',exact:true}).click();await expect(shared).toContainText('Shared artifact unavailable');await expect(shared).not.toContainText('Sum 100');
+ await library.getByRole('button',{name:'Refresh shared artifacts',exact:true}).click();await expect(library).toContainText('No shared artifacts are currently available');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(1);
+});
+
 test('dashboard panel questions keep actions unapproved and citations open the exact source version',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  const input=page.getByRole('textbox',{name:'Message action bot'});await input.fill('create dashboard sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('button',{name:'Approve these exact actions'}).click();

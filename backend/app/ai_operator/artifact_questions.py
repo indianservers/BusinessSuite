@@ -32,19 +32,25 @@ def read(db,user,module,workspace_id,query,agent_id=None):
         from app.ai_operator import saved_agents
         agent=saved_agents.owned(db,user,agent_id);saved_agents.runtime_access(db,user,agent)
         if source['module'] not in saved_agents.public(agent)['modules']:raise HTTPException(403,'The pinned source module is outside this agent scope')
+    return snapshot_result(db,user,source,{'dashboard_id':dashboard['id'],'dashboard_revision':dashboard['revision'],
+        'panel_position':query.position,'panel_label':panel['label']},charts.evidence(source),query.category_query)
+
+
+def snapshot_result(db,user,source,metadata,citation,category_query=''):
+    from app.ai_operator import artifact_charts as charts
+    from app.ai_agents.security import limits,company
     text=source['content']
     if source['kind']=='presentation':text='\n'.join(s['title']+'\n'+'\n'.join(s['bullets']) for s in source['slides'])
     result={'id':source['id'],'title':source['title'],'module':source['module'],'kind':source['kind'],'revision':source['revision'],
-        'current_revision':source['current_revision'],'dashboard_id':dashboard['id'],'dashboard_revision':dashboard['revision'],
-        'panel_position':query.position,'panel_label':panel['label'],'category_query':query.category_query,
-        'excerpt':text[:600],'excerpt_truncated':len(text)>600,'source_citation':charts.evidence(source),
+        'current_revision':source['current_revision'],**metadata,'category_query':category_query,
+        'excerpt':text[:600],'excerpt_truncated':len(text)>600,'source_citation':citation,
         'coverage':'One authorized pinned artifact snapshot; supplied/generated assertions, not verified live ERP facts.'}
     cap=limits(db,company(user))['max_result_bytes']
     if source['kind']=='table':
         budget=cap-len(json.dumps(result,ensure_ascii=False).encode())-32
         if budget<1000:raise HTTPException(422,'Panel analysis exceeds the disclosure budget; narrow the source or ask about one smaller panel')
-        result['analysis']=charts.bounded(charts.analyze(source,category_query=query.category_query),budget)
-    elif query.category_query:raise HTTPException(422,'Category filters require a table panel')
+        result['analysis']=charts.bounded(charts.analyze(source,category_query=category_query),budget)
+    elif category_query:raise HTTPException(422,'Category filters require a table panel')
     if len(json.dumps(result,ensure_ascii=False).encode())>cap:raise HTTPException(422,'Panel answer exceeds the disclosure budget')
     return result
 
@@ -124,15 +130,17 @@ def prepare(data,parent,context,selection):
 
 
 def answer(context,packet):
-    values=[p['records'] for p in context if p['tool'].endswith('.dashboard_panel')]
+    values=[p['records'] for p in context if p['tool'].endswith('.shared_artifact' if packet.get('shared') else '.dashboard_panel')]
     if len(values)!=len(packet['positions']):raise HTTPException(422,'Not all requested dashboard panels were read')
-    lines=[f"Dashboard #{packet['artifact_id']} version {packet['dashboard_revision']}: pinned source snapshots, not live ERP totals."]
+    label='Shared artifact' if packet.get('shared') else 'Dashboard';version='edition' if packet.get('shared') else 'version'
+    lines=[f"{label} #{packet['artifact_id']} {version} {packet['dashboard_revision']}: pinned source snapshots, not live ERP totals."]
     if packet['category_query']:lines.append(f"Category contains {packet['category_query']!r}. This filter does not edit the saved dashboard.")
     sources=[]
     for value in values:
         if not value.get('source_citation'):raise HTTPException(422,'Panel result exceeded the disclosure budget; ask about a smaller source')
         sources.append(value['source_citation']['id'])
-        lines.append(f"Panel {value['panel_position']} / {value['panel_label'] or value['title']} / {value['module']} artifact #{value['id']} v{value['revision']}:")
+        identity=f"shared snapshot {value['id']} / source version {value['revision']}" if packet.get('shared') else f"artifact #{value['id']} v{value['revision']}"
+        lines.append(f"Panel {value['panel_position']} / {value['panel_label'] or value['title']} / {value['module']} {identity}:")
         if value['current_revision']>value['revision']:lines.append('A newer source version exists; this answer retains the dashboard pin.')
         analysis=value.get('analysis')
         if analysis:

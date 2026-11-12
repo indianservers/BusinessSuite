@@ -211,6 +211,8 @@ def panel(ident:int,position:int,request:Request,revision:int|None=None,db:Sessi
 @router.delete('/{ident}')
 def archive(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=owned(db,user,ident,True);row.deleted_at=datetime.now(timezone.utc)
+    from app.ai_operator.artifact_shares import archive_source
+    archive_source(db,user,ident)
     AiAuditService(db).log(user=user,agent_id=None,module=row.references['module'],action='suite.artifact.archived',
         input_json={'artifact_id':row.id},output_json={'archived':True},status='success')
     db.commit();return {'archived':True}
