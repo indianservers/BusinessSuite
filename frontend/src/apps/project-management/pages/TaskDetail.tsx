@@ -16,6 +16,7 @@ import WorkReviewPanel from "../components/WorkReviewPanel";
 import RecordActions from "../components/RecordActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
 import TaskPropertyStrip from "../components/TaskPropertyStrip";
+import TaskDateControl from "../components/TaskDateControl";
 import TaskStatusControl from "../components/TaskStatusControl";
 import { useModuleAction } from "@/hooks/use-module-action";
 import {useMobileDraftGuard} from "@/components/mobile/useMobileDraftGuard";
@@ -844,8 +845,8 @@ function ScopedTaskDetail() {
  assignees={<AssigneePicker projectId={task.project_id} people={subtaskPeople} value={taskAssignees(task)} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={ids=>updateTask({assignee_user_ids:ids})}/>}
  priority={<PriorityPicker value={task.priority} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={priority=>updateTask({priority})}/>}
  estimate={<Input aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.estimated_hours??""} onChange={event=>setTask({...task,estimated_hours:Number(event.target.value||0)})} onBlur={()=>updateTask({estimated_hours:task.estimated_hours} as any)}/>}
- start={<Input aria-label="Task start date" type="date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.start_date||""} onChange={event=>updateTask({start_date:event.target.value||null} as any)}/>}
- due={<Input aria-label="Task due date" type="date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.due_date||""} onChange={event=>updateTask({due_date:event.target.value||null} as any)}/>}
+ start={<TaskDateControl label="Task start date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.start_date} onSave={start_date=>updateTask({start_date} as any)}/>}
+ due={<TaskDateControl label="Task due date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.due_date} onSave={due_date=>updateTask({due_date} as any)}/>}
 />
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <DetailMetric label="Checklist" value={`${checklistDone}/${checklist.length}`} hint={`${checklistProgress}% complete`} />
