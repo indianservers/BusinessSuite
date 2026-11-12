@@ -3,7 +3,8 @@ export type NavigationView = {
   search: string;
   scrollTop: number;
   scrollLeft: number;
-  recordFocus?: { grid: string; id: string; kind: "link" | "preview" | "menu" };
+  recordFocus?: { grid: string; id: string; kind: "link" | "preview" | "menu" | "open" };
+  scrollRegions?: Record<string, {top:number;left:number}>;
   values?: Record<string, unknown>;
 };
 const entries = new Map<string, NavigationView>();

@@ -1974,6 +1974,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         {layout.view === "grid" ? (
           <div
             className="udg-scroll"
+            data-navigation-region={`grid:${gridId}`}
             ref={scroll}
             style={{ height: props.height || Math.min(540, Math.max(120, (request.isPending ? 8 * effectiveRowHeight : rowVirtual.getTotalSize()) + 40)) }}
             role="grid"
@@ -2358,7 +2359,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             )}
           </div>
         ) : (
-          <div className={`udg-alternate udg-view-${layout.view}`}>
+          <div className={`udg-alternate udg-view-${layout.view}`} data-navigation-region={`grid:${gridId}:alternate:${layout.view}`}>
             {props.collectionGroup || layout.view === "kanban" ? (()=>{
               const field=columns.find(column=>column.id===(props.collectionGroup||props.kanbanField||"status"));
               const groups=new Map<string,T[]>();
