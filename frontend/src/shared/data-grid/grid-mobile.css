@@ -59,3 +59,9 @@
 
 .udg-mobile-tools>summary{cursor:pointer;min-height:44px;padding:10px 12px;font-size:12px;font-weight:600;border-bottom:1px solid hsl(var(--border))}
 .udg-mobile-tools>summary:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:-2px}
+
+.udg-empty.udg-empty-custom{position:static;padding:0;display:block}
+.ws-empty-recovery{padding:16px;text-align:center;display:grid;gap:8px;color:hsl(var(--muted-foreground))}
+.ws-empty-recovery h2{margin:0;font-size:16px;font-weight:600;color:hsl(var(--foreground))}
+.ws-empty-recovery p{margin:0;font-size:13px;line-height:1.5}
+.ws-empty-recovery>div{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}

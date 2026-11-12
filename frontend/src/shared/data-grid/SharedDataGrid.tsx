@@ -1981,7 +1981,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             className="udg-scroll"
             data-navigation-region={`grid:${gridId}`}
             ref={scroll}
-            style={{ height: props.height || Math.min(540, Math.max(120, (request.isPending ? 8 * effectiveRowHeight : rowVirtual.getTotalSize()) + 40)) }}
+            style={{ height: props.emptyContentOnly&&!request.isPending&&!modelRows.length&&!request.error ? undefined : props.height || Math.min(540, Math.max(120, (request.isPending ? 8 * effectiveRowHeight : rowVirtual.getTotalSize()) + 40)) }}
             role="grid"
             aria-label={props.title || "Records"}
             aria-rowcount={(result?.total || 0) + 1}
@@ -2356,10 +2356,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               </div>
             </div>
             {!request.isPending && !modelRows.length && !request.error && (
-              <div className="udg-empty">
-                <SuiteIllustration />
-                <h3>No records match</h3>
-                {props.emptyContent ? <div>{props.emptyContent}</div> : <p>Try a different search or clear your filters.</p>}
+              <div className={`udg-empty${props.emptyContentOnly?" udg-empty-custom":""}`}>
+                {props.emptyContentOnly?props.emptyContent:<><SuiteIllustration /><h3>No records match</h3>{props.emptyContent ? <div>{props.emptyContent}</div> : <p>Try a different search or clear your filters.</p>}</>}
               </div>
             )}
           </div>
@@ -2371,7 +2369,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               for(const record of visibleRecords){const raw=field?.accessor?.(record) ?? (record as Record<string,unknown>)[field?.id||"status"];const labels=field&&/tags?|labels/i.test(field.title)?Array.isArray(raw)?raw.map(String):String(raw||"").split(",").map(value=>value.trim()).filter(Boolean):[String(raw||"Not set")];for(const label of labels.length?labels:["Untagged"])groups.set(label,[...(groups.get(label)||[]),record]);}
               return [...groups].map(([label,records])=><section className="suite-record-group" key={label}><h3><GroupLabel color={categoryColor(label,field?.title)} label={label} field={field?.title} count={records.length}/></h3><div className="udg-alternate udg-view-cards">{records.map(renderCollectionRecord)}</div></section>);
             })() : visibleRecords.map(renderCollectionRecord)}
-            {!visibleRecords.length&&<p className="suite-record-empty">No records in this view. Your current filters and access still apply.</p>}
+            {!visibleRecords.length&&(props.emptyContentOnly?!request.isPending&&!request.error&&props.emptyContent:<p className="suite-record-empty">No records in this view. Your current filters and access still apply.</p>)}
             <small>Alternate views show loaded records from the same filtered data source.</small>
           </div>
         )}

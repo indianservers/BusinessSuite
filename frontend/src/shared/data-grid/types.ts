@@ -229,6 +229,7 @@ export type SharedDataGridProps<T> = {
   dataScope?: "all" | "loaded";
   overview?: boolean;
   emptyContent?: ReactNode;
+  emptyContentOnly?: boolean;
   hideSearch?: boolean;
   externalPagination?: boolean;
   bulkToolbar?: ReactNode;
