@@ -145,7 +145,7 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             headers=headers,
             json={
                 "title": "Counter sales order with stock",
-                "customer_id": 1,
+                "customer_id": buyer.id,
                 "lines": [
                     {
                         "product_id": ops_product.json()["id"],
@@ -351,7 +351,7 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             json={
                 "order_number": "POS-STOCK-001",
                 "title": "POS sale - Cash Customer",
-                "customer_id": 1,
+                "customer_id": buyer.id,
                 "metadata_json": {"source": "pos", "payment_mode": "Cash"},
                 "lines": [
                     {
@@ -380,7 +380,7 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             headers=headers,
             json={
                 "sales_order_id": pos_sale.json()["id"],
-                "customer_id": 1,
+                "customer_id": buyer.id,
                 "customer_name": "Cash Customer",
                 "refund_method": "cash",
                 "reason": "Customer returned sealed item",

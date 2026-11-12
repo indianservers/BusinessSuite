@@ -55,6 +55,16 @@ def test_bike_assignment_duplicate_return_and_exit_clearance(client, db, superus
     assert client.get("/api/v1/assets/exit-clearance", headers=superuser_headers).json()[0]["cleared"] is False
     returned = client.put(f"/api/v1/assets/assignments/{assigned.json()['id']}/return", headers=superuser_headers, params={"condition_at_return": "Damaged"})
     assert returned.status_code == 200, returned.text
+    db.refresh(bike); assert bike.status == "Pending Inspection"
+    assert client.get("/api/v1/assets/exit-clearance", headers=superuser_headers).json()[0]["cleared"] is False
+    from tests.test_asset_lifecycle import inspect, decide
+    reviewed = inspect(client, superuser_headers, assigned.json()['id'], condition='Damaged', disposition='Under Repair')
+    assert reviewed.status_code == 200, reviewed.text
+    assert decide(client, superuser_headers, reviewed.json()['id']).status_code == 200
+    exception = client.post(f"/api/v1/assets/assignments/{assigned.json()['id']}/exception", headers=superuser_headers,
+                            json={'reason':'Damage accepted after inspection', 'policy_reference':'Reviewed company asset policy'})
+    assert exception.status_code == 200, exception.text
+    assert decide(client, superuser_headers, exception.json()['id']).status_code == 200
     db.refresh(bike); assert bike.status == "Under Repair"
     assert client.get("/api/v1/assets/exit-clearance", headers=superuser_headers).json()[0]["cleared"] is True
     assert client.put(f"/api/v1/exit/records/{record.id}/complete", headers=superuser_headers).status_code == 200

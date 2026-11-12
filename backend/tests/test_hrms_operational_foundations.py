@@ -163,6 +163,11 @@ def test_exit_asset_helpdesk_and_announcements(client, db, superuser_headers):
     assert blocked.status_code == 409
     returned = client.put(f"/api/v1/assets/assignments/{assignment.json()['id']}/return", headers=superuser_headers, params={"condition_at_return": "Good"})
     assert returned.status_code == 200, returned.text
+    assert client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers).status_code == 409
+    from tests.test_asset_lifecycle import inspect, decide
+    inspected = inspect(client, superuser_headers, assignment.json()['id'])
+    assert inspected.status_code == 200, inspected.text
+    assert decide(client, superuser_headers, inspected.json()['id']).status_code == 200
 
     ticket = client.post(
         "/api/v1/helpdesk/tickets/json",
