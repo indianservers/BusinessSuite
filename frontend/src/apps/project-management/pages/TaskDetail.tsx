@@ -18,6 +18,8 @@ import { useRecordScope } from "@/shared/records/Record360Workspace";
 import TaskPropertyStrip from "../components/TaskPropertyStrip";
 import TaskStatusControl from "../components/TaskStatusControl";
 import { useModuleAction } from "@/hooks/use-module-action";
+import {useMobileDraftGuard} from "@/components/mobile/useMobileDraftGuard";
+import UnsavedTaskDialog from "../components/UnsavedTaskDialog";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -188,6 +190,8 @@ function ScopedTaskDetail() {
   const [loading, setLoading] = useState(true);
   const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
+  const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
+  const requestLeave=useMobileDraftGuard({enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
 
   const numericTaskId = Number(taskId);
   const effectiveProjectId = task?.project_id || Number(projectId);
@@ -306,7 +310,8 @@ function ScopedTaskDetail() {
   const refreshActivity = () => tasksAPI.listActivity(task.id).then(setActivity).catch(() => undefined);
 
   const updateTask = async (data: Partial<PMSTask>, reviewed?:PMSTask) => {
-    if (editConflict && !reviewed) return;
+    if (discardAction || editConflict && !reviewed) return;
+    if(!reviewed&&savedTask.current&&Object.entries(data).every(([field,value])=>JSON.stringify(value)===JSON.stringify((savedTask.current as any)[field])))return;
     const submitted = taskRef.current || task;
     setSaving(true);
     try {
@@ -755,6 +760,7 @@ function ScopedTaskDetail() {
 
   return (
     <div className="space-y-6">
+      <UnsavedTaskDialog onDiscard={discardAction} onKeep={()=>setDiscardAction(null)}/>
       {remoteChange && !editConflict && <p role="status" className="rounded-lg border p-3 text-sm">This task changed elsewhere. Your local fields are retained. Saving will check for conflicts.</p>}
       {!remoteChange && !editConflict && savedTask.current && taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]) && <p role="status" className="text-sm text-muted-foreground">You have unsaved task fields. Use Save to keep your changes.</p>}
       {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p><p>Your current task fields are still available below. Review the error before retrying.</p><Button type="button" variant="outline" onClick={()=>setError(null)}>Dismiss error</Button></div>}
@@ -769,7 +775,7 @@ function ScopedTaskDetail() {
         })}</div><div className="flex flex-wrap gap-2"><Button type="button" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onClick={()=>updateTask(editConflict.changes,editConflict.latest)}>Apply reviewed changes</Button><Button type="button" variant="outline" disabled={saving} onClick={()=>{savedTask.current=editConflict.latest!;setTask(editConflict.latest!);setEditConflict(null);setRemoteChange(false);setError(null);}}>Discard local changes and use latest</Button></div><p className="text-xs text-muted-foreground">Apply saves only the attempted fields shown above. Further changes on the server will require another review.</p></>}
       </section>}
       <div className="flex flex-wrap items-center gap-3"><ConversationLauncher module="PMS" context={{type:"task",id:numericTaskId}}/><TaskConversationSource taskId={numericTaskId}/></div>
-      <Button variant="ghost" onClick={() => navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks")}>
+      <Button variant="ghost" onClick={() => {const leave=()=>navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks");if(requestLeave(leave))leave();}}>
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
       </Button>
 
@@ -983,7 +989,7 @@ function ScopedTaskDetail() {
                     saveSubtask={saveSubtask}
                     completeSubtask={completeSubtask}
                     deleteSubtask={deleteSubtask}
-                    openSubtask={() => navigate(`/pms/projects/${item.project_id}/tasks/${item.id}`)}
+                    openSubtask={() => {const leave=()=>navigate(`/pms/projects/${item.project_id}/tasks/${item.id}`);if(requestLeave(leave))leave();}}
                   />
                 ))}
                 {!subtasks.length ? <EmptyLine>No sub-tasks yet.</EmptyLine> : null}

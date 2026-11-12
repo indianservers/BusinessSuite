@@ -7,6 +7,7 @@ type DraftGuard = {
   pending: () => boolean;
   onDiscard: () => void;
   message: string;
+  confirmDiscard?: (confirm: () => void) => void;
 };
 
 /** Phone link/unload guard; callers own values, save completion and route actions. */
@@ -15,11 +16,15 @@ export function useMobileDraftGuard(options: DraftGuard) {
   const accepted = useRef<string | null>(null);
   latest.current = options;
   if (!options.dirty) accepted.current = null;
-  const requestLeave = useCallback(() => {
+  const requestLeave = useCallback((afterDiscard?:()=>void) => {
     const current = latest.current;
     if (!current.enabled) return true;
     if (current.pending()) return false;
     if (!current.dirty || accepted.current === current.draftKey) return true;
+    if(current.confirmDiscard){
+      current.confirmDiscard(()=>{const confirmed=latest.current;if(confirmed.pending())return;accepted.current=confirmed.draftKey;confirmed.onDiscard();afterDiscard?.();});
+      return false;
+    }
     if (!window.confirm(current.message)) return false;
     // Prevent a second native prompt while React commits the accepted discard.
     accepted.current = current.draftKey;
@@ -43,7 +48,7 @@ export function useMobileDraftGuard(options: DraftGuard) {
       const next = new URL(link.href, location.href);
       if (!["http:", "https:"].includes(next.protocol)) return;
       if (next.origin === location.origin && next.pathname === location.pathname && next.search === location.search) return;
-      if (!requestLeave()) { event.preventDefault(); event.stopPropagation(); }
+      if (!requestLeave(()=>link.click())) { event.preventDefault(); event.stopPropagation(); }
     };
     window.addEventListener("beforeunload", unload);
     document.addEventListener("click", click, true);
