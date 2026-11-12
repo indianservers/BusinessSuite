@@ -233,6 +233,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     # Intentional GPT-4.1 family default. Keep this aligned with the models enabled on the deployed OpenAI account.
     OPENAI_MODEL: str = "gpt-4.1-mini"
+    AI_ARTIFACT_FONT_PATH: str = ""
+    AI_ARTIFACT_BOLD_FONT_PATH: str = ""
     AI_AGENT_DEFAULT_TEMPERATURE: float = 0.2
     AI_AGENT_MAX_TOOL_CALLS: int = 8
     AI_AGENT_ENABLE_STREAMING: bool = False

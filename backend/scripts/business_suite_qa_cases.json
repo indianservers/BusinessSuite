@@ -1,0 +1,537 @@
+[
+  {
+    "id": "TC001",
+    "module": "Common",
+    "case": "Open Tasks from CRM and PMS; verify same canonical route and page"
+  },
+  {
+    "id": "TC002",
+    "module": "Common",
+    "case": "Open Employees from HRMS and PMS; verify same records"
+  },
+  {
+    "id": "TC003",
+    "module": "Common",
+    "case": "Open Teams from CRM, PMS and HRMS"
+  },
+  {
+    "id": "TC004",
+    "module": "Common",
+    "case": "Open Vendors from Sales and FAM"
+  },
+  {
+    "id": "TC005",
+    "module": "Common",
+    "case": "Open Notes from CRM and PMS"
+  },
+  {
+    "id": "TC006",
+    "module": "Common",
+    "case": "Open Customers from CRM and Sales"
+  },
+  {
+    "id": "TC007",
+    "module": "Common",
+    "case": "Open Leads from CRM and Sales"
+  },
+  {
+    "id": "TC008",
+    "module": "Common",
+    "case": "Open Calendar from all modules"
+  },
+  {
+    "id": "TC009",
+    "module": "Common",
+    "case": "Refresh common routes and verify no 404 errors"
+  },
+  {
+    "id": "TC010",
+    "module": "Common",
+    "case": "Verify browser back, breadcrumbs, active menus and module context"
+  },
+  {
+    "id": "TC011",
+    "module": "Shared records",
+    "case": "Create customer in CRM; verify immediately in Sales"
+  },
+  {
+    "id": "TC012",
+    "module": "Shared records",
+    "case": "Edit customer in Sales; verify updated details in CRM"
+  },
+  {
+    "id": "TC013",
+    "module": "Shared records",
+    "case": "Create lead in Sales; verify in CRM"
+  },
+  {
+    "id": "TC014",
+    "module": "Shared records",
+    "case": "Convert lead to customer without duplicate creation"
+  },
+  {
+    "id": "TC015",
+    "module": "Shared records",
+    "case": "Create vendor in Sales; verify in FAM"
+  },
+  {
+    "id": "TC016",
+    "module": "Shared records",
+    "case": "Update employee in HRMS; verify in PMS"
+  },
+  {
+    "id": "TC017",
+    "module": "Shared records",
+    "case": "Create team in PMS; verify authorized visibility elsewhere"
+  },
+  {
+    "id": "TC018",
+    "module": "Shared records",
+    "case": "Create task in CRM; verify in common Tasks"
+  },
+  {
+    "id": "TC019",
+    "module": "Shared records",
+    "case": "Create note against customer; verify authorized cross-module access"
+  },
+  {
+    "id": "TC020",
+    "module": "Shared records",
+    "case": "Test duplicate detection, shared phone numbers and multiple contact roles"
+  },
+  {
+    "id": "TC021",
+    "module": "Sales & POS",
+    "case": "Sell one physical product"
+  },
+  {
+    "id": "TC022",
+    "module": "Sales & POS",
+    "case": "Sell multiple products"
+  },
+  {
+    "id": "TC023",
+    "module": "Sales & POS",
+    "case": "Sell one service"
+  },
+  {
+    "id": "TC024",
+    "module": "Sales & POS",
+    "case": "Sell products and services in the same invoice"
+  },
+  {
+    "id": "TC025",
+    "module": "Sales & POS",
+    "case": "Sell taxable and exempt items together"
+  },
+  {
+    "id": "TC026",
+    "module": "Sales & POS",
+    "case": "Apply different GST percentages to different items"
+  },
+  {
+    "id": "TC027",
+    "module": "Sales & POS",
+    "case": "Apply line-level and invoice-level discounts"
+  },
+  {
+    "id": "TC028",
+    "module": "Sales & POS",
+    "case": "Hold, resume and complete POS transaction"
+  },
+  {
+    "id": "TC029",
+    "module": "Sales & POS",
+    "case": "Accept split payments and partial payments"
+  },
+  {
+    "id": "TC030",
+    "module": "Sales & POS",
+    "case": "Process refund and return without corrupting inventory or accounts"
+  },
+  {
+    "id": "TC031",
+    "module": "GST & invoices",
+    "case": "Calculate 5% GST on a configured taxable item"
+  },
+  {
+    "id": "TC032",
+    "module": "GST & invoices",
+    "case": "Calculate 12% GST on a configured legacy/test item"
+  },
+  {
+    "id": "TC033",
+    "module": "GST & invoices",
+    "case": "Calculate 18% GST on a configured taxable item"
+  },
+  {
+    "id": "TC034",
+    "module": "GST & invoices",
+    "case": "Calculate 28% GST on a configured legacy/test item"
+  },
+  {
+    "id": "TC035",
+    "module": "GST & invoices",
+    "case": "Calculate multiple GST rates on one invoice"
+  },
+  {
+    "id": "TC036",
+    "module": "GST & invoices",
+    "case": "Calculate CGST + SGST/UTGST for intra-state supply"
+  },
+  {
+    "id": "TC037",
+    "module": "GST & invoices",
+    "case": "Calculate IGST for inter-state supply"
+  },
+  {
+    "id": "TC038",
+    "module": "GST & invoices",
+    "case": "Verify tax-inclusive and tax-exclusive calculations"
+  },
+  {
+    "id": "TC039",
+    "module": "GST & invoices",
+    "case": "Verify discounts, fractional quantities and rounding"
+  },
+  {
+    "id": "TC040",
+    "module": "GST & invoices",
+    "case": "Verify credit notes, tax reversal and historical invoice integrity"
+  },
+  {
+    "id": "TC041",
+    "module": "Appointments",
+    "case": "Create salon service appointment for an existing customer"
+  },
+  {
+    "id": "TC042",
+    "module": "Appointments",
+    "case": "Create appointment for a new customer"
+  },
+  {
+    "id": "TC043",
+    "module": "Appointments",
+    "case": "Assign service to an eligible employee"
+  },
+  {
+    "id": "TC044",
+    "module": "Appointments",
+    "case": "Verify appointment in common Calendar"
+  },
+  {
+    "id": "TC045",
+    "module": "Appointments",
+    "case": "Reschedule appointment and verify all views update"
+  },
+  {
+    "id": "TC046",
+    "module": "Appointments",
+    "case": "Cancel appointment and release reserved slot"
+  },
+  {
+    "id": "TC047",
+    "module": "Appointments",
+    "case": "Prevent overlapping bookings for same employee"
+  },
+  {
+    "id": "TC048",
+    "module": "Appointments",
+    "case": "Prevent booking during employee leave or unavailable hours"
+  },
+  {
+    "id": "TC049",
+    "module": "Appointments",
+    "case": "Book multiple services with different durations"
+  },
+  {
+    "id": "TC050",
+    "module": "Appointments",
+    "case": "Complete appointment and generate correct POS invoice"
+  },
+  {
+    "id": "TC051",
+    "module": "Inventory",
+    "case": "Create product with SKU and barcode"
+  },
+  {
+    "id": "TC052",
+    "module": "Inventory",
+    "case": "Add opening stock"
+  },
+  {
+    "id": "TC053",
+    "module": "Inventory",
+    "case": "Record purchase and update inventory"
+  },
+  {
+    "id": "TC054",
+    "module": "Inventory",
+    "case": "Sell product and verify stock deduction"
+  },
+  {
+    "id": "TC055",
+    "module": "Inventory",
+    "case": "Return product and verify correct stock reversal"
+  },
+  {
+    "id": "TC056",
+    "module": "Inventory",
+    "case": "Transfer inventory between warehouses"
+  },
+  {
+    "id": "TC057",
+    "module": "Inventory",
+    "case": "Test low-stock and reorder alerts"
+  },
+  {
+    "id": "TC058",
+    "module": "Inventory",
+    "case": "Test serial number and batch tracking"
+  },
+  {
+    "id": "TC059",
+    "module": "Inventory",
+    "case": "Test concurrent sales against limited inventory"
+  },
+  {
+    "id": "TC060",
+    "module": "Inventory",
+    "case": "Verify service-only sales do not reduce stock unless materials are configured"
+  },
+  {
+    "id": "TC061",
+    "module": "AMC & contracts",
+    "case": "Create AMC contract for an existing customer"
+  },
+  {
+    "id": "TC062",
+    "module": "AMC & contracts",
+    "case": "Link AMC to a product or asset"
+  },
+  {
+    "id": "TC063",
+    "module": "AMC & contracts",
+    "case": "Assign service technician from HRMS employee master"
+  },
+  {
+    "id": "TC064",
+    "module": "AMC & contracts",
+    "case": "Schedule AMC visit in common Calendar"
+  },
+  {
+    "id": "TC065",
+    "module": "AMC & contracts",
+    "case": "Generate renewal reminder"
+  },
+  {
+    "id": "TC066",
+    "module": "AMC & contracts",
+    "case": "Renew AMC without duplicating contract history"
+  },
+  {
+    "id": "TC067",
+    "module": "AMC & contracts",
+    "case": "Generate AMC invoice and verify FAM integration"
+  },
+  {
+    "id": "TC068",
+    "module": "AMC & contracts",
+    "case": "Cancel or expire AMC and verify access, status and billing behavior"
+  },
+  {
+    "id": "TC069",
+    "module": "Security",
+    "case": "Verify employee cannot access unauthorized HR records"
+  },
+  {
+    "id": "TC070",
+    "module": "Security",
+    "case": "Verify CRM user cannot access restricted FAM data"
+  },
+  {
+    "id": "TC071",
+    "module": "Security",
+    "case": "Verify tenant/workspace isolation"
+  },
+  {
+    "id": "TC072",
+    "module": "Security",
+    "case": "Attempt direct API access without permission"
+  },
+  {
+    "id": "TC073",
+    "module": "Security",
+    "case": "Test IDOR by modifying entity IDs in authorized test requests"
+  },
+  {
+    "id": "TC074",
+    "module": "Security",
+    "case": "Test SQL injection and stored XSS using harmless payloads"
+  },
+  {
+    "id": "TC075",
+    "module": "Security",
+    "case": "Verify audit logs for important record changes"
+  },
+  {
+    "id": "TC076",
+    "module": "Security",
+    "case": "Verify server-side validation cannot be bypassed through API calls"
+  },
+  {
+    "id": "TC077",
+    "module": "Performance & regression",
+    "case": "Load 10,000 customers using server-side pagination"
+  },
+  {
+    "id": "TC078",
+    "module": "Performance & regression",
+    "case": "Search customers, leads, products and vendors"
+  },
+  {
+    "id": "TC079",
+    "module": "Performance & regression",
+    "case": "Verify module switching does not cause unnecessary API calls"
+  },
+  {
+    "id": "TC080",
+    "module": "Performance & regression",
+    "case": "Verify updated records invalidate stale frontend caches"
+  },
+  {
+    "id": "TC081",
+    "module": "Performance & regression",
+    "case": "Test simultaneous customer edits and conflict handling"
+  },
+  {
+    "id": "TC082",
+    "module": "Performance & regression",
+    "case": "Test simultaneous POS checkout requests for duplicate prevention"
+  },
+  {
+    "id": "TC083",
+    "module": "Performance & regression",
+    "case": "Verify all existing legacy routes continue working"
+  },
+  {
+    "id": "TC084",
+    "module": "Performance & regression",
+    "case": "Verify mobile, tablet and desktop layouts"
+  },
+  {
+    "id": "TC085",
+    "module": "Performance & regression",
+    "case": "Run complete regression suite after fixes"
+  },
+  {
+    "id": "TC086",
+    "module": "Edge cases",
+    "case": "Empty and null values"
+  },
+  {
+    "id": "TC087",
+    "module": "Edge cases",
+    "case": "Unicode customer names"
+  },
+  {
+    "id": "TC088",
+    "module": "Edge cases",
+    "case": "Very long customer names"
+  },
+  {
+    "id": "TC089",
+    "module": "Edge cases",
+    "case": "Shared family phone numbers"
+  },
+  {
+    "id": "TC090",
+    "module": "Edge cases",
+    "case": "Duplicate email addresses"
+  },
+  {
+    "id": "TC091",
+    "module": "Edge cases",
+    "case": "Multiple customer roles"
+  },
+  {
+    "id": "TC092",
+    "module": "Edge cases",
+    "case": "Zero-price products"
+  },
+  {
+    "id": "TC093",
+    "module": "Edge cases",
+    "case": "Fractional quantities"
+  },
+  {
+    "id": "TC094",
+    "module": "Edge cases",
+    "case": "Expired service packages"
+  },
+  {
+    "id": "TC095",
+    "module": "Edge cases",
+    "case": "Service package partial redemption"
+  },
+  {
+    "id": "TC096",
+    "module": "Edge cases",
+    "case": "Customer cancellation"
+  },
+  {
+    "id": "TC097",
+    "module": "Edge cases",
+    "case": "Employee reassignment"
+  },
+  {
+    "id": "TC098",
+    "module": "Edge cases",
+    "case": "Appointment crossing midnight"
+  },
+  {
+    "id": "TC099",
+    "module": "Edge cases",
+    "case": "Employee timezone changes"
+  },
+  {
+    "id": "TC100",
+    "module": "Edge cases",
+    "case": "Duplicate invoice submission"
+  },
+  {
+    "id": "TC101",
+    "module": "Edge cases",
+    "case": "Payment gateway timeout"
+  },
+  {
+    "id": "TC102",
+    "module": "Edge cases",
+    "case": "Failed transaction rollback"
+  },
+  {
+    "id": "TC103",
+    "module": "Edge cases",
+    "case": "Negative inventory attempts"
+  },
+  {
+    "id": "TC104",
+    "module": "Edge cases",
+    "case": "Missing GST classification"
+  },
+  {
+    "id": "TC105",
+    "module": "Edge cases",
+    "case": "Deleted or inactive catalog items referenced by historical invoices"
+  },
+  {
+    "id": "TC106",
+    "module": "Edge cases",
+    "case": "Interrupted network requests"
+  },
+  {
+    "id": "TC107",
+    "module": "Edge cases",
+    "case": "Unauthorized cross-module updates"
+  }
+]

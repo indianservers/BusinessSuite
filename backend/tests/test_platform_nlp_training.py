@@ -77,7 +77,13 @@ def test_platform_server_training_activation_and_scope(client,db,platform_store,
     assert str(tmp_path) in str(artifact_path())
     listing=client.get(ROOT,headers=h).json()
     assert listing['active_job_id']==job_id
-    assert 'w1' not in json.dumps(listing)
+    def assert_no_weights(value):
+        if isinstance(value,dict):
+            assert not {'w1','w2','b1','b2'} & value.keys()
+            for child in value.values(): assert_no_weights(child)
+        elif isinstance(value,list):
+            for child in value: assert_no_weights(child)
+    assert_no_weights(listing)  # A worker directory such as popen-gw1 is not a weight leak.
     assert client.post(ROOT+'/reset',headers=h).status_code==200
     assert client.delete(f'{ROOT}/datasets/{ident}',headers=h).status_code==200
     assert client.post(f'{ROOT}/jobs/{job_id}/activate',headers=h).status_code==409

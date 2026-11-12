@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="43.463" timestamp="2026-11-12T22:46:07.396664+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_action_model_v2" name="test_invalid_followup_keeps_question_and_cancel_only_affects_that_chat" time="16.565"><failure message="AssertionError: assert ('needs_clarification' == 'answered'&#10;  &#10;  - answered&#10;  + needs_clarification)">tests\test_action_model_v2.py:73: in test_invalid_followup_keeps_question_and_cancel_only_affects_that_chat
+    assert cancelled['status']=='answered' and not cancelled['plan']['steps']
+E   AssertionError: assert ('needs_clarification' == 'answered'
+E     
+E     - answered
+E     + needs_clarification)</failure></testcase><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[I do not know]" time="5.437"><failure message="KeyError: 'local_nlp'">tests\test_action_repairs.py:27: in test_ambiguous_or_help_reply_never_becomes_a_task_title
+    assert help_reply['result']['local_nlp']['intent']=='tasks.create'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'local_nlp'</failure></testcase><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[I don\u2019t know]" time="3.992"><failure message="KeyError: 'local_nlp'">tests\test_action_repairs.py:27: in test_ambiguous_or_help_reply_never_becomes_a_task_title
+    assert help_reply['result']['local_nlp']['intent']=='tasks.create'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'local_nlp'</failure></testcase><testcase classname="tests.test_ai_operator_jobs" name="test_provider_retry_budget_and_failed_attempt_telemetry" time="15.665"><failure message="AssertionError: assert 9 == 3&#10; +  where 9 = len([&lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;...Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, ...])">tests\test_ai_operator_jobs.py:196: in test_provider_retry_budget_and_failed_attempt_telemetry
+    assert len(calls) == 3
+E   AssertionError: assert 9 == 3
+E    +  where 9 = len([&lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;...Request('POST', 'https://api.openai.com/v1/responses')&gt;, &lt;Request('POST', 'https://api.openai.com/v1/responses')&gt;, ...])</failure></testcase></testsuite></testsuites>

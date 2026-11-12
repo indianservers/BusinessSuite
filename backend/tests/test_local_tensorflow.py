@@ -54,6 +54,8 @@ def test_neural_model_actually_selects_unseen_intents_and_rules_correct_filter_e
     require_model()
     from app.ai_operator.local_nlp import parse
     value=parse('CRM: show the lead records')
+    assert value.intent=='leads.list' and value.neural['used'] is False  # Explicit entity grammar wins.
+    value=parse('CRM: show every lead entry')
     assert value.intent=='leads.list' and value.neural['used'] is True
     value=parse('Sales: list outstanding customer invoices')
     assert value.intent=='invoices.unpaid'

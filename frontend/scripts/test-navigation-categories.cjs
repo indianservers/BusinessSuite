@@ -10,10 +10,12 @@ function compile(source, resolveImport) {
   return compiled.exports;
 }
 const categories = compile(fs.readFileSync(path.resolve(__dirname, "../src/lib/navigation-categories.ts"), "utf8"), require);
+const common = compile(fs.readFileSync(path.resolve(__dirname, "../src/lib/common-routes.ts"), "utf8"), require);
 let auth = {};
 const source = fs.readFileSync(path.resolve(__dirname, "../src/lib/roles.ts"), "utf8")
   .replace("function getAvailableRoleNav(", "export function getAvailableRoleNav(");
 const roles = compile(source, name => {
+  if (name === "./common-routes") return common;
   if (name === "./navigation-categories") return categories;
   if (name === "@/store/authStore") return { useAuthStore: { getState: () => auth } };
   if (name === "@/appRegistry") return { getInstalledAppKeys: () => ["hrms", "crm", "project_management", "srm", "fam", "ai"], isFrontendModuleEnabled: () => true };
@@ -33,15 +35,16 @@ for (const role of ["admin", "hr", "hr_manager", "ceo", "manager", "employee", "
     // categorization. Test grouping separately from those existing additions.
     const categorized = categories.categorizeNavigation(raw, roles.getActiveModule(pathname));
     assert.deepEqual(identity(categorized), identity(raw), `${role} on ${pathname}: categorization changed available links`);
-    const originalLinks = grouped.filter(item => raw.some(original => original.to === item.to));
-    assert.deepEqual(identity(originalLinks), identity(raw), `${role} on ${pathname}: lost an existing link`);
+    const mapped = raw.map(item => ({...item,to: common.commonNavigationHref(item.to, pathname.slice(1))}));
+    const originalLinks = grouped.filter(item => mapped.some(original => original.to === item.to));
+    assert.deepEqual(identity(originalLinks), identity(mapped), `${role} on ${pathname}: lost an existing link`);
     const root = pathname.split('/')[1];
-    for (const item of grouped.filter(item => !raw.some(original => original.to === item.to))) {
-      assert([`/${root}/import-data`, `/${root}/connectors`].includes(item.to), 'Unexpected supplemental link: ' + item.to);
+    for (const item of grouped.filter(item => !mapped.some(original => original.to === item.to))) {
+      assert([`/${root}/import-data`, `/${root}/connectors`].includes(item.to) || common.commonRouteContext(item.to), 'Unexpected supplemental link: ' + item.to);
       assert(roles.canAccessRoute(item.to, role, false), 'Unauthorized supplemental link: ' + item.to);
     }
     assert.equal(JSON.stringify(raw), original, "Mutated shared navigation definitions");
-    assert.deepEqual(originalLinks.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort(), raw.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort());
+    assert.deepEqual(originalLinks.filter(i => roles.canAccessRoute(i.to, role, false)).map(i => i.to).sort(), mapped.filter(i => roles.canAccessRoute(i.to, role, false)).map(i => i.to).sort());
     count++;
   }
 }
@@ -94,7 +97,7 @@ for (const managed of [false, true]) {
   ]) {
     const nav = roles.getRoleNav("admin", !managed, module);
     for (const to of removed) assert(!nav.some(item => item.to === to), "Unrelated menu link: " + to);
-    for (const to of retained) assert(nav.some(item => item.to === to), "Lost core menu link: " + to);
+    for (const to of retained) assert(nav.some(item => item.to === common.commonNavigationHref(to, module.slice(1))), "Lost core menu link: " + to);
   }
 }
 console.log("PMS and CRM menu scope checks passed for role-based and managed access.");

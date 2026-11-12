@@ -1,0 +1,3 @@
+employee_db_id,employee_code,account_number,ifsc,net_amount
+1,DEMO-MGR-001,1234567891,HDFC0001234,48200.00
+2,DEMO-EMP-001,1234567890,HDFC0001234,48200.00

@@ -45,7 +45,8 @@ def test_followup_preserves_module_and_refetches_selected_record(client,db,monke
     calls=mock_provider(monkeypatch,{'summary':'Raise priority','steps':[{'tool':'crm.update_task','record_id':task['id'],'payload':{'priority':'High'}}]})
     child=client.post(ROOT+'/commands',headers=h,json={'request_key':str(uuid4()),'parent_run_id':parent['id'],'text':'High please'}).json()
     assert child['status']=='awaiting_approval',child
-    assert child['result']['request']['context']==context
+    from app.ai_operator.suite import Step
+    assert child['result']['request']['context']==[Step.model_validate(item).model_dump(mode='json') for item in context]
     assert child['result']['request']['module']=='CRM'
     assert b'Fresh title' in calls[0].content and b'Which priority?' in calls[0].content
     assert client.post(ROOT+'/commands',headers=h,json={'request_key':str(uuid4()),'parent_run_id':parent['id'],'module':'FAM','text':'High please'}).status_code==409

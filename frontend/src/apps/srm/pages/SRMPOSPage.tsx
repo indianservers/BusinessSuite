@@ -373,7 +373,7 @@ export default function SRMPOSPage() {
     const taxBeforeScale = cart.reduce((sum, item) => sum + lineTax(item), 0);
     const tax = taxableBeforeBill ? taxBeforeScale * (taxable / taxableBeforeBill) : 0;
     const unrounded = taxable + tax;
-    const grandTotal = Math.max(Math.round(unrounded), 0);
+    const grandTotal = Math.max(Math.round((unrounded + Number.EPSILON) * 100) / 100, 0);
     return {
       subtotal,
       lineDiscount: lineDiscountTotal,
@@ -539,6 +539,7 @@ export default function SRMPOSPage() {
         })),
       });
       savedOrderId = Number((postedOrder as SRMRecord).id);
+      sale.amount = recordNumber((postedOrder as SRMRecord).total_amount);
       if (!Number.isSafeInteger(savedOrderId) || savedOrderId <= 0) throw new Error("Order reference was not confirmed");
       sale.invoiceNo = String((postedOrder as SRMRecord).order_number || (postedOrder as SRMRecord).id || sale.invoiceNo);
       await syncSrmNow(queryClient, {

@@ -29,8 +29,9 @@ export default function FinancialStatementsPage(){
       <Button disabled={query.isFetching}>Run statement</Button>
     </form>
     {query.isLoading&&<p role="status">Loading statement...</p>}{query.isError&&<p role="alert">{errorMessage(query.error)}</p>}
-    {query.data&&<><p>{query.data.from_date} to {query.data.to_date} · {query.data.currency}. {query.data.basis}</p>
+    {query.data&&!query.isError&&<><p>{query.data.from_date} to {query.data.to_date} · {query.data.currency}. {query.data.basis}</p>
       <div className="flex flex-wrap gap-4 fam-statement-summary">{Object.entries(query.data.summary).map(([key,value])=><div className="rounded border p-3" key={key}><p className="text-sm capitalize">{key.replace(/_/g,' ')}</p><strong>{value} {query.data.currency}</strong></div>)}</div>
+      {!rows.length&&<p role="status">No posted balances for this period.</p>}
       <div className="overflow-x-auto fam-statement-rows" role={phone ? "region" : undefined} aria-label={phone ? "Statement rows, scroll for more columns" : undefined} tabIndex={phone ? 0 : undefined}><GridTable gridId={`fam-statement-${filters.report}`} className="w-full text-sm"><thead><tr>{columns.map(key=><th className="p-2 text-left capitalize" key={key}>{key.replace(/_/g,' ')}</th>)}</tr></thead><tbody>{rows.map((row,index)=><tr key={String(row.ledger_id||`summary-${index}`)}>{columns.map(key=><td className="border-t p-2" key={key}>{String(row[key]??'')}</td>)}</tr>)}{!rows.length&&<tr><td colSpan={columns.length} className="p-4">No posted balances for this period.</td></tr>}</tbody></GridTable></div>
       <DataExportButton label="Export statement CSV" filename={filters.report} load={async()=>{
         const job=(await api.post<{id:number}>('/fam/exports',{export_type:filters.report,export_format:'csv',filters_json:{from_date:query.data?.from_date,to_date:query.data?.to_date}})).data;

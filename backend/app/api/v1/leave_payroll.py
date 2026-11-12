@@ -396,13 +396,26 @@ def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None 
     manual_totals = dict(db.query(LOPAdjustment.employee_id,func.sum(LOPAdjustment.adjustment_days)).join(PayrollPeriod,PayrollPeriod.id==LOPAdjustment.period_id).filter(PayrollPeriod.month==period_start.month,PayrollPeriod.year==period_start.year,LOPAdjustment.employee_id.in_(ids),LOPAdjustment.status=='Approved').group_by(LOPAdjustment.employee_id).all())
     salaries = db.query(EmployeeSalary.employee_id,EmployeeSalary.ctc,EmployeeSalary.basic,func.row_number().over(partition_by=EmployeeSalary.employee_id,order_by=(EmployeeSalary.effective_from.desc(),EmployeeSalary.id.desc())).label('position')).filter(EmployeeSalary.employee_id.in_(ids),EmployeeSalary.is_active.is_(True)).subquery()
     rates = {row.employee_id:_salary_daily_rate(row) for row in db.query(salaries.c.employee_id,salaries.c.ctc,salaries.c.basic).filter(salaries.c.position==1)}
+    from app.crud import crud_payroll
+    from app.services import payroll_policy as policy_service
+    # Resolve the month and group configuration once, including the common
+    # no-policy case. Do not issue the same group lookups for every employee.
+    groups = db.query(PayrollPayGroup).order_by(PayrollPayGroup.is_default.desc(), PayrollPayGroup.id.desc()).all()
+    period = _period_for_month(db, month, create=False) if groups else None
+    default_group = next((group for group in groups if group.is_active and group.is_default), None)
+    group_by_id = {group.id: group for group in groups}
+    branch_groups = {}
+    for candidate in groups:
+        if candidate.is_active:
+            branch_groups.setdefault(candidate.branch_id, candidate)
+    policies = {}
     rows = []
     for employee in employees:
-        from app.crud import crud_payroll
-        from app.services import payroll_policy as policy_service
-        period=_period_for_month(db,month,create=False)
-        group=crud_payroll._active_pay_group(db,period.pay_group_id if period else None,employee)
-        policy=policy_service.active_policy(db,group,period_start)
+        group = group_by_id.get(period.pay_group_id) if period and period.pay_group_id else default_group or (branch_groups.get(employee.branch_id) if employee.branch_id else None)
+        group_key = group.id if group else None
+        if group_key not in policies:
+            policies[group_key] = policy_service.active_policy(db, group, period_start)
+        policy = policies[group_key]
         policy_days=policy_service.evaluate_days(db,employee,period_start,period_end,group,policy,include_absence=include_attendance) if policy else None
         leave_days = sum((Decimal(len(slots))/2 for slots in unpaid_slots[employee.id].values()), Decimal(0))
         attendance_days = sum((Decimal(len(slots))/2 for slots in attendance_slots[employee.id].values()), Decimal(0))

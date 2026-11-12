@@ -299,10 +299,10 @@ class GSTRegistrationPayload(FAMBaseSchema):
 class GSTRatePayload(FAMBaseSchema):
     rate_name: str
     tax_type: str = "goods"
-    cgst_rate: Decimal = Decimal("0")
-    sgst_rate: Decimal = Decimal("0")
-    igst_rate: Decimal = Decimal("0")
-    cess_rate: Decimal = Decimal("0")
+    cgst_rate: Decimal = Field(default=0, ge=0, le=100)
+    sgst_rate: Decimal = Field(default=0, ge=0, le=100)
+    igst_rate: Decimal = Field(default=0, ge=0, le=100)
+    cess_rate: Decimal = Field(default=0, ge=0)
     effective_from: date
     effective_to: date | None = None
     active: bool = True
@@ -317,14 +317,14 @@ class HSNSACPayload(FAMBaseSchema):
 
 
 class GSTCalculationPayload(FAMBaseSchema):
-    taxable_value: Decimal
+    taxable_value: Decimal = Field(ge=0)
     company_state_code: str
     place_of_supply_state: str
     gst_rate_id: int | None = None
-    cgst_rate: Decimal | None = None
-    sgst_rate: Decimal | None = None
-    igst_rate: Decimal | None = None
-    cess_rate: Decimal = Decimal("0")
+    cgst_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    sgst_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    igst_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    cess_rate: Decimal = Field(default=0, ge=0)
     supply_type: str = "b2b"
     transaction_type: str = "outward"
     reverse_charge: bool = False

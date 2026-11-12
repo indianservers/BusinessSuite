@@ -13,11 +13,11 @@ class SRMSalesOrderLineInput(BaseModel):
     item_code: str | None = None
     description: str | None = None
     service_type: str = "service"
-    quantity: Decimal = Decimal("1")
-    unit_price: Decimal = Decimal("0")
-    discount_amount: Decimal = Decimal("0")
-    tax_amount: Decimal = Decimal("0")
-    line_total: Decimal | None = None
+    quantity: Decimal = Field(default=1, gt=0, le=1000000000, decimal_places=2)
+    unit_price: Decimal = Field(default=0, ge=0, le=99999999999)
+    discount_amount: Decimal = Field(default=0, ge=0, le=99999999999)
+    tax_amount: Decimal = Field(default=0, ge=0, le=99999999999)
+    line_total: Decimal | None = Field(default=None, ge=0, le=99999999999)
     pms_template_key: str | None = None
     metadata_json: dict[str, Any] | None = None
 

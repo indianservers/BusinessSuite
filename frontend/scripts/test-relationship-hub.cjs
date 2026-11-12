@@ -1,13 +1,18 @@
-const {chromium,expect}=require('playwright/test');
-const origin=process.env.HUB_ORIGIN||'http://localhost:5198';
+const {chromium,expect:baseExpect}=require('playwright/test');
+const expect=baseExpect.configure({timeout:30000});
+let origin=process.env.HUB_ORIGIN;
 (async()=>{
+ process.chdir(require("node:path").resolve(__dirname,".."));
+ let server;
+ if(!origin){const {createServer}=await import('vite');server=await createServer({root:require('node:path').resolve(__dirname,'..'),server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});await server.listen();origin=server.resolvedUrls.local[0].replace(/\/$/,'');}
  const browser=await chromium.launch();
  try{
   const page=await browser.newPage({viewport:{width:1600,height:1000}});
   const built=process.env.HUB_BUILT==='1';
   if(built)await page.addInitScript(()=>{sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');sessionStorage.setItem('hrms-auth',JSON.stringify({state:{user:{id:1,email:'qa@example.com',role:'admin',is_superuser:true},accessToken:'local-browser-test',isAuthenticated:true},version:0}));});
   const errors=[],writes=[];let backfills=0;
-  page.on('pageerror',e=>errors.push(e.message));
+  page.on('pageerror',e=>{errors.push(e.message);console.error('Browser runtime:',e.message);});
+  page.on('console',message=>{if(message.type()==='error')console.error('Browser console:',message.text());});
   let rows=[{id:1,name:'Hub customer',email:'hub@example.com',phone:'9876543210',phoneCountryCode:'+91',status:'Active',tags:['Customer','Vendor','Lead','Prospect'],roles:['Customer','Vendor'],version:'1'}];
   await page.route('**/api/v1/**',async route=>{
    const request=route.request(),path=new URL(request.url()).pathname,method=request.method();let data={items:[],total:0};
@@ -50,7 +55,7 @@ const origin=process.env.HUB_ORIGIN||'http://localhost:5198';
    await expect(page.getByRole('button',{name:'Send',exact:true})).toHaveCount(0);
    await expect(page).toHaveURL(origin+'/crm/records');
   }
-  expect(writes.filter(w=>w.path.endsWith('/messages/send')).map(w=>w.body.channel).sort()).toEqual(['sms']);
+  await expect.poll(()=>writes.filter(w=>w.path.endsWith('/messages/send')).map(w=>w.body.channel).sort()).toEqual(['sms']);
   await page.getByRole('button',{name:'WhatsApp Hub customer',exact:true}).click();
   await expect(page.getByRole('dialog')).toContainText('Connect your company’s WhatsApp account before sending messages.');
   await page.getByRole('button',{name:'Close dialog',exact:true}).click();
@@ -59,5 +64,5 @@ const origin=process.env.HUB_ORIGIN||'http://localhost:5198';
   await page.getByRole('button',{name:'Add relationship',exact:true}).click();await page.getByLabel('Full name *',{exact:true}).fill('New relationship');await page.getByRole('button',{name:'Save contact',exact:true}).click();await expect(page.getByRole('button',{name:'Edit New relationship',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Delete Updated hub customer',exact:true}).click();await page.getByRole('button',{name:'Confirm',exact:true}).click();await expect(page.getByRole('button',{name:'Edit Updated hub customer',exact:true})).toHaveCount(0);
   expect(errors).toEqual([]);console.log('PASS Company Admin links, relationship linking, nine row actions, inline email/SMS, WhatsApp connection gate, create/edit/delete, no navigation or browser errors');
- }finally{await browser.close();}
+ }finally{await browser.close();await server?.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

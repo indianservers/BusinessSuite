@@ -30,7 +30,9 @@ assert.equal(workspacePageHref('/hrms/payroll', '?workspace=2'), '/hrms/payroll'
 console.log('Workspace context preservation passed.');
 const menuSource = fs.readFileSync(require('node:path').join(__dirname, '../src/lib/navigation-menu.ts'), 'utf8');
 const menuMod = {exports:{}};
-new Function('exports', 'require', ts.transpileModule(menuSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(menuMod.exports, () => mod.exports);
+const commonMod = {exports:{}};
+new Function('exports', ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../src/lib/common-routes.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(commonMod.exports);
+new Function('exports', 'require', ts.transpileModule(menuSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(menuMod.exports, name => name === "./common-routes" ? commonMod.exports : mod.exports);
 const {menuItems, menuLabel, menuMatches, menuPages} = menuMod.exports;
 const {moduleMenuNavigation} = menuMod.exports;
 for (const module of ['hrms', 'crm', 'pms', 'srm', 'fam']) {

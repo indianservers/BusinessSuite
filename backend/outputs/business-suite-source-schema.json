@@ -1,0 +1,3472 @@
+{
+  "dialect": "postgresql",
+  "mode": "READ ONLY",
+  "tables": {
+    "crm_companies": {
+      "count": 411,
+      "columns": [
+        "id",
+        "organization_id",
+        "owner_user_id",
+        "branch_id",
+        "department_id",
+        "assigned_team_id",
+        "territory_id",
+        "parent_company_id",
+        "name",
+        "industry",
+        "website",
+        "phone",
+        "email",
+        "address",
+        "city",
+        "state",
+        "country",
+        "employee_count",
+        "annual_revenue",
+        "account_type",
+        "status",
+        "tags_text",
+        "notes",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "phone_country_code",
+        "services_offered",
+        "business_types"
+      ],
+      "foreign_keys": [
+        {
+          "name": "crm_companies_created_by_user_id_fkey",
+          "constrained_columns": [
+            "created_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_companies_owner_user_id_fkey",
+          "constrained_columns": [
+            "owner_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_companies_parent_company_id_fkey",
+          "constrained_columns": [
+            "parent_company_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_companies",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_companies_territory_id_fkey",
+          "constrained_columns": [
+            "territory_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_territories",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_companies_updated_by_user_id_fkey",
+          "constrained_columns": [
+            "updated_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_crm_companies_account_type",
+          "unique": false,
+          "column_names": [
+            "account_type"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_assigned_team_id",
+          "unique": false,
+          "column_names": [
+            "assigned_team_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_branch_id",
+          "unique": false,
+          "column_names": [
+            "branch_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_city",
+          "unique": false,
+          "column_names": [
+            "city"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_department_id",
+          "unique": false,
+          "column_names": [
+            "department_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_email",
+          "unique": false,
+          "column_names": [
+            "email"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_industry",
+          "unique": false,
+          "column_names": [
+            "industry"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_name",
+          "unique": false,
+          "column_names": [
+            "name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_owner_user_id",
+          "unique": false,
+          "column_names": [
+            "owner_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_parent_company_id",
+          "unique": false,
+          "column_names": [
+            "parent_company_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_companies_territory_id",
+          "unique": false,
+          "column_names": [
+            "territory_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "crm_contacts": {
+      "count": 1252,
+      "columns": [
+        "id",
+        "organization_id",
+        "owner_user_id",
+        "branch_id",
+        "department_id",
+        "assigned_team_id",
+        "company_id",
+        "first_name",
+        "last_name",
+        "full_name",
+        "email",
+        "phone",
+        "alternate_phone",
+        "job_title",
+        "department",
+        "lifecycle_stage",
+        "source",
+        "date_of_birth",
+        "company_name",
+        "company_website",
+        "industry",
+        "employee_count",
+        "website",
+        "linkedin_url",
+        "twitter_url",
+        "email_verification_status",
+        "social_profiles_json",
+        "city",
+        "state",
+        "country",
+        "address",
+        "status",
+        "customer_since",
+        "last_contacted_at",
+        "next_follow_up_at",
+        "tags_text",
+        "notes",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "phone_country_code",
+        "alternate_phone_country_code",
+        "services_offered",
+        "business_types"
+      ],
+      "foreign_keys": [
+        {
+          "name": "crm_contacts_company_id_fkey",
+          "constrained_columns": [
+            "company_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_companies",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_contacts_created_by_user_id_fkey",
+          "constrained_columns": [
+            "created_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_contacts_owner_user_id_fkey",
+          "constrained_columns": [
+            "owner_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_contacts_updated_by_user_id_fkey",
+          "constrained_columns": [
+            "updated_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_crm_contacts_assigned_team_id",
+          "unique": false,
+          "column_names": [
+            "assigned_team_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_branch_id",
+          "unique": false,
+          "column_names": [
+            "branch_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_city",
+          "unique": false,
+          "column_names": [
+            "city"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_company_id",
+          "unique": false,
+          "column_names": [
+            "company_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_company_name",
+          "unique": false,
+          "column_names": [
+            "company_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_department_id",
+          "unique": false,
+          "column_names": [
+            "department_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_email",
+          "unique": false,
+          "column_names": [
+            "email"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_email_verification_status",
+          "unique": false,
+          "column_names": [
+            "email_verification_status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_full_name",
+          "unique": false,
+          "column_names": [
+            "full_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_industry",
+          "unique": false,
+          "column_names": [
+            "industry"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_lifecycle_stage",
+          "unique": false,
+          "column_names": [
+            "lifecycle_stage"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_next_follow_up_at",
+          "unique": false,
+          "column_names": [
+            "next_follow_up_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_owner_user_id",
+          "unique": false,
+          "column_names": [
+            "owner_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_source",
+          "unique": false,
+          "column_names": [
+            "source"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_contacts_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "crm_leads": {
+      "count": 429,
+      "columns": [
+        "id",
+        "organization_id",
+        "owner_user_id",
+        "branch_id",
+        "department_id",
+        "assigned_team_id",
+        "territory_id",
+        "first_name",
+        "last_name",
+        "full_name",
+        "email",
+        "phone",
+        "alternate_phone",
+        "company_name",
+        "job_title",
+        "source",
+        "status",
+        "rating",
+        "lead_score",
+        "lead_score_label",
+        "lead_score_mode",
+        "last_score_calculated_at",
+        "industry",
+        "website",
+        "linkedin_url",
+        "company_website",
+        "employee_count",
+        "email_verification_status",
+        "social_profiles_json",
+        "city",
+        "state",
+        "country",
+        "address",
+        "estimated_value",
+        "expected_close_date",
+        "last_contacted_at",
+        "next_follow_up_at",
+        "is_converted",
+        "converted_at",
+        "converted_contact_id",
+        "converted_company_id",
+        "converted_deal_id",
+        "tags_text",
+        "notes",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "phone_country_code",
+        "alternate_phone_country_code",
+        "services_offered",
+        "business_types"
+      ],
+      "foreign_keys": [
+        {
+          "name": "crm_leads_converted_company_id_fkey",
+          "constrained_columns": [
+            "converted_company_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_companies",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_converted_contact_id_fkey",
+          "constrained_columns": [
+            "converted_contact_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_contacts",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_converted_deal_id_fkey",
+          "constrained_columns": [
+            "converted_deal_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_deals",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_created_by_user_id_fkey",
+          "constrained_columns": [
+            "created_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_owner_user_id_fkey",
+          "constrained_columns": [
+            "owner_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_territory_id_fkey",
+          "constrained_columns": [
+            "territory_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_territories",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_leads_updated_by_user_id_fkey",
+          "constrained_columns": [
+            "updated_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_crm_leads_assigned_team_id",
+          "unique": false,
+          "column_names": [
+            "assigned_team_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_branch_id",
+          "unique": false,
+          "column_names": [
+            "branch_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_city",
+          "unique": false,
+          "column_names": [
+            "city"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_company_name",
+          "unique": false,
+          "column_names": [
+            "company_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_department_id",
+          "unique": false,
+          "column_names": [
+            "department_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_email",
+          "unique": false,
+          "column_names": [
+            "email"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_email_verification_status",
+          "unique": false,
+          "column_names": [
+            "email_verification_status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_expected_close_date",
+          "unique": false,
+          "column_names": [
+            "expected_close_date"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_full_name",
+          "unique": false,
+          "column_names": [
+            "full_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_industry",
+          "unique": false,
+          "column_names": [
+            "industry"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_is_converted",
+          "unique": false,
+          "column_names": [
+            "is_converted"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_lead_score",
+          "unique": false,
+          "column_names": [
+            "lead_score"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_lead_score_label",
+          "unique": false,
+          "column_names": [
+            "lead_score_label"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_lead_score_mode",
+          "unique": false,
+          "column_names": [
+            "lead_score_mode"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_next_follow_up_at",
+          "unique": false,
+          "column_names": [
+            "next_follow_up_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_owner_user_id",
+          "unique": false,
+          "column_names": [
+            "owner_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_phone",
+          "unique": false,
+          "column_names": [
+            "phone"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_rating",
+          "unique": false,
+          "column_names": [
+            "rating"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_source",
+          "unique": false,
+          "column_names": [
+            "source"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_leads_territory_id",
+          "unique": false,
+          "column_names": [
+            "territory_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "employees": {
+      "count": 235,
+      "columns": [
+        "id",
+        "employee_id",
+        "user_id",
+        "salutation",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "gender",
+        "date_of_birth",
+        "place_of_birth",
+        "marital_status",
+        "blood_group",
+        "nationality",
+        "domicile_state",
+        "religion",
+        "category",
+        "sub_caste",
+        "gender_identity",
+        "disability_status",
+        "disability_percentage",
+        "disability_certificate_number",
+        "ex_serviceman",
+        "veteran_status",
+        "father_name",
+        "mother_name",
+        "spouse_name",
+        "spouse_occupation",
+        "number_of_dependants",
+        "work_email",
+        "personal_email",
+        "phone_number",
+        "alternate_phone",
+        "whatsapp_number",
+        "office_extension",
+        "emergency_contact_name",
+        "emergency_contact_number",
+        "emergency_contact_relation",
+        "present_address",
+        "present_city",
+        "present_state",
+        "present_pincode",
+        "present_country",
+        "permanent_address",
+        "permanent_city",
+        "permanent_state",
+        "permanent_pincode",
+        "permanent_country",
+        "passport_number",
+        "passport_expiry",
+        "passport_issue_place",
+        "driving_license_number",
+        "driving_license_expiry",
+        "driving_license_class",
+        "voter_id_number",
+        "ration_card_number",
+        "date_of_joining",
+        "date_of_confirmation",
+        "date_of_exit",
+        "branch_id",
+        "department_id",
+        "designation_id",
+        "business_unit_id",
+        "cost_center_id",
+        "location_id",
+        "grade_band_id",
+        "position_id",
+        "reporting_manager_id",
+        "functional_area",
+        "employment_type",
+        "worker_type",
+        "status",
+        "work_location",
+        "shift_id",
+        "probation_period_months",
+        "probation_start_date",
+        "probation_end_date",
+        "probation_status",
+        "notice_period_days",
+        "last_promotion_date",
+        "next_promotion_due_date",
+        "flexi_timing_applicable",
+        "work_from_home_eligible",
+        "desk_code",
+        "seat_number",
+        "timezone",
+        "manager_chain_path",
+        "contract_start_date",
+        "contract_end_date",
+        "contract_reference_number",
+        "contractor_company",
+        "bond_applicable",
+        "bond_amount",
+        "bond_end_date",
+        "bond_remarks",
+        "academic_rank",
+        "subjects_taught",
+        "class_assigned",
+        "teaching_experience_years",
+        "research_areas",
+        "publications_count",
+        "h_index",
+        "orcid_id",
+        "google_scholar_url",
+        "medical_specialty",
+        "medical_sub_specialty",
+        "clinical_grade",
+        "service_number",
+        "service_type",
+        "cadre",
+        "pay_level",
+        "pay_band",
+        "grade_pay",
+        "worker_category",
+        "trade",
+        "apprentice_type",
+        "factory_gate_number",
+        "professional_reg_number",
+        "professional_reg_body",
+        "professional_reg_expiry",
+        "background_verification_status",
+        "background_verification_date",
+        "background_verification_agency",
+        "bank_name",
+        "bank_branch",
+        "account_number",
+        "account_type",
+        "ifsc_code",
+        "micr_code",
+        "pan_number",
+        "aadhaar_number",
+        "uan_number",
+        "pf_number",
+        "esic_number",
+        "salary_currency",
+        "is_nri",
+        "nri_bank_account_type",
+        "tax_regime_preference",
+        "form_16_delivery",
+        "linkedin_url",
+        "github_username",
+        "portfolio_url",
+        "research_gate_url",
+        "languages_known",
+        "profile_photo_url",
+        "preferred_display_name",
+        "directory_visibility",
+        "skills_tags",
+        "profile_completeness",
+        "bio",
+        "interests",
+        "research_work",
+        "family_information",
+        "health_information",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "deleted_by",
+        "phone_number_country_code",
+        "alternate_phone_country_code",
+        "whatsapp_number_country_code",
+        "emergency_contact_number_country_code"
+      ],
+      "foreign_keys": [
+        {
+          "name": "employees_branch_id_fkey",
+          "constrained_columns": [
+            "branch_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "branches",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_business_unit_id_fkey",
+          "constrained_columns": [
+            "business_unit_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "business_units",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_cost_center_id_fkey",
+          "constrained_columns": [
+            "cost_center_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "cost_centers",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_deleted_by_fkey",
+          "constrained_columns": [
+            "deleted_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_department_id_fkey",
+          "constrained_columns": [
+            "department_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "departments",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_designation_id_fkey",
+          "constrained_columns": [
+            "designation_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "designations",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_grade_band_id_fkey",
+          "constrained_columns": [
+            "grade_band_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "grade_bands",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_location_id_fkey",
+          "constrained_columns": [
+            "location_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "work_locations",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_position_id_fkey",
+          "constrained_columns": [
+            "position_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "positions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_reporting_manager_id_fkey",
+          "constrained_columns": [
+            "reporting_manager_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "employees",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_shift_id_fkey",
+          "constrained_columns": [
+            "shift_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "shifts",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "employees_user_id_fkey",
+          "constrained_columns": [
+            "user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "employees_user_id_key",
+          "unique": true,
+          "column_names": [
+            "user_id"
+          ],
+          "duplicates_constraint": "employees_user_id_key",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "idx_employees_active_status",
+          "unique": false,
+          "column_names": [
+            "deleted_at",
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "idx_employees_department_status",
+          "unique": false,
+          "column_names": [
+            "department_id",
+            "status",
+            "deleted_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "idx_employees_directory_email",
+          "unique": false,
+          "column_names": [
+            "work_email",
+            "personal_email"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "idx_employees_manager_status",
+          "unique": false,
+          "column_names": [
+            "reporting_manager_id",
+            "status",
+            "deleted_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "idx_employees_name",
+          "unique": false,
+          "column_names": [
+            "first_name",
+            "last_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_employees_directory_visibility",
+          "unique": false,
+          "column_names": [
+            "directory_visibility"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_employees_employee_id",
+          "unique": true,
+          "column_names": [
+            "employee_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_employees_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_employees_probation_status",
+          "unique": false,
+          "column_names": [
+            "probation_status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_employees_work_email",
+          "unique": false,
+          "column_names": [
+            "work_email"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_people_employee_code_trgm",
+          "unique": false,
+          "column_names": [
+            "employee_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_ops": {
+              "employee_id": "gin_trgm_ops"
+            },
+            "postgresql_using": "gin",
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "crm_teams": {
+      "count": 0,
+      "columns": [
+        "id",
+        "organization_id",
+        "owner_user_id",
+        "name",
+        "team_type",
+        "description",
+        "status",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "crm_teams_created_by_user_id_fkey",
+          "constrained_columns": [
+            "created_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_teams_owner_user_id_fkey",
+          "constrained_columns": [
+            "owner_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "crm_teams_updated_by_user_id_fkey",
+          "constrained_columns": [
+            "updated_by_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_crm_teams_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_teams_name",
+          "unique": false,
+          "column_names": [
+            "name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_teams_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_teams_owner_user_id",
+          "unique": false,
+          "column_names": [
+            "owner_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_teams_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_crm_teams_team_type",
+          "unique": false,
+          "column_names": [
+            "team_type"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_crm_team_org_name",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "name"
+          ],
+          "duplicates_constraint": "uq_crm_team_org_name",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "pms_tasks": {
+      "count": 1308,
+      "columns": [
+        "id",
+        "project_id",
+        "board_id",
+        "column_id",
+        "milestone_id",
+        "sprint_id",
+        "epic_id",
+        "component_id",
+        "release_id",
+        "parent_task_id",
+        "assignee_user_id",
+        "reporter_user_id",
+        "title",
+        "description",
+        "task_key",
+        "work_type",
+        "epic_key",
+        "initiative",
+        "component",
+        "severity",
+        "environment",
+        "affected_version",
+        "fix_version",
+        "release_name",
+        "status",
+        "priority",
+        "start_date",
+        "due_date",
+        "completed_at",
+        "estimated_hours",
+        "actual_hours",
+        "original_estimate_hours",
+        "remaining_estimate_hours",
+        "story_points",
+        "rank",
+        "security_level",
+        "development_branch",
+        "development_commits",
+        "development_prs",
+        "development_deployments",
+        "development_build",
+        "position",
+        "is_client_visible",
+        "is_blocking",
+        "recurrence_rule",
+        "recurrence_interval",
+        "recurrence_until",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "pms_tasks_assignee_user_id_fkey",
+          "constrained_columns": [
+            "assignee_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_board_id_fkey",
+          "constrained_columns": [
+            "board_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_boards",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_column_id_fkey",
+          "constrained_columns": [
+            "column_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_board_columns",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_component_id_fkey",
+          "constrained_columns": [
+            "component_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_components",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_epic_id_fkey",
+          "constrained_columns": [
+            "epic_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_epics",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_milestone_id_fkey",
+          "constrained_columns": [
+            "milestone_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_milestones",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_parent_task_id_fkey",
+          "constrained_columns": [
+            "parent_task_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_tasks",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_project_id_fkey",
+          "constrained_columns": [
+            "project_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_projects",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_release_id_fkey",
+          "constrained_columns": [
+            "release_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_releases",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_reporter_user_id_fkey",
+          "constrained_columns": [
+            "reporter_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_tasks_sprint_id_fkey",
+          "constrained_columns": [
+            "sprint_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_sprints",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_pms_tasks_assignee_user_id",
+          "unique": false,
+          "column_names": [
+            "assignee_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_board_id",
+          "unique": false,
+          "column_names": [
+            "board_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_column_id",
+          "unique": false,
+          "column_names": [
+            "column_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_component",
+          "unique": false,
+          "column_names": [
+            "component"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_component_id",
+          "unique": false,
+          "column_names": [
+            "component_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_development_build",
+          "unique": false,
+          "column_names": [
+            "development_build"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_due_date",
+          "unique": false,
+          "column_names": [
+            "due_date"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_epic_id",
+          "unique": false,
+          "column_names": [
+            "epic_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_epic_key",
+          "unique": false,
+          "column_names": [
+            "epic_key"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_fix_version",
+          "unique": false,
+          "column_names": [
+            "fix_version"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_is_blocking",
+          "unique": false,
+          "column_names": [
+            "is_blocking"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_milestone_id",
+          "unique": false,
+          "column_names": [
+            "milestone_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_parent_task_id",
+          "unique": false,
+          "column_names": [
+            "parent_task_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_priority",
+          "unique": false,
+          "column_names": [
+            "priority"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_project_id",
+          "unique": false,
+          "column_names": [
+            "project_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_rank",
+          "unique": false,
+          "column_names": [
+            "rank"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_recurrence_rule",
+          "unique": false,
+          "column_names": [
+            "recurrence_rule"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_release_id",
+          "unique": false,
+          "column_names": [
+            "release_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_release_name",
+          "unique": false,
+          "column_names": [
+            "release_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_reporter_user_id",
+          "unique": false,
+          "column_names": [
+            "reporter_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_security_level",
+          "unique": false,
+          "column_names": [
+            "security_level"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_severity",
+          "unique": false,
+          "column_names": [
+            "severity"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_sprint_id",
+          "unique": false,
+          "column_names": [
+            "sprint_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_task_key",
+          "unique": false,
+          "column_names": [
+            "task_key"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_tasks_work_type",
+          "unique": false,
+          "column_names": [
+            "work_type"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_pms_task_project_key",
+          "unique": true,
+          "column_names": [
+            "project_id",
+            "task_key"
+          ],
+          "duplicates_constraint": "uq_pms_task_project_key",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "pms_private_notes": {
+      "count": 1,
+      "columns": [
+        "id",
+        "owner_id",
+        "title",
+        "content",
+        "project_id",
+        "task_id",
+        "tags",
+        "pinned",
+        "archived",
+        "version",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "folder_id",
+        "favorite",
+        "visibility_scope"
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_pms_note_folder",
+          "constrained_columns": [
+            "folder_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_note_folders",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_private_notes_owner_id_fkey",
+          "constrained_columns": [
+            "owner_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_private_notes_project_id_fkey",
+          "constrained_columns": [
+            "project_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_projects",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_private_notes_task_id_fkey",
+          "constrained_columns": [
+            "task_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_tasks",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_pms_private_notes_folder_id",
+          "unique": false,
+          "column_names": [
+            "folder_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_private_notes_owner_id",
+          "unique": false,
+          "column_names": [
+            "owner_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "pms_calendar_events": {
+      "count": 0,
+      "columns": [
+        "id",
+        "owner_id",
+        "workspace_id",
+        "task_id",
+        "title",
+        "description",
+        "start_at",
+        "end_at",
+        "timezone",
+        "kind",
+        "visibility",
+        "meeting_url",
+        "revision"
+      ],
+      "foreign_keys": [
+        {
+          "name": "pms_calendar_events_owner_id_fkey",
+          "constrained_columns": [
+            "owner_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_calendar_events_task_id_fkey",
+          "constrained_columns": [
+            "task_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_tasks",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "pms_calendar_events_workspace_id_fkey",
+          "constrained_columns": [
+            "workspace_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "pms_workspaces",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "CASCADE"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_pms_calendar_events_owner_id",
+          "unique": false,
+          "column_names": [
+            "owner_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_calendar_events_start_at",
+          "unique": false,
+          "column_names": [
+            "start_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_pms_calendar_events_workspace_id",
+          "unique": false,
+          "column_names": [
+            "workspace_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "srm_products": {
+      "count": 190,
+      "columns": [
+        "id",
+        "organization_id",
+        "category_id",
+        "default_warehouse_id",
+        "sku",
+        "item_name",
+        "barcode",
+        "description",
+        "product_type",
+        "category_name",
+        "unit_code",
+        "hsn_code",
+        "gst_rate",
+        "purchase_rate",
+        "sales_rate",
+        "mrp",
+        "current_quantity",
+        "average_cost",
+        "reorder_level",
+        "min_stock",
+        "max_stock",
+        "track_inventory",
+        "batch_tracking",
+        "serial_tracking",
+        "expiry_tracking",
+        "active",
+        "metadata_json",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "srm_products_category_id_fkey",
+          "constrained_columns": [
+            "category_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_product_categories",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_products_created_by_fkey",
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_products_default_warehouse_id_fkey",
+          "constrained_columns": [
+            "default_warehouse_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_warehouses",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_srm_products_active",
+          "unique": false,
+          "column_names": [
+            "active"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_barcode",
+          "unique": false,
+          "column_names": [
+            "barcode"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_category_id",
+          "unique": false,
+          "column_names": [
+            "category_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_category_name",
+          "unique": false,
+          "column_names": [
+            "category_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_created_at",
+          "unique": false,
+          "column_names": [
+            "created_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_created_by",
+          "unique": false,
+          "column_names": [
+            "created_by"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_default_warehouse_id",
+          "unique": false,
+          "column_names": [
+            "default_warehouse_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_hsn_code",
+          "unique": false,
+          "column_names": [
+            "hsn_code"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_item_name",
+          "unique": false,
+          "column_names": [
+            "item_name"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_product_type",
+          "unique": false,
+          "column_names": [
+            "product_type"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_sku",
+          "unique": false,
+          "column_names": [
+            "sku"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_track_inventory",
+          "unique": false,
+          "column_names": [
+            "track_inventory"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_products_unit_code",
+          "unique": false,
+          "column_names": [
+            "unit_code"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_srm_product_org_barcode",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "barcode"
+          ],
+          "duplicates_constraint": "uq_srm_product_org_barcode",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_srm_product_org_sku",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "sku"
+          ],
+          "duplicates_constraint": "uq_srm_product_org_sku",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "srm_sales_orders": {
+      "count": 126,
+      "columns": [
+        "id",
+        "organization_id",
+        "order_number",
+        "status",
+        "crm_deal_id",
+        "crm_quote_id",
+        "crm_company_id",
+        "crm_contact_id",
+        "customer_id",
+        "assigned_user_id",
+        "created_by",
+        "approved_by",
+        "approval_request_id",
+        "title",
+        "currency",
+        "subtotal",
+        "discount_amount",
+        "tax_amount",
+        "total_amount",
+        "expected_start_date",
+        "expected_end_date",
+        "terms",
+        "metadata_json",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "srm_sales_orders_approved_by_fkey",
+          "constrained_columns": [
+            "approved_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_sales_orders_assigned_user_id_fkey",
+          "constrained_columns": [
+            "assigned_user_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_sales_orders_created_by_fkey",
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_srm_sales_orders_approval_request_id",
+          "unique": false,
+          "column_names": [
+            "approval_request_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_approved_by",
+          "unique": false,
+          "column_names": [
+            "approved_by"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_assigned_user_id",
+          "unique": false,
+          "column_names": [
+            "assigned_user_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_created_at",
+          "unique": false,
+          "column_names": [
+            "created_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_created_by",
+          "unique": false,
+          "column_names": [
+            "created_by"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_crm_company_id",
+          "unique": false,
+          "column_names": [
+            "crm_company_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_crm_contact_id",
+          "unique": false,
+          "column_names": [
+            "crm_contact_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_crm_deal_id",
+          "unique": false,
+          "column_names": [
+            "crm_deal_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_crm_quote_id",
+          "unique": false,
+          "column_names": [
+            "crm_quote_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_customer_id",
+          "unique": false,
+          "column_names": [
+            "customer_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_order_number",
+          "unique": false,
+          "column_names": [
+            "order_number"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_sales_orders_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_srm_sales_order_org_number",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "order_number"
+          ],
+          "duplicates_constraint": "uq_srm_sales_order_org_number",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "srm_invoices": {
+      "count": 122,
+      "columns": [
+        "id",
+        "organization_id",
+        "invoice_number",
+        "invoice_draft_id",
+        "sales_order_id",
+        "engagement_id",
+        "customer_id",
+        "status",
+        "issue_date",
+        "due_date",
+        "sent_at",
+        "approved_by",
+        "approved_at",
+        "currency",
+        "subtotal",
+        "discount_amount",
+        "tax_amount",
+        "total_amount",
+        "paid_amount",
+        "balance_amount",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "collection_hold",
+        "collection_hold_reason",
+        "collection_resume_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "srm_invoices_approved_by_fkey",
+          "constrained_columns": [
+            "approved_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_invoices_created_by_fkey",
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_invoices_engagement_id_fkey",
+          "constrained_columns": [
+            "engagement_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_engagements",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_invoices_invoice_draft_id_fkey",
+          "constrained_columns": [
+            "invoice_draft_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_invoice_drafts",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_invoices_sales_order_id_fkey",
+          "constrained_columns": [
+            "sales_order_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_sales_orders",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_srm_invoices_created_at",
+          "unique": false,
+          "column_names": [
+            "created_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_customer_id",
+          "unique": false,
+          "column_names": [
+            "customer_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_due_date",
+          "unique": false,
+          "column_names": [
+            "due_date"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_engagement_id",
+          "unique": false,
+          "column_names": [
+            "engagement_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_invoice_draft_id",
+          "unique": false,
+          "column_names": [
+            "invoice_draft_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_invoice_number",
+          "unique": false,
+          "column_names": [
+            "invoice_number"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_issue_date",
+          "unique": false,
+          "column_names": [
+            "issue_date"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_sales_order_id",
+          "unique": false,
+          "column_names": [
+            "sales_order_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_invoices_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_srm_invoice_org_number",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "invoice_number"
+          ],
+          "duplicates_constraint": "uq_srm_invoice_org_number",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "srm_pos_returns": {
+      "count": 0,
+      "columns": [
+        "id",
+        "organization_id",
+        "return_number",
+        "sales_order_id",
+        "session_id",
+        "customer_id",
+        "customer_name",
+        "status",
+        "refund_method",
+        "refund_status",
+        "subtotal",
+        "tax_amount",
+        "refund_amount",
+        "reason",
+        "metadata_json",
+        "created_by",
+        "created_at"
+      ],
+      "foreign_keys": [
+        {
+          "name": "srm_pos_returns_created_by_fkey",
+          "constrained_columns": [
+            "created_by"
+          ],
+          "referred_schema": null,
+          "referred_table": "users",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_pos_returns_sales_order_id_fkey",
+          "constrained_columns": [
+            "sales_order_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_sales_orders",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        },
+        {
+          "name": "srm_pos_returns_session_id_fkey",
+          "constrained_columns": [
+            "session_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "srm_pos_sessions",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "SET NULL"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_srm_pos_returns_created_at",
+          "unique": false,
+          "column_names": [
+            "created_at"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_created_by",
+          "unique": false,
+          "column_names": [
+            "created_by"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_customer_id",
+          "unique": false,
+          "column_names": [
+            "customer_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_id",
+          "unique": false,
+          "column_names": [
+            "id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_refund_method",
+          "unique": false,
+          "column_names": [
+            "refund_method"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_refund_status",
+          "unique": false,
+          "column_names": [
+            "refund_status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_return_number",
+          "unique": false,
+          "column_names": [
+            "return_number"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_sales_order_id",
+          "unique": false,
+          "column_names": [
+            "sales_order_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_session_id",
+          "unique": false,
+          "column_names": [
+            "session_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_srm_pos_returns_status",
+          "unique": false,
+          "column_names": [
+            "status"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_srm_pos_return_org_number",
+          "unique": true,
+          "column_names": [
+            "organization_id",
+            "return_number"
+          ],
+          "duplicates_constraint": "uq_srm_pos_return_org_number",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    },
+    "suite_business_relationships": {
+      "count": 267,
+      "columns": [
+        "id",
+        "organization_id",
+        "contact_id",
+        "account_id",
+        "role",
+        "status",
+        "category",
+        "payment_terms",
+        "credit_limit",
+        "follow_up_at",
+        "notes"
+      ],
+      "foreign_keys": [
+        {
+          "name": "suite_business_relationships_account_id_fkey",
+          "constrained_columns": [
+            "account_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_companies",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "RESTRICT"
+          },
+          "comment": null
+        },
+        {
+          "name": "suite_business_relationships_contact_id_fkey",
+          "constrained_columns": [
+            "contact_id"
+          ],
+          "referred_schema": null,
+          "referred_table": "crm_contacts",
+          "referred_columns": [
+            "id"
+          ],
+          "options": {
+            "ondelete": "RESTRICT"
+          },
+          "comment": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_suite_business_relationships_account_id",
+          "unique": false,
+          "column_names": [
+            "account_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_suite_business_relationships_contact_id",
+          "unique": false,
+          "column_names": [
+            "contact_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_suite_business_relationships_organization_id",
+          "unique": false,
+          "column_names": [
+            "organization_id"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "ix_suite_business_relationships_role",
+          "unique": false,
+          "column_names": [
+            "role"
+          ],
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_account_business_role",
+          "unique": true,
+          "column_names": [
+            "account_id",
+            "role"
+          ],
+          "duplicates_constraint": "uq_account_business_role",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        },
+        {
+          "name": "uq_contact_business_role",
+          "unique": true,
+          "column_names": [
+            "contact_id",
+            "role"
+          ],
+          "duplicates_constraint": "uq_contact_business_role",
+          "include_columns": [],
+          "dialect_options": {
+            "postgresql_include": []
+          }
+        }
+      ]
+    }
+  },
+  "table_count": 840,
+  "migration_head": "pg_20261112_098_event_delivery"
+}

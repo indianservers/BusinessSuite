@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="17" time="82.892" timestamp="2026-11-12T22:17:17.016774+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc054_stock_type_cannot_be_spoofed_as_service" time="19.484" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[-1]" time="3.231" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[0]" time="3.305" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[unit_price]" time="3.022" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[tax_amount]" time="3.539" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[discount_amount]" time="3.027" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc076_pos_totals_and_tax_are_server_authoritative" time="2.329" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc060_service_does_not_move_stock" time="3.776" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc059_oversell_rolls_back_order_and_stock" time="3.473" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc030_nonrestocked_return_still_consumes_refundable_quantity" time="5.381" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc073_return_cannot_substitute_another_product" time="4.489" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc040_refund_uses_original_discount_and_tax_snapshot" time="3.796" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc108_refund_cannot_exceed_original_sale_value" time="5.894" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc109_inactive_catalog_item_cannot_be_sold" time="5.118" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc110_malformed_warehouse_is_validation_error" time="3.557" /><testcase classname="tests.test_business_suite_contact_retention" name="test_tc075_text_identity_history_prevents_permanent_deletion" time="3.522"><failure message="AssertionError: {&quot;detail&quot;:&quot;Enter a valid email address without spaces&quot;}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422 Unprocessable Content]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000125443867E0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000125453A9580&gt;
+superuser_headers = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDU3MTEsInN1YiI6IjE2IiwidHlwZSI6ImFjY2VzcyIsInNpZCI6IjE2In0.FrkH1WNNeiPRp7N1fPcsz8fkJiE-CtD1I2TjJ3Zavl8', 'X-Suite-Branch': '16'}
+
+    def test_tc075_text_identity_history_prevents_permanent_deletion(client, db, superuser_headers):
+&gt;       row = new_contact(client, superuser_headers, email='retained-history@qa.invalid')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_business_suite_contact_retention.py:7: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+client = &lt;starlette.testclient.TestClient object at 0x00000125443867E0&gt;
+headers = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDU3MTEsInN1YiI6IjE2IiwidHlwZSI6ImFjY2VzcyIsInNpZCI6IjE2In0.FrkH1WNNeiPRp7N1fPcsz8fkJiE-CtD1I2TjJ3Zavl8', 'X-Suite-Branch': '16'}
+values = {'email': 'retained-history@qa.invalid'}
+result = &lt;Response [422 Unprocessable Content]&gt;, @py_assert1 = 422
+@py_assert4 = 200, @py_assert3 = False
+@py_format6 = '422\n{422 = &lt;Response [422 Unprocessable Content]&gt;.status_code\n} == 200'
+@py_format8 = '{"detail":"Enter a valid email address without spaces"}\n&gt;assert 422\n{422 = &lt;Response [422 Unprocessable Content]&gt;.status_code\n} == 200'
+
+    def new_contact(client, headers, **values):
+        result = client.post(ROOT, headers=headers, json={"name": "Ravi Kumar", "email": "ravi@example.com", "tags": ["Customer", "Vendor", "Partner"], **values})
+&gt;       assert result.status_code == 200, result.text
+E       AssertionError: {"detail":"Enter a valid email address without spaces"}
+E       assert 422 == 200
+E        +  where 422 = &lt;Response [422 Unprocessable Content]&gt;.status_code
+
+tests\test_contact_directory.py:32: AssertionError</failure></testcase><testcase classname="tests.test_contact_directory" name="test_permanent_deletion_is_admin_only_and_protects_referenced_contacts" time="4.241" /></testsuite></testsuites>

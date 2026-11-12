@@ -220,11 +220,11 @@ for _artifact_module in ('CRM','PMS','HRMS'):
         'Execute the exact reviewed registered connector action from an explicitly bound connection. Native scopes, write consent and idempotency apply.',
         fields=('connection_id','action_id','input'),model='app.ai_operator.agent_connectors:Action')
     TOOLS[f'{_prefix}.create_artifact']=Tool(_artifact_module,'POST','/ai-operator/suite/artifacts/create-approved',
-        'Create a private versioned document, checklist or table after review. Content is inert; never execute or send it.',
-        fields=('title','kind','content','columns','rows'),model='app.ai_operator.artifacts:Body')
+        'Create a private versioned document, checklist, table or presentation after review. Presentations use structured slides (title and bullets). Content is inert; never execute or send it.',
+        fields=('title','kind','content','columns','rows','slides','chart'),model='app.ai_operator.artifacts:Body')
     TOOLS[f'{_prefix}.edit_artifact']=Tool(_artifact_module,'POST','/ai-operator/suite/artifacts/edit-approved',
         'Save the complete revised artifact after review. Read the current artifact first and retain its ID, kind and expected_revision.',
-        fields=('artifact_id','expected_revision','title','kind','content','columns','rows'),model='app.ai_operator.artifacts:Edit')
+        fields=('artifact_id','expected_revision','title','kind','content','columns','rows','slides','chart'),model='app.ai_operator.artifacts:Edit')
     TOOLS[f'{_prefix}.artifacts']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts','List this user\'s private artifact metadata in the selected module/workspace.')
     TOOLS[f'{_prefix}.artifact']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts/current','Read current private artifact content and revision before editing.',fields=('artifact_id',))
 for _report_module in ('CRM', 'PMS', 'HRMS', 'SRM'):

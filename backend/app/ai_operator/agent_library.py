@@ -141,6 +141,7 @@ def source(db,user,kind,ident,revision):
             if skill.references.get('library_origin'):raise HTTPException(422,'Linked shared skills cannot be republished inside another definition')
             definition['skills'].append({k:skill.references['config'][k] for k in ('name','instructions','tools')})
         definition['omitted']={'private_memory':len(body['memory']),'connection_bindings':len(body['connection_ids']),'mcp_bindings':len(body['mcp_ids']),'conversation_history':True}
+        if body.get('knowledge_files'):definition['omitted']['private_knowledge_files']=len(body['knowledge_files'])
     return definition
 
 
@@ -334,7 +335,7 @@ def install_private(ident,data,db,user):
         try:
             body=agents.Config(**{k:definition[k] for k in ('name','instructions','modules','tools','workspace_id','project_id')},
                 provider=data.provider or prior.get('provider',definition['provider']),memory=prior.get('memory',[]),
-                connection_ids=prior.get('connection_ids',[]),mcp_ids=prior.get('mcp_ids',[]),environment=prior.get('environment','development'),skill_ids=[*skill_ids,*personal_skills])
+                connection_ids=prior.get('connection_ids',[]),mcp_ids=prior.get('mcp_ids',[]),knowledge_files=prior.get('knowledge_files',[]),environment=prior.get('environment','development'),skill_ids=[*skill_ids,*personal_skills])
         except ValueError:raise HTTPException(422,'The updated definition does not fit this private configuration. Check its provider, personal skills and tool limits.') from None
         if existing:
             agents.access(db,user,body)

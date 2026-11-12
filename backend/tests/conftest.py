@@ -89,9 +89,10 @@ def db_engine():
         # Runtime startup provisions tenant 1 before module-gating middleware.
         # SQLite previously concealed this prerequisite by not enforcing FKs.
         from app.models.company import Company
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
         with engine.begin() as connection:
-            connection.execute(Company.__table__.insert().values(id=1, name="Integration Test Company"))
-            connection.exec_driver_sql("SELECT setval(pg_get_serial_sequence('companies','id'),1,true)")
+            connection.execute(pg_insert(Company.__table__).values(id=1, name="Integration Test Company").on_conflict_do_nothing(index_elements=["id"]))
+            connection.exec_driver_sql("SELECT setval(pg_get_serial_sequence('companies','id'),GREATEST((SELECT COALESCE(MAX(id),1) FROM companies),1),true)")
     yield engine
     if engine.dialect.name == "postgresql":
         # The guarded runner recreates this dedicated DB on its next invocation.

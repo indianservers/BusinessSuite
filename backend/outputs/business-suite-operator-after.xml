@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="2" tests="48" time="254.427" timestamp="2026-11-12T22:51:52.525436+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: give me a view of PMS tasks without assignees-tasks.unassigned]" time="3.571" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: set a start date for task #1 starting tomorrow-tasks.schedule]" time="0.008" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: prepare dates for task record #1 starting tomorrow-tasks.schedule]" time="0.009" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: set a start date for assigned task #1 starting tomorrow-tasks.schedule]" time="0.009" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: show me project tasks awaiting assignment-tasks.unassigned]" time="0.006" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: make PMS task record #1 priority to high-tasks.priority]" time="0.009" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[PMS: make PMS task item #1 status to done-tasks.status]" time="0.008" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[CRM: make CRM task record #1 priority to high-tasks.priority]" time="0.010" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[CRM: make CRM task item #1 status to done-tasks.status]" time="0.009" /><testcase classname="tests.test_action_model_v2" name="test_scheduling_and_negative_assignment_filters_do_not_become_other_actions[CRM: add a follow up note for lead #1: Customer requested a callback-note.create]" time="0.010" /><testcase classname="tests.test_action_model_v2" name="test_v2_counts_labels_and_evaluation_features_are_disjoint" time="0.279" /><testcase classname="tests.test_action_model_v2" name="test_interleaved_conversations_keep_slots_and_approvals_independent" time="9.572" /><testcase classname="tests.test_action_model_v2" name="test_invalid_followup_keeps_question_and_cancel_only_affects_that_chat" time="2.787" /><testcase classname="tests.test_action_model_v2" name="test_real_trained_dialogue_model_parity_report_and_fail_closed" time="0.012"><skipped type="pytest.skip" message="Set ACTION_DIALOGUE_TEST_MODEL_DIR to validate real trained artifacts">C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_action_model_v2.py:80: Set ACTION_DIALOGUE_TEST_MODEL_DIR to validate real trained artifacts</skipped></testcase><testcase classname="tests.test_action_model_v2" name="test_trained_followup_treats_title_conjunction_as_data_not_a_second_action" time="0.009"><skipped type="pytest.skip" message="Set ACTION_DIALOGUE_TEST_MODEL_DIR to validate real trained artifacts">C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_action_model_v2.py:80: Set ACTION_DIALOGUE_TEST_MODEL_DIR to validate real trained artifacts</skipped></testcase><testcase classname="tests.test_action_repairs" name="test_repair_cases_are_in_training_without_leaking_evaluation_features" time="0.148" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[yes]" time="5.101" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[okay]" time="4.879" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[no]" time="3.792" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[what are my choices?]" time="4.252" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[I do not know]" time="3.466" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[explain this field]" time="3.643" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[I don\u2019t know]" time="3.604" /><testcase classname="tests.test_action_repairs" name="test_ambiguous_or_help_reply_never_becomes_a_task_title[please explain this field]" time="3.548" /><testcase classname="tests.test_action_repairs" name="test_rename_and_negative_priority_correction_change_exact_plan_and_revoke_old_approval" time="7.518" /><testcase classname="tests.test_action_repairs" name="test_date_answer_to_title_question_keeps_date_but_asks_for_title" time="6.638" /><testcase classname="tests.test_action_repairs" name="test_polite_cancel_revokes_a_pending_plan_without_creating_a_title" time="4.882" /><testcase classname="tests.test_action_repairs" name="test_negated_priority_without_replacement_asks_instead_of_retaining_it" time="9.910" /><testcase classname="tests.test_action_repairs" name="test_corrected_title_and_priority_execute_in_the_respective_module[PMS]" time="14.491" /><testcase classname="tests.test_action_repairs" name="test_corrected_title_and_priority_execute_in_the_respective_module[HRMS]" time="10.841" /><testcase classname="tests.test_ai_operator_jobs" name="test_worker_preserves_nondefault_branch_for_approval_and_execution" time="34.757" /><testcase classname="tests.test_ai_operator_jobs" name="test_background_work_uses_durable_queue_and_after_commit_events[atomic]" time="11.310" /><testcase classname="tests.test_ai_operator_jobs" name="test_background_work_uses_durable_queue_and_after_commit_events[checkpointed]" time="10.654"><failure message="AssertionError: assert 'paused' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + paused">client = &lt;starlette.testclient.TestClient object at 0x0000026CCCA67770&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x0000026CCCA65970&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000026CC9B53B30&gt;
+execution_mode = 'checkpointed'
+
+    @pytest.mark.parametrize("execution_mode", ["atomic", "checkpointed"])
+    def test_background_work_uses_durable_queue_and_after_commit_events(client, db, monkeypatch, execution_mode):
+        headers, _, _, task, run, calls = queued_plan(client, db, monkeypatch, execution_mode=execution_mode)
+        approve(client, headers, run)
+        approve(client, headers, run)  # Duplicate human approval queues just one job.
+        assert db.query(OperatorJob).filter_by(run_id=run["id"], kind="execute").count() == 1
+        assert db.query(PMSChecklistItem).filter_by(task_id=task).count() == 0
+        process_batch(db, limit=5)
+        db.expire_all()
+&gt;       assert db.get(OperatorRun, run["id"]).status == "succeeded"
+E       AssertionError: assert 'paused' == 'succeeded'
+E         
+E         - succeeded
+E         + paused
+
+tests\test_ai_operator_jobs.py:88: AssertionError</failure></testcase><testcase classname="tests.test_ai_operator_jobs" name="test_expired_lease_resumes_without_duplicate_completed_step" time="13.523"><failure message="AssertionError: assert 'paused' == 'processed'&#10;  &#10;  - processed&#10;  + paused">client = &lt;starlette.testclient.TestClient object at 0x0000026CCA0113D0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x0000026CCA013E60&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000026CCA011D00&gt;
+
+    def test_expired_lease_resumes_without_duplicate_completed_step(client, db, monkeypatch):
+        headers, _, _, task, run, _ = queued_plan(client, db, monkeypatch)
+        approve(client, headers, run)
+        process_batch(db, limit=1)  # First step committed; second pending.
+        held = claim(db)
+        assert held
+        assert claim(db) is None  # Cannot claim a live lease.
+        job = db.get(OperatorJob, held[0])
+        job.lease_until = now_utc() - timedelta(seconds=1)
+        db.commit()
+        replacement = claim(db)
+        assert replacement and replacement[1] != held[1]
+        assert process_claim(db, *held) == "lost_lease"
+&gt;       assert process_claim(db, *replacement) == "processed"
+E       AssertionError: assert 'paused' == 'processed'
+E         
+E         - processed
+E         + paused
+
+tests\test_ai_operator_jobs.py:115: AssertionError</failure></testcase><testcase classname="tests.test_ai_operator_jobs" name="test_failed_checkpoint_preserves_completed_effects_and_resumes" time="9.860"><failure message="AssertionError: {&quot;detail&quot;:&quot;STALE_PLAN&quot;}&#10;assert 409 == 200&#10; +  where 409 = &lt;Response [409 Conflict]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x0000026CC95F5220&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x0000026CC95F4890&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000026CC95F46E0&gt;
+
+    def test_failed_checkpoint_preserves_completed_effects_and_resumes(client, db, monkeypatch):
+        headers, _, _, task, run, _ = queued_plan(client, db, monkeypatch)
+        approve(client, headers, run)
+        process_batch(db, limit=1)
+        from app.apps.project_management.api import router as pms
+        original = pms.create_task_checklist_operation
+        def fail(*args, **kwargs):
+            raise HTTPException(422, "Validation changed")
+        monkeypatch.setattr(pms, "create_task_checklist_operation", fail)
+        process_batch(db, limit=1)
+        db.expire_all()
+        row = db.get(OperatorRun, run["id"])
+        assert row.status == "paused" and len(row.result["receipts"]) == 1
+        assert db.get(PMSTask, task).priority == "High"
+        assert db.query(PMSChecklistItem).filter_by(task_id=task).count() == 0
+        monkeypatch.setattr(pms, "create_task_checklist_operation", original)
+        resumed = client.post(f"/api/v1/ai-operator/runs/{row.id}/resume", headers=headers, json={"plan_hash": row.plan_hash})
+&gt;       assert resumed.status_code == 200, resumed.text
+E       AssertionError: {"detail":"STALE_PLAN"}
+E       assert 409 == 200
+E        +  where 409 = &lt;Response [409 Conflict]&gt;.status_code
+
+tests\test_ai_operator_jobs.py:137: AssertionError</failure></testcase><testcase classname="tests.test_ai_operator_jobs" name="test_checkpoint_cancel_keeps_receipts_and_prevents_future_writes" time="6.768" /><testcase classname="tests.test_ai_operator_jobs" name="test_revision_invalidates_old_approval_and_preserves_context" time="8.597" /><testcase classname="tests.test_ai_operator_jobs" name="test_stale_task_between_checkpoints_cannot_be_resumed" time="10.275" /><testcase classname="tests.test_ai_operator_jobs" name="test_provider_retry_budget_and_failed_attempt_telemetry" time="4.352" /><testcase classname="tests.test_ai_operator_jobs" name="test_schedule_and_dependency_tools_and_cycle_validation" time="7.117" /><testcase classname="tests.test_ai_operator_jobs" name="test_revoked_permissions_pause_worker_and_events_are_private" time="5.107" /><testcase classname="tests.test_ai_operator_jobs" name="test_cancel_queued_planning_never_calls_provider" time="2.840" /><testcase classname="tests.test_ai_operator_jobs" name="test_cycle_and_out_of_selection_dependencies_cannot_be_approved[True]" time="3.586" /><testcase classname="tests.test_ai_operator_jobs" name="test_cycle_and_out_of_selection_dependencies_cannot_be_approved[False]" time="3.850" /><testcase classname="tests.test_ai_operator_jobs" name="test_permanent_provider_error_does_not_retry" time="3.562" /><testcase classname="tests.test_ai_operator_jobs" name="test_checkpoint_rechecks_dates_of_linked_tasks_outside_selection" time="8.198" /><testcase classname="tests.test_ai_operator_jobs" name="test_job_events_and_revisions_deny_other_users" time="4.939" /><testcase classname="tests.test_ai_operator_jobs" name="test_background_job_migration_preserves_old_runs_and_is_repeatable" time="0.507" /></testsuite></testsuites>

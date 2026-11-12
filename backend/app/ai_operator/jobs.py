@@ -182,6 +182,11 @@ def execute_checkpoint(db, job, run, approval, user):
     receipt = perform_step(db, user, PlanStep.model_validate(pending.payload), pending.position)
     pending.status, pending.receipt, pending.error_code = "succeeded", receipt, None
     db.flush()
+    # Hash the persisted representation. SQLite discards timezone offsets on
+    # DateTime reload; hashing the just-written in-memory UTC value otherwise
+    # makes our own successful step look like an external concurrent edit.
+    for task in tasks:
+        db.refresh(task)
     run.snapshots = {str(t.id): digest(task_snapshot(db, t)) for t in tasks}
     run.status, run.error_code = "executing", None
     run.result = {**(run.result or {}),"success": False, "partial": True, "receipts": receipts_for(db, run)}
@@ -235,7 +240,9 @@ def process_claim(db, job_id, token):
             emit(db, run, "run.planning")
             db.commit()  # Release all locks before calling the model.
             from app.ai_operator.planner import generate_plan, publish_plan
-            plan, snapshots = generate_plan(db, user, run)
+            from app.ai_operator.providers import retry_budget
+            with retry_budget(1):
+                plan, snapshots = generate_plan(db, user, run)
             db.expire_all()  # Re-read permissions and cancellation after network I/O.
             job, run, _ = lock_claim(db, job_id, token)
             if not job:

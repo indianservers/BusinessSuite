@@ -113,7 +113,7 @@ def test_tc040_refund_uses_original_discount_and_tax_snapshot(client, db, catalo
     db.commit()
     returned = refund(client, catalog, sale)
     assert returned.status_code == 201, returned.text
-    assert Decimal(str(returned.json()['total_amount'])) == Decimal(str(sale['total_amount']))
+    assert Decimal(str(returned.json()['refund_amount'])) == Decimal(str(sale['total_amount']))
     assert Decimal(str(returned.json()['tax_amount'])) == Decimal('16.2')
 
 
@@ -133,3 +133,62 @@ def test_tc109_inactive_catalog_item_cannot_be_sold(client, db, catalog):
 def test_tc110_malformed_warehouse_is_validation_error(client, db, catalog):
     response = sell(client, catalog, metadata_json={'warehouse_id': 'not-an-id'})
     assert response.status_code == 422, response.text
+
+
+def test_tc027_bill_discount_is_allocated_before_each_item_tax(client, db, catalog):
+    db.get(SRMProduct,catalog[2][1]).gst_rate = 5
+    db.commit()
+    response = client.post('/api/v1/srm/sales-orders', headers=catalog[0], json={
+        'title':'Mixed discounted POS order', 'discount_amount':20,
+        'metadata_json':{'source':'pos','pos_sale_id':str(uuid4())},
+        'lines':[{'product_id':pid,'description':'Mixed item','quantity':1,'unit_price':100,'tax_amount':999,'line_total':999} for pid in catalog[2][:2]],
+    })
+    assert response.status_code == 201, response.text
+    assert Decimal(str(response.json()['total_amount'])) == Decimal('200.70')
+    assert [Decimal(str(row['tax_amount'])) for row in response.json()['lines']] == [Decimal('16.20'),Decimal('4.50')]
+
+
+@pytest.mark.parametrize('quantity',['0.001','1.234'])
+def test_tc111_unsupported_sale_precision_cannot_be_silently_truncated(client, db, catalog, quantity):
+    response = sell(client,catalog,quantity=quantity)
+    assert response.status_code == 422, response.text
+
+
+def test_tc071_foreign_customer_cannot_be_attached_to_pos_order(client, db, catalog):
+    from app.apps.crm.models import CRMCompany
+    foreign = CRMCompany(organization_id=2,name='Different tenant buyer')
+    db.add(foreign);db.commit()
+    response = client.post('/api/v1/srm/sales-orders',headers=catalog[0],json={
+        'title':'Foreign buyer attempt','customer_id':foreign.id,
+        'metadata_json':{'source':'pos','pos_sale_id':str(uuid4())},
+        'lines':[{'product_id':catalog[2][0],'description':'Own stock','quantity':1,'unit_price':100}],
+    })
+    assert response.status_code in {403,404,422}, response.text
+    assert db.query(SRMSalesOrder).count() == 0
+
+
+def test_tc073_return_customer_cannot_be_replaced(client, db, catalog):
+    sale = sell(client,catalog).json()
+    response = client.post('/api/v1/srm/pos/returns',headers=catalog[0],json={
+        'sales_order_id':sale['id'],'customer_id':999999,
+        'lines':[{'sales_order_line_id':sale['lines'][0]['id'],'quantity':1}],
+    })
+    assert response.status_code == 422, response.text
+
+
+def test_tc092_zero_price_product_is_zero_billed_but_still_issues_stock(client, db, catalog):
+    response = sell(client,catalog,unit_price=0,tax_amount=99,line_total=99)
+    assert response.status_code == 201, response.text
+    assert Decimal(str(response.json()['total_amount'])) == 0
+    assert Decimal(str(response.json()['tax_amount'])) == 0
+    db.expire_all()
+    assert db.get(SRMProduct,catalog[2][0]).current_quantity == Decimal('4')
+
+
+def test_tc093_fractional_quantity_stock_and_money_remain_consistent(client, db, catalog):
+    response = sell(client,catalog,quantity='0.50',tax_amount=0,line_total=1)
+    assert response.status_code == 201, response.text
+    assert Decimal(str(response.json()['lines'][0]['quantity'])) == Decimal('.50')
+    assert Decimal(str(response.json()['total_amount'])) == Decimal('59')
+    db.expire_all()
+    assert db.get(SRMProduct,catalog[2][0]).current_quantity == Decimal('4.50')

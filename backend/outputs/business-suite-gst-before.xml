@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="56" time="64.306" timestamp="2026-11-12T22:19:13.383957+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-0]" time="8.020" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-5]" time="0.622" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-12]" time="0.567" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-18]" time="0.601" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-28]" time="0.655" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-0]" time="0.670" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-5]" time="1.841" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-12]" time="0.644" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-18]" time="0.701" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-28]" time="0.791" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-0]" time="0.893" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-5]" time="0.739" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-12]" time="0.760" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-18]" time="0.861" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-28]" time="1.009" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-0]" time="0.934" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-5]" time="4.076" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-12]" time="1.840" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-18]" time="3.303" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-28]" time="2.603" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-0]" time="1.162" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-5]" time="0.883" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-12]" time="0.771" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-18]" time="0.776" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-28]" time="0.686" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-0]" time="0.625" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-5]" time="1.925"><failure message="AssertionError: assert Decimal('0.0') == Decimal('0.01')&#10; +  where Decimal('0.0') = Decimal('0.0')&#10; +    where '0.0' = str(0.0)">client = &lt;starlette.testclient.TestClient object at 0x00000212A32BA450&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A48E4F20&gt;, rate = '5'
+taxable = '0.10', interstate = True
+
+    @pytest.mark.parametrize('rate', ['0', '5', '12', '18', '28'])
+    @pytest.mark.parametrize('taxable', ['0', '0.10', '99.99', '1000.25'])
+    @pytest.mark.parametrize('interstate', [False, True])
+    def test_tc031_039_configured_rate_components_and_decimal_rounding(client, db, rate, taxable, interstate):
+        headers = fam_admin_headers(client, db)
+        percentage, base = Decimal(rate), Decimal(taxable)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': taxable, 'company_state_code': '29', 'place_of_supply_state': '27' if interstate else '29',
+            'cgst_rate': str(percentage/2), 'sgst_rate': str(percentage/2), 'igst_rate': rate,
+        })
+        assert response.status_code == 200, response.text
+        values = response.json()
+        component = (base*percentage/(100 if interstate else 200)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+        expected = component if interstate else component*2
+&gt;       assert Decimal(str(values['total_tax'])) == expected
+E       AssertionError: assert Decimal('0.0') == Decimal('0.01')
+E        +  where Decimal('0.0') = Decimal('0.0')
+E        +    where '0.0' = str(0.0)
+
+tests\test_business_suite_gst_matrix.py:21: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-12]" time="0.747" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-18]" time="0.679" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-28]" time="0.710" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-0]" time="0.661" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-5]" time="0.613" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-12]" time="0.617" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-18]" time="0.648" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-28]" time="0.584" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-0]" time="0.683" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-5]" time="1.825" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-12]" time="0.785" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-18]" time="0.967"><failure message="AssertionError: assert Decimal('180.04') == Decimal('180.05')&#10; +  where Decimal('180.04') = Decimal('180.04')&#10; +    where '180.04' = str(180.04)">client = &lt;starlette.testclient.TestClient object at 0x00000212A4C18860&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A4C18C20&gt;, rate = '18'
+taxable = '1000.25', interstate = True
+
+    @pytest.mark.parametrize('rate', ['0', '5', '12', '18', '28'])
+    @pytest.mark.parametrize('taxable', ['0', '0.10', '99.99', '1000.25'])
+    @pytest.mark.parametrize('interstate', [False, True])
+    def test_tc031_039_configured_rate_components_and_decimal_rounding(client, db, rate, taxable, interstate):
+        headers = fam_admin_headers(client, db)
+        percentage, base = Decimal(rate), Decimal(taxable)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': taxable, 'company_state_code': '29', 'place_of_supply_state': '27' if interstate else '29',
+            'cgst_rate': str(percentage/2), 'sgst_rate': str(percentage/2), 'igst_rate': rate,
+        })
+        assert response.status_code == 200, response.text
+        values = response.json()
+        component = (base*percentage/(100 if interstate else 200)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+        expected = component if interstate else component*2
+&gt;       assert Decimal(str(values['total_tax'])) == expected
+E       AssertionError: assert Decimal('180.04') == Decimal('180.05')
+E        +  where Decimal('180.04') = Decimal('180.04')
+E        +    where '180.04' = str(180.04)
+
+tests\test_business_suite_gst_matrix.py:21: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-28]" time="0.799" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-exempt]" time="0.732" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-nil]" time="0.757" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-zero_rated]" time="0.694" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-out_of_scope]" time="0.693" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-exempt]" time="0.666" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-nil]" time="0.654" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-zero_rated]" time="1.888" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-out_of_scope]" time="0.793" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-cgst_rate]" time="0.771"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:-1.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:-1.0,&quot;gross_amount&quot;:99.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A3B22870&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A3B22A20&gt;
+field = 'cgst_rate', rate = -1
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":-1.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":-1.0,"gross_amount":99.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-sgst_rate]" time="0.806"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:-1.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:-1.0,&quot;gross_amount&quot;:99.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A3B22DB0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A3B236E0&gt;
+field = 'sgst_rate', rate = -1
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":-1.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":-1.0,"gross_amount":99.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-igst_rate]" time="0.769"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:0.0,&quot;gross_amount&quot;:100.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A4349C10&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A434BC80&gt;
+field = 'igst_rate', rate = -1
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":0.0,"gross_amount":100.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-cess_rate]" time="0.859"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:-1.0,&quot;total_tax&quot;:-1.0,&quot;gross_amount&quot;:99.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A434AFF0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A434B110&gt;
+field = 'cess_rate', rate = -1
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":-1.0,"total_tax":-1.0,"gross_amount":99.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-cgst_rate]" time="1.028"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:101.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:101.0,&quot;gross_amount&quot;:201.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A2927B60&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A29345F0&gt;
+field = 'cgst_rate', rate = 101
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":101.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":101.0,"gross_amount":201.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-sgst_rate]" time="0.849"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:101.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:101.0,&quot;gross_amount&quot;:201.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A2882D80&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A28809E0&gt;
+field = 'sgst_rate', rate = 101
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":101.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":101.0,"gross_amount":201.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-igst_rate]" time="0.740"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:0.0,&quot;total_tax&quot;:0.0,&quot;gross_amount&quot;:100.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A3650500&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A36515E0&gt;
+field = 'igst_rate', rate = 101
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":0.0,"total_tax":0.0,"gross_amount":100.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-cess_rate]" time="1.322"><failure message="AssertionError: {&quot;taxable_value&quot;:100.0,&quot;company_state_code&quot;:&quot;29&quot;,&quot;place_of_supply_state&quot;:&quot;29&quot;,&quot;intra_state&quot;:true,&quot;inter_state&quot;:false,&quot;supply_type&quot;:&quot;b2b&quot;,&quot;transaction_type&quot;:&quot;outward&quot;,&quot;reverse_charge&quot;:false,&quot;itc_eligible&quot;:false,&quot;exempt_type&quot;:null,&quot;cgst_amount&quot;:0.0,&quot;sgst_amount&quot;:0.0,&quot;igst_amount&quot;:0.0,&quot;cess_amount&quot;:101.0,&quot;total_tax&quot;:101.0,&quot;gross_amount&quot;:201.0,&quot;ledger_posting_required&quot;:true,&quot;roundoff_difference&quot;:0}&#10;assert 200 == 422&#10; +  where 200 = &lt;Response [200 OK]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000212A3737500&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000212A3734B90&gt;
+field = 'cess_rate', rate = 101
+
+    @pytest.mark.parametrize('field', ['cgst_rate', 'sgst_rate', 'igst_rate', 'cess_rate'])
+    @pytest.mark.parametrize('rate', [-1, 101])
+    def test_tc076_tax_rate_bounds_cannot_be_bypassed(client, db, field, rate):
+        headers = fam_admin_headers(client, db)
+        response = client.post('/api/v1/fam/gst/calculate', headers=headers, json={
+            'taxable_value': 100, 'company_state_code': '29', 'place_of_supply_state': '29', field: rate,
+        })
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"taxable_value":100.0,"company_state_code":"29","place_of_supply_state":"29","intra_state":true,"inter_state":false,"supply_type":"b2b","transaction_type":"outward","reverse_charge":false,"itc_eligible":false,"exempt_type":null,"cgst_amount":0.0,"sgst_amount":0.0,"igst_amount":0.0,"cess_amount":101.0,"total_tax":101.0,"gross_amount":201.0,"ledger_posting_required":true,"roundoff_difference":0}
+E       assert 200 == 422
+E        +  where 200 = &lt;Response [200 OK]&gt;.status_code
+
+tests\test_business_suite_gst_matrix.py:48: AssertionError</failure></testcase></testsuite></testsuites>

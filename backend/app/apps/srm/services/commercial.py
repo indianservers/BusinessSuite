@@ -192,6 +192,14 @@ def normalize_lines(lines):
         if not qty or not str(line.get("description", "")).strip():
             raise HTTPException(422, "A description and positive quantity are required")
         base = (qty * price).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
+        if "tax_rate" in line:
+            # Callers supplying a canonical catalog rate never trust a browser's
+            # calculated tax amount. Existing explicit-tax invoice APIs retain
+            # their contract when no rate is supplied.
+            rate = money(line["tax_rate"])
+            if rate > 100:
+                raise HTTPException(422, "Tax rate must be between 0 and 100")
+            tax = ((base - discount) * rate / 100).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
         money(base + tax - discount)
         line.update(
             quantity=qty,

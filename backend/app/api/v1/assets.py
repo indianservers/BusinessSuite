@@ -261,6 +261,7 @@ def assign_asset(data: AssetAssignmentCreate, db: Session = Depends(get_db), cur
     from app.schemas.asset import AssetHandover
     from uuid import uuid4
     values = data.model_dump()
+    values["condition_at_assignment"] = data.condition_at_assignment or "Good"
     values["remarks"] = data.remarks or _asset(db, data.asset_id, current_user).description or ""
     batch = AssetHandover(**{key: value for key, value in values.items() if key != "asset_id"}, asset_ids=[data.asset_id], request_key=str(uuid4()))
     rows = lifecycle.issue_batch(db, current_user, batch)

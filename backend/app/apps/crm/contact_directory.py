@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, or_, and_, exists, select, inspect
+from sqlalchemy import func, or_, and_, exists, select, inspect, String
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
@@ -592,13 +592,16 @@ def permanently_delete(ident: int, db: Session = Depends(get_db), actor: User = 
             if column.name == "crm_contact_id" or any(fk.target_fullname == "crm_contacts.id" for fk in column.foreign_keys):
                 # A shared contact can be referenced outside the selected branch.
                 # Do not let scoped ORM reads conceal a cascading-delete hazard.
-                if db.connection().execute(select(column).where(column == ident).limit(1)).first():
+                reference = str(ident) if isinstance(column.type, String) else ident
+                if db.connection().execute(select(column).where(column == reference).limit(1)).first():
                     raise HTTPException(409, "This contact has linked business records and must be retained")
         table = mapper.local_table
         if "audit" not in table.name:
             for type_column, id_column in [("entity_type", "entity_id"), ("record_type", "record_id"), ("related_type", "related_id"), ("entity", "record_id")]:
                 if type_column in table.c and id_column in table.c:
-                    if db.connection().execute(select(table.c[id_column]).where(table.c[type_column].in_(["contact", "contacts"]), table.c[id_column] == ident).limit(1)).first():
+                    identifier = table.c[id_column]
+                    reference = str(ident) if isinstance(identifier.type, String) else ident
+                    if db.connection().execute(select(identifier).where(table.c[type_column].in_(["contact", "contacts"]), identifier == reference).limit(1)).first():
                         raise HTTPException(409, "Contacts with linked business history must be retained")
     # CRM polymorphic histories do not all have a direct FK.
     from app.apps.crm.models import CRMTimelineEvent, CRMActivity

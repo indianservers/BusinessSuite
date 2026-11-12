@@ -12,9 +12,15 @@ function compile(file, imports) {
   return m.exports;
 }
 const definitions = compile('../src/lib/navigation-workspaces.ts', {});
+const common = compile('../src/lib/common-routes.ts', {});
+const menus = compile('../src/lib/navigation-menu.ts', {'./navigation-workspaces': definitions, './common-routes': common});
+const tasks = compile('../src/lib/task-workspace.ts', {});
 const denied = new Set();
 const Workspace = compile('../src/components/layout/OperationsWorkspace.tsx', {
   '@/lib/navigation-workspaces': definitions,
+  '@/lib/navigation-menu': menus,
+  '@/lib/task-workspace': tasks,
+  '@/components/ui/state': {LoadingState: () => null},
   '@/lib/roles': {canAccessRoute: p => !denied.has(p), getRoleNav: () => []},
   '@/store/authStore': {useAuthStore: fn => fn({user: {role: 'admin', is_superuser: true}})},
   '@/components/app/ErrorBoundary': {__esModule: true, default: ({children}) => children},
@@ -26,7 +32,8 @@ function render(primary, operation) {
 for (const [primary, secondary] of [['pms/time-tracking', '/pms/timesheets'], ['hrms/payroll', '/hrms/investment-declaration'], ['crm/deals', '/crm/pipeline']]) {
   const html = render(primary, secondary);
   assert(html.includes('data-operation="' + secondary.slice(1) + '"'), 'Actual operation form missing');
-  assert(html.includes('role="tab"'), 'Operation tabs missing');
+  if(primary === 'crm/deals') { assert(!html.includes('role="tab"'), 'Deals uses the single workspace navigation'); assert(html.includes('role="tabpanel"'), 'Deal operation panel missing'); }
+  else assert(html.includes('role="tab"'), 'Operation tabs missing');
   assert(!html.includes('<a '), 'Operations must render in place');
 }
 denied.add('/hrms/investment-declaration');

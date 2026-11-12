@@ -796,7 +796,7 @@ def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: Us
         return []
     movements: list[SRMInventoryMovement] = []
     for line in order.lines:
-        if line.service_type != "product" or not line.product_id:
+        if not line.product_id:
             continue
         product = db.query(SRMProduct).filter(
             SRMProduct.organization_id == order.organization_id,
@@ -815,7 +815,7 @@ def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: Us
             SRMInventoryBalance.organization_id == order.organization_id,
             SRMInventoryBalance.product_id == product.id,
             SRMInventoryBalance.warehouse_id == warehouse_id,
-        ).first()
+        ).with_for_update().first()
         requested = _decimal(line.quantity)
         available = _decimal(balance.quantity if balance else 0)
         if requested > available:
@@ -850,13 +850,13 @@ def _validate_pos_stock_available(db: Session, data: SRMSalesOrderCreate, org_id
     if (data.metadata_json or {}).get("source") != "pos":
         return
     for line in data.lines:
-        if line.service_type != "product" or not line.product_id:
+        if not line.product_id:
             continue
         product = db.query(SRMProduct).filter(
             SRMProduct.organization_id == org_id,
             SRMProduct.id == line.product_id,
             SRMProduct.deleted_at.is_(None),
-        ).first()
+        ).with_for_update().first()
         if not product or not product.track_inventory:
             continue
         warehouse_id = product.default_warehouse_id
@@ -885,16 +885,15 @@ def _returned_quantity_for_order_line(db: Session, order_line_id: int) -> Decima
         db,
         SRMPOSReturnLine.quantity,
         SRMPOSReturnLine.sales_order_line_id == order_line_id,
-        SRMPOSReturnLine.restock.is_(True),
     )
 
 
 def _resolve_return_order(db: Session, data: SRMPOSReturnCreate, org_id: int | None) -> SRMSalesOrder:
     query = db.query(SRMSalesOrder).filter(SRMSalesOrder.organization_id == org_id, SRMSalesOrder.deleted_at.is_(None))
     if data.sales_order_id:
-        order = query.filter(SRMSalesOrder.id == data.sales_order_id).first()
+        order = query.filter(SRMSalesOrder.id == data.sales_order_id).with_for_update().first()
     elif data.order_number:
-        order = query.filter(SRMSalesOrder.order_number == data.order_number).first()
+        order = query.filter(SRMSalesOrder.order_number == data.order_number).with_for_update().first()
     else:
         order = None
     if not order:
@@ -917,6 +916,7 @@ def _restock_return_line(db: Session, return_doc: SRMPOSReturn, line: SRMPOSRetu
     warehouse_id = line.warehouse_id or product.default_warehouse_id
     if not warehouse_id:
         raise HTTPException(status_code=400, detail=f"Return warehouse is required for {product.item_name}")
+    _warehouse_or_404(db, order.organization_id, warehouse_id)
     balance = db.query(SRMInventoryBalance).filter(
         SRMInventoryBalance.organization_id == order.organization_id,
         SRMInventoryBalance.product_id == product.id,
@@ -2114,9 +2114,16 @@ def list_pos_returns(db: Session = Depends(get_db), current_user: User = Depends
 @router.post("/pos/returns", status_code=201)
 def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     org_id = _org(current_user)
+    from app.apps.srm.services.commercial import lock_tenant
+    from decimal import ROUND_HALF_UP
+    lock_tenant(db, current_user)
     if not data.lines:
         raise HTTPException(status_code=400, detail="Return lines are required")
     order = _resolve_return_order(db, data, org_id)
+    if data.customer_id not in (None, 0) and data.customer_id != order.customer_id:
+        raise HTTPException(422, "Return customer must match the original sale")
+    if data.session_id:
+        _get_pos_session(db, data.session_id, current_user)
     order_lines_by_id = {line.id: line for line in order.lines}
     order_lines_by_product = {line.product_id: line for line in order.lines if line.product_id}
     return_doc = SRMPOSReturn(
@@ -2124,7 +2131,7 @@ def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), c
         return_number=_next_number(db, SRMPOSReturn, "RET", "return_number", org_id),
         sales_order_id=order.id,
         session_id=data.session_id,
-        customer_id=data.customer_id or order.customer_id,
+        customer_id=order.customer_id,
         customer_name=data.customer_name,
         refund_method=data.refund_method,
         refund_status=data.refund_status,
@@ -2144,23 +2151,37 @@ def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), c
             source_line = order_lines_by_product.get(line_data.product_id)
         if not source_line:
             raise HTTPException(status_code=400, detail="Return line does not match original sale")
+        if line_data.product_id is not None and line_data.product_id != source_line.product_id:
+            raise HTTPException(422, "Return product must match the original sale line")
         already_returned = _returned_quantity_for_order_line(db, source_line.id)
         requested = _decimal(line_data.quantity)
         if requested <= 0:
             raise HTTPException(status_code=400, detail="Return quantity must be greater than zero")
         if already_returned + requested > _decimal(source_line.quantity):
             raise HTTPException(status_code=409, detail=f"Return quantity exceeds sold quantity for {source_line.description}")
-        line_total = line_data.line_total if line_data.line_total is not None else requested * _decimal(line_data.unit_price or source_line.unit_price) + _decimal(line_data.tax_amount)
+        ratio = requested / _decimal(source_line.quantity)
+        cent = Decimal("0.01")
+        original_total = _decimal(source_line.line_total)
+        original_tax = _decimal(source_line.tax_amount)
+        prior = db.query(SRMPOSReturnLine).filter(SRMPOSReturnLine.sales_order_line_id == source_line.id).all()
+        remaining_total = original_total - sum((_decimal(row.line_total) for row in prior), Decimal(0))
+        remaining_tax = original_tax - sum((_decimal(row.tax_amount) for row in prior), Decimal(0))
+        final_return = already_returned + requested == _decimal(source_line.quantity)
+        line_total = remaining_total if final_return else min(remaining_total, (original_total * ratio).quantize(cent, rounding=ROUND_HALF_UP))
+        line_tax = remaining_tax if final_return else min(remaining_tax, (original_tax * ratio).quantize(cent, rounding=ROUND_HALF_UP))
+        if line_total < 0 or line_tax < 0 or (line_data.line_total is not None and _decimal(line_data.line_total) > line_total) or _decimal(line_data.tax_amount) > line_tax or _decimal(line_data.unit_price) > _decimal(source_line.unit_price):
+            raise HTTPException(422, "Refund cannot exceed the original sale's remaining value and tax")
+        net_unit = ((original_total - original_tax) / _decimal(source_line.quantity)).quantize(cent, rounding=ROUND_HALF_UP)
         line = SRMPOSReturnLine(
             return_id=return_doc.id,
             sales_order_line_id=source_line.id,
-            product_id=line_data.product_id or source_line.product_id,
+            product_id=source_line.product_id,
             warehouse_id=line_data.warehouse_id or ((source_line.metadata_json or {}).get("warehouse_id") if source_line.metadata_json else None),
             item_code=line_data.item_code or source_line.item_code,
             description=line_data.description or source_line.description,
             quantity=requested,
-            unit_price=line_data.unit_price or source_line.unit_price,
-            tax_amount=line_data.tax_amount,
+            unit_price=net_unit,
+            tax_amount=line_tax,
             line_total=line_total,
             condition=line_data.condition,
             restock=line_data.restock,
@@ -2171,7 +2192,7 @@ def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), c
         movement = _restock_return_line(db, return_doc, line, order, current_user)
         if movement:
             movements.append(movement)
-        subtotal += requested * _decimal(line.unit_price)
+        subtotal += line_total - line_tax
         tax += _decimal(line.tax_amount)
         total += _decimal(line.line_total)
     from app.shared.follow_ups import FollowUp, audit as follow_up_audit
@@ -2201,6 +2222,58 @@ def get_pos_return(return_id: int, db: Session = Depends(get_db), current_user: 
     return _return_payload(row)
 
 
+def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | None) -> SRMSalesOrderCreate:
+    """Reuse commercial decimal arithmetic; snapshot the canonical item tax."""
+    from decimal import ROUND_HALF_UP
+    from app.apps.srm.services.commercial import money, normalize_lines
+    if not data.lines:
+        raise HTTPException(422, "POS requires at least one catalog item")
+    prepared = []
+    cent = Decimal("0.01")
+    for line in data.lines:
+        if not line.product_id:
+            raise HTTPException(422, "POS lines require a canonical catalog item")
+        product = _product_or_404(db, org_id, line.product_id)
+        if not product.active:
+            raise HTTPException(409, "Inactive catalog items cannot be sold")
+        metadata = dict(line.metadata_json or {})
+        if "warehouse_id" in metadata:
+            try:
+                raw = metadata["warehouse_id"]
+                warehouse = int(str(raw))
+                if warehouse <= 0 or isinstance(raw, bool):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise HTTPException(422, "Warehouse must be a positive identifier")
+            _warehouse_or_404(db, org_id, warehouse)
+            metadata["warehouse_id"] = warehouse
+        values = line.model_dump()
+        values.update(description=line.description or product.item_name,
+                      tax_rate=product.gst_rate or 0,
+                      service_type="service" if product.product_type == "service" else "product")
+        metadata["tax_snapshot"] = {"gst_rate": str(product.gst_rate or 0), "hsn_code": product.hsn_code,
+                                    "tax_inclusive": False}
+        values["metadata_json"] = metadata
+        prepared.append(normalize_lines([values])[0])
+    # The existing POS sends total discount plus per-line discounts. Allocate
+    # only the additional bill discount, keeping line tax and header totals equal.
+    line_discounts = sum((row["discount_amount"] for row in prepared), Decimal(0))
+    additional = max(money(data.discount_amount) - line_discounts, Decimal(0)).quantize(cent, rounding=ROUND_HALF_UP)
+    bases = [(row["quantity"] * row["unit_price"]).quantize(cent, rounding=ROUND_HALF_UP) - row["discount_amount"] for row in prepared]
+    taxable = sum(bases, Decimal(0))
+    if additional > taxable:
+        raise HTTPException(422, "Invoice discount exceeds the taxable subtotal")
+    remaining = additional
+    eligible = [i for i, base in enumerate(bases) if base > 0]
+    for index in eligible:
+        share = remaining if index == eligible[-1] else min(remaining, bases[index], (additional * bases[index] / taxable).quantize(cent, rounding=ROUND_HALF_UP))
+        prepared[index]["discount_amount"] += share
+        remaining -= share
+    normalized = normalize_lines(prepared)
+    lines = [original.model_copy(update={key: row[key] for key in ("description", "service_type", "quantity", "unit_price", "discount_amount", "tax_amount", "line_total", "metadata_json")}) for original, row in zip(data.lines, normalized)]
+    return data.model_copy(update={"lines": lines})
+
+
 @router.post("/sales-orders", status_code=201)
 def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     org_id = _org(current_user)
@@ -2217,6 +2290,19 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
     for selected_line in data.lines:
         if selected_line.product_id:
             assert_available(_product_or_404(db, org_id, selected_line.product_id), current_user)
+    if (data.metadata_json or {}).get("source") == "pos":
+        from app.apps.srm.services.commercial import customer, record
+        if data.customer_id and data.crm_company_id and data.customer_id != data.crm_company_id:
+            raise HTTPException(422, "Customer references must identify the same canonical customer")
+        buyer_id = data.customer_id or data.crm_company_id
+        if buyer_id:
+            customer(db, buyer_id, current_user)
+        if data.crm_contact_id:
+            from app.apps.crm.models import CRMContact
+            contact = record(db, CRMContact, data.crm_contact_id, current_user)
+            if buyer_id and contact.company_id and contact.company_id != buyer_id:
+                raise HTTPException(422, "Billing contact belongs to a different customer")
+        data = _normalize_pos_order(db, data, org_id)
     _validate_pos_stock_available(db, data, org_id)
     item = SRMSalesOrder(
         organization_id=org_id,

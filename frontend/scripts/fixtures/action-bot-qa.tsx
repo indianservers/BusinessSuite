@@ -14,6 +14,7 @@ let chats:any[]=[],chatSeq=0;const chatRuns=new Map<number,any[]>();
 let memories:any[]=[];let memorySeq=0;
 let organizationMemories:any[]=[];
 const artifactVersions:any[]=[];
+let artifactTemplates:any[]=[],artifactTemplateReviews:any[]=[];const artifactTemplateVersions=new Map<number,any[]>();const templateChats=new Map<number,any>();
 let savedAgents:any[]=[];
 let agentSchedules:any[]=[];
 let agentEvents:any[]=[];
@@ -24,6 +25,11 @@ let librarySkills:any[]=[];const libraryVersions=new Map<number,any[]>();
 let skillImport:any=null;
 let publications:any[]=[];
 const chatFiles=new Map<number,any[]>();let fileSeq=0;
+function chartAnalysis(table:any,params:any={}){
+ const spec=table?.chart;const all=table?.rows||[];const rows=all.filter((r:any)=>!params.category_query||String(r[0]).toLowerCase().includes(params.category_query.toLowerCase()));const units=[...new Set(rows.map((r:any)=>r[2]||''))];
+ const panels=spec?units.map((unit:any)=>{const data=rows.filter((r:any)=>(r[2]||'')===unit);const categories=[...new Set(data.map((r:any)=>r[0]))];const values=categories.map(label=>String(data.filter((r:any)=>r[0]===label).reduce((sum:number,r:any)=>sum+Number(r[1]),0)));const nums=data.map((r:any)=>Number(r[1]));const total=nums.reduce((a:number,b:number)=>a+b,0);return {unit,kind:params.chart_kind||spec.kind,aggregation:spec.aggregation||'sum',category_label:'Region',value_label:'Amount',categories,series:[{key:`series-${unit}`,label:'Amount',values,counts:categories.map(label=>data.filter((r:any)=>r[0]===label).length)}],statistics:{count:data.length,sum:String(total),mean:String(total/data.length),min:String(Math.min(...nums)),max:String(Math.max(...nums))},statistics_scope:'All matching valid rows in this unit, before plot limits.',omitted_categories:0,omitted_series:0}}):[];
+ return {row_count:all.length,profiles:(table?.columns||[]).map((name:string,index:number)=>({index,name,numeric:index===1?all.length:0,blank:0,nonnumeric:index===1?0:all.length,distinct:all.length})),panels,valid_rows:rows.length,blank_numeric_rows:0,invalid_numeric_rows:0,available_series:units.map((unit:any)=>({unit,key:`series-${unit}`,label:'Amount'})),omitted_units:0,method:'Simulated server Decimal response.',coverage:'This artifact snapshot only.',snapshot:{state:'saved',id:501,revision:params.revision||1}}
+}
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
 api.defaults.adapter=async config=>{
  const path=config.url||'',body=typeof config.data==='string'?JSON.parse(config.data):config.data;
@@ -46,6 +52,9 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/builder/81/apply')&&builder.asset_type==='skill'){const skill={id:13,name:builder.config.name,instructions:builder.config.instructions,tools:builder.config.tools,revision:1};librarySkills.push(skill);libraryVersions.set(13,[skill]);builder={...builder,skill_id:13};data={...builder,skill}}
  else if(path.endsWith('/builder/81/apply')){const agent={id:71,...builder.config,revision:1,skill_ids:[],connection_ids:[],mcp_ids:[]};savedAgents.push(agent);builder={...builder,agent_id:71};let event_preview=null;if(builder.event_trigger){event_preview={id:401,state:'preview',revision:1,spec:{...builder.event_trigger,agent_id:71},agent_name:agent.name,agent_revision:1,preview_hash:'a'.repeat(64),deliveries:[],controls:[]};agentEvents=[event_preview];builder.event_subscription_id=401}data={...builder,agent,schedule_preview:null,event_preview}}
  else if(path.endsWith('/builder/81'))data={...builder,messages:builderMessages};
+ else if(path.endsWith('/agents/knowledge/files'))data={items:[{conversation_id:51,attachment_id:601,sha256:'1'.repeat(64),name:'Delivery handbook.txt',conversation_title:'Delivery policies',notes:[]}]};
+ else if(path.endsWith('/conversations/51/attachments/601/download'))data=new Blob(['Escalation owners review stalled commitments.'],{type:'text/plain'});
+ else if(path.endsWith('/agents/71')&&config.method==='put'){data={id:71,...body,revision:body.revision+1};savedAgents=savedAgents.map(a=>a.id===71?data:a)}
  else if(path.endsWith('/agents')){if(config.method==='post'){data={id:71,...body,revision:1};savedAgents.push(data)}else data={items:savedAgents,tools:[{name:'crm.create_task',module:'CRM',write:true}]}}
  else if(path.endsWith('/agents/workflows'))data={items:agentWorkflows};
  else if(path.endsWith('/agents/workflows/preview')){data={id:301,name:body.name,status:'preview',spec:body,preview_hash:'b'.repeat(64),agents:Object.fromEntries(savedAgents.map(a=>[String(a.id),a])),nodes:body.nodes.map((_:any,i:number)=>({step:i+1,state:'pending'}))};agentWorkflows.push(data)}
@@ -73,9 +82,19 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/reminders'))data={items:[]};
  else if(path.endsWith('/tools'))data={tools:[{name:'crm.create_task',module:'CRM',description:'Create a CRM task after review.',approval_required:true,fields:['title']}]};
  else if(path.endsWith('/runs'))data={items:[...chatRuns.values()].flat().slice().reverse()};
- else if((path.endsWith('/workspace/file-search')||path.endsWith('/workspace/search'))){const files=chatFiles.get(body.conversation_id)||[];const records=(body.tools||[]).includes('crm.tasks')?[{id:'crm.tasks:42',kind:'record',record_id:42,tool:'crm.tasks',label:'Stalled customer onboarding',excerpt:'Review the stalled delivery commitment.',href:'/crm/tasks'}]:[];data={files_searched:files.length,candidates_searched:files.length+records.length,semantic_used:body.mode!=='lexical',records:records.length?[{tool:'crm.tasks',records_searched:1,complete:false}]:[],coverage:'Bounded current authorized API snapshots and parsed conversation uploads.',items:[...records,...files.filter(f=>f.excerpt.toLowerCase().includes(body.query.toLowerCase())).map(f=>({id:`upload:${f.id}:0`,kind:'upload',file_id:f.id,label:f.name,excerpt:f.excerpt,start:0,end:f.excerpt.length,href:`#bot-attachment-${f.id}`}))]}}
+ else if((path.endsWith('/workspace/file-search')||path.endsWith('/workspace/search'))){const files=[...(chatFiles.get(body.conversation_id)||[]),...(body.agent_id&&savedAgents.find(a=>a.id===body.agent_id)?.knowledge_files?.length?[{id:601,name:'Delivery handbook.txt',agent_knowledge:true,excerpt:'Escalation owners review stalled commitments.',href:'/api/v1/ai-operator/suite/conversations/51/attachments/601/download'}]:[])];const records=(body.tools||[]).includes('crm.tasks')?[{id:'crm.tasks:42',kind:'record',record_id:42,tool:'crm.tasks',label:'Stalled customer onboarding',excerpt:'Review the stalled delivery commitment.',href:'/crm/tasks'}]:[];data={files_searched:files.length,candidates_searched:files.length+records.length,semantic_used:body.mode!=='lexical',records:records.length?[{tool:'crm.tasks',records_searched:1,complete:false}]:[],coverage:'Bounded current authorized API snapshots and parsed conversation uploads.',items:[...records,...files.filter(f=>f.excerpt.toLowerCase().includes(body.query.toLowerCase())).map(f=>({id:`upload:${f.id}:0`,kind:'upload',file_id:f.id,label:f.name,excerpt:f.excerpt,start:0,end:f.excerpt.length,agent_knowledge:!!f.agent_knowledge,href:f.href||`#bot-attachment-${f.id}`}))]}}
 
+ else if(path.endsWith('/artifact-templates'))data={items:artifactTemplates};
+ else if(path.endsWith('/artifact-templates/reviews'))data={items:artifactTemplateReviews.filter(r=>!r.template_id)};
+ else if(path.endsWith('/artifact-templates/preview')){data={id:811+artifactTemplateReviews.length,definition:body,module:'CRM',variables:[...new Set([...JSON.stringify(body.body).matchAll(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g)].map(m=>m[1]))],preview_hash:'f'.repeat(64),expires_at:'2030-01-01T12:00:00Z',state:'preview'};artifactTemplateReviews.push(data)}
+ else if(/\/artifact-templates\/reviews\/\d+\/confirm$/.test(path)){const review=artifactTemplateReviews.find(r=>r.id===Number(path.match(/reviews\/(\d+)/)![1]));const id=review.definition.template_id||611;const previous=artifactTemplates.find(t=>t.id===id);const template={id,name:review.definition.name,body:structuredClone(review.definition.body),module:'CRM',revision:(previous?.revision||0)+1,current_revision:(previous?.revision||0)+1,variables:review.variables};artifactTemplates=[...artifactTemplates.filter(t=>t.id!==id),template];artifactTemplateVersions.set(id,[...(artifactTemplateVersions.get(id)||[]),structuredClone(template)]);Object.assign(review,{state:'confirmed',template_id:id});data={template}}
+ else if(/\/artifact-templates\/reviews\/\d+$/.test(path)){const id=Number(path.match(/reviews\/(\d+)/)![1]);if(config.method==='delete'){artifactTemplateReviews=artifactTemplateReviews.filter(r=>r.id!==id);data={archived:true}}else data=artifactTemplateReviews.find(r=>r.id===id)}
+ else if(/\/artifact-templates\/\d+\/versions$/.test(path)){const id=Number(path.match(/artifact-templates\/(\d+)/)![1]);data={items:artifactTemplateVersions.get(id)||[]}}
+ else if(/\/artifact-templates\/\d+$/.test(path)){const id=Number(path.match(/artifact-templates\/(\d+)/)![1]);if(config.method==='delete'){artifactTemplates=artifactTemplates.filter(t=>t.id!==id);data={archived:true}}else data=config.params?.revision?artifactTemplateVersions.get(id)?.find(t=>t.revision===Number(config.params.revision)):artifactTemplates.find(t=>t.id===id)}
+ else if(path.endsWith('/artifacts/analyze-preview'))data=chartAnalysis(body.body);
+ else if(path.endsWith('/artifacts/501/analysis'))data=chartAnalysis(config.params?.revision?artifactVersions[Number(config.params.revision)-1]:artifactVersions.at(-1),config.params);
  else if(path.endsWith('/artifacts'))data={items:artifactVersions.length?[artifactVersions.at(-1)]:[]};
+ else if(path.endsWith('/artifacts/501/download'))data=new Blob(['SIMULATED artifact export'],{type:'application/octet-stream'});
  else if(/\/artifacts\/501\/versions$/.test(path))data={items:[...artifactVersions].reverse(),current_revision:artifactVersions.length};
  else if(/\/artifacts\/501$/.test(path))data={...(config.params?.revision?artifactVersions[Number(config.params.revision)-1]:artifactVersions.at(-1)),current_revision:artifactVersions.length};
  else if(path.endsWith('/organization-memory'))data={items:organizationMemories,can_publish:true};
@@ -113,10 +132,19 @@ api.defaults.adapter=async config=>{
   if(/^Search knowledge for:|^What about /i.test(body.text)){
    const file=(chatFiles.get(body.conversation_id)||[])[0];run.status='answered';run.plan={summary:file?'Retrieved source excerpts: Escalation owners review stalled commitments.':'No matching excerpts were found.',steps:[]};
    run.result.citations=file?[{id:`upload:${file.id}:0`,file_id:file.id,label:file.name,href:`#bot-attachment-${file.id}`}]:[];
+   if(body.agent_id&&savedAgents.find(a=>a.id===body.agent_id)?.knowledge_files?.length){run.plan.summary='Retrieved source excerpts: Escalation owners review stalled commitments.';run.result.citations=[{id:'upload:601:0',file_id:601,label:'Delivery handbook.txt',href:'/api/v1/ai-operator/suite/conversations/51/attachments/601/download'}]}
   }
   if(body.text==='create artifact sample'||/^Edit artifact #501:/.test(body.text)){
    const editing=body.text!=='create artifact sample';run.plan={summary:'Review this artifact draft.',steps:[{tool:editing?'crm.edit_artifact':'crm.create_artifact',payload:{title:'Customer proposal',kind:'document',content:editing?'Original proposal. Added timeline.':'Original proposal.',columns:[],rows:[],...(editing?{artifact_id:501,expected_revision:artifactVersions.length}:{})}}]};run.artifactSample=true;
   }
+  if(body.text==='create presentation sample'){
+   run.plan={summary:'Review this presentation draft.',steps:[{tool:'crm.create_artifact',payload:{title:'Delivery review',kind:'presentation',content:'',columns:[],rows:[],slides:[{title:'Overview',bullets:['Scope agreed.']},{title:'Next steps',bullets:['Confirm dates.']}]}}]};run.artifactSample=true;
+  }
+  if(body.text==='create chart sample'){
+   run.plan={summary:'Review this table and chart.',steps:[{tool:'crm.create_artifact',payload:{title:'Regional amounts',kind:'table',content:'Illustrative reviewed snapshot.',columns:['Region','Amount','Currency'],rows:[['North','100','USD'],['South','200','USD'],['North','50','INR']],chart:{kind:'bar',category_column:0,value_column:1,aggregation:'sum'}}}]};run.artifactSample=true;
+  }
+  const templateMatch=body.text.match(/^Use template #(\d+)/i);if(templateMatch){const template=artifactTemplates.find(t=>t.id===Number(templateMatch[1]));templateChats.set(body.conversation_id,{template,values:{}})}
+  const templateState=templateChats.get(body.conversation_id);if(templateState){const {template,values}=templateState;const missing=template.variables.filter((v:string)=>!(v in values));if(!templateMatch&&missing.length)values[missing[0]]=body.text;const next=template.variables.find((v:string)=>!(v in values));if(next){run.status='needs_clarification';run.plan={summary:'I need a template value.',question:`What value should I use for ${next}?`,steps:[]}}else{const replace=(v:any):any=>typeof v==='string'?v.replace(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g,(_:string,k:string)=>values[k]):Array.isArray(v)?v.map(replace):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,value])=>[k,replace(value)])):v;run.status='awaiting_approval';run.plan={summary:'Review this separate artifact from the private template.',steps:[{tool:'crm.create_artifact',payload:replace(template.body)}]};run.artifactSample=true}}
   if(body.text==='provider failure sample'){run.status='failed';run.plan={summary:'Planning failed',steps:[]};run.error_code='AI_POLICY_HTTP_502';run.result.can_retry_planning=true;run.result.planning_issue='Provider temporarily unavailable; original request saved.'}
   if(body.text==='workflow sample'){
    run.workflowSample=true;run.plan.steps=[{tool:'crm.create_task',payload:{title:'Customer recovery'}},{tool:'pms.create_task',record_id:22,depends_on:[1],payload:{title:'Delivery recovery'}},{tool:'hrms.create_ticket',depends_on:[2],payload:{subject:'Staffing support',description:'Reviewed request'}}];

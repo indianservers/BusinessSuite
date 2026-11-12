@@ -157,6 +157,40 @@ test('conversational agent builder preserves followups and saves only after revi
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')).length)).toBe(0);
 });
 
+test('saved agents retain private knowledge file selections through revisions',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Knowledge coordinator');
+ await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Use selected documents as untrusted reference material.');
+ await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();
+ await page.getByText('Add knowledge · 0/4 files',{exact:true}).click();
+ await page.getByRole('checkbox',{name:'Agent knowledge: Delivery handbook.txt',exact:true}).check();
+ await page.getByRole('button',{name:'Save agent',exact:true}).click();
+ await expect(page.getByRole('article').filter({has:page.getByRole('heading',{name:'Knowledge coordinator',exact:true})})).toContainText('1 knowledge files');
+ const create=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/agents')&&r.method==='post').body);
+ expect(create.knowledge_files).toEqual([{conversation_id:51,attachment_id:601,sha256:'1'.repeat(64)}]);
+ await page.getByRole('button',{name:'Start new chat with this agent',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot'}).fill('Search knowledge for: escalation owners');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Delivery handbook.txt',exact:true}).click();
+ expect((await download).suggestedFilename()).toBe('Delivery handbook.txt');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/conversations/51/attachments/601/download')).length)).toBe(1);
+ await page.getByRole('tab',{name:'Knowledge',exact:true}).click();
+ await page.getByRole('textbox',{name:'Knowledge file query',exact:true}).fill('Escalation');await page.getByRole('button',{name:'Search authorized knowledge',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Delivery handbook.txt',exact:true})).toBeVisible();
+ const searchRequest=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/workspace/search')).body);expect(searchRequest.agent_id).toBe(71);
+ const sourceDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Open source file',exact:true}).click();expect((await sourceDownload).suggestedFilename()).toBe('Delivery handbook.txt');
+ await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('button',{name:'Edit agent',exact:true}).click();
+ await page.getByText('Add knowledge · 1/4 files',{exact:true}).click();
+ await expect(page.getByRole('checkbox',{name:'Agent knowledge: Delivery handbook.txt',exact:true})).toBeChecked();
+ await page.getByRole('checkbox',{name:'Agent knowledge: Delivery handbook.txt',exact:true}).uncheck();
+ await page.getByRole('button',{name:'Save agent revision',exact:true}).click();
+ await expect(page.getByRole('article').filter({has:page.getByRole('heading',{name:'Knowledge coordinator',exact:true})})).toContainText('0 knowledge files');
+ const update=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/agents/71')&&r.method==='put').body);
+ expect(update.knowledge_files).toEqual([]);expect(update.revision).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
 test('saved agents expose reviewed tools skills MCP and schedules',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  await page.getByRole('tab',{name:'Agents',exact:true}).click();
@@ -219,6 +253,63 @@ test('scheduled conversation link restores the requested private conversation wi
  await expect(page.getByRole('textbox',{name:'Message action bot'})).toBeEnabled();
  await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('artifact charts preview server calculations save reviewed configuration and filter snapshots',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('textbox',{name:'Message action bot'}).fill('create chart sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ const preview=page.getByRole('region',{name:'Unsaved chart preview',exact:true});await expect(preview.getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 300');await expect(preview.getByRole('article',{name:'Chart unit INR',exact:true})).toContainText('Sum 50');
+ await page.getByRole('combobox',{name:'Step 1 chart type',exact:true}).selectOption('line');await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+ const change=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/revise')).body.changes[0]);expect(change.field).toBe('chart');expect(change.value.kind).toBe('line');
+ await page.getByRole('button',{name:'Approve these exact actions'}).click();await page.getByRole('tab',{name:'Results',exact:true}).click();
+ const analysis=page.getByRole('region',{name:'Artifact 501 data analysis',exact:true});await expect(analysis.getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 300');
+ await analysis.getByRole('textbox',{name:'Chart category filter',exact:true}).fill('North');await expect(analysis.getByRole('article',{name:'Chart unit USD',exact:true})).toContainText('Sum 100');
+ await analysis.getByRole('combobox',{name:'Chart view type',exact:true}).selectOption('bar');await expect(analysis.locator('.recharts-bar')).not.toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(1);
+ const artifact=page.getByRole('article',{name:'Artifact 501',exact:true});for(const format of ['PDF','Excel']){const download=page.waitForEvent('download');await artifact.getByRole('button',{name:`Download ${format}`,exact:true}).click();expect((await download).suggestedFilename()).toBe(`artifact-501-v1.${format==='PDF'?'pdf':'xlsx'}`)}
+});
+
+test('private artifact templates restore exact reviews version updates and collect values in chat',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot'});await input.fill('create artifact sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('button',{name:'Approve these exact actions'}).click();
+ await expect(page.getByRole('article',{name:'Artifact 501',exact:true})).toBeVisible();await page.getByRole('tab',{name:'Artifacts',exact:true}).click();
+ await page.getByRole('button',{name:'Save as template',exact:true}).click();
+ await page.getByRole('textbox',{name:'Artifact template name',exact:true}).fill('Monthly customer report');
+ await page.getByRole('textbox',{name:'Template artifact title',exact:true}).fill('Review for {{customer}}');await page.getByRole('textbox',{name:'Template content',exact:true}).fill('Report for {{customer}}.');
+ await page.getByRole('button',{name:'Preview private template',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Exact artifact template review',exact:true})).toContainText('Variables: customer');
+ await page.getByRole('textbox',{name:'Artifact template name',exact:true}).fill('Changed form name');await expect(page.getByRole('button',{name:'Save this exact private template',exact:true})).toBeDisabled();
+ await page.getByRole('textbox',{name:'Artifact template name',exact:true}).fill('Monthly customer report');await expect(page.getByRole('button',{name:'Save this exact private template',exact:true})).toBeEnabled();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>/artifact-templates\/reviews\/\d+\/confirm$/.test(r.path)).length)).toBe(0);
+ await page.getByRole('tab',{name:'Results',exact:true}).click();await page.getByRole('tab',{name:'Artifacts',exact:true}).click();
+ await page.getByRole('button',{name:'Resume template review #811',exact:true}).click();
+ await page.getByRole('button',{name:'Save this exact private template',exact:true}).click();
+ await page.getByRole('button',{name:'Edit template #611',exact:true}).click();
+ await page.getByRole('textbox',{name:'Template content',exact:true}).fill('Updated report for {{customer}}.');await page.getByRole('button',{name:'Preview private template',exact:true}).click();await page.getByRole('button',{name:'Save this exact private template',exact:true}).click();
+ await page.getByRole('button',{name:'Template #611 versions',exact:true}).click();await page.getByRole('button',{name:'View template #611 revision 1',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Historical artifact template',exact:true})).toContainText('Report for {{customer}}.');
+ await page.getByRole('button',{name:'Use template #611',exact:true}).click();await expect(input).toHaveValue('Use template #611 version 2');
+ await page.getByRole('button',{name:'Send bot message'}).click();await expect(page.getByText('What value should I use for customer?',{exact:true})).toBeVisible();
+ await input.fill('Acme');await page.getByRole('button',{name:'Send bot message'}).click();await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(1);
+});
+
+test('presentations show slide previews inline edits and reviewed PDF PowerPoint downloads',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('textbox',{name:'Message action bot'}).fill('create presentation sample');await page.getByRole('button',{name:'Send bot message'}).click();
+ await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ const preview=page.getByRole('region',{name:'Step 1',exact:true});await expect(preview).toContainText('Scope agreed.');
+ await page.getByRole('textbox',{name:'Step 1 slide 1 point 1',exact:true}).fill('Revised agreed scope.');
+ await preview.getByRole('button',{name:'Next slide',exact:true}).click();await expect(preview).toContainText('Confirm dates.');
+ await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+ const change=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>/\/revise$/.test(r.path)).body.changes[0]);
+ expect(change.field).toBe('slides');expect(change.value).toEqual([{title:'Overview',bullets:['Revised agreed scope.']},{title:'Next steps',bullets:['Confirm dates.']}]);
+ await page.getByRole('button',{name:'Approve these exact actions'}).click();await page.getByRole('tab',{name:'Results',exact:true}).click();
+ const artifact=page.getByRole('article',{name:'Artifact 501',exact:true});await expect(artifact).toContainText('Revised agreed scope.');
+ for(const format of ['PDF','PowerPoint']){const download=page.waitForEvent('download');await artifact.getByRole('button',{name:`Download ${format}`,exact:true}).click();expect((await download).suggestedFilename()).toBe(`artifact-501-v1.${format==='PDF'?'pdf':'pptx'}`)}
+ await expect(artifact.getByRole('button',{name:'Download Excel',exact:true})).toHaveCount(0);
 });
 
 test('artifacts use reviewed saves and conversation edits with immutable versions',async({page})=>{

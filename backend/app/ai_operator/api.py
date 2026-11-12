@@ -30,6 +30,10 @@ from app.ai_operator.organization_memory import router as organization_memory_ro
 router.include_router(organization_memory_router)
 from app.ai_operator.artifacts import router as artifact_router
 router.include_router(artifact_router)
+from app.ai_operator.artifact_analysis import router as artifact_analysis_router
+router.include_router(artifact_analysis_router)
+from app.ai_operator.artifact_templates import router as artifact_template_router
+router.include_router(artifact_template_router)
 from app.ai_operator.saved_agents import router as saved_agents_router
 router.include_router(saved_agents_router)
 from app.ai_operator.skill_packages import router as skill_packages_router

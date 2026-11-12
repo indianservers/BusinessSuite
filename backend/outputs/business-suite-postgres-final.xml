@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="82" time="300.617" timestamp="2026-11-12T22:49:45.324176+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc054_stock_type_cannot_be_spoofed_as_service" time="9.206" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[-1]" time="3.188" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[0]" time="3.664" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[unit_price]" time="4.335" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[tax_amount]" time="5.166" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[discount_amount]" time="4.186" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc076_pos_totals_and_tax_are_server_authoritative" time="2.919" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc060_service_does_not_move_stock" time="3.822" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc059_oversell_rolls_back_order_and_stock" time="2.943" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc030_nonrestocked_return_still_consumes_refundable_quantity" time="4.181" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc073_return_cannot_substitute_another_product" time="3.589" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc040_refund_uses_original_discount_and_tax_snapshot" time="3.011" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc108_refund_cannot_exceed_original_sale_value" time="7.455" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc109_inactive_catalog_item_cannot_be_sold" time="4.067" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc110_malformed_warehouse_is_validation_error" time="5.307" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc027_bill_discount_is_allocated_before_each_item_tax" time="6.206" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc111_unsupported_sale_precision_cannot_be_silently_truncated[0.001]" time="11.083" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc111_unsupported_sale_precision_cannot_be_silently_truncated[1.234]" time="12.772" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc071_foreign_customer_cannot_be_attached_to_pos_order" time="12.842" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc073_return_customer_cannot_be_replaced" time="4.288" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-0]" time="1.413" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-5]" time="1.946" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-12]" time="1.016" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-18]" time="1.161" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0-28]" time="1.284" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-0]" time="1.147" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-5]" time="1.053" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-12]" time="0.872" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-18]" time="0.839" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-0.10-28]" time="0.740" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-0]" time="0.762" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-5]" time="1.618" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-12]" time="0.798" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-18]" time="0.682" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-99.99-28]" time="0.919" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-0]" time="0.804" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-5]" time="0.868" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-12]" time="0.923" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-18]" time="0.813" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[False-1000.25-28]" time="0.712" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-0]" time="0.724" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-5]" time="1.407" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-12]" time="0.726" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-18]" time="0.938" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0-28]" time="0.886" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-0]" time="0.873" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-5]" time="0.719" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-12]" time="0.717" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-18]" time="0.700" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-0.10-28]" time="0.780" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-0]" time="0.965" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-5]" time="2.062" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-12]" time="0.955" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-18]" time="0.882" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-99.99-28]" time="0.887" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-0]" time="0.809" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-5]" time="1.065" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-12]" time="1.069" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-18]" time="1.064" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc031_039_configured_rate_components_and_decimal_rounding[True-1000.25-28]" time="0.842" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-exempt]" time="0.934" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-nil]" time="1.094" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-zero_rated]" time="1.975" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[False-out_of_scope]" time="0.937" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-exempt]" time="0.849" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-nil]" time="0.822" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-zero_rated]" time="0.792" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc025_exempt_fixture_preserves_zero_tax[True-out_of_scope]" time="0.698" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-cgst_rate]" time="0.441" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-sgst_rate]" time="0.449" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-igst_rate]" time="0.444" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[-1-cess_rate]" time="0.449" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-cgst_rate]" time="0.482" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-sgst_rate]" time="1.613" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-igst_rate]" time="0.525" /><testcase classname="tests.test_business_suite_gst_matrix" name="test_tc076_tax_rate_bounds_cannot_be_bypassed[101-cess_rate]" time="0.941" /><testcase classname="tests.test_business_suite_contact_retention" name="test_tc075_text_identity_history_prevents_permanent_deletion" time="2.130" /><testcase classname="tests.test_business_suite_pagination" name="test_tc077_ten_thousand_customers_have_bounded_page_and_queries" time="2.832"><properties><property name="query_count" value="8" /><property name="seconds" value="0.0532" /><property name="seeded_customers" value="10000" /></properties></testcase><testcase classname="tests.test_business_suite_pos_concurrency" name="test_tc059_two_checkouts_cannot_sell_the_last_unit_twice" time="27.466" /><testcase classname="tests.test_business_suite_pos_concurrency" name="test_tc082_duplicate_concurrent_checkout_has_one_order_and_stock_movement" time="33.139" /><testcase classname="tests.test_business_suite_pos_concurrency" name="test_tc030_concurrent_nonrestocked_refunds_cannot_exceed_original_sale" time="33.333" /><testcase classname="tests.test_business_suite_live_browser" name="test_tc006_012_common_customer_ui_uses_real_canonical_api" time="31.634"><failure message="AssertionError: Port 5173 is in use, trying another one...&#10;  Port 5174 is in use, trying another one...&#10;  {&quot;checks&quot;:21,&quot;canonical_customer_id&quot;:20065,&quot;real_api&quot;:true,&quot;viewports&quot;:[390,768,1440]}&#10;  node:internal/process/promises:394&#10;      triggerUncaughtException(err, true /* fromPromise */);&#10;      ^&#10;  &#10;  apiRequestContext.fetch: Request context disposed.&#10;  Call log:&#10;  #x1B[2m  - â†’ GET http://127.0.0.1:56646/api/v1/srm/business/customers?after=0#x1B[22m&#10;  #x1B[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36#x1B[22m&#10;  #x1B[2m    - accept: application/json, text/plain, */*#x1B[22m&#10;  #x1B[2m    - accept-encoding: gzip,deflate,br#x1B[22m&#10;  #x1B[2m    - authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDc4NTMsInN1YiI6IjM1NSIsInR5cGUiOiJhY2Nlc3MiLCJzaWQiOiIyNzAifQ.xYJk_oRELLPYkeFkObN4n7nc-Q-2C3anTIFmZi8_dbM#x1B[22m&#10;  #x1B[2m    - referer: http://127.0.0.1:5175/srm/pos#x1B[22m&#10;  #x1B[2m    - x-request-id: b3e69c60-5c8e-45bd-8042-57baa6607829#x1B[22m&#10;  #x1B[2m    - x-suite-branch: 119#x1B[22m&#10;  #x1B[2m    - x-suite-organization: 1#x1B[22m&#10;  #x1B[2m    - sec-ch-ua: &quot;Chromium&quot;;v=&quot;148&quot;, &quot;HeadlessChrome&quot;;v=&quot;148&quot;, &quot;Not/A)Brand&quot;;v=&quot;99&quot;#x1B[22m&#10;  #x1B[2m    - sec-ch-ua-mobile: ?0#x1B[22m&#10;  #x1B[2m    - sec-ch-ua-platform: &quot;Windows&quot;#x1B[22m&#10;  &#10;      at C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\playwright\business-suite-live.cjs:20:42 {&#10;    name: 'Error'&#10;  }&#10;  &#10;  Node.js v24.15.0&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['node', 'C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\business-suite-li...ments\\GitHub\\BusinessSuite\\playwright\\business-suite-live.cjs:20:42 {\n  name: \'Error\'\n}\n\nNode.js v24.15.0\n').returncode">client = &lt;starlette.testclient.TestClient object at 0x0000025FACD2F410&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x0000025FACD2F020&gt;
+superuser_headers = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDc4NTMsInN1YiI6IjM1NSIsInR5cGUiOiJhY2Nlc3MiLCJzaWQiOiIyNzAifQ.xYJk_oRELLPYkeFkObN4n7nc-Q-2C3anTIFmZi8_dbM', 'X-Suite-Branch': '119'}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000025FA8DF9010&gt;
+
+    def test_tc006_012_common_customer_ui_uses_real_canonical_api(client, db, superuser_headers, monkeypatch, request):
+        from tests.test_control_browser import test_control_center_real_browser
+        from app.models.user import User
+        actor = db.query(User).filter_by(email='testadmin@test.com').one()
+        monkeypatch.setenv('CONTROL_BROWSER_SCRIPT', 'business-suite-live.cjs')
+        monkeypatch.setenv('SUITE_QA_AUTH', json.dumps({'token':superuser_headers['Authorization'].split(' ',1)[1],
+                            'user_id':actor.id, 'branch':superuser_headers['X-Suite-Branch']}))
+&gt;       test_control_center_real_browser(client, db, None, superuser_headers)
+
+tests\test_business_suite_live_browser.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+client = &lt;starlette.testclient.TestClient object at 0x0000025FACD2F410&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x0000025FACD2F020&gt;
+access_account = None
+superuser_headers = {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDc4NTMsInN1YiI6IjM1NSIsInR5cGUiOiJhY2Nlc3MiLCJzaWQiOiIyNzAifQ.xYJk_oRELLPYkeFkObN4n7nc-Q-2C3anTIFmZi8_dbM', 'X-Suite-Branch': '119'}
+
+    @pytest.mark.skipif(
+        os.getenv("RUN_CONTROL_BROWSER") != "1", reason="Opt-in real browser workflow"
+    )
+    def test_control_center_real_browser(client, db, access_account, superuser_headers):
+        class Bridge(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+    
+            def forward(self):
+                headers = {
+                    k: v
+                    for k, v in self.headers.items()
+                    if k.lower()
+                    not in {"host", "content-length", "connection", "accept-encoding"}
+                }
+                payload = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                response = client.request(
+                    self.command, self.path, content=payload, headers=headers
+                )
+                self.send_response(response.status_code)
+                for key, value in response.headers.items():
+                    if key.lower() not in {
+                        "content-length",
+                        "content-encoding",
+                        "transfer-encoding",
+                        "connection",
+                    }:
+                        self.send_header(key, value)
+                self.send_header("Content-Length", str(len(response.content)))
+                self.end_headers()
+                try:
+                    self.wfile.write(response.content)
+                except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+                    pass  # Browser navigation may cancel an in-flight request.
+    
+            do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = forward
+    
+        class QueuedServer(HTTPServer):
+            request_queue_size = 128
+    
+        server = QueuedServer(("127.0.0.1", 0), Bridge)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        root = Path(__file__).resolve().parents[2]
+        env = dict(os.environ, CONTROL_BRIDGE=f"http://127.0.0.1:{server.server_port}")
+        try:
+            process = subprocess.run(
+                ["node", str(root / "playwright" / os.environ.get("CONTROL_BROWSER_SCRIPT", "control-live.cjs"))],
+                cwd=root / "frontend",
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=240,
+            )
+&gt;           assert process.returncode == 0, process.stdout + process.stderr
+E           AssertionError: Port 5173 is in use, trying another one...
+E             Port 5174 is in use, trying another one...
+E             {"checks":21,"canonical_customer_id":20065,"real_api":true,"viewports":[390,768,1440]}
+E             node:internal/process/promises:394
+E                 triggerUncaughtException(err, true /* fromPromise */);
+E                 ^
+E             
+E             apiRequestContext.fetch: Request context disposed.
+E             Call log:
+E             #x1B[2m  - â†’ GET http://127.0.0.1:56646/api/v1/srm/business/customers?after=0#x1B[22m
+E             #x1B[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36#x1B[22m
+E             #x1B[2m    - accept: application/json, text/plain, */*#x1B[22m
+E             #x1B[2m    - accept-encoding: gzip,deflate,br#x1B[22m
+E             #x1B[2m    - authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDc4NTMsInN1YiI6IjM1NSIsInR5cGUiOiJhY2Nlc3MiLCJzaWQiOiIyNzAifQ.xYJk_oRELLPYkeFkObN4n7nc-Q-2C3anTIFmZi8_dbM#x1B[22m
+E             #x1B[2m    - referer: http://127.0.0.1:5175/srm/pos#x1B[22m
+E             #x1B[2m    - x-request-id: b3e69c60-5c8e-45bd-8042-57baa6607829#x1B[22m
+E             #x1B[2m    - x-suite-branch: 119#x1B[22m
+E             #x1B[2m    - x-suite-organization: 1#x1B[22m
+E             #x1B[2m    - sec-ch-ua: "Chromium";v="148", "HeadlessChrome";v="148", "Not/A)Brand";v="99"#x1B[22m
+E             #x1B[2m    - sec-ch-ua-mobile: ?0#x1B[22m
+E             #x1B[2m    - sec-ch-ua-platform: "Windows"#x1B[22m
+E             
+E                 at C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\playwright\business-suite-live.cjs:20:42 {
+E               name: 'Error'
+E             }
+E             
+E             Node.js v24.15.0
+E             
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['node', 'C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\business-suite-li...ments\\GitHub\\BusinessSuite\\playwright\\business-suite-live.cjs:20:42 {\n  name: \'Error\'\n}\n\nNode.js v24.15.0\n').returncode
+
+tests\test_control_browser.py:70: AssertionError</failure></testcase></testsuite></testsuites>

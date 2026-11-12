@@ -95,6 +95,10 @@ def local_plan(data,parent,model_scope,project_choice=None):
     from app.ai_operator.local_dialogue import continue_action
     from app.ai_operator.local_runtime import task_plan
     prior=(parent.result or {}).get('workflow') if parent and parent.status in {'needs_clarification','awaiting_approval'} else None
+    if not prior and parent and parent.status in {'needs_clarification','awaiting_approval'} and (parent.result or {}).get('local_nlp',{}).get('intent'):
+        # A pending single-action dialogue owns its follow-up, including help,
+        # negation and cancellation. Do not reinterpret it as a new workflow.
+        return None, None
     if not prior:
         from app.ai_operator.local_writing import chat_plan
         writing = chat_plan(data.text)

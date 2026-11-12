@@ -9,7 +9,7 @@ import io
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -2422,13 +2422,13 @@ def calculate_gst_amounts(db: Session, company_id: int, payload: GSTCalculationP
         cgst = sgst = igst = cess = Decimal("0")
     elif interstate:
         cgst = sgst = Decimal("0")
-        igst = (taxable * igst_rate / Decimal("100")).quantize(Decimal("0.01"))
-        cess = (taxable * cess_rate / Decimal("100")).quantize(Decimal("0.01"))
+        igst = (taxable * igst_rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        cess = (taxable * cess_rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     else:
-        cgst = (taxable * cgst_rate / Decimal("100")).quantize(Decimal("0.01"))
-        sgst = (taxable * sgst_rate / Decimal("100")).quantize(Decimal("0.01"))
+        cgst = (taxable * cgst_rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        sgst = (taxable * sgst_rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         igst = Decimal("0")
-        cess = (taxable * cess_rate / Decimal("100")).quantize(Decimal("0.01"))
+        cess = (taxable * cess_rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     total_tax = cgst + sgst + igst + cess
     return {
         "taxable_value": float(taxable),

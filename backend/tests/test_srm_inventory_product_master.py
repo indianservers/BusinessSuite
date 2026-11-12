@@ -15,6 +15,10 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             "srm_sales_manager",
             permissions=["srm_view", "srm_manage"],
         )
+        from app.apps.crm.models import CRMCompany
+        buyer = CRMCompany(organization_id=1, name="Inventory QA customer", account_type="Customer")
+        db.add(buyer)
+        db.commit()
 
         category = client.post(
             "/api/v1/srm/inventory/categories",

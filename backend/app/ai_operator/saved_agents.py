@@ -6,7 +6,7 @@ Recurring preparation reuses the durable scheduler; project event rules keep the
 from typing import Literal
 from datetime import datetime,timezone
 from fastapi import APIRouter,Depends,HTTPException
-from pydantic import Field,model_validator
+from pydantic import Field,model_validator,model_serializer
 from sqlalchemy.orm import Session
 from app.core.deps import get_db,get_current_user
 from app.models.user import User
@@ -15,6 +15,7 @@ from app.ai_operator.assistant_models import AssistantConversation,AssistantMess
 from app.ai_agents.security import company,verify
 from app.ai_agents.services.audit import AiAuditService
 from app.ai_operator.suite_memory import MemoryText
+from app.ai_operator.agent_knowledge import KnowledgeFile
 
 router=APIRouter(prefix='/suite/agents',tags=['Saved action agents'])
 
@@ -31,8 +32,16 @@ class Config(Strict):
     skill_ids:list[int]=Field(default_factory=list,max_length=10)
     connection_ids:list[int]=Field(default_factory=list,max_length=20)
     mcp_ids:list[int]=Field(default_factory=list,max_length=10)
+    knowledge_files:list[KnowledgeFile]=Field(default_factory=list,max_length=4)
     environment:Literal['development','staging','production']='development'
     revision:int|None=Field(default=None,ge=1)
+
+    @model_serializer(mode='wrap')
+    def serialize(self,handler):
+        value=handler(self)
+        # Existing signed configs with no bindings retain their representation.
+        if not self.knowledge_files:value.pop('knowledge_files',None)
+        return value
 
     @model_validator(mode='after')
     def valid(self):
@@ -43,15 +52,19 @@ class Config(Strict):
         for text in self.memory:MemoryText(text=text)
         for ids in (self.skill_ids,self.connection_ids,self.mcp_ids):
             if len(set(ids))!=len(ids) or any(type(i) is not int or i<=0 for i in ids):raise ValueError('Select unique existing positive binding IDs')
+        if len({f.attachment_id for f in self.knowledge_files})!=len(self.knowledge_files):raise ValueError('Select unique knowledge files')
         from app.ai_agents.security_catalog import SUITE
         if any(name not in TOOLS or name not in SUITE or TOOLS[name].module not in self.modules for name in self.tools):raise ValueError('Select code-approved tools within the selected modules')
         return self
 
 
-def access(db,user,data):
+def access(db,user,data,validate_knowledge=True):
     from app.ai_operator.agent_memory import authorize
     scope=None
     for module in data.modules:scope=authorize(db,user,data.workspace_id,module,data.project_id)
+    if validate_knowledge:
+        from app.ai_operator.agent_knowledge import sources
+        sources(db,user,data.knowledge_files,data.workspace_id)
     for ident in data.skill_ids:
         skill=owned_skill(db,user,ident)
         if skill.workspace_id!=data.workspace_id or not set(skill.references['config']['tools'])<=set(data.tools):raise HTTPException(403,'Skill tools must be explicitly allowed in this agent workspace')
@@ -74,7 +87,7 @@ def owned(db,user,ident,lock=False):
     if not row or not row.references.get('saved_agent'):raise HTTPException(404,'Agent not found')
     verify(db,user,row.security_context,history=True)
     data=Config.model_validate(row.references['config'])
-    if access(db,user,data)!=row.references['scope_key']:raise HTTPException(403,'Agent scope changed')
+    if access(db,user,data,validate_knowledge=False)!=row.references['scope_key']:raise HTTPException(403,'Agent scope changed')
     return row
 
 
@@ -100,6 +113,13 @@ def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depe
 @router.post('')
 def create(data:Config,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=store(db,user,data);db.commit();return public(row)
+
+
+@router.get('/knowledge/files')
+def knowledge_files(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.agent_knowledge import available
+    return {'items':available(db,user,workspace_id),'limit':100,'max_selected':4,
+        'coverage':'Parsed uploads in your latest 100 authorized conversations in this workspace.'}
 
 
 def store(db,user,data):
@@ -264,6 +284,10 @@ def archive_skill(ident:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 
 
 def enforce(db,user,run,steps):
+    from app.ai_operator.artifact_charts import enforce_sources
+    enforce_sources(db,user,run)
+    from app.ai_operator.artifact_templates import enforce as enforce_template
+    enforce_template(db,user,run,steps)
     from app.ai_operator.organization_memory import revalidate as revalidate_policies
     revalidate_policies(db,user,run)
     from app.ai_operator.skill_testing import enforce as enforce_skill_test
@@ -280,4 +304,6 @@ def enforce(db,user,run,steps):
 def runtime_access(db,user,row):
     from app.ai_operator.agent_library import validate_origin
     validate_origin(db,user,row)
+    from app.ai_operator.agent_knowledge import sources
+    sources(db,user,row.references['config'].get('knowledge_files',[]),row.workspace_id)
     for ident in row.references.get('config',{}).get('skill_ids',[]):validate_origin(db,user,owned_skill(db,user,ident))

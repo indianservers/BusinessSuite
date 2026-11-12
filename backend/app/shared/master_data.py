@@ -325,8 +325,9 @@ def update_channels(kind: Literal["contact", "company", "person"], ident: int, d
     return {"items": effective_channels(db, row, kind), "version": version(row)}
 
 
-def relationships(db, row, kind):
-    roles = {x.role for x in db.query(BusinessRelationship).filter(owner_filter(BusinessRelationship, kind, row.id))}
+def relationships(db, row, kind, links=None):
+    links = links if links is not None else db.query(BusinessRelationship).filter(owner_filter(BusinessRelationship, kind, row.id))
+    roles = {x.role for x in links}
     roles |= {x.strip() for x in (row.tags_text or "").split(",") if x.strip() in ROLES}
     legacy = row.account_type if kind == "company" else row.lifecycle_stage
     if legacy in ROLES:
@@ -344,22 +345,44 @@ def company_location(row, details):
             "pincode": text(address.get("postalCode"))}
 
 
-def company_output(db, row):
-    details = db.get(CompanyMasterDetails, row.id)
-    if "master_vendor_cache" not in db.info:
+def company_output(db, row, prefetched=None):
+    details = prefetched["details"] if prefetched is not None else db.get(CompanyMasterDetails, row.id)
+    if prefetched is None and "master_vendor_cache" not in db.info:
         cache = {}
         for link in db.query(BusinessRelationship).filter(BusinessRelationship.organization_id == row.organization_id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.role.desc(), BusinessRelationship.id):
             cache.setdefault(link.account_id, link)
         db.info["master_vendor_cache"] = cache
-    vendor = db.info["master_vendor_cache"].get(row.id)
-    return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "services_offered": row.services_offered or [], "business_types": row.business_types or [], "status": row.status,
+    vendor = next((link for link in prefetched["links"] if link.role in {"Vendor", "Supplier"}), None) if prefetched is not None else db.info["master_vendor_cache"].get(row.id)
+    return {"branch_availability": prefetched["availability"] if prefetched is not None else profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "services_offered": row.services_offered or [], "business_types": row.business_types or [], "status": row.status,
         **company_location(row, details),
         "country": row.country or "IN", "vendorClassification": vendor.category if vendor else None, "paymentTerms": vendor.payment_terms if vendor else None,
         "gstNumber": next((r.get("number", "") for r in (details.tax_registrations if details else []) if r.get("type", "").upper() in {"GST", "GSTIN"}), ""),
-        "roles": relationships(db, row, "company"), "tags": [x.strip() for x in (row.tags_text or "").split(",") if x.strip() and x.strip() not in ROLES], "notes": row.notes,
+        "roles": relationships(db, row, "company", prefetched["links"] if prefetched is not None else None), "tags": [x.strip() for x in (row.tags_text or "").split(",") if x.strip() and x.strip() not in ROLES], "notes": row.notes,
         "entityKind": "Individual" if details and details.business_type == "Individual" else "Company",
         "legalName": details.legal_name if details else None, "tradeName": details.trade_name if details else None, "businessType": details.business_type if details else None,
         "addresses": details.addresses if details else [], "taxRegistrations": details.tax_registrations if details else [], "primaryContactId": details.primary_contact_id if details else None, "version": version(row)}
+
+
+def company_outputs(db, rows):
+    """Bound work to the authorized page, never preload the whole tenant."""
+    from app.branches.models import BranchOwnership, BranchRecordShare
+    rows = list(rows)
+    if not rows:
+        return []
+    ids = [row.id for row in rows]
+    organizations = {row.organization_id for row in rows}
+    details = {row.account_id: row for row in db.query(CompanyMasterDetails).filter(CompanyMasterDetails.account_id.in_(ids), CompanyMasterDetails.organization_id.in_(organizations))}
+    links = {}
+    for link in db.query(BusinessRelationship).filter(BusinessRelationship.account_id.in_(ids), BusinessRelationship.organization_id.in_(organizations)).order_by(BusinessRelationship.role.desc(), BusinessRelationship.id):
+        links.setdefault(link.account_id, []).append(link)
+    branches = {}
+    connection = db.connection()
+    for model in (BranchOwnership, BranchRecordShare):
+        for company, key, branch in connection.execute(select(model.company_id, model.resource_key, model.branch_id).where(model.company_id.in_(organizations), model.resource_table == "crm_companies", model.resource_key.in_([str(ident) for ident in ids]))):
+            if branch is not None:
+                branches.setdefault((company, key), set()).add(branch)
+    return [company_output(db, row, {"details": details.get(row.id), "links": links.get(row.id, []),
+                                    "availability": {"scope": "selected", "branch_ids": sorted(branches[(row.organization_id, str(row.id))])} if (row.organization_id, str(row.id)) in branches else None}) for row in rows]
 
 
 def filter_entity_kind(q, entity_kind):
@@ -391,7 +414,7 @@ def list_companies(source: Source = "crm", search: str = Query("", max_length=18
         can_create = True
     except HTTPException:
         can_create = False
-    return {"items": [company_output(db, x) for x in rows], "total": total, "page": page, "canCreate": can_create}
+    return {"items": company_outputs(db, rows), "total": total, "page": page, "canCreate": can_create}
 
 
 @router.get("/form-options")
@@ -1042,7 +1065,7 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
             value = key.isoformat() if isinstance(key, datetime) else key
             result["groups"].append({"field": name, "value": value, "label": str(value or "Not set"), "count": count, "aggregates": [], "path": [x.model_dump() for x in parsed.path] + [{"field": name, "value": value}]})
     else:
-        result["rows"] = [company_output(db, x) for x in apply_sort(branch, parsed, fields, CRMCompany.id).offset((parsed.page - 1) * parsed.pageSize).limit(parsed.pageSize)]
+        result["rows"] = company_outputs(db, apply_sort(branch, parsed, fields, CRMCompany.id).offset((parsed.page - 1) * parsed.pageSize).limit(parsed.pageSize))
     summaries = company_financial_summaries(db, actor, [row["id"] for row in result["rows"]])
     for row in result["rows"]:
         row.update(summaries.get(row["id"], {}))

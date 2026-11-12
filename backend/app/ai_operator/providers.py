@@ -3,6 +3,8 @@ import base64
 import hashlib
 import json
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
 from email.utils import parsedate_to_datetime
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
@@ -13,6 +15,20 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
 from app.core.config import settings
 from app.ai_operator.models import OperatorApiLog
+
+_request_attempts = ContextVar("operator_provider_attempts", default=3)
+
+
+@contextmanager
+def retry_budget(attempts):
+    """Durable workers own retries; synchronous callers retain bounded retries."""
+    if attempts not in {1, 2, 3}:
+        raise ValueError("Provider attempts must be between one and three")
+    token = _request_attempts.set(attempts)
+    try:
+        yield
+    finally:
+        _request_attempts.reset(token)
 
 
 def cipher():
@@ -42,14 +58,15 @@ def request_json(url, headers, body, seconds):
     authentication errors are deliberately not retried.
     """
     deadline = time.monotonic() + seconds
-    for attempt in range(3):
+    attempts = _request_attempts.get()
+    for attempt in range(attempts):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise httpx.ReadTimeout('Provider planning deadline exceeded')
         try:
             with httpx.Client(timeout=httpx.Timeout(remaining, connect=min(10, remaining)), follow_redirects=False) as client:
                 response = client.post(url, headers=headers, json=body)
-            if response.status_code not in {408, 429, 500, 502, 503, 504} or attempt == 2:
+            if response.status_code not in {408, 429, 500, 502, 503, 504} or attempt == attempts - 1:
                 return response
             delay = 0.5 * (2 ** attempt)
             retry_after = response.headers.get('retry-after')
@@ -64,7 +81,7 @@ def request_json(url, headers, body, seconds):
             if not delay < deadline - time.monotonic():
                 return response
         except (httpx.TimeoutException, httpx.NetworkError):
-            if attempt == 2:
+            if attempt == attempts - 1:
                 raise
             delay = 0.5 * (2 ** attempt)
             if delay >= deadline - time.monotonic():

@@ -1,0 +1,4 @@
+tests/test_action_model_v2.py::test_invalid_followup_keeps_question_and_cancel_only_affects_that_chat
+tests/test_action_repairs.py::test_ambiguous_or_help_reply_never_becomes_a_task_title[I do not know]
+tests/test_action_repairs.py::test_ambiguous_or_help_reply_never_becomes_a_task_title[I don\u2019t know]
+tests/test_ai_operator_jobs.py::test_provider_retry_budget_and_failed_attempt_telemetry

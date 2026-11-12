@@ -4,153 +4,181 @@
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: 129 common route, adapter, alias, context, refresh and permission scenarios\n",
-    "seconds": 2.25
+    "seconds": 1.859
   },
   {
     "script": "test-search-navigation.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: global cross-module pages, context independence, deduplication and managed-access restrictions\n",
-    "seconds": 0.61
+    "seconds": 0.578
   },
   {
     "script": "test-navigation-workspaces.cjs",
-    "status": "FAIL",
-    "exit_code": 1,
-    "output": "Workspace consolidation: all links retained, restricted fallback, active details, and fewer entries passed.\nWorkspace context preservation passed.\n<anonymous_script>:113\n    const context = (0, common_routes_1.commonRouteContext)(item.to);\n                                                           ^\n\nTypeError: (0 , common_routes_1.commonRouteContext) is not a function\n    at menuLabel (eval at <anonymous> (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-workspaces.cjs:33:1), <anonymous>:113:60)\n    at Object.<anonymous> (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-workspaces.cjs:62:14)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.15.0\n",
-    "seconds": 0.359
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Workspace consolidation: all links retained, restricted fallback, active details, and fewer entries passed.\nWorkspace context preservation passed.\nMenu category boundaries, friendly/original search, alias deduplication and daily-work ordering passed.\nIntern pages retained under one hub and single-page labels preserved.\nCRM deal/form and PMS live-work consolidation checks passed.\n",
+    "seconds": 0.688
   },
   {
     "script": "test-navigation-categories.cjs",
-    "status": "FAIL",
-    "exit_code": 1,
-    "output": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-categories.cjs:21\n  throw new Error(\"Unexpected import: \" + name);\n  ^\n\nError: Unexpected import: ./common-routes\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-categories.cjs:21:9\n    at eval (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-categories.cjs:9:3), <anonymous>:14:25)\n    at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-categories.cjs:9:55)\n    at Object.<anonymous> (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-navigation-categories.cjs:16:15)\n    at Module._compile (node:internal/modules/cjs/loader:1830:14)\n    at Object..js (node:internal/modules/cjs/loader:1961:10)\n    at Module.load (node:internal/modules/cjs/loader:1553:32)\n    at Module._load (node:internal/modules/cjs/loader:1355:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n\nNode.js v24.15.0\n",
-    "seconds": 0.453
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "104 navigation checks passed (role visibility, managed grants, canonical links and categories).\nPMS and CRM menu scope checks passed for role-based and managed access.\n",
+    "seconds": 0.703
   },
   {
     "script": "test-operations-workspaces.cjs",
-    "status": "FAIL",
-    "exit_code": 1,
-    "output": "node:internal/modules/cjs/loader:1479\n  throw err;\n  ^\n\nError: Cannot find module '@/components/ui/state'\nRequire stack:\n- C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)\n    at Module._load (node:internal/modules/cjs/loader:1262:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.require (node:internal/modules/cjs/loader:1576:12)\n    at require (node:internal/modules/helpers:153:16)\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:93\n    at eval (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:3), <anonymous>:30:15) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    'C:\\\\Users\\\\Sai Satish\\\\Documents\\\\GitHub\\\\BusinessSuite\\\\frontend\\\\scripts\\\\test-operations-workspaces.cjs'\n  ]\n}\n\nNode.js v24.15.0\n",
-    "seconds": 0.469
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Operations workspace: embedded forms, tabs, and denied-operation fallback passed.\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at OperationsWorkspace (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:3), <anonymous>:44:20)\n    at Router (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7134:13)\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at OperationsWorkspace (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:3), <anonymous>:44:20)\n    at Router (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7134:13)\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at OperationsWorkspace (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:3), <anonymous>:44:20)\n    at Router (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7134:13)\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\nWarning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.\n    at OperationsWorkspace (eval at compile (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-operations-workspaces.cjs:11:3), <anonymous>:44:20)\n    at Router (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7134:13)\n    at MemoryRouter (file:///C:/Users/Sai%20Satish/Documents/GitHub/BusinessSuite/frontend/node_modules/react-router/dist/development/chunk-OB3PAWPO.mjs:7044:3)\n",
+    "seconds": 0.578
   },
   {
     "script": "test-pms-personal-navigation.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PMS personal navigation passed: legacy Top 5, stable pin order, reload persistence, distinct recents, account and organization isolation.\n",
-    "seconds": 0.391
+    "seconds": 0.516
   },
   {
     "script": "test-navigation-guards.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: actual route guard preserves shell during membership check/denial, never renders denied content, makes one membership request, and removes private shell on logout\n",
-    "seconds": 1.188
+    "seconds": 1.265
   },
   {
     "script": "test-desktop-navigation.cjs",
     "status": "PASS",
     "exit_code": 0,
-    "output": "PASS: persistent header/sidebar during delayed routes, no shell remount, hover prefetch, filter/scroll restoration, Back/Forward/deep refresh, bounded and scoped UI state\nMEASURED controlled route fixture: {\"before\":{\"headerVisibleDuringColdLoad\":true,\"shellMounts\":1},\"after\":{\"headerVisibleDuringColdLoad\":true,\"shellMounts\":1,\"prefetchedClickToContentMs\":50.5}}\n",
-    "seconds": 5.734
+    "output": "PASS: persistent header/sidebar during delayed routes, no shell remount, hover prefetch, filter/scroll restoration, Back/Forward/deep refresh, bounded and scoped UI state\nMEASURED controlled route fixture: {\"before\":{\"headerVisibleDuringColdLoad\":true,\"shellMounts\":1},\"after\":{\"headerVisibleDuringColdLoad\":true,\"shellMounts\":1,\"prefetchedClickToContentMs\":65.1}}\n",
+    "seconds": 4.938
   },
   {
     "script": "test-navigation-branding.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: actual branding hook before/after, company isolation, concurrent permission reads deduplicate without a permission TTL\nMEASURED local navigation fixture: {\"before\":{\"brandingRequests\":6,\"pages\":6},\"after\":{\"brandingRequests\":1,\"pages\":6}}\n",
-    "seconds": 2.844
+    "seconds": 2.828
   },
   {
     "script": "test-mobile-navigation.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nPASS actual mobile dock/tools: seven phone widths, FAM tools, module/company/branch controls, route dismissal, Back/draft retention, Escape/focus return, restricted module omission, short-sheet scrolling, desktop/tablet unchanged availability, PMS active destination, reduced-motion scrolling\n",
-    "seconds": 18.344
+    "seconds": 18.375
   },
   {
     "script": "test-background-refresh.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: initial and route loading, background success/failure, retained draft/DOM, usable dropdown choices\n",
-    "seconds": 1.797
+    "seconds": 1.734
   },
   {
     "script": "test-record-cache.cjs",
     "status": "PASS",
     "exit_code": 0,
-    "output": "BENCHMARK 10,000-row structural comparison: 13.7ms; 9,999 unchanged row references retained. Browser storage still accepts only requested pages up to 500 rows.\nPASS: persistent reload, instant repeat reads, delta updates/inserts/deletes, 304, stable query row references, cross-tab locks, offline/reconnect/backoff, optimistic rollback/conflicts, risky-action gating, permission/scope/user changes, logout race, no-store/secrets, deduplication, eviction, stale delta and storage failure.\nBENCHMARK fixture: first=89.2ms, memory repeat=1.1ms; 8 simultaneous reads -> 1 request; repeat view -> 0 requests. These are local fixture results, not production latency claims.\n",
-    "seconds": 6.218
+    "output": "BENCHMARK 10,000-row structural comparison: 9.2ms; 9,999 unchanged row references retained. Browser storage still accepts only requested pages up to 500 rows.\nPASS: persistent reload, instant repeat reads, delta updates/inserts/deletes, 304, stable query row references, cross-tab locks, offline/reconnect/backoff, optimistic rollback/conflicts, risky-action gating, permission/scope/user changes, logout race, no-store/secrets, deduplication, eviction, stale delta and storage failure.\nBENCHMARK fixture: first=77.2ms, memory repeat=1.0ms; 8 simultaneous reads -> 1 request; repeat view -> 0 requests. These are local fixture results, not production latency claims.\n",
+    "seconds": 4.985
   },
   {
     "script": "test-record-list-refresh.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: targeted query and read-effect refresh, unrelated lists untouched, drafts/filters/DOM retained, route aliases\n",
-    "seconds": 1.297
+    "seconds": 1.14
   },
   {
     "script": "test-record-mutations.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "PASS: confirmed edits, empty DELETE responses, idempotent totals, partial/ambiguous bulk failures, catalog identities, list wrappers and resource isolation\n",
-    "seconds": 0.11
+    "seconds": 0.125
   },
   {
     "script": "test-contact-picker.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "11 contact-picker response regression scenarios passed\n",
-    "seconds": 0.39
+    "seconds": 0.344
   },
   {
     "script": "test-relationship-hub.cjs",
-    "status": "FAIL",
-    "exit_code": 1,
-    "output": "ExpectError: expect(locator).toBeVisible() failed\n\nLocator: getByRole('heading', { name: 'Company Admin', exact: true })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByRole('heading', { name: 'Company Admin', exact: true })\n\n    at captureRawStack (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:3130:17)\n    at callMatcherAsStep (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:12873:57)\n    at Object.toBeVisible (C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:12863:23)\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-relationship-hub.cjs:31:118 {\n  matcherResult: {\n    message: 'expect(locator).toBeVisible() failed\\n' +\n      '\\n' +\n      \"Locator: getByRole('heading', { name: 'Company Admin', exact: true })\\n\" +\n      'Expected: visible\\n' +\n      'Timeout: 5000ms\\n' +\n      'Error: element(s) not found\\n' +\n      '\\n' +\n      'Call log:\\n' +\n      '  - Expect \"to.be.visible\" with timeout 5000ms\\n' +\n      \"  - waiting for getByRole('heading', { name: 'Company Admin', exact: true })\\n\",\n    pass: false,\n    actual: undefined,\n    name: 'toBeVisible',\n    expected: 'visible',\n    log: [\n      '  - Expect \"to.be.visible\" with timeout 5000ms',\n      \"  - waiting for getByRole('heading', { name: 'Company Admin', exact: true })\"\n    ],\n    timeout: 5000,\n    ariaSnapshot: ''\n  }\n}\n",
-    "seconds": 8.485
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nPASS Company Admin links, relationship linking, nine row actions, inline email/SMS, WhatsApp connection gate, create/edit/delete, no navigation or browser errors\nBrowser console: WebSocket connection to 'ws://127.0.0.1:5175/?token=cxOBprDFsAbT' failed: Error in connection establishment: net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS\nBrowser console: WebSocket connection to 'ws://127.0.0.1:0/?token=cxOBprDFsAbT' failed: Error in connection establishment: net::ERR_UNSAFE_PORT\nBrowser console: [vite] failed to connect to websocket.\nyour current setup:\n  (browser) 127.0.0.1:5175/ <--[HTTP]--> 127.0.0.1:0/ (server)\n  (browser) 127.0.0.1:5175/ <--[WebSocket (failing)]--> 127.0.0.1:0/ (server)\nCheck out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .\nBrowser console: WebSocket connection to 'ws://127.0.0.1:5175/?token=cxOBprDFsAbT' failed: Error in connection establishment: net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS\nBrowser console: WebSocket connection to 'ws://127.0.0.1:0/?token=cxOBprDFsAbT' failed: Error in connection establishment: net::ERR_UNSAFE_PORT\nBrowser console: [vite] failed to connect to websocket.\nyour current setup:\n  (browser) 127.0.0.1:5175/ <--[HTTP]--> 127.0.0.1:0/ (server)\n  (browser) 127.0.0.1:5175/ <--[WebSocket (failing)]--> 127.0.0.1:0/ (server)\nCheck out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .\n",
+    "seconds": 17.781
   },
   {
     "script": "test-record-360.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nRecord 360 and PMS queue: source work/links, history errors/retry, filters, expansion, pagination, existing editor/actions, record switching, queue views/source/search; seven mobile widths, long values, touch targets, activity callback and unchanged tablet/desktop detail styles passed.\n",
-    "seconds": 17.984
+    "seconds": 17.781
   },
   {
     "script": "test-task-record-links.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nTask CRM links: existing picker, contact/lead links, unlink, permission failure and read-only rendering passed.\n",
-    "seconds": 15.719
+    "seconds": 15.641
   },
   {
     "script": "test-validation.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "295 frontend validation checks passed.\n",
-    "seconds": 0.265
+    "seconds": 0.343
   },
   {
     "script": "test-phone-selector.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "form: default codes, compact width, search, mouse/keyboard selection, shared codes, clipping and focus passed\ndialog: default codes, compact width, search, mouse/keyboard selection, shared codes, clipping and focus passed\nConfigured phone code applies to new fields\n",
-    "seconds": 6.735
+    "seconds": 8.61
   },
   {
     "script": "test-currency-selector.cjs",
     "status": "PASS",
     "exit_code": 0,
     "output": "Currency selector browser checks passed\n",
-    "seconds": 1.718
+    "seconds": 2.422
   },
   {
     "script": "test-accounting-connected.cjs",
-    "status": "FAIL",
-    "exit_code": 1,
-    "output": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5198/accounting-sync-qa.html?panel=customer\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:5198/accounting-sync-qa.html?panel=customer\", waiting until \"load\"\u001b[22m\n\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-accounting-connected.cjs:20:293 {\n  name: 'Error'\n}\n",
-    "seconds": 2.797
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\n{\"passed\":8,\"scheduleRequests\":4}\n",
+    "seconds": 33.89
+  },
+  {
+    "script": "test-inventory-edit-window.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nPASS fam units compact window, denied Save preserves draft, successful Save refreshes row\nPASS fam stock-groups compact window, denied Save preserves draft, successful Save refreshes row\nPASS fam warehouses compact window, denied Save preserves draft, successful Save refreshes row\nPASS srm warehouses compact window, denied Save preserves draft, successful Save refreshes row\n",
+    "seconds": 23.485
+  },
+  {
+    "script": "test-mobile-fam-workflows.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nPASS FAM: seven phone widths, report filters/all four types/export/error/empty, rules create/edit/cancel/validation/dependencies/retry, mocked reviewed posting and permission gates, desktop style parity\n",
+    "seconds": 27.797
+  },
+  {
+    "script": "test-mobile-pms-notes.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "PASS Notes2routes7phones navigation/search/sort/date filters/action menu/44px/no overflow/exact versioned edit14writes;2routes4desktop CSS baseline geometry.\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
+    "seconds": 55.0
+  },
+  {
+    "script": "test-note-optimistic-save.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "PASS: immediate item update, tiny sync indicator, newer typing preserved, failed-save recovery/retry, acknowledged versions, and optimistic create without duplicates.\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
+    "seconds": 10.266
   }
 ]

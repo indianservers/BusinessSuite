@@ -159,6 +159,8 @@ def prepare(db, spec, source, ctx, user, existing=None, check_period=True):
     if spec.key == "time_entries":
         values["user_id"] = user.id
     for phone, code in (("phone", "phone_country_code"), ("phone_number", "phone_number_country_code")):
+        if values.get(code):
+            values[code] = "+" + str(values[code]).lstrip("+")
         if values.get(phone):
             from app.core.input_validation import normalize_phone
             country = str(values.get(code) or "")

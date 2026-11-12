@@ -120,6 +120,7 @@ class Search(Strict):
 
 
 class KnowledgeSearch(Search):
+    agent_id:int|None=Field(default=None,gt=0)
     mode:Literal['hybrid','semantic','lexical']='hybrid'
     include_uploads:bool=True
     tools:list[Literal['crm.leads','crm.deals','crm.tasks','pms.projects','pms.tasks','hrms.directory','hrms.policies','srm.invoices','srm.inventory','fam.cost_centers','fam.vouchers']]=Field(default_factory=list,max_length=6)
@@ -137,14 +138,15 @@ async def conversation_search(request:Request,conversation_id:int=Query(gt=0),
     check_tool(db,user,chat.workspace_id,Step(tool=f'{module.lower()}.search_knowledge'),False)
     allowed=None
     if agent_id:
-        from types import SimpleNamespace
+        from uuid import uuid4
+        from app.ai_operator.suite import Command
         from app.ai_operator.saved_agents import context
-        data=SimpleNamespace(agent_id=agent_id,workspace_id=chat.workspace_id,module=module,project_id=project_id,provider='preferred')
+        data=Command(request_key=str(uuid4()),text=query,agent_id=agent_id,workspace_id=chat.workspace_id,module=module,project_id=project_id,provider='preferred')
         profile=context(db,user,data,None)
         if f'{module.lower()}.search_knowledge' not in profile['tools']:raise HTTPException(403,'Knowledge search is outside this agent tools')
         allowed=profile['tools'];project_id=data.project_id
     return await knowledge_search(KnowledgeSearch(conversation_id=conversation_id,query=query,mode=mode,
-        project_id=project_id,tools=module_sources(module,project_id,allowed) if include_records else [],limit=4),request,db,user)
+        agent_id=agent_id,project_id=project_id,tools=module_sources(module,project_id,allowed) if include_records else [],limit=4),request,db,user)
 
 
 @router.get('/search-status')
@@ -166,6 +168,15 @@ async def knowledge_search(data:KnowledgeSearch,request:Request,db:Session=Depen
     chat=owned(db,user,data.conversation_id)
     _require_ai_rate_limit(db,request,user,bucket='suite_knowledge')
     names=list(dict.fromkeys(data.tools))
+    profile=None
+    if data.agent_id:
+        from app.ai_operator.saved_agents import owned as agent_owned,public as agent_public,runtime_access
+        agent=agent_owned(db,user,data.agent_id);runtime_access(db,user,agent);profile=agent_public(agent)
+        if profile['workspace_id']!=chat.workspace_id:raise HTTPException(403,'Agent knowledge is outside this conversation workspace')
+        if not set(names)<=set(profile['tools']):raise HTTPException(403,'Knowledge sources are outside this agent tools')
+        if profile['project_id']:
+            if data.project_id and data.project_id!=profile['project_id']:raise HTTPException(403,'Project is outside this agent scope')
+            data.project_id=profile['project_id']
     if len(names)>limits(db,company(user))['max_calls']:raise HTTPException(422,'Select fewer knowledge sources within your tool-call budget.')
     steps=[]
     # Validate every selected source before doing any reads.
@@ -175,6 +186,11 @@ async def knowledge_search(data:KnowledgeSearch,request:Request,db:Session=Depen
         if 'per_page' in tool.fields:step.payload={'per_page':50}
         validate_payload(tool,step.payload);steps.append((step,tool))
     files,chunks=upload_chunks(db,user,chat.id) if data.include_uploads else ([],[])
+    if profile and data.include_uploads:
+        from app.ai_operator.agent_knowledge import chunks as agent_chunks
+        bound_files,bound_chunks=agent_chunks(db,user,profile)
+        files=list({file['id']:file for file in [*files,*bound_files]}.values())
+        chunks=list({part['source']['id']:part for part in [*chunks,*bound_chunks]}.values())
     retrieved_at=datetime.now(timezone.utc).isoformat();coverage=[]
     for step,tool in steps:
         value=await api_call(request.app,request.headers.get('authorization',''),'GET',tool.path.format(record_id=step.record_id),step.payload)
@@ -206,7 +222,7 @@ async def knowledge_search(data:KnowledgeSearch,request:Request,db:Session=Depen
     ranked,engine=await run_in_threadpool(rank_chunks,bounded,data.query,data.mode)
     response={'items':ranked[:data.limit],**engine,'files_searched':len(files),'records':coverage,'candidates_searched':len(bounded),
         'candidates_available':len(chunks),'retrieved_at':retrieved_at,
-        'coverage':'Bounded current authorized API snapshots and parsed conversation uploads. Scores rank relevance, not factual confidence. No external accounts or full ERP index searched.'}
+        'coverage':'Bounded current authorized API snapshots, parsed conversation uploads and selected private agent files. Scores rank relevance, not factual confidence. No external accounts or full ERP index searched.'}
     cap=limits(db,company(user))['max_result_bytes']
     limited=False
     while response['items'] and len(json.dumps(response,ensure_ascii=False).encode())>cap:

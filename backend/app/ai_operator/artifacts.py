@@ -11,7 +11,7 @@ from typing import Literal
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator,model_serializer
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
@@ -20,27 +20,55 @@ from app.ai_agents.services.audit import AiAuditService
 from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage
 from app.ai_operator.suite_tools import Strict
 from app.ai_operator.service import digest
+from app.ai_operator.artifact_charts import Chart
 
 router=APIRouter(prefix='/suite/artifacts',tags=['Bot artifacts'])
 Module=Literal['CRM','PMS','HRMS']
 VERSION_TOOL='suite.artifact.version'
 
 
+class Slide(Strict):
+    title:str=Field(min_length=1,max_length=160)
+    bullets:list[str]=Field(default_factory=list,max_length=6)
+
+    @model_validator(mode='after')
+    def bounded(self):
+        if not self.title.strip() or any(not v.strip() or len(v)>240 for v in self.bullets):raise ValueError('Use a slide title and up to six nonempty points of at most 240 characters each')
+        if any(re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]',v) for v in [self.title,*self.bullets]):raise ValueError('Slide contains unsupported characters')
+        return self
+
+
 class Body(Strict):
     title:str=Field(min_length=1,max_length=160)
-    kind:Literal['document','checklist','table']='document'
+    kind:Literal['document','checklist','table','presentation']='document'
     content:str=Field(default='',max_length=20000)
     columns:list[str]=Field(default_factory=list,max_length=12)
     rows:list[list[str]]=Field(default_factory=list,max_length=100)
+    slides:list[Slide]=Field(default_factory=list,max_length=20)
+    chart:Chart|None=None
+
+    @model_serializer(mode='wrap')
+    def serialize(self,handler):
+        value=handler(self)
+        if not self.slides:value.pop('slides',None)
+        if self.chart is None:value.pop('chart',None)
+        return value
 
     @model_validator(mode='after')
     def bounded(self):
         if not self.title.strip():raise ValueError('Artifact needs a title')
-        if any(re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]',v) for v in [self.title,self.content,*self.columns,*[c for r in self.rows for c in r]]):raise ValueError('Artifact contains unsupported control characters')
-        if self.kind=='table':
+        if any(re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]',v) for v in [self.title,self.content,*self.columns,*[c for r in self.rows for c in r]]):raise ValueError('Artifact contains unsupported control characters')
+        if self.kind=='presentation':
+            if not self.slides or self.content or self.columns or self.rows:raise ValueError('Presentations need 1–20 structured slides and empty content/columns/rows')
+        elif self.slides:raise ValueError('Only presentations can contain slides')
+        elif self.kind=='table':
             if not self.columns or any(not c.strip() or len(c)>100 for c in self.columns):raise ValueError('Provide 1–12 named columns')
             if any(len(r)!=len(self.columns) or any(len(c)>500 for c in r) for r in self.rows):raise ValueError('Rows must match columns; cells at most 500 characters')
         elif self.columns or self.rows or not self.content.strip():raise ValueError('Documents and checklists need text and cannot contain table fields')
+        if self.chart:
+            if self.kind!='table':raise ValueError('Charts require an artifact table')
+            from app.ai_operator.artifact_charts import analyze
+            analyze({'columns':self.columns,'rows':self.rows,'chart':self.chart.model_dump()})
         if len(json.dumps(self.model_dump(),ensure_ascii=False).encode('utf-8'))>30000:raise ValueError('Artifact exceeds 30 KB; split it into smaller artifacts')
         return self
 
@@ -160,7 +188,7 @@ def validation_feedback(plan,exc):
         try:model.model_validate(step.payload)
         except ValueError as error:
             if hasattr(error,'errors'):
-                errors=[{'field':'.'.join(str(p) if type(p) is int or p in model.model_fields else 'unexpected_field' for p in e['loc'])[:120],'type':e['type']} for e in error.errors(include_input=False,include_context=False,include_url=False)[:12]]
+                errors=[{'field':'.'.join(str(p) if type(p) is int or p in model.model_fields or p in Slide.model_fields else 'unexpected_field' for p in e['loc'])[:120],'type':e['type']} for e in error.errors(include_input=False,include_context=False,include_url=False)[:12]]
         issues.append({'step':index,'tool':step.tool,'record_id_present':step.record_id is not None,'schema_errors':errors})
     safe={'This tool does not accept a record ID','Tool contains unsupported fields','Tool payload is incomplete or invalid','Artifact format cannot change during an edit'}
     return {'reason':exc.detail if isinstance(exc.detail,str) and exc.detail in safe else 'Artifact proposal failed validation','issues':issues,
@@ -201,6 +229,11 @@ def save(db,user,request,data,editing=False):
         verify(db,user,previous.security_context,history=True)
         return {'id':row.id,'artifact_id':row.id,'artifact_revision':previous.arguments['revision'],'artifact_kind':previous.arguments['body']['kind']}
     source=run.result['request'];project_id=source.get('project_id') if module=='PMS' else None
+    from app.ai_operator.artifact_templates import enforce as enforce_template
+    from app.ai_operator.suite import Step
+    enforce_template(db,user,run,[Step.model_validate(run.plan['steps'][data.suite_step-1])],lock=True)
+    from app.ai_operator.artifact_charts import enforce_sources
+    enforce_sources(db,user,run)
     validate_step(db,user,run.workspace_id,module,payload,project_id)
     if editing:
         row=owned(db,user,payload['artifact_id'],True);old=row.references['revision'];revision=old+1
@@ -218,8 +251,11 @@ def save(db,user,request,data,editing=False):
     if editing:
         for citation in version(db,user,row,old).arguments['provenance'].get('citations',[]):
             if citation not in citations:citations.append(citation)
+    provenance={'suite_run_id':run.id,'plan_hash':run.plan_hash,'base_revision':old if editing else None,'citations':citations[:50],'note':'Reviewed generated/user content. Source references reflect preparation time; facts require verification.'}
+    template=(run.result or {}).get('artifact_template') or (version(db,user,row,old).arguments['provenance'].get('template') if editing else None)
+    if template:provenance['template']={k:template[k] for k in ('id','revision','definition_hash')}
     msg=AssistantMessage(conversation_id=row.id,request_key=key,request_hash=digest(payload),prompt='Reviewed artifact revision',tool=VERSION_TOOL,
-        arguments={'revision':revision,'body':body,'provenance':{'suite_run_id':run.id,'plan_hash':run.plan_hash,'base_revision':old if editing else None,'citations':citations[:50],'note':'Reviewed generated/user content. Source references reflect preparation time; facts require verification.'}},status='stored')
+        arguments={'revision':revision,'body':body,'provenance':provenance},status='stored')
     db.add(msg);db.flush()
     if editing:
         changed=db.query(AssistantConversation).filter(AssistantConversation.id==row.id,AssistantConversation.references['revision'].as_integer()==old).update(
@@ -241,16 +277,26 @@ def edit(data:EditApproved,request:Request,db:Session=Depends(get_db),user:User=
 
 
 @router.get('/{ident}/download')
-def download(ident:int,format:Literal['md','csv','docx','xlsx']='md',revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','pdf','pptx']='md',revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=owned(db,user,ident)
     from app.access.service import check_background_access
     from app.ai_operator.suite import MODULES
     check_background_access(db,user,MODULES[row.references['module']],'export')
+    if format in ('pdf','pptx'):
+        from app.ai_agents.api import _require_ai_rate_limit
+        _require_ai_rate_limit(db,request,user,bucket='artifact_exports')
     item=public(db,user,row,revision);body=io.BytesIO()
     # Spreadsheet expressions are inert strings, including formula-like input.
     def cell(value):return "'"+value if value.lstrip().startswith(('=','+','-','@','\t','\r')) else value
     if format in ('csv','xlsx') and item['kind']!='table':raise HTTPException(422,'Choose a document download for this artifact')
-    if format=='csv':
+    if format=='pdf':
+        from app.ai_operator.artifact_exports import pdf
+        content=pdf(item);mime='application/pdf'
+    elif format=='pptx':
+        if item['kind']!='presentation':raise HTTPException(422,'PowerPoint export requires a presentation artifact')
+        from app.ai_operator.artifact_exports import powerpoint
+        content=powerpoint(item);mime='application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    elif format=='csv':
         stream=io.StringIO();writer=csv.writer(stream);writer.writerows([[cell(v) for v in r] for r in [item['columns'],*item['rows']]])
         content=stream.getvalue().encode('utf-8-sig');mime='text/csv'
     elif format=='xlsx':
@@ -261,7 +307,11 @@ def download(ident:int,format:Literal['md','csv','docx','xlsx']='md',revision:in
             for value in sheet[sheet.max_row]:value.data_type='s'
         if item['content']:
             notes=book.create_sheet('Notes');notes.cell(1,1,item['content']).data_type='s'
-        sheet.freeze_panes='A2';sheet.auto_filter.ref=sheet.dimensions;book.save(body);content=body.getvalue();mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        sheet.freeze_panes='A2';sheet.auto_filter.ref=sheet.dimensions
+        if item.get('chart'):
+            from app.ai_operator.artifact_chart_exports import excel
+            excel(book,item)
+        book.save(body);content=body.getvalue();mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     elif format=='docx':
         from docx import Document
         document=Document();document.add_heading(item['title'],0)
@@ -271,12 +321,23 @@ def download(ident:int,format:Literal['md','csv','docx','xlsx']='md',revision:in
             for c,v in zip(table.rows[0].cells,item['columns']):c.text=v
             for values in item['rows']:
                 for c,v in zip(table.add_row().cells,values):c.text=v
+        elif item['kind']=='presentation':
+            for slide in item['slides']:
+                document.add_heading(slide['title'],1)
+                for point in slide['bullets']:document.add_paragraph(point,style='List Bullet')
         else:
             for line in item['content'].splitlines():document.add_paragraph(line)
+        if item.get('chart'):
+            from app.ai_operator.artifact_charts import summary
+            document.add_heading('Computed chart statistics',1);document.add_paragraph(summary(item,item['revision']))
         document.save(body);content=body.getvalue();mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     else:
         text='# '+item['title']+'\n\n'+item['content']
+        if item['kind']=='presentation':text+='\n\n'+'\n\n'.join('## '+s['title']+'\n'+'\n'.join('- '+p for p in s['bullets']) for s in item['slides'])
         if item['kind']=='table':text+='\n\n'+ '\n'.join(' | '.join(v.replace('|','\\|').replace('\n',' ') for v in r) for r in [item['columns'],['---']*len(item['columns']),*item['rows']])
+        if item.get('chart'):
+            from app.ai_operator.artifact_charts import summary
+            text+='\n\n'+summary(item,item['revision'])
         content=text.encode('utf-8');mime='text/markdown'
     AiAuditService(db).log(user=user,agent_id=None,module=item['module'],action='suite.artifact.exported',input_json={'artifact_id':ident,'revision':item['revision']},output_json={'format':format},status='success');db.commit()
     return Response(content,media_type=mime,headers={'Content-Disposition':f'attachment; filename="artifact-{ident}-v{item["revision"]}.{format}"','X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
@@ -287,14 +348,14 @@ def business_request(text):
 
 
 def creation_request(text):
-    return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(?:document|proposal|report|brief|checklist|table|spreadsheet)\b',text))
+    return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(?:document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b',text))
 
 
 def conversation_context(db,user,data,history):
     # A record ID inside literal document/task/memory text is data, not a read.
-    match=re.match(r'\s*(?:please\s+)?(?:edit|update|revise|show|read|open|rewrite|shorten|make|rename|summari[sz]e)\s+(?:the\s+)?artifact\s*#?\s*(\d+)\b',data.text,re.I)
+    match=re.match(r'\s*(?:please\s+)?(?:edit|update|revise|show|read|open|rewrite|shorten|make|rename|summari[sz]e|analy[sz]e)\s+(?:the\s+)?artifact\s*#?\s*(\d+)\b',data.text,re.I)
     ident=data.artifact_id or (int(match[1]) if match else None)
-    if not ident and not business_request(data.text) and re.match(r'\s*(?:please\s+)?(?:edit|revise|rewrite|append|add|remove|replace|rename|shorten|make)\b',data.text,re.I):
+    if not ident and not business_request(data.text) and re.match(r'\s*(?:please\s+)?(?:edit|revise|rewrite|append|add|remove|replace|rename|shorten|make|move(?=\s+slide\b)|chart|(?:set|change)(?=\s+(?:the\s+)?chart\b)|analy[sz]e(?=\s+(?:(?:this|the)\s+)?(?:artifact|table|chart)\b))\b',data.text,re.I):
         for run in reversed(history):
             receipts=[r for r in run.receipts or [] if r.get('artifact_id')]
             if receipts:ident=receipts[-1]['artifact_id'];break
@@ -316,21 +377,25 @@ def local_plan(data,parent,context,attachments):
     text=data.text.strip();prefix=data.module.lower() if data.module in ('CRM','PMS','HRMS') else None
     if not prefix:return None
     if parent and parent.status=='needs_clarification' and not re.match(r'(?i)^(?:create|draft|write|prepare)\b',text):
-        original=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet)\b',parent.command)
+        original=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b',parent.command)
         if original and parent.plan.get('summary')=='I need a title for the artifact.':text=f'Create {original[1]} called {text}'
         elif original and parent.plan.get('summary')=='I need the table columns.':text=f'{parent.command} with columns {text}'
     pending=(parent.plan or {}).get('steps',[]) if parent and parent.status=='awaiting_approval' else []
     draft=deepcopy(pending[0]) if len(pending)==1 and pending[0]['tool'].endswith(('.create_artifact','.edit_artifact')) else None
-    create=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet)\b\s*(.*)',text)
+    create=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b\s*(.*)',text)
     if create:
-        kind='table' if create[1].lower() in ('table','spreadsheet') else 'checklist' if create[1].lower()=='checklist' else 'document'
+        kind='presentation' if create[1].lower() in ('presentation','slide deck','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
         rest=re.sub(r'^(?:called|named|titled)\s+','',create[2],flags=re.I).strip()
         title,sep,content=rest.partition(':');title=title.strip().strip('"\'')
         if not title:return Plan(summary='I need a title for the artifact.',question='Give the artifact a title and any content, for example: Create document called Launch brief: goals and next steps.',steps=[])
-        if kind=='table':
+        if kind=='presentation':
+            from app.ai_operator.artifact_slides import parse
+            body={'title':title,'kind':kind,'content':'','columns':[],'rows':[],'slides':parse(content,title)}
+        elif kind=='table':
             parts=re.split(r'\s+with columns\s+',title,flags=re.I,maxsplit=1)
             if len(parts)!=2:return Plan(summary='I need the table columns.',question='Include its title and columns, for example: Create table called Launch tracker with columns Task, Owner, Status.',steps=[])
             body={'title':parts[0],'kind':kind,'columns':next(csv.reader([parts[1]],skipinitialspace=True)),'rows':[],'content':''}
+            if 'chart' in create[1].lower():body['chart']=Chart(kind=create[1].lower().split()[0] if ' ' in create[1] else 'bar',category_column=0,value_column=1 if len(body['columns'])>1 else None,aggregation='sum' if len(body['columns'])>1 else 'count').model_dump()
         else:
             if not content.strip() and attachments:
                 content='\n\n'.join(f'Unverified uploaded source: {a["label"]}\n{a["text"]}' for a in attachments)
@@ -342,12 +407,28 @@ def local_plan(data,parent,context,attachments):
     if not context and (not draft or business_request(text)):return None
     if context and re.match(r'(?i)^(?:show|read|open)\s+(?:the\s+)?artifact\b',text):
         return Plan(summary=f"Server artifact #{context['id']}: {context['title']} (version {context['revision']}). Open the workspace to read its full content and version history.",steps=[])
-    body=deepcopy(draft['payload'] if draft else {k:context[k] for k in Body.model_fields})
-    operation=re.sub(r'(?is)^(?:edit|update|revise)\s+(?:artifact\s*#?\s*\d+|(?:this|the)\s+(?:artifact|document|table|checklist))\s*:?\s*','',text)
+    body=deepcopy(draft['payload'] if draft else {k:context.get(k,[]) if k=='slides' else context.get(k) if k=='chart' else context[k] for k in Body.model_fields})
+    operation=re.sub(r'(?is)^(?:edit|update|revise)\s+(?:artifact\s*#?\s*\d+|(?:this|the)\s+(?:artifact|document|table|checklist|presentation|deck))\s*:?\s*','',text)
+    if body['kind']=='table' and re.fullmatch(r'(?i)(?:analy[sz]e (?:(?:this|the) )?(?:artifact\s*#?\s*\d+|table|chart)|show (?:the )?chart statistics)[.! ]*',operation):
+        from app.ai_operator.artifact_charts import summary,evidence
+        return Plan(summary=summary(body,None if draft else context['revision']),steps=[Step.model_validate(draft)] if draft else [],source_ids=[] if draft else [evidence(context)['id']])
+    chart_edit=None
+    if body['kind']=='table':
+        from app.ai_operator.artifact_charts import edit as edit_chart
+        try:chart_edit=edit_chart(body,operation)
+        except ValueError:raise HTTPException(422,'Check the chart metric, grouping and pie single-series requirements') from None
     append=re.match(r'(?is)^(?:append|add)(?:\s+(?:this|a paragraph|a line|text))?(?:\s*:\s*|\s+)(.+)',operation)
     rename=re.match(r'(?is)^(?:rename(?:\s+it)?\s+(?:to\s+)?|change (?:the )?title to\s+)(.+)',operation)
+    if body['kind']=='presentation' and re.match(r'(?i)^rename slide\b',operation):rename=None
     replace=re.match(r'(?is)^(?:replace (?:the )?content(?:\s+with)?|set (?:the )?content(?:\s+to)?)\s*:\s*(.+)',operation)
-    if body['kind']=='table' and re.match(r'(?i)^add (?:a )?row\s*:',operation):
+    if chart_edit is not None:body=chart_edit
+    elif body['kind']=='presentation' and not rename:
+        from app.ai_operator.artifact_slides import edit as edit_slides
+        revised=edit_slides(body['slides'],operation)
+        if revised is None:
+            return Plan(summary='I need a precise slide edit.',question='Use add slide: Title | Point, replace slide 2: Title | Point, rename slide 2 to Title, remove slide 2, move slide 2 to 1, or add point to slide 2: text. Connected intelligence supports broader rewrites.',steps=[])
+        body['slides']=revised
+    elif body['kind']=='table' and re.match(r'(?i)^add (?:a )?row\s*:',operation):
         body['rows'].append(next(csv.reader([operation.partition(':')[2].strip()],skipinitialspace=True)))
     elif rename:body['title']=rename[1].strip().strip('"\'')
     elif append and body['kind']!='table':body['content']+='\n\n'+append[1].strip()
