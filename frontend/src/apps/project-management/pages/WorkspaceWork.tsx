@@ -66,15 +66,18 @@ export function WorkspaceWork({ tasks, members, projects, view, query, projectFi
   const viewer=useAuthStore(s=>s.user);
   const viewKey=`pms-board-view-${viewer?.id}-${viewer?.access?.companyId}-${workspaceId||"shared"}`;
   const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25);
-  const [tableQuery,setTableQuery]=useState<GridQuery>();
   const [personalFilter,setPersonalFilter]=useState<GridPersonalFilter>();
   const [savedViewsHost,setSavedViewsHost]=useState<HTMLDivElement|null>(null);
   const [hasFilterSnapshot,setHasFilterSnapshot]=useState(false);
   useEffect(()=>{try{setHasFilterSnapshot(!!localStorage.getItem(viewKey));}catch{setHasFilterSnapshot(false);}},[viewKey]);
-  const defaults={revision:filterRevision,focus:"all" as WorkFocus,priority:"",status:"",workType:"",selection:[] as string[]};
+  const defaults={revision:filterRevision,focus:"all" as WorkFocus,priority:"",status:"",workType:"",selection:[] as string[],tableQuery:undefined as GridQuery|undefined};
   const [retained,setRetained]=useRouteViewState(`${viewKey}:collection`,defaults);
   const current=retained.revision===filterRevision?retained:defaults;
-  const {focus,priority,status,workType,selection}=current;
+  const {focus,priority,status,workType,selection,tableQuery}=current;
+  const setTableQuery=(update:GridQuery|undefined|((value:GridQuery|undefined)=>GridQuery|undefined))=>setRetained(previous=>{
+    const base=previous.revision===filterRevision?previous:defaults;
+    return {...base,tableQuery:typeof update==="function"?update(base.tableQuery):update};
+  });
   const setFilter=<K extends keyof typeof defaults>(key:K,value:typeof defaults[K])=>setRetained(previous=>({...(previous.revision===filterRevision?previous:defaults),[key]:value}));
   const setFocus=(value:WorkFocus)=>setFilter("focus",value);
   const setPriority=(value:string)=>setFilter("priority",value);

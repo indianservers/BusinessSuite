@@ -655,7 +655,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     if(layout.view===previousCollectionView.current)return;
     if(layout.view!=="grid"){
       preservedGrouping.current=query.grouping;
-      setQuery(current=>({...current,grouping:[],path:[],page:1}));
+      const mounting=previousCollectionView.current===undefined;
+      setQuery(current=>({...current,grouping:[],path:[],page:mounting?current.page:1}));
     }else if(previousCollectionView.current&&previousCollectionView.current!=="grid"&&preservedGrouping.current.length){
       setQuery(current=>({...current,grouping:preservedGrouping.current,path:[],page:1}));
     }
@@ -716,7 +717,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     // Mobile cards must use a flat query even when this workspace starts grouped.
     // This reset runs after the collection-view effect on mount.
     if (layout.view !== "grid") preservedGrouping.current = initial.query.grouping;
-    setQuery(layout.view === "grid" ? initial.query : {...initial.query, grouping: [], path: [], page: 1});
+    setQuery(layout.view === "grid" ? initial.query : {...initial.query, grouping: [], path: []});
     setViews(initial.views);
     setSearch(initial.query.search);
     setChildren({});
