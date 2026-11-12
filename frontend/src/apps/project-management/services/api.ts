@@ -253,8 +253,8 @@ export const tasksAPI = {
     return response.data;
   },
 
-  get: async (taskId: number, fresh=false) => {
-    const response = await api.get<PMSTask>(`${BASE_URL}/tasks/${taskId}`,fresh?{recordCache:false,_recordSyncBypass:true,headers:{"Cache-Control":"no-cache"}}:undefined);
+  get: async (taskId: number, fresh=false, signal?:AbortSignal) => {
+    const response = await api.get<PMSTask>(`${BASE_URL}/tasks/${taskId}`,fresh?{recordCache:false,_recordSyncBypass:true,headers:{"Cache-Control":"no-cache"},signal}:signal?{signal}:undefined);
     return response.data;
   },
 

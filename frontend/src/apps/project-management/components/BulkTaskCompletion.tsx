@@ -12,17 +12,20 @@ type Review={task:WorkTask;allowed:boolean;reason:string};
 export default function BulkTaskCompletion({records,canEdit,onClose,onRefresh,onNotice}:{records:WorkTask[];canEdit:boolean;onClose:(applied:boolean)=>void;onRefresh:()=>Promise<void>;onNotice:(message:string)=>void}){
  const [rows,setRows]=useState<Review[]>([]),[phase,setPhase]=useState<"loading"|"idle"|"applying">("loading"),[error,setError]=useState(""),[mustReview,setMustReview]=useState(false);
  const alive=useRef(true),generation=useRef(0),applying=useRef(false);
+ const reviewAbort=useRef<AbortController|null>(null);
  const requestLeave=useMobileDraftGuard({enabled:true,guardHistory:true,dirty:false,draftKey:"bulk-completion",pending:()=>applying.current,onDiscard:()=>{},message:""});
  async function review(){
+  reviewAbort.current?.abort();const controller=new AbortController();reviewAbort.current=controller;
   const current=++generation.current;setPhase("loading");setRows([]);setError("");setMustReview(false);
   if(records.length>200){setError("Select at most 200 tasks for one completion review.");setPhase("idle");return;}
   const results:Review[]=new Array(records.length);let next=0;
   // Bound concurrent reads; the API remains the authority for completion rules.
   await Promise.all(Array.from({length:Math.min(4,records.length)},async()=>{
-   while(next<records.length){const index=next++,record=records[index];
+   while(next<records.length&&alive.current&&current===generation.current&&!controller.signal.aborted){const index=next++,record=records[index];
     try{
-     const task={...record,...await tasksAPI.get(record.id,true)};
-     const {data}=await api.get<TaskStatusChoices>(`/project-management/tasks/${task.id}/transition-approvals`,{recordCache:false,_recordSyncBypass:true,headers:{"Cache-Control":"no-cache"}});
+     const task={...record,...await tasksAPI.get(record.id,true,controller.signal)};
+     if(controller.signal.aborted||!alive.current||current!==generation.current)return;
+     const {data}=await api.get<TaskStatusChoices>(`/project-management/tasks/${task.id}/transition-approvals`,{recordCache:false,_recordSyncBypass:true,headers:{"Cache-Control":"no-cache"},signal:controller.signal});
      const completed=["Done","Completed","Closed","Resolved"].includes(task.status);
      const allowed=!completed&&data.can_request&&data.transitions.some(item=>item.target==="Done")&&!taskStatusNeedsReview(data,"Done");
      const reason=completed?"Already completed":!data.can_request?"Completion is not permitted":!data.transitions.some(item=>item.target==="Done")?`Workflow does not allow ${task.status} → Done`:taskStatusNeedsReview(data,"Done")?"Approval required":"Done is allowed; completion checks run when applied";
@@ -30,9 +33,9 @@ export default function BulkTaskCompletion({records,canEdit,onClose,onRefresh,on
     }catch(failure){results[index]={task:record,allowed:false,reason:`Could not verify task. ${workspaceError(failure)}`};}
    }
   }));
-  if(alive.current&&current===generation.current){setRows(results);setPhase("idle");}
+  if(alive.current&&current===generation.current&&!controller.signal.aborted){setRows(results);setPhase("idle");}
  }
- useEffect(()=>{alive.current=true;void review();return()=>{alive.current=false;generation.current++;};},[records]);
+ useEffect(()=>{alive.current=true;void review();return()=>{alive.current=false;generation.current++;reviewAbort.current?.abort();};},[records]);
  const allowed=rows.filter(row=>row.allowed);
  async function apply(){
   if(!canEdit||phase!=="idle"||mustReview||!allowed.length||applying.current)return;
