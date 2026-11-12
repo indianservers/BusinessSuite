@@ -92,7 +92,7 @@ def source_query(db,row):
 
 def public(db,user,row):
     value=row.values_json
-    deliveries=db.query(Job).filter_by(job_type=schedules.KIND,organization_id=row.organization_id,created_by=user.id).filter(Job.payload_json['event_source']['subscription_id'].as_integer()==row.id).order_by(Job.id.desc()).limit(20)
+    deliveries=db.query(Job).filter_by(job_type=schedules.KIND,organization_id=row.organization_id,created_by=user.id).filter(Job.payload_json['event_source']['subscription_id'].as_integer()==row.id,Job.payload_json['event_source']['eligible'].as_boolean()==True).order_by(Job.id.desc()).limit(20)
     return {'id':row.id,'revision':row.version,'state':value['state'],'spec':value['spec'],'agent_name':value['snapshot']['name'],'agent_revision':value['snapshot']['revision'],
         'workspace_id':value['snapshot']['workspace_id'],'preview_hash':value['preview_hash'],'error':value.get('error'),
         'deliveries':[schedules.public(j) for j in deliveries],'controls':value.get('controls',[]),

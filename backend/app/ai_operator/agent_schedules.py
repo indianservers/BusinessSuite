@@ -71,6 +71,7 @@ def owned(db,user,ident,lock=False):
     q=db.query(Job).filter_by(id=ident,job_type=KIND,created_by=user.id,organization_id=company(user))
     row=(q.with_for_update().populate_existing() if lock else q).first()
     if not row:raise HTTPException(404,'Agent schedule not found')
+    if (row.payload_json.get('event_source') or {}).get('eligible') is False:raise HTTPException(404,'Agent schedule not found')
     verify(db,user,row.payload_json['security_context'],history=True)
     return row
 
@@ -140,7 +141,7 @@ def activate(ident:int,data:Activation,db:Session=Depends(get_db),user:User=Depe
 def listing(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
     authorize(db,user,None)
-    rows=db.query(Job).filter_by(job_type=KIND,created_by=user.id,organization_id=company(user)).order_by(Job.id.desc()).limit(100)
+    rows=db.query(Job).filter_by(job_type=KIND,created_by=user.id,organization_id=company(user)).filter(Job.payload_json['event_source']['eligible'].as_boolean().is_not(False)).order_by(Job.id.desc()).limit(100)
     return {'items':[public(owned(db,user,r.id)) for r in rows]}
 
 

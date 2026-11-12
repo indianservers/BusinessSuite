@@ -85,8 +85,8 @@ def test_inaccessible_event_is_recorded_once_without_leaking_event_text(client,d
     assert asyncio.run(events.dispatch(db,client.app,instant))['processed']==1
     assert asyncio.run(events.dispatch(db,client.app,instant+timedelta(seconds=1)))['processed']==0
     response=client.get(ROOT,headers=h,params={'workspace_id':p.workspace_id});assert response.status_code==200,response.text
-    delivery=response.json()['items'][0]['deliveries'][0]
-    assert delivery['status']=='complete' and 'source_id' not in delivery['event_source'] and 'UNTRUSTED' not in response.text
+    assert response.json()['items'][0]['deliveries']==[] and 'UNTRUSTED' not in response.text
+    assert client.get('/api/v1/ai-operator/suite/agents/schedules',headers=h).json()['items']==[]
     assert db.query(Job).count()==1 and db.query(SuiteRun).count()==0
 
 
@@ -159,3 +159,26 @@ def test_hrms_native_handover_uses_authorized_asset_references_only(client,db):
     record=db.query(ServicePolicy).filter_by(kind=events.KIND).one()
     assert count==1,{'state':record.values_json['state'],'error':record.values_json.get('error'),'source_kind':(source.module_key,source.entity_type,source.organization_id),'floor':record.values_json['floor'],'source_id':source.id}
     job=db.query(Job).one();assert job.payload_json['event_source']['source_id']==source.id and job.payload_json['event_source']['records']==[{'entity':'asset','id':asset['id']}]
+
+
+def test_event_subscriptions_are_private_and_validate_intake_limits(client,db):
+    from ai_test_utils import auth_headers
+    h,user,p,t,agent,draft,spec=setup(client,db)
+    other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant'])
+    assert client.get(ROOT,headers=other).json()['items']==[]
+    assert client.post(ROOT+f'/{draft["id"]}/cancel',headers=other,json={'revision':draft['revision']}).status_code==404
+    for change in ({'max_per_day':25},{'min_interval_minutes':0},{'event':'unregistered.webhook'}):
+        assert client.post(ROOT+'/preview',headers=h,json={**spec,'request_key':str(uuid4()),**change}).status_code==422
+
+
+def test_pause_during_source_read_fences_the_old_intake_lease(client,db,monkeypatch):
+    h,user,p,t,agent,draft,spec=setup(client,db);value=control(client,h,draft,'activate')
+    instant=datetime.now(timezone.utc)+timedelta(seconds=2);event(db,user,p,t,instant)
+    original=events.authorize_source
+    async def interrupted(*args,**kwargs):
+        refs=await original(*args,**kwargs)
+        control(client,h,value,'pause')
+        return refs
+    monkeypatch.setattr(events,'authorize_source',interrupted)
+    assert asyncio.run(events.dispatch(db,client.app,instant))['processed']==0
+    db.expire_all();assert db.get(ServicePolicy,value['id']).values_json['state']=='paused' and db.query(Job).count()==0
