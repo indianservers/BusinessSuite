@@ -1,6 +1,6 @@
 // No Axios adapter: every suite read/write goes to the disposable FastAPI bridge.
 import {createRoot} from "react-dom/client";
-import {MemoryRouter,Route,Routes,Link,useLocation} from "react-router-dom";
+import {BrowserRouter,Navigate,Route,Routes,Link,useLocation} from "react-router-dom";
 import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import AppLayout from "../../src/components/layout/AppLayout";
 import TaskDetail from "../../src/apps/project-management/pages/TaskDetail";
@@ -20,9 +20,10 @@ async function start(){
  sessionStorage.setItem("suite-branch",String(data.branch));
  useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:data.token,user:data.user});
  const selected=Number(new URLSearchParams(location.search).get("task"))||data.tasks[0];
- createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><MemoryRouter initialEntries={[`/pms/tasks/${selected}`]}>
+ const initialHref=new URLSearchParams(location.search).get("start")==="workspace"?`/pms?workspace=${data.workspace}`:`/pms/tasks/${selected}`;
+ createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><BrowserRouter>
   <aside aria-label="Disposable API review controls" className="fixed bottom-20 right-3 z-[99999] max-w-60 rounded border bg-background p-2 text-xs"><p>Disposable API review · {data.role}</p><ReviewRoute/><Link className="block underline" to={`/pms?workspace=${data.workspace}`}>Open review workspace</Link>{data.tasks.map((id,index)=><Link key={id} className="block underline" to={`/pms/tasks/${id}`}>Review task {index+1}</Link>)}<p>Real API; isolated test records only.</p></aside>
-  <Routes><Route path="/pms" element={<WorkspacesPage/>}/><Route element={<AppLayout/>}><Route path="/pms/tasks/:taskId" element={<TaskDetail/>}/><Route path="/pms/tasks" element={<p>Use Open review workspace to return to the disposable collection.</p>}/></Route></Routes>
- </MemoryRouter></QueryClientProvider>);
+  <Routes><Route path="/pms-real-review-qa.html" element={<Navigate replace to={initialHref}/>}/><Route path="/pms" element={<WorkspacesPage/>}/><Route element={<AppLayout/>}><Route path="/pms/tasks/:taskId" element={<TaskDetail/>}/><Route path="/pms/tasks" element={<p>Use Open review workspace to return to the disposable collection.</p>}/></Route></Routes>
+ </BrowserRouter></QueryClientProvider>);
 }
 void start().catch(error=>{document.getElementById("root")!.textContent=error instanceof Error?error.message:"Review initialization failed";});

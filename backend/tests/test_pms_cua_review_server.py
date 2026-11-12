@@ -34,7 +34,8 @@ def test_manual_review_bridge(client, db):
             {"source":"Done","target":"To Do"}]})
     assert scheme.status_code==200,scheme.text
     task_ids=[]
-    for index in range(1,4):
+    task_count=max(3,min(24,int(os.getenv("PMS_CUA_TASK_COUNT","3"))))
+    for index in range(1,task_count+1):
         response=client.post(f"{BASE}/projects/{pid}/tasks",headers=mh,json={
             "task_key":f"CUA-{index}","title":f"Disposable API review task {index}",
             "description":"Local manual review only", "priority":"High"})
