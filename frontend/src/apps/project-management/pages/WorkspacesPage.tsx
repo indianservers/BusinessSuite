@@ -253,9 +253,17 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
     if (!canEdit) return false;
     const workspaceId = selected;
     const finish = beginProgress("Saving task");
-    setError(""); setTasks(current => current.map(t => t.id === task.id ? { ...t, ...changes } : t));
-    try { await api.patch(`${base}/tasks/${task.id}`, changes); if (selectedRef.current === workspaceId) await loadDetails(); finish(); return true; }
-    catch (e) { finish(false); if (selectedRef.current === workspaceId) { setTasks(current => current.map(t => t.id === task.id ? task : t)); setError(workspaceError(e)); await loadDetails().catch(() => undefined); } return false; }
+    setError("");
+    const payload="updated_at" in task?{...changes,expected_updated_at:task.updated_at??null}:changes;
+    try {
+      await api.patch(`${base}/tasks/${task.id}`, payload);
+      if (selectedRef.current === workspaceId) {
+        try { await loadDetails(); }
+        catch (e) { setNotice(`Task saved, but the workspace could not refresh. Refresh workspace data before continuing. ${workspaceError(e)}`); }
+      }
+      finish(); return true;
+    }
+    catch (e) { finish(false); if (selectedRef.current === workspaceId) setError(workspaceError(e)); return false; }
   }
   async function submitModal() {
     await act(async () => {

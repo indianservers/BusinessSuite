@@ -27,6 +27,8 @@ import { AlertCircle, Ban, CalendarClock, Clock3, ArrowUpRight, CalendarDays, Ch
 import { tasksAPI, commentsAPI } from "../services/api";
 import TaskCustomFields from "../components/TaskCustomFields";
 import TaskPropertyStrip from "../components/TaskPropertyStrip";
+import TaskEditReview from "../components/TaskEditReview";
+import {useRecordScope} from "@/shared/records/Record360Workspace";
 import AssigneePicker from "../components/AssigneePicker";
 import type { PMSComment, TaskPriority } from "../types";
 import { type WorkspaceMember as Member, type WorkspaceProject as Project, type WorkTask as Task, personName, tones, taskBucket as bucket, taskAssignees, workspaceError } from "./workspaceTypes";
@@ -202,7 +204,44 @@ function PersonPanel({ member, disabled, children }: { member: Member; disabled:
   return <section ref={setNodeRef} aria-label={`${personName(member.email)} member card`} className={`ws-person-panel ${isOver ? "over" : ""}`}>{children}</section>;
 }
 
-export function TaskDrawer({ task, members, canEdit, onClose, onUpdate, onRefresh, onError, error = "" }: { task?: Task; members: Member[]; canEdit: boolean; onClose: () => void; onUpdate: Props["updateTask"]; onRefresh: () => Promise<void>; onError: (s: string) => void; error?: string }) {
+type TaskDrawerProps = { task?: Task; members: Member[]; canEdit: boolean; onClose: () => void; onUpdate: Props["updateTask"]; onRefresh: () => Promise<void>; onError: (s: string) => void; error?: string };
+export function TaskDrawer(props:TaskDrawerProps){
+  const scope=useRecordScope();
+  return <ScopedTaskDrawer key={`${scope}:${props.task?.id||"closed"}`} {...props}/>;
+}
+function ScopedTaskDrawer({ task:serverTask, members, canEdit, onClose, onUpdate, onRefresh, onError, error = "" }:TaskDrawerProps) {
+  const [openedTask,setOpenedTask]=useState(serverTask);
+  const [failedEdit,setFailedEdit]=useState<{task:Task;changes:Partial<Task>;latest?:Task}|null>(null);
+  const [savingProperty,setSavingProperty]=useState(false);
+  const task=failedEdit?{...failedEdit.task,...failedEdit.changes}:openedTask;
+  const saveProperty=async(changes:Partial<Task>,reviewed?:Task)=>{
+    if(!task||!canEdit||savingProperty||(failedEdit&&!reviewed))return false;
+    setSavingProperty(true);
+    try{
+      const saved=await onUpdate(reviewed||task,changes);
+      if(saved){
+        setFailedEdit(null);
+        try{const latest=await tasksAPI.get(task.id);setOpenedTask({...task,...latest});onError("");}
+        catch(e){setOpenedTask({...task,...changes});onError(`Task was saved, but its latest values could not be loaded. Reopen the task before editing again. ${workspaceError(e)}`);}
+      }
+      else setFailedEdit({task,changes});
+      return saved;
+    }catch(e){setFailedEdit({task,changes});onError(workspaceError(e));return false;}
+    finally{setSavingProperty(false);}
+  };
+  const reviewLatest=async()=>{
+    if(!task)return;
+    setSavingProperty(true);
+    try{const latest=await tasksAPI.get(task.id);setFailedEdit(current=>current?{...current,latest:{...task,...latest}}:null);onError("");}
+    catch(e){onError(workspaceError(e));}
+    finally{setSavingProperty(false);}
+  };
+  const discardEdit=async()=>{
+    setSavingProperty(true);
+    try{const latest=await tasksAPI.get(task!.id);await onRefresh();setOpenedTask({...task!,...latest});setFailedEdit(null);onError("");}
+    catch(e){onError(workspaceError(e));}
+    finally{setSavingProperty(false);}
+  };
   const [comments, setComments] = useState<PMSComment[]>([]);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -213,13 +252,13 @@ export function TaskDrawer({ task, members, canEdit, onClose, onUpdate, onRefres
     let active = true; setLoading(true);
     commentsAPI.listForTask(task.id).then(data => { if (active) setComments(data); }).catch(e => { if (active) onError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [task?.id, task?.comments_count]);
-  return <Dialog.Root open={!!task} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="ws-overlay" /><Dialog.Content className="ws-modal ws-drawer" onEscapeKeyDown={event => { if (document.querySelector("[data-radix-menu-content]")) event.preventDefault(); }}><Dialog.Close className="ws-modal-close" aria-label="Close task"><X size={19} /></Dialog.Close>{task && <><RecordActions preview={false} record={{...task,key:task.task_key}} canEdit={canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,name:personName(m.email)}))} onChanged={async deleted=>{await onRefresh();if(deleted)onClose();}}>{menu=><div tabIndex={0}><div className="ws-drawer-key flex items-center justify-between">TASK / {task.task_key}{menu}</div><Dialog.Title>{task.title}</Dialog.Title><Dialog.Description>Task details and team conversation</Dialog.Description></div>}</RecordActions>{error && <div className="ws-alert" role="alert">{error}</div>}<TaskPropertyStrip
- status={<StatusSelect label="Task status" value={task.status} disabled={!canEdit} options={[...lanes.map(l=>l.status),"Blocked"]} onSave={status=>onUpdate(task,{status})}/>}
- assignees={<AssigneePicker projectId={task.project_id} disabled={!canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,email:m.email}))} value={taskAssignees(task)} onChange={ids=>onUpdate(task,{assignee_user_ids:ids})}/>}
- priority={<NativeSelect aria-label="Task priority" className="w-full rounded-md border bg-background p-2" disabled={!canEdit} value={task.priority} onChange={e=>{void onUpdate(task,{priority:e.target.value});}}>{["Low","Medium","High","Urgent","Critical"].map(p=><option key={p}>{p}</option>)}</NativeSelect>}
- estimate={<input className="w-full rounded-md border bg-background p-2" aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={!canEdit} key={`${task.id}:${task.estimated_hours}`} defaultValue={task.estimated_hours??""} onBlur={e=>{const hours=e.target.value===""?undefined:Number(e.target.value);if(hours!==undefined&&Number.isFinite(hours)&&hours>=0&&hours!==Number(task.estimated_hours))void onUpdate(task,{estimated_hours:hours});}}/>}
- start={<input className="w-full rounded-md border bg-background p-2" aria-label="Task start date" disabled={!canEdit} type="date" value={task.start_date||""} onChange={e=>{if(e.target.value)void onUpdate(task,{start_date:e.target.value});}}/>}
- due={<input className="w-full rounded-md border bg-background p-2" aria-label="Task due date" disabled={!canEdit} type="date" value={task.due_date||""} onChange={e=>{if(e.target.value)void onUpdate(task,{due_date:e.target.value});}}/>}
-/><div className="ws-task-description"><h3>Description</h3><RichTextField data-legacy-format="markdown" aria-label="Task description" key={`${task.id}:${task.description}`} disabled={!canEdit} defaultValue={task.description || ""} placeholder="Add context, a brief, or a useful link…" onBlur={e => { if (e.target.value !== (task.description || "")) void onUpdate(task, { description: e.target.value }); }} /></div><TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} /><div className="ws-conversation"><h3><MessageSquare size={16} />Conversation<span data-count-badge data-count-tone="purple">{comments.length}</span></h3>{loading ? <p>Loading conversation…</p> : comments.map(c => { const author = members.find(m => m.user_id === c.author_user_id); return <article key={c.id}><WorkspaceAvatar email={author?.email || "Teammate"} /><div><strong>{author ? personName(author.email) : "Teammate"}</strong><time>{new Date(c.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time><div><RichTextContent value={c.body}/></div></div></article>; })}{!loading && !comments.length && <p className="ws-conversation-empty">A question, an update, a little context.<br />Keep the conversation close to the work.</p>}{canEdit && <CompactForm onSubmit={e => { e.preventDefault(); if (!comment.trim() || sending) return; setSending(true); commentsAPI.addToTask(task.id, { body: comment.trim(), body_format: "plain", is_internal: false }).then(async () => { setComment(""); onError(""); await onRefresh(); }).catch(e => onError(workspaceError(e))).finally(() => setSending(false)); }}><RichTextField data-legacy-format="markdown" aria-label="Write a comment" value={comment} onChange={e => setComment(e.target.value)} placeholder="Share an update or ask a question…" required /><button aria-label="Send comment" className="ws-button ws-primary" disabled={sending || !comment.trim()}><Send size={15} />Send</button></CompactForm>}</div><Button asChild variant="outline"><Link className="ws-full-task" to={`/pms/tasks/${task.id}`}>Open full task details<ArrowUpRight size={14} /></Link></Button></>}</Dialog.Content></Dialog.Portal></Dialog.Root>;
+  }, [task?.id, serverTask?.comments_count]);
+  return <Dialog.Root open={!!task} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="ws-overlay" /><Dialog.Content className="ws-modal ws-drawer" onEscapeKeyDown={event => { if (document.querySelector("[data-radix-menu-content]")) event.preventDefault(); }}><Dialog.Close className="ws-modal-close" aria-label="Close task"><X size={19} /></Dialog.Close>{task && <><RecordActions preview={false} record={{...task,key:task.task_key}} canEdit={canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,name:personName(m.email)}))} onChanged={async deleted=>{await onRefresh();if(deleted)onClose();else if(!failedEdit){const latest=await tasksAPI.get(task.id);setOpenedTask({...task,...latest});}}}>{menu=><div tabIndex={0}><div className="ws-drawer-key flex items-center justify-between">TASK / {task.task_key}{menu}</div><Dialog.Title>{task.title}</Dialog.Title><Dialog.Description>Task details and team conversation</Dialog.Description></div>}</RecordActions>{error && <div className="ws-alert" role="alert">{error}</div>}{failedEdit&&<TaskEditReview changes={failedEdit.changes} latest={failedEdit.latest} busy={savingProperty} canEdit={canEdit} people={members.map(person=>({id:person.user_id,name:person.name||personName(person.email)}))} onReview={()=>void reviewLatest()} onApply={()=>void saveProperty(failedEdit.changes,failedEdit.latest)} onDiscard={()=>void discardEdit()}/>}<TaskPropertyStrip
+ status={<StatusSelect label="Task status" value={task.status} disabled={!canEdit||savingProperty||!!failedEdit} options={[...lanes.map(l=>l.status),"Blocked"]} onSave={status=>saveProperty({status})}/>}
+ assignees={<AssigneePicker projectId={task.project_id} disabled={!canEdit||savingProperty||!!failedEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,email:m.email}))} value={taskAssignees(task)} onChange={ids=>saveProperty({assignee_user_ids:ids})}/>}
+ priority={<NativeSelect aria-label="Task priority" className="w-full rounded-md border bg-background p-2" disabled={!canEdit||savingProperty||!!failedEdit} value={task.priority} onChange={e=>{void saveProperty({priority:e.target.value});}}>{["Low","Medium","High","Urgent","Critical"].map(p=><option key={p}>{p}</option>)}</NativeSelect>}
+ estimate={<input className="w-full rounded-md border bg-background p-2" aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={!canEdit||savingProperty||!!failedEdit} key={`${task.id}:${task.estimated_hours}`} defaultValue={task.estimated_hours??""} onBlur={e=>{const hours=e.target.value===""?undefined:Number(e.target.value);if(hours!==undefined&&Number.isFinite(hours)&&hours>=0&&hours!==Number(task.estimated_hours))void saveProperty({estimated_hours:hours});}}/>}
+ start={<input className="w-full rounded-md border bg-background p-2" aria-label="Task start date" disabled={!canEdit||savingProperty||!!failedEdit} type="date" value={task.start_date||""} onChange={e=>{if(e.target.value)void saveProperty({start_date:e.target.value});}}/>}
+ due={<input className="w-full rounded-md border bg-background p-2" aria-label="Task due date" disabled={!canEdit||savingProperty||!!failedEdit} type="date" value={task.due_date||""} onChange={e=>{if(e.target.value)void saveProperty({due_date:e.target.value});}}/>}
+/><div className="ws-task-description"><h3>Description</h3><RichTextField data-legacy-format="markdown" aria-label="Task description" key={`${task.id}:${task.description}`} disabled={!canEdit||savingProperty||!!failedEdit} defaultValue={task.description || ""} placeholder="Add context, a brief, or a useful link…" onBlur={e => { if (e.target.value !== (task.description || "")) void saveProperty( { description: e.target.value }); }} /></div><TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} /><div className="ws-conversation"><h3><MessageSquare size={16} />Conversation<span data-count-badge data-count-tone="purple">{comments.length}</span></h3>{loading ? <p>Loading conversation…</p> : comments.map(c => { const author = members.find(m => m.user_id === c.author_user_id); return <article key={c.id}><WorkspaceAvatar email={author?.email || "Teammate"} /><div><strong>{author ? personName(author.email) : "Teammate"}</strong><time>{new Date(c.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time><div><RichTextContent value={c.body}/></div></div></article>; })}{!loading && !comments.length && <p className="ws-conversation-empty">A question, an update, a little context.<br />Keep the conversation close to the work.</p>}{canEdit && <CompactForm onSubmit={e => { e.preventDefault(); if (!comment.trim() || sending) return; setSending(true); commentsAPI.addToTask(task.id, { body: comment.trim(), body_format: "plain", is_internal: false }).then(async () => { setComment(""); onError(""); await onRefresh(); }).catch(e => onError(workspaceError(e))).finally(() => setSending(false)); }}><RichTextField data-legacy-format="markdown" aria-label="Write a comment" value={comment} onChange={e => setComment(e.target.value)} placeholder="Share an update or ask a question…" required /><button aria-label="Send comment" className="ws-button ws-primary" disabled={sending || !comment.trim()}><Send size={15} />Send</button></CompactForm>}</div><Button asChild variant="outline"><Link className="ws-full-task" to={`/pms/tasks/${task.id}`}>Open full task details<ArrowUpRight size={14} /></Link></Button></>}</Dialog.Content></Dialog.Portal></Dialog.Root>;
 }

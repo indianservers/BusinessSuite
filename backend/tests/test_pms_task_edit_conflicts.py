@@ -4,7 +4,7 @@ from tests.test_pms_workflow_schemes import task
 
 
 def test_task_edit_precondition_rejects_stale_write_and_allows_reviewed_retry(client, db):
-    _, pid, _, _, _, _, member_headers, _, guest_headers = setup_workspace(client, db)
+    wid, pid, _, _, _, _, member_headers, _, guest_headers = setup_workspace(client, db)
     tid = task(client, pid, member_headers)
     url = f"{BASE}/tasks/{tid}"
     initial = client.get(url, headers=member_headers).json()
@@ -15,6 +15,9 @@ def test_task_edit_precondition_rejects_stale_write_and_allows_reviewed_retry(cl
     assert first.status_code == 200, first.text
     fresh = first.json()
     assert fresh["updated_at"] != token
+    overview=client.get(f"{BASE}/workspaces/{wid}/overview",headers=member_headers)
+    assert overview.status_code==200,overview.text
+    assert next(row for row in overview.json()["tasks"] if row["id"]==tid)["updated_at"]==fresh["updated_at"]
     stale = client.patch(url, headers=member_headers, json={
         "title": "Unsaved local draft", "status": "Done", "expected_updated_at": token,
     })

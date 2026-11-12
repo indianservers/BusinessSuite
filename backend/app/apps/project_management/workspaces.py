@@ -180,7 +180,7 @@ def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depe
         "projects": [{"id": p.id, "name": p.name, "project_key": p.project_key} for p in projects],
         "tasks": [{"id": t.id, "project_id": t.project_id, "task_key": t.task_key, "title": t.title, "description": t.description,
                    "status": t.status, "priority": t.priority,"work_type":t.work_type, "assignee_user_id": t.assignee_user_id, "assignee_user_ids": t.assignee_user_ids,
-                   "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
+                   "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "updated_at": t.updated_at, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
     }
 
 
