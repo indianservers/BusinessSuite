@@ -144,6 +144,9 @@ function ScopedTaskDetail() {
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [activitySort, setActivitySort] = useState<ActivitySort>("desc");
   const [comment, setComment] = useState("");
+  const [commentSaving,setCommentSaving]=useState(false);
+  const [commentError,setCommentError]=useState("");
+  const commentPending=useRef(false);
   const [commentMentions, setCommentMentions] = useState<PMSMentionUser[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [editingChecklistId, setEditingChecklistId] = useState<number | null>(null);
@@ -191,7 +194,7 @@ function ScopedTaskDetail() {
   const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
-  const requestLeave=useMobileDraftGuard({enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
+  const requestLeave=useMobileDraftGuard({enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict||commentPending.current,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
 
   const numericTaskId = Number(taskId);
   const effectiveProjectId = task?.project_id || Number(projectId);
@@ -346,17 +349,22 @@ function ScopedTaskDetail() {
 
   const addComment = async (event: FormEvent) => {
     event.preventDefault();
-    if (!comment.trim()) return;
+    if (!richTextPlainText(comment).trim()||commentPending.current||discardAction) return;
+    commentPending.current=true;setCommentSaving(true);setCommentError("");
+    const submitted=comment;
+    try{
     const created = await commentsAPI.addToTask(task.id, {
       body: comment.trim(),
       body_format: "markdown",
       is_internal: true,
       mentioned_user_ids: commentMentions.map((user) => user.id),
     });
-    setComments((items) => [created, ...items]);
-    setComment("");
+    setComments((items) => [created, ...items.filter(item=>item.id!==created.id)]);
+    setComment(current=>current===submitted?"":current);
     setCommentMentions([]);
     refreshActivity();
+    }catch(err){setCommentError(workspaceError(err));}
+    finally{commentPending.current=false;setCommentSaving(false);}
   };
 
   const addChecklistItem = async (event: FormEvent) => {
@@ -1037,6 +1045,8 @@ function ScopedTaskDetail() {
                   mentions={commentMentions}
                   setMentions={setCommentMentions}
                   addComment={addComment}
+                  busy={commentSaving}
+                  error={commentError}
                 />
               ) : null}
               {activeTab === "activity" ? <ActivityList items={activity} filter={activityFilter} setFilter={setActivityFilter} sort={activitySort} setSort={setActivitySort} /> : null}
@@ -1289,6 +1299,8 @@ function CommentsTab({
   mentions,
   setMentions,
   addComment,
+  busy,
+  error,
 }: {
   taskId: number;
   projectId: number;
@@ -1298,18 +1310,21 @@ function CommentsTab({
   mentions: PMSMentionUser[];
   setMentions: (users: PMSMentionUser[]) => void;
   addComment: (event: FormEvent) => void;
+  busy:boolean;
+  error:string;
 }) {
   return (
     <>
-      <CompactForm onSubmit={addComment} className="space-y-3 rounded-md border p-3">
-        <MentionMarkdownTextarea taskId={taskId} projectId={projectId} value={comment} onChange={setComment} mentions={mentions} onMentionsChange={setMentions}/>
+      <CompactForm aria-label="Task comment composer" onSubmit={addComment} className="space-y-3 rounded-md border p-3">
+        <MentionMarkdownTextarea taskId={taskId} projectId={projectId} value={comment} onChange={setComment} mentions={mentions} onMentionsChange={setMentions} disabled={busy}/>
+        {error&&<p role="alert" className="text-sm text-destructive">{error} Your comment draft is retained.</p>}
         {mentions.length ? (
           <div className="flex flex-wrap gap-2">
             {mentions.map((user) => <Badge key={user.id} variant="outline">@{user.name || user.email}</Badge>)}
           </div>
         ) : <p className="text-xs text-muted-foreground">Type @ to mention a project teammate.</p>}
         <div className="flex justify-end">
-          <Button type="submit">Comment</Button>
+          <Button type="submit" aria-label="Post task comment" disabled={busy||!richTextPlainText(comment).trim()}>{busy?"Posting…":"Comment"}</Button>
         </div>
       </CompactForm>
       {comments.map((item) => (
@@ -1334,6 +1349,7 @@ export function MentionMarkdownTextarea({
   onChange,
   mentions,
   onMentionsChange,
+  disabled=false,
 }: {
   taskId: number;
   projectId: number;
@@ -1341,6 +1357,7 @@ export function MentionMarkdownTextarea({
   onChange: (value: string) => void;
   mentions: PMSMentionUser[];
   onMentionsChange: (users: PMSMentionUser[]) => void;
+  disabled?:boolean;
 }) {
   const [suggestions, setSuggestions] = useState<PMSMentionUser[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -1368,11 +1385,11 @@ export function MentionMarkdownTextarea({
 
   return (
     <div className="relative">
-      <RichTextEditor value={value} onChange={updateValue} label="Comment" variant="compact" placeholder="Write a comment. Use @ to mention a teammate."/>
+      <RichTextEditor value={value} onChange={updateValue} disabled={disabled} label="Comment" variant="compact" placeholder="Write a comment. Use @ to mention a teammate."/>
       {showSuggestions ? (
         <div className="absolute left-2 top-12 z-20 w-72 rounded-md border bg-background p-1 shadow-lg">
           {suggestions.length ? suggestions.map((user) => (
-            <button key={user.id} type="button" onClick={() => insertMention(user)} className="block w-full rounded px-2 py-2 text-left text-sm hover:bg-muted">
+            <button key={user.id} type="button" disabled={disabled} onClick={() => insertMention(user)} className="block w-full rounded px-2 py-2 text-left text-sm hover:bg-muted">
               <span className="font-medium">{user.name || user.email}</span>
               <span className="block text-xs text-muted-foreground">{user.email}</span>
             </button>

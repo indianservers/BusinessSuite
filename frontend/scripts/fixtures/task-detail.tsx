@@ -21,6 +21,7 @@ const taskId=new URLSearchParams(location.search).has("loadFailure")?88611:88601
 const readOnly=new URLSearchParams(location.search).has("readOnly");
 let rejectSaves=!new URLSearchParams(location.search).has("conflict"),attempts=0,editRevision=0;
 let fixtureComments:unknown[]=[];
+let commentAttempts=0,releaseComment:(()=>void)|undefined;
 let rejectReads=new URLSearchParams(location.search).has("loadFailure");
 let task={id:taskId,project_id:projectId,task_key:"FIX-1",title:"Disposable recovery task",description:"Fixture description",status:"To Do",priority:"High",work_type:"Task",assignee_user_ids:[],reporter_user_id:userId,estimated_hours:2,story_points:0,position:0,created_at:"2026-11-11T00:00:00Z",updated_at:"2026-11-11T00:00:00Z"};
 // No token means the task realtime hook cannot open a socket or publish presence.
@@ -28,18 +29,21 @@ useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:null,use
 const notify=()=>window.dispatchEvent(new Event("qa:task-recovery"));
 function remoteEdit(){task={...task,title:`Other editor revision ${++editRevision}`,updated_at:new Date(Date.UTC(2026,10,12,12,0,editRevision)).toISOString()};notify();}
 function Controls(){
- const [failure,setFailure]=useState(rejectSaves),[readFailure,setReadFailure]=useState(rejectReads),[saved,setSaved]=useState(task.title),[savedEstimate,setSavedEstimate]=useState(task.estimated_hours),[count,setCount]=useState(0);
- useEffect(()=>{const changed=()=>{setSaved(task.title);setSavedEstimate(task.estimated_hours);setCount(attempts);};window.addEventListener("qa:task-recovery",changed);return()=>window.removeEventListener("qa:task-recovery",changed);},[]);
+ const [failure,setFailure]=useState(rejectSaves),[readFailure,setReadFailure]=useState(rejectReads),[saved,setSaved]=useState(task.title),[savedEstimate,setSavedEstimate]=useState(task.estimated_hours),[count,setCount]=useState(0),[commentCounts,setCommentCounts]=useState({attempts:0,saved:0});
+ useEffect(()=>{const changed=()=>{setSaved(task.title);setSavedEstimate(task.estimated_hours);setCount(attempts);setCommentCounts({attempts:commentAttempts,saved:fixtureComments.length});};window.addEventListener("qa:task-recovery",changed);return()=>window.removeEventListener("qa:task-recovery",changed);},[]);
+ useEffect(()=>{const release=(event:KeyboardEvent)=>{if(event.key==="F10"){event.preventDefault();releaseComment?.();releaseComment=undefined;}};window.addEventListener("keydown",release);return()=>window.removeEventListener("keydown",release);},[]);
  useEffect(()=>{const simulate=(event:KeyboardEvent)=>{if(event.key==="F7"){event.preventDefault();rejectReads=!rejectReads;setReadFailure(rejectReads);return;}if(event.key!=="F6")return;event.preventDefault();remoteEdit();window.dispatchEvent(new CustomEvent(recordSavedEvent,{detail:{url:`/project-management/tasks/${taskId}`,method:"patch",record:task}}));};window.addEventListener("keydown",simulate);return()=>window.removeEventListener("keydown",simulate);},[]);
- return <aside aria-label="Disposable task recovery controls" style={{position:"fixed",right:12,bottom:80,zIndex:99999,maxWidth:290,background:"white",padding:12,border:"1px solid"}}><button type="button" onClick={()=>{rejectSaves=!failure;setFailure(!failure);}}>{failure?"Allow task saves":"Fail task saves"}</button><button type="button" onClick={()=>{rejectReads=!readFailure;setReadFailure(!readFailure);}}>{readFailure?"Allow task reads":"Fail task reads"}</button><button type="button" onClick={()=>{task={...task,title:`Other editor revision ${++editRevision}`,updated_at:new Date(Date.UTC(2026,10,12,12,0,editRevision)).toISOString()};notify();}}>Simulate another editor</button><p>Fixture save attempts: {count}</p><output aria-label="Fixture persisted title">{saved}</output><output aria-label="Fixture persisted estimate">{savedEstimate}</output><p>In-memory task only; no business data is written.</p></aside>;
+ return <aside aria-label="Disposable task recovery controls" style={{position:"fixed",right:12,bottom:80,zIndex:99999,maxWidth:290,background:"white",padding:12,border:"1px solid"}}><button type="button" onClick={()=>{rejectSaves=!failure;setFailure(!failure);}}>{failure?"Allow task saves":"Fail task saves"}</button><button type="button" onClick={()=>{rejectReads=!readFailure;setReadFailure(!readFailure);}}>{readFailure?"Allow task reads":"Fail task reads"}</button><button type="button" onClick={()=>{task={...task,title:`Other editor revision ${++editRevision}`,updated_at:new Date(Date.UTC(2026,10,12,12,0,editRevision)).toISOString()};notify();}}>Simulate another editor</button><p>Fixture save attempts: {count}</p><output aria-label="Fixture persisted title">{saved}</output><output aria-label="Fixture persisted estimate">{savedEstimate}</output><output aria-label="Fixture comment attempts">{commentCounts.attempts}</output><output aria-label="Fixture persisted comment count">{commentCounts.saved}</output><p>In-memory task only; no business data is written.</p></aside>;
 }
 api.defaults.adapter=async config=>{
  const path=new URL(config.url||"/","http://fixture.invalid").pathname,method=(config.method||"get").toLowerCase();
  let data:unknown=[];
  if(method==="post"&&path===`/project-management/tasks/${taskId}/comments`){
+  commentAttempts++;notify();
+  if(new URLSearchParams(location.search).has("holdComment"))await new Promise<void>(resolve=>{releaseComment=resolve;});
   if(readOnly||rejectSaves)throw new AxiosError("Disposable comment save rejected","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture comment failed. Retain the draft and retry."},status:403,statusText:"Forbidden",headers:{},config});
   const changes=typeof config.data==="string"?JSON.parse(config.data):config.data;
-  data={id:fixtureComments.length+1,author_user_id:userId,created_at:"2026-11-12T10:00:00Z",...changes};fixtureComments.push(data);
+  data={id:fixtureComments.length+1,author_user_id:userId,created_at:"2026-11-12T10:00:00Z",...changes};fixtureComments.push(data);notify();
  }else if(method==="get"&&path===`/project-management/tasks/${taskId}/comments`){data=fixtureComments;}
  else if(method==="patch"&&path===`/project-management/tasks/${taskId}`){
   if(readOnly)throw new AxiosError("Read-only fixture task","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Task updates are not permitted"},status:403,statusText:"Forbidden",headers:{},config});
