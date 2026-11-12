@@ -1,0 +1,72 @@
+{
+  "workspace": 1,
+  "project": 1,
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Phone saved after Keep editing",
+      "status": "To Do",
+      "description": "Local manual review only",
+      "updated_at": "2026-11-12T20:48:00.651731",
+      "comments": 1
+    },
+    {
+      "id": 2,
+      "title": "Disposable API review task 2",
+      "status": "To Do",
+      "description": "Local manual review only",
+      "updated_at": null,
+      "comments": 0
+    },
+    {
+      "id": 3,
+      "title": "Peer inline browser history edit",
+      "status": "To Do",
+      "description": "Local manual review only",
+      "updated_at": "2026-11-12T20:50:34.708275",
+      "comments": 0
+    }
+  ],
+  "approvals": [],
+  "task_writes": [
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/1/comments",
+      "status": 200,
+      "fields": [
+        "body",
+        "body_format",
+        "is_internal",
+        "mentioned_user_ids"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/3",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/3",
+      "status": 409,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    }
+  ],
+  "injected_read_failures": []
+}

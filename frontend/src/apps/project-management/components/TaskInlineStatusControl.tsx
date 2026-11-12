@@ -18,7 +18,7 @@ export default function TaskInlineStatusControl({task,disabled,onSave,onRefresh}
  const {failed,setFailed,busy,setBusy}=useInlineTaskEditState(task);
  useEffect(()=>{if(failed||busy)setOpen(true);},[failed,busy]);
  const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
- const requestLeave=useMobileDraftGuard({enabled:open||!!failed||busy,dirty:!!failed,draftKey:JSON.stringify([task.id,failed?.status]),pending:()=>busy,onDiscard:()=>{setFailed(null);setError("");},message:"Discard your unsaved status change?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
+ const requestLeave=useMobileDraftGuard({guardHistory:true,enabled:open||!!failed||busy,dirty:!!failed,draftKey:JSON.stringify([task.id,failed?.status]),pending:()=>busy,onDiscard:()=>{setFailed(null);setError("");},message:"Discard your unsaved status change?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
  const href=`/pms/tasks/${task.id}`;
  const save=async(status:string,reviewed:WorkTask)=>{
   if(disabled||busy)return;

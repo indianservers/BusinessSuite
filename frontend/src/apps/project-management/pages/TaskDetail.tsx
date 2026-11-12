@@ -196,7 +196,7 @@ function ScopedTaskDetail() {
   const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
-  const requestLeave=useMobileDraftGuard({enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict||commentPending.current,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
+  const requestLeave=useMobileDraftGuard({guardHistory:true,enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict||commentPending.current,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
 
   const numericTaskId = Number(taskId);
   const effectiveProjectId = task?.project_id || Number(projectId);

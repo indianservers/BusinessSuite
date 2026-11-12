@@ -281,7 +281,7 @@ function ScopedTaskDrawer({ task:serverTask, members, canEdit, onClose, onUpdate
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
-  const requestLeave=useMobileDraftGuard({enabled:!!task,dirty:!!failedEdit||Object.values(localDrafts).some(value=>value!==undefined)||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,failedEdit?.changes,localDrafts,comment]),pending:()=>savingProperty||sending,onDiscard:()=>{setFailedEdit(null);setLocalDrafts({});setComment("");},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
+  const requestLeave=useMobileDraftGuard({guardHistory:true,enabled:!!task,dirty:!!failedEdit||Object.values(localDrafts).some(value=>value!==undefined)||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,failedEdit?.changes,localDrafts,comment]),pending:()=>savingProperty||sending,onDiscard:()=>{setFailedEdit(null);setLocalDrafts({});setComment("");},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
   useEffect(() => { setComment(""); }, [task?.id]);
   useRefreshableEffect(() => {
     setComments([]); if (!task) return;
