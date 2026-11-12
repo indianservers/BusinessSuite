@@ -41,6 +41,26 @@ def test_manual_review_bridge(client, db):
             "description":"Local manual review only", "priority":"High"})
         assert response.status_code==200,response.text
         task_ids.append(response.json()["id"])
+    other_workspace=None
+    other_tasks=[]
+    if os.getenv("PMS_CUA_SECOND_WORKSPACE"):
+        response=client.post(f"{BASE}/workspaces",headers=oh,json={"name":"Alternate review"})
+        assert response.status_code==201,response.text
+        other_workspace=response.json()["id"]
+        memberships=[PMSWorkspaceMember(workspace_id=other_workspace,user_id=user_id,role="Member") for user_id in [member.id,admin_id]]
+        db.add_all(memberships)
+        from test_identity_utils import own_workflow_records
+        own_workflow_records(db,*memberships);db.commit()
+        response=client.post(f"{BASE}/projects",headers=oh,json={"name":"Alternate project","project_key":"ALT","workspace_id":other_workspace})
+        assert response.status_code==200,response.text
+        other_project=response.json()["id"]
+        for index in range(1,4):
+            response=client.post(f"{BASE}/projects/{other_project}/tasks",headers=mh,json={"task_key":f"ALT-{index}","title":f"Alternate API task {index}","priority":"Low"})
+            assert response.status_code==200,response.text
+            other_tasks.append(response.json()["id"])
+        member_access=client.get(f"{BASE}/workspaces/{other_workspace}/overview",headers=mh).status_code
+        guest_access=client.get(f"{BASE}/workspaces/{other_workspace}/overview",headers=gh).status_code
+        assert (member_access,guest_access)==(200,404)
     roles={}
     for name,headers in {"owner":oh,"reviewer":ah,"member":mh,"guest":gh}.items():
         profile=client.get("/api/v1/auth/me",headers=headers)
@@ -50,7 +70,7 @@ def test_manual_review_bridge(client, db):
         roles[name]={"token":headers["Authorization"].split(" ",1)[1],
             "user":{**profile.json(),"access":access.json()},
             "company":access.json()["companyId"],"branch":branch.json()["selected"],
-            "workspace":wid,"project":pid,"tasks":task_ids,"role":name}
+            "workspace":wid,"project":pid,"tasks":task_ids,"role":name,"other_workspace":other_workspace}
 
     task_writes=[]
     def evidence():
@@ -59,7 +79,7 @@ def test_manual_review_bridge(client, db):
             "id":row.id,"title":row.title,"status":row.status,"description":row.description,
             "updated_at":row.updated_at.isoformat() if row.updated_at else None,
             "comments":db.query(PMSComment).filter_by(task_id=row.id).count(),
-        } for row in db.query(PMSTask).filter(PMSTask.id.in_(task_ids)).order_by(PMSTask.id)],
+        } for row in db.query(PMSTask).filter(PMSTask.id.in_(task_ids+other_tasks)).order_by(PMSTask.id)],
         "approvals":[{"id":row.id,"status":row.status} for row in db.query(WorkflowInstance).all()],"task_writes":list(task_writes)}
 
     (review/"baseline.json").write_text(json.dumps(evidence()),encoding="utf-8")
@@ -96,7 +116,7 @@ def test_manual_review_bridge(client, db):
     class QueuedServer(HTTPServer):request_queue_size=128
     server=QueuedServer(("127.0.0.1",0),Bridge)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
-    ready={"bridge":f"http://127.0.0.1:{server.server_port}","workspace":wid,"project":pid,"tasks":task_ids}
+    ready={"bridge":f"http://127.0.0.1:{server.server_port}","workspace":wid,"project":pid,"tasks":task_ids,"other_workspace":other_workspace}
     (review/"ready.json").write_text(json.dumps(ready),encoding="utf-8")
     print("Disposable PMS API bridge ready",flush=True)
     try:

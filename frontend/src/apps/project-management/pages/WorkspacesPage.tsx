@@ -2,6 +2,7 @@ import PageWorkTools from "@/components/app/PageWorkTools";
 import RouteContent from "@/components/app/RouteContent";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import { useRouteViewState } from "@/hooks/use-route-view-state";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import { Button } from "@/components/ui/button";
 import { useSmartCreation } from "@/shared/creation/SmartCreationProvider";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -56,7 +57,11 @@ type Invitation = { id: number; email: string; role: string; status: string; acc
 type View = "board" | "list" | "people" | "calendar" | "workload" | "activity";
 type Modal = "workspace" | "invite" | "join" | "project" | null;
 
-export default function WorkspacesPage({ creationWindow = false }: { creationWindow?: boolean } = {}) {
+export default function WorkspacesPage(props:{creationWindow?:boolean}={}) {
+  const scope=useRecordScope(),user=useAuthStore(state=>state.user);
+  return <ScopedWorkspacesPage key={JSON.stringify([scope,user?.role,user?.primary_role,user?.is_superuser,user?.access?.companyDisabledModules])} {...props}/>;
+}
+function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boolean } = {}) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const smartCreation = useSmartCreation();
@@ -144,6 +149,8 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   const [detailsFailed, setDetailsFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const workspace = workspaces.find(w => w.id === selected);
+  const requestedUnavailable=!loading&&!workspaceLoadFailed&&!!requestedWorkspace&&!workspaces.some(w=>w.id===requestedWorkspace);
+  const pendingWorkspaceScope=!!requestedWorkspace&&selected!==requestedWorkspace;
   const manages = workspace?.role === "Owner" || workspace?.role === "Admin";
   const canEdit = !!workspace && workspace.role !== "Guest";
   const canCreateWorkspace = !!user && canAccessRoute("/pms/projects/new", user.role, user.is_superuser);
@@ -157,9 +164,9 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
     const { data } = await api.get<Workspace[]>(`${base}/workspaces`);
     if(request!==workspaceRequests.current)return;
     const saved = Number(localStorage.getItem(`pms-workspace-${user?.id}`));
-    setWorkspaceLoadFailed(false); setWorkspaces(data); setSelected(current => preferred || (data.some(w => w.id === requestedWorkspace) ? requestedWorkspace : data.some(w => w.id === current) ? current : data.some(w => w.id === saved) ? saved : data[0]?.id));
+    setWorkspaceLoadFailed(false); setWorkspaces(data); setSelected(current => preferred || (requestedWorkspace ? data.some(w => w.id === requestedWorkspace) ? requestedWorkspace : undefined : data.some(w => w.id === current) ? current : data.some(w => w.id === saved) ? saved : data[0]?.id));
   }, [user?.id, requestedWorkspace]);
-  useEffect(()=>{if(selected&&(!requestedWorkspace||!workspaces.some(w=>w.id===requestedWorkspace)))setParams(current=>{const next=new URLSearchParams(current);next.set("workspace",String(selected));return next},{replace:true})},[selected,requestedWorkspace,setParams,workspaces]);
+  useEffect(()=>{if(selected&&!requestedWorkspace)setParams(current=>{const next=new URLSearchParams(current);next.set("workspace",String(selected));return next},{replace:true})},[selected,requestedWorkspace,setParams]);
   useEffect(() => { if (selected && user?.id) localStorage.setItem(`pms-workspace-${user.id}`, String(selected)); }, [selected, user?.id]);
   const loadDetails = useCallback(async () => {
     if (!selected) return;
@@ -284,7 +291,7 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
     <div className="ws-main"><header className="suite-app-bar ws-topbar"><button className="kf-mobile-menu" aria-label="Open navigation" onClick={()=>setNavigationOpen(true)}><Menu size={20}/></button><div className="wb-module-menu"><ModuleSwitcher/></div><NativeSelect className="ws-mobile-switch" aria-label="Mobile workspace" value={selected || ""} onChange={e => e.target.value === "new" ? openModal("workspace") : switchWorkspace(Number(e.target.value))}><option value="" disabled>Workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}{canCreateWorkspace && <option value="new">+ New workspace</option>}</NativeSelect><div className="kf-workspace-command"><GlobalSearch /></div><div className="ws-connection"><i className={connected ? "live" : ""} /><span>{connected ? "Live updates" : "Auto refresh"}</span></div><BranchSwitcher /><PageRefreshButton compact /><RefreshPagesCatalog /><SuiteNotificationBell /><PMSMoreMenu /><WorkspacePicker items={workspaces} current={workspace} onSelect={switchWorkspace} onCreate={()=>openModal("workspace")} canCreate={canCreateWorkspace} colors={workspaceColorMap} onColor={changeWorkspaceColor}/><PMSProfileMenu onCreateTask={() => { if (canEdit && projects.length) { setQuickWorkType("Task"); setShowTaskCreate(true); } else setNotice("Ask a workspace admin to create a project or grant task access."); }} onMyWork={() => { setView("list"); setProjectFilter(""); setQuery(""); setAssigneeFilter(String(user?.id)); }} onViewPeople={() => setView("people")} /></header>
       <RouteContent className="ws-content" scrollRoot freshness={false}><SetupReadiness embedded /><InvitationInbox />
         {error && <div role="alert" className="ws-alert">{error}<button aria-label="Dismiss error" onClick={() => setError("")}><X size={15} /></button></div>}
-        {loading || detailsLoading ? <div className="ws-loading"><Loader2 className="animate-spin" />Loading your workspace…</div> : !workspace && workspaceLoadFailed ? <div className="ws-onboarding"><h2>Unable to load your workspaces</h2><p>Your work is still saved. Retry the connection.</p><button className="ws-button ws-primary" onClick={() => { setLoading(true); setError(""); void loadWorkspaces().catch(e => { setWorkspaceLoadFailed(true); setError(workspaceError(e)); }).finally(() => setLoading(false)); }}>Retry loading workspaces</button></div> : !workspace ? <div className="ws-onboarding"><div className="ws-onboarding-art"><Folder size={42} /><span><Users size={24} /></span></div><span className="ws-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Good work happens together.</h2><p>Create a home for your projects. Invite your people.<br />Turn the next big idea into done.</p><div>{canCreateWorkspace && <Button type="submit" variant="default" className="ws-button ws-primary" onClick={() => openModal("workspace")}><Plus size={16} />Create workspace</Button>}<button className="ws-button ws-outline" onClick={() => openModal("join")}>Join a workspace</button></div><small>Workspace creation is available to PMS administrators and project managers.</small></div> : <>
+        {loading || detailsLoading || pendingWorkspaceScope&&!requestedUnavailable&&!workspaceLoadFailed ? <div className="ws-loading"><Loader2 className="animate-spin" />Loading your workspace…</div> : requestedUnavailable ? <div role="alert" className="ws-onboarding"><h2>Workspace unavailable</h2><p>This workspace is unavailable or you do not have access.</p>{workspaces.length>0&&<button type="button" className="ws-button ws-primary" onClick={()=>switchWorkspace(workspaces[0].id)}>Open an available workspace</button>}</div> : (!workspace||pendingWorkspaceScope) && workspaceLoadFailed ? <div className="ws-onboarding"><h2>Unable to load your workspaces</h2><p>Your work is still saved. Retry the connection.</p><button className="ws-button ws-primary" onClick={() => { setLoading(true); setError(""); void loadWorkspaces().catch(e => { setWorkspaceLoadFailed(true); setError(workspaceError(e)); }).finally(() => setLoading(false)); }}>Retry loading workspaces</button></div> : !workspace ? <div className="ws-onboarding"><div className="ws-onboarding-art"><Folder size={42} /><span><Users size={24} /></span></div><span className="ws-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Good work happens together.</h2><p>Create a home for your projects. Invite your people.<br />Turn the next big idea into done.</p><div>{canCreateWorkspace && <Button type="submit" variant="default" className="ws-button ws-primary" onClick={() => openModal("workspace")}><Plus size={16} />Create workspace</Button>}<button className="ws-button ws-outline" onClick={() => openModal("join")}>Join a workspace</button></div><small>Workspace creation is available to PMS administrators and project managers.</small></div> : <>
           {detailsFailed && <div role="alert" className="ws-alert">Workspace data could not be loaded. <button onClick={() => { setDetailsLoading(true); void loadDetails().then(() => { setDetailsFailed(false); }).catch(e => setError(workspaceError(e))).finally(() => setDetailsLoading(false)); }}>Retry workspace</button></div>}
           {!detailsFailed && <>
           <header className="wb-work-header"><h1>{workspace.name}</h1><span>{projects.length} projects · {tasks.length} loaded tasks</span></header>
@@ -331,6 +338,6 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
     <QuickCreateProject open={creatingProject} initialWorkspace={selected || undefined} onClose={() => setCreatingProject(false)} onCreated={() => { void loadDetails().catch(e => setError(workspaceError(e))); }} />
     <CreateTaskModal initialDueDate={calendarCreate?.day || ""} initialWorkType={quickWorkType} projects={projects} workspacePeople={assignablePeople} isOpen={showTaskCreate} onClose={() => { setShowTaskCreate(false); setCalendarCreate(null); }} projectId={Number(calendarCreate?.project) || createProjectId || 0} onTaskCreated={(task, createAnother) => { if (!createAnother) { setShowTaskCreate(false); setCalendarCreate(null); } if (!calendarCreate) setView("board"); setQuery(""); setAssigneeFilter(""); setProjectFilter(String(task.project_id)); setFiltersVersion(v => v + 1); setNotice("Task created — visible in your workspace"); void loadDetails().catch(e => setError(workspaceError(e))); }} />
     <AddExistingPeopleDialog open={addingPeople} onClose={() => setAddingPeople(false)} workspaceId={workspace?.id} onAdded={loadDetails} />
-    <TaskDrawer error={error} task={tasks.find(t => t.id === taskOpen)} members={members} canEdit={canEdit} onClose={() => setTaskOpen(null)} onUpdate={updateTask} onRefresh={loadDetails} onError={setError} />
+    <TaskDrawer error={error} task={!requestedUnavailable&&!pendingWorkspaceScope?tasks.find(t => t.id === taskOpen):undefined} members={members} canEdit={canEdit} onClose={() => setTaskOpen(null)} onUpdate={updateTask} onRefresh={loadDetails} onError={setError} />
   </div>;
 }
