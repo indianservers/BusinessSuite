@@ -6,6 +6,7 @@ import { savedWithUndo } from "@/components/actions/undo-feedback";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { api } from "@/services/api";
 import { fieldPath, type FieldRecord } from "./CustomFields";
+import {useTaskStatusChoices,taskStatusNeedsReview} from "./useTaskStatusChoices";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
   useEffect,
@@ -40,6 +41,7 @@ export type RecordInfo = {
   key?: string;
   description?: string | null;
   status?: string;
+  updated_at?:string|null;
   priority?: string;
   due_date?: string | null;
   start_date?: string | null;
@@ -55,6 +57,7 @@ type Action = {
   danger?: boolean;
   selected?: boolean;
   disabled?: boolean;
+  keepOpen?:boolean;
   children?: Action[];
 };
 type Props = {
@@ -151,6 +154,7 @@ export default function RecordActions({
   const mobileSheet = useMobile(640);
   const [menuOpen, setMenuOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
+  const statusChoices=useTaskStatusChoices({taskId:record.id,value:record.status||"",version:record.updated_at,enabled:kind==="task"&&canEdit&&allowEdit&&(menuOpen||contextOpen)});
   const [contextGeneration, setContextGeneration] = useState(0);
   const contextTrigger = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -259,13 +263,13 @@ export default function RecordActions({
     void run(async () => {
       const freshTask = async () => (await api.get<Awaited<ReturnType<typeof tasksAPI.get>>>(`/project-management/tasks/${record.id}`, {recordCache: false, _recordSyncBypass: true, headers: {"Cache-Control": "no-cache"}})).data;
       const before = await freshTask();
-      const saved = await tasksAPI.update(record.id, changes);
+      const saved = await tasksAPI.update(record.id, {...changes,expected_updated_at:before.updated_at??null});
       const keys = Object.keys(changes) as (keyof typeof changes)[];
       const previous = Object.fromEntries(keys.map(key => [key, before[key as keyof typeof before] ?? null]));
       savedWithUndo("Task updated", async () => {
         const current = await freshTask();
         if (keys.some(key => JSON.stringify(current[key as keyof typeof current]) !== JSON.stringify(saved[key as keyof typeof saved]))) throw new Error("This task changed again. Review its latest details before editing.");
-        await tasksAPI.update(record.id, previous);
+        await tasksAPI.update(record.id, {...previous,expected_updated_at:current.updated_at??null});
         await onChanged?.();
       });
     }, "Task updated.");
@@ -309,22 +313,29 @@ export default function RecordActions({
       run: () => navigate(`/pms/projects/${record.project_id}`),
     });
   if (kind === "task" && canEdit) {
+    const completeTarget=done(record.status)?"To Do":"Done";
+    const needsReview=(target:string)=>taskStatusNeedsReview(statusChoices.data,target);
+    const locked=statusChoices.loading||!!statusChoices.error||!statusChoices.data?.can_request;
+    const completeAllowed=!!statusChoices.data?.transitions.some(item=>item.target===completeTarget);
     actions.push({label:"Edit task",icon:<ArrowUpRight size={15}/>,run:()=>navigate(`/pms/tasks/${record.id}/edit`)});
     actions.push(
       {
-        label: done(record.status) ? "Reopen task" : "Mark complete",
+        label: `${done(record.status)?"Reopen task":"Mark complete"}${!locked&&needsReview(completeTarget)?" · approval required":!locked&&!completeAllowed?" · unavailable in this workflow":""}`,
         icon: <Check size={15} />,
-        run: () => update({ status: done(record.status) ? "To Do" : "Done" }),
+        disabled:locked||!completeAllowed||needsReview(completeTarget),
+        run: () => update({ status: completeTarget }),
       },
       {
         label: "Change status",
-        children: ["To Do", "In Progress", "In Review", "Blocked", "Done"].map(
-          (status) => ({
-            label: status,
+        children: [
+          ...(statusChoices.error?[{label:"Status choices could not be loaded",disabled:true},{label:"Retry status choices",run:statusChoices.retry,keepOpen:true}]:statusChoices.loading?[{label:"Loading allowed statuses…",disabled:true}]:!statusChoices.data?.can_request?[{label:"Status changes are unavailable",disabled:true}]:[...new Set([record.status||"",...statusChoices.data.transitions.map(item=>item.target)])].filter(Boolean).map(status => ({
+            label: `${status}${needsReview(status)?" · approval required":""}`,
             selected: record.status === status,
+            disabled:locked||record.status===status||needsReview(status),
             run: () => update({ status: status as TaskStatus }),
-          }),
-        ),
+          }))),
+          {label:"Review workflow and approvals",run:()=>navigate(href)},
+        ],
       },
       {
         label: "Change priority",
@@ -411,7 +422,7 @@ export default function RecordActions({
             <ChevronRight size={14} />
           </M.SubTrigger>
           <M.Portal>
-            <M.SubContent className="pms-record-menu">
+            <M.SubContent className="pms-record-menu" style={{maxHeight:`min(70dvh, var(--radix-${mode==="context"?"context":"dropdown"}-menu-content-available-height, 70dvh))`}}>
               {items(mode, action.children,parentAllowed&&!action.disabled&&actionAllowed(action.label))}
             </M.SubContent>
           </M.Portal>
@@ -420,7 +431,8 @@ export default function RecordActions({
         <span key={action.label} className="contents">{action.danger && <M.Separator className="my-1 border-t"/>}<M.Item
           disabled={busy||action.disabled||!parentAllowed||!actionAllowed(action.label)}
           className={`pms-record-item ${action.danger ? "danger" : ""}`}
-          onSelect={() => {
+          onSelect={event => {
+            if(action.keepOpen)event.preventDefault();
             if(parentAllowed&&!action.disabled&&actionAllowed(action.label))action.run?.();
           }}
         >
@@ -467,6 +479,7 @@ export default function RecordActions({
             setMenuOpen(false);
           }}
           className="pms-record-menu pms-record-mobile-sheet"
+          style={{maxHeight:"min(70dvh, var(--radix-dropdown-menu-content-available-height, 70dvh))"}}
           align="end"
           sideOffset={6}
           collisionPadding={12}
@@ -575,6 +588,7 @@ export default function RecordActions({
         <Context.Portal>
           <Context.Content
             className="pms-record-menu"
+            style={{maxHeight:"min(70dvh, var(--radix-context-menu-content-available-height, 70dvh))"}}
             collisionPadding={12}
             onClick={(e) => e.stopPropagation()}
           >
