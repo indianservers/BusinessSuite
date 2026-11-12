@@ -625,6 +625,8 @@ class PMSTaskCreate(PMSTaskBase):
 
 
 class PMSTaskUpdate(BaseModel):
+    # Omitted by legacy clients; explicit null checks a never-updated task.
+    expected_updated_at: Optional[datetime] = None
     custom_fields: Optional[dict[str, Any]] = None
     assignee_user_ids: Optional[list[int]] = Field(None, max_length=100)
     title: Optional[str] = None

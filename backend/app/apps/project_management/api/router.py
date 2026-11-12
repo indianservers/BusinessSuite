@@ -4045,9 +4045,17 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
         db.refresh(task)
     from ..access import revalidate_project_actor
     revalidate_project_actor(db, project, current_user, "manage_tasks")
+    # Serialize the comparison and write, including projects without a workspace.
+    db.refresh(task, with_for_update=True)
+    update_data = task_in.dict(exclude_unset=True)
+    if "expected_updated_at" in update_data:
+        expected = update_data.pop("expected_updated_at")
+        def utc_stamp(value):
+            return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
+        if utc_stamp(expected) != utc_stamp(task.updated_at):
+            raise HTTPException(409, "This task changed while you were editing. Your changes were not saved. Review the latest task before retrying.")
     recovery_before = task_state(task)
 
-    update_data = task_in.dict(exclude_unset=True)
     from ..workflow_schemes import guard_work_type_change
     guard_work_type_change(db, task, update_data)
     if update_data.get("status") and update_data["status"] != task.status:
@@ -4088,6 +4096,8 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
         _assert_stage_capacity(db, project.id, update_data["status"], task.id)
     for field, value in update_data.items():
         setattr(task, field, value)
+    # Database now() can have second precision; retain distinct edit tokens.
+    task.updated_at = datetime.now(timezone.utc)
 
     from ..custom_fields import apply_record_fields
     apply_record_fields(db, current_user, "task", task, custom_values, project)
