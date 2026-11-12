@@ -1,6 +1,15 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('conversational agent event design saves an inactive preview and requires separate activation',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('combobox',{name:'Agent builder intelligence',exact:true}).selectOption('local');await page.getByRole('textbox',{name:'Agent builder message',exact:true}).fill('Create a CRM sales assistant that reviews opportunities when a deal changes stage');await page.getByRole('button',{name:'Prepare agent configuration',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Proposed agent event trigger',exact:true})).toContainText('Deal entered a pipeline stage');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/activate')).length)).toBe(0);
+ await page.getByRole('button',{name:'Save this reviewed agent',exact:true}).click();const review=page.getByRole('article',{name:'Builder event intake review',exact:true});await expect(review).toContainText('Event intake · preview');await expect(review).toContainText('5 preparations per UTC day');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/activate')).length)).toBe(0);
+ await review.getByRole('button',{name:'Activate reviewed agent event intake',exact:true}).click();await expect(review).toContainText('Event intake · active');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')||r.path.endsWith('/approve')).length)).toBe(0);
+ await page.getByRole('button',{name:'New agent design',exact:true}).click();await page.getByRole('combobox',{name:'Saved agent designs',exact:true}).selectOption('81');await expect(page.getByRole('article',{name:'Builder event intake review',exact:true})).toContainText('Event intake · active');
+});
+
 test('event-driven agents require exact activation and reviewed intake resume',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
  await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Event review agent');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare reviewed customer followups.');await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();

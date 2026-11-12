@@ -1,0 +1,15 @@
+.pms-task-properties .pms-assignee-picker { min-width: 0; }
+.pms-task-properties .pms-assignee-picker > fieldset {
+  left: auto;
+  right: 0;
+  min-width: min(270px, calc(100vw - 48px));
+  max-width: calc(100vw - 48px);
+}
+.pms-task-properties { container-type: inline-size; container-name: task-properties; }
+@container task-properties (width < 28.5rem) {
+  .pms-task-properties > div:nth-child(3) > details > div {
+    left: 0;
+    right: auto;
+    max-width: min(256px, 100cqw);
+  }
+}

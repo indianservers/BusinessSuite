@@ -30,7 +30,7 @@ export default function CatalogPage({ source }: { source: CatalogSource }) {
   const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants[source];
   const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
   const [search,setSearch]=useState(""),query=useDebounced(search);
-  const [kind,setKind]=useState<""|CatalogKind>(location.pathname.includes("services")&&!location.pathname.includes("products-services")?"service":"");
+  const [kind,setKind]=useState<""|CatalogKind>((location.pathname.includes("services")&&!location.pathname.includes("products-services") || new URLSearchParams(location.search).get("kind")==="service")?"service":"");
   const [status,setStatus]=useState("Active"),[category,setCategory]=useState(""),[tag,setTag]=useState(""),[sort,setSort]=useState("name"),[direction,setDirection]=useState("asc");
   const [page,setPage]=useState(1),[revision,setRevision]=useState(0),[perPage,setPerPage]=useState(24);
   const [data,setData]=useState<CatalogData>(emptyData),[dataKey,setDataKey]=useState("");
@@ -45,7 +45,8 @@ export default function CatalogPage({ source }: { source: CatalogSource }) {
   const ready=dataKey===projectionKey,items=ready?data.items:[],isLoading=!ready;
   useEffect(()=>{setSelected(current=>current.flatMap(item=>{const fresh=data.items.find(value=>catalogItemKey(value)===catalogItemKey(item));return fresh?[fresh]:[];}));},[data.items]);
 
-  useEffect(()=>{setKind(location.pathname.includes("services")&&!location.pathname.includes("products-services")?"service":"");setPage(1);},[location.pathname]);
+  const routeKind = new URLSearchParams(location.search).get("kind");
+  useEffect(()=>{setKind((location.pathname.includes("services")&&!location.pathname.includes("products-services") || routeKind==="service")?"service":"");setPage(1);},[location.pathname,routeKind]);
   const refresh=useCallback(()=>setRevision(value=>value+1),[]);
   useCatalogRefresh(refresh);
   useEffect(()=>{

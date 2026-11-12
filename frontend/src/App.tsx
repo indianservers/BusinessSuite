@@ -1,3 +1,4 @@
+import CommonEntityPage from "@/common/CommonEntityPage";
 import { useQueryClient } from "@tanstack/react-query";
 import { refreshCurrentAccess } from "@/features/access/refresh-current-access";
 import RoutePrefetch from "@/components/app/RoutePrefetch";
@@ -156,6 +157,7 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
+    { path: "common/:entity", element: <CommonEntityPage routes={enabledRoutes} /> },
     { path: "connectors", element: <ConnectorCatalog /> },
     ...["crm", "pms", "hrms", "srm", "fam"].map(module => ({ path: `${module}/connectors`, element: <ConnectorCatalog /> })),
     { path: "power-apps", element: <PowerAppsPage /> },

@@ -6,6 +6,6 @@
   "after": {
     "headerVisibleDuringColdLoad": true,
     "shellMounts": 1,
-    "prefetchedClickToContentMs": 72.2
+    "prefetchedClickToContentMs": 50.5
   }
 }

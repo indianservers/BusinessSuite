@@ -1,3 +1,4 @@
+import { commonRouteContext } from "@/lib/common-routes";
 import { useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link, useLocation } from "react-router-dom";
@@ -62,7 +63,7 @@ export default function PMSMoreMenu({
   const [category, setCategory] = useState("All features");
   const items = useMemo(() => {
     const nav = getRoleNav(user?.role, user?.is_superuser, "/pms").filter((i) =>
-      i.to.startsWith("/pms"),
+      i.to.startsWith("/pms") || commonRouteContext(i.to)?.module === "pms",
     );
     const group = (s?: string) => s || "Projects & tasks";
     const pages = nav.map((i) => ({

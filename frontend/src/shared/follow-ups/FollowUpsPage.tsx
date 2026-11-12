@@ -1,3 +1,4 @@
+import { commonRouteContext } from "@/lib/common-routes";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
@@ -65,7 +66,8 @@ export default function FollowUpsPage() {
   const { id } = useParams();
   const scope=useRecordScope();
   const location = useLocation();
-  const base = location.pathname.startsWith("/pms") ? "/pms/follow-ups" : location.pathname.startsWith("/srm")
+  const contextPath = commonRouteContext(location.pathname, location.search)?.contextPath || location.pathname;
+  const base = contextPath.startsWith("/pms") ? "/pms/follow-ups" : contextPath.startsWith("/srm")
     ? "/srm/follow-ups"
     : "/crm/follow-ups";
   const view = id

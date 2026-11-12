@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Index
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Index,and_
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
@@ -243,5 +243,9 @@ class AutomationScheduledJob(Base):
           sqlite_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training'])),
         Index('uq_ai_agent_schedule_request',organization_id,created_by,job_type,
             payload_json['ai_request_key'].as_string(),unique=True,
-            postgresql_where=job_type=='ai_agent_schedule',sqlite_where=job_type=='ai_agent_schedule'),)
+              postgresql_where=job_type=='ai_agent_schedule',sqlite_where=job_type=='ai_agent_schedule'),
+        Index('uq_ai_agent_event_delivery',organization_id,created_by,
+              payload_json['event_source']['subscription_id'].as_integer(),payload_json['event_source']['source_id'].as_integer(),unique=True,
+              postgresql_where=and_(job_type=='ai_agent_schedule',payload_json['event_source']['subscription_id'].as_integer().is_not(None)),
+              sqlite_where=and_(job_type=='ai_agent_schedule',payload_json['event_source']['subscription_id'].as_integer().is_not(None))),)
 

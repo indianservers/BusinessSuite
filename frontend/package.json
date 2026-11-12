@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:common-routes": "node scripts/test-common-routes.cjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p interns-hub/tsconfig.json",
     "test:workspace-redesign": "node scripts/test-workspace-management.cjs && node scripts/test-universal-workspaces.cjs && node scripts/test-workspace-directory.cjs",
     "test:background-refresh": "node scripts/test-background-refresh.cjs",

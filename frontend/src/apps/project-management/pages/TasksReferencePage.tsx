@@ -1,3 +1,4 @@
+import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
@@ -178,6 +179,8 @@ function TasksReferencePage() {
   // still accepting back/forward navigation and links as the source of truth.
   const setParams = (update: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => {
     const next = typeof update === "function" ? update(new URLSearchParams(pendingParams.current)) : update;
+    const context = commonRouteContext(routeLocation.pathname, routeLocation.search);
+    if (context) next.set("module", context.module);
     pendingParams.current = new URLSearchParams(next);
     setRouterParams(pendingParams.current);
   };
@@ -230,7 +233,10 @@ function TasksReferencePage() {
   const alternateView = ["board", "gantt", "timeline", "calendar", "workload", "dashboard", "activity", "team", "mindmap", "whiteboard", "channel"].includes(layout);
   const cardLayout = layout === "gallery" || (narrowScreen && layout === "list");
   const filterKeys = ["search", "taskIds", "workspaceId", "projectId", "projectIds", "assigneeId", "assigneeIds", "reporterId", "workView", "teamId", "batchId", "workType", "status", "priority", "dueFrom", "dueTo", "createdFrom", "createdTo", "updatedFrom", "updatedTo", "storyPointsMin", "storyPointsMax", "overdue", "openOnly", "sprintId", "epicId", "tag"];
-  const taskQuery = new URLSearchParams([...params].filter(([key]) => [...filterKeys, "page", "pageSize", "sortBy", "sortOrder"].includes(key))).toString();
+  const sourceModule = (params.get("sourceModule") || (commonRouteContext(routeLocation.pathname, routeLocation.search)?.module === "crm" || routeLocation.pathname === "/crm/tasks" ? "crm" : "all")) as "all" | "crm" | "pms";
+  const taskQueryParams = new URLSearchParams([...params].filter(([key]) => [...filterKeys, "page", "pageSize", "sortBy", "sortOrder"].includes(key)));
+  taskQueryParams.set("sourceModule", sourceModule);
+  const taskQuery = taskQueryParams.toString();
   const activeFilterCount = filterKeys.filter((key) => {
     const value = params.get(key);
     return value && value !== "false";
@@ -594,6 +600,11 @@ function TasksReferencePage() {
                   Add Task
                 </Button>
               </div>
+              <label className="flex items-center gap-2 px-4 py-2 text-sm">Module
+                <NativeSelect aria-label="Task module filter" value={sourceModule} onChange={event => change("sourceModule", event.target.value)}>
+                  <option value="all">All Modules</option><option value="crm">CRM linked tasks</option><option value="pms">Project tasks</option>
+                </NativeSelect>
+              </label>
               <section
                 className="tr-metrics"
                 aria-label="Task overview for current filters"

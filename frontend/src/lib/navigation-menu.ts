@@ -1,4 +1,5 @@
 import { consolidateNavigation, operationAliases, type WorkspaceNavigation } from "./navigation-workspaces";
+import { commonRouteContext } from "./common-routes";
 
 type MenuItem = { to: string; label: string; group?: string };
 
@@ -98,7 +99,10 @@ const labels: Record<string, string> = {
   "/hrms/settings": "HR settings", "/srm/settings": "Sales & inventory settings", "/fam/settings": "Finance settings",
   "/fam/ar": "Customer balances", "/fam/ap": "Supplier balances",
 };
-export const menuLabel = (item: MenuItem) => labels[item.to.split("?")[0]] || item.label;
+export const menuLabel = (item: MenuItem) => {
+  const context = commonRouteContext(item.to);
+  return (context && labels[context.nativePath]) || labels[item.to.split("?")[0]] || item.label;
+};
 
 // Consolidate only within a category; a page must not disappear into an unrelated section.
 export function menuItems<T extends MenuItem>(items: readonly T[]): WorkspaceNavigation<T>[] {

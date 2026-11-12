@@ -1,3 +1,4 @@
+import { commonRouteContext, commonNavigationHref, commonModules, commonEntities, commonEntityModules, commonPagePath, moduleContextPath, type CommonModule, type CommonEntity } from "./common-routes";
 import { useAuthStore } from "@/store/authStore";
 import { categorizeNavigation } from "./navigation-categories";
 import {
@@ -70,6 +71,7 @@ function centralModuleForPath(access: { modules: { key: string; route: string; n
   return access.modules.flatMap(module => (module.navigationPaths || [module.route]).map(path => ({ path, module }))).sort((a,b) => b.path.length-a.path.length).find(item => pathname === item.path || pathname.startsWith(item.path + "/"))?.module;
 }
 export function effectiveModuleDisplayRole(pathname: string, user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>) {
+  pathname = moduleContextPath(pathname);
   const primary = user.primary_role === undefined ? user.role : user.primary_role;
   if (!user.access?.managed || user.is_superuser) return primary;
   const module = centralModuleForPath(user.access, pathname);
@@ -1161,6 +1163,7 @@ function withPrefix(items: RoleNavItem[], prefix: string) {
 }
 
 export function getActiveModule(pathname: string) {
+  pathname = moduleContextPath(pathname);
   const normalizedPathname = pathname.toLowerCase();
   if (pathname === "/" || pathname === "" || pathname === "/analytics" || pathname.startsWith("/analytics/")) return "suite";
   if (isAdminSecurityPath(pathname)) return "admin_security";
@@ -1198,13 +1201,25 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  pathname = moduleContextPath(pathname);
   const available = [...getAvailableRoleNav(role, isSuperuser, pathname)];
   const root = pathname.split("/")[1];
   if (["crm", "srm", "hrms", "pms", "fam"].includes(root) && available.length && canAccessRoute(`/${root}`, role, isSuperuser)) {
     available.push({label:"Import data",icon:Upload,to:`/${root}/import-data`,group:"Settings & administration"});
     available.push({label:"Connectors & authorization",icon:KeyRound,to:`/${root}/connectors`,group:"Settings & administration"});
   }
-  return categorizeNavigation(available, getActiveModule(pathname));
+  const categorized = categorizeNavigation(available, getActiveModule(pathname));
+  if (!commonModules.includes(root as CommonModule)) return categorized;
+  const module = root as CommonModule;
+  const shared = categorized.map(item => ({ ...item, to: commonNavigationHref(item.to, module) }));
+  const icons = { employees: Users, teams: Users, vendors: Building2, tasks: ListChecks, notes: FileText, contacts: Users, customers: Users, leads: Target, calendar: CalendarDays, "follow-ups": Clock, catalog: Package };
+  for (const entity of Object.keys(commonEntities) as CommonEntity[]) {
+    const to = commonPagePath(entity, module);
+    if (commonEntityModules[entity].includes(module) && canAccessRoute(to, role, isSuperuser) && !shared.some(item => commonRouteContext(item.to)?.entity === entity)) {
+      shared.push({ to, label: commonEntities[entity].label, icon: icons[entity], group: "Shared workspace" });
+    }
+  }
+  return shared;
 }
 
 function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
@@ -1387,6 +1402,11 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false): boolean {
+  if (pathname.startsWith("/common/")) {
+    const context = commonRouteContext(pathname);
+    return Boolean(context && canAccessRoute(context.contextPath, role, isSuperuser) && canAccessRoute(context.nativePath, role, isSuperuser));
+  }
+  pathname = pathname.split(/[?#]/)[0];
   if (/^\/(crm|srm|hrms|fam)\/workspaces\/?$/.test(pathname)) return canAccessRoute("/" + pathname.split("/")[1], role, isSuperuser);
   if (pathname === "/connectors") return true;
   if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);

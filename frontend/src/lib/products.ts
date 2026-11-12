@@ -1,3 +1,4 @@
+import { moduleContextPath } from "./common-routes";
 export type ProductKey = "hrms" | "crm" | "project_management" | "srm" | "fam";
 
 export type ProductMeta = {
@@ -48,8 +49,8 @@ export const products: Record<ProductKey, ProductMeta> = {
   },
   srm: {
     key: "srm",
-    name: "Sales & Inventory Management",
-    shortName: "Sales + Inventory",
+    name: "Sales & POS",
+    shortName: "Sales & POS",
     version: "1.02",
     loginPath: "/login",
     homePath: "/srm",
@@ -77,6 +78,7 @@ export function normalizeRole(role?: string | null) {
 }
 
 export function getProductKeyFromPath(pathname: string): ProductKey | null {
+  pathname = moduleContextPath(pathname);
   const normalizedPathname = pathname.toLowerCase();
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";

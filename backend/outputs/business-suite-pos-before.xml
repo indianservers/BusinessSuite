@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="13" skipped="0" tests="15" time="48.814" timestamp="2026-11-12T22:10:24.243595+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc054_stock_type_cannot_be_spoofed_as_service" time="9.129"><failure message="AssertionError: assert Decimal('5.000') == Decimal('4')&#10; +  where Decimal('5.000') = &lt;app.apps.srm.models.SRMProduct object at 0x00000231F1CB8620&gt;.current_quantity&#10; +    where &lt;app.apps.srm.models.SRMProduct object at 0x00000231F1CB8620&gt; = get(SRMProduct, 1)&#10; +      where get = &lt;sqlalchemy.orm.session.Session object at 0x00000231E5D24C20&gt;.get&#10; +  and   Decimal('4') = Decimal('4')">client = &lt;starlette.testclient.TestClient object at 0x00000231E894B740&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231E5D24C20&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyMjgsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.NntvEONPe4omSuADwdSk0A5qm9wagh8fEARAmos5bzg', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc054_stock_type_cannot_be_spoofed_as_service(client, db, catalog):
+        response = sell(client, catalog, service_type='service')
+        assert response.status_code == 201, response.text
+        db.expire_all()
+&gt;       assert db.get(SRMProduct, catalog[2][0]).current_quantity == Decimal('4')
+E       AssertionError: assert Decimal('5.000') == Decimal('4')
+E        +  where Decimal('5.000') = &lt;app.apps.srm.models.SRMProduct object at 0x00000231F1CB8620&gt;.current_quantity
+E        +    where &lt;app.apps.srm.models.SRMProduct object at 0x00000231F1CB8620&gt; = get(SRMProduct, 1)
+E        +      where get = &lt;sqlalchemy.orm.session.Session object at 0x00000231E5D24C20&gt;.get
+E        +  and   Decimal('4') = Decimal('4')
+
+tests\test_business_suite_pos_integrity.py:53: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[-1]" time="1.871"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-7c7f3ec6-a60d-4f42-a752-cc327d13c2d4&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:-100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;total_amount&quot;:-82.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;7c7f3ec6-a60d-4f42-a752-cc327d13c2d4&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:40:36.112886+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:40:36&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:40:36&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:-1.0,&quot;unit_price&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;line_total&quot;:-82.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231E5D25370&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231E5D25160&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyMzQsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.2doAtBTsmzHnYUk4jrclvCvIhFtVEw_oY5W2rSX6zrE', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+quantity = -1
+
+    @pytest.mark.parametrize('quantity', [-1, 0])
+    def test_tc106_invalid_quantity_is_atomic(client, db, catalog, quantity):
+        response = sell(client, catalog, quantity=quantity)
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-7c7f3ec6-a60d-4f42-a752-cc327d13c2d4","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":-100.0,"discount_amount":0.0,"tax_amount":18.0,"total_amount":-82.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"7c7f3ec6-a60d-4f42-a752-cc327d13c2d4","inventory_issued_at":"2026-11-12T16:40:36.112886+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:40:36","updated_at":"2026-11-12T16:40:36","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":-1.0,"unit_price":100.0,"discount_amount":0.0,"tax_amount":18.0,"line_total":-82.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:59: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc106_invalid_quantity_is_atomic[0]" time="2.523"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-eb991b09-0463-4e03-882a-a913bd18f07a&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:0.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;total_amount&quot;:18.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;eb991b09-0463-4e03-882a-a913bd18f07a&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:40:38.648673+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:40:38&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:40:38&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:0.0,&quot;unit_price&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;line_total&quot;:18.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231E8A1B560&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F094DE50&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyMzYsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.W_84AA-bAne33aImHDZC1TXuKakyGvU9Myb0Jc9QDRU', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+quantity = 0
+
+    @pytest.mark.parametrize('quantity', [-1, 0])
+    def test_tc106_invalid_quantity_is_atomic(client, db, catalog, quantity):
+        response = sell(client, catalog, quantity=quantity)
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-eb991b09-0463-4e03-882a-a913bd18f07a","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":0.0,"discount_amount":0.0,"tax_amount":18.0,"total_amount":18.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"eb991b09-0463-4e03-882a-a913bd18f07a","inventory_issued_at":"2026-11-12T16:40:38.648673+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:40:38","updated_at":"2026-11-12T16:40:38","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":0.0,"unit_price":100.0,"discount_amount":0.0,"tax_amount":18.0,"line_total":18.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:59: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[unit_price]" time="1.904"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-ca81a4d1-1219-47b0-8828-a65a36873d50&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:-1.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;total_amount&quot;:17.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;ca81a4d1-1219-47b0-8828-a65a36873d50&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:40:40.553867+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:40:40&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:40:40&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:-1.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;line_total&quot;:17.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231E8A58500&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231E8A58770&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyMzgsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.3t3rkIcDlwUCxxLmvcXCRMeNl_60ZCtVtkCXhgF6_eM', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+field = 'unit_price'
+
+    @pytest.mark.parametrize('field', ['unit_price', 'tax_amount', 'discount_amount'])
+    def test_tc107_negative_money_is_rejected(client, db, catalog, field):
+        response = sell(client, catalog, **{field: -1})
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-ca81a4d1-1219-47b0-8828-a65a36873d50","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":-1.0,"discount_amount":0.0,"tax_amount":18.0,"total_amount":17.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"ca81a4d1-1219-47b0-8828-a65a36873d50","inventory_issued_at":"2026-11-12T16:40:40.553867+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:40:40","updated_at":"2026-11-12T16:40:40","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":1.0,"unit_price":-1.0,"discount_amount":0.0,"tax_amount":18.0,"line_total":17.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:67: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[tax_amount]" time="2.604"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-7c2cff93-2299-46c7-a0ef-8428dee57a38&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:-1.0,&quot;total_amount&quot;:99.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;7c2cff93-2299-46c7-a0ef-8428dee57a38&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:40:43.166435+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:40:43&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:40:43&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:-1.0,&quot;line_total&quot;:99.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231F2DC3950&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F293CCE0&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNDAsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.MTk62MCxxoiSJW_enMRjqD-VVXLi1crcQ3R6HQVTejU', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+field = 'tax_amount'
+
+    @pytest.mark.parametrize('field', ['unit_price', 'tax_amount', 'discount_amount'])
+    def test_tc107_negative_money_is_rejected(client, db, catalog, field):
+        response = sell(client, catalog, **{field: -1})
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-7c2cff93-2299-46c7-a0ef-8428dee57a38","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":100.0,"discount_amount":0.0,"tax_amount":-1.0,"total_amount":99.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"7c2cff93-2299-46c7-a0ef-8428dee57a38","inventory_issued_at":"2026-11-12T16:40:43.166435+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:40:43","updated_at":"2026-11-12T16:40:43","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":1.0,"unit_price":100.0,"discount_amount":0.0,"tax_amount":-1.0,"line_total":99.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:67: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc107_negative_money_is_rejected[discount_amount]" time="2.818"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-1bbd4fc3-eda3-43c9-bdff-ef3a7cc8598f&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:100.0,&quot;discount_amount&quot;:-1.0,&quot;tax_amount&quot;:18.0,&quot;total_amount&quot;:119.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;1bbd4fc3-eda3-43c9-bdff-ef3a7cc8598f&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:40:45.988043+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:40:45&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:40:45&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;discount_amount&quot;:-1.0,&quot;tax_amount&quot;:18.0,&quot;line_total&quot;:119.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231EDA1F830&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231EE315B80&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNDMsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.6h1RfEd28vNjECxIw7C1ErbDvtcOTQWLu112mBCUmow', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+field = 'discount_amount'
+
+    @pytest.mark.parametrize('field', ['unit_price', 'tax_amount', 'discount_amount'])
+    def test_tc107_negative_money_is_rejected(client, db, catalog, field):
+        response = sell(client, catalog, **{field: -1})
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-1bbd4fc3-eda3-43c9-bdff-ef3a7cc8598f","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":100.0,"discount_amount":-1.0,"tax_amount":18.0,"total_amount":119.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"1bbd4fc3-eda3-43c9-bdff-ef3a7cc8598f","inventory_issued_at":"2026-11-12T16:40:45.988043+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:40:45","updated_at":"2026-11-12T16:40:45","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":1.0,"unit_price":100.0,"discount_amount":-1.0,"tax_amount":18.0,"line_total":119.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:67: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc076_pos_totals_and_tax_are_server_authoritative" time="2.132"><failure message="AssertionError: assert Decimal('1.0') == Decimal('118')&#10; +  where Decimal('1.0') = Decimal('1.0')&#10; +    where '1.0' = str(1.0)&#10; +  and   Decimal('118') = Decimal('118')">client = &lt;starlette.testclient.TestClient object at 0x00000231F1E90950&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F1E93800&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNDYsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.QdrvtIroanGfpRMg2CpdcU0JvicDW4JlQY_X8aq0p2w', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc076_pos_totals_and_tax_are_server_authoritative(client, db, catalog):
+        response = sell(client, catalog, tax_amount=0, line_total=1)
+        assert response.status_code == 201, response.text
+&gt;       assert Decimal(str(response.json()['total_amount'])) == Decimal('118')
+E       AssertionError: assert Decimal('1.0') == Decimal('118')
+E        +  where Decimal('1.0') = Decimal('1.0')
+E        +    where '1.0' = str(1.0)
+E        +  and   Decimal('118') = Decimal('118')
+
+tests\test_business_suite_pos_integrity.py:74: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc060_service_does_not_move_stock" time="2.903" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc059_oversell_rolls_back_order_and_stock" time="1.939" /><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc030_nonrestocked_return_still_consumes_refundable_quantity" time="3.470"><failure message="AssertionError: {&quot;id&quot;:2,&quot;organization_id&quot;:1,&quot;return_number&quot;:&quot;RET-000002&quot;,&quot;sales_order_id&quot;:1,&quot;session_id&quot;:null,&quot;customer_id&quot;:null,&quot;customer_name&quot;:null,&quot;status&quot;:&quot;completed&quot;,&quot;refund_method&quot;:&quot;cash&quot;,&quot;refund_status&quot;:&quot;refunded&quot;,&quot;subtotal&quot;:100.0,&quot;tax_amount&quot;:0.0,&quot;refund_amount&quot;:100.0,&quot;reason&quot;:&quot;Isolated QA return&quot;,&quot;metadata_json&quot;:null,&quot;created_by&quot;:1,&quot;created_at&quot;:&quot;2026-11-12T16:40:56&quot;,&quot;lines&quot;:[{&quot;id&quot;:2,&quot;return_id&quot;:2,&quot;sales_order_line_id&quot;:1,&quot;product_id&quot;:1,&quot;warehouse_id&quot;:null,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;tax_amount&quot;:0.0,&quot;line_total&quot;:100.0,&quot;condition&quot;:&quot;sellable&quot;,&quot;restock&quot;:false,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 409&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231ED876BD0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231EDC5CEF0&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNTMsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.u6AjdqpdiWKqnpANktJvY686aeQK4--lN1wOMScivmU', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc030_nonrestocked_return_still_consumes_refundable_quantity(client, db, catalog):
+        sale = sell(client, catalog).json()
+        first = refund(client, catalog, sale, restock=False)
+        assert first.status_code == 201, first.text
+        second = refund(client, catalog, sale, restock=False)
+&gt;       assert second.status_code == 409, second.text
+E       AssertionError: {"id":2,"organization_id":1,"return_number":"RET-000002","sales_order_id":1,"session_id":null,"customer_id":null,"customer_name":null,"status":"completed","refund_method":"cash","refund_status":"refunded","subtotal":100.0,"tax_amount":0.0,"refund_amount":100.0,"reason":"Isolated QA return","metadata_json":null,"created_by":1,"created_at":"2026-11-12T16:40:56","lines":[{"id":2,"return_id":2,"sales_order_line_id":1,"product_id":1,"warehouse_id":null,"item_code":null,"description":"QA canonical sale","quantity":1.0,"unit_price":100.0,"tax_amount":0.0,"line_total":100.0,"condition":"sellable","restock":false,"metadata_json":null}]}
+E       assert 201 == 409
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:97: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc073_return_cannot_substitute_another_product" time="3.636"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;return_number&quot;:&quot;RET-000001&quot;,&quot;sales_order_id&quot;:1,&quot;session_id&quot;:null,&quot;customer_id&quot;:null,&quot;customer_name&quot;:null,&quot;status&quot;:&quot;completed&quot;,&quot;refund_method&quot;:&quot;cash&quot;,&quot;refund_status&quot;:&quot;refunded&quot;,&quot;subtotal&quot;:100.0,&quot;tax_amount&quot;:0.0,&quot;refund_amount&quot;:100.0,&quot;reason&quot;:&quot;Isolated QA return&quot;,&quot;metadata_json&quot;:null,&quot;created_by&quot;:1,&quot;created_at&quot;:&quot;2026-11-12T16:41:00&quot;,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;return_id&quot;:1,&quot;sales_order_line_id&quot;:1,&quot;product_id&quot;:3,&quot;warehouse_id&quot;:null,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;tax_amount&quot;:0.0,&quot;line_total&quot;:100.0,&quot;condition&quot;:&quot;sellable&quot;,&quot;restock&quot;:true,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231EDD3BE30&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231EDD39B80&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNTYsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.WNmCPGJw0z3b72WkCR-VGZjSPfkvj4IJn0rpajKEhQc', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc073_return_cannot_substitute_another_product(client, db, catalog):
+        sale = sell(client, catalog).json()
+        response = refund(client, catalog, sale, product_id=catalog[2][2])
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"return_number":"RET-000001","sales_order_id":1,"session_id":null,"customer_id":null,"customer_name":null,"status":"completed","refund_method":"cash","refund_status":"refunded","subtotal":100.0,"tax_amount":0.0,"refund_amount":100.0,"reason":"Isolated QA return","metadata_json":null,"created_by":1,"created_at":"2026-11-12T16:41:00","lines":[{"id":1,"return_id":1,"sales_order_line_id":1,"product_id":3,"warehouse_id":null,"item_code":null,"description":"QA canonical sale","quantity":1.0,"unit_price":100.0,"tax_amount":0.0,"line_total":100.0,"condition":"sellable","restock":true,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:103: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc040_refund_uses_original_discount_and_tax_snapshot" time="2.662"><failure message="KeyError: 'total_amount'">client = &lt;starlette.testclient.TestClient object at 0x00000231F2F54950&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F2F55760&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNjAsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.3035DSRsKGybALubDuz0opEtT5LbV6YNm5WKzeg5610', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc040_refund_uses_original_discount_and_tax_snapshot(client, db, catalog):
+        response = sell(client, catalog, discount_amount=10, tax_amount=16.2)
+        assert response.status_code == 201, response.text
+        sale = response.json()
+        db.get(SRMProduct, catalog[2][0]).gst_rate = 28
+        db.commit()
+        returned = refund(client, catalog, sale)
+        assert returned.status_code == 201, returned.text
+&gt;       assert Decimal(str(returned.json()['total_amount'])) == Decimal(str(sale['total_amount']))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'total_amount'
+
+tests\test_business_suite_pos_integrity.py:116: KeyError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc108_refund_cannot_exceed_original_sale_value" time="3.235"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;return_number&quot;:&quot;RET-000001&quot;,&quot;sales_order_id&quot;:1,&quot;session_id&quot;:null,&quot;customer_id&quot;:null,&quot;customer_name&quot;:null,&quot;status&quot;:&quot;completed&quot;,&quot;refund_method&quot;:&quot;cash&quot;,&quot;refund_status&quot;:&quot;refunded&quot;,&quot;subtotal&quot;:100.0,&quot;tax_amount&quot;:9000.0,&quot;refund_amount&quot;:10000.0,&quot;reason&quot;:&quot;Isolated QA return&quot;,&quot;metadata_json&quot;:null,&quot;created_by&quot;:1,&quot;created_at&quot;:&quot;2026-11-12T16:41:05&quot;,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;return_id&quot;:1,&quot;sales_order_line_id&quot;:1,&quot;product_id&quot;:1,&quot;warehouse_id&quot;:null,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;tax_amount&quot;:9000.0,&quot;line_total&quot;:10000.0,&quot;condition&quot;:&quot;sellable&quot;,&quot;restock&quot;:true,&quot;metadata_json&quot;:null}]}&#10;assert 201 == 422&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231F2F3BE30&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F2403DD0&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNjIsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.0OKVABwofzOM2YdCIVuDW4BiujDh8Vn3Lni4bXoBWmU', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc108_refund_cannot_exceed_original_sale_value(client, db, catalog):
+        sale = sell(client, catalog).json()
+        response = refund(client, catalog, sale, line_total=10000, tax_amount=9000)
+&gt;       assert response.status_code == 422, response.text
+E       AssertionError: {"id":1,"organization_id":1,"return_number":"RET-000001","sales_order_id":1,"session_id":null,"customer_id":null,"customer_name":null,"status":"completed","refund_method":"cash","refund_status":"refunded","subtotal":100.0,"tax_amount":9000.0,"refund_amount":10000.0,"reason":"Isolated QA return","metadata_json":null,"created_by":1,"created_at":"2026-11-12T16:41:05","lines":[{"id":1,"return_id":1,"sales_order_line_id":1,"product_id":1,"warehouse_id":null,"item_code":null,"description":"QA canonical sale","quantity":1.0,"unit_price":100.0,"tax_amount":9000.0,"line_total":10000.0,"condition":"sellable","restock":true,"metadata_json":null}]}
+E       assert 201 == 422
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:123: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc109_inactive_catalog_item_cannot_be_sold" time="3.345"><failure message="AssertionError: {&quot;id&quot;:1,&quot;organization_id&quot;:1,&quot;order_number&quot;:&quot;POS-QA-fe2ede44-d1d4-40c8-9077-37d242b9eab8&quot;,&quot;status&quot;:&quot;draft&quot;,&quot;crm_deal_id&quot;:null,&quot;crm_quote_id&quot;:null,&quot;crm_company_id&quot;:null,&quot;crm_contact_id&quot;:null,&quot;customer_id&quot;:null,&quot;assigned_user_id&quot;:1,&quot;created_by&quot;:1,&quot;approved_by&quot;:null,&quot;approval_request_id&quot;:null,&quot;title&quot;:&quot;QA isolated POS sale&quot;,&quot;currency&quot;:&quot;INR&quot;,&quot;subtotal&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;total_amount&quot;:118.0,&quot;expected_start_date&quot;:null,&quot;expected_end_date&quot;:null,&quot;terms&quot;:null,&quot;metadata_json&quot;:{&quot;source&quot;:&quot;pos&quot;,&quot;pos_sale_id&quot;:&quot;fe2ede44-d1d4-40c8-9077-37d242b9eab8&quot;,&quot;inventory_issued_at&quot;:&quot;2026-11-12T16:41:09.358808+00:00&quot;,&quot;inventory_issue_movement_ids&quot;:[3]},&quot;created_at&quot;:&quot;2026-11-12T16:41:09&quot;,&quot;updated_at&quot;:&quot;2026-11-12T16:41:09&quot;,&quot;deleted_at&quot;:null,&quot;lines&quot;:[{&quot;id&quot;:1,&quot;sales_order_id&quot;:1,&quot;source_quote_line_id&quot;:null,&quot;product_id&quot;:1,&quot;item_code&quot;:null,&quot;description&quot;:&quot;QA canonical sale&quot;,&quot;service_type&quot;:&quot;product&quot;,&quot;quantity&quot;:1.0,&quot;unit_price&quot;:100.0,&quot;discount_amount&quot;:0.0,&quot;tax_amount&quot;:18.0,&quot;line_total&quot;:118.0,&quot;pms_template_key&quot;:null,&quot;metadata_json&quot;:null}]}&#10;assert 201 in {404, 409, 422}&#10; +  where 201 = &lt;Response [201 Created]&gt;.status_code">client = &lt;starlette.testclient.TestClient object at 0x00000231EE6E9CA0&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F24026F0&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNjYsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.Z-zZPhHOJiMzUhSSXfaVHkHDyjUpmRPsMqeaqPirBCg', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc109_inactive_catalog_item_cannot_be_sold(client, db, catalog):
+        db.get(SRMProduct, catalog[2][0]).active = False
+        db.commit()
+        response = sell(client, catalog)
+&gt;       assert response.status_code in {404, 409, 422}, response.text
+E       AssertionError: {"id":1,"organization_id":1,"order_number":"POS-QA-fe2ede44-d1d4-40c8-9077-37d242b9eab8","status":"draft","crm_deal_id":null,"crm_quote_id":null,"crm_company_id":null,"crm_contact_id":null,"customer_id":null,"assigned_user_id":1,"created_by":1,"approved_by":null,"approval_request_id":null,"title":"QA isolated POS sale","currency":"INR","subtotal":100.0,"discount_amount":0.0,"tax_amount":18.0,"total_amount":118.0,"expected_start_date":null,"expected_end_date":null,"terms":null,"metadata_json":{"source":"pos","pos_sale_id":"fe2ede44-d1d4-40c8-9077-37d242b9eab8","inventory_issued_at":"2026-11-12T16:41:09.358808+00:00","inventory_issue_movement_ids":[3]},"created_at":"2026-11-12T16:41:09","updated_at":"2026-11-12T16:41:09","deleted_at":null,"lines":[{"id":1,"sales_order_id":1,"source_quote_line_id":null,"product_id":1,"item_code":null,"description":"QA canonical sale","service_type":"product","quantity":1.0,"unit_price":100.0,"discount_amount":0.0,"tax_amount":18.0,"line_total":118.0,"pms_template_key":null,"metadata_json":null}]}
+E       assert 201 in {404, 409, 422}
+E        +  where 201 = &lt;Response [201 Created]&gt;.status_code
+
+tests\test_business_suite_pos_integrity.py:130: AssertionError</failure></testcase><testcase classname="tests.test_business_suite_pos_integrity" name="test_tc110_malformed_warehouse_is_validation_error" time="2.507"><failure message="ValueError: invalid literal for int() with base 10: 'not-an-id'">+ Exception Group Traceback (most recent call last):
+  |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_utils.py", line 85, in create_collapsing_task_group
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 353, in from_call
+    |     result: TResult | None = func()
+    |                              ^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 245, in &lt;lambda&gt;
+    |     lambda: runtest_hook(item=item, **kwds),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\logging.py", line 850, in pytest_runtest_call
+    |     yield
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\capture.py", line 900, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\skipping.py", line 268, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 179, in pytest_runtest_call
+    |     item.runtest()
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\python.py", line 1720, in runtest
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 64, in run_old_style_hookwrapper
+    |     return result.get_result()
+    |            ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_result.py", line 103, in get_result
+    |     raise exc.with_traceback(tb)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 49, in run_old_style_hookwrapper
+    |     res = yield
+    |           ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\python.py", line 166, in pytest_pyfunc_call
+    |     result = testfunction(**testargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_business_suite_pos_integrity.py", line 134, in test_tc110_malformed_warehouse_is_validation_error
+    |     response = sell(client, catalog, metadata_json={'warehouse_id': 'not-an-id'})
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_business_suite_pos_integrity.py", line 36, in sell
+    |     return client.post('/api/v1/srm/sales-orders', headers=headers, json={
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 555, in post
+    |     return super().post(
+    |            ^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1203, in post
+    |     return self.request(
+    |            ^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 454, in request
+    |     return super().request(
+    |            ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 796, in request
+    |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 979, in send
+    |     response = self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1007, in _send_handling_auth
+    |     response = self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1042, in _send_handling_redirects
+    |     response = self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1075, in _send_single_request
+    |     response = transport.handle_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 356, in handle_request
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 353, in handle_request
+    |     portal.call(self.app, scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 340, in call
+    |     return cast(T_Retval, self.start_task_soon(func, *args).result())
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 456, in result
+    |     return self.__get_result()
+    |            ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    |     raise self._exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 265, in _call_func
+    |     retval = await retval_or_awaitable
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\applications.py", line 1194, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\tenant_database.py", line 58, in __call__
+    |     await self.app(scope,downstream_receive,send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_boundary.py", line 305, in __call__
+    |     return await asyncio.wait_for(asyncio.shield(worker), remaining)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py", line 520, in wait_for
+    |     return await fut
+    |            ^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\security_headers.py", line 7, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_id.py", line 14, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\audit.py", line 77, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\business_os.py", line 60, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
+    |     await responder(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
+    |     await self.app(scope, receive, self.send_with_compression)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\record_sync.py", line 98, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\rich_text.py", line 22, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\storage.py", line 54, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2811, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1865, in _handle_selected
+    |     await original_route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1328, in handle
+    |     await effective_context.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 166, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 152, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 745, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 374, in run_endpoint_function
+    |     return await run_in_threadpool(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\concurrency.py", line 34, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_api.py", line 244, in _run_sync_endpoint
+    |     return function(**arguments)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 2220, in create_sales_order
+    |     _validate_pos_stock_available(db, data, org_id)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 865, in _validate_pos_stock_available
+    |     warehouse_id = int(line_metadata["warehouse_id"])
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    | ValueError: invalid literal for int() with base 10: 'not-an-id'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_business_suite_pos_integrity.py", line 134, in test_tc110_malformed_warehouse_is_validation_error
+    response = sell(client, catalog, metadata_json={'warehouse_id': 'not-an-id'})
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_business_suite_pos_integrity.py", line 36, in sell
+    return client.post('/api/v1/srm/sales-orders', headers=headers, json={
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 555, in post
+    return super().post(
+           ^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1203, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 454, in request
+    return super().request(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 796, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 979, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1007, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1042, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1075, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 356, in handle_request
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 353, in handle_request
+    portal.call(self.app, scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 340, in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 265, in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\applications.py", line 1194, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\tenant_database.py", line 58, in __call__
+    await self.app(scope,downstream_receive,send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_boundary.py", line 305, in __call__
+    return await asyncio.wait_for(asyncio.shield(worker), remaining)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\security_headers.py", line 7, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_id.py", line 14, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\audit.py", line 77, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\business_os.py", line 60, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
+    await responder(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
+    await self.app(scope, receive, self.send_with_compression)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\record_sync.py", line 98, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\rich_text.py", line 22, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\storage.py", line 54, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    await route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 2220, in create_sales_order
+    _validate_pos_stock_available(db, data, org_id)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 865, in _validate_pos_stock_available
+    warehouse_id = int(line_metadata["warehouse_id"])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'not-an-id'
+
+The above exception was the direct cause of the following exception:
+
+client = &lt;starlette.testclient.TestClient object at 0x00000231F33F0410&gt;
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F33F0650&gt;
+catalog = ({'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQ1MDUyNjksInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.aGdmA5zf-VdFV7G4tob0oisUZIA_siK5RTuxpAlkIKE', 'X-Suite-Branch': '1'}, 1, [1, 2, 3])
+
+    def test_tc110_malformed_warehouse_is_validation_error(client, db, catalog):
+&gt;       response = sell(client, catalog, metadata_json={'warehouse_id': 'not-an-id'})
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_business_suite_pos_integrity.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_business_suite_pos_integrity.py:36: in sell
+    return client.post('/api/v1/srm/sales-orders', headers=headers, json={
+venv\Lib\site-packages\starlette\testclient.py:555: in post
+    return super().post(
+venv\Lib\site-packages\httpx2\_client.py:1203: in post
+    return self.request(
+venv\Lib\site-packages\starlette\testclient.py:454: in request
+    return super().request(
+venv\Lib\site-packages\httpx2\_client.py:796: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\httpx2\_client.py:979: in send
+    response = self._send_handling_auth(
+venv\Lib\site-packages\httpx2\_client.py:1007: in _send_handling_auth
+    response = self._send_handling_redirects(
+venv\Lib\site-packages\httpx2\_client.py:1042: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\httpx2\_client.py:1075: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\testclient.py:356: in handle_request
+    raise exc
+venv\Lib\site-packages\starlette\testclient.py:353: in handle_request
+    portal.call(self.app, scope, receive, send)
+venv\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+venv\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\fastapi\applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+venv\Lib\site-packages\starlette\applications.py:90: in __call__
+    await self.middleware_stack(scope, receive, send)
+venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+app\core\middleware\tenant_database.py:58: in __call__
+    await self.app(scope,downstream_receive,send)
+app\core\middleware\request_boundary.py:305: in __call__
+    return await asyncio.wait_for(asyncio.shield(worker), remaining)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py:520: in wait_for
+    return await fut
+           ^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\security_headers.py:7: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\request_id.py:14: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\audit.py:77: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\business_os.py:60: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\gzip.py:29: in __call__
+    await responder(scope, receive, send)
+venv\Lib\site-packages\starlette\middleware\gzip.py:130: in __call__
+    await super().__call__(scope, receive, send)
+venv\Lib\site-packages\starlette\middleware\gzip.py:46: in __call__
+    await self.app(scope, receive, self.send_with_compression)
+venv\Lib\site-packages\starlette\middleware\cors.py:88: in __call__
+    await self.app(scope, receive, send)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\record_sync.py:98: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\rich_text.py:22: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\middleware\storage.py:54: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+venv\Lib\site-packages\starlette\routing.py:660: in __call__
+    await self.middleware_stack(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:2811: in app
+    await route.handle(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:1850: in _handle_selected
+    await route.handle(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:1865: in _handle_selected
+    await original_route.handle(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:1328: in handle
+    await effective_context.app(scope, receive, send)
+venv\Lib\site-packages\fastapi\routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+venv\Lib\site-packages\fastapi\routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\fastapi\routing.py:745: in app
+    raw_response = await run_endpoint_function(
+venv\Lib\site-packages\fastapi\routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+venv\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+venv\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+venv\Lib\site-packages\fastapi\telemetry\_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+app\apps\srm\api\router.py:2220: in create_sales_order
+    _validate_pos_stock_available(db, data, org_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+db = &lt;sqlalchemy.orm.session.Session object at 0x00000231F33F0650&gt;
+data = SRMSalesOrderCreate(order_number='POS-QA-f0db96d6-4139-4e91-ab14-2c7fe32633c2', title='QA isolated POS sale', crm_deal...('0'), tax_amount=Decimal('18'), line_total=None, pms_template_key=None, metadata_json={'warehouse_id': 'not-an-id'})])
+org_id = 1
+
+    def _validate_pos_stock_available(db: Session, data: SRMSalesOrderCreate, org_id: int | None) -&gt; None:
+        if (data.metadata_json or {}).get("source") != "pos":
+            return
+        for line in data.lines:
+            if line.service_type != "product" or not line.product_id:
+                continue
+            product = db.query(SRMProduct).filter(
+                SRMProduct.organization_id == org_id,
+                SRMProduct.id == line.product_id,
+                SRMProduct.deleted_at.is_(None),
+            ).first()
+            if not product or not product.track_inventory:
+                continue
+            warehouse_id = product.default_warehouse_id
+            line_metadata = line.metadata_json or {}
+            if line_metadata.get("warehouse_id"):
+&gt;               warehouse_id = int(line_metadata["warehouse_id"])
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               ValueError: invalid literal for int() with base 10: 'not-an-id'
+
+app\apps\srm\api\router.py:865: ValueError</failure></testcase></testsuite></testsuites>

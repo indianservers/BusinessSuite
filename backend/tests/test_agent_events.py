@@ -182,3 +182,23 @@ def test_pause_during_source_read_fences_the_old_intake_lease(client,db,monkeypa
     monkeypatch.setattr(events,'authorize_source',interrupted)
     assert asyncio.run(events.dispatch(db,client.app,instant))['processed']==0
     db.expire_all();assert db.get(ServicePolicy,value['id']).values_json['state']=='paused' and db.query(Job).count()==0
+
+
+def test_event_delivery_index_migration_is_idempotent_and_enforces_source_uniqueness(client,db):
+    import importlib.util
+    from pathlib import Path
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    from sqlalchemy.exc import IntegrityError
+    h,user,_,_=setup_suite(client,db)
+    relative='alembic_postgresql/versions/pg_20261112_098_agent_event_delivery.py' if db.bind.dialect.name=='postgresql' else 'alembic/versions/20261112_081_agent_event_delivery.py'
+    spec=importlib.util.spec_from_file_location('event_delivery_migration',Path(__file__).resolve().parents[1]/relative)
+    migration=importlib.util.module_from_spec(spec);spec.loader.exec_module(migration)
+    with Operations.context(MigrationContext.configure(db.connection())):
+        migration.downgrade();migration.upgrade();migration.upgrade()
+    values={'organization_id':1,'created_by':user.id,'job_type':schedules.KIND,'module_name':'ai',
+        'payload_json':{'ai_request_key':'first-event-key','event_source':{'subscription_id':1234,'source_id':5678}}}
+    db.execute(Job.__table__.insert(),values)
+    with pytest.raises(IntegrityError):
+        with db.begin_nested():db.execute(Job.__table__.insert(),{**values,'payload_json':{**values['payload_json'],'ai_request_key':'different-request-key'}})
+    db.execute(Job.__table__.insert(),{**values,'payload_json':{'ai_request_key':'different-source-key','event_source':{'subscription_id':1234,'source_id':5679}}})

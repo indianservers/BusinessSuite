@@ -15,6 +15,8 @@ import { insertRichMention } from "@/components/rich-text/content";
 import WorkReviewPanel from "../components/WorkReviewPanel";
 import RecordActions from "../components/RecordActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
+import TaskPropertyStrip from "../components/TaskPropertyStrip";
+import { useModuleAction } from "@/hooks/use-module-action";
 import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -111,6 +113,7 @@ export default function TaskDetail() {
 }
 
 function ScopedTaskDetail() {
+  const allowTaskEdit = useModuleAction("edit");
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<PMSTask | null>(null);
@@ -723,7 +726,7 @@ function ScopedTaskDetail() {
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
       </Button>
 
-      <TaskExecutionPanel taskId={task.id} onChanged={()=>void loadTaskData(true)} />
+
       <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card data-priority-row data-priority={task.priority}>
         <CardContent className="p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -741,17 +744,7 @@ function ScopedTaskDetail() {
                 onBlur={() => updateTask({ title: task.title })}
                 className="h-auto border-0 px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
               />
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <Badge className={statusColor(task.status)}>{task.status}</Badge>
-                <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
-                <span className="inline-flex items-center gap-2">
-                  <Avatar label={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
-                  {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")}
-                </span>
-                {taskAssignees(task).map(uid => <ManagePersonButton key={uid} userId={uid} projectId={task.project_id} label={`Manage ${userLabel(uid, `Member ${uid}`)}`} />)}
-                <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" />Due {formatDate(task.due_date || null)}</span>
-                <span>{task.story_points ?? 0} pts</span>
-              </div>
+
             </div>
             <div className="flex flex-wrap gap-2">
               <details className="rounded-lg border px-3 py-2 text-sm"><summary className="cursor-pointer" data-action-tooltip="Open AI task tools">AI assistant</summary><div className="mt-3 flex flex-wrap gap-2">              <Link className="inline-flex items-center rounded-md border px-3 py-2 text-sm" to={`/pms/operator?project=${task.project_id}&task=${task.id}`}>AI operator · voice / text</Link>
@@ -767,7 +760,7 @@ function ScopedTaskDetail() {
               <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
 </div></details>
               <ActionToolbar label="Task record actions" actions={[
-                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description})},
+                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours})},
                 {id:"comment",kind:"sms",label:"Comment",tooltip:"Add a comment to this task",prominent:true,onSelect:()=>setActiveTab("comments")},
                 {id:"file",kind:"upload",label:"Attach File",prominent:true,onSelect:()=>setActiveTab("files")},
                 {id:"time",kind:"time",label:"Log Time",tooltip:"Record time spent on this task",onSelect:()=>setActiveTab("time")},
@@ -777,6 +770,27 @@ function ScopedTaskDetail() {
 
             </div>
           </div>
+          <TaskPropertyStrip className="mt-4"
+ status={<NativeSelect aria-label="Task status" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true}
+                  value={task.status}
+                  onChange={(event) => {
+                    const nextStatus = event.target.value as TaskStatus;
+                    if (shouldPreventClosingTask(nextStatus, checklist)) {
+                      setChecklistError("Complete all checklist items before closing this task.");
+                      return;
+                    }
+                    updateTask({ status: nextStatus });
+                  }}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {taskStatuses.map((item) => <option key={item}>{item}</option>)}
+                </NativeSelect>}
+ assignees={<AssigneePicker projectId={task.project_id} people={subtaskPeople} value={taskAssignees(task)} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={ids=>updateTask({assignee_user_ids:ids})}/>}
+ priority={<PriorityPicker value={task.priority} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={priority=>updateTask({priority})}/>}
+ estimate={<Input aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.estimated_hours??""} onChange={event=>setTask({...task,estimated_hours:Number(event.target.value||0)})} onBlur={()=>updateTask({estimated_hours:task.estimated_hours} as any)}/>}
+ start={<Input aria-label="Task start date" type="date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.start_date||""} onChange={event=>updateTask({start_date:event.target.value||null} as any)}/>}
+ due={<Input aria-label="Task due date" type="date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.due_date||""} onChange={event=>updateTask({due_date:event.target.value||null} as any)}/>}
+/>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <DetailMetric label="Checklist" value={`${checklistDone}/${checklist.length}`} hint={`${checklistProgress}% complete`} />
             <DetailMetric label="Sub-tasks" value={`${completedSubtasks}/${subtasks.length}`} hint={`${subtaskProgress}% complete`} />
@@ -789,6 +803,7 @@ function ScopedTaskDetail() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
+          <TaskExecutionPanel taskId={task.id} onChanged={()=>void loadTaskData(true)} />
           <RunningTimer key={`timer-${task.id}`} projects={project ? [project] : []} fixedTask={task} onSaved={() => { void tasksAPI.listTimeLogs(task.id).then(setTimeLogs).catch(() => setError("Time saved, but time logs could not be refreshed. Reload to retry.")); refreshActivity(); }} />
           <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
           <Card>
@@ -852,7 +867,7 @@ function ScopedTaskDetail() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Tags and Estimates</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Tags</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
@@ -879,14 +894,7 @@ function ScopedTaskDetail() {
                   <Input aria-label="New tag name" required maxLength={100} disabled={tagSaving} value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
                   <Button data-save-action disabled={tagSaving} type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
                 </CompactForm></SmartCreateSection>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Story points">
-                    <Input type="number" min="0" step="1" value={task.story_points ?? ""} onChange={(event) => setTask({ ...task, story_points: Number(event.target.value || 0) })} onBlur={saveStoryPoints} />
-                  </Field>
-                  <Field label="Estimate hours">
-                    <Input type="number" value={task.estimated_hours ?? ""} onChange={(event) => setTask({ ...task, estimated_hours: Number(event.target.value || 0) })} onBlur={() => updateTask({ estimated_hours: task.estimated_hours } as any)} />
-                  </Field>
-                </div>
+
               </CardContent>
             </Card>
           </div>
@@ -1050,25 +1058,6 @@ function ScopedTaskDetail() {
           <Card>
             <CardHeader><CardTitle>Properties</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Field label="Status">
-                <NativeSelect
-                  value={task.status}
-                  onChange={(event) => {
-                    const nextStatus = event.target.value as TaskStatus;
-                    if (shouldPreventClosingTask(nextStatus, checklist)) {
-                      setChecklistError("Complete all checklist items before closing this task.");
-                      return;
-                    }
-                    updateTask({ status: nextStatus });
-                  }}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                >
-                  {taskStatuses.map((item) => <option key={item}>{item}</option>)}
-                </NativeSelect>
-              </Field>
-              <Field label="Priority">
-                <PriorityPicker value={task.priority} disabled={saving} onChange={priority => updateTask({ priority })} />
-              </Field>
               <Field label="Sprint">
                 <NativeSelect value={task.sprint_id || ""} onChange={(event) => updateTask({ sprint_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">No sprint</option>
@@ -1081,8 +1070,8 @@ function ScopedTaskDetail() {
                   {epics.map((item) => <option key={item.id} value={item.id}>{item.epic_key} - {item.name}</option>)}
                 </NativeSelect>
               </Field>
-              <Field label="Due date"><Input type="date" value={task.due_date || ""} onChange={(event) => updateTask({ due_date: event.target.value || null } as any)} /></Field>
-              <Field label="Start date"><Input type="date" value={task.start_date || ""} onChange={(event) => updateTask({ start_date: event.target.value || null } as any)} /></Field>
+
+
               <Field label="Story points"><Input type="number" min="0" step="1" value={task.story_points ?? ""} onChange={(event) => setTask({ ...task, story_points: Number(event.target.value || 0) })} onBlur={saveStoryPoints} /></Field>
               <Field label="Created">{formatDateTime(task.created_at || null)}</Field>
               <Field label="Updated">{formatDateTime(task.updated_at || null)}</Field>

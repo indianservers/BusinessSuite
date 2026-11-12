@@ -1,7 +1,11 @@
 import {useAuthStore,type AuthUser} from '@/store/authStore';
 import { useLocation } from 'react-router-dom';
+import { commonRouteContext } from '@/lib/common-routes';
 /** Action affordances follow the active page's module; endpoint permissions stay authoritative. */
 export function moduleForActionPath(path:string):string|undefined {
+ const common = commonRouteContext(path);
+ if(common)return moduleForActionPath(common.nativePath);
+ if(path.startsWith('/common/'))return 'unavailable';
  if(path.startsWith('/admin/customization'))return 'customization';
  if(path.startsWith('/ai-agents'))return 'ai';
  for(const [prefix,key]of [['/crm','crm'],['/pms','project_management'],['/hrms','hrms'],['/srm','srm'],['/fam','fam'],['/power-apps','power_apps'],['/analytics','analytics']])if(path===prefix||path.startsWith(prefix+'/'))return key;

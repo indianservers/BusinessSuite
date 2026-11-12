@@ -1,9 +1,10 @@
+import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -91,6 +92,8 @@ export default function WhatsAppTasksPage() {
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
+  const routeLocation = useLocation();
+  const sourceModule = (params.get("sourceModule") || (commonRouteContext(routeLocation.pathname, routeLocation.search)?.module === "crm" || routeLocation.pathname === "/crm/tasks" ? "crm" : "all")) as "all" | "crm" | "pms";
   const scope = JSON.stringify([
     user?.id,
     user?.access?.companyId,
@@ -118,6 +121,7 @@ export default function WhatsAppTasksPage() {
     queryKey: [
       "wa-tasks",
       scope,
+      sourceModule,
       debounced,
       view,
       status,
@@ -127,6 +131,7 @@ export default function WhatsAppTasksPage() {
     ],
     queryFn: () =>
       tasksAPI.listAll({
+        sourceModule,
         search: debounced,
         taskIds: view === "starred" ? stars.join(",") || "0" : undefined,
         assigneeId: view === "mine" ? user?.id : undefined,
@@ -280,6 +285,7 @@ export default function WhatsAppTasksPage() {
             <RefreshCw size={16} />
           </button>
         </div>
+        <label className="flex items-center gap-2 p-2 text-sm">Module<NativeSelect aria-label="Task module filter" value={sourceModule} onChange={event => { const next = new URLSearchParams(params); next.set("sourceModule", event.target.value); setParams(next); setPage(1); }}><option value="all">All Modules</option><option value="crm">CRM linked tasks</option><option value="pms">Project tasks</option></NativeSelect></label>
         <div className="wa-list-heading">
           <span className="wa-project-icon">
             <CheckCheck />

@@ -10,6 +10,7 @@ import uuid
 from app.apps.project_management.recurrence import validate_recurrence, create_next_occurrence
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Literal
 from pathlib import Path
 
 from ..models import PMSTaskAssignee
@@ -3238,6 +3239,7 @@ def dashboard_workflow(
 
 @router.get("/tasks")
 def list_all_tasks(
+    sourceModule: Literal["all", "crm", "pms"] = "all",
     taskIds: str | None = Query(None, max_length=2000),
     workspaceId: int | None = None,
     projectIds: str | None = Query(None, max_length=2000),
@@ -3280,7 +3282,20 @@ def list_all_tasks(
         PMSTask.project_id.in_(accessible_project_ids),
     )
 
-    from ..models import PMSTaskGroupTarget, PMSWorkspace
+    from ..models import PMSTaskGroupTarget, PMSWorkspace, PMSTaskRecordLink
+    if sourceModule == "crm":
+        # Filter existing associations after applying PMS project scope. CRM
+        # visibility must also hold: even link existence is scoped information.
+        from app.shared.record_360 import crm_query
+        from app.apps.crm.models import CRMContact, CRMLead
+        from app.apps.srm.services.commercial import tenant
+        contacts = crm_query(db, current_user, "contacts").with_entities(CRMContact.id)
+        leads = crm_query(db, current_user, "leads").with_entities(CRMLead.id)
+        linked = db.query(PMSTaskRecordLink.task_id).filter(
+            PMSTaskRecordLink.organization_id == tenant(current_user),
+            or_(PMSTaskRecordLink.contact_id.in_(contacts), PMSTaskRecordLink.lead_id.in_(leads)),
+        )
+        query = query.filter(PMSTask.id.in_(linked))
     def parse_ids(value):
         try:
             values = {int(item) for item in value.split(",") if item}

@@ -1,3 +1,4 @@
+import { commonNavigationHref, commonModules, commonRouteContext, moduleContextPath, type CommonModule } from "@/lib/common-routes";
 import { sharedNotesPath } from "@/lib/shared-notes";
 import { FileText } from "lucide-react";
 import MenuItemMore, { MenuItemIcon } from "./MenuItemMore";
@@ -30,7 +31,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
 }) {
   const location = useLocation(), id = useId();
   const user = useAuthStore(state => state.user);
-  const moduleKey = (modulePath || location.pathname).split("/")[1] || "suite";
+  const moduleKey = (modulePath || moduleContextPath(location.pathname, location.search)).split("/")[1] || "suite";
   const catalogPath = ["crm", "hrms", "pms", "srm", "fam"].includes(moduleKey) ? `/${moduleKey}` : modulePath || location.pathname;
   const scope = suiteScope(user?.id, user?.access?.companyId);
   const preferences = useSuitePreferences(state => state.contexts[scope] || defaultSuitePreferences);
@@ -39,8 +40,8 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const [submenus, setSubmenus] = useState<Record<string, boolean>>({});
   // Custom catalogs are already filtered by their server-side application permissions.
   let available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, catalogPath)
-    .filter(item => canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser));
-  if (!available.some(item => item.to === sharedNotesPath) && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser)) {
+    .filter(item => canAccessRoute(item.to, user?.role, user?.is_superuser));
+  if (!available.some(item => item.to === sharedNotesPath || commonRouteContext(item.to)?.entity === "notes") && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser)) {
     available.push({ to: sharedNotesPath, label: "Notes", icon: FileText, group: "Collaboration" });
   }
   if (moduleKey === "pms" && !available.some(item => item.to === "/pms/my-work") && canAccessRoute("/pms/my-work", user?.role, user?.is_superuser)) {
@@ -62,6 +63,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
     available.push({ to: "/hrms/settings", label: "HR settings", icon: Settings2, group: "Settings & administration" });
   }
   available = moduleMenuNavigation(available, moduleKey);
+  if (!customItems && commonModules.includes(moduleKey as CommonModule)) available = available.map(item => ({...item, to: commonNavigationHref(item.to, moduleKey as CommonModule)}));
   const landing = moduleLandingNavigation(available, moduleKey);
   const consolidated = [...landing.direct, ...menuItems(landing.grouped)];
   const current = activeWorkspace(consolidated, location.pathname) || available.filter(item =>
@@ -91,8 +93,9 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   } });
   const isCurrent = (to: string) => {
     const [path, search] = to.split("?");
+    const currentParams = new URLSearchParams(location.search);
     return (location.pathname === path || (path.split("/").length > 2 && location.pathname.startsWith(path + "/")))
-      && (!search || search === location.search.slice(1));
+      && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
     {!collapsed && <>

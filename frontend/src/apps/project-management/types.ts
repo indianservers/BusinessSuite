@@ -265,6 +265,7 @@ export interface PMSBacklogResponse {
 }
 
 export interface PMSTaskListQuery {
+  sourceModule?: "all" | "crm" | "pms";
   taskIds?: string;
   referenceDate?:string;overdue?:boolean;openOnly?:boolean;
   projectId?: number | string;

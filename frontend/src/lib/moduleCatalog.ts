@@ -76,8 +76,8 @@ export const modules: ModuleIndexItem[] = [
   },
   {
     key: "srm",
-    name: "Sales & Inventory Management",
-    label: "Sales, Inventory & POS",
+    name: "Sales & POS",
+    label: "Sales, services & inventory",
     description:
       "Manage sales orders, POS, products, stock, delivery, billing, invoices, collections, and profitability.",
     icon: Package,

@@ -34,16 +34,19 @@ CATALOG={
 }
 
 
-class Subscription(Strict):
-    request_key:UUID
-    agent_id:int=Field(gt=0)
+class EventSettings(Strict):
     event:Literal['pms.task_created','pms.task_updated','pms.assignment_changed','crm.deal_stage','hrms.asset_handover']
-    prompt:str=Field(min_length=1,max_length=4000)
-    timezone:str='Asia/Kolkata'
-    expires_at:datetime
     min_interval_minutes:int=Field(default=15,ge=1,le=1440)
     max_per_day:int=Field(default=5,ge=1,le=24)
     max_event_age_minutes:int=Field(default=60,ge=1,le=1440)
+
+
+class Subscription(EventSettings):
+    request_key:UUID
+    agent_id:int=Field(gt=0)
+    prompt:str=Field(min_length=1,max_length=4000)
+    timezone:str='Asia/Kolkata'
+    expires_at:datetime
 
     @model_validator(mode='after')
     def valid(self):
@@ -94,7 +97,7 @@ def public(db,user,row):
     value=row.values_json
     deliveries=db.query(Job).filter_by(job_type=schedules.KIND,organization_id=row.organization_id,created_by=user.id).filter(Job.payload_json['event_source']['subscription_id'].as_integer()==row.id,Job.payload_json['event_source']['eligible'].as_boolean()==True).order_by(Job.id.desc()).limit(20)
     return {'id':row.id,'revision':row.version,'state':value['state'],'spec':value['spec'],'agent_name':value['snapshot']['name'],'agent_revision':value['snapshot']['revision'],
-        'workspace_id':value['snapshot']['workspace_id'],'preview_hash':value['preview_hash'],'error':value.get('error'),
+        'workspace_id':value['snapshot']['workspace_id'],'project_id':value['snapshot']['project_id'],'preview_hash':value['preview_hash'],'error':value.get('error'),
         'deliveries':[schedules.public(j) for j in deliveries],'controls':value.get('controls',[]),
         'execution':'Prepares one private occurrence at a time. Writes require separate review. Pausing or cancelling stops new intake; existing occurrences remain separately controllable in Schedules.'}
 
@@ -121,6 +124,16 @@ def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depe
 
 @router.post('/preview')
 def preview(data:Subscription,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=stage_preview(data,db,user);db.commit();return public(db,user,row)
+
+
+@router.get('/{ident}')
+def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    return public(db,user,owned(db,user,ident))
+
+
+def stage_preview(data,db,user):
+    """Stage one immutable preview inside a compound authoring transaction."""
     frozen=schedules.snapshot(db,user,data.agent_id)
     from app.ai_operator.saved_agents import owned as agent_owned
     profile=agent_owned(db,user,data.agent_id).references['config']
@@ -135,11 +148,11 @@ def preview(data:Subscription,db:Session=Depends(get_db),user:User=Depends(get_c
     if previous:
         previous=owned(db,user,previous.id)
         if previous.values_json['preview_hash']!=hashed:raise HTTPException(409,'Request key belongs to another event subscription')
-        return public(db,user,previous)
+        return previous
     if db.query(ServicePolicy.id).filter_by(organization_id=company(user),kind=KIND).filter(ServicePolicy.values_json['owner_id'].as_integer()==user.id,ServicePolicy.values_json['state'].as_string().notin_(['cancelled','expired'])).count()>=10:raise HTTPException(422,'Cancel unused event subscriptions before adding more')
     row=ServicePolicy(scope_key=key,organization_id=company(user),module_key='ai',kind=KIND,version=1,updated_by=user.id,
         values_json={**value,'owner_id':user.id,'preview_hash':hashed,'security_context':seal(db,user,hashed),'state':'preview','controls':[]})
-    db.add(row);db.flush();sign(row);audit(db,user,row,'preview');db.commit();return public(db,user,row)
+    db.add(row);db.flush();sign(row);audit(db,user,row,'preview');return row
 
 
 class Control(Strict):

@@ -1,3 +1,4 @@
+import { commonRouteContext } from "@/lib/common-routes";
 import { useQueries } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { groupPmsRecents, pmsPageLabel, pmsPageResource } from "@/lib/pms-page-labels";
@@ -22,9 +23,9 @@ export default function PMSPersonalNavigation({ collapsed = false, onNavigate }:
   const scope = suiteScope(user?.id, user?.access?.companyId);
   const saved = usePmsNavigation(s => s.contexts[scope] || emptyPmsNavigation);
   const { visit, pin, move } = usePmsNavigation();
-  const permitted = (p: PmsPage) => p.path.startsWith("/pms") && canAccessRoute(p.path.split("?")[0], user?.role, user?.is_superuser);
+  const permitted = (p: PmsPage) => (p.path.startsWith("/pms") || commonRouteContext(p.path)?.module === "pms") && canAccessRoute(p.path, user?.role, user?.is_superuser);
   const primary = pmsPrimaryPages.filter(permitted);
-  const nav = getRoleNav(user?.role, user?.is_superuser, "/pms").filter(p => p.to.startsWith("/pms") && canAccessRoute(p.to, user?.role, user?.is_superuser));
+  const nav = getRoleNav(user?.role, user?.is_superuser, "/pms").filter(p => (p.to.startsWith("/pms") || commonRouteContext(p.to)?.module === "pms") && canAccessRoute(p.to, user?.role, user?.is_superuser));
   const available = [...new Map([...primary, {path:"/pms/management",label:"Management home"}, ...nav.map(i => ({ path: i.to, label: i.label }))].map(p => [p.path, p])).values()];
   const params = new URLSearchParams(location.search); params.delete("token"); params.delete("invite");
   const currentPath = location.pathname + (params.size ? `?${params}` : "");

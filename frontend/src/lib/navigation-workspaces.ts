@@ -2,7 +2,7 @@ type Link = { to: string; label: string; group?: string };
 export type WorkspaceNavigation<T> = T & { pages?: T[] };
 
 export function workspacePageHref(to: string, search: string, workspaceId?: number) {
-  if (!to.startsWith("/pms")) return to;
+  if (!to.startsWith("/pms") && !to.startsWith("/common/")) return to;
   const [path, query = ""] = to.split("?");
   const target = new URLSearchParams(query);
   // The directory must not inherit the board's selected workspace.
@@ -103,6 +103,7 @@ export function consolidateNavigation<T extends Link>(items: readonly T[]): Work
 }
 
 export function activeWorkspace<T extends Link>(items: readonly WorkspaceNavigation<T>[], pathname: string) {
-  return items.filter(item => item.pages?.some(page => pathname === page.to || pathname.startsWith(page.to + "/")))
-    .sort((a, b) => Math.max(...b.pages!.filter(p => pathname === p.to || pathname.startsWith(p.to + "/")).map(p => p.to.length)) - Math.max(...a.pages!.filter(p => pathname === p.to || pathname.startsWith(p.to + "/")).map(p => p.to.length)))[0];
+  const matches = (to: string) => { const path = to.split(/[?#]/)[0]; return pathname === path || pathname.startsWith(path + "/"); };
+  const rank = (item: WorkspaceNavigation<T>) => Math.max(...(item.pages || []).filter(page => matches(page.to)).map(page => page.to.split(/[?#]/)[0].length));
+  return items.filter(item => item.pages?.some(page => matches(page.to))).sort((a, b) => rank(b) - rank(a))[0];
 }

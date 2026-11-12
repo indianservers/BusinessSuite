@@ -5,6 +5,7 @@ import { modules } from "@/lib/moduleCatalog";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, LayoutGrid } from "lucide-react";
 import { getProductForContext } from "@/lib/products";
+import { commonRouteContext } from "@/lib/common-routes";
 
 const labels: Record<string, string> = {
   hrms: "HRMS",
@@ -104,7 +105,8 @@ export default function Breadcrumbs() {
     setTitle(document.title);
     return () => observer.disconnect();
   }, []);
-  const parts = location.pathname.split("/").filter(Boolean);
+  const shared = commonRouteContext(location.pathname, location.search);
+  const parts = (shared ? `${shared.contextPath}/${shared.entity}` : location.pathname).split("/").filter(Boolean);
   const module = modules.find((m) => m.homePath === `/${parts[0]}`);
   const nav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
   return (
@@ -128,7 +130,7 @@ export default function Breadcrumbs() {
         const label =
           index === 0 && module
             ? module.name
-            : nav.find((item) => item.to === path)?.label ||
+            : (shared && active ? shared.definition.label : nav.find((item) => item.to === path)?.label) ||
               (isRecord
                 ? active &&
                   pageTitle &&
