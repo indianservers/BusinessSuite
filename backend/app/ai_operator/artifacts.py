@@ -334,11 +334,19 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
     if format in ('pdf','pptx'):
         from app.ai_agents.api import _require_ai_rate_limit
         _require_ai_rate_limit(db,request,user,bucket='artifact_exports')
-    item=public(db,user,row,revision);body=io.BytesIO()
+    item=public(db,user,row,revision)
     sources=None
     if item['kind']=='dashboard':
         from app.ai_operator.artifact_dashboards import resolve
         sources=[resolve(db,user,row.workspace_id,panel,export=True) for panel in item['panels']]
+    content,mime=render_download(item,format,sources)
+    AiAuditService(db).log(user=user,agent_id=None,module=item['module'],action='suite.artifact.exported',input_json={'artifact_id':ident,'revision':item['revision']},output_json={'format':format},status='success');db.commit()
+    return Response(content,media_type=mime,headers={'Content-Disposition':f'attachment; filename="artifact-{ident}-v{item["revision"]}.{format}"','X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
+
+
+def render_download(item,format,sources=None):
+    """Pure export rendering shared by private and explicitly published snapshots."""
+    body=io.BytesIO()
     # Spreadsheet expressions are inert strings, including formula-like input.
     def cell(value):return "'"+value if value.lstrip().startswith(('=','+','-','@','\t','\r')) else value
     if format=='csv' and item['kind']!='table' or format=='xlsx' and item['kind'] not in ('table','dashboard'):raise HTTPException(422,'Choose a document download for this artifact')
@@ -405,8 +413,7 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
             from app.ai_operator.artifact_charts import summary
             text+='\n\n'+summary(item,item['revision'])
         content=text.encode('utf-8');mime='text/markdown'
-    AiAuditService(db).log(user=user,agent_id=None,module=item['module'],action='suite.artifact.exported',input_json={'artifact_id':ident,'revision':item['revision']},output_json={'format':format},status='success');db.commit()
-    return Response(content,media_type=mime,headers={'Content-Disposition':f'attachment; filename="artifact-{ident}-v{item["revision"]}.{format}"','X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
+    return content,mime
 
 
 def business_request(text):
