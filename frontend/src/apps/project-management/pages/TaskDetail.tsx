@@ -128,6 +128,7 @@ function ScopedTaskDetail() {
   const [remoteChange, setRemoteChange] = useState(false);
   const [editConflict, setEditConflict] = useState<{changes:Partial<PMSTask>;latest?:PMSTask}|null>(null);
   const [reviewingConflict, setReviewingConflict] = useState(false);
+  const [statusChoicesRevision,setStatusChoicesRevision]=useState(0);
   const [project, setProject] = useState<PMSProject | null>(null);
   const [sprints, setSprints] = useState<PMSSprint[]>([]);
   const [epics, setEpics] = useState<PMSEpic[]>([]);
@@ -314,6 +315,7 @@ function ScopedTaskDetail() {
   const refreshActivity = () => tasksAPI.listActivity(task.id).then(setActivity).catch(() => undefined);
 
   const updateTask = async (data: Partial<PMSTask>, reviewed?:PMSTask) => {
+    if(!allowTaskEdit||project?.can_manage_tasks!==true)return;
     if (discardAction || editConflict && !reviewed) return;
     if(!reviewed&&savedTask.current&&Object.entries(data).every(([field,value])=>JSON.stringify(value)===JSON.stringify((savedTask.current as any)[field])))return;
     const submitted = taskRef.current || task;
@@ -801,6 +803,7 @@ function ScopedTaskDetail() {
               </div>
               <Input
                 aria-label="Task title"
+                readOnly={!allowTaskEdit||project?.can_manage_tasks!==true}
                 value={task.title}
                 onChange={(event) => setTask({ ...task, title: event.target.value })}
                 onBlur={() => updateTask({ title: task.title })}
@@ -822,7 +825,7 @@ function ScopedTaskDetail() {
               <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
 </div></details>
               <ActionToolbar label="Task record actions" actions={[
-                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours,story_points:task.story_points})},
+                {id:"save",kind:"save",available:allowTaskEdit&&project?.can_manage_tasks===true,prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours,story_points:task.story_points})},
                 {id:"comment",kind:"sms",label:"Comment",tooltip:"Add a comment to this task",prominent:true,onSelect:()=>setActiveTab("comments")},
                 {id:"file",kind:"upload",label:"Attach File",prominent:true,onSelect:()=>setActiveTab("files")},
                 {id:"time",kind:"time",label:"Log Time",tooltip:"Record time spent on this task",onSelect:()=>setActiveTab("time")},
@@ -833,7 +836,7 @@ function ScopedTaskDetail() {
             </div>
           </div>
           <TaskPropertyStrip className="mt-4"
- status={<TaskStatusControl taskId={task.id} version={task.updated_at} value={task.status} disabled={saving||!!editConflict||!allowTaskEdit||project?.can_manage_tasks!==true}
+ status={<TaskStatusControl taskId={task.id} version={task.updated_at} refreshKey={statusChoicesRevision} value={task.status} disabled={saving||!!editConflict||!allowTaskEdit||project?.can_manage_tasks!==true}
                   onSave={(value) => {
                     const nextStatus = value as TaskStatus;
                     if (shouldPreventClosingTask(nextStatus, checklist)) {
@@ -860,13 +863,13 @@ function ScopedTaskDetail() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <TaskExecutionPanel taskId={task.id} refreshKey={`${task.updated_at||""}:${task.status}`} onChanged={()=>void loadTaskData(true)} />
+          <TaskExecutionPanel taskId={task.id} refreshKey={`${task.updated_at||""}:${task.status}`} onApprovalsLoaded={()=>setStatusChoicesRevision(current=>current+1)} onChanged={()=>void loadTaskData(true)} />
           <RunningTimer key={`timer-${task.id}`} projects={project ? [project] : []} fixedTask={task} onSaved={() => { void tasksAPI.listTimeLogs(task.id).then(setTimeLogs).catch(() => setError("Time saved, but time logs could not be refreshed. Reload to retry.")); refreshActivity(); }} />
           <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Description</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <RichTextEditor value={task.description || ""} onChange={value => setTask({ ...task, description: value })} onBlur={() => updateTask({ description: task.description })} label="Task description" placeholder="Add requirements, acceptance criteria, context, or implementation notes."/>
+              <RichTextEditor value={task.description || ""} readOnly={!allowTaskEdit||project?.can_manage_tasks!==true} onChange={value => setTask({ ...task, description: value })} onBlur={() => updateTask({ description: task.description })} label="Task description" placeholder="Add requirements, acceptance criteria, context, or implementation notes."/>
               {!task.description ? <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">No description yet.</div> : null}
             </CardContent>
           </Card>

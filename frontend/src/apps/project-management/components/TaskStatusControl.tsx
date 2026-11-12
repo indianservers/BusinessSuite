@@ -7,13 +7,13 @@ import {workspaceError} from "../pages/workspaceTypes";
 
 type Choices={can_request:boolean;transitions:{target:string;approval_required:boolean}[];requests:{target:string;current:boolean;status:string}[]};
 /** Reuses the workflow engine's permitted destinations and approval projection. */
-export default function TaskStatusControl({taskId,value,version,disabled,onSave,approvalHref}:{taskId:number;value:string;version?:string|null;disabled?:boolean;onSave:(status:string)=>unknown;approvalHref?:string}){
+export default function TaskStatusControl({taskId,value,version,disabled,onSave,approvalHref,refreshKey}:{taskId:number;value:string;version?:string|null;disabled?:boolean;onSave:(status:string)=>unknown;approvalHref?:string;refreshKey?:number}){
  const [data,setData]=useState<Choices>(),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[retry,setRetry]=useState(0);
  useRefreshableEffect(()=>{
   let active=true;setLoading(true);setError("");setData(undefined);
   void api.get<Choices>(`/project-management/tasks/${taskId}/transition-approvals`).then(response=>{if(active)setData(response.data);}).catch(e=>{if(active)setError(workspaceError(e));}).finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;};
- },[taskId,value,version,retry]);
+ },[taskId,value,version,retry,refreshKey]);
  const needsReview=(target:string)=>!!data?.transitions.find(item=>item.target===target)?.approval_required&&!data.requests.some(request=>request.target===target&&request.current&&request.status==="Approved");
  const locked=disabled||loading||busy||!!error||!data?.can_request;
  return <div className="min-w-0 space-y-1">

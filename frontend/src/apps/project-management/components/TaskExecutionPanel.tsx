@@ -12,7 +12,7 @@ import { type Person } from "./people/peopleTypes";
 export const managementBase = "/project-management/management";
 type Execution = {revision:number;blocked_reason:string;responsible_user_id:number|null;review_date:string|null;evidence_required:boolean;evidence:string};
 type Detail = {id:number;title:string;project_id:number;status:string;can_edit:boolean;execution:Execution;completion:{checklist:{id:number;title:string;done:boolean}[];subtasks:{id:number;title:string;done:boolean}[];blockers:string[]};note_sources:{id:number;title:string;href:string}[]};
-export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyChange,refreshKey}:{taskId:number;people?:Person[];onChanged?:()=>void;onDirtyChange?:(dirty:boolean)=>void;refreshKey?:string}) {
+export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyChange,refreshKey,onApprovalsLoaded}:{taskId:number;people?:Person[];onChanged?:()=>void;onDirtyChange?:(dirty:boolean)=>void;refreshKey?:string;onApprovalsLoaded?:()=>void}) {
  const [data,setData]=useState<Detail>();const [draft,setDraft]=useState<Execution>();const [error,setError]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  const load=async()=>{const {data}=await api.get<Detail>(`${managementBase}/tasks/${taskId}`);setData(data);setDraft(data.execution);setError("");};
  useEffect(()=>{setData(undefined);setDraft(undefined);void load().catch(e=>setError(workspaceError(e)));},[taskId]);
@@ -50,6 +50,6 @@ export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyCh
 </>},
  {id:"sources",label:"Sources",content:<>{!data.note_sources.length && <p className="text-sm text-muted-foreground">No linked source notes.</p>} {data.note_sources.map(n=><p key={n.id} className="text-sm">Original note: <Link className="underline" to={n.href}>{n.title}</Link> · visible to authorized note readers</p>)}</>},
  ]}/>
- <TransitionApprovals taskId={taskId} refreshKey={refreshKey} disabled={dirty||busy} onChanged={()=>{void load();onChanged?.();}}/>
+ <TransitionApprovals taskId={taskId} refreshKey={refreshKey} onLoaded={onApprovalsLoaded} disabled={dirty||busy} onChanged={()=>{void load();onChanged?.();}}/>
  </>:!error&&<p role="status">Loading execution details…</p>}</section>;
 }

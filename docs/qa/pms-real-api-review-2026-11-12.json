@@ -1,0 +1,10 @@
+{
+  "workspace": 1,
+  "project": 1,
+  "tasks": [
+    {"id": 1, "title": "Disposable API review task 1", "status": "Done", "comments": 0},
+    {"id": 2, "title": "Member retained real draft", "status": "To Do", "comments": 1},
+    {"id": 3, "title": "Disposable API review task 3", "status": "To Do", "comments": 0}
+  ],
+  "approvals": [{"id": 1, "status": "Applied"}]
+}
