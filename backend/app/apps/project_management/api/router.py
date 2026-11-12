@@ -3708,14 +3708,17 @@ def bulk_update_tasks(
     current_user: User = Depends(get_current_user),
 ):
     """Bulk update common planning fields across selected tasks."""
+    expected = bulk_in.expected_updated_at_by_task
+    if expected is not None and set(expected) != set(bulk_in.task_ids):
+        raise HTTPException(422, "Review versions must cover exactly the selected tasks")
     tasks = db.query(PMSTask).filter(
         PMSTask.id.in_(bulk_in.task_ids),
         PMSTask.deleted_at == None,
-    ).all()
+    ).order_by(PMSTask.id).all()
     if len(tasks) != len(set(bulk_in.task_ids)):
         raise HTTPException(status_code=404, detail="One or more tasks were not found")
 
-    update_data = bulk_in.dict(exclude={"task_ids"}, exclude_unset=True)
+    update_data = bulk_in.dict(exclude={"task_ids", "expected_updated_at_by_task"}, exclude_unset=True)
     by_project: dict[int, list[PMSTask]] = {}
     for task in tasks:
         by_project.setdefault(task.project_id, []).append(task)
@@ -3727,9 +3730,15 @@ def bulk_update_tasks(
         # Tasks were fetched before the project lock. Re-read their committed
         # state after a lock wait before checking transition approval bindings.
         for task in project_tasks:
-            db.refresh(task)
+            db.refresh(task, with_for_update=True)
             if task.deleted_at or task.project_id != project_id:
                 raise HTTPException(409, "A selected task changed project or was deleted. Reload before updating")
+            if expected is not None:
+                def utc_stamp(value):
+                    return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
+                if utc_stamp(expected[task.id]) != utc_stamp(task.updated_at):
+                    raise HTTPException(409, "A selected task changed after review. Review the latest tasks before applying again.")
+        revalidate_project_actor(db, project, current_user, "manage_tasks")
         _sync_task_planning_links(db, project_id, update_data, current_user)
         if update_data.get("sprint_id"):
             sprint = db.query(PMSSprint).filter(PMSSprint.id == update_data["sprint_id"], PMSSprint.project_id == project_id).first()

@@ -1257,7 +1257,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     if (bulkBusy || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)) return;
     if (action.confirm && !window.confirm(action.confirm(selectedRecords))) return;
     setBulkBusy(action.id); setActionError("");
-    try { await action.run(selectedRecords); emitSelection([]); await request.refetch(); }
+    try { const applied=await action.run(selectedRecords); if(applied===false)return; emitSelection([]); await request.refetch(); }
     catch (error) { setActionError(errorText(error)); }
     finally { setBulkBusy(undefined); }
   }
@@ -1934,7 +1934,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           {props.bulkToolbar}
           {(props.bulkActions || []).map(action => <button type="button" key={action.id} className={`udg-control ${action.danger ? "udg-danger" : ""}`}
             disabled={!!bulkBusy || !selectedRecords.length || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)}
-            onClick={() => void runBulkAction(action)}>{bulkBusy === action.id ? "Applying…" : action.label}</button>)}
+            onClick={() => void runBulkAction(action)}>{bulkBusy === action.id ? action.busyLabel||"Applying…" : action.label}</button>)}
           <button type="button" disabled={!!bulkBusy} onClick={() => emitSelection([])}>Clear selection</button>
           <small>
             Selection is kept across pages. Select All applies to loaded rows.

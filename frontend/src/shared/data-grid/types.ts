@@ -236,10 +236,11 @@ export type SharedDataGridProps<T> = {
   bulkActions?: {
     id: string;
     label: string;
+    busyLabel?:string;
     danger?: boolean;
     disabled?: (rows: T[]) => boolean;
     confirm?: (rows: T[]) => string;
-    run: (rows: T[]) => void | Promise<void>;
+    run: (rows: T[]) => void | boolean | Promise<void | boolean>;
   }[];
 };
 export const emptyQuery = (): GridQuery => ({

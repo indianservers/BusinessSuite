@@ -727,6 +727,7 @@ class PMSTaskDependencyDetail(PMSTaskDependencyResponse):
 
 class TaskBulkUpdateRequest(BaseModel):
     task_ids: List[int] = Field(..., min_length=1, max_length=200)
+    expected_updated_at_by_task: Optional[dict[int, Optional[datetime]]] = None
     status: Optional[str] = None
     assignee_user_id: Optional[int] = None
     priority: Optional[str] = None

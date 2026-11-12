@@ -253,8 +253,8 @@ export const tasksAPI = {
     return response.data;
   },
 
-  get: async (taskId: number) => {
-    const response = await api.get<PMSTask>(`${BASE_URL}/tasks/${taskId}`);
+  get: async (taskId: number, fresh=false) => {
+    const response = await api.get<PMSTask>(`${BASE_URL}/tasks/${taskId}`,fresh?{recordCache:false,_recordSyncBypass:true,headers:{"Cache-Control":"no-cache"}}:undefined);
     return response.data;
   },
 
@@ -277,6 +277,7 @@ export const tasksAPI = {
 
   bulkUpdate: async (payload: {
     task_ids: number[];
+    expected_updated_at_by_task?:Record<number,string|null>;
     status?: string;
     assignee_user_id?: number;
     priority?: string;
