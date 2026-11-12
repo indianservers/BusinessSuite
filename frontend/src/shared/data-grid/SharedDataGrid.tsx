@@ -1246,7 +1246,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const [undoBusy, setUndoBusy] = useState(false);
   const [busyAction, setBusyAction] = useState<string>();
   const actionInFlight = useRef(false);
-  const selectedRecords = selection.map(id => selectedCache.current.get(id)).filter((row): row is T => row !== undefined);
+  // Restored controlled selections contain IDs only. Resolve permitted rows from
+  // the current load before falling back to this grid's in-session page cache.
+  const visibleById = new Map(visibleRecords.map(row => [getRowId(row), row]));
+  const selectedRecords = selection.map(id => visibleById.get(id) ?? selectedCache.current.get(id)).filter((row): row is T => row !== undefined);
   async function runBulkAction(action: NonNullable<SharedDataGridProps<T>["bulkActions"]>[number]) {
     if (bulkBusy || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)) return;
     if (action.confirm && !window.confirm(action.confirm(selectedRecords))) return;

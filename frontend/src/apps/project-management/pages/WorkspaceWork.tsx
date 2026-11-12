@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useRouteViewState } from "@/hooks/use-route-view-state";
 import { matchesWorkFocus, localWorkDate, workFocusOptions, type WorkFocus } from "./workspaceFocus";
 import "./WorkspaceFocus.css";
 import { CustomFieldsForm, type FieldDraft } from "../components/CustomFields";
@@ -49,6 +50,7 @@ type Props = {
   tasks: Task[]; members: Member[]; projects: Project[]; view: "board" | "list" | "people" | "calendar" | "workload" | "activity";
   renderPlanning?: (tasks: Task[]) => ReactNode;
   onViewChange?: (view: Props["view"]) => void;
+  filterRevision?: number;
   searchInputRef?: RefObject<HTMLInputElement>; query: string;
   projectFilter: string; setProjectFilter: (v: string) => void; assigneeFilter: string; setAssigneeFilter: (v: string) => void;
   canEdit: boolean; updateTask: (task: Task, changes: Partial<Task>) => Promise<boolean>; onOpen: (id: number) => void;
@@ -60,7 +62,7 @@ type Props = {
 export function WorkspaceAvatar({ email, tone = "lilac", large = false }: { email: string; tone?: string; large?: boolean }) {
   return <span title={email} className={`ws-avatar ${tone} ${large ? "large" : ""}`}>{personName(email).split(" ").slice(0, 2).map(s => s[0]).join("").toUpperCase()}</span>;
 }
-export function WorkspaceWork({ tasks, members, projects, view, query, projectFilter, setProjectFilter, assigneeFilter, setAssigneeFilter, canEdit, updateTask, onOpen, onRefresh, onInvite, onError, onNotice, onClearSearch, renderMemberActions,onQueryChange,onCreateTask,workspaceId,renderPlanning,searchInputRef,onViewChange }: Props) {
+export function WorkspaceWork({ tasks, members, projects, view, query, projectFilter, setProjectFilter, assigneeFilter, setAssigneeFilter, canEdit, updateTask, onOpen, onRefresh, onInvite, onError, onNotice, onClearSearch, renderMemberActions,onQueryChange,onCreateTask,workspaceId,renderPlanning,searchInputRef,onViewChange,filterRevision=0 }: Props) {
   const viewer=useAuthStore(s=>s.user);
   const viewKey=`pms-board-view-${viewer?.id}-${viewer?.access?.companyId}-${workspaceId||"shared"}`;
   const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25);
@@ -69,13 +71,18 @@ export function WorkspaceWork({ tasks, members, projects, view, query, projectFi
   const [savedViewsHost,setSavedViewsHost]=useState<HTMLDivElement|null>(null);
   const [hasFilterSnapshot,setHasFilterSnapshot]=useState(false);
   useEffect(()=>{try{setHasFilterSnapshot(!!localStorage.getItem(viewKey));}catch{setHasFilterSnapshot(false);}},[viewKey]);
-  const [focus, setFocus] = useState<WorkFocus>("all");
+  const defaults={revision:filterRevision,focus:"all" as WorkFocus,priority:"",status:"",workType:"",selection:[] as string[]};
+  const [retained,setRetained]=useRouteViewState(`${viewKey}:collection`,defaults);
+  const current=retained.revision===filterRevision?retained:defaults;
+  const {focus,priority,status,workType,selection}=current;
+  const setFilter=<K extends keyof typeof defaults>(key:K,value:typeof defaults[K])=>setRetained(previous=>({...(previous.revision===filterRevision?previous:defaults),[key]:value}));
+  const setFocus=(value:WorkFocus)=>setFilter("focus",value);
+  const setPriority=(value:string)=>setFilter("priority",value);
+  const setStatus=(value:string)=>setFilter("status",value);
+  const setWorkType=(value:string)=>setFilter("workType",value);
   const [today, setToday] = useState(localWorkDate);
   useEffect(() => { const timer = window.setInterval(() => setToday(localWorkDate()), 30000); return () => window.clearInterval(timer); }, []);
-  useEffect(() => setFocus("all"), [viewKey]);
   const [peopleRole, setPeopleRole] = useState("");
-  const [priority, setPriority] = useState("");
-  const [status,setStatus]=useState("");const [workType,setWorkType]=useState("");
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [quickLane, setQuickLane] = useState<string | null>(null);
   const [quickTitle, setQuickTitle] = useState("");
@@ -175,7 +182,7 @@ export function WorkspaceWork({ tasks, members, projects, view, query, projectFi
     <DndContext sensors={sensors} collisionDetection={collision} onDragStart={e => setDraggedId(parseInt(String(e.active.id).replace("task-", ""), 10))} onDragEnd={e => { void drop(e); }} onDragCancel={() => setDraggedId(null)}>
       {view !== "people" && view !== "activity" && <div className={`ws-assignment-bar ${draggedId ? "dragging" : ""}`}><span><Users size={14} />{draggedId ? "Drop to assign" : "Your team"}</span><div>{members.filter(m => m.role !== "Guest").map((m, i) => <PersonDrop key={m.id} member={m} tone={tones[i % tones.length]} disabled={!canEdit} />)}<PersonDrop disabled={!canEdit} /></div>{onInvite && <button aria-label="Invite a teammate" className="ws-add-person" onClick={onInvite}><Plus size={14} /></button>}</div>}
       {view === "board" && <div className="ws-board">{lanes.map(lane => { const items = filtered.filter(t => bucket(t.status) === lane.status); return <StatusLane key={lane.status} {...lane} count={items.length} disabled={!canEdit}><SortableContext items={items.map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}>{items.map(t => renderCard(t))}</SortableContext>{!items.length && <div className="ws-lane-empty"><Circle size={19} /><span>{lane.status === "Done" ? "Good things take teamwork." : "A little breathing room."}</span></div>}{canEdit && (quickLane === lane.status ? <CompactForm className="ws-quick-add" onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); setQuickLane(null); } }} onSubmit={e => { e.preventDefault(); void quickAdd(lane.status); }}><input autoFocus aria-label={`New task in ${lane.label}`} placeholder="What needs to get done?" value={quickTitle} onChange={e => setQuickTitle(e.target.value)} required /><CustomFieldsForm placement="quick_create" entity="task" workType="Task" projectId={createProjectId} values={quickFields} onChange={setQuickFields}/><div><small>{projectFor(createProjectId)?.name || "Create a project first"}</small><button type="button" aria-label="Cancel quick add" onClick={() => setQuickLane(null)}><X size={14} /></button><Button type="submit" variant="default" className="ws-mini-primary" disabled={adding || !createProjectId}>Add</Button></div></CompactForm> : <Button type="submit" variant="default" className="ws-add-task suite-task-button" onClick={() => { setQuickLane(lane.status); setQuickTitle(""); }}><Plus size={15} />Add task</Button>)}</StatusLane>; })}</div>}
-      {view !== "people" && view !== "activity" && <div className="ws-table-wrap" hidden={view!=="list"} style={view!=="list"?{display:"none"}:undefined}><LocalRecordGrid<Task> gridId={`pms-workspace-work-${workspaceId || "shared"}`} compactControls hideSearch={!!onQueryChange} rows={filtered} getRowId={task => String(task.id)} onOpen={task => onOpen(task.id)} renderRowActions={(task,actions)=><RecordActions preview={false} record={{...task,key:task.task_key,project_name:projectFor(task.project_id)?.name}} canEdit={canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,name:personName(m.email)}))} onOpen={()=>onOpen(task.id)} onChanged={onRefresh} extraActions={actions.map(action=>({label:action.label,icon:action.icon?<action.icon size={15}/>:undefined,disabled:action.disabled?.(task),danger:action.danger,run:()=>{void action.run(task);}}))}>{menu=><span>{menu}</span>}</RecordActions>}
+      {view !== "people" && view !== "activity" && <div className="ws-table-wrap" hidden={view!=="list"} style={view!=="list"?{display:"none"}:undefined}><LocalRecordGrid<Task> selectedIds={selection} onSelectionChange={(_records,ids)=>setFilter("selection",ids)} gridId={`pms-workspace-work-${workspaceId || "shared"}`} compactControls hideSearch={!!onQueryChange} rows={filtered} getRowId={task => String(task.id)} onOpen={task => onOpen(task.id)} renderRowActions={(task,actions)=><RecordActions preview={false} record={{...task,key:task.task_key,project_name:projectFor(task.project_id)?.name}} canEdit={canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,name:personName(m.email)}))} onOpen={()=>onOpen(task.id)} onChanged={onRefresh} extraActions={actions.map(action=>({label:action.label,icon:action.icon?<action.icon size={15}/>:undefined,disabled:action.disabled?.(task),danger:action.danger,run:()=>{void action.run(task);}}))}>{menu=><span>{menu}</span>}</RecordActions>}
         onPersonalFilterChange={setPersonalFilter}
         savedViewsHost={savedViewsHost} savedViewsLabel="Saved views" viewContext={{...filterContext,presentation:view}} onViewContextChange={restoreFilters}
         savedViewsExtra={<section className="wb-filter-snapshot" aria-label="Last filter snapshot"><strong>Last filter snapshot</strong><p>Quick save for this workspace. Named views above also include table layout and workspace filters.</p><button type="button" className="udg-control" onClick={saveFilterSnapshot}>Save filter snapshot</button>{hasFilterSnapshot&&<button type="button" className="udg-control" onClick={restoreFilterSnapshot}>Restore filter snapshot</button>}</section>}
