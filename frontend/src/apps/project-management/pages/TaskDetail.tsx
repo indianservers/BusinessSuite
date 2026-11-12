@@ -16,6 +16,7 @@ import WorkReviewPanel from "../components/WorkReviewPanel";
 import RecordActions from "../components/RecordActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
 import TaskPropertyStrip from "../components/TaskPropertyStrip";
+import TaskStatusControl from "../components/TaskStatusControl";
 import { useModuleAction } from "@/hooks/use-module-action";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -817,20 +818,15 @@ function ScopedTaskDetail() {
             </div>
           </div>
           <TaskPropertyStrip className="mt-4"
- status={<NativeSelect aria-label="Task status" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true}
-                  value={task.status}
-                  onChange={(event) => {
-                    const nextStatus = event.target.value as TaskStatus;
+ status={<TaskStatusControl taskId={task.id} version={task.updated_at} value={task.status} disabled={saving||!!editConflict||!allowTaskEdit||project?.can_manage_tasks!==true}
+                  onSave={(value) => {
+                    const nextStatus = value as TaskStatus;
                     if (shouldPreventClosingTask(nextStatus, checklist)) {
                       setChecklistError("Complete all checklist items before closing this task.");
                       return;
                     }
-                    updateTask({ status: nextStatus });
-                  }}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                >
-                  {taskStatuses.map((item) => <option key={item}>{item}</option>)}
-                </NativeSelect>}
+                    return updateTask({ status: nextStatus });
+                  }}/>}
  assignees={<AssigneePicker projectId={task.project_id} people={subtaskPeople} value={taskAssignees(task)} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={ids=>updateTask({assignee_user_ids:ids})}/>}
  priority={<PriorityPicker value={task.priority} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={priority=>updateTask({priority})}/>}
  estimate={<Input aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.estimated_hours??""} onChange={event=>setTask({...task,estimated_hours:Number(event.target.value||0)})} onBlur={()=>updateTask({estimated_hours:task.estimated_hours} as any)}/>}
@@ -849,7 +845,7 @@ function ScopedTaskDetail() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <TaskExecutionPanel taskId={task.id} onChanged={()=>void loadTaskData(true)} />
+          <TaskExecutionPanel taskId={task.id} refreshKey={`${task.updated_at||""}:${task.status}`} onChanged={()=>void loadTaskData(true)} />
           <RunningTimer key={`timer-${task.id}`} projects={project ? [project] : []} fixedTask={task} onSaved={() => { void tasksAPI.listTimeLogs(task.id).then(setTimeLogs).catch(() => setError("Time saved, but time logs could not be refreshed. Reload to retry.")); refreshActivity(); }} />
           <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
           <Card>

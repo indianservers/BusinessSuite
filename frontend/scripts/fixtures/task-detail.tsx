@@ -56,7 +56,10 @@ api.defaults.adapter=async config=>{
   if(rejectReads)throw new AxiosError("Disposable task read rejected","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture task could not be loaded."},status:503,statusText:"Unavailable",headers:{},config});
   data={...task};
  }
- else if(path.endsWith("/transition-approvals"))data={can_request:false,transitions:[],requests:[]};
+ else if(path.endsWith("/transition-approvals")){
+  if(rejectReads)throw new AxiosError("Fixture choices read failed","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture workflow choices could not be loaded."},status:503,statusText:"Unavailable",headers:{},config});
+  data=new URLSearchParams(location.search).has("workflow")?{can_request:!readOnly,transitions:task.status==="To Do"?[{target:"In Review",approval_required:false},{target:"Done",approval_required:true}]:[{target:"Done",approval_required:false}],requests:new URLSearchParams(location.search).has("approved")?[{id:90001,target:"Done",current:true,status:"Approved",steps:[]}]:[]}:{can_request:false,transitions:[],requests:[]};
+ }
  else if(path==="/project-management/timer")data=null;
  else if(path===`/project-management/projects/${projectId}`)data={id:projectId,name:"Recovery fixture project",project_key:"FIX",can_manage_tasks:!readOnly,status:"Active"};
  else if(path.includes("/custom-fields"))data={fields:[],can_edit:true};

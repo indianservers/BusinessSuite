@@ -10,12 +10,12 @@ import "./transition-approval-controls-mobile.css";
 
 type Approval = {id:number;status:string;current:boolean;target:string;steps:{id:number;assigned_to_user_id:number|null;reviewer:string;status:string;decision:string|null;reason:string|null;can_decide:boolean}[]};
 type Data = {can_request:boolean;transitions:{target:string;approval_required:boolean}[];requests:Approval[]};
-type Props={taskId:number;onChanged?:()=>void;disabled?:boolean;registerLeaveGuard?:(guard:(()=>boolean)|undefined)=>void};
+type Props={taskId:number;onChanged?:()=>void;disabled?:boolean;registerLeaveGuard?:(guard:(()=>boolean)|undefined)=>void;refreshKey?:string};
 export default function TransitionApprovals(props:Props){
  const scope=useMobileContext();
  return <ApprovalContents key={scope} {...props}/>;
 }
-function ApprovalContents({taskId,onChanged,disabled=false,registerLeaveGuard}:Props) {
+function ApprovalContents({taskId,onChanged,disabled=false,registerLeaveGuard,refreshKey}:Props) {
  const phone=useMobile(480),pending=useRef(false),reading=useRef(false);
  const mounted=useRef(true),currentTask=useRef(taskId),saved=useRef(false);
  currentTask.current=taskId;
@@ -58,6 +58,7 @@ function ApprovalContents({taskId,onChanged,disabled=false,registerLeaveGuard}:P
   finally{if(owns(owned,scope,task)){reading.current=false;setLoading(false);}}
  }
  useEffect(()=>{let active=true;const owned=phone,scope=syncScope(),task=taskId;setData(undefined);setTarget("");setReason("");setError("");if(owned)setDirty(false);if(owned){pending.current=false;saved.current=false;setBusy(false);setAwaitingRefresh(false);}reading.current=true;setLoading(true);void api.get<Data>(url).then(r=>{if(active&&owns(owned,scope,task))setData(r.data);}).catch(e=>{if(active&&owns(owned,scope,task))setError(workspaceError(e));}).finally(()=>{if(active&&owns(owned,scope,task)){reading.current=false;setLoading(false);}});return()=>{active=false;};},[taskId]);
+ useEffect(()=>{if(data&&!busy)void load().catch(e=>setError(workspaceError(e)));},[refreshKey]);
  async function act(work:()=>Promise<unknown>){
   if(phone&&(pending.current||reading.current||disabled||saved.current))return;
   const owned=phone,scope=syncScope(),task=taskId;
