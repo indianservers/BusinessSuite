@@ -1,0 +1,124 @@
+{
+  "workspace": 1,
+  "project": 1,
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Peer saved title again",
+      "status": "In Review",
+      "description": "Local manual review only",
+      "updated_at": "2026-11-12T20:23:06.715787",
+      "comments": 0
+    },
+    {
+      "id": 2,
+      "title": "Peer task two revised",
+      "status": "To Do",
+      "description": "Local manual review only",
+      "updated_at": "2026-11-12T20:26:40.66896",
+      "comments": 0
+    },
+    {
+      "id": 3,
+      "title": "Disposable API review task 3",
+      "status": "To Do",
+      "description": "Local manual review only",
+      "updated_at": null,
+      "comments": 0
+    }
+  ],
+  "approvals": [],
+  "task_writes": [
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 409,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 409,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/1",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/2",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/2",
+      "status": 409,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/2",
+      "status": 200,
+      "fields": [
+        "expected_updated_at",
+        "title"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/2",
+      "status": 409,
+      "fields": [
+        "expected_updated_at",
+        "status"
+      ]
+    }
+  ],
+  "injected_read_failures": [
+    {
+      "path": "/api/v1/project-management/tasks/3/transition-approvals",
+      "status": 503
+    },
+    {
+      "path": "/api/v1/project-management/tasks/3/transition-approvals",
+      "status": 503
+    }
+  ]
+}

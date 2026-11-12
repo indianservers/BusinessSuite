@@ -106,7 +106,7 @@ export function WorkspaceWork({ tasks, members, projects, view, query, projectFi
   const columns:GridColumn<Task>[] = [
           { id: "title", title: "Task", width: 300, accessor: task => task.title, render: task => <button data-record-open="" className="ws-list-title" onClick={() => onOpen(task.id)}><Circle size={15}/><span><small>{task.task_key}</small>{task.title}</span></button> },
           { id: "project", title: "Project", accessor: task => projectFor(task.project_id)?.name },
-          { id: "status", title: "Status", type: "status", render: task => <TaskInlineStatusControl task={task} disabled={!canEdit} onSave={status=>updateTask(task,{status})}/> },
+          { id: "status", title: "Status", type: "status", render: task => <TaskInlineStatusControl key={task.id} task={task} disabled={!canEdit} onSave={(status,reviewed)=>updateTask(reviewed,{status})} onRefresh={onRefresh}/> },
           { id: "assignees", title: "Assignees", width: 220, accessor: task => taskAssignees(task).map(id => personName(memberFor(id)?.email || "Unknown")).join(", "), render: task => <AssigneePicker label={`Assignees for ${task.title}`} disabled={!canEdit} people={members.filter(m=>m.role!=="Guest").map(m=>({id:m.user_id,email:m.email}))} value={taskAssignees(task)} onChange={ids=>updateTask(task,{assignee_user_ids:ids})}/> },
           { id: "due_date", title: "Due date", type: "date", render: task => dateLabel(task.due_date) },
           { id: "priority", title: "Priority", type: "status", render: task => <span data-priority-badge data-priority={task.priority} className={`ws-priority ${task.priority.toLowerCase()}`}><Flag size={11}/>{task.priority}</span> },
