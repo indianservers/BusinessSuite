@@ -117,5 +117,40 @@
     "exit_code": 0,
     "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nRecord 360 and PMS queue: source work/links, history errors/retry, filters, expansion, pagination, existing editor/actions, record switching, queue views/source/search; seven mobile widths, long values, touch targets, activity callback and unchanged tablet/desktop detail styles passed.\n",
     "seconds": 17.984
+  },
+  {
+    "script": "test-task-record-links.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Port 5173 is in use, trying another one...\nPort 5174 is in use, trying another one...\nTask CRM links: existing picker, contact/lead links, unlink, permission failure and read-only rendering passed.\n",
+    "seconds": 15.719
+  },
+  {
+    "script": "test-validation.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "295 frontend validation checks passed.\n",
+    "seconds": 0.265
+  },
+  {
+    "script": "test-phone-selector.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "form: default codes, compact width, search, mouse/keyboard selection, shared codes, clipping and focus passed\ndialog: default codes, compact width, search, mouse/keyboard selection, shared codes, clipping and focus passed\nConfigured phone code applies to new fields\n",
+    "seconds": 6.735
+  },
+  {
+    "script": "test-currency-selector.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "output": "Currency selector browser checks passed\n",
+    "seconds": 1.718
+  },
+  {
+    "script": "test-accounting-connected.cjs",
+    "status": "FAIL",
+    "exit_code": 1,
+    "output": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5198/accounting-sync-qa.html?panel=customer\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:5198/accounting-sync-qa.html?panel=customer\", waiting until \"load\"\u001b[22m\n\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\scripts\\test-accounting-connected.cjs:20:293 {\n  name: 'Error'\n}\n",
+    "seconds": 2.797
   }
 ]
