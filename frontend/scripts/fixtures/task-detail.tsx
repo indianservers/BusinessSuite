@@ -6,6 +6,10 @@ import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import {AxiosError} from "axios";
 import AppLayout from "../../src/components/layout/AppLayout";
 import TaskDetail from "../../src/apps/project-management/pages/TaskDetail";
+import {TaskDrawer} from "../../src/apps/project-management/pages/WorkspaceWork";
+import type {WorkTask} from "../../src/apps/project-management/pages/workspaceTypes";
+import "../../src/apps/project-management/pages/workspaces.css";
+import "../../src/apps/project-management/pages/WorkspaceBoardChrome.css";
 import {api} from "../../src/services/api";
 import {useAuthStore} from "../../src/store/authStore";
 import "../../src/index.css";
@@ -15,6 +19,7 @@ if(!import.meta.env.DEV||!["localhost","127.0.0.1"].includes(location.hostname))
 const taskId=new URLSearchParams(location.search).has("loadFailure")?88611:88601,projectId=88602,userId=88603;
 const readOnly=new URLSearchParams(location.search).has("readOnly");
 let rejectSaves=true,attempts=0;
+let fixtureComments:unknown[]=[];
 let rejectReads=new URLSearchParams(location.search).has("loadFailure");
 let task={id:taskId,project_id:projectId,task_key:"FIX-1",title:"Disposable recovery task",description:"Fixture description",status:"To Do",priority:"High",work_type:"Task",assignee_user_ids:[],reporter_user_id:userId,estimated_hours:2,story_points:0,position:0,created_at:"2026-11-11T00:00:00Z",updated_at:"2026-11-11T00:00:00Z"};
 // No token means the task realtime hook cannot open a socket or publish presence.
@@ -28,7 +33,12 @@ function Controls(){
 api.defaults.adapter=async config=>{
  const path=new URL(config.url||"/","http://fixture.invalid").pathname,method=(config.method||"get").toLowerCase();
  let data:unknown=[];
- if(method==="patch"&&path===`/project-management/tasks/${taskId}`){
+ if(method==="post"&&path===`/project-management/tasks/${taskId}/comments`){
+  if(readOnly||rejectSaves)throw new AxiosError("Disposable comment save rejected","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture comment failed. Retain the draft and retry."},status:403,statusText:"Forbidden",headers:{},config});
+  const changes=typeof config.data==="string"?JSON.parse(config.data):config.data;
+  data={id:fixtureComments.length+1,author_user_id:userId,created_at:"2026-11-12T10:00:00Z",...changes};fixtureComments.push(data);
+ }else if(method==="get"&&path===`/project-management/tasks/${taskId}/comments`){data=fixtureComments;}
+ else if(method==="patch"&&path===`/project-management/tasks/${taskId}`){
   if(readOnly)throw new AxiosError("Read-only fixture task","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Task updates are not permitted"},status:403,statusText:"Forbidden",headers:{},config});
   attempts++;notify();
   if(rejectSaves)throw new AxiosError("Disposable task save rejected","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture save failed. Your draft should remain available."},status:422,statusText:"Unprocessable Entity",headers:{},config});
@@ -52,4 +62,9 @@ api.defaults.adapter=async config=>{
  else if(path.includes("notifications"))data={items:[],unread:0,total:0};
  return {data,status:200,statusText:"OK",headers:{},config};
 };
-createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><MemoryRouter initialEntries={[`/pms/tasks/${taskId}`]}><Controls/><Routes><Route element={<AppLayout/>}><Route path="/pms/tasks/:taskId" element={<TaskDetail/>}/></Route></Routes></MemoryRouter></QueryClientProvider>);
+function DrawerFixture(){
+ const [record,setRecord]=useState<WorkTask>({...task,comments_count:0}),[open,setOpen]=useState(true),[error,setError]=useState("");
+ useEffect(()=>{const refresh=(event:KeyboardEvent)=>{if(event.key==="F8"){event.preventDefault();setRecord(current=>({...current,comments_count:current.comments_count+1}));}if(event.key==="F9"){event.preventDefault();rejectSaves=false;}};window.addEventListener("keydown",refresh);return()=>window.removeEventListener("keydown",refresh);},[]);
+ return <><button onClick={()=>setOpen(true)}>Open fixture task</button><button onClick={()=>setRecord(current=>({...current,comments_count:current.comments_count+1}))}>Refresh fixture conversation</button><TaskDrawer task={open?record:undefined} members={[]} canEdit={!readOnly} onClose={()=>setOpen(false)} onUpdate={async(_,changes)=>{setRecord(current=>({...current,...changes}));return true;}} onRefresh={async()=>{setRecord(current=>({...current,comments_count:current.comments_count+1}));}} onError={setError} error={error}/></>;
+}
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><MemoryRouter initialEntries={[`/pms/tasks/${taskId}`]}><Controls/><Routes><Route element={<AppLayout/>}><Route path="/pms/tasks/:taskId" element={new URLSearchParams(location.search).has("drawer")?<DrawerFixture/>:<TaskDetail/>}/></Route></Routes></MemoryRouter></QueryClientProvider>);
