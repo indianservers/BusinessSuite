@@ -1386,7 +1386,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/fam": ["admin", "ceo", "hr", "manager"],
 };
 
-export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false): boolean {
   if (/^\/(crm|srm|hrms|fam)\/workspaces\/?$/.test(pathname)) return canAccessRoute("/" + pathname.split("/")[1], role, isSuperuser);
   if (pathname === "/connectors") return true;
   if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);

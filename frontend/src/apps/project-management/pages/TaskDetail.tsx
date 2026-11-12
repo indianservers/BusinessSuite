@@ -14,6 +14,7 @@ import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } fro
 import { insertRichMention } from "@/components/rich-text/content";
 import WorkReviewPanel from "../components/WorkReviewPanel";
 import RecordActions from "../components/RecordActions";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -104,6 +105,12 @@ function shouldPreventClosingTask(nextStatus: string, checklist: PMSChecklistIte
 }
 
 export default function TaskDetail() {
+  const scope = useRecordScope();
+  const {projectId,taskId} = useParams<{projectId:string;taskId:string}>();
+  return <ScopedTaskDetail key={`${scope}:${projectId||""}:${taskId||""}`}/>;
+}
+
+function ScopedTaskDetail() {
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<PMSTask | null>(null);
@@ -229,7 +236,7 @@ export default function TaskDetail() {
         setAvailableTags(availableTagResponse);
       })
       .catch((err) => {
-        if (active) setError(err?.response?.data?.detail || "Unable to load task.");
+        if (active) setError(workspaceError(err));
       })
       .finally(() => {
         if (active) setLoading(false);
