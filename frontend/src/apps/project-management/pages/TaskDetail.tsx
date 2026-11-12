@@ -17,7 +17,7 @@ import RecordActions from "../components/RecordActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
 import TaskPropertyStrip from "../components/TaskPropertyStrip";
 import { useModuleAction } from "@/hooks/use-module-action";
-import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -86,6 +86,7 @@ type ActivitySort = "desc" | "asc";
 
 const taskStatuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done", "Cancelled"];
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
+const taskDraftFields = ["title", "description", "estimated_hours", "story_points"] as const;
 const checklistCloseGuardConfig = {
   warnOnIncompleteBeforeClose: false,
 };
@@ -117,6 +118,12 @@ function ScopedTaskDetail() {
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<PMSTask | null>(null);
+  const taskRef = useRef(task);
+  taskRef.current = task;
+  const savedTask = useRef<PMSTask|null>(null);
+  const [remoteChange, setRemoteChange] = useState(false);
+  const [editConflict, setEditConflict] = useState<{changes:Partial<PMSTask>;latest?:PMSTask}|null>(null);
+  const [reviewingConflict, setReviewingConflict] = useState(false);
   const [project, setProject] = useState<PMSProject | null>(null);
   const [sprints, setSprints] = useState<PMSSprint[]>([]);
   const [epics, setEpics] = useState<PMSEpic[]>([]);
@@ -193,7 +200,14 @@ function ScopedTaskDetail() {
       .get(numericTaskId)
       .then(async (taskResponse) => {
         if (!active) return;
-        setTask(taskResponse);
+        const current = taskRef.current;
+        const hasDraft = current && savedTask.current && taskDraftFields.some(field=>current[field]!==savedTask.current?.[field]);
+        if (hasDraft) {
+          if (taskResponse.updated_at!==savedTask.current?.updated_at) setRemoteChange(true);
+        } else {
+          savedTask.current=taskResponse;
+          setTask(taskResponse);
+        }
         const [
           projectResponse,
           sprintResponse,
@@ -290,18 +304,38 @@ function ScopedTaskDetail() {
 
   const refreshActivity = () => tasksAPI.listActivity(task.id).then(setActivity).catch(() => undefined);
 
-  const updateTask = async (data: Partial<PMSTask>) => {
+  const updateTask = async (data: Partial<PMSTask>, reviewed?:PMSTask) => {
+    if (editConflict && !reviewed) return;
+    const submitted = taskRef.current || task;
     setSaving(true);
     try {
-      const updated = await tasksAPI.update(task.id, data as any);
-      setTask(updated);
+      const updated = await tasksAPI.update(task.id, {...data,expected_updated_at:(reviewed||submitted).updated_at??null} as any);
+      savedTask.current=updated;
+      // Preserve fields outside this save and edits made while the request ran.
+      const current=taskRef.current;
+      const retained:Partial<PMSTask>={};
+      if(current) for(const field of taskDraftFields){
+        if(current[field]!==submitted[field] || ((field in data)?current[field]!==data[field]:current[field]!==updated[field])) (retained as any)[field]=current[field];
+      }
+      setTask({...updated,...retained});
+      setEditConflict(null);
+      setRemoteChange(false);
       setError(null);
       refreshActivity();
     } catch (err: any) {
       setError(workspaceError(err));
+      if(err?.response?.status===409 && typeof err.response.data?.detail==="string" && err.response.data.detail.startsWith("This task changed while you were editing.")) setEditConflict({changes:data});
     } finally {
       setSaving(false);
     }
+  };
+
+  const reviewLatestTask = async () => {
+    if(!editConflict) return;
+    setReviewingConflict(true);
+    try { const latest=await tasksAPI.get(task.id);setEditConflict(current=>current?{...current,latest}:null);setError(null); }
+    catch(err){setError(workspaceError(err));}
+    finally{setReviewingConflict(false);}
   };
 
   const addComment = async (event: FormEvent) => {
@@ -720,7 +754,19 @@ function ScopedTaskDetail() {
 
   return (
     <div className="space-y-6">
+      {remoteChange && !editConflict && <p role="status" className="rounded-lg border p-3 text-sm">This task changed elsewhere. Your local fields are retained. Saving will check for conflicts.</p>}
+      {!remoteChange && !editConflict && savedTask.current && taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]) && <p role="status" className="text-sm text-muted-foreground">You have unsaved task fields. Use Save to keep your changes.</p>}
       {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p><p>Your current task fields are still available below. Review the error before retrying.</p><Button type="button" variant="outline" onClick={()=>setError(null)}>Dismiss error</Button></div>}
+      {editConflict && <section aria-label="Review task conflict" className="space-y-3 rounded-lg border border-amber-300 bg-background p-4">
+        <h2 className="font-semibold">Review changes before saving</h2>
+        <p className="text-sm">Your attempted changes and local editor are retained. Load the latest task to compare before choosing what to keep.</p>
+        <Button type="button" variant="outline" disabled={reviewingConflict||saving} onClick={reviewLatestTask}>{reviewingConflict?"Loading latest task…":"Review latest task"}</Button>
+        {editConflict.latest && <><div className="space-y-3">{Object.entries(editConflict.changes).map(([field,value])=>{
+          const label=field.replace(/_user_ids?$/, "s").replace(/_/g," ").replace(/^./,letter=>letter.toUpperCase());
+          const display=(item:unknown)=>item==null||item===""?"Not set":Array.isArray(item)?item.map(id=>subtaskPeople.find(person=>person.id===id)?.name||`Person #${id}`).join(", ")||"Unassigned":String(item);
+          return <div key={field} className="min-w-0 rounded border p-3"><h3 className="text-sm font-semibold">{label}</h3><div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2"><div className="min-w-0 break-words"><p className="text-xs text-muted-foreground">Latest saved value</p>{field==="description"?<RichTextContent value={String(editConflict.latest?.description||"")}/>:<p>{display((editConflict.latest as any)[field])}</p>}</div><div className="min-w-0 break-words"><p className="text-xs text-muted-foreground">Your attempted value</p>{field==="description"?<RichTextContent value={String(value||"")}/>:<p>{display(value)}</p>}</div></div></div>;
+        })}</div><div className="flex flex-wrap gap-2"><Button type="button" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onClick={()=>updateTask(editConflict.changes,editConflict.latest)}>Apply reviewed changes</Button><Button type="button" variant="outline" disabled={saving} onClick={()=>{savedTask.current=editConflict.latest!;setTask(editConflict.latest!);setEditConflict(null);setRemoteChange(false);setError(null);}}>Discard local changes and use latest</Button></div><p className="text-xs text-muted-foreground">Apply saves only the attempted fields shown above. Further changes on the server will require another review.</p></>}
+      </section>}
       <div className="flex flex-wrap items-center gap-3"><ConversationLauncher module="PMS" context={{type:"task",id:numericTaskId}}/><TaskConversationSource taskId={numericTaskId}/></div>
       <Button variant="ghost" onClick={() => navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks")}>
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
@@ -760,7 +806,7 @@ function ScopedTaskDetail() {
               <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
 </div></details>
               <ActionToolbar label="Task record actions" actions={[
-                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours})},
+                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours,story_points:task.story_points})},
                 {id:"comment",kind:"sms",label:"Comment",tooltip:"Add a comment to this task",prominent:true,onSelect:()=>setActiveTab("comments")},
                 {id:"file",kind:"upload",label:"Attach File",prominent:true,onSelect:()=>setActiveTab("files")},
                 {id:"time",kind:"time",label:"Log Time",tooltip:"Record time spent on this task",onSelect:()=>setActiveTab("time")},

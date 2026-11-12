@@ -258,7 +258,7 @@ export const tasksAPI = {
     return response.data;
   },
 
-  update: async (taskId: number, data: Partial<CreateTaskInput>) => {
+  update: async (taskId: number, data: Partial<CreateTaskInput> & {expected_updated_at?:string|null}) => {
     const response = await api.patch<PMSTask>(
       `${BASE_URL}/tasks/${taskId}`,
       data

@@ -12,23 +12,26 @@ import "../../src/apps/project-management/pages/workspaces.css";
 import "../../src/apps/project-management/pages/WorkspaceBoardChrome.css";
 import {api} from "../../src/services/api";
 import {useAuthStore} from "../../src/store/authStore";
+import {recordSavedEvent} from "../../src/lib/record-changes";
 import "../../src/index.css";
 import "../../src/design-system/premium.css";
 
 if(!import.meta.env.DEV||!["localhost","127.0.0.1"].includes(location.hostname))throw new Error("Loopback development fixture only");
 const taskId=new URLSearchParams(location.search).has("loadFailure")?88611:88601,projectId=88602,userId=88603;
 const readOnly=new URLSearchParams(location.search).has("readOnly");
-let rejectSaves=true,attempts=0;
+let rejectSaves=!new URLSearchParams(location.search).has("conflict"),attempts=0,editRevision=0;
 let fixtureComments:unknown[]=[];
 let rejectReads=new URLSearchParams(location.search).has("loadFailure");
 let task={id:taskId,project_id:projectId,task_key:"FIX-1",title:"Disposable recovery task",description:"Fixture description",status:"To Do",priority:"High",work_type:"Task",assignee_user_ids:[],reporter_user_id:userId,estimated_hours:2,story_points:0,position:0,created_at:"2026-11-11T00:00:00Z",updated_at:"2026-11-11T00:00:00Z"};
 // No token means the task realtime hook cannot open a socket or publish presence.
 useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:null,user:{id:userId,email:"task-recovery@example.test",role:"admin",is_superuser:true,access:{companyId:88600,companyName:"DISPOSABLE TASK FIXTURE",managed:false,modules:[],grants:{},organizations:[],memberships:[],isAccessAdmin:true,isGlobalAdmin:true}}});
 const notify=()=>window.dispatchEvent(new Event("qa:task-recovery"));
+function remoteEdit(){task={...task,title:`Other editor revision ${++editRevision}`,updated_at:new Date(Date.UTC(2026,10,12,12,0,editRevision)).toISOString()};notify();}
 function Controls(){
- const [failure,setFailure]=useState(true),[readFailure,setReadFailure]=useState(rejectReads),[saved,setSaved]=useState(task.title),[savedEstimate,setSavedEstimate]=useState(task.estimated_hours),[count,setCount]=useState(0);
+ const [failure,setFailure]=useState(rejectSaves),[readFailure,setReadFailure]=useState(rejectReads),[saved,setSaved]=useState(task.title),[savedEstimate,setSavedEstimate]=useState(task.estimated_hours),[count,setCount]=useState(0);
  useEffect(()=>{const changed=()=>{setSaved(task.title);setSavedEstimate(task.estimated_hours);setCount(attempts);};window.addEventListener("qa:task-recovery",changed);return()=>window.removeEventListener("qa:task-recovery",changed);},[]);
- return <aside aria-label="Disposable task recovery controls" style={{position:"fixed",right:12,bottom:80,zIndex:99999,maxWidth:290,background:"white",padding:12,border:"1px solid"}}><button type="button" onClick={()=>{rejectSaves=!failure;setFailure(!failure);}}>{failure?"Allow task saves":"Fail task saves"}</button><button type="button" onClick={()=>{rejectReads=!readFailure;setReadFailure(!readFailure);}}>{readFailure?"Allow task reads":"Fail task reads"}</button><p>Fixture save attempts: {count}</p><output aria-label="Fixture persisted title">{saved}</output><output aria-label="Fixture persisted estimate">{savedEstimate}</output><p>In-memory task only; no business data is written.</p></aside>;
+ useEffect(()=>{const simulate=(event:KeyboardEvent)=>{if(event.key!=="F6")return;event.preventDefault();remoteEdit();window.dispatchEvent(new CustomEvent(recordSavedEvent,{detail:{url:`/project-management/tasks/${taskId}`,method:"patch",record:task}}));};window.addEventListener("keydown",simulate);return()=>window.removeEventListener("keydown",simulate);},[]);
+ return <aside aria-label="Disposable task recovery controls" style={{position:"fixed",right:12,bottom:80,zIndex:99999,maxWidth:290,background:"white",padding:12,border:"1px solid"}}><button type="button" onClick={()=>{rejectSaves=!failure;setFailure(!failure);}}>{failure?"Allow task saves":"Fail task saves"}</button><button type="button" onClick={()=>{rejectReads=!readFailure;setReadFailure(!readFailure);}}>{readFailure?"Allow task reads":"Fail task reads"}</button><button type="button" onClick={()=>{task={...task,title:`Other editor revision ${++editRevision}`,updated_at:new Date(Date.UTC(2026,10,12,12,0,editRevision)).toISOString()};notify();}}>Simulate another editor</button><p>Fixture save attempts: {count}</p><output aria-label="Fixture persisted title">{saved}</output><output aria-label="Fixture persisted estimate">{savedEstimate}</output><p>In-memory task only; no business data is written.</p></aside>;
 }
 api.defaults.adapter=async config=>{
  const path=new URL(config.url||"/","http://fixture.invalid").pathname,method=(config.method||"get").toLowerCase();
@@ -43,6 +46,9 @@ api.defaults.adapter=async config=>{
   attempts++;notify();
   if(rejectSaves)throw new AxiosError("Disposable task save rejected","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Fixture save failed. Your draft should remain available."},status:422,statusText:"Unprocessable Entity",headers:{},config});
   const changes=typeof config.data==="string"?JSON.parse(config.data):config.data;
+  if(Object.prototype.hasOwnProperty.call(changes,"expected_updated_at")&&changes.expected_updated_at!==task.updated_at)throw new AxiosError("Stale fixture task","ERR_BAD_REQUEST",config,undefined,{data:{detail:"This task changed while you were editing. Your changes were not saved. Review the latest task before retrying."},status:409,statusText:"Conflict",headers:{},config});
+  delete changes.expected_updated_at;
+  changes.updated_at=new Date(Date.UTC(2026,10,12,12,0,++editRevision)).toISOString();
   task={...task,...changes};data={...task};notify();
  }else if(!["get","head","options"].includes(method)&&!config.readOnlyPreview){
   throw new AxiosError("Fixture write disabled","ERR_BAD_REQUEST",config,undefined,{data:{detail:"Only the disposable task save is supported"},status:403,statusText:"Forbidden",headers:{},config});
