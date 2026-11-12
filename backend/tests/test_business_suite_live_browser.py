@@ -6,6 +6,9 @@ from tests.test_contact_directory import directory_identity
 def test_tc006_012_common_customer_ui_uses_real_canonical_api(client, db, superuser_headers, monkeypatch, request):
     from tests.test_control_browser import test_control_center_real_browser
     from app.models.user import User
+    from app.models.company import Company
+    db.get(Company,1).default_timezone='Asia/Kolkata'
+    db.commit()
     actor = db.query(User).filter_by(email='testadmin@test.com').one()
     monkeypatch.setenv('CONTROL_BROWSER_SCRIPT', 'business-suite-live.cjs')
     monkeypatch.setenv('SUITE_QA_AUTH', json.dumps({'token':superuser_headers['Authorization'].split(' ',1)[1],

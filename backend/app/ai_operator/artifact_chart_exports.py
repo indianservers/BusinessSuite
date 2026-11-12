@@ -79,17 +79,18 @@ def pdf_flowables(item,width,paragraph,cell,head):
     return story
 
 
-def excel(book,item):
+def excel(book,item,source_sheet='Artifact'):
     from openpyxl.chart import BarChart,LineChart,PieChart,Reference
     from openpyxl.styles import Font,PatternFill,Alignment
+    from openpyxl.worksheet.pagebreak import Break
     result=analyze(item);sheet=book.create_sheet('Chart analysis',0);sheet.sheet_view.showGridLines=False
     visible_columns=max([7,*[len(panel['series'])+1 for panel in result['panels']]])
     def text(row,col,value):
         cell=sheet.cell(row,col,str(value));cell.data_type='s';cell.alignment=Alignment(wrap_text=True,vertical='top');return cell
     def caption(row,value,height=32):
         text(row,1,value);sheet.merge_cells(start_row=row,start_column=1,end_row=row,end_column=visible_columns);sheet.row_dimensions[row].height=height
-    text(1,1,item['title']);sheet['A1'].font=Font(size=17,bold=True,color='15243B')
-    caption(2,'Computed snapshot. Separate units; means round to 6 decimals. Original values remain literal text on Artifact.')
+    caption(1,item['title'],max(32,math.ceil(len(item['title'])/85)*24));sheet['A1'].font=Font(size=17,bold=True,color='15243B')
+    caption(2,f'Computed snapshot. Separate units; means round to 6 decimals. Original values remain literal text on {source_sheet}.')
     caption(3,f"Excluded metric values: {result['blank_numeric_rows']} blank, {result['invalid_numeric_rows']} nonnumeric/out of range.")
     row=5
     for panel in result['panels']:
@@ -112,7 +113,9 @@ def excel(book,item):
             chart.title=f"{panel['aggregation']} / {panel['value_label'][:40]} ({panel['unit'][:24] or 'unit not specified'})"
             chart.add_data(Reference(sheet,min_col=2,max_col=count+1,min_row=header,max_row=start+len(panel['categories'])-1),titles_from_data=True)
             chart.set_categories(Reference(sheet,min_col=1,min_row=start,max_row=start+len(panel['categories'])-1))
-            chart.width=23;chart.height=11;chart.display_blanks='gap';sheet.add_chart(chart,f'A{start+len(panel["categories"])+2}')
+            anchor=start+len(panel['categories'])+2
+            sheet.row_breaks.append(Break(id=anchor-1))
+            chart.width=23;chart.height=11;chart.display_blanks='gap';sheet.add_chart(chart,f'A{anchor}')
         exact=start+len(panel['categories'])+27
         caption(exact,'Exact computed values (text; preserves precision beyond Excel numeric charts)')
         text(exact+1,1,panel['category_label'])

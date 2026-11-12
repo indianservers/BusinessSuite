@@ -27,6 +27,10 @@ def shared_store(tmp_path):
 
 @pytest.fixture
 def limited(client, shared_store, monkeypatch):
+    from app.core import request_limits
+    # Exercise one fixed rate window even when requests straddle a wall-clock
+    # minute under CI load. Keep JWT and request-deadline clocks unchanged.
+    monkeypatch.setattr(request_limits, "time", SimpleNamespace(time=lambda: 1_800_000_001))
     monkeypatch.setattr(app.state, "security_enforce_tests", True, raising=False)
     monkeypatch.setattr(
         app.state, "security_session_factory", shared_store, raising=False

@@ -2,6 +2,7 @@
 import json
 from collections import Counter, defaultdict
 from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
@@ -11,7 +12,7 @@ from .models import (PMSWorkspaceMember, PMSWorkspaceTeam, PMSProjectMember, PMS
                      PMSTaskAssignee, PMSTimeLog, PMSActivity)
 
 router = APIRouter()
-from app.services.metrics.queries import COMPLETED,TERMINAL,business_day
+from app.services.metrics.queries import COMPLETED,TERMINAL,business_context
 DONE=set(COMPLETED)
 
 
@@ -26,7 +27,9 @@ def analytics_overview(
     team_id: int | None = None, member_id: int | None = None,
     db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    today = business_day(db,user)
+    context = business_context(db,user)
+    zone = ZoneInfo(context['timezone'])
+    today = date.fromisoformat(context['business_date'])
     end_date = end_date or today
     start_date = start_date or end_date - timedelta(days=29)
     if start_date > end_date or (end_date - start_date).days > 365:
@@ -83,8 +86,8 @@ def analytics_overview(
         if metadata.get('new_value', metadata.get('status')) in DONE:
             completion_dates[event.task_id] = utc(event.created_at)
     completion_dates.update(recorded_completion_dates)
-    start = datetime.combine(start_date, time.min, timezone.utc)
-    until = datetime.combine(end_date + timedelta(days=1), time.min, timezone.utc)
+    start = datetime.combine(start_date, time.min, zone).astimezone(timezone.utc)
+    until = datetime.combine(end_date + timedelta(days=1), time.min, zone).astimezone(timezone.utc)
     logs = db.query(PMSTimeLog).filter(PMSTimeLog.project_id.in_(project_ids), PMSTimeLog.log_date >= start_date, PMSTimeLog.log_date <= end_date).all()
     logs = [l for l in logs if (l.task_id is None or l.task_id in task_ids) and (selected_members is None or l.user_id in selected_members)]
     events = db.query(PMSActivity).filter(PMSActivity.project_id.in_(project_ids), PMSActivity.created_at >= start, PMSActivity.created_at < until).all()
@@ -135,14 +138,14 @@ def analytics_overview(
     for index in range((end_date - start_date).days + 1):
         day = start_date + timedelta(days=index)
         trend.append({'date': day.isoformat(), 'minutes': sum(l.duration_minutes or 0 for l in logs if l.log_date == day),
-                      'created': sum(bool(t.created_at and utc(t.created_at).date() == day) for t in tasks),
-                      'completed': sum(bool(t.status in DONE and completion_dates.get(t.id) and completion_dates[t.id].date() == day) for t in tasks)})
+                      'created': sum(bool(t.created_at and utc(t.created_at).astimezone(zone).date() == day) for t in tasks),
+                      'completed': sum(bool(t.status in DONE and completion_dates.get(t.id) and completion_dates[t.id].astimezone(zone).date() == day) for t in tasks)})
     hourly = [set() for _ in range(24)]
     for event in events:
-        timestamp = utc(event.created_at)
+        timestamp = utc(event.created_at).astimezone(zone)
         if timestamp.date() == end_date and event.actor_user_id:
             hourly[timestamp.hour].add(event.actor_user_id)
-    return {'start_date': start_date, 'end_date': end_date, 'timezone': 'UTC', 'generated_at': now,
+    return {'start_date': start_date, 'end_date': end_date, 'timezone': zone.key, 'generated_at': now,
             'summary': {**snapshot(tasks), 'people': len(people), 'projects': len(rows),
                         'tracked_minutes': sum(l.duration_minutes or 0 for l in logs),
                         'recently_active': sum(p['recently_active'] for p in people)},

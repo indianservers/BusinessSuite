@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 import json
 from app.apps.project_management.models import PMSTask, PMSTaskAssignee, PMSTimeLog, PMSActivity, PMSWorkspaceMember, PMSWorkspaceTeam
 from tests.test_pms_workspaces import account, middleware_database, BASE
+import pytest
 
 
 def setup_analytics(client, db):
@@ -84,3 +85,32 @@ def test_empty_workspace_still_shows_collaborators(client, db):
     assert response.status_code==200,response.text
     assert response.json()['summary']['total']==0
     assert response.json()['summary']['people']==1
+
+
+@pytest.mark.parametrize('zone,day,instant,hour', [
+    ('Asia/Kolkata','2026-11-13','2026-11-12T19:00:00+00:00',0),
+    ('America/New_York','2026-11-01','2026-11-02T04:30:00+00:00',23),
+])
+def test_analytics_timezone_midnight_and_dst_boundaries(client, db, zone, day, instant, hour):
+    from datetime import time
+    from zoneinfo import ZoneInfo
+    from app.models.company import Company
+    headers,_,_,pid,_,_,member=setup_analytics(client,db)
+    db.get(Company,1).default_timezone=zone
+    local_day=date.fromisoformat(day)
+    start=datetime.combine(local_day,time.min,ZoneInfo(zone)).astimezone(timezone.utc)
+    until=datetime.combine(local_day+timedelta(days=1),time.min,ZoneInfo(zone)).astimezone(timezone.utc)
+    at=datetime.fromisoformat(instant)
+    db.query(PMSActivity).filter_by(project_id=pid).delete(synchronize_session=False)
+    for timestamp in (start-timedelta(seconds=1),at,until):
+        db.add(PMSActivity(project_id=pid,actor_user_id=member,action='task.updated',entity_type='task',summary='Boundary fixture',created_at=timestamp))
+    done=db.query(PMSTask).filter_by(project_id=pid,task_key='ANA-2').one()
+    done.completed_at=at
+    db.commit()
+    response=client.get(BASE+'/analytics/overview',headers=headers,params={'project_id':pid,'start_date':day,'end_date':day})
+    assert response.status_code==200,response.text
+    data=response.json()
+    assert data['timezone']==zone
+    assert sum(point['people'] for point in data['hourly_activity'])==1
+    assert data['hourly_activity'][hour]['people']==1
+    assert sum(point['completed'] for point in data['trend'])==1

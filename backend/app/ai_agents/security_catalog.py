@@ -282,7 +282,8 @@ for _module in ('CRM','PMS','HRMS'):
         ('create_artifact','POST','/ai-operator/suite/artifacts/create-approved'),
         ('edit_artifact','POST','/ai-operator/suite/artifacts/edit-approved'),
         ('artifacts','GET','/ai-operator/suite/artifacts'),
-        ('artifact','GET','/ai-operator/suite/artifacts/current')):
+        ('artifact','GET','/ai-operator/suite/artifacts/current'),
+        ('dashboard_panel','GET','/ai-operator/suite/artifacts/dashboard-panel/current')):
         SUITE[f'{_module.lower()}.{_name}']=(_module,_method,_path,())
     SUITE[f'{_module.lower()}.connector_read']=(_module,'GET','/ai-operator/suite/agents/connectors/read',())
     SUITE[f'{_module.lower()}.connector_action']=(_module,'POST','/ai-operator/suite/agents/connectors/execute-approved',())

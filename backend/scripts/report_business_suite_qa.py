@@ -12,7 +12,8 @@ PLAN = json.loads((Path(__file__).with_name('business_suite_qa_cases.json')).rea
 # The original full run is a pre-fix baseline. Verified targeted reruns take
 # precedence even if the long-running baseline finishes later.
 BASELINE = OUT / 'business-suite-full-regression.xml'
-FINAL = OUT / 'business-suite-full-final.xml'
+FINAL = OUT / 'business-suite-full-verified.xml'
+FOLLOWUP_ARTIFACTS = ['business-suite-request-limits-final.xml','business-suite-presentations-final.xml','business-suite-analytics-final.xml','business-suite-pms-timezone-final.xml','business-suite-postgres-pms-timezone.xml','business-suite-live-browser-final.xml']
 ARTIFACTS = [
     'business-suite-postgres-regression.xml', 'business-suite-pos-after.xml',
     'business-suite-postgres-fixes-verified.xml', 'business-suite-gst-after.xml',
@@ -23,6 +24,10 @@ ARTIFACTS = [
     'business-suite-commercial-links.xml', 'business-suite-postgres-closure.xml',
     'business-suite-operator-after.xml', 'business-suite-regression-repairs.xml',
     'business-suite-knowledge-retest.xml',
+    'business-suite-full-final.xml',
+    'business-suite-full-failures-after.xml', 'business-suite-adjacent-regression.xml',
+    'business-suite-postgres-final-repairs.xml',
+    'business-suite-inventory-final.xml',
 ]
 
 BLOCKED = {
@@ -154,6 +159,15 @@ BUGS = [
  ('B16','High','Nested provider/worker retries made nine requests for a three-attempt job',[106],['backend/app/ai_operator/providers.py','backend/app/ai_operator/jobs.py'],'Worker owns retries through a context-local one-attempt provider budget; synchronous retries retain their bounded contract.',['b:test_provider_retry_budget_and_failed_attempt_telemetry']),
  ('B17','High','POS rounded payable to whole currency units and displayed a local rather than confirmed total',[39],['frontend/src/apps/srm/pages/SRMPOSPage.tsx'],'Keep cents in the preview and display the persisted server total after checkout.',['b:test_tc006_012_common_customer_ui_uses_real_canonical_api']),
  ('B18','High','Checkpoint snapshots mistook a successful own update for a stale plan',[18,102],['backend/app/ai_operator/jobs.py'],'Reload persisted task state before computing the next checkpoint digest; retain checks against actual external edits.',['b:test_background_work_uses_durable_queue_and_after_commit_events','b:test_expired_lease_resumes_without_duplicate_completed_step','b:test_failed_checkpoint_preserves_completed_effects_and_resumes']),
+ ('B19','High','Single-asset assignment passed null into the handover condition contract',[69,85],['backend/app/api/v1/assets.py'],'Use the existing Good default when the optional legacy condition is omitted.',['b:test_bike_assignment_duplicate_return_and_exit_clearance']),
+ ('B20','High','Contact imports normalized calling codes only when a phone was present',[12,86,89],['backend/app/shared/import_service.py'],'Normalize an explicitly supplied calling code independently of the optional phone value.',['b:test_each_priority_import_writes_native_records[crm-contacts]']),
+ ('B21','Medium','LWP feed repeated period/group/policy queries for every employee',[77,85],['backend/app/api/v1/leave_payroll.py'],'Batch group selection and cache the period and effective policy per group, retaining policy calculations.',['b:test_lwp_batch_keeps_overlap_half_day_attendance_and_latest_salary','b:tests.test_payroll_configurable_policies.']),
+ ('B22','High','PostgreSQL schema verification manifest lagged existing migrations',[85],['backend/alembic_postgresql/schema/extensions.json'],'Update the verification manifest for migration-backed tables and columns; preserve the historical baseline and do not change application schema.',['b:test_baseline_covers_every_module_and_historical_schema']),
+ ('B23','Medium','Legacy fixtures bypassed current identity, inspection and serialization contracts',[51,53,57,75,85],['backend/tests/test_hrms_workspaces.py','backend/tests/test_hrms_operational_foundations.py','backend/tests/test_srm_inventory_product_master.py','backend/tests/test_suite_module_agents.py','backend/tests/test_local_tensorflow.py','backend/tests/test_platform_nlp_training.py'],'Exercise a real canonical customer, required inspection approvals, normalized dependency fields, explicit-rule precedence and structural weight privacy; retain all authorization controls.',['b:test_exit_asset_helpdesk_and_announcements','b:test_srm_product_master_and_opening_stock_are_database_backed','b:test_followup_preserves_module_and_refetches_selected_record','b:test_neural_model_actually_selects_unseen_intents_and_rules_correct_filter_errors','b:test_platform_server_training_activation_and_scope']),
+ ('B24','Medium','Rate-limit integration tests depended on remaining in one wall-clock minute',[72,85],['backend/tests/test_shared_request_limits.py'],'QA counters recorded six attempts in one minute and three in the next (business-suite-rate-window-evidence.json). Pin only the limiter clock in the fixture; retain production fixed-window behavior and explicit rollover/deadline tests.',['b:test_login_throttle_cannot_be_bypassed_with_forwarded_header','b:test_reset_has_shared_account_and_ip_throttle','b:test_counters_are_shared_between_sessions_and_reset_after_window']),
+ ('B25','Medium','Assistant presentation tool omitted its structured-slide input contract',[85],['backend/app/ai_operator/suite_tools.py'],'Describe the existing bounded slide schema and required empty text/table fields; preserve review-before-save behavior.',['b:test_cloud_can_prepare_structured_slides_without_saving_them']),
+ ('B26','Medium','Finance analytics fixture used the host date for an explicitly UTC organization',[85],['backend/tests/test_business_analytics_overview.py'],'Date synthetic vouchers using UTC, matching the fixture company; retain organization-timezone filtering.',['b:test_finance_counts_only_posted_vouchers','b:test_daily_activity_uses_organization_timezone']),
+ ('B27','High','PMS analytics mixed organization business days with UTC date/hour buckets',[84,85],['backend/app/apps/project_management/analytics.py','frontend/src/apps/project-management/pages/AnalyticsPage.tsx','backend/tests/test_pms_analytics.py'],'Use organization-zone range boundaries, local daily/hourly buckets, server-default dates and matching UI labels/exports. Verify midnight and a 25-hour DST day.',['b:test_analytics_counts_shared_assignments_and_time_without_duplication','b:test_analytics_timezone_midnight_and_dst_boundaries','f:test-mobile-pms-analytics.cjs']),
 ]
 
 
@@ -175,15 +189,21 @@ def junit(path):
 
 def collect():
     records={}
-    for row in junit(BASELINE): records[row['node']]=row
+    def remember(row):
+        # A run that cannot execute a case cannot invalidate executed evidence
+        # from another backend, or erase an actual unresolved failure.
+        if row['status']=='BLOCKED' and records.get(row['node'],{}).get('status') in {'PASS','FAIL'}:
+            return
+        records[row['node']]=row
+    for row in junit(BASELINE): remember(row)
     for name in ARTIFACTS:
-        for row in junit(OUT/name): records[row['node']]=row
+        for row in junit(OUT/name): remember(row)
     for row in junit(FINAL):
         # A SQLite-only full run skips real PostgreSQL race tests. Preserve
         # their executed PostgreSQL PASS rather than replacing it with SKIP.
-        if row['status']=='BLOCKED' and records.get(row['node'],{}).get('status')=='PASS':
-            continue
-        records[row['node']]=row
+        remember(row)
+    for name in FOLLOWUP_ARTIFACTS:
+        for row in junit(OUT/name): remember(row)
     front_path=OUT/'business-suite-frontend-results.json'
     front=json.loads(front_path.read_text(encoding='utf-8')) if front_path.exists() else []
     return records,{row['script']:row for row in front}
@@ -201,14 +221,14 @@ def evidence(patterns, records, frontend):
 
 
 def full_progress():
-    if FINAL.exists() or (OUT/'business-suite-full-final.log').exists():
+    if FINAL.exists() or FINAL.with_suffix('.log').exists():
         rows=junit(FINAL)
-        text=(OUT/'business-suite-full-final.log').read_text(encoding='utf-8',errors='replace')
+        text=FINAL.with_suffix('.log').read_text(encoding='utf-8',errors='replace')
         collected=re.search(r'(\d+) items',text)
         entries=max([int(m[1]) for m in re.finditer(r'\[(\d+)/(\d+)\]',text)]+[len(rows),sum(len(m[1]) for m in re.finditer(r'^([.FsxXE]+)\s+\[\s*\d+%\]',text,re.M))])
         return {'observed_progress_entries':entries,'collected':int(collected[1]) if collected else len(rows),
                 'failed_nodes_from_progress':[row['node'] for row in rows if row['status']=='FAIL'],
-                'completed':bool(rows),'artifact':'backend/outputs/business-suite-full-final.xml'}
+                'completed':bool(rows),'artifact':str(FINAL.relative_to(ROOT))}
     text=(OUT/'business-suite-full-regression.log').read_text(encoding='utf-8',errors='replace') if (OUT/'business-suite-full-regression.log').exists() else ''
     entries=sum(len(m[1]) for line in text.splitlines() if (m:=re.match(r'^([.FsxXE]+)\s+\[\s*\d+%\]',line)))
     collection=(OUT/'business-suite-collection.log').read_text(encoding='utf-8',errors='replace')
@@ -230,8 +250,10 @@ def main():
         reason=BLOCKED.get(number)
         if number==85:
             baseline=junit(FINAL)
-            status='FAIL' if baseline and any(row['status']=='FAIL' for row in baseline) else 'PASS' if baseline else 'BLOCKED'
-            reason=f"Full current-code repository regression: {progress['observed_progress_entries']} progress entries of {progress['collected']}; {'completed' if progress['completed'] else 'still running/not yet complete'}."
+            failed=[row for row in baseline if row['status']=='FAIL']
+            unresolved=[row for row in failed if records.get(row['node'],{}).get('status')!='PASS']
+            status='FAIL' if unresolved else 'PASS' if baseline else 'BLOCKED'
+            reason=f"Full current-code repository regression: {'completed' if progress['completed'] else 'still running/not yet complete'}; raw results {dict(Counter(row['status'] for row in baseline))}. Full-run failures: {len(failed)}; without a passing subsequent focused retest: {len(unresolved)}. A repaired test is not represented as an originally clean one-shot run."
         elif reason: status='BLOCKED'
         bugs=[bug for bug in BUGS if number in bug[3]]
         actual=reason or ('Executed: '+', '.join(sorted({row['node'] for row in matched}))) if matched or reason else 'No executed evidence matched this requested scenario.'
@@ -258,14 +280,18 @@ def main():
              'identified_fixable_bugs_unverified':sum(row['status']!='FIXED AND VERIFIED' for row in bug_results),
              'open_workflow_gap_cases':sum(row['status']=='BLOCKED' and int(row['id'][2:]) in BLOCKED for row in results),
              'full_repository_regression':progress,'release_status':'BLOCKED'}
+    summary['raw_final_full_run_statuses']=dict(Counter(row['status'] for row in junit(FINAL)))
+    summary['clean_one_shot_final_full_run']=bool(junit(FINAL)) and not any(row['status']=='FAIL' for row in junit(FINAL))
     (OUT/'business-suite-qa-summary.json').write_text(json.dumps({'summary':summary,'cases':results,'bugs':bug_results},ensure_ascii=False,indent=2),encoding='utf-8')
-    intro=['# Business Suite QA report','', 'Date: 12 November 2026. Release status: **BLOCKED**.','',
+    intro=['# Business Suite QA report','', 'Dates: 12–13 November 2026. Release status: **BLOCKED**.','',
            'This report distinguishes requested business workflows from individual automated assertions. Missing service appointments/packages and incomplete POS invoicing/payment posting are not counted as passing features.', '',
            f"Business cases planned: **{len(results)}**. Statuses: "+', '.join(f'{key} **{totals[key]}**' for key in ('PASS','FAIL','BLOCKED','NOT RUN'))+'.',
            f"Completed evidence contains **{len(records)} unique latest backend test nodes** ({dict(backend)}) and **{len(front)} frontend harnesses** ({dict(browser)}). Route-harness checks are separate from real browser/API workflows.",'',
+           'Backend BLOCKED entries denote skipped tests. Business-case BLOCKED entries denote requested workflows that are not fully verified. Neither is counted as a pass.','',
            'Safety: the configured application PostgreSQL schema was inspected in a READ ONLY transaction. All financial writes, 10,000-customer seeding and concurrency checks used disposable SQLite databases or a separate localhost PostgreSQL cluster. No application tables were migrated, dropped, truncated, reset or merged. No external messages/payments were sent.', '',
            'Evidence: `backend/outputs/business-suite-qa-summary.json`, JUnit XML/logs under `backend/outputs/business-suite-*`, and the read-only `business-suite-source-schema.json`. GST rates are synthetic configured fixtures, not legal classifications.','',
            f"Full current-code repository regression: **{progress['observed_progress_entries']} observed progress entries**; completed: **{progress['completed']}**. The stopped serial pre-fix baseline log is retained separately.",'',
+           f"Raw final full-run outcomes: {summary['raw_final_full_run_statuses']}. Clean one-shot run: **{summary['clean_one_shot_final_full_run']}**. Subsequent passing focused reruns repair matching cases in the latest-evidence totals; they do not rewrite the original run.",'',
            'Scope qualifications: common-route harnesses verify registry/permission/context behavior and use stub native content. The live browser test mounts the actual registered React pages and forwards requests unchanged to the real disposable FastAPI DB. POS tax/discount tests certify order arithmetic; they do not establish invoice issuance or receipt posting. Generic contract lifecycle tests do not establish AMC scheduling or HRMS technician integration.','']
     for row in results:
         intro.extend([f"## {row['id']} — {row['case']}",'',f"- Module: {row['module']}",f"- Expected: {row['expected']}",f"- Actual: {row['actual']}",f"- Status: **{row['status']}**",f"- Severity: {row['severity']}",f"- Root cause: {row['root_cause']}",f"- Fix: {row['fix']}",'- Files changed: '+(', '.join(f'`{file}`' for file in row['files_changed']) or 'None for this scenario.'),f"- Retest: {row['retest']}",'- Evidence: '+('; '.join(f'`{item}`' for item in row['evidence']) or 'No passing execution evidence for the complete requested workflow.'),''])
@@ -280,11 +306,11 @@ def main():
     if typecheck_path.exists():
         typecheck=json.loads(typecheck_path.read_text(encoding='utf-8-sig'))
         regression.append(f"- Frontend `npm run typecheck`: exit {typecheck['exit_code']}; main app, Node and interns-hub configurations. Evidence: `backend/outputs/business-suite-frontend-typecheck.json` and `.log`.")
-    for name in [*ARTIFACTS, FINAL.name]:
+    for name in [*ARTIFACTS, FINAL.name, *FOLLOWUP_ARTIFACTS]:
         rows=junit(OUT/name)
         if rows: regression.append(f"- `{name}`: {len(rows)} test nodes — {dict(Counter(row['status'] for row in rows))}.")
     regression.extend(['','## Full repository regression','',f"Observed progress: {progress['observed_progress_entries']}. Completed: {progress['completed']}.",
-                       'The final run uses four isolated workers on the current code. Its results take precedence over targeted runs. The stopped serial pre-fix baseline reached 28%; its log is retained as historical evidence.','',
+                       'The final verification uses six isolated workers after the full-run corrections. Its results take precedence over targeted runs. The earlier completed run found nine failures; its XML is retained as business-suite-full-final.xml. The stopped serial pre-fix baseline reached 28%; its log is also retained.','',
                        '## Reproduce','', '`powershell -File backend/scripts/run_business_suite_postgres_qa.ps1` creates a fresh localhost-only QA cluster, runs the selected real PostgreSQL scenarios, stops it, and retains artifacts.',
                        '`backend/venv/Scripts/python.exe backend/scripts/run_business_suite_frontend_qa.py` runs all selected isolated frontend harnesses.',
                        'From `backend`: `venv/Scripts/python.exe -m pytest -q --junitxml=outputs/full-regression.xml` runs the full repository suite. It is considerably larger than the business acceptance matrix.',
@@ -300,7 +326,8 @@ def main():
              '- High: reconcile FAM legacy party IDs with canonical CRM customer/vendor identities without automatic name/phone merging.',
              '- High: approve Sales lead-access adapters and complete CRM task/note associations without broadening underlying permissions.',
              '- High: complete effective-dated tax classifications and inclusive-pricing contracts. Existing historical invoice tax values must not be recalculated.',
-             ('- Full repository regression completed; remaining failures, if listed below, require correction and retest.' if progress['completed'] else '- Full repository regression must finish and all remaining failures must be retested against the final working tree.'),'',
+             '- High: verify and complete POS batch/serial allocation, expiry enforcement and return lifecycle. Passing master-data CRUD tests does not certify this lifecycle.',
+             (f"- Full repository regression completed. Original raw failures: {summary['raw_final_full_run_statuses'].get('FAIL',0)}; unresolved in latest evidence: {backend['FAIL']}. Clean one-shot run: {summary['clean_one_shot_final_full_run']}. Original failures and passing focused reruns are retained." if progress['completed'] else '- Full repository regression must finish and all remaining failures must be retested against the final working tree.'),'',
              '## Requested cases still blocked or not run','']
     pending.extend(f"- {row['id']}: {row['case']} — {row['actual']}" for row in results if row['status'] in {'BLOCKED','NOT RUN','FAIL'})
     failed=[row for row in records.values() if row['status']=='FAIL']

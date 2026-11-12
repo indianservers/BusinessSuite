@@ -7,7 +7,7 @@ from app.ai_operator.suite_tools import Strict
 
 class DraftChange(Strict):
     step: int = Field(ge=1,le=12)
-    field: Literal['title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body','content','slides','chart']
+    field: Literal['title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body','content','slides','chart','panels']
     value: Any
 
 class DraftRevision(Strict):

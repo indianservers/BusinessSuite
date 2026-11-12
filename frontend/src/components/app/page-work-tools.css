@@ -2,6 +2,7 @@
 .page-work-tools > .writing-actions { margin:0; }
 .page-work-tools > button { border:1px solid hsl(var(--border)); border-radius:6px; min-height:36px; padding:6px 12px; }
 .page-actions-dialog { max-height:85dvh; overflow:auto; }
+.page-work-tools.page-work-tools-contextual,#suite-main .page-work-tools.page-work-tools-contextual { position:static; flex-wrap:wrap; justify-content:flex-start; margin:0; }
 .page-actions-list { display:flex; flex-direction:column; gap:4px; max-height:32dvh; overflow:auto; }
 .page-actions-list :is(button,a) { min-height:40px; padding:8px 12px; text-align:left; border-radius:4px; }
 .page-actions-list :is(button,a):hover { background:hsl(var(--muted)); }

@@ -1,0 +1,2 @@
+branch_availability,follow_up,kind,name,code,category,tags,description,price,currency,tax,unit,barcode,hsn_code,cost,mrp,reorder_level,track_inventory,status,workspace_id,images,custom_fields,pricing_options
+"{""scope"": ""selected"", ""branch_ids"": [1]}",,product,Enterprise offering,ENT-001,Software,[],,125.5,INR,18.0,seat,,,0.0,0.0,0.0,True,Active,,"[""https://example.com/product.png""]","{""Edition"": ""Enterprise""}","[{""id"": ""monthly"", ""name"": ""Monthly"", ""amount"": ""100"", ""currency"": ""INR"", ""interval"": ""month""}]"

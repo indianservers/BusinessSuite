@@ -171,14 +171,22 @@
     "script": "test-mobile-pms-notes.cjs",
     "status": "PASS",
     "exit_code": 0,
-    "output": "PASS Notes2routes7phones navigation/search/sort/date filters/action menu/44px/no overflow/exact versioned edit14writes;2routes4desktop CSS baseline geometry.\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
+    "output": "PASS Notes2routes7phones navigation/search/sort/date filters/action menu/44px/no overflow/exact versioned edit14writes;2routes4desktop CSS baseline geometry.\n\u25b2 [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 \u2502 ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         \u2575                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n\u25b2 [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 \u2502 ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         \u2575                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
     "seconds": 55.0
   },
   {
     "script": "test-note-optimistic-save.cjs",
     "status": "PASS",
     "exit_code": 0,
-    "output": "PASS: immediate item update, tiny sync indicator, newer typing preserved, failed-save recovery/retry, acknowledged versions, and optimistic create without duplicates.\n▲ [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 │ ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         ╵                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
+    "output": "PASS: immediate item update, tiny sync indicator, newer typing preserved, failed-save recovery/retry, acknowledged versions, and optimistic create without duplicates.\n\u25b2 [WARNING] \"import.meta\" is not available with the \"iife\" output format and will be empty [empty-import-meta]\n\n    src/lib/operator/localLLM.ts:34:51:\n      34 \u2502 ...(new URL('./localLLM.worker.ts',import.meta.url),{type:'module'});\n         \u2575                                    ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n",
     "seconds": 10.266
+  },
+  {
+    "script": "test-mobile-pms-analytics.cjs",
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": null,
+    "output": "Port 5173 is in use, trying another one...\nPASS PMS analytics7phones team/project/fixedproject metrics/scope+date controls/chart tabs+keyboard+touch tooltip/full chart tables/local records/focus+links/CSV bytes+formula safety/no extra GET/nooverflow;12desktop pinned geometry. GET mocks only.\n",
+    "evidence": "backend/outputs/business-suite-pms-analytics-ui-final.log"
   }
 ]

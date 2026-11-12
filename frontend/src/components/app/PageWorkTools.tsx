@@ -11,7 +11,7 @@ import WritingActions from "@/components/ai-agents/WritingActions";
 
 type Visit = { path: string; title: string };
 /** Reuses page-owned controls: no parallel write paths or permissions. */
-export default function PageWorkTools({portalScope}: {portalScope?: string} = {}) {
+export default function PageWorkTools({portalScope,contextual=false}: {portalScope?: string;contextual?:boolean} = {}) {
   const location = useLocation();
   const mobile = useMobile();
   const user = useAuthStore(s => s.user);
@@ -23,9 +23,11 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
   const selected = useRef<PageContextAction>();
   const scope = `${context}:${location.pathname}${location.search}`;
   const scrollPositions = useRef(new Map<string, number>());
-  const root = () => document.getElementById("suite-main") || document.querySelector<HTMLElement>("main");
+  const root = () => document.getElementById("suite-main") || document.querySelector<HTMLElement>("[data-route-content]") || document.querySelector<HTMLElement>("main");
   useLayoutEffect(() => {
     setOpen(false); setNotice("");
+    // Contextual collections already use RouteContent for scroll restoration.
+    if(contextual)return;
     // MobileExperience already owns scroll restoration in these mobile modules.
     if (mobile && /^\/(crm|pms|srm|hrms)(\/|$)/.test(location.pathname)) return;
     const main = root();
@@ -40,7 +42,7 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
     main?.addEventListener("wheel", stop, { passive: true });
     main?.addEventListener("touchstart", stop, { passive: true });
     return () => { if (main) {scrollPositions.current.set(scope, main.scrollTop);try {sessionStorage.setItem(`suite-page-position:${scope}`,String(main.scrollTop));}catch{}} observer?.disconnect(); main?.removeEventListener("wheel", stop); main?.removeEventListener("touchstart", stop); };
-  }, [scope,mobile]);
+  }, [scope,mobile,contextual]);
   useEffect(() => {
     if (!portalScope) return;
     const key = `suite-recent-pages:${context}`;
@@ -71,7 +73,7 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
     return () => window.removeEventListener("keydown", keyboard);
   }, [scope]);
   const recent = (portalScope ? visits : (savedRecent || []).map(path=>({path,title:path.split("/").filter(Boolean).map(part=>part.replace(/-/g," ")).join(" / ")}))).filter(v => v.path !== location.pathname + location.search && v.path.startsWith("/") && !v.path.startsWith("//") && (portalScope ? v.path.startsWith(`/portal/${portalScope.split(":")[1]}`) : !v.path.startsWith("/portal/") && canAccessRoute(v.path.split("?")[0], user?.role, user?.is_superuser)));
-  return <><div className="page-work-tools" data-context-menu-ignore data-page-work-tools>
+  return <><div className={`page-work-tools${contextual?" page-work-tools-contextual":""}`} data-context-menu-ignore data-page-work-tools>
     <WritingActions presentation="menu"/>
     <button type="button" onClick={showActions} aria-keyshortcuts="Alt+Shift+A" title="Page actions and keyboard shortcuts (Alt+Shift+A)">Page actions</button>
     {notice && <span role="status" className="sr-only">{notice}</span>}

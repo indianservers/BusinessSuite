@@ -92,7 +92,9 @@ def test_finance_counts_only_posted_vouchers(client, db, overview_data):
     kind = FAMVoucherType(company_id=1, voucher_type_code="OVERVIEW", voucher_type_name="Overview journal", category="journal", numbering_prefix="OV")
     db.add_all([year, kind]); db.flush()
     for index, status in enumerate(["posted", "draft", "cancelled"]):
-        row = FAMVoucher(company_id=1, financial_year_id=year.id, voucher_type_id=kind.id, voucher_number=f"OV-{index}", voucher_date=date.today(), status=status)
+        # overview_data explicitly selects UTC; the host may already be on
+        # tomorrow's date in Asia/Kolkata while this organization is not.
+        row = FAMVoucher(company_id=1, financial_year_id=year.id, voucher_type_id=kind.id, voucher_number=f"OV-{index}", voucher_date=datetime.now(timezone.utc).date(), status=status)
         db.add(row); db.flush()
         db.add(BranchOwnership(company_id=1, branch_id=first, resource_table=row.__tablename__, resource_key=str(row.id), source="overview-regression"))
     db.commit()

@@ -21,6 +21,7 @@ from app.ai_operator.assistant_models import AssistantConversation, AssistantMes
 from app.ai_operator.suite_tools import Strict
 from app.ai_operator.service import digest
 from app.ai_operator.artifact_charts import Chart
+from app.ai_operator.artifact_dashboards import Panel
 
 router=APIRouter(prefix='/suite/artifacts',tags=['Bot artifacts'])
 Module=Literal['CRM','PMS','HRMS']
@@ -40,25 +41,30 @@ class Slide(Strict):
 
 class Body(Strict):
     title:str=Field(min_length=1,max_length=160)
-    kind:Literal['document','checklist','table','presentation']='document'
+    kind:Literal['document','checklist','table','presentation','dashboard']='document'
     content:str=Field(default='',max_length=20000)
     columns:list[str]=Field(default_factory=list,max_length=12)
     rows:list[list[str]]=Field(default_factory=list,max_length=100)
     slides:list[Slide]=Field(default_factory=list,max_length=20)
     chart:Chart|None=None
+    panels:list[Panel]=Field(default_factory=list,max_length=6)
 
     @model_serializer(mode='wrap')
     def serialize(self,handler):
         value=handler(self)
         if not self.slides:value.pop('slides',None)
         if self.chart is None:value.pop('chart',None)
+        if not self.panels:value.pop('panels',None)
         return value
 
     @model_validator(mode='after')
     def bounded(self):
         if not self.title.strip():raise ValueError('Artifact needs a title')
         if any(re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]',v) for v in [self.title,self.content,*self.columns,*[c for r in self.rows for c in r]]):raise ValueError('Artifact contains unsupported control characters')
-        if self.kind=='presentation':
+        if self.kind=='dashboard':
+            if not self.panels or self.columns or self.rows or self.slides:raise ValueError('Dashboards need 1–6 pinned source panels and no table or slide fields')
+        elif self.panels:raise ValueError('Only dashboards can contain panels')
+        elif self.kind=='presentation':
             if not self.slides or self.content or self.columns or self.rows:raise ValueError('Presentations need 1–20 structured slides and empty content/columns/rows')
         elif self.slides:raise ValueError('Only presentations can contain slides')
         elif self.kind=='table':
@@ -86,6 +92,23 @@ class CreateApproved(Body):
 class EditApproved(Edit):
     suite_run_id:int=Field(gt=0)
     suite_step:int=Field(ge=1,le=12)
+
+
+class PanelPreview(Strict):
+    module:Module
+    workspace_id:int|None=Field(default=None,gt=0)
+    panel:Panel
+
+
+@router.post('/panel-preview')
+def panel_preview(data:PanelPreview,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    access(db,user,data.workspace_id,data.module)
+    from app.ai_agents.api import _require_ai_rate_limit
+    from app.ai_operator.artifact_dashboards import resolve
+    from app.ai_operator.artifact_charts import evidence
+    _require_ai_rate_limit(db,request,user,bucket='artifact_analysis')
+    value=data.panel.model_dump();source=resolve(db,user,data.workspace_id,value)
+    return {'panel':value,'source':source,'citation':evidence(source),'dashboard_revision':None}
 
 
 def access(db,user,workspace_id,module,project_id=None):
@@ -147,6 +170,18 @@ def current(artifact_id:int,module:Module,workspace_id:int|None=None,db:Session=
     return public(db,user,row)
 
 
+@router.get('/dashboard-panel/current')
+def dashboard_panel_current(request:Request,response:Response,artifact_id:int,position:int,module:Module,workspace_id:int|None=None,
+    dashboard_revision:int|None=None,category_query:str='',agent_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.artifact_questions import PanelRead,read
+    from app.ai_agents.api import _require_ai_rate_limit
+    try:query=PanelRead(artifact_id=artifact_id,position=position,dashboard_revision=dashboard_revision,category_query=category_query)
+    except ValueError:raise HTTPException(422,'Choose a valid dashboard, panel, saved version and category filter') from None
+    _require_ai_rate_limit(db,request,user,bucket='artifact_analysis')
+    response.headers['Cache-Control']='no-store'
+    return read(db,user,module,workspace_id,query,agent_id)
+
+
 @router.get('/{ident}')
 def get(ident:int,revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     return public(db,user,owned(db,user,ident),revision)
@@ -161,6 +196,18 @@ def versions(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_
     return {'items':items,'current_revision':row.references['revision']}
 
 
+@router.get('/{ident}/panels/{position}')
+def panel(ident:int,position:int,request:Request,revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    item=public(db,user,owned(db,user,ident),revision)
+    if item['kind']!='dashboard' or not 1<=position<=len(item['panels']):raise HTTPException(404,'Dashboard panel not found')
+    from app.ai_agents.api import _require_ai_rate_limit
+    from app.ai_operator.artifact_dashboards import resolve
+    from app.ai_operator.artifact_charts import evidence
+    _require_ai_rate_limit(db,request,user,bucket='artifact_analysis')
+    value=item['panels'][position-1];source=resolve(db,user,item['workspace_id'],value)
+    return {'panel':value,'source':source,'citation':evidence(source),'dashboard_revision':item['revision']}
+
+
 @router.delete('/{ident}')
 def archive(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=owned(db,user,ident,True);row.deleted_at=datetime.now(timezone.utc)
@@ -172,6 +219,8 @@ def archive(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_u
 def validate_step(db,user,workspace_id,module,payload,project_id=None):
     """Called both before review and immediately before the canonical write."""
     access(db,user,workspace_id,module,project_id)
+    from app.ai_operator.artifact_dashboards import validate
+    validate(db,user,workspace_id,payload)
     if 'artifact_id' in payload:
         row=owned(db,user,payload['artifact_id'])
         if row.workspace_id!=workspace_id or row.references['module']!=module:raise HTTPException(403,'Artifact belongs to another module/workspace')
@@ -188,7 +237,7 @@ def validation_feedback(plan,exc):
         try:model.model_validate(step.payload)
         except ValueError as error:
             if hasattr(error,'errors'):
-                errors=[{'field':'.'.join(str(p) if type(p) is int or p in model.model_fields or p in Slide.model_fields else 'unexpected_field' for p in e['loc'])[:120],'type':e['type']} for e in error.errors(include_input=False,include_context=False,include_url=False)[:12]]
+                errors=[{'field':'.'.join(str(p) if type(p) is int or p in model.model_fields or p in Slide.model_fields or p in Panel.model_fields or p in Chart.model_fields else 'unexpected_field' for p in e['loc'])[:120],'type':e['type']} for e in error.errors(include_input=False,include_context=False,include_url=False)[:12]]
         issues.append({'step':index,'tool':step.tool,'record_id_present':step.record_id is not None,'schema_errors':errors})
     safe={'This tool does not accept a record ID','Tool contains unsupported fields','Tool payload is incomplete or invalid','Artifact format cannot change during an edit'}
     return {'reason':exc.detail if isinstance(exc.detail,str) and exc.detail in safe else 'Artifact proposal failed validation','issues':issues,
@@ -286,12 +335,20 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
         from app.ai_agents.api import _require_ai_rate_limit
         _require_ai_rate_limit(db,request,user,bucket='artifact_exports')
     item=public(db,user,row,revision);body=io.BytesIO()
+    sources=None
+    if item['kind']=='dashboard':
+        from app.ai_operator.artifact_dashboards import resolve
+        sources=[resolve(db,user,row.workspace_id,panel,export=True) for panel in item['panels']]
     # Spreadsheet expressions are inert strings, including formula-like input.
     def cell(value):return "'"+value if value.lstrip().startswith(('=','+','-','@','\t','\r')) else value
-    if format in ('csv','xlsx') and item['kind']!='table':raise HTTPException(422,'Choose a document download for this artifact')
+    if format=='csv' and item['kind']!='table' or format=='xlsx' and item['kind'] not in ('table','dashboard'):raise HTTPException(422,'Choose a document download for this artifact')
     if format=='pdf':
         from app.ai_operator.artifact_exports import pdf
-        content=pdf(item);mime='application/pdf'
+        if sources is not None:
+            from app.ai_operator.artifact_dashboards import export_pdf
+            content=export_pdf(item,sources)
+        else:content=pdf(item)
+        mime='application/pdf'
     elif format=='pptx':
         if item['kind']!='presentation':raise HTTPException(422,'PowerPoint export requires a presentation artifact')
         from app.ai_operator.artifact_exports import powerpoint
@@ -299,6 +356,9 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
     elif format=='csv':
         stream=io.StringIO();writer=csv.writer(stream);writer.writerows([[cell(v) for v in r] for r in [item['columns'],*item['rows']]])
         content=stream.getvalue().encode('utf-8-sig');mime='text/csv'
+    elif format=='xlsx' and sources is not None:
+        from app.ai_operator.artifact_dashboards import export_excel
+        content=export_excel(item,sources);mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     elif format=='xlsx':
         from openpyxl import Workbook
         book=Workbook();sheet=book.active;sheet.title='Artifact'
@@ -315,8 +375,11 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
     elif format=='docx':
         from docx import Document
         document=Document();document.add_heading(item['title'],0)
-        if item['kind']=='table' and item['content']:document.add_paragraph(item['content'])
-        if item['kind']=='table':
+        if sources is not None:
+            from app.ai_operator.artifact_dashboards import text
+            for line in text(item,sources).splitlines():document.add_paragraph(line)
+        elif item['kind']=='table':
+            if item['content']:document.add_paragraph(item['content'])
             table=document.add_table(rows=1,cols=len(item['columns']));table.style='Table Grid'
             for c,v in zip(table.rows[0].cells,item['columns']):c.text=v
             for values in item['rows']:
@@ -333,6 +396,9 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
         document.save(body);content=body.getvalue();mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     else:
         text='# '+item['title']+'\n\n'+item['content']
+        if sources is not None:
+            from app.ai_operator.artifact_dashboards import text as dashboard_text
+            text=dashboard_text(item,sources)
         if item['kind']=='presentation':text+='\n\n'+'\n\n'.join('## '+s['title']+'\n'+'\n'.join('- '+p for p in s['bullets']) for s in item['slides'])
         if item['kind']=='table':text+='\n\n'+ '\n'.join(' | '.join(v.replace('|','\\|').replace('\n',' ') for v in r) for r in [item['columns'],['---']*len(item['columns']),*item['rows']])
         if item.get('chart'):
@@ -348,14 +414,14 @@ def business_request(text):
 
 
 def creation_request(text):
-    return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(?:document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b',text))
+    return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(?:document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b',text))
 
 
 def conversation_context(db,user,data,history):
     # A record ID inside literal document/task/memory text is data, not a read.
     match=re.match(r'\s*(?:please\s+)?(?:edit|update|revise|show|read|open|rewrite|shorten|make|rename|summari[sz]e|analy[sz]e)\s+(?:the\s+)?artifact\s*#?\s*(\d+)\b',data.text,re.I)
     ident=data.artifact_id or (int(match[1]) if match else None)
-    if not ident and not business_request(data.text) and re.match(r'\s*(?:please\s+)?(?:edit|revise|rewrite|append|add|remove|replace|rename|shorten|make|move(?=\s+slide\b)|chart|(?:set|change)(?=\s+(?:the\s+)?chart\b)|analy[sz]e(?=\s+(?:(?:this|the)\s+)?(?:artifact|table|chart)\b))\b',data.text,re.I):
+    if not ident and not business_request(data.text) and re.match(r'\s*(?:please\s+)?(?:edit|revise|rewrite|append|add|remove|replace|rename|shorten|make|(?:move|refresh|update)(?=\s+(?:slide|panel)\b)|chart|(?:set|change)(?=\s+(?:the\s+)?chart\b)|analy[sz]e(?=\s+(?:(?:this|the)\s+)?(?:artifact|table|chart)\b))\b',data.text,re.I):
         for run in reversed(history):
             receipts=[r for r in run.receipts or [] if r.get('artifact_id')]
             if receipts:ident=receipts[-1]['artifact_id'];break
@@ -377,18 +443,27 @@ def local_plan(data,parent,context,attachments):
     text=data.text.strip();prefix=data.module.lower() if data.module in ('CRM','PMS','HRMS') else None
     if not prefix:return None
     if parent and parent.status=='needs_clarification' and not re.match(r'(?i)^(?:create|draft|write|prepare)\b',text):
-        original=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b',parent.command)
+        original=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b',parent.command)
         if original and parent.plan.get('summary')=='I need a title for the artifact.':text=f'Create {original[1]} called {text}'
         elif original and parent.plan.get('summary')=='I need the table columns.':text=f'{parent.command} with columns {text}'
+        elif original and parent.plan.get('summary')=='I need dashboard sources.':text=f'{parent.command.partition(":")[0]}: {text}'
     pending=(parent.plan or {}).get('steps',[]) if parent and parent.status=='awaiting_approval' else []
     draft=deepcopy(pending[0]) if len(pending)==1 and pending[0]['tool'].endswith(('.create_artifact','.edit_artifact')) else None
-    create=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart)\b\s*(.*)',text)
+    create=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b\s*(.*)',text)
     if create:
-        kind='presentation' if create[1].lower() in ('presentation','slide deck','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
+        kind='dashboard' if create[1].lower()=='dashboard' else 'presentation' if create[1].lower() in ('presentation','slide deck','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
         rest=re.sub(r'^(?:called|named|titled)\s+','',create[2],flags=re.I).strip()
         title,sep,content=rest.partition(':');title=title.strip().strip('"\'')
         if not title:return Plan(summary='I need a title for the artifact.',question='Give the artifact a title and any content, for example: Create document called Launch brief: goals and next steps.',steps=[])
-        if kind=='presentation':
+        if kind=='dashboard':
+            panels=[]
+            for reference in content.split(';') if content.strip() else []:
+                parsed=re.fullmatch(r'(?i)\s*(?:artifact\s*)?#?(\d+)\s+(?:v|version\s*)(\d+)(?:\s+as\s+(chart|table|summary|auto))?\s*',reference)
+                if not parsed:panels=[];break
+                panels.append(Panel(artifact_id=int(parsed[1]),revision=int(parsed[2]),display=parsed[3] or 'auto').model_dump())
+            if not panels:return Plan(summary='I need dashboard sources.',question='Choose saved source versions: artifact #12 v1 as chart; artifact #13 v2 as summary. Open Artifacts to find IDs and versions. Sources must be in this workspace and accessible to you.',steps=[])
+            body={'title':title,'kind':kind,'content':'','columns':[],'rows':[],'panels':panels}
+        elif kind=='presentation':
             from app.ai_operator.artifact_slides import parse
             body={'title':title,'kind':kind,'content':'','columns':[],'rows':[],'slides':parse(content,title)}
         elif kind=='table':
@@ -407,19 +482,23 @@ def local_plan(data,parent,context,attachments):
     if not context and (not draft or business_request(text)):return None
     if context and re.match(r'(?i)^(?:show|read|open)\s+(?:the\s+)?artifact\b',text):
         return Plan(summary=f"Server artifact #{context['id']}: {context['title']} (version {context['revision']}). Open the workspace to read its full content and version history.",steps=[])
-    body=deepcopy(draft['payload'] if draft else {k:context.get(k,[]) if k=='slides' else context.get(k) if k=='chart' else context[k] for k in Body.model_fields})
+    body=deepcopy(draft['payload'] if draft else {k:context.get(k,[]) if k in ('slides','panels') else context.get(k) if k=='chart' else context[k] for k in Body.model_fields})
     operation=re.sub(r'(?is)^(?:edit|update|revise)\s+(?:artifact\s*#?\s*\d+|(?:this|the)\s+(?:artifact|document|table|checklist|presentation|deck))\s*:?\s*','',text)
     if body['kind']=='table' and re.fullmatch(r'(?i)(?:analy[sz]e (?:(?:this|the) )?(?:artifact\s*#?\s*\d+|table|chart)|show (?:the )?chart statistics)[.! ]*',operation):
         from app.ai_operator.artifact_charts import summary,evidence
         return Plan(summary=summary(body,None if draft else context['revision']),steps=[Step.model_validate(draft)] if draft else [],source_ids=[] if draft else [evidence(context)['id']])
     chart_edit=None
+    if body['kind']=='dashboard':
+        from app.ai_operator.artifact_dashboards import edit as edit_dashboard
+        try:chart_edit=edit_dashboard(body,operation)
+        except ValueError:raise HTTPException(422,'Check panel numbers, source IDs, versions and the six-panel limit') from None
     if body['kind']=='table':
         from app.ai_operator.artifact_charts import edit as edit_chart
         try:chart_edit=edit_chart(body,operation)
         except ValueError:raise HTTPException(422,'Check the chart metric, grouping and pie single-series requirements') from None
     append=re.match(r'(?is)^(?:append|add)(?:\s+(?:this|a paragraph|a line|text))?(?:\s*:\s*|\s+)(.+)',operation)
     rename=re.match(r'(?is)^(?:rename(?:\s+it)?\s+(?:to\s+)?|change (?:the )?title to\s+)(.+)',operation)
-    if body['kind']=='presentation' and re.match(r'(?i)^rename slide\b',operation):rename=None
+    if body['kind'] in ('presentation','dashboard') and re.match(r'(?i)^rename (?:slide|panel)\b',operation):rename=None
     replace=re.match(r'(?is)^(?:replace (?:the )?content(?:\s+with)?|set (?:the )?content(?:\s+to)?)\s*:\s*(.+)',operation)
     if chart_edit is not None:body=chart_edit
     elif body['kind']=='presentation' and not rename:

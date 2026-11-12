@@ -2,21 +2,23 @@ import {useEffect,useRef,useState} from 'react';
 import {api} from '@/services/api';
 import SlidePreview,{type ArtifactSlide} from './SlidePreview';
 import {ArtifactChartConfig,type ArtifactChart} from './ArtifactCharts';
+import {DashboardPanelEditor,type DashboardPanel} from './ArtifactDashboard';
 
 const ROOT='/ai-operator/suite/artifact-templates';
-export type TemplateBody={title:string;kind:string;content:string;columns:string[];rows:string[][];slides?:ArtifactSlide[];chart?:ArtifactChart|null};
+export type TemplateBody={title:string;kind:string;content:string;columns:string[];rows:string[][];slides?:ArtifactSlide[];chart?:ArtifactChart|null;panels?:DashboardPanel[]};
 export type TemplateDefinition={name:string;body:TemplateBody;source_artifact_id?:number|null;source_revision?:number|null;template_id?:number|null;expected_revision?:number|null};
-export function templateBody(item:any):TemplateBody{return {title:item.title,kind:item.kind,content:item.content||'',columns:item.columns||[],rows:item.rows||[],...(item.slides?.length?{slides:item.slides}:{}),...(item.chart?{chart:item.chart}:{})}}
+export function templateBody(item:any):TemplateBody{return {title:item.title,kind:item.kind,content:item.content||'',columns:item.columns||[],rows:item.rows||[],...(item.slides?.length?{slides:item.slides}:{}),...(item.chart?{chart:item.chart}:{}),...(item.panels?.length?{panels:item.panels}:{})}}
 function errorMessage(e:any){return typeof e.response?.data?.detail==='string'?e.response.data.detail:'Check the template fields, placeholders, size limits and your current access.'}
 
 function BodyView({body}:{body:TemplateBody}){
- return <><h4>{body.title}</h4>{body.content&&<p className="bot-artifact-content">{body.content}</p>}{body.kind==='presentation'&&<SlidePreview slides={body.slides||[]}/>} {body.kind==='table'&&<div className="bot-file-table"><table><thead><tr>{body.columns.map((v,i)=><th key={i}>{v}</th>)}</tr></thead><tbody>{body.rows.map((row,i)=><tr key={i}>{row.map((v,j)=><td key={j}>{v}</td>)}</tr>)}</tbody></table></div>}</>
+ return <><h4>{body.title}</h4>{body.kind==='dashboard'&&<DashboardPanelEditor panels={body.panels||[]} disabled/>}{body.content&&<p className="bot-artifact-content">{body.content}</p>}{body.kind==='presentation'&&<SlidePreview slides={body.slides||[]}/>} {body.kind==='table'&&<div className="bot-file-table"><table><thead><tr>{body.columns.map((v,i)=><th key={i}>{v}</th>)}</tr></thead><tbody>{body.rows.map((row,i)=><tr key={i}>{row.map((v,j)=><td key={j}>{v}</td>)}</tr>)}</tbody></table></div>}</>
 }
 
 function BodyEditor({body,disabled=false,onChange}:{body:TemplateBody;disabled?:boolean;onChange?:(body:TemplateBody)=>void}){
  return <fieldset disabled={disabled}><legend>{body.kind} structure</legend><label>Artifact title<input aria-label="Template artifact title" maxLength={160} value={body.title} onChange={e=>onChange?.({...body,title:e.target.value})}/></label>
   {body.kind==='presentation'?<SlidePreview label="Template" slides={body.slides||[]} disabled={disabled} onChange={onChange?slides=>onChange({...body,slides}):undefined}/>:<label>Content<textarea aria-label="Template content" rows={7} maxLength={20000} value={body.content} onChange={e=>onChange?.({...body,content:e.target.value})}/></label>}
   {body.kind==='table'&&<><div className="bot-file-table"><table><thead><tr>{body.columns.map((column,i)=><th key={i}><input aria-label={`Template column ${i+1}`} maxLength={100} value={column} onChange={e=>onChange?.({...body,columns:body.columns.map((v,j)=>i===j?e.target.value:v)})}/></th>)}</tr></thead><tbody>{body.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}><input aria-label={`Template row ${i+1} column ${j+1}`} maxLength={500} value={cell} onChange={e=>onChange?.({...body,rows:body.rows.map((r,n)=>n===i?r.map((v,k)=>k===j?e.target.value:v):r)})}/></td>)}</tr>)}</tbody></table></div>{onChange&&<button type="button" disabled={disabled||body.rows.length>=100} onClick={()=>onChange({...body,rows:[...body.rows,body.columns.map(()=> '')]})}>Add template row</button>}</>}
+ {body.kind==='dashboard'&&<DashboardPanelEditor panels={body.panels||[]} disabled={disabled} label="Template" onChange={onChange?panels=>onChange({...body,panels}):undefined}/>}
  {body.kind==='table'&&onChange&&<ArtifactChartConfig columns={body.columns} chart={body.chart} disabled={disabled} label="Template" onChange={chart=>onChange({...body,chart})}/>}
  </fieldset>
 }

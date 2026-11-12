@@ -11,7 +11,8 @@
 - High: reconcile FAM legacy party IDs with canonical CRM customer/vendor identities without automatic name/phone merging.
 - High: approve Sales lead-access adapters and complete CRM task/note associations without broadening underlying permissions.
 - High: complete effective-dated tax classifications and inclusive-pricing contracts. Existing historical invoice tax values must not be recalculated.
-- Full repository regression must finish and all remaining failures must be retested against the final working tree.
+- High: verify and complete POS batch/serial allocation, expiry enforcement and return lifecycle. Passing master-data CRUD tests does not certify this lifecycle.
+- Full repository regression completed. Original raw failures: 4; unresolved in latest evidence: 0. Clean one-shot run: False. Original failures and passing focused reruns are retained.
 
 ## Requested cases still blocked or not run
 
@@ -43,7 +44,6 @@
 - TC066: Renew AMC without duplicating contract history — Generic renewal status/audit persistence is tested; new AMC coverage terms and renewal history were not exercised end to end.
 - TC067: Generate AMC invoice and verify FAM integration — Native FAM invoice posting is tested, but the requested AMC-to-invoice workflow is not complete.
 - TC068: Cancel or expire AMC and verify access, status and billing behavior — Contract expiry/status persistence is tested; cancellation/expiry enforcement across AMC visits and billing is not implemented end to end.
-- TC085: Run complete regression suite after fixes — Full pre-fix repository regression: 1800 progress entries of 6496; still running/not yet complete. Targeted reruns do not substitute for a clean full run.
 - TC094: Expired service packages — Service-package expiry and entitlement storage/redemption workflow is not implemented.
 - TC095: Service package partial redemption — Service-package partial redemption and its idempotent ledger are not implemented.
 - TC096: Customer cancellation — Customer appointment cancellation is blocked by the missing service-appointment workflow.

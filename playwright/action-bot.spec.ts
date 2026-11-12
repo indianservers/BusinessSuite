@@ -255,6 +255,46 @@ test('scheduled conversation link restores the requested private conversation wi
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
 });
 
+test('dashboard panel questions keep actions unapproved and citations open the exact source version',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot'});await input.fill('create dashboard sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('button',{name:'Approve these exact actions'}).click();
+ await page.getByRole('tab',{name:'Results',exact:true}).click();
+ await page.getByRole('region',{name:'Dashboard 501',exact:true}).getByRole('button',{name:'Ask bot about panel 1',exact:true}).click();
+ await expect(input).toHaveValue('Analyze panel 1 of dashboard #501');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')).length)).toBe(1);
+ await page.getByRole('button',{name:'Send bot message'}).click();await expect(page.getByText('Pinned USD source sum 300; INR source sum 50. Snapshot, not live ERP totals.',{exact:true}).first()).toBeVisible();
+ await page.getByRole('button',{name:'Pinned regional amounts (artifact version 1)',exact:true}).click();
+ const cited=page.getByRole('article',{name:'Artifact 502',exact:true});await expect(cited.getByRole('combobox',{name:'Artifact 502 version',exact:true})).toHaveValue('1');
+ await expect(cited).toContainText('historical; editing uses the current version');await expect(cited).toContainText('200');await expect(cited).not.toContainText('999');
+ const requested=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/artifacts/502')));expect(requested.params.revision).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(1);
+ await input.fill('Only North');await page.getByRole('button',{name:'Send bot message'}).click();await expect(page.getByText('Pinned USD source sum 100; INR source sum 50. Read-only category filter.',{exact:true}).first()).toBeVisible();
+ await expect(page.getByRole('article',{name:'Artifact 502',exact:true})).toHaveCount(0);
+});
+
+test('dashboard artifacts preview pinned sources review layout and hide unavailable source content',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('textbox',{name:'Message action bot'}).fill('create dashboard sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ const preview=page.getByRole('region',{name:'Unsaved dashboard preview',exact:true});
+ await expect(preview.getByRole('article',{name:'Dashboard panel 1',exact:true})).toContainText('A newer source version is available');
+ await expect(preview.getByRole('article',{name:'Dashboard panel 2',exact:true})).toContainText('Agreed staffing review');
+ await page.getByRole('textbox',{name:'Step 1 panel 1 label',exact:true}).fill('Reviewed regional delivery');
+ await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ const change=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/revise')).body.changes[0]);expect(change.field).toBe('panels');expect(change.value[0].revision).toBe(1);expect(change.value[0].label).toBe('Reviewed regional delivery');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+ await page.getByRole('button',{name:'Approve these exact actions'}).click();await page.getByRole('tab',{name:'Results',exact:true}).click();
+ const dashboard=page.getByRole('region',{name:'Dashboard 501',exact:true});
+ await expect(dashboard.getByRole('article',{name:'Dashboard panel 1',exact:true})).toContainText('Sum 300');
+ const saved=page.getByRole('article',{name:'Artifact 501',exact:true});const download=page.waitForEvent('download');await saved.getByRole('button',{name:'Download Excel',exact:true}).click();expect((await download).suggestedFilename()).toBe('artifact-501-v1.xlsx');
+ await page.setViewportSize({width:390,height:844});await expect(dashboard.getByRole('article',{name:'Dashboard panel 2',exact:true})).toBeVisible();
+ await expect.poll(()=>dashboard.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+ await mkdir('../.local/artifact-dashboards',{recursive:true});await page.screenshot({path:'../.local/artifact-dashboards/mobile.png',fullPage:true});
+ await page.evaluate(()=>(window as any).__revokeDashboardSource());await dashboard.getByRole('button',{name:'Reload dashboard sources',exact:true}).click();
+ await expect(dashboard.getByRole('article',{name:'Dashboard panel 1',exact:true})).toContainText('Source unavailable');
+ await expect(dashboard.getByRole('article',{name:'Dashboard panel 1',exact:true})).not.toContainText('Sum 300');
+ await expect(dashboard.getByRole('article',{name:'Dashboard panel 2',exact:true})).toContainText('Agreed staffing review');
+});
+
 test('artifact charts preview server calculations save reviewed configuration and filter snapshots',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  await page.getByRole('textbox',{name:'Message action bot'}).fill('create chart sample');await page.getByRole('button',{name:'Send bot message'}).click();await page.getByRole('tab',{name:'Review & edit',exact:true}).click();

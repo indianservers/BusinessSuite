@@ -16,8 +16,13 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             permissions=["srm_view", "srm_manage"],
         )
         from app.apps.crm.models import CRMCompany
-        buyer = CRMCompany(organization_id=1, name="Inventory QA customer", account_type="Customer")
+        from app.models.company import Branch
+        branch = db.get(Branch, int(headers['X-Suite-Branch']))
+        buyer = CRMCompany(organization_id=branch.company_id, branch_id=branch.id,
+                           name="Inventory QA customer", account_type="Customer")
         db.add(buyer)
+        from test_identity_utils import own_workflow_records
+        own_workflow_records(db, buyer, company_id=branch.company_id)
         db.commit()
 
         category = client.post(

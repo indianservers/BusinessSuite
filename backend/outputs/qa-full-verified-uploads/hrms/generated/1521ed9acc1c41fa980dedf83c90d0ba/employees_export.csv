@@ -1,0 +1,2 @@
+employee_id,first_name,last_name,personal_email,phone_number,phone_number_country_code,date_of_joining,employment_type,status,work_location,branch_id,department_id,designation_id,reporting_manager_id
+BULK001,Bulk,Good,bulk.good@test.com,9999999999,+91,2024-01-15,Full-time,Active,Office,1,,,

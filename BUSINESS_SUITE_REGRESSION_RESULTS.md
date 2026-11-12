@@ -1,10 +1,11 @@
 # Business Suite regression results
 
-Unique latest backend test nodes: 465 — {'PASS': 462, 'BLOCKED': 3}.
-Frontend harnesses: 26 — {'PASS': 26}.
+Unique latest backend test nodes: 6657 — {'PASS': 6598, 'BLOCKED': 59}.
+Frontend harnesses: 27 — {'PASS': 27}.
 
 ## Completed runs
 
+- Frontend `npm run typecheck`: exit 0; main app, Node and interns-hub configurations. Evidence: `backend/outputs/business-suite-frontend-typecheck.json` and `.log`.
 - `business-suite-postgres-regression.xml`: 104 test nodes — {'PASS': 103, 'FAIL': 1}.
 - `business-suite-pos-after.xml`: 18 test nodes — {'PASS': 17, 'FAIL': 1}.
 - `business-suite-postgres-fixes-verified.xml`: 17 test nodes — {'PASS': 16, 'FAIL': 1}.
@@ -21,11 +22,23 @@ Frontend harnesses: 26 — {'PASS': 26}.
 - `business-suite-operator-after.xml`: 48 test nodes — {'PASS': 43, 'BLOCKED': 2, 'FAIL': 3}.
 - `business-suite-regression-repairs.xml`: 48 test nodes — {'PASS': 46, 'BLOCKED': 2}.
 - `business-suite-knowledge-retest.xml`: 6 test nodes — {'PASS': 6}.
+- `business-suite-full-final.xml`: 6612 test nodes — {'PASS': 6541, 'BLOCKED': 62, 'FAIL': 9}.
+- `business-suite-full-failures-after.xml`: 9 test nodes — {'PASS': 8, 'FAIL': 1}.
+- `business-suite-adjacent-regression.xml`: 207 test nodes — {'PASS': 205, 'BLOCKED': 1, 'FAIL': 1}.
+- `business-suite-postgres-final-repairs.xml`: 3 test nodes — {'PASS': 3}.
+- `business-suite-inventory-final.xml`: 1 test nodes — {'PASS': 1}.
+- `business-suite-full-verified.xml`: 6655 test nodes — {'PASS': 6588, 'BLOCKED': 63, 'FAIL': 4}.
+- `business-suite-request-limits-final.xml`: 18 test nodes — {'PASS': 17, 'BLOCKED': 1}.
+- `business-suite-presentations-final.xml`: 15 test nodes — {'PASS': 15}.
+- `business-suite-analytics-final.xml`: 9 test nodes — {'PASS': 9}.
+- `business-suite-pms-timezone-final.xml`: 20 test nodes — {'PASS': 20}.
+- `business-suite-postgres-pms-timezone.xml`: 3 test nodes — {'PASS': 3}.
+- `business-suite-live-browser-final.xml`: 1 test nodes — {'PASS': 1}.
 
-## Full repository baseline
+## Full repository regression
 
-Observed progress: 1800 / 6496. Completed: False.
-The baseline began before fixes. Targeted current-code reruns override matching nodes in the deduplicated totals; unverified failures remain failures.
+Observed progress: 6655. Completed: True.
+The final verification uses six isolated workers after the full-run corrections. Its results take precedence over targeted runs. The earlier completed run found nine failures; its XML is retained as business-suite-full-final.xml. The stopped serial pre-fix baseline reached 28%; its log is also retained.
 
 ## Reproduce
 

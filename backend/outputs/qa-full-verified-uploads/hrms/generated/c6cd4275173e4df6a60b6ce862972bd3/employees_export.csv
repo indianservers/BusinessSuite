@@ -1,0 +1,2 @@
+employee_id,first_name,last_name,personal_email,phone_number,phone_number_country_code,date_of_joining,employment_type,status,work_location,branch_id,department_id,designation_id,reporting_manager_id
+B,B,Test,,,,2026-02-01,Intern,Active,Remote,1,,,

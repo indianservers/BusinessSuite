@@ -65,6 +65,17 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(bridge||''))throw new Error('Disposable A
   const order=await (await posted).json();
   expect(Number(order.total_amount)).toBe(117.99);checks++;
   await page.waitForLoadState('networkidle');
+  const analytics=page.waitForResponse(response=>response.url().includes('/project-management/analytics/overview')&&response.request().method()==='GET');
+  await page.evaluate(()=>window.qaNavigate('/qa/analytics'));
+  const reportResponse=await analytics,report=await reportResponse.json();
+  expect(report.timezone).toBe('Asia/Kolkata');checks++;
+  expect(new URL(reportResponse.url()).searchParams.has('end_date')).toBe(false);checks++;
+  await expect(page.getByLabel('Through',{exact:true})).toHaveValue(report.end_date);checks++;
+  await expect(page.getByLabel('From',{exact:true})).toHaveValue(report.start_date);checks++;
+  await expect(page.getByText(/Dates and charts use Asia\/Kolkata/)).toBeVisible();checks++;
+  await page.setViewportSize({width:390,height:900});
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);checks++;
+  await page.waitForLoadState('networkidle');
   expect(errors).toEqual([]);expect(failures).toEqual([]);checks++;
   console.log(JSON.stringify({checks,canonical_customer_id:created.id,real_api:true,viewports:[390,768,1440]}));
  }finally{closing=true;if(context){await Promise.all(context.pages().map(page=>page.close()));await context.unrouteAll({behavior:'wait'});await context.close();}await browser.close();await server.close();}

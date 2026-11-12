@@ -220,13 +220,16 @@ for _artifact_module in ('CRM','PMS','HRMS'):
         'Execute the exact reviewed registered connector action from an explicitly bound connection. Native scopes, write consent and idempotency apply.',
         fields=('connection_id','action_id','input'),model='app.ai_operator.agent_connectors:Action')
     TOOLS[f'{_prefix}.create_artifact']=Tool(_artifact_module,'POST','/ai-operator/suite/artifacts/create-approved',
-        'Create a private versioned document, checklist, table or presentation after review. Presentations use structured slides (title and bullets). Content is inert; never execute or send it.',
-        fields=('title','kind','content','columns','rows','slides','chart'),model='app.ai_operator.artifacts:Body')
+        'Create a private versioned document, checklist, table, presentation or dashboard after review. Presentations require 1–20 structured slides with title and up to six bullets; leave content, columns and rows empty. Dashboards pin authorized saved artifact versions in panels. Content is inert; never execute or send it.',
+        fields=('title','kind','content','columns','rows','slides','chart','panels'),model='app.ai_operator.artifacts:Body')
     TOOLS[f'{_prefix}.edit_artifact']=Tool(_artifact_module,'POST','/ai-operator/suite/artifacts/edit-approved',
         'Save the complete revised artifact after review. Read the current artifact first and retain its ID, kind and expected_revision.',
-        fields=('artifact_id','expected_revision','title','kind','content','columns','rows','slides','chart'),model='app.ai_operator.artifacts:Edit')
+        fields=('artifact_id','expected_revision','title','kind','content','columns','rows','slides','chart','panels'),model='app.ai_operator.artifacts:Edit')
     TOOLS[f'{_prefix}.artifacts']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts','List this user\'s private artifact metadata in the selected module/workspace.')
     TOOLS[f'{_prefix}.artifact']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts/current','Read current private artifact content and revision before editing.',fields=('artifact_id',))
+    TOOLS[f'{_prefix}.dashboard_panel']=Tool(_artifact_module,'GET','/ai-operator/suite/artifacts/dashboard-panel/current',
+        'Read one authorized dashboard panel at its pinned source version, including server-computed table statistics and an exact artifact citation. Never substitute the latest source revision. Category filters are read only.',
+        fields=('artifact_id','position','dashboard_revision','category_query'),model='app.ai_operator.artifact_questions:PanelRead')
 for _report_module in ('CRM', 'PMS', 'HRMS', 'SRM'):
     TOOLS[f'{_report_module.lower()}.report'] = Tool(_report_module, 'GET', f'/ai-operator/suite/reports/{_report_module}',
         'Preview a deterministic filtered report. Respect complete/partial coverage and currency groups; no export or write.',
@@ -288,7 +291,7 @@ def catalog():
 
 def minimize_source(name, value):
     if name.endswith('.search_knowledge'):return value
-    if name.endswith(('.artifact','.artifacts','.connector_read')):
+    if name.endswith(('.artifact','.artifacts','.dashboard_panel','.connector_read')):
         return value
     if name.endswith('.report'):
         return value  # Reporting already minimizes and caps every source record.

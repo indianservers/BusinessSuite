@@ -53,7 +53,7 @@ function AppLayoutContent() {
   }
 
   if (["/pms", "/pms/"].includes(location.pathname) || (location.pathname === "/pms/workspaces" && (["workspace","task","invite"].some(key=>new URLSearchParams(location.search).has(key)) || new URLSearchParams(location.search).has("new") && new URLSearchParams(location.search).get("new") !== "workspace"))) {
-    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="pms-workspace-host min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   return (

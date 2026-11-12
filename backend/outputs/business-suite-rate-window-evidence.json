@@ -1,0 +1,14 @@
+{
+  "source": "read-only disposable QA SQLite counters",
+  "windows_and_attempts": [
+    [
+      29908493,
+      6
+    ],
+    [
+      29908494,
+      3
+    ]
+  ],
+  "production_limiter_changed": false
+}

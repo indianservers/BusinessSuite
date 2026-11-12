@@ -98,6 +98,8 @@ def test_reviewed_charts_versions_analysis_exports_and_private_access(client,db,
     assert '1250.75' in text and 'Original table snapshot' in text
     excel=client.get(A+f'/{ident}/download',headers=h,params={'format':'xlsx'});assert excel.status_code==200,excel.text
     book=load_workbook(io.BytesIO(excel.content));assert book.sheetnames[0]=='Chart analysis' and len(book['Chart analysis']._charts)==2
+    assert 'A1:G1' in book['Chart analysis'].merged_cells
+    assert len(book['Chart analysis'].row_breaks.brk)==2
     assert book['Artifact']['B5'].value=='=2+2' and book['Artifact']['B5'].data_type=='s'
     assert not any(cell.data_type=='f' for row in book['Chart analysis'] for cell in row)
     line=command(client,h,module,f'Edit artifact #{ident}: change chart to line')

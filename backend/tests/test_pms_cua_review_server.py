@@ -52,13 +52,17 @@ def test_manual_review_bridge(client, db):
             "company":access.json()["companyId"],"branch":branch.json()["selected"],
             "workspace":wid,"project":pid,"tasks":task_ids,"role":name}
 
+    task_writes=[]
     def evidence():
         db.expire_all()
         return {"workspace":wid,"project":pid,"tasks":[{
-            "id":row.id,"title":row.title,"status":row.status,
+            "id":row.id,"title":row.title,"status":row.status,"description":row.description,
+            "updated_at":row.updated_at.isoformat() if row.updated_at else None,
             "comments":db.query(PMSComment).filter_by(task_id=row.id).count(),
         } for row in db.query(PMSTask).filter(PMSTask.id.in_(task_ids)).order_by(PMSTask.id)],
-        "approvals":[{"id":row.id,"status":row.status} for row in db.query(WorkflowInstance).all()]}
+        "approvals":[{"id":row.id,"status":row.status} for row in db.query(WorkflowInstance).all()],"task_writes":list(task_writes)}
+
+    (review/"baseline.json").write_text(json.dumps(evidence()),encoding="utf-8")
 
     class Bridge(BaseHTTPRequestHandler):
         def log_message(self,*args): pass
@@ -77,6 +81,10 @@ def test_manual_review_bridge(client, db):
             headers={key:value for key,value in self.headers.items() if key.lower() not in {"host","content-length","connection","accept-encoding"}}
             payload=self.rfile.read(int(self.headers.get("Content-Length",0)))
             response=client.request(self.command,self.path,content=payload,headers=headers)
+            if self.command in {"POST","PUT","PATCH","DELETE"} and "/tasks/" in parsed.path:
+                try:fields=sorted(json.loads(payload).keys()) if payload else []
+                except (ValueError,AttributeError):fields=[]
+                task_writes.append({"method":self.command,"path":parsed.path,"status":response.status_code,"fields":fields})
             self.send_response(response.status_code)
             for key,value in response.headers.items():
                 if key.lower() not in {"content-length","content-encoding","transfer-encoding","connection"}:self.send_header(key,value)

@@ -14,6 +14,9 @@ let chats:any[]=[],chatSeq=0;const chatRuns=new Map<number,any[]>();
 let memories:any[]=[];let memorySeq=0;
 let organizationMemories:any[]=[];
 const artifactVersions:any[]=[];
+const dashboardTable={id:502,module:'CRM',kind:'table',title:'Pinned regional amounts',content:'Illustrative source rows.',columns:['Region','Amount','Currency'],rows:[['North','100','USD'],['South','200','USD'],['North','50','INR']],chart:{kind:'bar',category_column:0,value_column:1,aggregation:'sum'},revision:1,current_revision:2,provenance:{note:'Synthetic version-pinned source.',citations:[]}};
+const dashboardNotes={id:503,module:'HRMS',kind:'document',title:'Delivery staffing notes',content:'Agreed staffing review for this synthetic report.',columns:[],rows:[],revision:1,current_revision:1,provenance:{note:'Synthetic source.',citations:[]}};
+let dashboardAvailable=true;(window as any).__revokeDashboardSource=()=>{dashboardAvailable=false};
 let artifactTemplates:any[]=[],artifactTemplateReviews:any[]=[];const artifactTemplateVersions=new Map<number,any[]>();const templateChats=new Map<number,any>();
 let savedAgents:any[]=[];
 let agentSchedules:any[]=[];
@@ -33,7 +36,7 @@ function chartAnalysis(table:any,params:any={}){
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
 api.defaults.adapter=async config=>{
  const path=config.url||'',body=typeof config.data==='string'?JSON.parse(config.data):config.data;
- requests.push({path,method:config.method,body});let data:any={};
+ requests.push({path,method:config.method,body,params:config.params});let data:any={};
  if(path.endsWith('/builder/model-status'))data={active:true,tensorflow_version:'2.20.0',training_commands:640};
  else if(path.endsWith('/agents/library'))data={items:publications,can_publish:true};
  else if(path.endsWith('/library/targets'))data={members:[{id:7,label:'robot-fixture@example.com'}],teams:[]};
@@ -91,6 +94,10 @@ api.defaults.adapter=async config=>{
  else if(/\/artifact-templates\/reviews\/\d+$/.test(path)){const id=Number(path.match(/reviews\/(\d+)/)![1]);if(config.method==='delete'){artifactTemplateReviews=artifactTemplateReviews.filter(r=>r.id!==id);data={archived:true}}else data=artifactTemplateReviews.find(r=>r.id===id)}
  else if(/\/artifact-templates\/\d+\/versions$/.test(path)){const id=Number(path.match(/artifact-templates\/(\d+)/)![1]);data={items:artifactTemplateVersions.get(id)||[]}}
  else if(/\/artifact-templates\/\d+$/.test(path)){const id=Number(path.match(/artifact-templates\/(\d+)/)![1]);if(config.method==='delete'){artifactTemplates=artifactTemplates.filter(t=>t.id!==id);data={archived:true}}else data=config.params?.revision?artifactTemplateVersions.get(id)?.find(t=>t.revision===Number(config.params.revision)):artifactTemplates.find(t=>t.id===id)}
+ else if(path.endsWith('/artifacts/panel-preview')||/\/artifacts\/501\/panels\/\d+$/.test(path)){const panel=body?.panel||artifactVersions.at(-1)?.panels[Number(path.split('/').at(-1))-1];if(!dashboardAvailable&&panel.artifact_id===502)throw {response:{status:404,data:{detail:'Source unavailable'}}};const source=panel.artifact_id===502?dashboardTable:dashboardNotes;data={panel,source,citation:{id:`artifact:${source.id}:v1`,label:`${source.title} / version 1`},dashboard_revision:1}}
+ else if(path.endsWith('/artifacts/502/versions'))data={items:[{revision:2},{revision:1}],current_revision:2};
+ else if(path.endsWith('/artifacts/502'))data=Number(config.params?.revision)===1?dashboardTable:{...dashboardTable,revision:2,rows:[['North','999','USD']]};
+ else if(path.endsWith('/artifacts/502/analysis'))data=chartAnalysis(dashboardTable,config.params);
  else if(path.endsWith('/artifacts/analyze-preview'))data=chartAnalysis(body.body);
  else if(path.endsWith('/artifacts/501/analysis'))data=chartAnalysis(config.params?.revision?artifactVersions[Number(config.params.revision)-1]:artifactVersions.at(-1),config.params);
  else if(path.endsWith('/artifacts'))data={items:artifactVersions.length?[artifactVersions.at(-1)]:[]};
@@ -140,6 +147,8 @@ api.defaults.adapter=async config=>{
   if(body.text==='create presentation sample'){
    run.plan={summary:'Review this presentation draft.',steps:[{tool:'crm.create_artifact',payload:{title:'Delivery review',kind:'presentation',content:'',columns:[],rows:[],slides:[{title:'Overview',bullets:['Scope agreed.']},{title:'Next steps',bullets:['Confirm dates.']}]}}]};run.artifactSample=true;
   }
+  if(/^Analyze panel 1 of dashboard #501$|^Only North$/.test(body.text)){run.status='answered';run.plan={summary:body.text==='Only North'?'Pinned USD source sum 100; INR source sum 50. Read-only category filter.':'Pinned USD source sum 300; INR source sum 50. Snapshot, not live ERP totals.',steps:[]};run.result={...run.result,artifact_context:{id:501,revision:1},citations:[{id:'artifact:502:v1',label:'Pinned regional amounts (artifact version 1)',href:'#bot-artifact-502'}]}}
+  if(body.text==='create dashboard sample'){run.plan={summary:'Review this pinned dashboard.',steps:[{tool:'crm.create_artifact',payload:{title:'Delivery command centre',kind:'dashboard',content:'Synthetic reviewed dashboard.',columns:[],rows:[],panels:[{artifact_id:502,revision:1,display:'chart',label:'Regional delivery',wide:true},{artifact_id:503,revision:1,display:'summary',label:'Staffing',wide:false}]}}]};run.artifactSample=true}
   if(body.text==='create chart sample'){
    run.plan={summary:'Review this table and chart.',steps:[{tool:'crm.create_artifact',payload:{title:'Regional amounts',kind:'table',content:'Illustrative reviewed snapshot.',columns:['Region','Amount','Currency'],rows:[['North','100','USD'],['South','200','USD'],['North','50','INR']],chart:{kind:'bar',category_column:0,value_column:1,aggregation:'sum'}}}]};run.artifactSample=true;
   }
