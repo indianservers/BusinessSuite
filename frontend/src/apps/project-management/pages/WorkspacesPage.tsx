@@ -1,4 +1,5 @@
 import SetupReadiness from "@/components/suite/SetupReadiness";
+import { useRouteViewState } from "@/hooks/use-route-view-state";
 import { Button } from "@/components/ui/button";
 import { useSmartCreation } from "@/shared/creation/SmartCreationProvider";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -73,6 +74,7 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   const [filtersVersion, setFiltersVersion] = useState(0);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selected, setSelected] = useState<number>();
+  const collectionKey = `pms-workspace:${requestedWorkspace || selected || "default"}`;
   const overviewKey = `pms-workspace-overview:${user?.id}:${user?.access?.companyId}:${selected}`;
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [overviewReady, setOverviewReady] = useState("");
@@ -87,12 +89,12 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   const [workspaceColorMap,setWorkspaceColorMap]=useState<Record<number,string>>({});
   useEffect(()=>{try{setWorkspaceColorMap(Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem(colorKey)||"{}")||{}).filter(([,value])=>workspaceColors.includes(String(value))).map(([id,value])=>[id,String(value)])))}catch{setWorkspaceColorMap({})}},[colorKey]);
   const changeWorkspaceColor=(color:string)=>{if(!selected)return;const next={...workspaceColorMap,[selected]:color};setWorkspaceColorMap(next);localStorage.setItem(colorKey,JSON.stringify(next))};
-  const switchWorkspace=(id:number)=>{setMembers([]);setProjects([]);setTasks([]);setDetailsLoading(true);setSelected(id);setError("");setQuery("");setParams(current=>{const next=new URLSearchParams(current);next.set("workspace",String(id));next.delete("task");next.delete("project");next.delete("invite");return next})};
+  const switchWorkspace=(id:number)=>{setMembers([]);setProjects([]);setTasks([]);setDetailsLoading(true);setSelected(id);setError("");setParams(current=>{const next=new URLSearchParams(current);next.set("workspace",String(id));next.delete("task");next.delete("project");next.delete("invite");return next})};
   const selectedRef = useRef(selected); selectedRef.current = selected;
   const detailsLoadedFor = useRef<number>();
   const detailsRequest = useRef(0);
   const detailsInFlight = useRef(new Map<string, Promise<void>>());
-  const [taskScope,setTaskScope]=useState<"all"|"open"|"unassigned"|"completed">("all");
+  const [taskScope,setTaskScope]=useRouteViewState<"all"|"open"|"unassigned"|"completed">(`${collectionKey}:scope`,"all");
 
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [projects, setProjects] = useState<WorkspaceProject[]>([]);
@@ -106,7 +108,7 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const requestedView = params.get("view");
   const supportedViews: View[] = ["board", "list", "calendar", "workload", "activity"];
-  const [view, setView] = useState<View>(() => supportedViews.includes(requestedView as View) ? requestedView as View : "list");
+  const [view, setView] = useRouteViewState<View>(`${collectionKey}:view`,() => supportedViews.includes(requestedView as View) ? requestedView as View : "list");
   useEffect(() => {
     if (["board", "list", "calendar", "workload", "activity"].includes(requestedView || "")) setView(requestedView as View);
   }, [requestedView]);
@@ -121,9 +123,9 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   const [role, setRole] = useState("Member");
   const [token, setToken] = useState(params.get("invite") || "");
   const [inviteLink, setInviteLink] = useState("");
-  const [query, setQuery] = useState("");
-  const [projectFilter, setProjectFilter] = useState("");
-  const [assigneeFilter, setAssigneeFilter] = useState("");
+  const [query, setQuery] = useRouteViewState(`${collectionKey}:query`,"");
+  const [projectFilter, setProjectFilter] = useRouteViewState(`${collectionKey}:project`,"");
+  const [assigneeFilter, setAssigneeFilter] = useRouteViewState(`${collectionKey}:assignee`,"");
   const [addingPeople, setAddingPeople] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -195,7 +197,7 @@ export default function WorkspacesPage({ creationWindow = false }: { creationWin
   };
   useRefreshableEffect(() => { const finish = beginProgress("Loading workspaces"); loadWorkspaces().then(() => finish()).catch(e => { finish(false); setWorkspaceLoadFailed(true); setError(workspaceError(e)); }).finally(() => setLoading(false)); }, [loadWorkspaces]);
   useEffect(() => {
-    setTaskScope("all");setMembers([]); setProjects([]); setTasks([]); setInvitations([]); setProjectFilter(""); setTaskOpen(null); setAssigneeFilter("");
+    setMembers([]); setProjects([]); setTasks([]); setInvitations([]); setTaskOpen(null);
     let active = true;
     setDetailsLoading(!!selected); setDetailsFailed(false);
     const finish = selected ? beginProgress("Opening workspace") : undefined;

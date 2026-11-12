@@ -19,7 +19,7 @@ export function useRouteViewState<T>(
     sessionStorage.getItem("suite-branch"),
   ]);
   navigationViews.scope(scope);
-  const key = scope + pathname;
+  const key = JSON.stringify([scope, pathname, name]);
   const read = () => {
     const values = navigationViews.get(pathname)?.values;
     return values && name in values
