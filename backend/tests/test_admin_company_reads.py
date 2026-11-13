@@ -176,3 +176,17 @@ def test_admin_notes_are_company_bound_and_read_only(client, admin_data, role):
     assert foreign not in {row['id'] for row in rows}
     assert client.get(f'/api/v1/project-management/notes/{local}', headers=headers).status_code == 200
     assert client.get(f'/api/v1/project-management/notes/{foreign}', headers=headers).status_code == 404
+
+
+def test_company_admin_read_crosses_business_os_middleware_gate_without_enabling_writes(client, db, admin_data):
+    from app.apps.business_os.models import BOSEnabledModule
+    row = db.query(BOSEnabledModule).filter_by(company_id=1, module_key='communication').first()
+    if row is None:
+        row = BOSEnabledModule(company_id=1, module_key='communication', display_name='Communication')
+        db.add(row)
+    row.enabled = False
+    db.commit()
+    for key in ['root','admin']:
+        assert client.get('/api/v1/communication/campaigns', headers={**admin_data[key], 'X-Suite-Branch':'all'}).status_code == 200
+    assert client.get('/api/v1/communication/campaigns', headers=admin_data['regular']).status_code == 403
+    assert client.post('/api/v1/communication/campaigns', headers=admin_data['admin'], json={}).status_code == 403

@@ -82,6 +82,11 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
                 if actor:
                     return JSONResponse(status_code=403,content={"detail":"Organization context is unavailable"})
                 return None
+            # This is only a coarse module gate. The authenticated dependency
+            # still verifies sessions, active membership/policy and company scope.
+            from app.branches.service import company_administrator
+            if actor and request.method in {"GET", "HEAD"} and (actor.is_superuser or company_administrator(db, actor, company_id)):
+                return None
             if not is_module_enabled(db, module_key, company_id=company_id):
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
