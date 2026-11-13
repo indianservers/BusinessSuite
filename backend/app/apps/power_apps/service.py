@@ -21,7 +21,7 @@ def validate_environment(db, user, environment):
     if environment not in ENVIRONMENTS:
         raise HTTPException(422, "Unknown Power Apps environment")
     row = db.query(PowerEnvironment).filter_by(organization_id=organization(user), key=environment).first()
-    if row and row.enabled:
+    if getattr(user, "_suite_admin_read", False) or row and row.enabled:
         return environment
     raise HTTPException(403, "Environment is not enabled for this organization")
 

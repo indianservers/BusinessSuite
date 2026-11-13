@@ -1221,6 +1221,8 @@ def handoff_guard(db, user, row, recipient=False):
 
     if row.organization_id != company(user):
         raise HTTPException(404, "Handoff note not found")
+    if getattr(user, "_suite_admin_read", False):
+        return
     if not recipient and user.id not in (row.created_by, row.assigned_to):
         raise HTTPException(404, "Handoff note not found")
     creator = db.get(User, row.created_by)

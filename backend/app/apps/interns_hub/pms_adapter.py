@@ -41,3 +41,46 @@ def summary(db,employee,day):
         "progress":round(completed*100/total) if total else 0,"submission_rate":round(db.query(latest).count()*100/total) if total else 0,
         "attendance_rate":round(present*100/len(attendances)) if attendances else 0,"present_days":present,"absent_days":sum(a[0]=="Absent" for a in attendances),"reports":len(days),"streak":streak,
         "certificates":db.query(InternCertificate).filter_by(employee_id=employee.id).count(),"legacy_tasks_pending":legacy,"task_source":"PMS"}
+
+
+def summaries(db, employees, day, company):
+    """Batch the legacy directory summaries without per-intern SQL queries."""
+    from collections import Counter, defaultdict
+    ids = [e.id for e in employees]
+    users = [e.user_id for e in employees if e.user_id]
+    if not ids: return {}
+    tasks = db.query(PMSTaskAssignee.user_id, PMSTaskAssignee.task_id,
+        PMSTaskAssignee.execution_status, func.coalesce(PMSTaskAssignee.due_date, PMSTask.due_date).label('due_date'))        .join(PMSTask, PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject, PMSProject.id==PMSTask.project_id)        .filter(PMSTaskAssignee.user_id.in_(users), PMSTaskAssignee.cancelled_at.is_(None), PMSTask.deleted_at.is_(None),
+                PMSProject.deleted_at.is_(None), func.coalesce(PMSProject.organization_id,1)==company)
+    by_user = defaultdict(list)
+    for row in tasks: by_user[row.user_id].append(row)
+    latest = db.query(PMSWorkSubmission.user_id, PMSWorkSubmission.task_id, func.max(PMSWorkSubmission.id).label('id'))        .join(PMSTaskAssignee, (PMSTaskAssignee.task_id==PMSWorkSubmission.task_id)&(PMSTaskAssignee.user_id==PMSWorkSubmission.user_id))        .join(PMSTask, PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject, PMSProject.id==PMSTask.project_id)        .filter(PMSWorkSubmission.user_id.in_(users), PMSWorkSubmission.status!='Draft', PMSTaskAssignee.cancelled_at.is_(None),
+                PMSTask.deleted_at.is_(None), PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==company)        .group_by(PMSWorkSubmission.user_id,PMSWorkSubmission.task_id).subquery()
+    scores = dict(db.query(latest.c.user_id,func.avg(PMSWorkReview.score*100.0/PMSWorkReview.maximum_score))        .join(PMSWorkReview,PMSWorkReview.submission_id==latest.c.id).group_by(latest.c.user_id).all())
+    submitted = dict(db.query(latest.c.user_id,func.count()).group_by(latest.c.user_id).all())
+    attendance = defaultdict(list)
+    for eid,status in db.query(Attendance.employee_id,Attendance.status).filter(Attendance.employee_id.in_(ids)):
+        attendance[eid].append(status)
+    reports = defaultdict(set)
+    for eid,dt in db.query(InternReport.employee_id,InternReport.report_date).filter(InternReport.employee_id.in_(ids),InternReport.status=='Submitted'):
+        reports[eid].add(dt)
+    certificates = dict(db.query(InternCertificate.employee_id,func.count()).filter(InternCertificate.employee_id.in_(ids)).group_by(InternCertificate.employee_id).all())
+    legacy = dict(db.query(InternTask.employee_id,func.count()).filter(InternTask.employee_id.in_(ids),InternTask.id.notin_(db.query(InternLegacyTaskMap.legacy_task_id))).group_by(InternTask.employee_id).all())
+    result = {}
+    for e in employees:
+        rows = by_user[e.user_id]; counts = Counter(t.execution_status for t in rows)
+        total = len(rows); completed = sum(counts[s] for s in COMPLETED)
+        present = sum(s in {'Present','WFH','Half-day'} for s in attendance[e.id])
+        days=reports[e.id]; cursor=day if day in days else day-timedelta(days=1); streak=0
+        while cursor in days: streak+=1;cursor-=timedelta(days=1)
+        score=scores.get(e.user_id)
+        result[e.id]={'total_tasks':total,'completed':completed,'open_tasks':sum(t.execution_status not in TERMINAL for t in rows),
+            'cancelled_tasks':sum(counts[s] for s in ('Cancelled','Canceled','Rejected')),'pending':counts['To Do'],
+            'in_progress':counts['In Progress']+counts['Revision Requested'],
+            'overdue':sum(t.due_date is not None and t.due_date<day and t.execution_status not in TERMINAL for t in rows),
+            'score':round(float(score)) if score is not None else None,'progress':round(completed*100/total) if total else 0,
+            'submission_rate':round(submitted.get(e.user_id,0)*100/total) if total else 0,
+            'attendance_rate':round(present*100/len(attendance[e.id])) if attendance[e.id] else 0,
+            'present_days':present,'absent_days':attendance[e.id].count('Absent'),'reports':len(days),'streak':streak,
+            'certificates':certificates.get(e.id,0),'legacy_tasks_pending':legacy.get(e.id,0),'task_source':'PMS'}
+    return result

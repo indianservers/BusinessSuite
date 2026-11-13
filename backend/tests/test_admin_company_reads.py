@@ -39,7 +39,7 @@ def admin_data(db, studio):
     db.add_all([second, foreign]); db.flush()
     rows = {}
     for company, branch, suffix in [(1, second.id, 'LOCAL'), (other.id, foreign.id, 'FOREIGN')]:
-        employee = Employee(employee_id='ADMIN-READ-'+suffix, first_name=suffix, last_name='Employee', branch_id=branch, date_of_joining=date.today())
+        employee = Employee(employee_id='ADMIN-READ-'+suffix, first_name=suffix, last_name='Employee', employment_type='Intern', branch_id=branch, date_of_joining=date.today())
         customer = CRMCompany(organization_id=company, branch_id=branch, name=suffix+' customer', owner_user_id=root.id)
         workspace = PMSWorkspace(organization_id=company, name=suffix+' workspace')
         group = FAMLedgerGroup(company_id=company, group_name=suffix+' group', group_code='ADMIN-READ', nature='asset')
@@ -50,7 +50,7 @@ def admin_data(db, studio):
         from app.apps.communication.models import CommunicationCampaign
         from app.apps.automation.models import AutomationWorkflow
         from app.apps.analytics.models import AnalyticsReport
-        from app.ai_agents.models import AiConversation, AiMessage
+        from app.ai_agents.models import AiConversation, AiMessage, AiHandoffNote
         from app.ai_operator.assistant_models import AssistantConversation
         campaign = CommunicationCampaign(organization_id=company, name=suffix+' campaign', created_by=root.id)
         workflow = AutomationWorkflow(organization_id=company, name=suffix+' workflow', module_name='crm', record_type='lead', trigger_type='manual', created_by=root.id)
@@ -61,8 +61,10 @@ def admin_data(db, studio):
         db.add(AiMessage(conversation_id=conversation.id, role='user', content=suffix+' memo'))
         note = PMSNote(owner_id=root.id if company==1 else foreign_owner.id, title=suffix+' private note', content=suffix+' content', tags=[])
         db.add(note); db.flush()
+        handoff = AiHandoffNote(organization_id=company,module='CRM',summary=suffix+' handoff',created_by=root.id if company==1 else foreign_owner.id)
+        db.add(handoff);db.flush()
         rows[suffix] = {'employee':employee.id, 'customer':customer.id, 'workspace':str(workspace.id), 'project':project.id, 'order':order.id, 'ledger':ledger.id,
-                       'note':note.id,'campaign':campaign.id,'workflow':workflow.id,'report':report.id,'conversation':conversation.id,'suite_chat':suite_chat.id}
+                       'handoff':handoff.id,'note':note.id,'campaign':campaign.id,'workflow':workflow.id,'report':report.id,'conversation':conversation.id,'suite_chat':suite_chat.id}
     sessions = {}
     for key,user in [('root',root),('admin',admin)]:
         session = UserSession(user_id=user.id, session_token_hash=uuid4().hex, status='Active', expires_at=datetime.now(timezone.utc)+timedelta(hours=1))
@@ -140,7 +142,7 @@ def test_administrators_default_to_all_branches_but_keep_a_concrete_write_destin
 
 
 @pytest.mark.parametrize('role', ['root','admin'])
-@pytest.mark.parametrize('path,record', [('/communication/campaigns','campaign'),('/automation/workflows','workflow'),('/analytics/reports','report'),('/ai-agents/conversations','conversation'),('/ai-operator/suite/conversations','suite_chat')])
+@pytest.mark.parametrize('path,record', [('/communication/campaigns','campaign'),('/automation/workflows','workflow'),('/analytics/reports','report'),('/interns-hub/admin/interns','employee'),('/ai-agents/handoff-notes','handoff'),('/ai-agents/conversations','conversation'),('/ai-operator/suite/conversations','suite_chat')])
 def test_addon_modules_allow_company_wide_administrative_reads(client, admin_data, role, path, record):
     ids = {str(row['id']) for row in entries(client.get('/api/v1'+path, headers=admin_data['sessions'][role]))}
     assert str(admin_data['rows']['LOCAL'][record]) in ids
@@ -190,3 +192,34 @@ def test_company_admin_read_crosses_business_os_middleware_gate_without_enabling
         assert client.get('/api/v1/communication/campaigns', headers={**admin_data[key], 'X-Suite-Branch':'all'}).status_code == 200
     assert client.get('/api/v1/communication/campaigns', headers=admin_data['regular']).status_code == 403
     assert client.post('/api/v1/communication/campaigns', headers=admin_data['admin'], json={}).status_code == 403
+
+
+@pytest.mark.parametrize('role', ['root','admin'])
+def test_admin_ai_catalog_all_branches_is_read_only(client, admin_data, role):
+    assert client.get('/api/v1/ai-agents', headers=admin_data['sessions'][role]).status_code == 200
+
+
+def test_batched_intern_summaries_preserve_execution_metrics(db, admin_data):
+    from app.apps.interns_hub.pms_adapter import summary, summaries
+    from app.apps.project_management.models import PMSTask, PMSTaskAssignee
+    from app.models.attendance import Attendance
+    user = admin_data['user']
+    project = admin_data['rows']['LOCAL']['project']
+    for index,status in enumerate(['Done','In Progress','Rejected']):
+        task = PMSTask(project_id=project,title=f'Summary task {index}',task_key=f'SUM-{index}')
+        db.add(task);db.flush()
+        db.add(PMSTaskAssignee(task_id=task.id,user_id=user.id,execution_status=status,due_date=date.today()-timedelta(days=1)))
+    db.add(Attendance(employee_id=user.employee.id,attendance_date=date.today(),status='Present'))
+    db.commit()
+    expected = summary(db,user.employee,date.today())
+    assert expected['total_tasks'] == 3
+    assert expected['completed'] == 1
+    assert expected['overdue'] == 1
+    assert summaries(db,[user.employee],date.today(),1)[user.employee.id] == expected
+
+
+@pytest.mark.parametrize('role', ['root','admin'])
+@pytest.mark.parametrize('path', ['/logs/audit','/logs/requests','/files-storage/files','/power-apps/integrations/connections','/power-apps/approvals/requests'])
+def test_admin_can_inspect_company_audit_storage_and_disabled_environments(client, admin_data, role, path):
+    response = client.get('/api/v1'+path,headers=admin_data['sessions'][role])
+    assert response.status_code == 200, response.text

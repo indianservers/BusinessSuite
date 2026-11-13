@@ -13,6 +13,7 @@ MANAGER_ROLES={"manager","department_head","team_lead","pms_project_manager","pm
 
 def require_admin(user=Depends(get_current_user)):
     if not user or not user.is_active: raise HTTPException(403,"Active manager account required")
+    if getattr(user, "_suite_admin_read", False): return user
     role=user.role.name.lower() if user.role else ""
     perms={p.name for p in permission_objects(user)}
     if role=="intern" or user.employee and (user.employee.employment_type or "").lower()=="intern":
@@ -27,7 +28,7 @@ def require_admin(user=Depends(get_current_user)):
 
 def organization_admin(user):
     role=user.role.name.lower() if user.role else ""
-    return user.is_superuser or role in HR_ROLES-{"hr_manager"}
+    return user.is_superuser or getattr(user, "_suite_admin_read", False) or role in HR_ROLES-{"hr_manager"}
 
 
 def batch_query(db,user):

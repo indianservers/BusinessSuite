@@ -181,17 +181,9 @@ def list_agents(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    agents = AiAgentRegistryService(db).list_agents(module)
-    _audit(
-        db,
-        request,
-        current_user,
-        action="agent.list_viewed",
-        module=module.upper() if module else "CROSS",
-        input_json={"module": module},
-        output_json={"count": len(agents)},
-    )
-    db.commit()
+    agents = AiAgentRegistryService(db).list_agents(module, initialize=False)
+    # Read requests are audited by AuditLogMiddleware. They must not create
+    # branch-owned business records while inspecting an all-branches scope.
     return agents
 
 
@@ -854,7 +846,7 @@ def create_handoff(payload: AiHandoffCreate, db: Session = Depends(get_db), curr
 @router.get("/handoff-notes")
 def list_handoff(status: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _require_ai_access(current_user)
-    query = db.query(AiHandoffNote).filter(AiHandoffNote.organization_id==_company_id(current_user),(AiHandoffNote.created_by==current_user.id)|(AiHandoffNote.assigned_to==current_user.id))
+    query = db.query(AiHandoffNote).filter(AiHandoffNote.organization_id==_company_id(current_user))
     if not _is_ai_admin(current_user):
         query = query.filter((AiHandoffNote.created_by == current_user.id) | (AiHandoffNote.assigned_to == current_user.id))
     if status:

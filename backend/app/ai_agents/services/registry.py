@@ -160,8 +160,9 @@ class AiAgentRegistryService:
                     setattr(agent, field, value)
         self.db.flush()
 
-    def list_agents(self, module: str | None = None) -> list[AiAgent]:
-        self.ensure_seed_data()
+    def list_agents(self, module: str | None = None, *, initialize: bool = True) -> list[AiAgent]:
+        if initialize:
+            self.ensure_seed_data()
         query = self.db.query(AiAgent)
         if module:
             query = query.filter(AiAgent.module == module.upper())

@@ -89,12 +89,14 @@ def context(db, actor):
         intern_admin = False
     from app.branches.service import access as branch_access
     branch_manager = branch_access(db, actor, company)[3]
-    return {"branch_manager": branch_manager, "intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy or getattr(actor, '_suite_branch_roles_fingerprint', None)),
+    return {"admin_read":bool(getattr(actor, "_suite_admin_read", False)), "branch_manager": branch_manager, "intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy or getattr(actor, '_suite_branch_roles_fingerprint', None)),
             "permissions": permission_names(actor), "super": actor.is_superuser}
 
 
 def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
+    if ctx.get("admin_read") and ctx["admin"]:
+        return True
     if key in {"internships", "task-packs"} and not ctx.get("intern_admin", False):
         return False
     if key == "business-defaults":
