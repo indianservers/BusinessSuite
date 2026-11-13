@@ -104,6 +104,8 @@ def turns():
         result.append({'module':case['module'],**case['supervision'],'split':'train'})
     from app.ai_operator.message_dialogue_corpus import turns as message_turns
     result.extend(message_turns())
+    from app.ai_operator.workplace_dialogue_corpus import turns as workplace_turns
+    result.extend(workplace_turns())
     return result
 
 

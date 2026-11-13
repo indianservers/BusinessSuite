@@ -38,6 +38,15 @@ def main():
         if not success:fresh_failures.append({**row,'actual':prediction['act'] if prediction else None})
     report['message_followups_validation']={'version':fresh_version,'total':len(fresh),'passed':len(fresh)-len(fresh_failures),'by_class':fresh_classes,'failures':fresh_failures,
         'limits':'Fresh authored v2 wording, excluded from gradient fitting and development-set seed selection. Shared synthetic contexts; not production accuracy.'}
+    from app.ai_operator.workplace_dialogue_validation import VERSION as workplace_version,cases as workplace_cases
+    workplace=workplace_cases();workplace_failures=[];workplace_classes={}
+    for row in workplace:
+        prediction=predict(row['module'],row['intent'],row['pending'],row['text'])
+        success=bool(prediction and prediction['act']==row['act'])
+        metric=workplace_classes.setdefault(row['act'],{'passed':0,'total':0});metric['total']+=1;metric['passed']+=int(success)
+        if not success:workplace_failures.append({**row,'actual':prediction['act'] if prediction else None})
+    report['workplace_followups']={'version':workplace_version,'total':len(workplace),'passed':len(workplace)-len(workplace_failures),'by_class':workplace_classes,'failures':workplace_failures,
+        'limits':'90 frozen synthetic context-labelled probes using 30 authored phrases. Excluded from fitting and development-set seed selection. Shared contexts; not production accuracy or an execution benchmark.'}
     (folder/'unseen-dialogue-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps({k:v for k,v in report.items() if k!='failures'},indent=2))
 

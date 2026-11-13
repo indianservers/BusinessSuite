@@ -174,3 +174,15 @@ def test_existing_message_release_with_original_core_evidence_remains_compatible
     write('action-release-evaluation.json',native)
     assert release.seal(folder,1,'dataset-digest')['passed']
     assert release.verify(folder,1)['gate']['passed']
+
+
+
+@pytest.mark.parametrize('passed',[None,60,77])
+def test_new_workplace_dialogue_requires_its_separate_probe_gate(candidate,passed):
+    _,folder,write=candidate
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'workplace_dialogue_version':'workplace-followups-v1','workplace_training_turns':450,'workplace_training_sha256':'a'*64})
+    unseen={'total':120,'passed':96}
+    if passed is not None:unseen['workplace_followups']={'version':'workplace-followup-probes-v1','total':90,'passed':passed}
+    write('unseen-dialogue-evaluation.json',unseen)
+    gate=release.assess(folder)
+    assert gate['passed']==(passed==77)

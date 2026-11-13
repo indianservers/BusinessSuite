@@ -65,6 +65,8 @@ def main():
             'training_accuracy':train_accuracy,'heldout_correct':len(test)-len(failed),'heldout_accuracy':float(np.mean(predicted[test]==y[test])),
             'portable_max_error':error,'keras_reload_max_error':reload_error,'failures':failed,'model_selection':{'candidates':candidates,'basis':'Selected by the authored development set; this set is not an unbiased test score'},
             'limits':'Synthetic, context-labelled dialogue acts. Evaluation wording and vocabulary are excluded from gradient training; contexts are shared. This authored development set has been inspected during tuning, not an untouched benchmark. Not a general language or action-execution benchmark. Predictions never authorize actions.'}
+    from app.ai_operator.workplace_dialogue_corpus import VERSION as workplace_version,turns as workplace_turns
+    report.update(workplace_dialogue_version=workplace_version,workplace_training_turns=len(workplace_turns()),workplace_training_sha256=hashlib.sha256(json.dumps(workplace_turns(),sort_keys=True).encode()).hexdigest())
     (output/'dialogue-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     (output/'dialogue-turns.json').write_text(json.dumps(rows,indent=2),encoding='utf-8')
     from app.ai_operator.action_repairs import cases

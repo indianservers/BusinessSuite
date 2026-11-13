@@ -66,6 +66,12 @@ def assess(folder,baseline=None):
         fresh=unseen.get('message_followups_validation') or {}
         check('Fresh message followup wording',fresh.get('version')=='message-action-probes-v2' and fresh.get('total')==60 and metric(fresh.get('passed',0)/max(1,fresh.get('total',0)),.85),
             f"{fresh.get('passed',0)}/{fresh.get('total',0)}",'at least 0.85 on 60 fresh authored probes')
+    if dialogue.get('workplace_dialogue_version'):
+        check('Workplace dialogue provenance',dialogue.get('workplace_dialogue_version')=='workplace-followups-v1' and dialogue.get('workplace_training_turns')==450 and len(dialogue.get('workplace_training_sha256',''))==64,
+            dialogue.get('workplace_training_turns'),'450 versioned synthetic turns with a training digest')
+        workplace=unseen.get('workplace_followups') or {}
+        check('Separate workplace followup wording',workplace.get('version')=='workplace-followup-probes-v1' and workplace.get('total')==90 and type(workplace.get('passed')) is int and 0<=workplace['passed']<=90 and metric(workplace['passed']/90,.85),
+            f"{workplace.get('passed',0)}/{workplace.get('total',0)}",'at least 0.85 on 90 frozen synthetic context-labelled probes')
     check('Dialogue numeric parity',metric(dialogue['portable_max_error'],0,1e-5),dialogue['portable_max_error'],'at most 0.00001')
     check('Authored conversation scenarios',conversations['total']>=600 and conversations['passed']==conversations['total'] and not conversations.get('failures'),
         f"{conversations['passed']}/{conversations['total']}",'all scenarios; at least 600')
