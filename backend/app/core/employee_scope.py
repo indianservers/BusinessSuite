@@ -39,7 +39,7 @@ def validate_employee_links(db, user, values, employee=None):
 
 
 def employee_tenant_scope(request: Request, db=Depends(get_db), user=Depends(get_current_user)):
-    if user.is_superuser:
+    if user.is_superuser and not getattr(user, '_suite_admin_read', False):
         yield
         return
     company_id = tenant(user)

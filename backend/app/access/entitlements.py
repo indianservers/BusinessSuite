@@ -34,6 +34,8 @@ def states(db, company):
 
 
 def enforce(db, company, module):
+    if db.info.get('admin_read_company') == company and db.info.get('security_write_request') is False:
+        return
     from app.models.company import Company
 
     table = Company.__table__

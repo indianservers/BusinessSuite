@@ -76,6 +76,9 @@ def context(db, actor):
               else service.legacy_grants(db, actor, company))
     from app.branches.roles import effective_grants
     grants = effective_grants(db, actor, company, getattr(actor, '_suite_branch_id', None), grants)
+    if getattr(actor, '_suite_admin_read', False):
+        from app.access.admin_reads import grants as company_read_grants
+        grants = company_read_grants(db, actor, grants)
     is_admin = actor.is_superuser or (service.schema_ready(db) and bool(db.query(AccessMembership).filter_by(
         user_id=actor.id, company_id=company, active=True, is_admin=True).first()))
     from app.apps.interns_hub.management_access import require_admin

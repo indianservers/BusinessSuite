@@ -234,7 +234,8 @@ def my_access(
                 .first()
             )
         ),
-        "companyDisabledModules": [key for key, enabled in entitlements.states(db, company).items() if not enabled],
+        "companyDisabledModules": [] if getattr(actor, '_suite_admin_read', False) else [key for key, enabled in entitlements.states(db, company).items() if not enabled],
+        "readOnlyModules": [key for key, enabled in entitlements.states(db, company).items() if not enabled] if getattr(actor, '_suite_admin_read', False) else [],
         "modules": catalog(db),
         "memberships": memberships,
         "companyName": next((org.name for org in organizations if org.id == company), None),

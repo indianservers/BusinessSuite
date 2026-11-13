@@ -292,6 +292,8 @@ def active_seats(db, company):
 
 
 def governance_module_check(db, user, company, module, action="view"):
+    if getattr(user, '_suite_admin_read', False) and action in {'view','export'}:
+        return
     if not module:
         return
     from app.shared.models import ServicePolicy

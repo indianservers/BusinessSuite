@@ -17,7 +17,7 @@ def writable_actions(ctx, grants, user=None):
 
 def effective_grants(db, user, company, selected, base=None):
     user._suite_branch_roles_fingerprint = None
-    if user.is_superuser or not inspect(db.connection()).has_table(BranchGrant.__tablename__):
+    if user.is_superuser or (getattr(user, '_suite_admin_read', False) and getattr(user, '_suite_is_company_admin', False)) or not inspect(db.connection()).has_table(BranchGrant.__tablename__):
         return base
     from app.branches.service import context
     from app.access.service import legacy_grants, resolved_grants

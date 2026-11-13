@@ -52,7 +52,7 @@ def same_company(db, actor, target):
 
 def scoped_workspace(db, wid, actor, manage=True):
     workspace = db.get(PMSWorkspace, wid)
-    if not workspace or is_archived(db, wid):
+    if not workspace or (is_archived(db, wid) and not (getattr(actor, "_suite_admin_read", False) and not manage)):
         raise HTTPException(404, "Workspace not found in your scope")
     member = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=actor.id).first()
     if member and (not manage or member.role in {"Owner", "Admin"}):

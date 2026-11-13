@@ -104,6 +104,9 @@ api.interceptors.response.use(
     if (response.config.url === "/branches/context" && response.data?.selected != null && !sessionStorage.getItem("suite-branch") && (!response.config.headers?.["X-Suite-Organization"] || String(response.config.headers["X-Suite-Organization"]) === (sessionStorage.getItem("suite-organization") || "1"))) {
       sessionStorage.setItem("suite-branch", String(response.data.selected));
     }
+    if (response.config.url === '/branches/context' && response.data?.selected === null && response.data?.all_branches && !sessionStorage.getItem('suite-branch') && (!response.config.headers?.['X-Suite-Organization'] || String(response.config.headers['X-Suite-Organization']) === (sessionStorage.getItem('suite-organization') || '1'))) {
+      sessionStorage.setItem('suite-branch', 'all');
+    }
     const method=(response.config.method||"get").toLowerCase();
     if(response.config.readOnlyPreview !== true && !["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
     if (response.config.readOnlyPreview !== true && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));

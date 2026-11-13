@@ -86,7 +86,7 @@ def owned(db, note_id, user):
 
 def readable(db, note_id, user):
     note = db.get(PMSNote, note_id)
-    if note and note.owner_id == user.id:
+    if note and (note.owner_id == user.id or getattr(user, "_suite_admin_read", False)):
         return note
     if note and not note.deleted_at and note.visibility_scope in {"project", "workspace"} and note.project_id:
         project = db.get(PMSProject, note.project_id)
@@ -177,10 +177,11 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
         from .access import accessible_project_query
         projects = accessible_project_query(db, user).with_entities(PMSProject.id)
         query = query.filter(or_(PMSNote.id.in_(db.query(PMSNoteShare.note_id).filter(PMSNoteShare.user_id == user.id)), (PMSNote.visibility_scope != "private") & PMSNote.project_id.in_(projects)))
-    else:
+    elif not getattr(user, "_suite_admin_read", False):
         query = query.filter(PMSNote.owner_id == user.id)
     if folder_id is not None:
-        folder_owned(db, folder_id, user)
+        if not getattr(user, "_suite_admin_read", False):
+            folder_owned(db, folder_id, user)
         query = query.filter(PMSNote.folder_id == folder_id)
     if task_id is not None: query = query.filter(PMSNote.task_id == task_id)
     if view == "favorites": query = query.filter(PMSNote.favorite.is_(True))
@@ -342,8 +343,13 @@ def folder_result(folder):
 
 @router.get("/note-folders")
 def folders(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    rows = db.query(PMSNoteFolder).filter_by(owner_id=user.id, deleted_at=None).order_by(PMSNoteFolder.position, PMSNoteFolder.id).all()
-    counts = dict(db.query(PMSNote.folder_id, func.count(PMSNote.id)).filter_by(owner_id=user.id, deleted_at=None, archived=False).group_by(PMSNote.folder_id).all())
+    query = db.query(PMSNoteFolder).filter_by(deleted_at=None)
+    notes = db.query(PMSNote.folder_id, func.count(PMSNote.id)).filter_by(deleted_at=None, archived=False)
+    if not getattr(user, "_suite_admin_read", False):
+        query = query.filter_by(owner_id=user.id)
+        notes = notes.filter_by(owner_id=user.id)
+    rows = query.order_by(PMSNoteFolder.position, PMSNoteFolder.id).all()
+    counts = dict(notes.group_by(PMSNote.folder_id).all())
     return [dict(folder_result(folder), count=counts.get(folder.id, 0)) for folder in rows]
 
 

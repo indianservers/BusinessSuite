@@ -1,6 +1,7 @@
 from __future__ import annotations
 from app.ai_agents.security import metadata
 from app.access.catalog import permission_objects
+from app.access.admin_reads import allowed as admin_read, owner_clause
 
 import csv
 import io
@@ -83,7 +84,7 @@ def _company_id(user: User) -> int | None:
 def _can_access_ai_agents(user: User) -> bool:
     if not user or not getattr(user, "is_active", True):
         return False
-    if user.is_superuser:
+    if user.is_superuser or admin_read(user):
         return True
     permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"ai_assistant", "settings_manage"}))
@@ -95,7 +96,7 @@ def _require_ai_access(user: User) -> None:
 
 
 def _is_ai_tool_tester(user: User) -> bool:
-    if user.is_superuser:
+    if user.is_superuser or admin_read(user):
         return True
     if getattr(user, "_suite_grants", None) is not None:
         return "configure" in user._suite_grants.get("ai", {}).get("actions", [])
@@ -104,7 +105,7 @@ def _is_ai_tool_tester(user: User) -> bool:
 
 
 def _is_ai_admin(user: User) -> bool:
-    if user.is_superuser:
+    if user.is_superuser or admin_read(user):
         return True
     if getattr(user, "_suite_grants", None) is not None:
         grant = user._suite_grants.get("ai", {})
@@ -307,7 +308,7 @@ def list_conversations(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    query = db.query(AiConversation).filter(AiConversation.user_id == current_user.id)
+    query = db.query(AiConversation).filter(owner_clause(AiConversation, current_user))
     if agent_id:
         query = query.filter(AiConversation.agent_id == agent_id)
     if module:
@@ -357,7 +358,7 @@ def get_conversation(
     row = (
         db.query(AiConversation)
         .options(joinedload(AiConversation.messages))
-        .filter(AiConversation.id == conversation_id, AiConversation.user_id == current_user.id)
+        .filter(AiConversation.id == conversation_id, owner_clause(AiConversation, current_user))
         .first()
     )
     if not row:
@@ -372,7 +373,7 @@ def get_conversation_messages(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    conversation = db.query(AiConversation).filter(AiConversation.id == conversation_id, AiConversation.user_id == current_user.id).first()
+    conversation = db.query(AiConversation).filter(AiConversation.id == conversation_id, owner_clause(AiConversation, current_user)).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return db.query(AiMessage).filter(AiMessage.conversation_id == conversation.id).order_by(AiMessage.created_at.asc(), AiMessage.id.asc()).all()
@@ -387,7 +388,7 @@ def save_conversation_message(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    conversation = db.query(AiConversation).filter(AiConversation.id == conversation_id, AiConversation.user_id == current_user.id).first()
+    conversation = db.query(AiConversation).filter(AiConversation.id == conversation_id, owner_clause(AiConversation, current_user)).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -418,11 +419,11 @@ def pending_approvals(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    query = db.query(AiActionApproval).filter(AiActionApproval.status == "pending",AiActionApproval.user_id==current_user.id,AiActionApproval.organization_id==_company_id(current_user))
+    query = db.query(AiActionApproval).filter(AiActionApproval.status == "pending",owner_clause(AiActionApproval, current_user),AiActionApproval.organization_id==_company_id(current_user))
     if module:
         query = query.filter(AiActionApproval.module == module.upper())
-    if not current_user.is_superuser:
-        query = query.filter(AiActionApproval.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiActionApproval, current_user))
     from app.ai_agents.security import visible_history
     return visible_history(db,current_user,query.order_by(AiActionApproval.created_at.desc()).limit(100).all())
 
@@ -495,8 +496,8 @@ def ai_logs(
     query = db.query(AiAuditLog).filter(AiAuditLog.organization_id == _company_id(current_user))
     if module:
         query = query.filter(AiAuditLog.module == module.upper())
-    if not current_user.is_superuser:
-        query = query.filter(AiAuditLog.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiAuditLog, current_user))
     rows = query.order_by(AiAuditLog.created_at.desc()).limit(200).all()
     return [
         {
@@ -593,7 +594,7 @@ def usage_summary(db: Session = Depends(get_db), current_user: User = Depends(ge
         func.coalesce(func.sum(AiUsageEvent.token_output), 0),
         func.coalesce(func.sum(AiUsageEvent.estimated_cost), 0),
     ).filter(AiUsageEvent.created_at >= since)
-    if not current_user.is_superuser:
+    if not (current_user.is_superuser or admin_read(current_user)):
         query = query.filter(AiUsageEvent.company_id == company_id)
     rows = query.group_by(AiUsageEvent.event_type).all()
     return {"period_days": 30, "events": [{"event_type": row[0], "count": row[1], "token_input": int(row[2] or 0), "token_output": int(row[3] or 0), "estimated_cost": float(row[4] or 0)} for row in rows]}
@@ -648,8 +649,8 @@ def security_summary(db: Session = Depends(get_db), current_user: User = Depends
         "AI_APPROVED_ACTION_FAILED",
     ]
     query = db.query(AiAuditLog.action, func.count(AiAuditLog.id)).filter(AiAuditLog.action.in_(events))
-    if not current_user.is_superuser:
-        query = query.filter(AiAuditLog.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiAuditLog, current_user))
     rows = query.group_by(AiAuditLog.action).all()
     settings = AiSecuritySettingsService(db).get_or_create(_company_id(current_user))
     return {"events": {row[0]: row[1] for row in rows}, "kill_switch": {"ai_enabled": settings.ai_enabled, "crm_ai_enabled": settings.crm_ai_enabled, "pms_ai_enabled": settings.pms_ai_enabled, "hrms_ai_enabled": settings.hrms_ai_enabled, "cross_ai_enabled": settings.cross_ai_enabled}}
@@ -661,8 +662,8 @@ def security_events(module: str | None = None, db: Session = Depends(get_db), cu
     _require_ai_admin(current_user)
     actions = ["AI_PROMPT_INJECTION_DETECTED", "AI_UNSAFE_PROMPT_BLOCKED", "AI_RESPONSE_BLOCKED_BY_SAFETY_FILTER", "AI_TOOL_FAILED", "AI_RATE_LIMIT_EXCEEDED", "AI_CONTEXT_SANITIZED", "AI_APPROVED_ACTION_FAILED"]
     query = db.query(AiAuditLog).filter(AiAuditLog.action.in_(actions),AiAuditLog.organization_id==_company_id(current_user))
-    if not current_user.is_superuser:
-        query = query.filter(AiAuditLog.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiAuditLog, current_user))
     if module:
         query = query.filter(AiAuditLog.module == module.upper())
     rows = query.order_by(AiAuditLog.created_at.desc()).limit(200).all()
@@ -708,14 +709,14 @@ def analytics_summary(db: Session = Depends(get_db), current_user: User = Depend
     approval_query = db.query(func.count(AiActionApproval.id))
     feedback_query = db.query(func.count(AiMessageFeedback.id))
     failed_query = db.query(func.count(AiAuditLog.id)).filter(AiAuditLog.action == "AI_TOOL_FAILED")
-    if not current_user.is_superuser:
-        conversation_query = conversation_query.filter(AiConversation.user_id == current_user.id)
-        approval_query = approval_query.filter(AiActionApproval.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        conversation_query = conversation_query.filter(owner_clause(AiConversation, current_user))
+        approval_query = approval_query.filter(owner_clause(AiActionApproval, current_user))
         feedback_query = feedback_query.filter(AiMessageFeedback.user_id == current_user.id)
-        failed_query = failed_query.filter(AiAuditLog.user_id == current_user.id)
+        failed_query = failed_query.filter(owner_clause(AiAuditLog, current_user))
     conversation_ids = db.query(AiConversation.id)
-    if not current_user.is_superuser:
-        conversation_ids = conversation_ids.filter(AiConversation.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        conversation_ids = conversation_ids.filter(owner_clause(AiConversation, current_user))
     return {
         "company_id": company_id,
         "conversations": conversation_query.scalar() or 0,
@@ -732,8 +733,8 @@ def analytics_by_agent(db: Session = Depends(get_db), current_user: User = Depen
     _require_ai_admin(current_user)
     join_condition = AiConversation.agent_id == AiAgent.id
     query = db.query(AiAgent.id, AiAgent.name, func.count(AiConversation.id)).outerjoin(AiConversation, join_condition)
-    if not current_user.is_superuser:
-        query = query.filter((AiConversation.user_id == current_user.id) | (AiConversation.id.is_(None)))
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter((owner_clause(AiConversation, current_user)) | (AiConversation.id.is_(None)))
     rows = query.group_by(AiAgent.id, AiAgent.name).all()
     return [{"agent_id": row[0], "agent": row[1], "conversations": row[2]} for row in rows]
 
@@ -743,8 +744,8 @@ def analytics_by_module(db: Session = Depends(get_db), current_user: User = Depe
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     query = db.query(AiConversation.module, func.count(AiConversation.id))
-    if not current_user.is_superuser:
-        query = query.filter(AiConversation.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiConversation, current_user))
     rows = query.group_by(AiConversation.module).all()
     return [{"module": row[0], "conversations": row[1]} for row in rows]
 
@@ -754,8 +755,8 @@ def analytics_by_user(db: Session = Depends(get_db), current_user: User = Depend
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     query = db.query(AiConversation.user_id, func.count(AiConversation.id))
-    if not current_user.is_superuser:
-        query = query.filter(AiConversation.user_id == current_user.id)
+    if not (current_user.is_superuser or admin_read(current_user)):
+        query = query.filter(owner_clause(AiConversation, current_user))
     rows = query.group_by(AiConversation.user_id).limit(100).all()
     return [{"user_id": row[0], "conversations": row[1]} for row in rows]
 
@@ -766,7 +767,7 @@ def analytics_cost(db: Session = Depends(get_db), current_user: User = Depends(g
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     query = db.query(AiCostLog.model, func.coalesce(func.sum(AiCostLog.total_tokens), 0), func.coalesce(func.sum(AiCostLog.estimated_cost), 0))
-    if not current_user.is_superuser:
+    if not (current_user.is_superuser or admin_read(current_user)):
         query = query.filter(AiCostLog.company_id == _company_id(current_user))
     rows = query.group_by(AiCostLog.model).all()
     return [{"model": row[0], "total_tokens": int(row[1] or 0), "estimated_cost": float(row[2] or 0)} for row in rows]
@@ -777,7 +778,7 @@ def cost_by_agent(db: Session = Depends(get_db), current_user: User = Depends(ge
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     query = db.query(AiCostLog.agent_id, func.coalesce(func.sum(AiCostLog.total_tokens), 0), func.coalesce(func.sum(AiCostLog.estimated_cost), 0))
-    if not current_user.is_superuser:
+    if not (current_user.is_superuser or admin_read(current_user)):
         query = query.filter(AiCostLog.company_id == _company_id(current_user))
     rows = query.group_by(AiCostLog.agent_id).all()
     return [{"agent_id": row[0], "total_tokens": int(row[1] or 0), "estimated_cost": float(row[2] or 0)} for row in rows]
@@ -788,7 +789,7 @@ def cost_by_user(db: Session = Depends(get_db), current_user: User = Depends(get
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     query = db.query(AiCostLog.user_id, func.coalesce(func.sum(AiCostLog.total_tokens), 0), func.coalesce(func.sum(AiCostLog.estimated_cost), 0))
-    if not current_user.is_superuser:
+    if not (current_user.is_superuser or admin_read(current_user)):
         query = query.filter(AiCostLog.company_id == _company_id(current_user))
     rows = query.group_by(AiCostLog.user_id).all()
     return [{"user_id": row[0], "total_tokens": int(row[1] or 0), "estimated_cost": float(row[2] or 0)} for row in rows]
@@ -800,7 +801,7 @@ def create_feedback(message_id: int, payload: AiFeedbackCreate, db: Session = De
     message = db.query(AiMessage).filter(AiMessage.id == message_id).first()
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-    conversation = db.query(AiConversation).filter(AiConversation.id == message.conversation_id, AiConversation.user_id == current_user.id).first()
+    conversation = db.query(AiConversation).filter(AiConversation.id == message.conversation_id, owner_clause(AiConversation, current_user)).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     row = AiMessageFeedback(message_id=message.id, conversation_id=conversation.id, user_id=current_user.id, agent_id=conversation.agent_id, **payload.model_dump())

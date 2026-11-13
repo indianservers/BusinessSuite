@@ -1,7 +1,7 @@
 """Additional fail-closed tenant/record filters for centrally managed accounts.
 
-Existing module membership checks remain in force. These filters can narrow them;
-they do not replace project memberships or document ownership rules.
+Ordinary accounts retain module, project, and document restrictions. Verified
+administrators receive company-wide read scope; mutation rules remain unchanged.
 """
 
 from fastapi import HTTPException
@@ -171,6 +171,9 @@ def install_scope(db, user, company, grants):
         return select(tasks.c.id).where(tasks.c.deleted_at.is_(None), or_(tasks.c.assignee_user_id.in_(ids), tasks.c.id.in_(select(assignments.c.task_id).where(assignments.c.user_id.in_(ids))), tasks.c.id.in_(group_tasks)))
 
     def predicate(model, stack=()):
+        if model.__tablename__ in {'ai_suite_runs', 'ai_messages', 'pms_assistant_messages'} and getattr(user, '_suite_admin_read', False):
+            from app.access.admin_reads import company_clause
+            return company_clause(model, user)
         if model.__module__ == "app.models.approval_os" and getattr(user, "_suite_current_module", None) == "hrms":
             from app.services.asset_lifecycle import approval_scope as asset_approval_scope
             asset_approval = asset_approval_scope(model, user, company, grants)

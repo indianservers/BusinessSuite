@@ -96,7 +96,7 @@ def install(db, user, ctx, *, identity_administration=False):
     for name, model in models.items():
         if identity_administration and name in {"users", "common_people", "common_profiles"}:
             continue
-        if name in {"users", "common_people", "common_profiles"} and not (ctx.superuser and ctx.branch_id is None):
+        if name in {"users", "common_people", "common_profiles"} and not ((ctx.superuser or ctx.company_admin) and ctx.branch_id is None):
             from app.models.employee import Employee
             from app.branches.models import BranchGrant, BranchPolicy
             branch_users = select(Employee.__table__.c.user_id).where(Employee.__table__.c.branch_id.in_(selected), Employee.__table__.c.deleted_at.is_(None)).union(
@@ -130,7 +130,7 @@ def install(db, user, ctx, *, identity_administration=False):
             guard = or_(guard, and_(table.c.company_id == ctx.company_id, table.c.system_ledger.is_(True)))
         # Super Admin can inspect unresolved data only in the explicit/default
         # all-branches view. A selected branch always filters privileged users.
-        if ctx.superuser and ctx.branch_id is None:
+        if (ctx.superuser or ctx.company_admin) and ctx.branch_id is None:
             continue
         criteria[model] = guard
     options = [with_loader_criteria(model, guard, include_aliases=True, propagate_to_loaders=False) for model, guard in criteria.items()]

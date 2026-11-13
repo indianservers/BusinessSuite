@@ -111,11 +111,23 @@ def get_current_user(
                 db.info["security_write_request"] = previous_write
         stack.callback(restore_write)
         stack.callback(bind_authorization(db, user, request))
+        previous_admin_read = db.info.get('admin_read_company')
+        if getattr(user, '_suite_admin_read', False):
+            db.info['admin_read_company'] = user.organization_id
+        else:
+            db.info.pop('admin_read_company', None)
+        def restore_admin_read():
+            if previous_admin_read is None:
+                db.info.pop('admin_read_company', None)
+            else:
+                db.info['admin_read_company'] = previous_admin_read
+        stack.callback(restore_admin_read)
         from app.core.tenant_boundary import company_ids
         own_account = request.url.path in {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/change-password", "/api/v1/auth/mfa/setup", "/api/v1/auth/mfa/confirm", "/api/v1/auth/mfa/disable"}
         context = None
         if not own_account or company_ids(db, user):
-            stack.callback(install_boundary(db, user, user.organization_id))
+            company_read = bool(getattr(user, '_suite_admin_read', False)) and not request.url.path.startswith(('/api/v1/access/', '/api/v1/auth/', '/api/v1/branches'))
+            stack.callback(install_boundary(db, user, user.organization_id, enforce_superuser_company=company_read))
             from app.branches.service import context as branch_context
             from app.branches.boundary import install as install_branch_boundary
             branch_discovery = request.url.path == "/api/v1/access/setup" or request.url.path.startswith(("/api/v1/access/settings", "/api/v1/branches"))
@@ -124,6 +136,8 @@ def get_current_user(
                 branch_selection = request.headers.get("X-Suite-Branch")
             if request.url.path.endswith("/settings/defaults/configuration") and request.query_params.get("branch_id"):
                 branch_selection = request.query_params["branch_id"]
+            if branch_selection is None and getattr(user, '_suite_admin_read', False):
+                branch_selection = 'all'
             context = branch_context(db, user, user.organization_id, branch_selection)
             stack.callback(install_branch_boundary(db, user, context, identity_administration=request.url.path.startswith(("/api/v1/access/", "/api/v1/auth/users", "/api/v1/employees/accounts"))))
             previous_branch = getattr(user, "_suite_branch_id", None)
@@ -177,7 +191,7 @@ class RequirePermission:
         self.permissions = set(permissions)
 
     def __call__(self, current_user: User = Depends(get_current_user)) -> User:
-        if current_user.is_superuser:
+        if current_user.is_superuser or getattr(current_user, '_suite_admin_read', False):
             return current_user
         from app.access.catalog import permission_names
         user_permissions = permission_names(current_user)
@@ -191,7 +205,7 @@ class RequirePermission:
 
 def require_roles(*roles: str):
     def checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.is_superuser:
+        if current_user.is_superuser or getattr(current_user, '_suite_admin_read', False):
             return current_user
         user_role = current_user.role.name if current_user.role else None
         if user_role not in roles:
