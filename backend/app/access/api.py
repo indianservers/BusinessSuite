@@ -208,11 +208,14 @@ def my_access(
     from sqlalchemy import select
     from app.core.tenant_boundary import company_ids
     memberships = sorted((company_ids(db, actor) if service.schema_ready(db) else set()) | {service.primary_company(actor)})
-    # Only membership names cross the active-company ORM boundary; no business
-    # records or unassigned companies are read by this switcher metadata query.
-    organizations = db.connection().execute(
-        select(Company.id, Company.name).where(Company.id.in_(memberships)).order_by(Company.name)
-    ).all()
+    # Platform administrators discover every company; ordinary accounts retain
+    # their verified memberships. Only navigation metadata crosses this boundary.
+    company_query = select(Company.id, Company.name)
+    if not actor.is_superuser:
+        company_query = company_query.where(Company.id.in_(memberships))
+    organizations = db.connection().execute(company_query.order_by(Company.name)).all()
+    if actor.is_superuser:
+        memberships = sorted(org.id for org in organizations)
     return {
         "managed": actor._suite_grants is not None and not actor.is_superuser,
         "companyId": company,

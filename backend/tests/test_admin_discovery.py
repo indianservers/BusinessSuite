@@ -86,3 +86,18 @@ def test_company_admin_sees_only_own_company_and_cannot_switch_to_foreign_branch
 
 def test_regular_user_cannot_use_admin_workspace_discovery(client, directory):
     assert client.get('/api/v1/branches/workspaces', headers=headers(directory[2])).status_code == 403
+
+
+def test_platform_company_selector_includes_companies_without_memberships(client, directory):
+    platform, admin, _, _, foreign, _ = directory
+    for company in [1, foreign.company_id]:
+        result = client.get('/api/v1/access/me', headers={**headers(platform), 'X-Suite-Organization':str(company)})
+        assert result.status_code == 200, result.text
+        data = result.json()
+        assert {1, foreign.company_id} <= {org['id'] for org in data['organizations']}
+        assert {1, foreign.company_id} <= set(data['memberships'])
+        assert data['companyId'] == company
+    result = client.get('/api/v1/access/me', headers=headers(admin))
+    assert result.status_code == 200, result.text
+    assert {org['id'] for org in result.json()['organizations']} == {1}
+    assert result.json()['memberships'] == [1]
