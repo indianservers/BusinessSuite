@@ -501,3 +501,44 @@ def test_named_targets_keep_duplicates_dependencies_and_new_project_offsets_safe
     changed,q=amend(renamed,'set “Verify” to critical priority','Asia/Kolkata','PMS')
     assert not q and changed['intents'][1]['slots']['priority']=='Critical'
     assert changed['intents'][0]['slots'].get('priority')!='Critical'
+
+
+
+def test_new_project_parent_and_subtasks_keep_absolute_review_references():
+    from types import SimpleNamespace
+    from app.ai_operator.workflows import local_plan
+    from app.ai_operator.conversational_actions import amend
+    data=SimpleNamespace(text='Create a project called Customer launch with task called Release with subtasks Design, Build, Test',module='PMS',project_id=None,request_key=str(uuid4()),timezone='Asia/Kolkata')
+    plan,state=local_plan(data,None,None)
+    assert len(plan['steps'])==5
+    assert plan['steps'][0]['tool']=='pms.create_project'
+    assert all(step['record_id']=={'$step':1,'field':'id'} for step in plan['steps'][1:])
+    assert all(step['payload']['parent_task_id']=={'$step':2,'field':'id'} for step in plan['steps'][2:])
+    unchanged,question=amend(state,'remove item 2','Asia/Kolkata','PMS')
+    assert question and unchanged==state
+    changed,question=amend(state,'rename item 4 to Build prototype','Asia/Kolkata','PMS')
+    assert not question and changed['intents'][2]['slots']['title']=='Build prototype'
+    changed,question=amend(changed,'remove item 3','Asia/Kolkata','PMS')
+    assert not question and all(item['slots'].get('_parent_step')==2 for item in changed['intents'][1:])
+
+
+def test_new_project_task_hierarchy_executes_after_review_without_duplicates(client,db):
+    from app.apps.project_management.models import PMSProject
+    h,_,_,_=setup_suite(client,db);chat=new_chat(client,h)
+    draft=send(client,h,chat,'Create a project called Synthetic hierarchy with task called Release with subtasks Design, Build, Test',module='PMS')
+    assert draft['status']=='awaiting_approval',draft
+    assert not db.query(PMSProject).filter_by(name='Synthetic hierarchy').count()
+    revised=send(client,h,chat,'rename item 4 to Build prototype',module='PMS',parent_run_id=draft['id'])
+    assert revised['status']=='awaiting_approval'
+    assert revised['plan']['steps'][3]['payload']['title']=='Build prototype'
+    assert all(step['payload']['parent_task_id']=={'$step':2,'field':'id'} for step in revised['plan']['steps'][2:])
+    approve(client,h,revised);tick(client,db)
+    final=client.get(f'{ROOT}/runs/{revised["id"]}',headers=h).json()
+    assert final['status']=='succeeded',final
+    project=db.query(PMSProject).filter_by(name='Synthetic hierarchy').one()
+    tasks=db.query(PMSTask).filter_by(project_id=project.id).all()
+    assert {task.title for task in tasks}=={'Release','Design','Build prototype','Test'}
+    parent=next(task for task in tasks if task.title=='Release')
+    assert all(task.parent_task_id==parent.id for task in tasks if task.id!=parent.id)
+    approve(client,h,final);assert tick(client,db)==0
+    assert db.query(PMSTask).filter_by(project_id=project.id).count()==4

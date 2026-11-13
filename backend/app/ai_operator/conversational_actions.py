@@ -132,6 +132,16 @@ def compose(text,module=None):
     if re.match('^'+VERB+r'\b',text,re.I) and re.search(r'\b(?:due|by|for)\s+'+DATE+r'\s*$',structural(text),re.I) and (
         re.search(r'\b(?:HR ticket|HRMS ticket|helpdesk ticket|support ticket)\b',structural(text),re.I) or module=='HRMS' and re.search(r'\btickets?\b',structural(text),re.I)):
         return {'question':'HR tickets do not support a due date in this action. Prepare the ticket without a deadline, or create a task instead.'}
+    # Build a new project and a real parent/subtask hierarchy in one review.
+    # Parent references are absolute plan positions, including the project step.
+    hierarchy=re.match(r'^'+VERB+r'\s+(?:a\s+)?(?:new\s+)?project\s+(?:called|named|titled)\s+("[^"\n]+"|“[^”\n]+”|[^"“”]+?)\s+with\s+(?:a\s+)?(?:(?:parent|project)\s+)?task\s+(?:called|named|titled)\s+(.+)$',text,re.I)
+    if hierarchy:
+        name=hierarchy[1].strip('"“” ')
+        if not name or len(name)>180:return {'question':'Give the new project a name of at most 180 characters.'}
+        structure=compose('Create task called '+hierarchy[2],'PMS')
+        if not structure or structure.get('question') or not any(c.get('parent_step') for c in structure.get('clauses',[])):
+            return {'question':'Give the parent task a title and explicit subtasks, for example: Create project called Launch with task called Release with subtasks Design, Build, Test.'}
+        return {'new_project':{'name':name},'clauses':[{**clause,**({'parent_step':clause['parent_step']+1} if clause.get('parent_step') else {})} for clause in structure['clauses']]}
     project=re.match(r'^'+VERB+r'\s+(?:a\s+)?(?:new\s+)?project\s+(?:called|named|titled)\s+("[^"\n]+"|“[^”\n]+”|[^"“”]+?)\s+with\s+(?:the\s+)?tasks\s*:?\s*(.+)$',text,re.I)
     if project:
         name=project[1].strip('"“” ');values=titles(project[2])

@@ -939,18 +939,24 @@ async def _command(data,request,db,user,scope):
         message_action=False
     import re
     artifact_request=bool(artifact_context or artifact_creation_request or template_packet or shared_selection)
+    discovery_catalog=None
+    if data.provider!='local' and not data.local_plan:
+        from app.ai_operator.planning_catalog import available
+        discovery_catalog=available(db,user,data.workspace_id,module=data.module,
+            agent_tools=agent_context['tools'] if agent_context else None)
+    discovered_names={entry['name'] for entry in discovery_catalog or []}
     if not data.context and not data.local_plan and data.provider!='local' and data.module=='HRMS' and not artifact_request:
         from app.ai_operator.ticket_actions import interpret as exact_ticket
         selected_ticket=exact_ticket(data.text)
-        if selected_ticket and selected_ticket.slots.get('record_id') and (not agent_context or 'hrms.ticket' in agent_context['tools']):
+        if selected_ticket and selected_ticket.slots.get('record_id') and 'hrms.ticket' in discovered_names:
             data.context=[Step(tool='hrms.ticket',record_id=selected_ticket.slots['record_id'])]
     if not data.context and not data.local_plan and data.provider!='local' and data.module=='PMS' and not artifact_request:
         from app.ai_operator.milestone_actions import interpret as exact_milestone
         milestone=exact_milestone(data.text,data.timezone)
-        if milestone and milestone.slots.get('record_id') and (not agent_context or 'pms.milestone' in agent_context['tools']):
+        if milestone and milestone.slots.get('record_id') and 'pms.milestone' in discovered_names:
             data.context=[Step(tool='pms.milestone',record_id=milestone.slots['record_id'])]
     if not data.context and not data.local_plan and data.provider != 'local' and data.module in REFERENCE_SOURCES and not artifact_request:
-        data.context=[Step(tool=name) for name in REFERENCE_SOURCES[data.module] if not agent_context or name in agent_context['tools']]
+        data.context=[Step(tool=name) for name in REFERENCE_SOURCES[data.module] if name in discovered_names]
     fingerprint = digest(data.model_dump(mode='json', exclude={'request_key'}))
     previous = db.query(SuiteRun).filter_by(user_id=user.id, request_key=data.request_key).first()
     if previous:
@@ -1155,7 +1161,7 @@ async def _command(data,request,db,user,scope):
                 history=[shared_questions.history_packet(r) for r in reversed(conversation_history[-12:])]
             from app.ai_operator.ticket_actions import PLANNING_POLICY as helpdesk_policy
             from app.ai_operator.planning_catalog import available, enforce as enforce_offered
-            offered_catalog=available(db,user,data.workspace_id,module=data.module,
+            offered_catalog=discovery_catalog if discovery_catalog is not None else available(db,user,data.workspace_id,module=data.module,
                 agent_tools=agent_context['tools'] if agent_context else None)
             outbound = AiDataRedactionService().redact_for_ai(user, 'CROSS', {
                 'command': data.text, 'authorized_context': context, 'tools': [] if data.mode == 'summary' else [t for t in offered_catalog if (not agent_context or t['name'] in agent_context['tools']) and (data.conversation_id or not t['name'].endswith('.search_knowledge')) and (not dashboard_packet or t['name'].endswith(('.dashboard_panel','.artifact','.artifacts'))) and (not shared_packet or t['name'].endswith('.shared_artifact')) and (not message_question or t['name'].endswith('.event_message')) and (not t['name'].endswith('.event_message') or t['module']==event_messages.source_module(event_context))], 'current_time': now().isoformat(),
