@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from typing import Optional,Literal
+from pydantic import BaseModel, ConfigDict,Field,field_validator
 
 
 class HelpdeskCategorySchema(BaseModel):
@@ -47,8 +47,15 @@ class HelpdeskEscalationRuleSchema(HelpdeskEscalationRuleCreate):
 
 
 class HelpdeskTicketEscalation(BaseModel):
-    escalated_to: Optional[int] = None
-    escalation_reason: str
+    escalated_to: Optional[int] = Field(default=None,gt=0,le=2147483647)
+    escalation_reason: str = Field(min_length=1,max_length=4000)
+    expected_version: int | None = Field(default=None,ge=1)
+
+    @field_validator('escalation_reason')
+    @classmethod
+    def reason_required(cls,value):
+        if not value.strip():raise ValueError('Supply an escalation reason')
+        return value
 
 
 class HelpdeskTicketCreate(BaseModel):
@@ -59,8 +66,17 @@ class HelpdeskTicketCreate(BaseModel):
 
 
 class HelpdeskTicketStatusUpdate(BaseModel):
-    status: str
+    status: Literal['Open','In Progress','Pending','Resolved','Closed']
+    expected_version: int | None = Field(default=None,ge=1)
 
 
 class HelpdeskTicketAssign(BaseModel):
-    assign_to_user_id: int
+    assign_to_user_id: int = Field(gt=0,le=2147483647)
+    expected_version: int | None = Field(default=None,ge=1)
+
+
+class HelpdeskTicketReply(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    message: str = Field(min_length=1,max_length=8000)
+    is_internal: bool = False
+    expected_version: int | None = Field(default=None,ge=1)

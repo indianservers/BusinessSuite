@@ -18,12 +18,12 @@ class ConversationInput(Strict):
 
 def owned(db,user,ident):
     from app.ai_operator.suite import authorize
-    row=db.query(AssistantConversation).filter_by(id=ident,user_id=user.id,
+    row=db.query(AssistantConversation).execution_options(ai_owner_control=True).filter_by(id=ident,user_id=user.id,
         organization_id=company(user),deleted_at=None).first()
     if not row or not (row.references or {}).get('suite_conversation'):
         raise HTTPException(404,'Conversation not found')
-    verify(db,user,row.security_context,history=True)
-    if authorize(db,user,row.workspace_id)!=(row.references or {}).get('scope_key'):
+    verify(db,user,row.security_context,history=True,control=True)
+    if authorize(db,user,row.workspace_id,control=True)!=(row.references or {}).get('scope_key'):
         raise HTTPException(403,'Conversation scope changed')
     return row
 
@@ -37,19 +37,19 @@ def runs(db,user,row,limit=100):
     values=db.query(SuiteRun).filter_by(user_id=user.id,scope_key=row.references['scope_key'],workspace_id=row.workspace_id).filter(
         SuiteRun.result['request']['conversation_id'].as_integer()==row.id).order_by(SuiteRun.id.desc()).limit(limit).all()
     # Fail closed rather than using hidden records as conversational memory.
-    return list(reversed([owned_run(db,user,r.id) for r in values]))
+    return list(reversed([owned_run(db,user,r.id,control=True) for r in values]))
 
 
 def listing(db,user,workspace_id):
     from app.ai_operator.suite import authorize
-    scope=authorize(db,user,workspace_id)
-    values=db.query(AssistantConversation).filter_by(user_id=user.id,organization_id=company(user),
+    scope=authorize(db,user,workspace_id,control=True)
+    values=db.query(AssistantConversation).execution_options(ai_owner_control=True).filter_by(user_id=user.id,organization_id=company(user),
         workspace_id=workspace_id,deleted_at=None).filter(
         AssistantConversation.references['suite_conversation'].as_boolean()==True,
         AssistantConversation.references['scope_key'].as_string()==scope).order_by(AssistantConversation.references['suite_last_active'].as_string().desc().nullslast(),AssistantConversation.id.desc()).limit(100)
     result=[]
     for row in values:
-        try:verify(db,user,row.security_context,history=True)
+        try:verify(db,user,row.security_context,history=True,control=True)
         except HTTPException:continue
         result.append(public(row))
     return result

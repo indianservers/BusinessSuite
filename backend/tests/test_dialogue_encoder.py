@@ -54,3 +54,20 @@ def test_existing_v1_exports_keep_their_original_feature_contract(monkeypatch,tm
     from app.ai_operator.dialogue_tensorflow import predict
     actual=predict('CRM','tasks.create','title','Review design and delivery')
     assert actual['engine']==LEGACY_VERSION and actual['act']=='provide_value'
+
+
+@pytest.mark.parametrize('module,intent',[('CRM','tasks.create'),('PMS','tasks.create'),('HRMS','ticket.create')])
+def test_trained_message_acknowledgement_keeps_collecting_title_and_accepts_quoted_literal(monkeypatch,tmp_path,module,intent):
+    folder=os.environ.get('ACTION_DIALOGUE_TEST_MODEL_DIR')
+    if not folder:pytest.skip('Set ACTION_DIALOGUE_TEST_MODEL_DIR for real learned followup validation')
+    monkeypatch.setenv('LOCAL_NLP_MODEL_DIR',folder);monkeypatch.setenv('LOCAL_NLP_TRAINING_DIR',str(tmp_path))
+    from app.ai_operator.local_nlp import parse
+    from app.ai_operator.local_dialogue import continue_action
+    text='Yes please continue with the message followup'
+    prior={'module':module,'intent':intent,'slots':{'action_verb':'create','_awaiting':'title'}}
+    result=continue_action(parse(text,module),prior,text,'Asia/Kolkata')
+    assert result.intent==intent and result.question and result.slots['_awaiting']=='title'
+    assert result.neural['dialogue_act']['act']=='clarify'
+    quoted='"Yes please continue with the message followup"'
+    literal=continue_action(parse(quoted,module),prior,quoted,'Asia/Kolkata')
+    assert literal.intent==intent and literal.slots['title']==text and not literal.question

@@ -12,12 +12,13 @@ async function stubOperator(page: Page) {
   await page.route("**/api/v1/**", async route => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown;
-    if (path === "/api/v1/project-management/projects") body = [{ id: 1, name: "Delivery", workspace_id: null }];
+    if (path === "/api/v1/access/settings/defaults/effective") body={values:{},modules:{},companyId:1,branchId:null};
+    else if (path === "/api/v1/project-management/projects") body = [{ id: 1, name: "Delivery", workspace_id: null }];
     else if (path === "/api/v1/project-management/projects/1/tasks") body = [{ id: 7, task_key: "DEL-7", title: "Ship release", status: "To Do" }];
     else if (path === "/api/v1/project-management/workspaces") body = [];
-    else if (path === "/api/v1/ai-operator/providers") body = { items: [provider] };
-    else if (path === "/api/v1/ai-operator/providers/openai" && route.request().method() === "PUT") body = provider;
-    else if (path === "/api/v1/ai-operator/analytics") body = { groups: [{ provider: "openai", model: "configured-model", status: "success", requests: 2, input_tokens: 200, output_tokens: 80, estimated_cost: null, priced_requests: 0, average_latency_ms: 500 }], logs: [], cost_note: "Costs are unknown until rates are configured." };
+    else if (["/api/v1/ai-operator/providers","/api/v1/ai-operator/suite/providers"].includes(path)) body = { items: [provider] };
+    else if (["/api/v1/ai-operator/providers/openai","/api/v1/ai-operator/suite/providers/openai"].includes(path) && route.request().method() === "PUT") body = provider;
+    else if (["/api/v1/ai-operator/analytics","/api/v1/ai-operator/suite/analytics"].includes(path)) body = {server_plans:3,visibility:{record_scope:"own",note:"Current AI record and branch permissions apply."}, groups: [{ provider: "openai", model: "configured-model", status: "success", requests: 2, input_tokens: 200, output_tokens: 80, estimated_cost: null, priced_requests: 0, average_latency_ms: 500 }], logs: [], cost_note: "Costs are unknown until rates are configured." };
     else if (path === "/api/v1/ai-operator/runs") body = { items: [] };
     else if (path === "/api/v1/ai-operator/brain/sessions") body = route.request().method()==='GET'?{ items: [] }:memory;
     else if (path === "/api/v1/ai-operator/brain/sessions/1/context") body = {session:memory,context:{tasks:[]},instructions:'Return PMS JSON',schema:{}};
@@ -117,17 +118,19 @@ test("voice creates an editable transcript without submitting automatically", as
 
 test("provider settings keep stored keys hidden and show usage", async ({ page }) => {
   await stubOperator(page);
-  await page.goto("/pms/settings/ai/openai");
+  await page.goto("/ai-agents/providers/openai");
   await expect(page.getByLabel("Model ID")).toHaveValue("configured-model");
   await expect(page.getByLabel("Provider API key")).toHaveValue("");
   await expect(page.getByText("API usage · last 30 days")).toBeVisible();
-  await expect(page.getByText("200", { exact: true })).toBeVisible();
+  await expect(page.getByText("Server plans: 3",{exact:false})).toBeVisible();
+  await expect(page.getByText("Visibility: own.",{exact:false})).toBeVisible();
+  await expect(page.getByText("200", { exact: true }).first()).toBeVisible();
   await page.getByLabel("Model ID").fill("new-configured-model");
-  const saved = page.waitForRequest(r => r.url().includes("/ai-operator/providers/openai") && r.method() === "PUT");
+  const saved = page.waitForRequest(r => r.url().includes("/ai-operator/suite/providers/openai") && r.method() === "PUT");
   await page.getByRole("button", { name: "Save settings" }).click();
   const request = await saved;
   expect(request.postDataJSON()).not.toHaveProperty("api_key");
-  await expect(page.getByRole("status")).toContainText("Provider settings saved");
+  await expect(page.getByRole("status").filter({hasText:"Provider settings saved"})).toContainText("Provider settings saved");
 });
 
 test("background progress is restored and follow-up creates a new reviewed plan", async ({ page }) => {
@@ -163,4 +166,17 @@ test("background progress is restored and follow-up creates a new reviewed plan"
   await expect(page.getByLabel("Operator plan")).toContainText("revision 2");
   expect(child).toBe(true);
   expect(revisedBody.plan_hash).toBe(original.plan_hash);
+});
+
+
+test('provider configuration stays usable when usage analytics are temporarily unavailable',async({page})=>{
+ await stubOperator(page);
+ await page.route('**/api/v1/ai-operator/suite/analytics*',route=>route.fulfill({status:503,json:{detail:'Usage temporarily unavailable'}}));
+ await page.goto('/ai-agents/providers/openai');
+ await expect(page.getByLabel('Model ID', {exact:true})).toHaveValue('configured-model');
+ await expect(page.getByRole('button',{name:'Save settings',exact:true})).toBeEnabled();
+ const saved=page.waitForRequest(r=>r.url().includes('/ai-operator/suite/providers/openai')&&r.method()==='PUT');
+ await page.getByRole('button',{name:'Save settings',exact:true}).click();
+ expect((await saved).postDataJSON()).not.toHaveProperty('api_key');
+ await expect(page.getByRole('status').filter({hasText:'Provider settings saved'})).toContainText('Provider settings saved');
 });

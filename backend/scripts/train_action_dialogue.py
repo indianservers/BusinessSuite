@@ -60,7 +60,8 @@ def main():
             'training_sha256':hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest()}
     (output/'dialogue.json').write_text(json.dumps(bundle,separators=(',',':')),encoding='utf-8')
     failed=[{'module':rows[i]['module'],'pending':rows[i]['pending'],'text':rows[i]['text'],'expected':rows[i]['act'],'actual':LABELS[int(predicted[i])]} for i in test if predicted[i]!=y[i]]
-    report={'format':VERSION,'tensorflow_version':tf.__version__,'epochs':350,'seed':seed,'training_turns':len(training),'heldout_turns':len(test),
+    from app.ai_operator.message_dialogue_corpus import VERSION as message_version,turns as message_turns
+    report={'message_dialogue_version':message_version,'message_training_turns':len(message_turns()),'message_training_sha256':hashlib.sha256(json.dumps(message_turns(),sort_keys=True).encode()).hexdigest(),'format':VERSION,'tensorflow_version':tf.__version__,'epochs':350,'seed':seed,'training_turns':len(training),'heldout_turns':len(test),
             'training_accuracy':train_accuracy,'heldout_correct':len(test)-len(failed),'heldout_accuracy':float(np.mean(predicted[test]==y[test])),
             'portable_max_error':error,'keras_reload_max_error':reload_error,'failures':failed,'model_selection':{'candidates':candidates,'basis':'Selected by the authored development set; this set is not an unbiased test score'},
             'limits':'Synthetic, context-labelled dialogue acts. Evaluation wording and vocabulary are excluded from gradient training; contexts are shared. This authored development set has been inspected during tuning, not an untouched benchmark. Not a general language or action-execution benchmark. Predictions never authorize actions.'}

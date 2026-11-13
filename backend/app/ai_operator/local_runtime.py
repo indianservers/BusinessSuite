@@ -17,6 +17,18 @@ def task_plan(intent, data, context, sources):
     name,slots=intent.intent,intent.slots
     if name=='conversation.reset':return {'summary':'Started an independent conversation. Previous drafts are unchanged and still require review.','steps':[]}
     if name=='cancelled':return {'summary':'The pending request was cancelled. No new action was executed.','steps':[]}
+    from app.ai_operator.milestone_actions import proposal as milestone_proposal
+    milestone=milestone_proposal(intent,context)
+    if milestone is not None:return milestone
+    from app.ai_operator.ticket_actions import proposal as ticket_proposal
+    ticket=ticket_proposal(intent,context)
+    if ticket is not None:return ticket
+    from app.ai_operator.employee_actions import proposal as employee_proposal
+    employee=employee_proposal(intent,context)
+    if employee is not None:return employee
+    from app.ai_operator.crm_lead_actions import proposal
+    lead=proposal(intent,context)
+    if lead is not None:return lead
     if intent.question:return ask(intent.question)
     verbs={
         'tasks.create':{'create','add','make','prepare','draft'},'milestone.create':{'create','add','make','prepare','draft'},

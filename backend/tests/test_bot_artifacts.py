@@ -279,3 +279,55 @@ def test_cloud_cannot_repair_an_artifact_draft_into_a_business_mutation(client,d
     assert result.status_code==200,result.text
     assert result.json()['status']=='failed' and not result.json()['approval_id']
     assert len(requests)==2
+
+
+
+@pytest.mark.parametrize('label,kind',[
+ ('Excel workbook','table'),('Excel spreadsheet','table'),('Excel sheet','table'),('Excel','table'),('worksheet','table'),
+ ('Word document','document'),('Word','document'),('docx','document'),('PDF document','document'),('PDF report','document'),
+ ('PowerPoint presentation','presentation'),
+])
+def test_office_format_names_use_one_artifact_grammar(label,kind):
+    from types import SimpleNamespace
+    from app.ai_operator.artifacts import creation_request,local_plan
+    text=f'Create {label} called Launch'
+    if kind=='table':text+=' with columns Task, Owner: Review, Asha'
+    assert creation_request(text)
+    result=local_plan(SimpleNamespace(text=text,module='CRM'),None,None,[])
+    assert result.steps[0].payload['kind']==kind
+    assert result.steps[0].payload['title']=='Launch'
+    if kind=='table':assert result.steps[0].payload['rows']==[['Review','Asha']]
+
+
+def test_inline_csv_rows_remain_literal_and_malformed_rows_request_correction():
+    from types import SimpleNamespace
+    from app.ai_operator.artifacts import local_plan
+    data=SimpleNamespace(text='Create Excel called Tracker with columns Task, Owner: "Review, then approve", Asha\n=1+1, Ravi',module='PMS')
+    result=local_plan(data,None,None,[])
+    assert result.steps[0].payload['rows']==[['Review, then approve','Asha'],['=1+1','Ravi']]
+    data.text='Create Excel called Tracker with columns Task, Owner: Review'
+    bad=local_plan(data,None,None,[])
+    assert bad.question and not bad.steps
+    parent=SimpleNamespace(status='needs_clarification',command=data.text,plan=bad.model_dump())
+    data.text='Review, Asha'
+    fixed=local_plan(data,parent,None,[])
+    assert fixed.steps[0].payload['title']=='Tracker'
+    assert fixed.steps[0].payload['rows']==[['Review','Asha']]
+
+
+def test_excel_conversation_corrects_rows_then_saves_and_exports_on_server(client,db):
+    from openpyxl import load_workbook
+    h,_,_,_=setup_suite(client,db)
+    chat=client.post(ROOT+'/conversations',headers=h,json={'title':'Excel draft'}).json()['id']
+    draft=command(client,h,'CRM','Create Excel workbook called Pipeline with columns Lead, Owner: Synthetic lead',conversation_id=chat)
+    assert draft['status']=='needs_clarification' and not draft['plan']['steps']
+    draft=command(client,h,'CRM','Synthetic lead, Asha\n=1+1, Ravi',conversation_id=chat)
+    assert draft['status']=='awaiting_approval'
+    assert draft['plan']['steps'][0]['payload']['rows']==[['Synthetic lead','Asha'],['=1+1','Ravi']]
+    assert client.get(A,headers=h,params={'module':'CRM'}).json()['items']==[]
+    result=execute(client,db,h,draft);ident=result['receipts'][0]['artifact_id']
+    response=client.get(A+f'/{ident}/download',headers=h,params={'format':'xlsx'})
+    assert response.status_code==200
+    sheet=load_workbook(BytesIO(response.content)).active
+    assert list(sheet.values)==[('Lead','Owner'),('Synthetic lead','Asha'),('=1+1','Ravi')]
+    assert sheet['A3'].data_type=='s'

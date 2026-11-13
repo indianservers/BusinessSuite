@@ -7,6 +7,7 @@ test(`suite retries recover the same request after a lost response (${role})`,as
   const keys:string[]=[];
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const path=new URL(route.request().url()).pathname;
+    if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/runs'))return route.fulfill({json:{items:[]}});
     if(path.endsWith('/commands')){
@@ -16,7 +17,7 @@ test(`suite retries recover the same request after a lost response (${role})`,as
     }
     return route.fulfill({json:{items:[]}});
   });
-  await page.route('**/api/v1/ai-operator/providers*',route=>route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
+  await page.route('**/api/v1/ai-operator/suite/providers*',route=>route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
   await page.route('**/api/v1/project-management/workspaces',route=>route.fulfill({json:[]}));
   await page.goto('/ai-agents/operator');
   await page.getByLabel('Suite command').fill('Summarize selected work');
@@ -36,9 +37,10 @@ test('agent preserves selected-task context, editable voice and follow-up identi
   await page.route('**/api/v1/project-management/projects*',r=>r.fulfill({json:[{id:42,name:'Agent QA',workspace_id:null}]}));
   await page.route('**/api/v1/project-management/workspaces',r=>r.fulfill({json:[]}));
   await page.route('**/api/v1/ai-operator/local-context*',r=>r.fulfill({json:{tasks:[{id:7,task_key:'QA-7',title:'Review'}]}}));
-  await page.route('**/api/v1/ai-operator/providers*',r=>r.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
+  await page.route('**/api/v1/ai-operator/suite/providers*',r=>r.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const path=new URL(route.request().url()).pathname;
+    if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/commands')){
       const body=route.request().postDataJSON();commands.push(body);

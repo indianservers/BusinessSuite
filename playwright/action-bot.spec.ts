@@ -1,6 +1,100 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('activity exposes core policy fingerprints without copying the user message',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Show core planning versions');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByText('Synthetic versioned planning response.',{exact:true}).first()).toBeVisible();
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Activity',exact:true}).click();
+ const versions=page.getByLabel('Core planning versions',{exact:true});await versions.getByText('Core planning versions',{exact:true}).click();
+ await expect(versions).toContainText('authorized-json · version 1');await expect(versions).toContainText('API request #1001');
+ await expect(versions).toContainText('c'.repeat(64));await expect(versions).not.toContainText('Show core planning versions');
+ const composed=versions.getByLabel('Complete provider request fingerprint',{exact:true});await expect(composed).toContainText('d'.repeat(64));await expect(composed).toContainText('HMAC-SHA256');await expect(composed).toContainText('Key epoch '+'e'.repeat(16));
+ await page.setViewportSize({width:390,height:844});await expect(versions).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+test('task routing distinguishes primary evidence from an explicit fallback',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('combobox',{name:'Planning fallback',exact:true}).selectOption('openai');
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Show matched model basis with fallback');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ const basis=page.getByLabel('Task routing basis',{exact:true});await basis.getByText('Why this primary model?',{exact:true}).click();
+ await expect(basis).toContainText('Initial selection: gemini');await expect(basis).toContainText('fallback was explicitly selected');
+ await expect(page.getByLabel('Provider attempts',{exact:true})).toContainText('openai / fixture-alternate: success');
+});
+
+test('task routing explains comparable outcomes in the mobile bot',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Show matched model basis');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ const basis=page.getByLabel('Task routing basis',{exact:true});await basis.getByText('Why this model?',{exact:true}).click();
+ await expect(basis).toContainText('CRM + PMS');await expect(basis).toContainText('Matched 3 owner-reviewed comparable outcomes');await expect(basis).toContainText('Core policy: authorized-json · version 1');
+ await expect(basis).toContainText('not independent capability certification');
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);expect(overflow).toBe(false);
+ await expect(page.getByRole('textbox',{name:'Message action bot',exact:true})).toBeVisible();
+});
+
+test('planning fallback is explicitly selected and keeps actions awaiting review',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ const choice=page.getByRole('combobox',{name:'Planning fallback',exact:true});await expect(choice).toHaveValue('');await choice.selectOption('openai');
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Check delivery date');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByLabel('Provider attempts',{exact:true})).toContainText('gemini / fixture-primary: failed');
+ await expect(page.getByLabel('Provider attempts',{exact:true})).toContainText('openai / fixture-alternate: success');
+ await expect(choice).toBeDisabled();
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.filter((r:any)=>r.path.endsWith('/commands'))[0].body.fallback_provider).toBe('openai');
+ expect(requests.filter((r:any)=>r.path.endsWith('/approve'))).toHaveLength(0);
+ await page.getByRole('button',{name:'New bot conversation',exact:true}).click();await expect(choice).toHaveValue('');
+});
+
+test('message citations fetch their exact authorized snapshot and reject edited content',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Read trigger message');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await page.getByRole('button',{name:'Draft task from this message',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Message action bot',exact:true})).toHaveValue('Create a task from this message');
+ await page.getByRole('button',{name:'Draft HR ticket from this message',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Message action bot',exact:true})).toHaveValue('Create an HR ticket from this message');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')).length)).toBe(1);
+ const citation=page.getByRole('button',{name:'WhatsApp message #94',exact:true});await citation.click();
+ await expect(page.getByRole('region',{name:'Cited message',exact:true})).toContainText('Please arrange a delivery call tomorrow.');
+ const request=await page.evaluate(()=>(window as any).__botRequests.find((r:any)=>r.path.endsWith('/events/message-content')));expect(request.params).toEqual({conversation_id:1,agent_id:71,module:'CRM',expected_digest:'a'.repeat(64)});
+ await citation.click();await citation.click();await expect(page.getByRole('region',{name:'Cited message',exact:true})).toContainText('Message content changed');
+ await expect(page.getByRole('region',{name:'Cited message',exact:true})).not.toContainText('Please arrange a delivery call tomorrow.');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('WhatsApp message intake selects one conversation and waits for exact review',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('WhatsApp arrival reviewer');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare private followups for review.');await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ const area=page.getByRole('region',{name:'Event-driven agents',exact:true});await area.getByRole('combobox',{name:'Event trigger agent',exact:true}).selectOption('71');await area.getByRole('combobox',{name:'Event trigger source',exact:true}).selectOption('crm.whatsapp_message_received');await area.getByRole('textbox',{name:'Event trigger instructions',exact:true}).fill('Prepare a followup task');await area.getByLabel('Event trigger expiry',{exact:true}).fill('2027-01-01T09:00');
+ await expect(area.getByRole('button',{name:'Preview event trigger',exact:true})).toBeDisabled();await area.getByRole('combobox',{name:'Event trigger WhatsApp conversation',exact:true}).selectOption('84');await area.getByRole('button',{name:'Preview event trigger',exact:true}).click();
+ const preview=page.getByRole('article',{name:'Event trigger preview',exact:true});await expect(preview).toContainText('WhatsApp conversation #84');await expect(preview).toContainText('incoming messages only');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);const payload=requests.find((r:any)=>r.path.endsWith('/agents/events/preview')).body;expect(payload.whatsapp_contact_id).toBe(84);expect(payload.customer_recipient_id).toBeUndefined();expect(payload.chat_conversation_id).toBeUndefined();expect(requests.filter((r:any)=>r.path.endsWith('/activate')).length).toBe(0);
+ await preview.getByRole('button',{name:'Activate this exact event trigger',exact:true}).click();await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('active');
+});
+
+test('customer email reply intake requires a selected customer and exact review',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Customer reply reviewer');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare private customer followups for review.');await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ const area=page.getByRole('region',{name:'Event-driven agents',exact:true});await area.getByRole('combobox',{name:'Event trigger agent',exact:true}).selectOption('71');await area.getByRole('combobox',{name:'Event trigger source',exact:true}).selectOption('crm.customer_email_reply');await area.getByRole('textbox',{name:'Event trigger instructions',exact:true}).fill('Review customer followups');await area.getByLabel('Event trigger expiry',{exact:true}).fill('2027-01-01T09:00');
+ await expect(area.getByRole('button',{name:'Preview event trigger',exact:true})).toBeDisabled();await area.getByRole('combobox',{name:'Event trigger customer recipient',exact:true}).selectOption('62');await area.getByRole('button',{name:'Preview event trigger',exact:true}).click();
+ const preview=page.getByRole('article',{name:'Event trigger preview',exact:true});await expect(preview).toContainText('Customer recipient #62');await expect(preview).toContainText('verified email replies only');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);const payload=requests.find((r:any)=>r.path.endsWith('/agents/events/preview')).body;expect(payload.customer_recipient_id).toBe(62);expect(payload.chat_conversation_id).toBeUndefined();expect(requests.filter((r:any)=>r.path.endsWith('/activate')).length).toBe(0);
+ await preview.getByRole('button',{name:'Activate this exact event trigger',exact:true}).click();await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('active');
+});
+
+test('message trigger previews an explicit room and waits for reviewed activation',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Workspace message reviewer');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare a private task summary.');await page.getByRole('checkbox',{name:'pms.tasks · read',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ const area=page.getByRole('region',{name:'Event-driven agents',exact:true});await area.getByRole('combobox',{name:'Event trigger agent',exact:true}).selectOption('71');await area.getByRole('combobox',{name:'Event trigger source',exact:true}).selectOption('pms.message_received');await area.getByRole('textbox',{name:'Event trigger instructions',exact:true}).fill('Show workspace tasks');await area.getByLabel('Event trigger expiry',{exact:true}).fill('2027-01-01T09:00');
+ await expect(area.getByRole('button',{name:'Preview event trigger',exact:true})).toBeDisabled();await area.getByRole('combobox',{name:'Event trigger chat conversation',exact:true}).selectOption({label:'Delivery coordination \u00b7 channel \u00b7 #42'});await area.getByRole('button',{name:'Preview event trigger',exact:true}).click();
+ const preview=page.getByRole('article',{name:'Event trigger preview',exact:true});await expect(preview).toContainText('Chat conversation #42');await expect(preview).toContainText('messages from other participants only');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);expect(requests.find((r:any)=>r.path.endsWith('/agents/events/preview')).body.chat_conversation_id).toBe(42);expect(requests.filter((r:any)=>r.path.endsWith('/activate')).length).toBe(0);
+ await area.getByRole('textbox',{name:'Search trigger conversations',exact:true}).fill('Delivery');await expect(preview).not.toBeVisible();await expect(area.getByRole('button',{name:'Preview event trigger',exact:true})).toBeDisabled();
+ await area.getByRole('combobox',{name:'Event trigger chat conversation',exact:true}).selectOption('42');expect(await page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/events/chat-conversations')&&r.params?.query==='Delivery'))).toBe(true);
+ await area.getByRole('button',{name:'Preview event trigger',exact:true}).click();
+ await preview.getByRole('button',{name:'Activate this exact event trigger',exact:true}).click();await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('active');
+});
+
 test('conversational agent event design saves an inactive preview and requires separate activation',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
  await page.getByRole('combobox',{name:'Agent builder intelligence',exact:true}).selectOption('local');await page.getByRole('textbox',{name:'Agent builder message',exact:true}).fill('Create a CRM sales assistant that reviews opportunities when a deal changes stage');await page.getByRole('button',{name:'Prepare agent configuration',exact:true}).click();
@@ -631,4 +725,87 @@ test('mobile robot and chat stay within the viewport',async({page})=>{
  await page.getByRole('button',{name:'Open action bot',exact:true}).click();
  const box=await page.getByRole('dialog',{name:'Action bot'}).boundingBox();expect(box).not.toBeNull();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(360);expect(box!.y).toBeGreaterThanOrEqual(0);
  await mkdir('../.local/action-bot',{recursive:true});await page.screenshot({path:'../.local/action-bot/mobile.png',fullPage:true});
+});
+
+
+test('signed webhook intake requires endpoint event and exact activation',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Signed lead reviewer');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Read current leads and prepare private work.');await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ const area=page.getByRole('region',{name:'Event-driven agents',exact:true});await area.getByRole('combobox',{name:'Event trigger agent',exact:true}).selectOption('71');await area.getByRole('combobox',{name:'Event trigger source',exact:true}).selectOption('crm.webhook_received');await area.getByRole('textbox',{name:'Event trigger instructions',exact:true}).fill('Review the referenced lead');await area.getByLabel('Event trigger expiry',{exact:true}).fill('2027-01-01T09:00');
+ const previewButton=area.getByRole('button',{name:'Preview event trigger',exact:true});await expect(previewButton).toBeDisabled();await area.getByRole('combobox',{name:'Event trigger webhook',exact:true}).selectOption('91');await expect(previewButton).toBeDisabled();await area.getByRole('combobox',{name:'Event trigger webhook event',exact:true}).selectOption('record.changed');await previewButton.click();
+ const preview=page.getByRole('article',{name:'Event trigger preview',exact:true});await expect(preview).toContainText('Signed record webhook #91');await expect(preview).toContainText('event record.changed');await expect(preview).toContainText('managed receiver identity #24');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);const payload=requests.find((r:any)=>r.path.endsWith('/agents/events/preview')).body;expect(payload.webhook_endpoint_id).toBe(91);expect(payload.webhook_event).toBe('record.changed');expect(requests.filter((r:any)=>r.path.endsWith('/activate')).length).toBe(0);
+ await preview.getByRole('button',{name:'Activate this exact event trigger',exact:true}).click();await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('active');
+ await page.setViewportSize({width:390,height:844});await expect(area.getByRole('combobox',{name:'Event trigger webhook',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+
+for(const [message,notice] of [
+ ['Show legacy core planning versions','Complete request fingerprint was not recorded for this older attempt.'],
+ ['Show unsent core planning versions','No complete request fingerprint: the request was not attempted.']
+])test(`activity distinguishes complete request provenance: ${message}`,async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill(message);await page.getByRole('button',{name:'Send bot message',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Activity',exact:true}).click();
+ const versions=page.getByLabel('Core planning versions',{exact:true});await versions.getByText('Core planning versions',{exact:true}).click();await expect(versions).toContainText(notice);await expect(versions.getByLabel('Complete provider request fingerprint',{exact:true})).toHaveCount(0);
+});
+
+
+test('connection cards show verified account and scoped actions without executing them',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.evaluate(()=>(window as any).__connectionStatusFixture=true);await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Connections',exact:true}).click();
+ const card=page.getByRole('article',{name:'Connection 201',exact:true});await expect(card).toContainText('development@example.com');await expect(card).toContainText('Account verified:');await expect(card).toContainText('Authorization: Verified');await expect(page.getByRole('combobox',{name:'Agent connection environment',exact:true}).getByRole('option',{name:'testing',exact:true})).toHaveCount(1);await card.getByText('3 actions for this connection',{exact:true}).click();
+ await expect(card.getByLabel('Connection 201 action test',{exact:true})).toContainText('Ready to read');await expect(card.getByLabel('Connection 201 action send_mail',{exact:true})).toContainText('Missing scopes: Mail.Send');await expect(card.getByLabel('Connection 201 action delete_message',{exact:true})).toContainText('Use the native controlled workflow');await card.getByText('Recent operation errors',{exact:true}).click();await expect(card).toContainText('rate_limit');
+ await page.getByRole('button',{name:'Refresh connection status',exact:true}).click();await expect(card).toContainText('development@example.com');expect(await page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/execute')||r.path.endsWith('/approve')))).toBe(false);
+ await page.setViewportSize({width:390,height:844});await expect(card).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+test('connection environment switch rejects a delayed previous environment response',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.evaluate(()=>{(window as any).__connectionStatusFixture=true;(window as any).__delayDevelopmentConnections=true});await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Connections',exact:true}).click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/agents/connectors')&&r.params?.environment==='development'))).toBe(true);
+ await page.getByRole('combobox',{name:'Agent connection environment',exact:true}).selectOption('production');const card=page.getByRole('article',{name:'Connection 201',exact:true});await expect(card).toContainText('production@example.com');
+ await expect.poll(()=>page.evaluate(()=>((window as any).__connectionStatusResponses||[]).includes('development'))).toBe(true);await expect(card).toContainText('production@example.com');await expect(card).not.toContainText('development@example.com');
+});
+
+
+test('recovery preview names its source fixes restored values and discloses manual work',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Undo the last change');await page.getByRole('button',{name:'Send bot message',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ const notice=page.getByRole('region',{name:'Recovery source',exact:true});await expect(notice).toContainText('Recovery from run #101');await expect(notice.getByLabel('Recovery target 301',{exact:true})).toContainText('Current: High');await expect(notice.getByLabel('Recovery target 301',{exact:true})).toContainText('Restore: Medium');await expect(notice).toContainText('Requires manual recovery: A created checklist item requires manual recovery.');await expect(page.getByRole('button',{name:'Review and edit draft',exact:true})).toHaveCount(0);
+ await page.getByRole('tab',{name:'Review recovery',exact:true}).click();await expect(page.getByText('Not set',{exact:true})).toBeVisible();await expect(page.getByRole('combobox',{name:'Step 1 priority',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Save edits for new review',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/approve')||r.path.endsWith('/execute')))).toBe(false);await page.setViewportSize({width:390,height:844});await expect(notice).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+test('employee profile review shows current and proposed values without approving',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('HRMS: update employee #12 office extension: 204');await page.getByRole('button',{name:'Send bot message',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ const notice=page.getByRole('region',{name:'Employee profile changes',exact:true});await expect(notice).toContainText('Employee #12');await expect(notice).toContainText('Current: 101');await expect(notice).toContainText('Proposed: 204');await expect(notice).toContainText('Proposed: Not set');
+ expect(await page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/approve')||r.path.endsWith('/execute')))).toBe(false);await page.setViewportSize({width:390,height:844});await expect(notice).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+test('support ticket review shows exact status change without executing',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('HRMS: resolve ticket #42');await page.getByRole('button',{name:'Send bot message',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ const notice=page.getByRole('region',{name:'Support ticket changes',exact:true});await expect(notice).toContainText('Ticket #42');await expect(notice).toContainText('Current: Open');await expect(notice).toContainText('Proposed: Resolved');expect(await page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/approve')||r.path.endsWith('/execute')))).toBe(false);
+ await expect(page.getByText('expected version',{exact:true})).toHaveCount(0);await page.getByRole('tab',{name:'Review & edit',exact:true}).click();await expect(page.getByText('expected version',{exact:true})).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});await expect(notice).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+});
+
+
+test('module bot loads public cloud metadata through AI provider catalog',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('combobox',{name:'Bot intelligence',exact:true}).selectOption('gemini');
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Prepare a reviewed workflow');
+ await expect(page.getByRole('button',{name:'Send bot message',exact:true})).toBeEnabled();
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.some((r:any)=>r.path==='/ai-operator/suite/providers')).toBe(true);
+ expect(requests.some((r:any)=>r.path==='/ai-operator/providers')).toBe(false);
+ expect(requests.filter((r:any)=>r.path.endsWith('/commands'))).toHaveLength(0);
+});
+
+
+test('milestone deadline review shows current proposed dates and hides revision metadata',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('PMS: reschedule milestone #84 to 2027-03-25');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toBeVisible();
+ await expect(page.getByText('expected revision',{exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ const review=page.getByLabel('Milestone changes',{exact:true});await expect(review).toContainText('Release review');await expect(review).toContainText('Project #12');await expect(review).toContainText('Current: 2027-03-20');await expect(review).toContainText('Proposed: 2027-03-25');
+ await page.setViewportSize({width:390,height:844});await expect(review).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+ const requests=await page.evaluate(()=>(window as any).__botRequests);expect(requests.filter((r:any)=>r.path.endsWith('/approve'))).toHaveLength(0);
 });

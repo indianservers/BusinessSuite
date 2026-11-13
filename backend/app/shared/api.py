@@ -854,6 +854,8 @@ def receive_signed_event(endpoint_id, raw, headers, db):
         key,
         data.get("data", {}),
     )
+    from app.shared.webhook_receipts import admit
+    admit(row,result)
     db.commit()
     return {"eventId": result.id, "status": "queued"}
 

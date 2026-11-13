@@ -23,10 +23,11 @@ def dependencies(plan):
 
 def validate_reference_types(plan):
     """A new CRM task ID cannot stand in for a PMS project or an HR identity."""
-    kinds={'crm.create_task':'crm.task','crm.update_task':'crm.task','pms.create_project':'pms.project',
+    kinds={'crm.create_lead':'crm.lead','crm.update_lead':'crm.lead','crm.qualify_lead':'crm.lead','hrms.update_employee':'employee','crm.create_task':'crm.task','crm.update_task':'crm.task','pms.create_project':'pms.project',
         'pms.kickoff':'pms.project','pms.create_task':'pms.task','pms.create_milestone':'pms.milestone',
         'hrms.create_ticket':'hrms.ticket','hrms.request_leave':'hrms.leave','hrms.approve_leave':'hrms.leave',
         'fam.create_cost_center':'fam.cost_center','srm.draft_invoice':'srm.invoice'}
+    kinds.update({name:'hrms.ticket' for name in ('hrms.status_ticket','hrms.assign_ticket','hrms.escalate_ticket')})
     from app.ai_operator.suite_tools import TOOLS
     def check(value,expected):
         if isinstance(value,dict) and '$step' in value and expected:
@@ -35,8 +36,12 @@ def validate_reference_types(plan):
     for step in plan.steps:
         tool=TOOLS.get(step.tool)
         record_kind='pms.project' if tool and tool.module=='PMS' else 'crm.task' if step.tool=='crm.update_task' else 'hrms.leave' if step.tool=='hrms.approve_leave' else None
+        if step.tool in {'crm.update_lead','crm.qualify_lead','crm.convert_lead'}:record_kind='crm.lead'
+        if step.tool=='hrms.update_employee':record_kind='employee'
+        if step.tool=='pms.update_milestone':record_kind='pms.milestone'
+        if step.tool in {'hrms.status_ticket','hrms.assign_ticket','hrms.escalate_ticket','hrms.reply_ticket'}:record_kind='hrms.ticket'
         check(step.record_id,record_kind)
-        fields={'owner_user_id':'user','assignee_user_id':'user','handover_employee_id':'employee'}
+        fields={'assign_to_user_id':'user','escalated_to':'user','lead_id':'crm.lead','department_id':'hrms.department','designation_id':'hrms.designation','reporting_manager_id':'employee','owner_user_id':'user','assignee_user_id':'user','handover_employee_id':'employee'}
         if step.tool=='pms.create_task':fields.update(parent_task_id='pms.task',milestone_id='pms.milestone')
         if step.tool=='fam.create_cost_center':fields['parent_id']='fam.cost_center'
         for field,expected in fields.items():check(step.payload.get(field),expected)
@@ -99,6 +104,9 @@ def local_plan(data,parent,model_scope,project_choice=None):
         # A pending single-action dialogue owns its follow-up, including help,
         # negation and cancellation. Do not reinterpret it as a new workflow.
         return None, None
+    if not prior and data.module in (None,'PMS'):
+        from app.ai_operator.milestone_actions import interpret as milestone_edit
+        if milestone_edit(data.text,data.timezone) is not None:return None,None
     if not prior:
         from app.ai_operator.local_writing import chat_plan
         writing = chat_plan(data.text)

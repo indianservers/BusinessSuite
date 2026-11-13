@@ -22,7 +22,17 @@ def reference(answer,expected=None):
 
 def continue_action(current,prior,text,timezone,*,instant=None,model_scope=None):
     name=prior.get('intent');old=prior.get('slots') or {};pending=old.get('_awaiting')
-    if name not in ACTIONS:return current
+    if name=='milestone.update':
+        from app.ai_operator.milestone_actions import followup as milestone_followup
+        return milestone_followup(current,prior,text,timezone)
+    from app.ai_operator.ticket_actions import INTENTS as TICKET_INTENTS,followup as ticket_followup
+    if name in TICKET_INTENTS:return ticket_followup(current,prior,text)
+    if name=='employee.update':
+        from app.ai_operator.employee_actions import followup
+        return followup(current,prior,text)
+    from app.ai_operator.crm_lead_actions import INTENTS,continue_lead
+    if name in INTENTS:return continue_lead(current,prior,text)
+    if name not in ACTIONS and pending!='project_id':return current
     from app.ai_operator.dialogue_tensorflow import predict
     act=predict(prior['module'],name,pending,text,model_scope)
     if act:current.neural={**current.neural,'dialogue_act':act}
@@ -44,6 +54,10 @@ def continue_action(current,prior,text,timezone,*,instant=None,model_scope=None)
     help_reply=re.fullmatch(r'(?:what does (?:that|this) mean|which options are available|what are my choices|can you explain|could you explain|explain this field|help me choose|I (?:do not|don\'t) know|I need help|not sure|what should I enter|why do you need this)',control,re.I)
     if not answer.startswith(('"','“')) and act and act['act']=='clarify' and act['score']>=.9 and act['margin']>=.25 and re.search(r'\b(?:explain|explanation|clarify|clarification|understand|question|choices|options|answer|guidance|meaning)\b',control):help_reply=True
     ambiguous=control in {'yes','okay','ok','sure','no','approve','confirm','go ahead','do it'}
+    # The trained act can recognize longer acknowledgements while a field is
+    # still missing. This only asks for detail; it never grants execution.
+    if pending and pending!='is_half_day' and not answer.startswith(('\"','“')) and act and act['act']=='clarify' and act['score']>=.9 and act['margin']>=.25:
+        if re.match(r'^(?:yes|sure|ok(?:ay)?|fine|agreed|all right|sounds (?:good|reasonable)|that (?:looks|seems|sounds) (?:fine|good|reasonable)|i (?:agree|confirm))\b',control):ambiguous=True
     if pending and (help_reply or ambiguous and pending!='is_half_day'):
         examples={'title':'a short title such as Review client response','subject':'the exact email subject','body':'the exact message text',
                   'project_id':'an existing project ID','record_id':'an existing record ID','date':'a date such as tomorrow',
@@ -54,8 +68,13 @@ def continue_action(current,prior,text,timezone,*,instant=None,model_scope=None)
         if not (pending in {'title','body','subject','reason'} and act and act['act']=='provide_value' and act['score']>=.9 and act['margin']>=.3):return current
     if re.match(r'^(CRM|PMS|HRMS|HR|Sales|SRM)\s*:',answer,re.I):return current
     # An explicit new operation replaces the proposal, rather than becoming slot text.
-    if re.match(r'^(?:show|list|find|create|add|delete|send|apply|request|approve)\b',answer,re.I) and not pending in {'body','reason'}:
-        return current
+    operation=re.match(r'^(show|list|find|create|add|delete|send|apply|request|approve)\b',answer,re.I)
+    if operation and pending not in {'body','reason'}:
+        # A title such as Request staffing support is a field value when no
+        # supported business operation was parsed. Actual leave/ticket/action
+        # requests still replace the proposal through the existing checks.
+        literal_request_title=pending=='title' and operation[1].casefold()=='request' and current.intent not in ACTIONS
+        if not literal_request_title:return current
     # A correction must replace the superseded value, not retain its first mention.
     revised=re.match(r'^not\s+[^,]+,\s*(.+)$',answer,re.I)
     fresh=dict(parse(revised[1],prior['module'],timezone=timezone,instant=instant,model_scope=model_scope).slots if revised else current.slots)

@@ -127,6 +127,35 @@ def setup(db):
     return user, a, b, first, second, contact
 
 
+def test_super_admin_discovery_preserves_all_branches_and_reads_other_users_records(db):
+    from starlette.requests import Request
+    from app.branches.api import current_context
+    user, a, b, first, second, contact = setup(db)
+    user.is_superuser = True
+    db.commit()
+    request = Request({"type": "http", "headers": [(b"x-suite-branch", b"all")]})
+    result = current_context(request, db, user)
+    assert result["selected"] is None
+    assert result["all_branches"] is True
+    assert {a.id, b.id} <= {row["id"] for row in result["branches"]}
+    cleanup = install(db, user, context(db, user, 1, "all"))
+    try:
+        assert {first.id, second.id} <= {row.id for row in db.query(CRMCompany)}
+        assert db.get(CRMContact, contact.id) is not None
+    finally:
+        cleanup()
+
+
+def test_discovery_does_not_grant_aggregate_access_to_branch_member(db):
+    from starlette.requests import Request
+    from app.branches.api import current_context
+    user, a, b, *_ = setup(db)
+    result = current_context(Request({"type": "http", "headers": [(b"x-suite-branch", b"all")]}), db, user)
+    assert result["selected"] == a.id
+    assert not result["all_branches"]
+    assert b.id not in {row["id"] for row in result["branches"]}
+
+
 def test_lists_counts_aliases_details_and_identity_map_are_scoped(db):
     user, a, b, first, second, contact = setup(db)
     assert db.get(CRMCompany, second.id) is second

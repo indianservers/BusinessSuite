@@ -48,7 +48,10 @@ def business_snapshot(value, depth=0):
 async def canonical(user, company, method, path, payload=None, *, branch=None):
     from app.main import app
 
-    token = create_access_token(str(user.id), expires_delta=timedelta(minutes=1))
+    token = create_access_token(
+        str(user.id), expires_delta=timedelta(minutes=1),
+        session_id=getattr(user, "_suite_session_id", None),
+    )
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
         base_url="http://suite-internal",

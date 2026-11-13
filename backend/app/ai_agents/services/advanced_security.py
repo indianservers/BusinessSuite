@@ -210,7 +210,16 @@ class AiSecuritySettingsService:
         return row
 
     def ensure_enabled(self, *, user: User, module: str) -> None:
-        setting = self.get_or_create(company_id_for(user))
+        # Policy consumption is not a business-record lookup. An own-record
+        # scope must neither hide the company's kill switch nor create a second
+        # singleton. Read only this company's switches; admin writes stay native.
+        from sqlalchemy import select
+        from types import SimpleNamespace
+        self.db.flush()  # Preserve the ORM lookup's original autoflush semantics.
+        table=AiSecuritySetting.__table__
+        values=self.db.connection().execute(select(table).where(table.c.company_id==company_id_for(user))).mappings().first()
+        if values is None:return  # Existing default: enabled until configured.
+        setting=SimpleNamespace(**values)
         module_flag = {
             "CRM": setting.crm_ai_enabled,
             "PMS": setting.pms_ai_enabled,
@@ -299,9 +308,17 @@ class AiUsageService:
         self.db = db
 
     def check_limits(self, *, user: User, agent: AiAgent | None, module: str) -> None:
+        from sqlalchemy import select,or_
+        from types import SimpleNamespace
+        self.db.flush()
         company_id = company_id_for(user)
         now = datetime.utcnow()
-        limits = self.db.query(AiUsageLimit).filter(AiUsageLimit.is_active == True).all()
+        # Company/global quota definitions and aggregate counts must not be
+        # hidden by the requester's own-record business scope. No raw events
+        # are exposed; every aggregate is explicitly bounded to this company.
+        rules=AiUsageLimit.__table__
+        limits=[SimpleNamespace(**row) for row in self.db.connection().execute(select(rules).where(
+            rules.c.is_active.is_(True),or_(rules.c.company_id==company_id,rules.c.company_id.is_(None)))).mappings()]
         for limit in limits:
             if limit.company_id not in (None, company_id):
                 continue
@@ -312,14 +329,15 @@ class AiUsageService:
             if limit.module and limit.module.upper() != (module or "").upper():
                 continue
             start = now - self.PERIODS.get(limit.period, timedelta(hours=1))
-            query = self.db.query(func.count(AiUsageEvent.id)).filter(AiUsageEvent.created_at >= start)
+            events=AiUsageEvent.__table__
+            query = select(func.count(events.c.id)).where(events.c.created_at>=start,events.c.company_id==company_id)
             if limit.limit_type in {"per_user", "per_company"}:
-                query = query.filter(AiUsageEvent.user_id == user.id if limit.limit_type == "per_user" else AiUsageEvent.company_id == company_id)
+                query = query.where(events.c.user_id == user.id if limit.limit_type == "per_user" else events.c.company_id == company_id)
             if limit.limit_type == "per_agent" and agent:
-                query = query.filter(AiUsageEvent.agent_id == agent.id)
+                query = query.where(events.c.agent_id == agent.id)
             if limit.limit_type == "per_module":
-                query = query.filter(AiUsageEvent.module == module)
-            count = query.scalar() or 0
+                query = query.where(events.c.module == module)
+            count = self.db.connection().execute(query).scalar() or 0
             if count >= limit.max_requests:
                 raise HTTPException(status_code=429, detail={"success": False, "error_code": "AI_USAGE_LIMIT_EXCEEDED", "message": "AI usage limit exceeded for this period."})
 

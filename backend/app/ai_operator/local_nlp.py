@@ -92,9 +92,24 @@ def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_sco
     if unsafe:return Interpretation(selected,'unsupported',question='I cannot bypass permissions, consent or action review. Describe one permitted operation.')
     if re.search(r'\b(delete|purge|drop|destroy|execute sql)\b',unquoted.partition(':')[0],re.I):
         return Interpretation(selected,'unsupported',question='This destructive operation is not supported by local commands. Use the authorized module workflow.')
+    if selected=='PMS':
+        from app.ai_operator.milestone_actions import interpret as milestone_intent
+        milestone=milestone_intent(text,timezone)
+        if milestone:return milestone
     compound=re.sub(r'\bmemory and playbooks\b','playbooks',unquoted.partition(':')[0],flags=re.I)
     if re.search(r'\band\b|\balso\b|;',compound,re.I):
         return Interpretation(selected,'unsupported',question='Please request one operation at a time so its scope and review are clear.')
+    if selected=='HRMS':
+        from app.ai_operator.ticket_actions import interpret as ticket_intent
+        ticket=ticket_intent(text)
+        if ticket:return ticket
+        from app.ai_operator.employee_actions import interpret
+        employee=interpret(text)
+        if employee:return employee
+    if selected=='CRM':
+        from app.ai_operator.crm_lead_actions import interpret
+        lead=interpret(text)
+        if lead:return lead
     rows,idf,vectors=fit(); f=features(command)
     query={term:(1+math.log(count))*idf[term] for term,count in f.items() if term in idf}
     norm=math.sqrt(sum(v*v for v in query.values())) or 1
@@ -177,6 +192,19 @@ def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_sco
 def contexts(intent, project_id=None, timezone='Asia/Kolkata'):
     name=intent.intent; module=intent.module
     if intent.question:return []
+    if name=='milestone.update':
+        ident=intent.slots.get('record_id')
+        return [{'tool':'pms.milestone','record_id':ident}] if ident else []
+    if name in {'ticket.status','ticket.assign','ticket.escalate','ticket.reply'}:
+        ident=intent.slots.get('record_id')
+        return [{'tool':'hrms.ticket','record_id':ident}] if ident else []
+    if name=='employee.update':
+        ident=intent.slots.get('record_id')
+        return [{'tool':'hrms.employee','record_id':ident}] if ident else []
+    from app.ai_operator.crm_lead_actions import INTENTS
+    if name in INTENTS:
+        ident=intent.slots.get('record_id')
+        return [{'tool':'crm.lead_qualification' if name=='leads.qualify' else 'crm.lead','record_id':ident}] if ident and name!='leads.create' else []
     if module=='CRM':
         tool={'leads.list':'crm.leads','leads.search':'crm.leads','leads.message':'crm.leads','contacts.list':'crm.contacts',
               'customers.list':'crm.companies','deals.list':'crm.deals','summary':'crm.tasks','risk':'crm.tasks'}.get(name)

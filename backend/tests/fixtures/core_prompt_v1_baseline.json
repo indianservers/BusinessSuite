@@ -1,0 +1,25 @@
+{
+  "note": "Captured from the previous provider instruction builder before extraction. Preserve these v1 fingerprints; add a new version for intentional instruction changes.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "summary"
+    ],
+    "additionalProperties": false
+  },
+  "instructions": {
+    "suite_plan": "c9f72f7edab857796e783cedbeed2f264fa70d56f6331c288fd0fcf6bce71644",
+    "suite_summary": "c9f72f7edab857796e783cedbeed2f264fa70d56f6331c288fd0fcf6bce71644",
+    "assistant": "c9f72f7edab857796e783cedbeed2f264fa70d56f6331c288fd0fcf6bce71644",
+    "agent_builder": "4839e0c74a897ddac56f712ef16eb7c1bd2e7b2186520d98c29a503301bc4a23",
+    "agent_coordinator": "525f0be1b0ba7e4f59c9f0906c6c7ce98a9c3452905746fc1ff2f5e5f3984392",
+    "power_apps_design": "eca4d24ada343e179caa9471d5e12970e433fd5298e56c5fb8ba9f9e7b65afe3",
+    "power_apps_action": "45b44aa035c4d5853806a0ca8b4b7a2261a53fb88c4abcd04a7896121e4479f6",
+    "test": "c9f72f7edab857796e783cedbeed2f264fa70d56f6331c288fd0fcf6bce71644"
+  }
+}

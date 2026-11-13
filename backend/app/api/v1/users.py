@@ -16,7 +16,7 @@ def search_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    company_id = SharedIdentityService.organization_id_for_user(current_user) or 1
+    company_id = getattr(current_user,'organization_id',None) or SharedIdentityService.organization_id_for_user(current_user) or 1
     users = SharedIdentityService.search_users(db, query=q, limit=limit, organization_id=company_id)
     items = [
         {

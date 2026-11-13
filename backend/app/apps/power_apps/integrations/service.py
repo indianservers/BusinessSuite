@@ -40,6 +40,19 @@ def config_identity(db, user_id, company, environment):
     return user
 
 
+def effective_scopes(conn):
+    granted = set(conn.scopes)
+    if (
+        conn.connector_id == "google_sheets"
+        and "https://www.googleapis.com/auth/spreadsheets" in granted
+    ):
+        granted.add("https://www.googleapis.com/auth/spreadsheets.readonly")
+    for scope in list(granted):
+        if scope.startswith("https://www.googleapis.com/auth/") and scope.rsplit("/",1)[-1] in {"documents","presentations","calendar.events","tasks","contacts","forms.body"}:
+            granted.add(scope+".readonly")
+    return granted
+
+
 def typed_action(conn, action_id, data, confirmed):
     try:
         spec = get_action(conn.connector_id, action_id)
@@ -61,16 +74,8 @@ def typed_action(conn, action_id, data, confirmed):
             "permission",
             "External writes require connection opt-in and explicit action confirmation",
         )
-    granted = set(conn.scopes)
+    granted = effective_scopes(conn)
     required = set(spec.scopes)
-    if (
-        conn.connector_id == "google_sheets"
-        and "https://www.googleapis.com/auth/spreadsheets" in granted
-    ):
-        granted.add("https://www.googleapis.com/auth/spreadsheets.readonly")
-    for scope in list(granted):
-        if scope.startswith("https://www.googleapis.com/auth/") and scope.rsplit("/",1)[-1] in {"documents","presentations","calendar.events","tasks","contacts","forms.body"}:
-            granted.add(scope+".readonly")
     if not required <= granted:
         raise IntegrationFailure(
             "scope", "Connection does not grant the required action scopes"
@@ -240,6 +245,8 @@ def invoke(
     op.credential_version = credential.version
     op_id = op.id
     connection_id = conn.id
+    from app.apps.power_apps.integrations import account_identity
+    dispatched_account_binding = account_identity.binding(conn, credential)
     db.commit()
     started = time.monotonic()
     error = None
@@ -305,10 +312,14 @@ def invoke(
     op.error_category = error.category if error else None
     op.error = str(error)[:400] if error else None
     release(db, conn, operation_key, error)
-    if not error and not (conn.connector_id == "openrouter" and action_id == "list_models"):
+    from app.apps.power_apps.integrations.models import Credential
+    current_credential = db.get(Credential, conn.credential_id)
+    authorization_unchanged = bool(current_credential and not current_credential.revoked_at
+        and account_identity.binding(conn,current_credential) == dispatched_account_binding)
+    if not error and authorization_unchanged and not (conn.connector_id == "openrouter" and action_id == "list_models"):
         conn.health = "healthy"
         conn.last_verified_at = now()
-    elif error and error.category in {"authentication", "expired", "credential"}:
+    elif error and authorization_unchanged and error.category in {"authentication", "expired", "credential"}:
         conn.health = "expired" if error.category == "expired" else "unhealthy"
     db.add(
         RequestLog(
@@ -334,6 +345,8 @@ def invoke(
             response_preview=retained_output if not error else None,
         )
     )
+    if not error and retain_output and action_id == 'test' and authorization_unchanged:
+        account_identity.capture(db,user,conn,current_credential,op,output,dispatched_account_binding)
     db.commit()
     if error:
         raise error

@@ -50,6 +50,8 @@ from app.ai_operator.agent_mcp import router as agent_mcp_router
 router.include_router(agent_mcp_router)
 from app.ai_operator.agent_schedules import router as agent_schedules_router
 router.include_router(agent_schedules_router)
+from app.ai_operator.event_messages import router as event_messages_router
+router.include_router(event_messages_router)
 from app.ai_operator.agent_events import router as agent_events_router
 router.include_router(agent_events_router)
 from app.ai_operator.agent_workflows import router as agent_workflows_router
@@ -148,7 +150,7 @@ def save_provider(provider: Provider, payload: ProviderUpdate, workspace_id: int
     for name, value in payload.model_dump(exclude={"api_key"}).items():
         setattr(row, name, value)
     row.updated_by = user.id
-    AiAuditService(db).log(user=user, agent_id=None, module="PMS", action="operator.provider.updated",
+    AiAuditService(db).log(user=user, agent_id=None, module="CROSS" if getattr(user,"_suite_current_module",None)=="ai" else "PMS", action="operator.provider.updated",
         input_json={"provider": provider, "scope": scope, "key_rotated": payload.api_key is not None},
         output_json={"model": row.model, "enabled": row.enabled}, status="success")
     db.commit()
@@ -166,7 +168,8 @@ def test_provider(provider: Provider, request: Request, workspace_id: int | None
         raise HTTPException(404, "Provider not configured")
     try:
         generate_json(db, user, config, prompt="Connectivity test. Return summary 'Connection verified', clarification null, steps []. No business data.",
-            schema=TaskPlan.model_json_schema(), purpose="test", usage_scope=scope)
+            schema=TaskPlan.model_json_schema(), purpose="test", usage_scope=scope,
+            module="CROSS" if getattr(user,"_suite_current_module",None)=="ai" else "PMS")
     except HTTPException:
         db.commit()  # Preserve sanitized failure telemetry too.
         raise
@@ -364,20 +367,16 @@ def analytics(workspace_id: int | None = None, days: int = Query(30, ge=1, le=36
               db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _require_ai_admin(user)
     scope = scope_key(db, user, workspace_id, manage=True)
-    start = datetime.now(timezone.utc) - timedelta(days=days)
-    base = db.query(OperatorApiLog).filter(OperatorApiLog.scope_key == scope, OperatorApiLog.created_at >= start)
-    groups = db.query(OperatorApiLog.provider, OperatorApiLog.model, OperatorApiLog.status,
-        func.count(OperatorApiLog.id).label("requests"), func.sum(OperatorApiLog.input_tokens).label("input_tokens"),
-        func.sum(OperatorApiLog.output_tokens).label("output_tokens"), func.sum(OperatorApiLog.estimated_cost).label("estimated_cost"),
-        func.count(OperatorApiLog.estimated_cost).label("priced_requests"), func.avg(OperatorApiLog.duration_ms).label("average_latency_ms")
-        ).filter(OperatorApiLog.scope_key == scope, OperatorApiLog.created_at >= start).group_by(OperatorApiLog.provider, OperatorApiLog.model, OperatorApiLog.status).all()
-    fields = ("id", "user_id", "run_id", "suite_run_id", "module", "provider", "model", "purpose", "status", "error_code", "http_status",
-              "provider_request_id", "input_tokens", "output_tokens", "estimated_cost", "duration_ms", "created_at")
-    local_plans = db.query(func.count(OperatorEvent.id)).join(OperatorRun, OperatorRun.id == OperatorEvent.run_id).filter(
-        OperatorRun.scope_key == scope, OperatorEvent.event_type == "plan.local", OperatorEvent.created_at >= start).scalar()
-    return {"days": days, "local_plans": local_plans, "groups": [dict(g._mapping) for g in groups],
-        "logs": [{f: getattr(r, f) for f in fields} for r in base.order_by(OperatorApiLog.id.desc()).limit(200).all()],
-        "cost_note": "USD estimates use administrator-supplied rates per million tokens. Null means unknown; not a provider invoice. Logs exclude prompts, responses and credentials."}
+    from app.ai_operator.usage import report
+    return report(db,user,scope,days)
+
+
+@router.get('/prompt-versions')
+def prompt_versions(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    _require_ai_admin(user)
+    scope_key(db,user,workspace_id,manage=True)
+    from app.ai_operator.prompt_registry import catalog
+    return {'items':catalog(),'management':'Immutable core versions are published through server releases. Agent and skill instructions retain their existing reviewed revisions.'}
 
 
 @router.post("/runs/{run_id}/revise")

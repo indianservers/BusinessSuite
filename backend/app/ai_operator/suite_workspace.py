@@ -91,8 +91,12 @@ def result_cards(run):
         receipt=receipts.get(index);payload=step.get('payload',{});tool=step['tool'];record=(receipt or {}).get('record_id');href=None
         if receipt and receipt.get('status')=='succeeded':
             if tool in {'crm.create_task','crm.update_task'}:href='/crm/tasks'
+            elif tool in {'crm.create_lead','crm.update_lead','crm.qualify_lead','crm.convert_lead'}:href='/crm/leads'
+            elif tool in {'hrms.status_ticket','hrms.assign_ticket','hrms.escalate_ticket','hrms.reply_ticket'}:href='/hrms/helpdesk'
+            elif tool=='hrms.update_employee' and record:href=f'/hrms/employees/{record}'
             elif tool=='hrms.create_ticket':href='/helpdesk'
             elif tool=='hrms.request_leave':href='/leave'
+            elif tool=='pms.update_milestone' and type(receipt.get('project_id')) is int:href=f"/pms/projects/{receipt['project_id']}/milestones"
             elif tool=='pms.create_project' and record:href=f'/pms/projects/{record}'
             elif tool.startswith('pms.'):
                 project=step.get('record_id') or request.get('project_id')

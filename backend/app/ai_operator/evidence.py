@@ -19,6 +19,9 @@ def source_link(tool, row, project_id=None):
     ident = row.get('id')
     if tool.endswith('.report'):
         return '/ai-agents/operator'
+    if tool in {'pms.milestone','pms.milestones','pms.update_milestone'}:return '/pms/projects/'+str(row.get('project_id'))+'/milestones'
+    if tool=='hrms.ticket':return '/hrms/helpdesk'
+    if tool=='hrms.employee':return '/hrms/employees/'+str(ident) if type(ident) is int else '/hrms/employees'
     if tool == 'hrms.policies':
         return '/documents'
     if tool == 'crm.people':
@@ -30,7 +33,7 @@ def source_link(tool, row, project_id=None):
         return f'/pms/projects/{project}' if type(project) is int else '/pms/projects'
     if tool.startswith('crm.'):
         entity = tool.split('.')[1]
-        entity = {'task': 'tasks', 'deal': 'deals', 'lead': 'leads'}.get(entity, entity)
+        entity = {'task': 'tasks', 'deal': 'deals', 'lead': 'leads', 'lead_qualification':'leads'}.get(entity, entity)
         return f'/crm/{entity}'
     if tool.startswith('srm.'):
         return {'srm.invoices':'/srm/invoices','srm.invoice':'/srm/invoices','srm.inventory':'/srm/inventory','srm.sales_orders':'/srm/sales-orders'}.get(tool,'/srm')
@@ -40,7 +43,7 @@ def source_link(tool, row, project_id=None):
 def issue_sources(context, retrieved_at):
     result = []
     for index, packet in enumerate(context, 1):
-        if packet['tool'].endswith(('.dashboard_panel','.shared_artifact')):
+        if packet['tool'].endswith(('.dashboard_panel','.shared_artifact','.event_message')):
             value=packet['records']
             if isinstance(value,dict) and isinstance(value.get('source_citation'),dict):result.append(value['source_citation'])
             continue

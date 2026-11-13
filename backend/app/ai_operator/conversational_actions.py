@@ -321,10 +321,61 @@ async def project_choice(data,parent,request):
     state=(parent.result or {}).get('workflow') or {};pending=state.get('pending')
     if type(pending) is not int or pending>=len(state.get('intents',[])):return None
     if state['intents'][pending]['slots'].get('_awaiting')!='project_id':return None
-    name=re.sub(r'^(?:(?:use|choose|select)\s+)?(?:the\s+)?project\s+','',data.text.strip(),flags=re.I).strip('"“” .')
-    if not name or len(name)>180 or '#' in name or name.isdecimal() or unsafe(name) or re.match(r'^(?:show|list|create|cancel|what|why|help|explain)\b',name,re.I):return None
+    name=project_name(data.text)
+    if not name:return None
+    matches=await project_matches(data,request,name)
+    return matches[0]['id'] if len(matches)==1 else None
+
+
+
+def project_name(text):
+    raw=text.strip().rstrip('.!').strip()
+    prefix=re.match(r'^(?:(?:use|choose|select)\s+)?(?:the\s+)?project\s+',raw,re.I)
+    if prefix:raw=raw[prefix.end():].strip()
+    else:raw=re.sub(r'^(?:use|choose|select)\s+','',raw,flags=re.I).strip()
+    quoted=len(raw)>=2 and (raw[0],raw[-1]) in {('"','"'),("'","'"),('“','”'),('‘','’')}
+    name=(raw[1:-1] if quoted else raw).strip()
+    if not name or len(name)>180 or '#' in name or name.isdecimal() or unsafe(name):return None
+    if not (prefix or quoted) and re.match(r'^(?:show|list|create|cancel|what|why|help|explain|yes|approve|confirm|go ahead)\b',name,re.I):return None
+    return name
+
+
+async def project_matches(data,request,name):
     from app.ai_operator.suite import api_call
     from app.ai_operator.evidence import records
-    value=await api_call(request.app,request.headers.get('authorization',''),'GET','/project-management/projects')
-    matches=[row for row in records(value) if row.get('workspace_id')==data.workspace_id and str(row.get('name','')).casefold()==name.casefold()]
-    return matches[0]['id'] if len(matches)==1 else None
+    value=await api_call(request.app,request.headers.get('authorization',''),'GET','/project-management/projects',
+        {'name':name,'skip':0,'limit':6,**({'workspace_id':data.workspace_id} if data.workspace_id is not None else {})})
+    return [{k:row.get(k) for k in ('id','name','project_key')} for row in records(value)
+        if row.get('workspace_id')==data.workspace_id and str(row.get('name','')).strip().lower()==name.lower()][:6]
+
+
+async def message_project_selection(data,parent,request,profile,db,user):
+    """One bounded, explicitly enabled native read; never infer a project from a room."""
+    from app.ai_operator.local_dialogue import reference
+    old=(parent.result or {}).get('project_selection') or {}
+    number=re.fullmatch(r'[1-9]\d*',data.text.strip()) if old.get('choices') else None
+    if not number and reference(data.text,'project')[0]:return None,None,None,0
+    ordinal=re.fullmatch(r'(?i)\s*(?:(?:use|choose|select)\s+)?(?:the\s+)?(first|second|third|fourth|fifth)(?:\s+(?:one|project|option))?\s*[.!]?\s*',data.text)
+    option=re.fullmatch(r'(?i)\s*(?:(?:use|choose|select)\s+)?option\s+([1-5])\s*[.!]?\s*',data.text)
+    position=(['first','second','third','fourth','fifth'].index(ordinal[1].lower()) if ordinal else int(option[1])-1 if option else int(number[0])-1 if number else None)
+    name=old.get('name') if position is not None else project_name(data.text)
+    if not name:return None,None,None,0
+    if not profile or 'pms.projects' not in profile['tools']:
+        return None,None,'Give an explicit project #ID, or enable the project lookup tool on this agent before a new trigger review.',0
+    from app.ai_operator.suite import check_tool,Step
+    from app.ai_agents.security import limits,company
+    check_tool(db,user,data.workspace_id,Step(tool='pms.projects'),False)
+    if limits(db,company(user))['max_calls']<2:raise HTTPException(422,'Message and project lookup need two source reads; use an explicit project #ID')
+    matches=await project_matches(data,request,name)
+    packet={'name':name,'choices':matches[:5],'more':len(matches)>5}
+    def question(prefix):
+        rows=[f"{i}. #{row['id']} · {str(row['name'])[:100]} · {str(row.get('project_key') or '')[:30]}" for i,row in enumerate(packet['choices'],1)]
+        return prefix+('\n'+'\n'.join(rows) if rows else '')+('\nMore matches exist. Use an explicit project #ID to choose outside this list.' if packet['more'] else '')
+    if position is not None:
+        if old.get('choices')!=packet['choices'] or old.get('more')!=packet['more']:
+            return None,packet,question('Project choices changed or became unavailable. Review the current choices and select again.'),1
+        if position>=len(packet['choices']):return None,packet,question('That option is not in the current choices. Select a listed project or give its project #ID.'),1
+        return packet['choices'][position]['id'],packet,None,1
+    if len(matches)==1:return matches[0]['id'],packet,None,1
+    if matches:return None,packet,question('Several accessible projects have that name. Reply with the first/second one or an explicit project #ID.'),1
+    return None,packet,'No accessible project with that exact name was found in this workspace. Give another name or an explicit project #ID.',1

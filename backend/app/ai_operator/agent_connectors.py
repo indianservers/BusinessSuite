@@ -1,7 +1,7 @@
 """Scoped agent bridge to the existing connector vault and operation journal."""
 import json
 import re
-from fastapi import APIRouter,Depends,HTTPException,Request
+from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from pydantic import Field
 from sqlalchemy.orm import Session
 from app.core.deps import get_db,get_current_user,RequirePermission
@@ -33,21 +33,15 @@ def connection(db,user,agent_id,connection_id):
 
 
 @router.get('')
-def catalog(environment:str='development',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def catalog(response:Response,environment:str='development',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     RequirePermission('power_apps_view')(user)
     from app.apps.power_apps.integrations.api import connections
     from app.apps.power_apps.integrations.registry import catalog as registry
     rows=connections(environment,db,user)['items']
-    safe=[]
-    from app.apps.power_apps.integrations.models import Operation
+    from app.ai_operator.agent_connector_status import enrich
     from app.ai_agents.security import company
-    for row in rows:
-        item={k:row.get(k) for k in ('id','name','connector_id','enabled','health','live_verified','writes_enabled','scopes','expires_at','last_verified_at','revision')}
-        operations=db.query(Operation).filter_by(connection_id=row['id'],organization_id=company(user),environment=environment,owner_user_id=user.id).order_by(Operation.id.desc())
-        success=operations.filter(Operation.status=='succeeded').first()
-        item['last_successful_operation_at']=success.finished_at if success else None
-        item['recent_errors']=[{'id':op.id,'action_id':op.action_id,'status':op.status,'category':op.error_category,'at':op.finished_at} for op in operations.filter(Operation.error_category!=None).limit(5)]
-        safe.append(item)
+    safe=enrich(db,user,rows,company(user),environment)
+    response.headers['Cache-Control']='no-store'
     return {'connections':safe,'catalog':registry(),'setup_url':'/power-apps/integrations',
         'note':'Available adapters are not connected accounts. OAuth, scopes, credentials, connection health and explicit write opt-in remain in the existing vault.'}
 

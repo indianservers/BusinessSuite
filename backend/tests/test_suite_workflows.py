@@ -86,8 +86,8 @@ def test_paused_predispatch_resume_keeps_completed_receipts(client,db,monkeypatc
 
 
 def test_transient_read_failure_retries_with_backoff_and_limit(client,db,monkeypatch):
-    h,_,_,_=setup_suite(client,db)
-    task=CRMTask(title='Guarded',owner_user_id=1,organization_id=1)
+    h,user,_,_=setup_suite(client,db)
+    task=CRMTask(title='Guarded',owner_user_id=user.id,organization_id=1)
     db.add(task);db.commit()
     run=prepare(client,h,[{'tool':'crm.update_task','record_id':task.id,'payload':{'priority':'High'}}])
     approve(client,h,run)

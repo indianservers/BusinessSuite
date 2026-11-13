@@ -91,6 +91,7 @@ def local_draft(text,previous,module,prediction=None):
         ('management-reporting',r'management|weekly report|monthly report'),('business-intelligence',r'business intelligence|analytics agent'),
         ('marketing',r'marketing|campaign'),('support',r'customer support'),('hr',r'\bhr\b|hrms|onboarding|\bleave\b|\battendance\b|\bpayroll\b'),('crm-sales',r'\bcrm\b|sales assistant|sales agent')]
     configuration_only=bool(previous and re.match(r'(?i)^\s*(?:show\b|review\b|check\b|prepare\b|summari[sz]e\b|list\b|find\b|work\s*:|objective\s*:|run prompt\s*:|when\b|whenever\b|on\b|at most\b|no more than\b|limit\b|cooldown\b|at least\b|skip events\b|for\s+\d+\s+days?\b|procedure\s*:|instructions\s*:|steps\s*:|add (?:a )?step\s*:|at\b|only\b|read.only\b|remember\b|call it\b|name it\b|use (?:local|gemini)\b|no schedule\b|no trigger\b|manual only\b)',text))
+    if previous and re.match(r'(?i)^\s*(?:(?:CRM|PMS|HRMS|SRM|sales|FAM|finance)\s+)?webhook(?:\s+endpoint)?\s*#?\s*[1-9]\d*\b',text):configuration_only=True
     if not configuration_only:
         for name,pattern in choices:
             if re.search(pattern,lower):key=name;break
@@ -326,6 +327,7 @@ def message(data:Message,request:Request,db:Session=Depends(get_db),user:User=De
             from app.ai_operator.agent_events import CATALOG as EVENT_CATALOG
             if EVENT_CATALOG[draft.trigger.event][0] not in modules:draft.question='The native event is outside the selected agent modules. Choose matching tools and scope.'
             elif draft.trigger.event.startswith('pms.') and not data.workspace_id:draft.question='PMS event triggers require a workspace. Choose a workspace and start a new design.'
+            elif draft.trigger.event=='pms.message_received' and data.project_id:draft.question='Chat intake requires a workspace-scoped agent without a project binding. Start this design from the workspace.'
     if row is None:
         if db.query(AssistantConversation.id).filter_by(user_id=user.id,organization_id=company(user),deleted_at=None).filter(AssistantConversation.references['agent_builder'].as_boolean()==True).count()>=50:raise HTTPException(422,'Archive unused agent designs before adding more')
         row=AssistantConversation(user_id=user.id,organization_id=company(user),workspace_id=data.workspace_id,title='Agent builder: '+draft.name[:140],references={'agent_builder':True,'initial_request_key':str(data.request_key),'scope_key':scope,'project_id':data.project_id,'revision':0})

@@ -62,7 +62,7 @@ export default function AiAgentConfigPage() {
       <div>
         <h1 className="text-2xl font-semibold">AI Agent Configuration</h1>
         <p className="text-sm text-muted-foreground">Enable agents, approval policy, and data access scope.</p>
-        <Link className="text-primary underline" to="/pms/settings/ai/openai">Configure OpenAI, Gemini and Claude APIs · usage analytics and logs</Link>
+        <Link className="text-primary underline" to="/ai-agents/providers/openai">Configure OpenAI, Gemini and Claude APIs · usage analytics and logs</Link>
       </div>
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
       <div className="flex flex-wrap gap-2">

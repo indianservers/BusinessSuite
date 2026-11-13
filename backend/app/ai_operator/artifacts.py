@@ -422,8 +422,13 @@ def business_request(text):
     return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:add|create|update|remove|edit|make|set|mark|assign|schedule|complete|close)\s+(?:(?:a|an|the|this|that|these|all|my|selected)\s+){0,3}(?:(?:CRM|PMS|HRMS)\s+)?(?:(?:high|medium|low|urgent)\s+(?:priority\s+)?)?(?:tasks?|leads?|tickets?|invoices?|leave|employees?|milestones?|projects?)\b',text))
 
 
+# One grammar is shared by initial routing and clarification reconstruction.
+ARTIFACT_FORMATS=r'(?:excel workbook|excel spreadsheet|excel sheet|excel|worksheet|word document|word|docx|pdf document|pdf report|document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint presentation|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)'
+ARTIFACT_CREATE=re.compile(r'(?is)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?('+ARTIFACT_FORMATS+r')\b\s*(.*)')
+
+
 def creation_request(text):
-    return bool(re.match(r'(?i)^\s*(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(?:document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b',text))
+    return bool(ARTIFACT_CREATE.match(text))
 
 
 def conversation_context(db,user,data,history):
@@ -452,15 +457,16 @@ def local_plan(data,parent,context,attachments):
     text=data.text.strip();prefix=data.module.lower() if data.module in ('CRM','PMS','HRMS') else None
     if not prefix:return None
     if parent and parent.status=='needs_clarification' and not re.match(r'(?i)^(?:create|draft|write|prepare)\b',text):
-        original=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b',parent.command)
+        original=ARTIFACT_CREATE.match(parent.command)
         if original and parent.plan.get('summary')=='I need a title for the artifact.':text=f'Create {original[1]} called {text}'
         elif original and parent.plan.get('summary')=='I need the table columns.':text=f'{parent.command} with columns {text}'
+        elif original and parent.plan.get('summary')=='I need valid table rows.':text=f'{parent.command.partition(":")[0]}: {text}'
         elif original and parent.plan.get('summary')=='I need dashboard sources.':text=f'{parent.command.partition(":")[0]}: {text}'
     pending=(parent.plan or {}).get('steps',[]) if parent and parent.status=='awaiting_approval' else []
     draft=deepcopy(pending[0]) if len(pending)==1 and pending[0]['tool'].endswith(('.create_artifact','.edit_artifact')) else None
-    create=re.match(r'(?is)^(?:please\s+)?(?:create|draft|write|prepare)\s+(?:an?\s+)?(document|proposal|report|brief|checklist|table|spreadsheet|presentation|slide deck|powerpoint|pptx|pdf|bar chart|line chart|pie chart|chart|dashboard)\b\s*(.*)',text)
+    create=ARTIFACT_CREATE.match(text)
     if create:
-        kind='dashboard' if create[1].lower()=='dashboard' else 'presentation' if create[1].lower() in ('presentation','slide deck','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
+        kind='dashboard' if create[1].lower()=='dashboard' else 'presentation' if create[1].lower() in ('presentation','slide deck','powerpoint presentation','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','excel workbook','excel spreadsheet','excel sheet','excel','worksheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
         rest=re.sub(r'^(?:called|named|titled)\s+','',create[2],flags=re.I).strip()
         title,sep,content=rest.partition(':');title=title.strip().strip('"\'')
         if not title:return Plan(summary='I need a title for the artifact.',question='Give the artifact a title and any content, for example: Create document called Launch brief: goals and next steps.',steps=[])
@@ -479,6 +485,13 @@ def local_plan(data,parent,context,attachments):
             parts=re.split(r'\s+with columns\s+',title,flags=re.I,maxsplit=1)
             if len(parts)!=2:return Plan(summary='I need the table columns.',question='Include its title and columns, for example: Create table called Launch tracker with columns Task, Owner, Status.',steps=[])
             body={'title':parts[0],'kind':kind,'columns':next(csv.reader([parts[1]],skipinitialspace=True)),'rows':[],'content':''}
+            if content.strip():
+                try:
+                    rows=list(csv.reader(io.StringIO(content.strip()),skipinitialspace=True,strict=True))
+                except csv.Error:rows=None
+                if rows is None or any(len(row)!=len(body['columns']) for row in rows):
+                    return Plan(summary='I need valid table rows.',question='Supply CSV rows with one value per column, one row per line. Quote values containing commas. No artifact has been saved.',steps=[])
+                body['rows']=rows
             if 'chart' in create[1].lower():body['chart']=Chart(kind=create[1].lower().split()[0] if ' ' in create[1] else 'bar',category_column=0,value_column=1 if len(body['columns'])>1 else None,aggregation='sum' if len(body['columns'])>1 else 'count').model_dump()
         else:
             if not content.strip() and attachments:

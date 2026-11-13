@@ -47,6 +47,25 @@ def assess(folder,baseline=None):
         check(module+' internal validation',metric(item['internal_validation_accuracy'],.8),item['internal_validation_accuracy'],'at least 0.80; synthetic internal split')
         check(module+' numeric parity',metric(item['portable_max_error'],0,1e-5),item['portable_max_error'],'at most 0.00001')
     check('Dialogue development',metric(dialogue['heldout_accuracy'],.85),dialogue['heldout_accuracy'],'at least 0.85; development data')
+    if dialogue.get('message_dialogue_version'):
+        extra=unseen.get('message_followups') or {}
+        check('Message dialogue training provenance',dialogue.get('message_dialogue_version') in {'message-action-followups-v1','message-action-followups-v2'} and dialogue.get('message_training_turns')==({'message-action-followups-v1':300,'message-action-followups-v2':450}.get(dialogue.get('message_dialogue_version'))) and len(dialogue.get('message_training_sha256',''))==64,
+            dialogue.get('message_training_turns'),'all versioned synthetic training turns')
+        check('Separate message followup wording',extra.get('version')=='message-action-probes-v1' and extra.get('total')==60 and metric(extra.get('passed',0)/max(1,extra.get('total',0)),.85),
+            f"{extra.get('passed',0)}/{extra.get('total',0)}",'at least 0.85 on 60 separate authored probes')
+    if dialogue.get('message_dialogue_version'):
+        message=native.get('message_actions') or {}
+        expected={'tests/test_event_message_evidence.py','tests/test_suite_operator.py','tests/test_suite_conversations.py','tests/test_local_action_dialogue.py'}
+        declared=set(message.get('test_files',[]));project_choices='tests/test_message_project_choices.py'
+        minimum=64 if project_choices in declared else 58
+        check('PostgreSQL message actions',message.get('format')=='message-action-postgres-v1' and message.get('database')=='postgresql' and expected<=declared<=expected|{project_choices} and
+            message.get('model_sha256')==file_hash(folder/'bundle.json') and message.get('dialogue_sha256')==file_hash(folder/'dialogue.json') and message.get('tests',0)>=minimum and
+            all(message.get(key)==0 for key in ('failures','errors','skipped')),
+            {key:message.get(key) for key in ('tests','failures','errors','skipped')},f'all {minimum}+ candidate-weight PostgreSQL message and conversation tests, none skipped')
+    if dialogue.get('message_dialogue_version')=='message-action-followups-v2':
+        fresh=unseen.get('message_followups_validation') or {}
+        check('Fresh message followup wording',fresh.get('version')=='message-action-probes-v2' and fresh.get('total')==60 and metric(fresh.get('passed',0)/max(1,fresh.get('total',0)),.85),
+            f"{fresh.get('passed',0)}/{fresh.get('total',0)}",'at least 0.85 on 60 fresh authored probes')
     check('Dialogue numeric parity',metric(dialogue['portable_max_error'],0,1e-5),dialogue['portable_max_error'],'at most 0.00001')
     check('Authored conversation scenarios',conversations['total']>=600 and conversations['passed']==conversations['total'] and not conversations.get('failures'),
         f"{conversations['passed']}/{conversations['total']}",'all scenarios; at least 600')

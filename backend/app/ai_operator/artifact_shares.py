@@ -137,20 +137,30 @@ def audit(db,user,row,action):
         input_json={'share_id':row.id},output_json={'revision':row.version,'status':row.values_json['status']},status='success')
 
 
+def authorized_publications(db,user,workspace_id,all_pages=False):
+    """Read current grants in bounded keyset pages, without private history."""
+    from app.ai_operator.suite import authorize
+    authorize(db,user,workspace_id)
+    query=db.query(ServicePolicy.id).filter_by(kind=KIND,organization_id=company(user)).filter(
+        ServicePolicy.values_json['status'].as_string()=='active',
+        ServicePolicy.values_json['workspace_id'].as_integer()==workspace_id if workspace_id is not None else ServicePolicy.values_json['workspace_id'].as_integer().is_(None))
+    cursor=None
+    while True:
+        page=(query.filter(ServicePolicy.id<cursor) if cursor is not None else query).order_by(ServicePolicy.id.desc()).limit(200).all()
+        for (ident,) in page:
+            try:
+                row=entry(db,user,ident)
+                definition=available(db,user,row)
+                yield row,definition
+            except HTTPException as error:
+                if error.status_code not in (403,404):raise
+        if not all_pages or len(page)<200:return
+        cursor=page[-1][0]
+
+
 @router.get('')
 def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    from app.ai_operator.suite import authorize
-    authorize(db,user,workspace_id);items=[]
-    rows=db.query(ServicePolicy.id).filter_by(kind=KIND,organization_id=company(user)).filter(
-        ServicePolicy.values_json['status'].as_string()=='active',
-        ServicePolicy.values_json['workspace_id'].as_integer()==workspace_id if workspace_id is not None else ServicePolicy.values_json['workspace_id'].as_integer().is_(None)).order_by(ServicePolicy.id.desc()).limit(200)
-    for (ident,) in rows:
-        try:
-            row=entry(db,user,ident)
-            available(db,user,row)
-            items.append(metadata(db,user,row))
-        except HTTPException as error:
-            if error.status_code not in (403,404):raise
+    items=[metadata(db,user,row) for row,_ in authorized_publications(db,user,workspace_id)]
     return {'items':items,'can_publish':admin(db,user)}
 
 

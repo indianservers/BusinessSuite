@@ -20,6 +20,7 @@ export default function BranchSettings() {
   const [code, setCode] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [completionRevision, setCompletionRevision] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const context = useQuery({ queryKey: ["settings-branches"], queryFn: () => api.get<Context>("/branches/context").then(r => r.data), staleTime: 0 });
@@ -28,12 +29,13 @@ export default function BranchSettings() {
   return <div className="settings-stack">
     <section className="settings-panel"><h2>Create a branch</h2>
       <p>Each branch has its own customers, sales and other business records. Creating a branch does not give existing users access automatically.</p>
-      {context.data.manage_access ? <SmartCreateSection title="Create branch" size="standard"><div className="space-y-3"><CompactForm onSubmit={async e => {
+      {context.data.manage_access ? <SmartCreateSection title="Create branch" size="standard" completionRevision={completionRevision}><div className="space-y-3"><CompactForm onSubmit={async e => {
         e.preventDefault(); setSaving(true); setError(""); setMessage("");
         try {
           await api.post("/branches", { name: name.trim(), code: code.trim(), reason: reason.trim() });
           setMessage(`${name.trim()} created. Assign its users and module roles in Users & permissions.`);
           setName(""); setCode(""); setReason("");
+          setCompletionRevision(revision => revision + 1);
           await qc.invalidateQueries({ predicate: q => q.queryKey.some(k => typeof k === "string" && /branch/.test(k)) });
         } catch (err: any) { setError(typeof err?.response?.data?.detail === "string" ? err.response.data.detail : "Could not create branch. Check the fields and try again."); }
         finally { setSaving(false); }

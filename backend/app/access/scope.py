@@ -6,7 +6,7 @@ they do not replace project memberships or document ownership rules.
 
 from fastapi import HTTPException
 import re
-from sqlalchemy import and_, or_, false, func, select, event, inspect
+from sqlalchemy import and_, or_, false, func, select, event, inspect, literal, cast, String
 from sqlalchemy.orm import with_loader_criteria
 from app.db.base_class import Base
 
@@ -16,6 +16,7 @@ def domain_parent_fields(model):
     """Workflow children inherit tenant scope only through real domain parent FKs."""
     parents = {
         "app.apps.customization.models": ("picklist_id",),
+        "app.ai_operator.assistant_models": ("conversation_id",),
         "app.apps.analytics.models": ("dashboard_id", "report_id", "export_id"),
         "app.apps.fam.models": ("voucher_id", "financial_year_id"),
         "app.apps.project_management.models": ("submission_id",),
@@ -34,6 +35,10 @@ def domain_parent_fields(model):
 
 
 def model_module(model):
+    if model.__tablename__ in {'ai_suite_runs','pms_assistant_conversations','pms_assistant_messages','ai_operator_api_logs','ai_nlp_queries'}:
+        # Cross-module private AI state, despite historical PMS table names.
+        # Native workspace/record access remains separately authorized.
+        return 'ai'
     # The shared transactional outbox belongs to its originating module, not
     # HRMS. Tenant/branch boundaries and each producer's permission checks still
     # protect it; classifying it as HRMS breaks non-HRMS background delivery.
@@ -77,6 +82,8 @@ def model_module(model):
 
 def install_scope(db, user, company, grants):
     def scoped_model_module(model):
+        if model.__tablename__ == 'ai_operator_providers' and getattr(user,'_suite_current_module',None)=='ai':
+            return 'ai'  # Shared model configuration; legacy PMS entry points retain PMS grants.
         if model.__module__ == "app.models.workflow_engine" and getattr(user, "_suite_current_module", None) == "project_management":
             # PMS owns its shared-engine transitions; this does not grant the
             # reviewer access to the Automation API or its other workflows.
@@ -247,6 +254,12 @@ def install_scope(db, user, company, grants):
         if not grant.get("enabled"):
             return false()
         scope = grant.get("scope", "own")
+        if model.__tablename__ == 'ai_operator_providers' and key=='ai':
+            from app.apps.project_management.models import PMSWorkspace,PMSWorkspaceMember
+            workspaces=PMSWorkspace.__table__;members=PMSWorkspaceMember.__table__
+            authorized=select(literal('workspace:')+cast(workspaces.c.id,String)).join(members,members.c.workspace_id==workspaces.c.id).where(
+                members.c.user_id==user.id,or_(workspaces.c.organization_id==company,workspaces.c.organization_id.is_(None)))
+            return or_(model.scope_key.in_([f'company:{company}',f'user:{user.id}']),model.scope_key.in_(authorized))
         columns = model.__table__.c
         if model.__tablename__ in {"pms_private_notes", "pms_note_folders"}:
             # Personal documents are anchored by their owner, including when

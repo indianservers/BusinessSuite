@@ -69,13 +69,21 @@ class Install(Revision):
 
 
 def admin(db,user):
-    return bool(user.is_superuser or db.query(AccessMembership.id).filter_by(user_id=user.id,company_id=company(user),active=True,is_admin=True).first())
+    if user.is_superuser:return True
+    if not db.query(AccessMembership.id).filter_by(user_id=user.id,company_id=company(user),active=True,is_admin=True).first():return False
+    # Organization membership never overrides an explicit central/branch AI role.
+    # Unmanaged legacy organization administrators retain their existing authority.
+    if getattr(user,'_suite_grants',None) is not None:
+        from app.access.service import check_background_access
+        try:check_background_access(db,user,'ai','configure')
+        except HTTPException:return False
+    return True
 
 
-def require_admin(db,user):
+def require_admin(db,user,*,control=False):
     from app.ai_operator.suite import authorize
-    authorize(db,user,None)
-    if not admin(db,user):raise HTTPException(403,'Organization AI library publishing requires an organization administrator')
+    authorize(db,user,None,control=control)
+    if not admin(db,user):raise HTTPException(403,'Organization AI library publishing requires an organization administrator with AI configuration permission')
 
 
 def signed_value(row):
@@ -87,12 +95,13 @@ def sign(row):
     row.values_json={**row.values_json,'signature':signature(signed_value(row))}
 
 
-def entry(db,user,ident,lock=False):
+def entry(db,user,ident,lock=False,*,control=False):
+    if control and not admin(db,user):raise HTTPException(403,'Organization library control requires current administration permission')
     q=db.query(ServicePolicy).filter_by(id=ident,organization_id=company(user),kind=KIND).populate_existing()
     row=(q.with_for_update() if lock else q).first()
     if not row:raise HTTPException(404,'Shared definition not found')
     from app.ai_operator.suite import authorize
-    authorize(db,user,row.values_json['workspace_id'])
+    authorize(db,user,row.values_json['workspace_id'],control=control)
     if not hmac.compare_digest(str(row.values_json.get('signature','')),signature(signed_value(row))):raise HTTPException(409,'Shared definition integrity changed')
     return row
 
@@ -178,12 +187,13 @@ def audit(db,user,row,action):
 @router.get('')
 def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
-    authorize(db,user,workspace_id);items=[]
+    control=admin(db,user)
+    authorize(db,user,workspace_id,control=control);items=[]
     rows=db.query(ServicePolicy.id).filter_by(organization_id=company(user),kind=KIND).filter(
         ServicePolicy.values_json['workspace_id'].as_integer()==workspace_id if workspace_id else ServicePolicy.values_json['workspace_id'].as_integer().is_(None)).order_by(ServicePolicy.id.desc()).limit(100)
     for (ident,) in rows:
         try:
-            row=entry(db,user,ident);visible(db,user,row);items.append(public(db,user,row))
+            row=entry(db,user,ident,control=control);visible(db,user,row);items.append(public(db,user,row))
         except HTTPException as exc:
             if exc.status_code not in (403,404):raise
     return {'items':items,'can_publish':admin(db,user)}
@@ -207,12 +217,12 @@ def targets(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depe
 
 @router.get('/{ident}')
 def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=entry(db,user,ident);visible(db,user,row);return public(db,user,row)
+    row=entry(db,user,ident,control=admin(db,user));visible(db,user,row);return public(db,user,row)
 
 
 @router.get('/{ident}/versions')
 def versions(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=entry(db,user,ident);visible(db,user,row)
+    row=entry(db,user,ident,control=admin(db,user));visible(db,user,row)
     history=[h for h in reversed(row.values_json.get('history',[])) if admin(db,user) or audience_access(db,user,row,h['audience'])]
     return {'items':[{'revision':row.version,'status':row.values_json['status'],'definition':row.values_json['definition']},*history],'retention':'Current edition and up to twenty previous publication transitions.'}
 
@@ -277,14 +287,14 @@ def publish(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Dep
 
 @router.post('/{ident}/discard-preview')
 def discard(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    require_admin(db,user);row=entry(db,user,ident,True);pending=row.values_json.get('pending')
+    require_admin(db,user,control=True);row=entry(db,user,ident,True,control=True);pending=row.values_json.get('pending')
     if not pending or pending['preview_hash']!=data.preview_hash:raise HTTPException(409,'Review changed')
     row.values_json={**row.values_json,'pending':None};sign(row);audit(db,user,row,'preview_discarded');db.commit();return public(db,user,row)
 
 
 @router.post('/{ident}/revoke')
 def revoke(ident:int,data:Revision,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    require_admin(db,user);row=entry(db,user,ident,True)
+    require_admin(db,user,control=True);row=entry(db,user,ident,True,control=True)
     if data.revision!=row.version:raise HTTPException(409,'Publication revision changed')
     if row.values_json['status']!='revoked':
         row.version+=1;row.updated_by=user.id;row.values_json={**row.values_json,'status':'revoked','pending':None};sign(row);audit(db,user,row,'revoked');db.commit()

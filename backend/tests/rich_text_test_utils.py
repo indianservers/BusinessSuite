@@ -31,12 +31,12 @@ def workflow_seed_scope(db, *, bootstrap_company=True):
     busy = False
 
     def remember(session, *_):
-        if not busy and session.info.get("branch_context") is None:
+        if not busy and not session.info.get('workflow_native_ingestion') and session.info.get("branch_context") is None:
             pending.update(session.new)
 
     def provision(session):
         nonlocal busy
-        if busy or session.info.get("branch_context") is not None:
+        if busy or session.info.get('workflow_native_ingestion') or session.info.get("branch_context") is not None:
             return
         pending.update(session.new)
         busy = True

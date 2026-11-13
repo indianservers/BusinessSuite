@@ -167,6 +167,10 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path=="/api/v1/ai-operator/suite" or request.url.path.startswith("/api/v1/ai-operator/suite/"):
+        # Suite handlers authorize AI access and each selected native module.
+        # Legacy PMS operator/workbench routes retain their registered module.
+        return "ai"
     if request.url.path.startswith("/api/v1/files-storage/notes/"):
         # Each Notes handler checks its body/query-selected source module's
         # export permission, personal connection ownership and company scope.
@@ -298,6 +302,10 @@ def action_for(request):
         and "import" not in path
     ):
         return "export"
+    if request.method=='POST' and (path=='/api/v1/ai-operator/suite/agents/library/preview' or re.fullmatch(r'/api/v1/ai-operator/suite/agents/library/\d+/(?:publish|discard-preview|revoke)',path)):
+        return 'configure'
+    if path.startswith('/api/v1/ai-operator/suite/providers/') and request.method in {'PUT','POST'}:
+        return 'configure'
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return "view"
     if path.startswith("/api/v1/employees/workbench/"):

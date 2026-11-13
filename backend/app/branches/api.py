@@ -83,7 +83,7 @@ def current_context(request: Request, db: Session = Depends(get_db), user: User 
     rows = db.connection().execute(select(Branch.id, Branch.name, Branch.code, Branch.is_active).where(Branch.company_id == ctx.company_id, Branch.id.in_(ctx.allowed)).order_by(Branch.name)).mappings().all()
     default_branch_id = ctx.branch_id if ctx.branch_id in ctx.writable else None
     selected = request.headers.get("X-Suite-Branch")
-    if selected and selected != "all":
+    if selected:
         try:
             ctx = context(db, user, user.organization_id, selected)
         except HTTPException:

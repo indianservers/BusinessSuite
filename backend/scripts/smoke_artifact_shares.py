@@ -49,6 +49,15 @@ def main():
             restored=client.get(root+f'/artifact-shares/source/{ident}');assert restored.is_success
             assert restored.json()['items'][0]['pending']['preview_hash']==draft['pending']['preview_hash']
             shared=publish(draft);assert publish(draft)['revision']==shared['revision']
+            answer=say('Analyze shared artifact named Synthetic sharing amounts')
+            assert answer['status']=='answered' and answer['approval_id'] is None and not answer['receipts']
+            assert answer['result']['citations'][0]['id']==f'shared-artifact:{shared["id"]}:e1'
+            assert 'sum 300' in answer['plan']['summary'] and 'sum 50' in answer['plan']['summary']
+            filtered=say('Only North')
+            assert filtered['status']=='answered' and 'sum 100' in filtered['plan']['summary']
+            assert client.post(root+f'/conversations/{chat}/resume').is_success
+            reset=say('Clear the filter')
+            assert reset['status']=='answered' and 'sum 300' in reset['plan']['summary']
             response=client.get(root+f'/artifact-shares/{shared["id"]}/content',params={'revision':1});assert response.is_success
             item=response.json()['item'];assert item['provenance']['citations']==[] and 'conversation_id' not in item and item['id']==f'share-{shared["id"]}'
             response=client.get(root+f'/artifact-shares/{shared["id"]}/analysis',params={'revision':1,'category_query':'North'});assert response.is_success
@@ -65,6 +74,9 @@ def main():
             assert client.get(root+f'/artifact-shares/{shared["id"]}/content',params={'revision':1}).status_code==409
             assert client.get(root+f'/artifact-shares/{shared["id"]}/analysis').json()['panels'][0]['statistics']['sum']=='350'
             revoked=client.post(root+f'/artifact-shares/{shared["id"]}/revoke',json={'revision':updated['revision']});assert revoked.is_success
+            blocked=client.post(root+'/commands',json={'request_key':str(uuid4()),'provider':'local','module':'CRM',
+                'conversation_id':chat,'text':f'Analyze shared artifact #{shared["id"]}'})
+            assert blocked.status_code==404
             assert client.post(root+f'/artifact-shares/{shared["id"]}/revoke',json={'revision':updated['revision']}).json()['revision']==revoked.json()['revision']
             assert client.get(root+f'/artifact-shares/{shared["id"]}/download',params={'format':'pdf'}).status_code==404
             pending=preview(ident,2)
@@ -92,7 +104,8 @@ def main():
                 assert client.get(root+f'/conversations/{chat}').status_code==404
         print(json.dumps({'reviewed_self_audience_only':True,'restored_exact_preview':True,'idempotent_publication':True,'sanitized_snapshot':True,
             'server_analysis_and_excel':True,'source_edits_do_not_change_share':True,'reviewed_edition_update':True,'revoke_is_idempotent':True,
-            'source_archive_cancels_share':True,'cleanup_verified':True,'external_model_calls':0,'outbound_messages':0,'non_artifact_business_writes':0}),flush=True)
+            'source_archive_cancels_share':True,'cited_shared_answers':True,'shared_title_resolution':True,'filter_followups_and_resume':True,
+            'revoked_conversation_read_blocked':True,'cleanup_verified':True,'external_model_calls':0,'outbound_messages':0,'non_artifact_business_writes':0}),flush=True)
 
 
 if __name__=='__main__':main()

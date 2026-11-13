@@ -7,9 +7,10 @@ test(`${module} agent memory, follow-up, approval and receipts`,async({page})=>{
   let memories:any[]=[];const commands:any[]=[];
   await page.route('**/api/v1/project-management/projects*',r=>r.fulfill({json:[]}));
   await page.route('**/api/v1/project-management/workspaces',r=>r.fulfill({json:[]}));
-  await page.route('**/api/v1/ai-operator/providers*',r=>r.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
+  await page.route('**/api/v1/ai-operator/suite/providers*',r=>r.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}}));
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const req=route.request(),path=new URL(req.url()).pathname;
+    if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/memories')){
       if(req.method()==='POST')memories=[{id:10,...req.postDataJSON()}];

@@ -28,9 +28,10 @@ export default function BranchSwitcher() {
   }, retry: false, refetchOnWindowFocus: true });
   const context = current.data;
   const storedBranch = sessionStorage.getItem("suite-branch");
-  const staleBranch = !!context && !!storedBranch && storedBranch !== String(context.selected);
+  const selectedBranch = context?.selected ?? (context?.all_branches ? "all" : "");
+  const staleBranch = !!context && !!storedBranch && storedBranch !== String(selectedBranch);
   async function switchBranch(value: string) {
-    if (!context || value === String(context.selected)) return;
+    if (!context || value === String(selectedBranch)) return;
     setPendingSwitch(value);
   }
   async function confirmSwitch() {
@@ -54,9 +55,10 @@ export default function BranchSwitcher() {
     <label className="suite-branch-field">
       <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>
-      <NativeSelect loading={busy || current.isFetching} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={context?.selected ?? ""} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
+      <NativeSelect loading={busy || current.isFetching} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={selectedBranch} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
         {!context && <option value="">{current.isError ? "Branch unavailable" : "Loading branches…"}</option>}
-        {context && context.selected === null && <option value="">No branch access</option>}
+        {context?.all_branches && <option value="all">All branches</option>}
+        {context && context.selected === null && !context.all_branches && <option value="">No branch access</option>}
         {context?.branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.is_active === false ? " (archived)" : ""}{b.can_write ? "" : " · read only"}</option>)}
       </NativeSelect>
       <ChevronDown size={14} className="suite-branch-chevron" aria-hidden="true" />

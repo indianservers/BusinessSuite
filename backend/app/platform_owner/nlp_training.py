@@ -152,6 +152,10 @@ def native_evaluation(directory):
     repo=Path(__file__).resolve().parents[3]
     subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_action_release.py'),'--model-dir',str(directory/'model')],
         cwd=repo/'backend',check=True,timeout=630,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    dialogue=json.loads((directory/'model/dialogue-evaluation.json').read_text(encoding='utf-8'))
+    if dialogue.get('message_dialogue_version'):
+        subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_message_action_release.py'),'--model-dir',str(directory/'model')],
+            cwd=repo/'backend',check=True,timeout=1080,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 
 def process(db,ident):

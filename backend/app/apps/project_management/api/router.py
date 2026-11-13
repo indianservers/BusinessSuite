@@ -2178,6 +2178,7 @@ def list_projects(
     limit: int = Query(100),
     status: str = Query(None),
     workspace_id: int | None = Query(None),
+    name: str | None = Query(None,min_length=1,max_length=180),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -2187,6 +2188,9 @@ def list_projects(
         workspace_member(db, workspace_id, current_user)
         query = query.filter(PMSProject.workspace_id == workspace_id)
     
+    if name is not None:
+        query=query.filter(func.lower(func.trim(PMSProject.name))==name.strip().lower())
+
     if status:
         query = query.filter(PMSProject.status == status)
     
@@ -5431,8 +5435,8 @@ def create_milestone_operation(
 @router.get("/projects/{project_id}/milestones", response_model=list[PMSMilestoneResponse])
 def list_milestones(
     project_id: int,
-    skip: int = Query(0),
-    limit: int = Query(100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -7740,3 +7744,7 @@ router.include_router(task_workspace_router)
 
 from ..file_workspace import router as file_workspace_router
 router.include_router(file_workspace_router)
+
+
+from app.apps.project_management.milestone_management import router as milestone_management_router
+router.include_router(milestone_management_router)

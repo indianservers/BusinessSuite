@@ -290,11 +290,14 @@ def handoff_context(db,user,data,parent=None):
         from app.ai_operator.shared_artifact_questions import revalidate,lineage
         shared_sources=lineage((child.result or {}).get('citations',[]))
         revalidate(db,user,shared_sources)
+        from app.ai_operator import event_messages
+        message_sources=event_messages.lineage((child.result or {}).get('citations',[]))
+        event_messages.revalidate(db,user,message_sources)
         prefix=f'w{flow.id}:step{position}:'
         source={'id':prefix+'answer','kind':'agent_answer','tool':'agent.workflow_answer','record_id':child.id,
             'label':flow.result['agents'][str(source_spec['agent_id'])]['name']+' answer',
             'href':f'/?bot_conversation={source_node["conversation_id"]}'+(f'&workspace={flow.workspace_id}' if flow.workspace_id else ''),
-            'retrieved_at':now().isoformat(),'shared_sources':shared_sources}
+            'retrieved_at':now().isoformat(),'shared_sources':shared_sources,'event_message_sources':message_sources}
         citations=[{**c,'id':prefix+c['id']} for c in (child.result or {}).get('citations',[])[:5]]
         receipts=[{k:v for k,v in r.items() if k in {'step','tool','status','record_id','artifact_id','artifact_revision'}} for r in child.receipts or [] if r.get('status')=='succeeded'][:6]
         answer=(child.plan or {}).get('summary','')[:1000]

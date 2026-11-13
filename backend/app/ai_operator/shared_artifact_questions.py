@@ -58,6 +58,13 @@ def read_current(request:Request,response:Response,share_id:int,position:int=1,e
 
 def intent(text,parent):
     prior=(parent.result or {}).get('shared_query') if parent else None
+    if prior and prior.get('choices'):
+        choice=re.fullmatch(r'(?i)\s*(?:the )?(first|second|third|fourth|fifth|[1-5])(?: one)?\s*[.!]?\s*',text)
+        if choice:
+            index=int(choice[1])-1 if choice[1].isdigit() else ['first','second','third','fourth','fifth'].index(choice[1].lower())
+            if index<len(prior['choices']):return {'artifact_id':prior['choices'][index],'positions':None,'category_query':''}
+    named=re.fullmatch(r'(?is)\s*(?:please\s+)?(?:analy[sz]e|summari[sz]e|read|show(?: me)?|explain|review|tell me about)\s+(?:the\s+)?shared (?:artifact|dashboard|report)\s+(?:called|named)\s+(.{1,120}?)\s*[.!?]?\s*',text)
+    if named:return {'artifact_id':None,'title_query':named[1].strip().strip('"\x27'),'positions':None,'category_query':''}
     if prior and prior.get('awaiting_share') and re.fullmatch(r'\s*#?[1-9]\d*\s*',text):
         return {'artifact_id':int(text.strip().lstrip('#')),'positions':None,'category_query':''}
     explicit=bool(re.search(r'(?i)\bshared (?:artifact|dashboard|report)|\bshare\s*#?\s*\d+',text))
@@ -71,7 +78,18 @@ def intent(text,parent):
 def prepare(db,user,data,parent,selection):
     if not selection:return None,None
     from app.ai_operator.suite import Plan
+    if parent and parent.status in ('awaiting_approval','needs_clarification') and not (parent.result or {}).get('shared_query'):
+        raise HTTPException(409,'Finish or cancel the pending draft before asking a new shared artifact question')
     ident=selection.get('artifact_id')
+    if selection.get('title_query'):
+        matches=discover(db,user,data,selection['title_query'])
+        if len(matches)==1:
+            ident=matches[0]['id'];selection={**selection,'artifact_id':ident}
+        else:
+            choices=matches[:5]
+            question='Which shared publication should I read? '+ '; '.join(f'{i}. {v["title"]} (#{v["id"]})' for i,v in enumerate(choices,1)) if choices else 'No matching publication is available in the shared library. Try another title or give a shared artifact ID.'
+            return Plan(summary='Choose an authorized shared publication before reading its content.',question=question,steps=[]),{
+                'awaiting_share':True,'shared':True,'artifact_id':None,'dashboard_revision':None,'positions':None,'category_query':'','choices':[v['id'] for v in choices]}
     if not ident:return Plan(summary='Choose an available shared publication.',question='Which shared artifact ID should I read? IDs are listed under Shared artifacts.',steps=[]),{
         'awaiting_share':True,'shared':True,'artifact_id':None,'dashboard_revision':None,'positions':None,'category_query':''}
     if data.artifact_id:raise HTTPException(409,'Choose either a private artifact or a shared publication for this question')
@@ -87,6 +105,33 @@ def prepare(db,user,data,parent,selection):
             from app.ai_operator.suite import Step
             data.context=[Step(tool=data.module.lower()+'.shared_artifact',payload={'share_id':row.id,'edition':row.version,'position':p,'category_query':selection['category_query']}) for p in packet['positions']]
     return plan,packet
+
+
+def discover(db,user,data,title):
+    """Reuse current library authorization; names never grant content access."""
+    profile=None
+    if data.agent_id:
+        from app.ai_operator import saved_agents
+        actor=saved_agents.owned(db,user,data.agent_id);saved_agents.runtime_access(db,user,actor)
+        if actor.workspace_id!=data.workspace_id:raise HTTPException(403,'Choose the agent workspace')
+        profile=saved_agents.public(actor)
+    normalized=' '.join(title.casefold().split())
+    if not normalized:return []
+    exact=[];partial=[]
+    for row,definition in shares.authorized_publications(db,user,data.workspace_id,all_pages=True):
+        root=definition['root']
+        if profile:
+            if root['module'].lower()+'.shared_artifact' not in profile['tools']:continue
+            if any(s['module'] not in profile['modules'] for s in shares.resources(definition)):continue
+            project=profile.get('project_id')
+            if project and (definition['root']['project_id']!=project or any(s['project_id'] not in (None,project) for s in definition['sources'])):continue
+        value={'id':row.id,'title':root['body']['title']}
+        name=' '.join(value['title'].casefold().split())
+        if name==normalized:
+            exact.append(value)
+            if len(exact)==5:return exact
+        elif normalized in name and len(partial)<5:partial.append(value)
+    return exact or partial
 
 
 def lineage(sources,depth=0):
@@ -113,7 +158,8 @@ def revalidate(db,user,sources):
 def history_packet(run):
     # Previous shared assertions are not fresh evidence. Keep the user's scope
     # request, but never feed the old generated answer back into an LLM.
-    if lineage((run.result or {}).get('citations',[])):
+    from app.ai_operator.event_messages import lineage as message_lineage
+    if lineage((run.result or {}).get('citations',[])) or message_lineage((run.result or {}).get('citations',[])):
         return {'command':run.command,'status':run.status,'receipts':[{k:v for k,v in receipt.items() if k in ('tool','record_id','status','artifact_id','artifact_revision')} for receipt in run.receipts or []],
-            'plan':{'summary':'Prior shared answer omitted; retrieve current authorized publication evidence.','steps':[]}}
+            'plan':{'summary':'Prior restricted-source answer omitted; retrieve current authorized evidence.','steps':[]}}
     return {'command':run.command,'plan':run.plan,'status':run.status,'receipts':run.receipts}

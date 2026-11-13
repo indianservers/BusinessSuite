@@ -252,6 +252,9 @@ SUITE.update({
     'hrms.team_availability': ('HRMS', 'GET', '/leave/team-calendar', ()),
     'hrms.pending_leave': ('HRMS', 'GET', '/leave/requests', ('leave_approve',)),
     'hrms.policies': ('HRMS', 'GET', '/documents/policies', ()),
+    'pms.milestones': ('PMS','GET','/project-management/projects/{record_id}/milestones',()),
+    'pms.milestone': ('PMS','GET','/project-management/milestones/{record_id}',()),
+    'pms.update_milestone': ('PMS','PATCH','/project-management/milestones/{record_id}',('pms_manage_tasks','pms_admin')),
     'pms.create_milestone': ('PMS', 'POST', '/project-management/projects/{record_id}/milestones', ('pms_manage_tasks', 'pms_admin')),
     'hrms.ticket_categories':('HRMS','GET','/helpdesk/categories',()),
     'hrms.my_tickets':('HRMS','GET','/helpdesk/tickets',()),
@@ -289,6 +292,9 @@ for _module in ('CRM','PMS','HRMS'):
     SUITE[f'{_module.lower()}.connector_read']=(_module,'GET','/ai-operator/suite/agents/connectors/read',())
     SUITE[f'{_module.lower()}.connector_action']=(_module,'POST','/ai-operator/suite/agents/connectors/execute-approved',())
     SUITE[f'{_module.lower()}.mcp_action']=(_module,'POST','/ai-operator/suite/agents/mcp/execute-approved',())
+
+for _module in ('CRM','PMS'):
+    SUITE[f'{_module.lower()}.event_message']=(_module,'GET','/ai-operator/suite/agents/events/message-content',())
 
 ASSISTANT = (
     "customers.search",
@@ -356,3 +362,25 @@ ACTIONS = {
         "crm.execute_lead_score_status_update",
     ),
 }
+
+SUITE['crm.lead_qualification']=('CRM','GET','/crm/lead-management/leads/{record_id}',())
+
+# Lead actions remain code-owned and bound to canonical CRM permissions.
+SUITE.update({
+    'crm.create_lead': ('CRM','POST','/crm/leads',('crm_manage','crm_admin','crm_leads_manage')),
+    'crm.update_lead': ('CRM','PATCH','/crm/leads/{record_id}',('crm_manage','crm_admin','crm_leads_manage')),
+    'crm.qualify_lead': ('CRM','PATCH','/crm/lead-management/leads/{record_id}',('crm_manage','crm_admin','crm_leads_manage')),
+    'crm.convert_lead': ('CRM','POST','/crm/leads/{record_id}/convert',('crm_manage','crm_admin','crm_leads_manage')),
+})
+
+SUITE.update({'hrms.employee':('HRMS','GET','/employees/{record_id}',('employee_view',)),
+    'hrms.update_employee':('HRMS','PUT','/employees/{record_id}',('employee_update',))})
+
+SUITE.update({
+ 'hrms.ticket':('HRMS','GET','/helpdesk/tickets/{record_id}',()),
+ 'hrms.people':('HRMS','GET','/users/search',()),
+ 'hrms.status_ticket':('HRMS','PUT','/helpdesk/tickets/{record_id}/status/json',('helpdesk_manage',)),
+ 'hrms.assign_ticket':('HRMS','PUT','/helpdesk/tickets/{record_id}/assign/json',('helpdesk_manage',)),
+ 'hrms.escalate_ticket':('HRMS','PUT','/helpdesk/tickets/{record_id}/escalate',('helpdesk_manage',)),
+ 'hrms.reply_ticket':('HRMS','POST','/helpdesk/tickets/{record_id}/reply/json',()),
+})

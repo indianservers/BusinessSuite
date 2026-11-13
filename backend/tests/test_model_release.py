@@ -114,3 +114,63 @@ def test_fifth_batch_failed_title_reference_blocks_activation(candidate):
     assert not release.seal(folder,1,'dataset-digest')['passed']
     with pytest.raises(ValueError):release.pointer(root,1)
     assert json.loads((root/'active.json').read_text())['job_id']==235
+
+
+@pytest.mark.parametrize('change',[None,{'database':'sqlite'},{'tests':57},{'failures':1},{'skipped':1},{'dialogue_sha256':'wrong'}])
+def test_message_candidates_require_exact_postgres_execution_evidence(candidate,change):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':239}))
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'message_dialogue_version':'message-action-followups-v1','message_training_turns':300,'message_training_sha256':'a'*64})
+    write('unseen-dialogue-evaluation.json',{'total':120,'passed':96,'message_followups':{'version':'message-action-probes-v1','total':60,'passed':54}})
+    native=json.loads((folder/'action-release-evaluation.json').read_text())
+    if change is not None:
+        from scripts.evaluate_message_action_release import TESTS
+        native['message_actions']={'format':'message-action-postgres-v1','database':'postgresql','test_files':list(TESTS),'tests':64,'failures':0,'errors':0,'skipped':0,
+            'model_sha256':release.file_hash(folder/'bundle.json'),'dialogue_sha256':release.file_hash(folder/'dialogue.json'),**change}
+    write('action-release-evaluation.json',native)
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==239
+
+
+def test_valid_message_candidate_seals_both_wording_and_postgres_evidence(candidate):
+    root,folder,write=candidate
+    from scripts.evaluate_message_action_release import TESTS
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'message_dialogue_version':'message-action-followups-v1','message_training_turns':300,'message_training_sha256':'a'*64})
+    write('unseen-dialogue-evaluation.json',{'total':120,'passed':96,'message_followups':{'version':'message-action-probes-v1','total':60,'passed':54}})
+    native=json.loads((folder/'action-release-evaluation.json').read_text())
+    native['message_actions']={'format':'message-action-postgres-v1','database':'postgresql','test_files':list(TESTS),'tests':64,'failures':0,'errors':0,'skipped':0,
+        'model_sha256':release.file_hash(folder/'bundle.json'),'dialogue_sha256':release.file_hash(folder/'dialogue.json')}
+    write('action-release-evaluation.json',native)
+    assert release.seal(folder,1,'dataset-digest')['passed']
+    release.pointer(root,1)
+    native['message_actions']['skipped']=1;write('action-release-evaluation.json',native)
+    with pytest.raises(ValueError):release.verify(folder,1)
+
+
+@pytest.mark.parametrize('fresh_passed,allowed',[(None,False),(50,False),(54,True)])
+def test_v2_message_models_require_the_fresh_wording_gate(candidate,fresh_passed,allowed):
+    _,folder,write=candidate
+    from scripts.evaluate_message_action_release import TESTS
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'message_dialogue_version':'message-action-followups-v2','message_training_turns':450,'message_training_sha256':'a'*64})
+    unseen={'total':120,'passed':96,'message_followups':{'version':'message-action-probes-v1','total':60,'passed':54}}
+    if fresh_passed is not None:unseen['message_followups_validation']={'version':'message-action-probes-v2','total':60,'passed':fresh_passed}
+    write('unseen-dialogue-evaluation.json',unseen)
+    native=json.loads((folder/'action-release-evaluation.json').read_text())
+    native['message_actions']={'format':'message-action-postgres-v1','database':'postgresql','test_files':list(TESTS),'tests':64,'failures':0,'errors':0,'skipped':0,
+        'model_sha256':release.file_hash(folder/'bundle.json'),'dialogue_sha256':release.file_hash(folder/'dialogue.json')}
+    write('action-release-evaluation.json',native)
+    assert release.seal(folder,1,'dataset-digest')['passed'] is allowed
+
+
+
+def test_existing_message_release_with_original_core_evidence_remains_compatible(candidate):
+    _,folder,write=candidate
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'message_dialogue_version':'message-action-followups-v1','message_training_turns':300,'message_training_sha256':'a'*64})
+    write('unseen-dialogue-evaluation.json',{'total':120,'passed':96,'message_followups':{'version':'message-action-probes-v1','total':60,'passed':54}})
+    native=json.loads((folder/'action-release-evaluation.json').read_text())
+    native['message_actions']={'format':'message-action-postgres-v1','database':'postgresql','test_files':['tests/test_event_message_evidence.py','tests/test_suite_operator.py','tests/test_suite_conversations.py','tests/test_local_action_dialogue.py'],
+        'tests':58,'failures':0,'errors':0,'skipped':0,'model_sha256':release.file_hash(folder/'bundle.json'),'dialogue_sha256':release.file_hash(folder/'dialogue.json')}
+    write('action-release-evaluation.json',native)
+    assert release.seal(folder,1,'dataset-digest')['passed']
+    assert release.verify(folder,1)['gate']['passed']

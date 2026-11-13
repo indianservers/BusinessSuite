@@ -1,9 +1,4 @@
-/** Migrate the retired aggregate selection before any request or socket opens. */
+/** The server authorizes aggregate reads and resolves a concrete branch for writes. */
 export function selectedBranch(): string | null {
-  const branch = sessionStorage.getItem("suite-branch");
-  if (branch === "all") {
-    sessionStorage.removeItem("suite-branch");
-    return null;
-  }
-  return branch;
+  return sessionStorage.getItem("suite-branch");
 }

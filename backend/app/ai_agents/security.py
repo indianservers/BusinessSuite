@@ -85,7 +85,7 @@ def limits(db, tenant):
     }
 
 
-def fingerprint(db, user, tenant):
+def _fingerprint_state(db, user, tenant):
     from app.models.user import User, Permission, role_permissions
     from app.access import service, entitlements
 
@@ -217,8 +217,7 @@ def fingerprint(db, user, tenant):
         .scalar()
         or 0
     )
-    return digest(
-        {
+    return {
             "aclEpoch": epoch,
             "agent_state": agent_state,
             "actor": dict(identity),
@@ -232,8 +231,18 @@ def fingerprint(db, user, tenant):
             "nativePermissions": sorted(names),
             "entitlements": entitlements.states(db, tenant),
             "aiPolicy": limits(db, tenant)["version"],
-        }
-    )
+    }
+
+
+def _state_digest(state, *, control=False):
+    if control:
+        state={**state,'agent_state':{**state['agent_state'],'ai_security_settings':[]}}
+    return digest(state)
+
+
+def fingerprint(db,user,tenant,*,control=False):
+    return _state_digest(_fingerprint_state(db,user,tenant),control=control)
+
 
 
 def session_check(db, user, session_id):
@@ -289,11 +298,13 @@ def seal(db, user, payload=None, session_id=None, tenant=None):
         else getattr(user, "_suite_session_id", None)
     )
     session_check(db, user, session_id)
+    state = _fingerprint_state(db,user,tenant)
     data = {
         "user_id": user.id,
         "company_id": tenant,
         "session_id": session_id,
-        "fingerprint": fingerprint(db, user, tenant),
+        "fingerprint": _state_digest(state),
+        "control_fingerprint": _state_digest(state,control=True),
         "policy": VERSION,
         "nonce": uuid4().hex,
         "issued_at": datetime.now(timezone.utc).isoformat(),
@@ -302,7 +313,7 @@ def seal(db, user, payload=None, session_id=None, tenant=None):
     return {**data, "signature": signature(data)}
 
 
-def verify(db, user, context, payload=None, confirmation=False, history=False):
+def verify(db, user, context, payload=None, confirmation=False, history=False, *, control=False):
     if not isinstance(context, dict):
         raise HTTPException(
             409, "Prepare a fresh AI preview; legacy context is unverified"
@@ -321,7 +332,17 @@ def verify(db, user, context, payload=None, confirmation=False, history=False):
     request = db.info.get("ai_request_context")
     if confirmation and request and data.get("session_id") != request["session_id"]:
         raise HTTPException(403, "Confirm using the original authenticated session")
-    if data.get("fingerprint") != fingerprint(db, user, company(user)):
+    if control and (not history or confirmation or payload is not None):
+        raise HTTPException(403, "Owner controls cannot authorize execution")
+    control_proof = control and bool(data.get("control_fingerprint"))
+    expected = data.get("control_fingerprint") if control_proof else data.get("fingerprint")
+    state = _fingerprint_state(db,user,company(user))
+    matches = expected == _state_digest(state,control=control_proof)
+    # A legacy signature can prove the same all-enabled baseline without being
+    # rewritten: the hash still commits every actor, ACL and permission field.
+    if control and not control_proof:
+        matches = matches or expected == _state_digest(state,control=True)
+    if not matches:
         raise HTTPException(
             403, "AI permissions changed; start a fresh conversation or preview"
         )
@@ -801,6 +822,10 @@ def bind_http(db, user, request, claims):
             or delegated.get("method") != request.method
         ):
             raise HTTPException(403, "AI delegated request scope mismatch")
+        if delegated.get('branch_id') is not None:
+            branch=db.info.get('branch_context')
+            if type(delegated['branch_id']) is not int or delegated['branch_id']<1 or not branch or branch.branch_id!=delegated['branch_id']:
+                raise HTTPException(403,'AI delegated request branch mismatch')
         boundary(request.method, request.url.path)
     info["is_ai"] = ai_path or bool(delegated)
     from app.core.audit_context import context
@@ -833,12 +858,17 @@ def delegated_token(authorization, method, path, payload=None):
             401, "AI delegation requires a bound initiating session and company"
         )
     boundary(method, path)
+    branch_id=(claims.get('ai_origin') or {}).get('branch_id')
+    if branch_id is not None and origin.get('branch_id') not in (None,branch_id):raise HTTPException(403,'AI delegation cannot switch its bound branch')
+    if branch_id is None:branch_id=origin.get('branch_id')
+    if branch_id is not None and (type(branch_id) is not int or branch_id<1):raise HTTPException(403,'Invalid delegated branch scope')
     return "Bearer " + create_access_token(
         claims["sub"],
         expires_delta=timedelta(minutes=1),
         session_id=int(claims["sid"]),
         ai_origin={
             "company_id": origin["company_id"],
+            **({'branch_id':branch_id} if branch_id is not None else {}),
             "method": method,
             "path": path,
             "arguments": digest(
@@ -899,8 +929,9 @@ def isolate_history(execution):
     from app.ai_agents.models import AiConversation, AiMessage
     from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage
     from sqlalchemy.orm import with_loader_criteria
-    from sqlalchemy import and_
+    from sqlalchemy import and_, or_
 
+    control = bool(execution.execution_options.get("ai_owner_control"))
     with db.no_autoflush:
         # Core identity read prevents recursion into this event.
         user = db.identity_map.get((User, (ctx["user_id"],), None))
@@ -916,12 +947,28 @@ def isolate_history(execution):
                 db.info.pop("ai_fingerprinting", None)
     if stamp is None:
         return
+    control_stamp = None
+    if control:
+        control_stamp = ctx.get("control_fingerprint")
+        if control_stamp is None:
+            db.info["ai_fingerprinting"] = True
+            try:
+                control_stamp = fingerprint(db,user,ctx["company_id"],control=True)
+                ctx["control_fingerprint"] = control_stamp
+            finally:
+                db.info.pop("ai_fingerprinting",None)
+    def proof(column):
+        normal = column["fingerprint"].as_string() == stamp
+        if not control:return normal
+        return or_(column["control_fingerprint"].as_string() == control_stamp,
+                   and_(column["control_fingerprint"].as_string().is_(None),
+                        or_(normal,column["fingerprint"].as_string() == control_stamp)))
     filters = []
     for model in (AiConversation, AssistantConversation):
         clause = and_(
             model.user_id == user.id,
             model.organization_id == ctx["company_id"],
-            model.security_context["fingerprint"].as_string() == stamp,
+            proof(model.security_context),
         )
         filters.append(with_loader_criteria(model, clause, include_aliases=True))
     for model, parent in (
@@ -932,7 +979,7 @@ def isolate_history(execution):
         visible = select(table.c.id).where(
             table.c.user_id == user.id,
             table.c.organization_id == ctx["company_id"],
-            table.c.security_context["fingerprint"].as_string() == stamp,
+            proof(table.c.security_context),
         )
         filters.append(
             with_loader_criteria(
@@ -970,9 +1017,14 @@ def acl_epoch(db, flush_context, instances):
         ):
             continue
         state = state_of(row)
+        watched=fields
+        if getattr(type(row),'__tablename__',None)=='pms_milestones':
+            # Milestone responsibility grants no access: the required project
+            # parent governs visibility. Reparenting does change that boundary.
+            watched=(fields-{'owner_user_id'})|{'project_id'}
         if row in db.deleted or any(
             name in state.attrs and state.attrs[name].history.has_changes()
-            for name in fields
+            for name in watched
         ):
             tenant = (
                 getattr(row, "organization_id", None)
@@ -1036,12 +1088,12 @@ def acl_epoch(db, flush_context, instances):
             db.info["ai_request_context"].pop("fingerprint", None)
 
 
-def visible_history(db, user, rows):
+def visible_history(db, user, rows, *, control=False):
     """Retain historical records while excluding stale authorization contexts."""
     visible = []
     for row in rows:
         try:
-            verify(db, user, row.security_context, history=True)
+            verify(db, user, row.security_context, history=True, control=control)
         except HTTPException:
             continue
         visible.append(row)

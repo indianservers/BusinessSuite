@@ -33,6 +33,32 @@ def test_local_followups_retain_objective_and_refine_limits_without_creating_a_c
     manual=local_draft('Manual only',second.model_dump(),'PMS');assert manual.trigger is None and manual.schedule is None
 
 
+def test_message_trigger_collects_room_and_retains_the_agent_objective():
+    first=local_draft('Create a project coordinator that reviews tasks when a message arrives',None,'PMS')
+    assert first.question and 'conversation' in first.question.lower()
+    second=local_draft('conversation #42',first.model_dump(),'PMS')
+    assert second.trigger.event=='pms.message_received' and second.trigger.chat_conversation_id==42
+    assert second.run_prompt=='reviews tasks' and second.schedule is None
+    changed=local_draft('When a task is created',second.model_dump(),'PMS')
+    assert changed.trigger.event=='pms.task_created' and changed.trigger.chat_conversation_id is None
+
+
+def test_customer_email_trigger_collects_a_recipient_and_retains_the_objective():
+    first=local_draft('Create a CRM sales assistant that reviews deals when a customer replies by email',None,'CRM')
+    assert first.question and 'recipient' in first.question
+    second=local_draft('recipient #42',first.model_dump(),'CRM')
+    assert second.trigger.event=='crm.customer_email_reply' and second.trigger.customer_recipient_id==42
+    assert second.run_prompt=='reviews deals' and second.schedule is None
+
+
+def test_whatsapp_trigger_collects_a_conversation_and_preserves_the_objective():
+    first=local_draft('Create a CRM sales assistant that reviews deals when a WhatsApp message arrives',None,'CRM')
+    assert first.question and 'WhatsApp conversation' in first.question
+    second=local_draft('WhatsApp conversation #42',first.model_dump(),'CRM')
+    assert second.trigger.event=='crm.whatsapp_message_received' and second.trigger.whatsapp_contact_id==42
+    assert second.run_prompt=='reviews deals' and second.schedule is None
+
+
 def test_specific_field_conditions_are_clarified_and_assignee_changes_use_the_exact_source():
     value=local_draft('Create a project coordinator that reviews tasks when task priority changes',None,'PMS')
     assert value.question and 'any task update' in value.question

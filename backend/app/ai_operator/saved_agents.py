@@ -284,6 +284,8 @@ def archive_skill(ident:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 
 
 def enforce(db,user,run,steps):
+    from app.ai_operator.agent_events import enforce_message_source
+    enforce_message_source(db,user,run)
     from app.ai_operator.artifact_charts import enforce_sources
     enforce_sources(db,user,run)
     from app.ai_operator.artifact_templates import enforce as enforce_template

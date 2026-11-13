@@ -16,8 +16,10 @@ from app.schemas.helpdesk import (
     HelpdeskTicketAssign,
     HelpdeskTicketCreate,
     HelpdeskTicketEscalation,
-    HelpdeskTicketStatusUpdate,
+    HelpdeskTicketStatusUpdate, HelpdeskTicketReply,
 )
+
+from app.services import helpdesk_access as access
 
 router = APIRouter(prefix="/helpdesk", tags=["HR Helpdesk"])
 
@@ -61,6 +63,7 @@ def _create_ticket_record(
     now = datetime.now(timezone.utc)
 
     ticket = HelpdeskTicket(
+        organization_id=access.company(current_user),
         ticket_number=ticket_number,
         employee_id=current_user.employee.id,
         category_id=category_id,
@@ -100,13 +103,13 @@ def list_tickets(
     assigned_to_me: bool = Query(False),
     my_tickets: bool = Query(False),
     page: int = Query(1, ge=1),
-    per_page: int = Query(20),
+    per_page: int = Query(20,ge=1,le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = db.query(HelpdeskTicket)
-    if my_tickets and current_user.employee:
-        q = q.filter(HelpdeskTicket.employee_id == current_user.employee.id)
+    q = access.tickets(db,current_user)
+    if my_tickets:
+        q = q.filter(HelpdeskTicket.employee_id == (current_user.employee.id if current_user.employee else -1))
     if assigned_to_me:
         q = q.filter(HelpdeskTicket.assigned_to == current_user.id)
     if status:
@@ -122,9 +125,7 @@ def get_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ticket = db.query(HelpdeskTicket).filter(HelpdeskTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    ticket = access.ticket(db,current_user,ticket_id)
     return ticket
 
 
@@ -134,20 +135,23 @@ def update_ticket_status(
     status: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
+    expected_version: int | None = None,
 ):
-    ticket = db.query(HelpdeskTicket).filter(HelpdeskTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    if status not in {'Open','In Progress','Pending','Resolved','Closed'}:raise HTTPException(422,'Choose a supported ticket status')
+    ticket = access.ticket(db,current_user,ticket_id,lock=True,expected_version=expected_version)
     ticket.status = status
     if status in ["Resolved", "Closed"]:
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc)
         if status == "Resolved":
             ticket.resolved_at = now
+            ticket.closed_at = None
         else:
             ticket.closed_at = now
+    if status not in {'Resolved','Closed'}:ticket.resolved_at=None;ticket.closed_at=None
+    access.changed(ticket)
     db.commit()
-    return {"message": f"Ticket {status}"}
+    return {"message": f"Ticket {status}","id":ticket.id,"status":ticket.status,"version":ticket.version}
 
 
 @router.put("/tickets/{ticket_id}/status/json")
@@ -157,7 +161,7 @@ def update_ticket_status_json(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
 ):
-    return update_ticket_status(ticket_id, data.status, db, current_user)
+    return update_ticket_status(ticket_id,data.status,db,current_user,expected_version=data.expected_version)
 
 
 @router.put("/tickets/{ticket_id}/assign")
@@ -166,14 +170,16 @@ def assign_ticket(
     assign_to_user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
+    expected_version: int | None = None,
 ):
-    ticket = db.query(HelpdeskTicket).filter(HelpdeskTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    ticket = access.ticket(db,current_user,ticket_id,lock=True,expected_version=expected_version)
+    access.assignee(db,current_user,assign_to_user_id)
     ticket.assigned_to = assign_to_user_id
     ticket.status = "In Progress"
+    ticket.resolved_at=None;ticket.closed_at=None
+    access.changed(ticket)
     db.commit()
-    return {"message": "Ticket assigned"}
+    return {"message":"Ticket assigned","id":ticket.id,"assigned_to":ticket.assigned_to,"status":ticket.status,"version":ticket.version}
 
 
 @router.put("/tickets/{ticket_id}/assign/json")
@@ -183,7 +189,7 @@ def assign_ticket_json(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
 ):
-    return assign_ticket(ticket_id, data.assign_to_user_id, db, current_user)
+    return assign_ticket(ticket_id,data.assign_to_user_id,db,current_user,expected_version=data.expected_version)
 
 
 @router.put("/tickets/{ticket_id}/escalate")
@@ -193,15 +199,15 @@ def escalate_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
 ):
-    ticket = db.query(HelpdeskTicket).filter(HelpdeskTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    ticket = access.ticket(db,current_user,ticket_id,lock=True,expected_version=data.expected_version)
+    access.assignee(db,current_user,data.escalated_to)
     ticket.escalated_at = datetime.now(timezone.utc)
-    ticket.escalated_to = data.escalated_to
+    if 'escalated_to' in data.model_fields_set:ticket.escalated_to = data.escalated_to
     ticket.escalation_reason = data.escalation_reason
     ticket.priority = "Critical" if ticket.priority != "Critical" else ticket.priority
+    access.changed(ticket)
     db.commit()
-    return {"message": "Ticket escalated"}
+    return {"message":"Ticket escalated","id":ticket.id,"priority":ticket.priority,"version":ticket.version}
 
 
 @router.get("/sla/breaches")
@@ -210,7 +216,7 @@ def list_sla_breaches(
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
 ):
     now = datetime.now(timezone.utc)
-    return db.query(HelpdeskTicket).filter(
+    return access.tickets(db,current_user).filter(
         HelpdeskTicket.status.notin_(["Resolved", "Closed"]),
         HelpdeskTicket.resolution_due_at.isnot(None),
         HelpdeskTicket.resolution_due_at < now,
@@ -223,37 +229,37 @@ def helpdesk_analytics(
     current_user: User = Depends(RequirePermission("helpdesk_manage")),
 ):
     now = datetime.now(timezone.utc)
-    total = db.query(func.count(HelpdeskTicket.id)).scalar() or 0
-    open_count = db.query(func.count(HelpdeskTicket.id)).filter(
+    total = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).scalar() or 0
+    open_count = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).filter(
         HelpdeskTicket.status.in_(["Open", "In Progress", "Pending"])
     ).scalar() or 0
-    resolved_count = db.query(func.count(HelpdeskTicket.id)).filter(
+    resolved_count = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).filter(
         HelpdeskTicket.status.in_(["Resolved", "Closed"])
     ).scalar() or 0
-    breached_count = db.query(func.count(HelpdeskTicket.id)).filter(
+    breached_count = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).filter(
         HelpdeskTicket.status.notin_(["Resolved", "Closed"]),
         HelpdeskTicket.resolution_due_at.isnot(None),
         HelpdeskTicket.resolution_due_at < now,
     ).scalar() or 0
-    due_soon_count = db.query(func.count(HelpdeskTicket.id)).filter(
+    due_soon_count = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).filter(
         HelpdeskTicket.status.notin_(["Resolved", "Closed"]),
         HelpdeskTicket.resolution_due_at.isnot(None),
         HelpdeskTicket.resolution_due_at >= now,
         HelpdeskTicket.resolution_due_at <= now + timedelta(hours=8),
     ).scalar() or 0
-    csat_row = db.query(
+    csat_row = access.tickets(db,current_user).with_entities(
         func.avg(HelpdeskTicket.satisfaction_rating),
         func.count(HelpdeskTicket.satisfaction_rating),
     ).filter(HelpdeskTicket.satisfaction_rating.isnot(None)).first()
-    priority_rows = db.query(
+    priority_rows = access.tickets(db,current_user).with_entities(
         HelpdeskTicket.priority,
         func.count(HelpdeskTicket.id),
     ).group_by(HelpdeskTicket.priority).all()
-    status_rows = db.query(
+    status_rows = access.tickets(db,current_user).with_entities(
         HelpdeskTicket.status,
         func.count(HelpdeskTicket.id),
     ).group_by(HelpdeskTicket.status).all()
-    response_sla_breached = db.query(func.count(HelpdeskTicket.id)).filter(
+    response_sla_breached = access.tickets(db,current_user).with_entities(func.count(HelpdeskTicket.id)).filter(
         HelpdeskTicket.status.notin_(["Resolved", "Closed"]),
         HelpdeskTicket.first_response_due_at.isnot(None),
         HelpdeskTicket.first_response_due_at < now,
@@ -280,14 +286,14 @@ def submit_csat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ticket = db.query(HelpdeskTicket).filter(HelpdeskTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    if not current_user.is_superuser and current_user.employee and ticket.employee_id != current_user.employee.id:
-        raise HTTPException(status_code=403, detail="Only the requester can rate this ticket")
+    ticket=access.ticket(db,current_user,ticket_id,lock=True)
+    employee=getattr(current_user,'employee',None)
+    if not current_user.is_superuser and (not employee or ticket.employee_id!=employee.id):
+        raise HTTPException(403,'Only the requester can rate this ticket')
     if ticket.status not in ["Resolved", "Closed"]:
         raise HTTPException(status_code=400, detail="CSAT can be submitted after resolution")
     ticket.satisfaction_rating = rating
+    access.changed(ticket)
     db.commit()
     return {"message": "CSAT submitted", "rating": rating}
 
@@ -350,7 +356,11 @@ def add_reply(
     is_internal: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    expected_version: int | None = None,
 ):
+    if not message.strip() or len(message)>8000:raise HTTPException(422,'Supply a reply of 1 to 8000 characters')
+    ticket=access.ticket(db,current_user,ticket_id,lock=True,expected_version=expected_version)
+    if is_internal and not access.manager(current_user):raise HTTPException(403,'Internal notes require helpdesk management permission')
     reply = HelpdeskReply(
         ticket_id=ticket_id,
         user_id=current_user.id,
@@ -358,9 +368,15 @@ def add_reply(
         is_internal=is_internal,
     )
     db.add(reply)
+    access.changed(ticket)
     db.commit()
     db.refresh(reply)
     return reply
+
+
+@router.post("/tickets/{ticket_id}/reply/json",status_code=201)
+def add_reply_json(ticket_id:int,data:HelpdeskTicketReply,db:Session=Depends(get_db),current_user:User=Depends(get_current_user)):
+    return add_reply(ticket_id,data.message,data.is_internal,db,current_user,data.expected_version)
 
 
 @router.get("/tickets/{ticket_id}/replies")
@@ -369,7 +385,7 @@ def get_replies(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(HelpdeskReply).filter(
-        HelpdeskReply.ticket_id == ticket_id,
-        HelpdeskReply.is_internal == False,
-    ).order_by(HelpdeskReply.created_at).all()
+    access.ticket(db,current_user,ticket_id)
+    query=db.query(HelpdeskReply).filter(HelpdeskReply.ticket_id==ticket_id)
+    if not access.manager(current_user):query=query.filter(HelpdeskReply.is_internal.is_(False))
+    return query.order_by(HelpdeskReply.created_at).all()

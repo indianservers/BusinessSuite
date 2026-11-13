@@ -13,9 +13,11 @@ const AiAgentSecurityPage = lazyRoute(() => import("./AiAgentSecurityPage"));
 const AiAgentPermissionsPage = lazyRoute(() => import("./AiAgentPermissionsPage"));
 const AiAgentFeedbackPage = lazyRoute(() => import("./AiAgentFeedbackPage"));
 const AiAgentHandoffPage = lazyRoute(() => import("./AiAgentHandoffPage"));
+const OperatorProviderSettings = lazyRoute(() => import("./OperatorProviderSettings"));
 const SuiteOperatorPage = lazyRoute(() => import("./SuiteOperatorPage"));
 
 export const aiAgentRoutes: FrontendRoute[] = [
+  { path: "ai-agents/providers/:provider", element: <OperatorProviderSettings /> },
   { path: "ai-agents/operator", element: <SuiteOperatorPage /> },
   { path: "ai-agents", element: <AiAgentsDashboard /> },
   { path: "ai-agents/chat/:agentId", element: <AiAgentChatPage /> },

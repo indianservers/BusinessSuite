@@ -141,3 +141,75 @@ def test_model_read_rounds_cannot_switch_to_a_different_shared_publication(clien
     response=client.post(ROOT+'/commands',headers=owner,json={'request_key':str(uuid4()),'provider':'gemini','module':'CRM','text':f'Analyze shared artifact #{first["id"]}'})
     assert response.status_code==200,response.text
     assert response.json()['status']=='failed' and len(calls)==1
+
+
+def test_shared_title_resolves_only_authorized_publications(client,db):
+    owner,_,_,_=setup_suite(client,db);h,user=member(client,db);outside,_=member(client,db)
+    ident=source(client,db,owner,'table')
+    share=publish(client,owner,review(client,owner,ident,{'kind':'members','member_ids':[user.id]}))
+    answer=command(client,h,'CRM','Analyze shared report called "regional amounts"')
+    assert answer['status']=='answered' and 'sum 300' in answer['plan']['summary'],answer
+    assert answer['result']['citations'][0]['id']==f'shared-artifact:{share["id"]}:e1'
+    hidden=command(client,outside,'CRM','Analyze shared report called Regional amounts')
+    assert hidden['status']=='needs_clarification' and not hidden['result']['shared_query']['choices']
+    assert str(share['id']) not in str(hidden['plan']['question'])
+
+
+def test_ambiguous_shared_title_uses_persistent_ordinal_and_rechecks_revocation(client,db):
+    owner,_,_,_=setup_suite(client,db);h,user=member(client,db);ident=source(client,db,owner,'table')
+    first=publish(client,owner,review(client,owner,ident,{'kind':'members','member_ids':[user.id]}))
+    second=publish(client,owner,review(client,owner,ident,{'kind':'members','member_ids':[user.id]}))
+    chat=client.post(ROOT+'/conversations',headers=h,json={'title':'Choose report by title'}).json()['id']
+    question=command(client,h,'CRM','Summarize shared artifact named Regional',conversation_id=chat)
+    assert question['status']=='needs_clarification' and question['result']['shared_query']['choices']==[second['id'],first['id']],question
+    assert client.post(ROOT+f'/conversations/{chat}/resume',headers=h).status_code==200
+    answer=command(client,h,'CRM','the second one',conversation_id=chat)
+    assert answer['status']=='answered' and answer['result']['citations'][0]['id']==f'shared-artifact:{first["id"]}:e1'
+    command(client,h,'CRM','Analyze shared report named Regional',conversation_id=chat)
+    client.post(S+f'/{second["id"]}/revoke',headers=owner,json={'revision':1})
+    denied=client.post(ROOT+'/commands',headers=h,json={'request_key':str(uuid4()),'provider':'local','module':'CRM','conversation_id':chat,'text':'first'})
+    assert denied.status_code==404,denied.text
+
+
+def test_title_discovery_respects_agent_tools_before_disclosing_choices(client,db):
+    owner,_,_,_=setup_suite(client,db);h,user=member(client,db);ident=source(client,db,owner,'table')
+    publish(client,owner,review(client,owner,ident,{'kind':'members','member_ids':[user.id]}))
+    blocked=profile(client,h,tools=['crm.create_task'])
+    question=command(client,h,'CRM','Analyze shared report named Regional',agent_id=blocked['id'])
+    assert question['status']=='needs_clarification' and question['result']['shared_query']['choices']==[],question
+    agent=profile(client,h,tools=['crm.shared_artifact'])
+    answer=command(client,h,'CRM','Analyze shared report named Regional',agent_id=agent['id'])
+    assert answer['status']=='answered',answer
+
+
+def test_title_discovery_does_not_replace_a_pending_action_draft(client,db):
+    owner,_,_,_=setup_suite(client,db)
+    chat=client.post(ROOT+'/conversations',headers=owner,json={'title':'Pending draft'}).json()['id']
+    pending=command(client,owner,'CRM','Create document called Draft: Review before publishing.',conversation_id=chat)
+    assert pending['status']=='awaiting_approval'
+    response=client.post(ROOT+'/commands',headers=owner,json={'request_key':str(uuid4()),'provider':'local','module':'CRM',
+        'conversation_id':chat,'text':'Analyze shared report named Regional'})
+    assert response.status_code==409,response.text
+    assert client.get(ROOT+f'/runs/{pending["id"]}',headers=owner).json()['status']=='awaiting_approval'
+
+
+def test_title_search_reaches_older_pages_and_prefers_exact_authorized_match(client,db):
+    from copy import deepcopy
+    from app.shared.models import ServicePolicy
+    from app.ai_operator import artifact_shares
+    owner,_,_,_=setup_suite(client,db);h,user=member(client,db);ident=source(client,db,owner,'table')
+    old=publish(client,owner,review(client,owner,ident,{'kind':'members','member_ids':[user.id]}))
+    template=db.get(ServicePolicy,old['id'])
+    for index in range(201):
+        values=deepcopy(template.values_json)
+        values['definition']['root']['body']['title']='Regional amounts draft'
+        if index!=200:values['audience']={'kind':'members','member_ids':[template.updated_by],'team_ids':[]}
+        row=ServicePolicy(scope_key='test-old-share:'+str(uuid4()),organization_id=template.organization_id,
+            module_key=template.module_key,kind=template.kind,version=1,updated_by=template.updated_by,values_json=values)
+        db.add(row);db.flush();artifact_shares.sign(row)
+    db.commit()
+    listed=client.get(S,headers=h).json()['items']
+    assert all(v['id']!=old['id'] for v in listed)
+    answer=command(client,h,'CRM','Analyze shared report named Regional amounts')
+    assert answer['status']=='answered',answer
+    assert answer['result']['citations'][0]['id']==f'shared-artifact:{old["id"]}:e1'

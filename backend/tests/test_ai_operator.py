@@ -282,7 +282,10 @@ def test_emergency_disable_prevents_execution(client, db, monkeypatch):
     headers, _, project, task = setup_operator(client, db)
     mock_provider(monkeypatch, plan_for(task))
     run = preview(client, headers, project, task).json()
-    setting = db.query(AiSecuritySetting).filter_by(company_id=1).one()
+    setting = db.query(AiSecuritySetting).filter_by(company_id=1).one_or_none()
+    if setting is None:
+        setting = AiSecuritySetting(company_id=1)
+        db.add(setting)
     setting.pms_ai_enabled = False
     db.commit()
     response = client.post(f"/api/v1/ai-operator/runs/{run['id']}/approve", headers=headers, json={"plan_hash": run["plan_hash"]})

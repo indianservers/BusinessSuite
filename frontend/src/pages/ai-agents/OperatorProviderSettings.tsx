@@ -7,9 +7,10 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { operatorApi, type OperatorProviderName, type OperatorProvider, type OperatorAnalytics } from "@/services/aiOperatorApi";
+import { type OperatorProviderName, type OperatorProvider, type OperatorAnalytics } from "@/services/aiOperatorApi";
 
 const labels = { openai: "OpenAI / ChatGPT", gemini: "Google Gemini", claude: "Anthropic Claude" };
+const saveProvider=(provider:OperatorProviderName,data:unknown,workspace?:number)=>api.put(`/ai-operator/suite/providers/${provider}`,data,{params:{workspace_id:workspace}});
 const names: OperatorProviderName[] = ["openai", "gemini", "claude"];
 const message = (e: any) => typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "The request failed. Check your permissions and settings.";
 
@@ -36,13 +37,13 @@ export default function OperatorProviderSettings() {
   const saved = rows.find(r => r.provider === provider);
   useEffect(() => { api.get<{ id: number; name: string }[]>("/project-management/workspaces").then(r => setWorkspaces(r.data)).catch(() => setWorkspaces([])); }, []);
   async function load() {
-    const [settings, stats] = await Promise.all([operatorApi.providers(workspace), operatorApi.analytics(workspace)]);
-    setRows(settings.data.items); setAnalytics(stats.data);
+    const [settings, stats] = await Promise.all([api.get<{items:OperatorProvider[]}>('/ai-operator/suite/providers',{params:{workspace_id:workspace}}), api.get<OperatorAnalytics>('/ai-operator/suite/analytics',{params:{workspace_id:workspace}}).catch(()=>null)]);
+    setRows(settings.data.items); setAnalytics(stats?.data||null);
   }
   useEffect(() => {
     let active = true; setLoading(true); setError(""); setRows([]); setAnalytics(null);
-    Promise.all([operatorApi.providers(workspace), operatorApi.analytics(workspace)]).then(([s, a]) => {
-      if (active) { setRows(s.data.items); setAnalytics(a.data); }
+    Promise.all([api.get<{items:OperatorProvider[]}>('/ai-operator/suite/providers',{params:{workspace_id:workspace}}), api.get<OperatorAnalytics>('/ai-operator/suite/analytics',{params:{workspace_id:workspace}}).catch(()=>null)]).then(([s, a]) => {
+      if (active) { setRows(s.data.items); setAnalytics(a?.data||null); }
     }).catch(e => { if (active) setError(message(e)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [workspace]);
@@ -56,7 +57,7 @@ export default function OperatorProviderSettings() {
   async function save(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
-      await operatorApi.saveProvider(provider, { model, enabled, data_sharing_allowed: sharing, max_tokens: maxTokens,
+      await saveProvider(provider, { model, enabled, data_sharing_allowed: sharing, max_tokens: maxTokens,
         input_price: inputPrice === "" ? null : Number(inputPrice), output_price: outputPrice === "" ? null : Number(outputPrice), allow_workspace_inheritance: !workspace && inherit,
         ...(key ? { api_key: key } : {}) }, workspace);
       setKey(""); await load(); setNotice("Provider settings saved. Run a connection test to verify the key and model.");
@@ -64,7 +65,7 @@ export default function OperatorProviderSettings() {
   }
   async function test() {
     setBusy(true); setError(""); setNotice("");
-    try { await operatorApi.testProvider(provider, workspace); await load(); setNotice("Connection verified using the saved model and key."); }
+    try { await api.post(`/ai-operator/suite/providers/${provider}/test`,{}, {params:{workspace_id:workspace},timeout:60000}); await load(); setNotice("Connection verified using the saved model and key."); }
     catch (e) { setError(message(e)); try { await load(); } catch { /* Retain connection error. */ } }
     finally { setBusy(false); }
   }
@@ -72,7 +73,7 @@ export default function OperatorProviderSettings() {
     <header><h1 className="page-title">AI provider settings</h1><p className="page-description">Configure the PMS operator. Admin access is required. Keys are encrypted on the server and never returned.</p><Button asChild variant="outline"><Link className="text-primary underline" to="/pms/operator">Open AI operator</Link></Button></header>
     <label className="block">Configuration scope<NativeSelect aria-label="Provider configuration scope" className="ml-3 rounded border bg-background p-2" disabled={busy} value={workspace || ""} onChange={e => setWorkspace(e.target.value ? Number(e.target.value) : undefined)}><option value="">Company / personal legacy projects</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</NativeSelect></label>
     <p className="text-sm text-muted-foreground">Workspace projects use their workspace configuration. Company settings apply to legacy projects; accounts without a company use private settings.</p>
-    <nav className="flex gap-4">{names.map(n => <Link key={n} aria-current={provider === n ? "page" : undefined} className={provider === n ? "font-semibold underline" : "text-primary"} to={`/pms/settings/ai/${n}${workspace ? `?workspace=${workspace}` : ""}`}>{labels[n]}</Link>)}</nav>
+    <nav className="flex gap-4">{names.map(n => <Link key={n} aria-current={provider === n ? "page" : undefined} className={provider === n ? "font-semibold underline" : "text-primary"} to={`/ai-agents/providers/${n}${workspace ? `?workspace=${workspace}` : ""}`}>{labels[n]}</Link>)}</nav>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}
     {loading ? <p>Loading provider settings…</p> : <CompactForm onSubmit={save} className="rounded-lg border p-5 space-y-4 max-w-2xl"><h2 className="text-lg font-semibold">{labels[provider]}</h2><fieldset disabled={busy} className="space-y-4">
       {saved?.inherited && <p role="status">Using inherited Gemini configuration. Enter a workspace API key to create an override. A disabled override blocks inheritance.</p>}
@@ -86,7 +87,7 @@ export default function OperatorProviderSettings() {
       <div className="grid grid-cols-2 gap-4"><label>Input rate<Input aria-label="Input token rate" type="number" min={0} max={10000} step="any" value={inputPrice} onChange={e => setInputPrice(e.target.value)} /></label><label>Output rate<Input aria-label="Output token rate" type="number" min={0} max={10000} step="any" value={outputPrice} onChange={e => setOutputPrice(e.target.value)} /></label></div>
       <div className="flex gap-3"><Button type="submit">{busy ? "Working…" : "Save settings"}</Button><Button type="button" variant="outline" disabled={!saved?.has_key || !saved.data_sharing_allowed} onClick={() => void test()}>Test saved connection</Button></div>
     </fieldset></CompactForm>}
-    {analytics && <section className="space-y-3"><h2 className="text-xl font-semibold">API usage · last 30 days</h2><p className="text-sm">Local plans: {analytics.local_plans ?? 0} · no LLM planning calls. Counts include previews, whether approved or cancelled.</p><p className="text-sm text-muted-foreground">{analytics.cost_note}</p>
+    {analytics && <section className="space-y-3"><h2 className="text-xl font-semibold">API usage · last 30 days</h2><p className="text-sm">Server plans: {analytics.server_plans ?? analytics.local_plans ?? "Unavailable"} · no LLM planning calls. Counts include previews, whether approved or cancelled.</p><p className="text-sm text-muted-foreground">{analytics.cost_note}</p>{analytics.visibility&&<p className="text-sm text-muted-foreground">Visibility: {analytics.visibility.record_scope}. {analytics.visibility.note}</p>}
       <div className="overflow-auto"><GridTable gridId="pages/ai-agents/OperatorProviderSettings:table-1" className="w-full text-sm"><thead><tr>{["Provider / model", "Status", "Requests", "Input tokens", "Output tokens", "Avg latency", "Estimated USD"].map(h => <th className="p-2 text-left" key={h}>{h}</th>)}</tr></thead><tbody>{analytics.groups.map((g, i) => <tr {...recordPreviewProps(g)} className="border-t" key={i}><td className="p-2">{g.provider} / {g.model}</td><td>{g.status}</td><td>{g.requests}</td><td>{g.input_tokens ?? "Unknown"}</td><td>{g.output_tokens ?? "Unknown"}</td><td>{Math.round(g.average_latency_ms)} ms</td><td>{g.estimated_cost == null ? "Unknown" : `${Number(g.estimated_cost).toFixed(6)} (${g.priced_requests}/${g.requests} priced)`}</td></tr>)}</tbody></GridTable></div>
       <h3 className="font-semibold">Latest API requests · up to 200</h3><div className="overflow-auto"><GridTable gridId="pages/ai-agents/OperatorProviderSettings:table-2" className="w-full text-sm"><thead><tr>{["Time", "Provider / model", "Purpose", "User / run", "Status", "Latency", "Error"].map(h => <th className="p-2 text-left" key={h}>{h}</th>)}</tr></thead><tbody>{analytics.logs.map(l => <tr {...recordPreviewProps(l)} className="border-t" key={l.id}><td className="p-2">{new Date(l.created_at).toLocaleString()}</td><td>{l.provider} / {l.model}</td><td>{l.purpose}</td><td>{l.user_id} / {l.run_id ?? "test"}</td><td>{l.status}</td><td>{l.duration_ms} ms</td><td>{l.error_code || "—"}</td></tr>)}</tbody></GridTable></div>
     </section>}
