@@ -522,7 +522,7 @@ def test_new_project_parent_and_subtasks_keep_absolute_review_references():
     assert not question and all(item['slots'].get('_parent_step')==2 for item in changed['intents'][1:])
 
 
-def test_new_project_task_hierarchy_executes_after_review_without_duplicates(client,db):
+def test_new_project_task_hierarchy_executes_after_review_without_duplicates(client,db,monkeypatch):
     from app.apps.project_management.models import PMSProject
     h,_,_,_=setup_suite(client,db);chat=new_chat(client,h)
     draft=send(client,h,chat,'Create a project called Synthetic hierarchy with task called Release with subtasks Design, Build, Test',module='PMS')
@@ -532,7 +532,24 @@ def test_new_project_task_hierarchy_executes_after_review_without_duplicates(cli
     assert revised['status']=='awaiting_approval'
     assert revised['plan']['steps'][3]['payload']['title']=='Build prototype'
     assert all(step['payload']['parent_task_id']=={'$step':2,'field':'id'} for step in revised['plan']['steps'][2:])
-    approve(client,h,revised);tick(client,db)
+    approve(client,h,revised)
+    from app.ai_operator import suite
+    from fastapi import HTTPException
+    original=suite.check_tool
+    def pause_before_child(db,user,workspace,step,write=None):
+        if step.payload.get('title')=='Design':raise HTTPException(409,'Synthetic pre-dispatch interruption')
+        return original(db,user,workspace,step,write)
+    monkeypatch.setattr(suite,'check_tool',pause_before_child)
+    tick(client,db)
+    paused=client.get(f'{ROOT}/runs/{revised["id"]}',headers=h).json()
+    assert paused['status']=='paused' and paused['can_resume']
+    assert len(paused['receipts'])==2
+    project=db.query(PMSProject).filter_by(name='Synthetic hierarchy').one()
+    assert db.query(PMSTask).filter_by(project_id=project.id).count()==1
+    monkeypatch.setattr(suite,'check_tool',original)
+    response=client.post(f'{ROOT}/runs/{revised["id"]}/resume',headers=h,json={'plan_hash':revised['plan_hash']})
+    assert response.status_code==200
+    tick(client,db)
     final=client.get(f'{ROOT}/runs/{revised["id"]}',headers=h).json()
     assert final['status']=='succeeded',final
     project=db.query(PMSProject).filter_by(name='Synthetic hierarchy').one()

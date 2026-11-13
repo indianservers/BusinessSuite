@@ -24,6 +24,7 @@ def _nullable(node,root):
 
 def closed_schema(schema):
     root=deepcopy(schema)
+    if root.get('type')!='object':return None
     def visit(node,depth=0):
         if depth>25:raise OpenSchema('Recursive or oversized schema')
         node=_resolve(node,root)

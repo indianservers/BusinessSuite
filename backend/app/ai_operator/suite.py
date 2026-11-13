@@ -426,9 +426,12 @@ def verify_provider_connection(provider: Provider, request: Request, workspace_i
 
 
 @router.get('/tools')
-def tools(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    authorize(db, user, None)
-    return {'provider': 'gemini', 'supported_providers': ['openai', 'gemini', 'claude', 'local'], 'tools': catalog(), 'execution_mode': 'checkpointed',
+def tools(db: Session = Depends(get_db), user: User = Depends(get_current_user),
+          workspace_id: int | None = None, module: Literal['PMS','CRM','HRMS','SRM','FAM'] | None = None):
+    authorize(db, user, workspace_id)
+    from app.ai_operator.planning_catalog import available
+    return {'provider': 'gemini', 'supported_providers': ['openai', 'gemini', 'claude', 'local'],
+            'tools': available(db,user,workspace_id,module=module), 'execution_mode': 'checkpointed',
             'limits': '12 actions; 6 context reads; each source is capped at 50 records. Workspace selects provider/PMS scope; other modules retain company/role visibility.'}
 
 

@@ -43,6 +43,37 @@ in `result.provider_routing`; provider token/cost logs retain their usual path.
 Follow-ups retain the pending choice; a local planning retry drops cloud fallback.
 Inline edits remain server-local and require a fresh review.
 
+### Scoped planning and output contracts
+
+`planning_catalog.py` filters discovery by the selected module, current native
+permissions, employee identity requirements and saved-agent tool selection.
+`/suite/tools` accepts optional `module` and `workspace_id` filters. Automatic
+reference reads and provider prompts use the same permitted capability set.
+Provider action proposals and additional source requests must stay inside the
+offered catalog. Discovery is not execution consent: approval and workers recheck
+the original session, current permissions, exact plan hash and native records.
+
+`suite_tools.payload_schema` exposes only adapter fields. Native URLs, methods,
+credentials and tenant selectors remain server-owned. `structured_output.py`
+closes fully typed schemas for strict OpenAI/Claude output. Optional values have
+explicit wire nullability; decoding restores omitted defaults without discarding
+unknown arguments. Open-map plans and Gemini retain validated JSON mode because
+their schemas cannot reliably use that strict transport. All provider outputs
+still pass Pydantic, adapter and canonical business validation. Prompt provenance
+records the actual output-contract mode.
+
+`identity_resolution.py` resolves exact names, emails and account IDs only from
+fresh authorized native results. Duplicate names or incomplete lookup results
+need clarification. Local PMS and CRM task creation retain the resolved assignee
+through draft edits; canonical creation validates eligibility again.
+
+Run `venv/Scripts/python.exe -m pytest tests/test_planner_architecture.py -q` from
+`backend` for complete PMS, CRM and HRMS planning/approval/persistence/receipt
+workflows, unknown-field rejection, revoked access and duplicate-write checks.
+Provider HTTP responses are simulated; the application APIs, permissions and
+business persistence use an isolated test database. No cloud credentials or live
+customer writes are required.
+
 Model output does not grant tool access or approve a business change. Current
 access, exact action review and canonical execution receipts remain required.
 Message-triggered actions retain their source citation and conversation binding.
