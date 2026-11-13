@@ -223,11 +223,11 @@ def finish_occurrence(row,run,instant):
     row.status='agent_active' if next_at and next_at<datetime.fromisoformat(data['spec']['expires_at']) else 'agent_complete'
 
 
-def occurrence_run(db,user,pending,agent_id):
+def occurrence_run(db,user,pending,agent_id,*,control=False):
     """Follow corrections, not a superseded draft's obsolete terminal status."""
     from app.ai_operator.suite import owned as run_owned
     from app.ai_operator.suite_models import SuiteRun
-    run=run_owned(db,user,pending['run_id'])
+    run=run_owned(db,user,pending['run_id'],control=control)
     for _ in range(100):
         request=(run.result or {}).get('request',{})
         if request.get('conversation_id')!=pending['conversation_id'] or request.get('agent_id')!=agent_id:
@@ -237,7 +237,7 @@ def occurrence_run(db,user,pending,agent_id):
             SuiteRun.result['request']['parent_run_id'].as_integer()==run.id,
             SuiteRun.result['request']['conversation_id'].as_integer()==pending['conversation_id']).limit(2).all()
         if len(children)!=1:raise HTTPException(409,'Scheduled follow-up chain needs review')
-        run=run_owned(db,user,children[0][0])
+        run=run_owned(db,user,children[0][0],control=control)
     raise HTTPException(409,'Scheduled follow-up chain exceeds the history budget')
 
 

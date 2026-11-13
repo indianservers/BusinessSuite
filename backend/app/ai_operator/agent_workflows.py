@@ -63,9 +63,9 @@ class PlanningRetry(Strict):
     request_key:UUID
 
 
-def owned(db,user,ident,lock=False):
+def owned(db,user,ident,lock=False,*,control=False):
     from app.ai_operator.suite import owned as run_owned
-    run=run_owned(db,user,ident,lock)
+    run=run_owned(db,user,ident,lock,control=control)
     if not (run.result or {}).get('agent_workflow'):raise HTTPException(404,'Agent workflow not found')
     return run
 
@@ -135,19 +135,19 @@ def start(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Depen
 @router.get('')
 def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
-    scope=authorize(db,user,workspace_id)
+    scope=authorize(db,user,workspace_id,control=True)
     rows=db.query(SuiteRun.id).filter_by(user_id=user.id,scope_key=scope,workspace_id=workspace_id).filter(SuiteRun.result['agent_workflow'].as_boolean()==True).order_by(SuiteRun.id.desc()).limit(50)
-    return {'items':[public(owned(db,user,r[0])) for r in rows]}
+    return {'items':[public(owned(db,user,r[0],control=True)) for r in rows]}
 
 
 @router.get('/{ident}')
-def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):return public(owned(db,user,ident))
+def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):return public(owned(db,user,ident,control=True))
 
 
 @router.get('/{ident}/results')
 def results(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     """Fresh private aggregation, never a cached claim of completed work."""
-    run=owned(db,user,ident);items=[]
+    run=owned(db,user,ident,control=True);items=[]
     from app.ai_operator.suite_conversations import owned as chat_owned
     from app.ai_agents.security import limits
     for node,spec in zip(run.result['nodes'],run.result['spec']['nodes']):
@@ -155,7 +155,7 @@ def results(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_u
             'status':'not_started','summary':'No agent run has been prepared.','citations':[],'receipts':[]}
         if node.get('run_id'):
             chat_owned(db,user,node['conversation_id'])
-            child=occurrence_run(db,user,node,spec['agent_id'])
+            child=occurrence_run(db,user,node,spec['agent_id'],control=True)
             receipts=[{k:v for k,v in receipt.items() if k in {'step','tool','status','record_id','artifact_id','artifact_revision'}} for receipt in child.receipts or []]
             item.update(status=child.status,run_id=child.id,conversation_id=node['conversation_id'],
                 summary=(child.plan or {}).get('summary','No answer was produced.')[:900],
@@ -212,7 +212,7 @@ async def retry_planning(ident:int,position:int,data:PlanningRetry,request:Reque
 @router.post('/{ident}/stop')
 async def stop(ident:int,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import api_call
-    run=owned(db,user,ident,True)
+    run=owned(db,user,ident,True,control=True)
     if run.status=='workflow_succeeded':return public(run)
     run.status='workflow_cancelled';run.lease_until=None;db.commit();errors=[];updates={}
     for node,spec in zip(run.result['nodes'],run.result['spec']['nodes']):
@@ -223,7 +223,7 @@ async def stop(ident:int,request:Request,db:Session=Depends(get_db),user:User=De
                 if update['run_status'] not in TERMINAL:errors.append(node['step'])
         except HTTPException:errors.append(node['step'])
 
-    run=owned(db,user,ident,True);run.result={**run.result,'cancel_errors':errors,'nodes':[{**n,**updates.get(n['step'],{})} for n in run.result['nodes']]};audit(db,user,run,'stopped');db.commit()
+    run=owned(db,user,ident,True,control=True);run.result={**run.result,'cancel_errors':errors,'nodes':[{**n,**updates.get(n['step'],{})} for n in run.result['nodes']]};audit(db,user,run,'stopped');db.commit()
     return {**public(run),'cancel_errors':errors}
 
 
@@ -241,12 +241,12 @@ def instructions(db,user,spec,nodes):
     return VARIABLE.sub(substitute,spec['instructions'])
 
 
-def discover_child(db,user,node,spec):
+def discover_child(db,user,node,spec,*,control=False):
     if not node.get('request_key'):return None
     from app.ai_operator.suite import owned as run_owned
     value=db.query(SuiteRun.id).filter_by(user_id=user.id,request_key=node['request_key']).first()
     if not value:return None
-    child=run_owned(db,user,value[0]);request=(child.result or {}).get('request',{})
+    child=run_owned(db,user,value[0],control=control);request=(child.result or {}).get('request',{})
     if request.get('conversation_id')!=node.get('conversation_id') or request.get('agent_id')!=spec['agent_id']:raise HTTPException(409,'Recovered child scope changed')
     return child
 
@@ -254,10 +254,10 @@ def discover_child(db,user,node,spec):
 async def stop_child(app,authorization,db,user,node,spec):
     from app.ai_operator.suite import api_call
     if not node.get('run_id'):
-        found=discover_child(db,user,node,spec)
+        found=discover_child(db,user,node,spec,control=True)
         if not found:return None
         node={**node,'run_id':found.id}
-    child=occurrence_run(db,user,node,spec['agent_id'])
+    child=occurrence_run(db,user,node,spec['agent_id'],control=True)
     status=child.status
     if status not in TERMINAL:
         result=await api_call(app,authorization,'POST',f'/ai-operator/suite/runs/{child.id}/cancel')
@@ -382,7 +382,7 @@ async def dispatch(db,app,instant=None,limit=5,workflow_id=None):
                     target=nodes[command['workflow_step']-1]
                     if isinstance(response,BaseException):
                         if run.status=='workflow_cancelled':
-                            recovered=discover_child(db,actor,target,specs[command['workflow_step']-1])
+                            recovered=discover_child(db,actor,target,specs[command['workflow_step']-1],control=True)
                             if recovered:response={'id':recovered.id,'status':recovered.status}
                     if isinstance(response,BaseException):
                         failed=True;target['planning_error']=f'PLANNING_HTTP_{response.status_code}' if isinstance(response,HTTPException) else 'PLANNING_RESPONSE_UNAVAILABLE'

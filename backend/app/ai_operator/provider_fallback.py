@@ -11,11 +11,19 @@ TRANSIENT = {'PROVIDER_TIMEOUT','PROVIDER_CIRCUIT_OPEN',
 def validate(db,user,primary,provider,workspace_id):
     if primary is None or provider==primary.provider:
         raise HTTPException(422,'Choose a different connected cloud provider for fallback')
+    return _identity(_configuration(db,user,provider,workspace_id))
+
+
+def _configuration(db,user,provider,workspace_id):
+    # The resolver executes a fresh, scope-authorized control-plane SELECT and
+    # returns a snapshot, not an ORM entity subject to business-record filters.
     config=resolve_provider(db,user,provider,workspace_id)
-    if config is not None:
-        db.refresh(config)
     if not config or not config.enabled or not config.data_sharing_allowed:
         raise HTTPException(409,'Fallback provider is unavailable or data sharing is disabled in this scope')
+    return config
+
+
+def _identity(config):
     return {'id':config.id,'provider':config.provider,'model':config.model}
 
 
@@ -54,8 +62,9 @@ def generate(db,user,config,*,workspace_id,state,gateway,**kwargs):
             attempt['error_code']=code if code in TRANSIENT else 'PROVIDER_FAILED'
             if state['used'] or code not in TRANSIENT:raise
             expected=state['fallback']
-            fresh=validate(db,user,config,expected['provider'],workspace_id)
+            candidate=_configuration(db,user,expected['provider'],workspace_id)
+            fresh=_identity(candidate)
             if fresh!=expected:
                 raise HTTPException(409,'Fallback configuration changed; prepare a new request')
-            config=resolve_provider(db,user,expected['provider'],workspace_id)
+            config=candidate
             state['used']=True

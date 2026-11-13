@@ -8,7 +8,7 @@ from app.ai_operator import provider_fallback as fallback,providers
 def environment(monkeypatch):
     primary=SimpleNamespace(id=1,provider='gemini',model='primary',enabled=True,data_sharing_allowed=True)
     alternate=SimpleNamespace(id=2,provider='openai',model='alternate',enabled=True,data_sharing_allowed=True)
-    db=SimpleNamespace(refresh=lambda config:None)
+    db=object()  # Scope-authorized provider snapshots must never use ORM refresh.
     monkeypatch.setattr(fallback,'resolve_provider',lambda *args:alternate)
     monkeypatch.setattr(fallback.time,'monotonic',lambda:100)
     state={'deadline':130,'seconds':30,'primary':{'provider':'gemini','model':'primary'},

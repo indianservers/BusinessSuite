@@ -170,3 +170,44 @@ def test_recovery_after_child_planning_reuses_canonical_request(client,db):
     assert process(client,db)['processed']==1
     assert state(client,h,flow)['nodes'][0]['run_id']==original
     assert db.query(SuiteRun).count()==2 and db.query(CRMTask).count()==0
+
+
+
+@pytest.mark.parametrize('stop',['emergency','quota'])
+@pytest.mark.parametrize('stage',['draft','queued','superseded'])
+def test_owner_can_inspect_and_stop_workflow_during_company_stop(client,db,stop,stage):
+    from app.ai_agents.models import AiSecuritySetting,AiUsageLimit,AiUsageEvent
+    h,user,_,_,spec,flow=make(client,db);start(client,h,flow);process(client,db)
+    node=state(client,h,flow)['nodes'][0]
+    child=client.get(SUITE+f'/runs/{node["run_id"]}',headers=h).json()
+    if stage=='queued':approve(client,h,child)
+    if stage=='superseded':
+        response=client.post(SUITE+'/commands',headers=h,json={'request_key':str(uuid4()),'provider':'local','module':'CRM','text':'Create CRM task called Revised delivery review','conversation_id':node['conversation_id'],'parent_run_id':child['id'],'agent_id':spec['nodes'][0]['agent_id']})
+        assert response.status_code==200,response.text
+        child=response.json()
+        assert child['status']=='awaiting_approval'
+    if stop=='emergency':db.add(AiSecuritySetting(company_id=1,ai_enabled=False))
+    else:
+        db.add(AiUsageLimit(company_id=1,limit_type='per_company',period='daily',max_requests=1,is_active=True))
+        db.add(AiUsageEvent(company_id=1,user_id=user.id,event_type='synthetic_stop',module='CROSS'))
+    db.commit();blocked=403 if stop=='emergency' else 429
+    for suffix in ['',f'/{flow["id"]}',f'/{flow["id"]}/results']:
+        response=client.get(ROOT+suffix,headers=h)
+        assert response.status_code==200,response.text
+    response=client.post(ROOT+'/preview',headers=h,json={**spec,'request_key':str(uuid4())})
+    assert response.status_code==blocked,response.text
+    response=client.post(ROOT+f'/{flow["id"]}/resume',headers=h)
+    assert response.status_code==blocked,response.text
+    if stage!='queued':
+        response=client.post(SUITE+f'/runs/{child["id"]}/approve',headers=h,json={'plan_hash':child['plan_hash']})
+        assert response.status_code==blocked,response.text
+    other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant','crm_manage'])
+    response=client.post(ROOT+f'/{flow["id"]}/stop',headers=other)
+    assert response.status_code==404,response.text
+    response=client.post(ROOT+f'/{flow["id"]}/stop',headers=h)
+    assert response.status_code==200,response.text
+    assert response.json()['status']=='cancelled' and not response.json()['cancel_errors']
+    response=client.get(SUITE+f'/runs/{child["id"]}',headers=h)
+    assert response.status_code==200 and response.json()['status']=='cancelled'
+    assert process(client,db,600)['processed']==0
+    assert tick(client,db)==0 and db.query(CRMTask).count()==0

@@ -177,3 +177,29 @@ def test_stale_parallel_worker_does_not_overwrite_newer_lease(client,db,monkeypa
     db.expire_all();run=db.get(SuiteRun,flow['id'])
     assert run.status=='workflow_running' and flows.utc(run.lease_until)==flows.utc(new_lease)
     assert not run.result['nodes'][0].get('run_id') and run.error_code is None
+
+
+
+@pytest.mark.parametrize('stop',['emergency','quota'])
+def test_cancelled_wave_recovers_lost_child_response_during_company_stop(client,db,monkeypatch,stop):
+    from app.ai_operator import agent_workflows as flows
+    from app.ai_agents.models import AiSecuritySetting,AiUsageLimit,AiUsageEvent
+    h,flow=independent(client,db,1);start(client,h,flow);real=flows.prepare_agent;child_ids=[]
+    async def prepare(*args,**kwargs):
+        result=await real(*args,**kwargs);child_ids.append(result['id'])
+        parent=db.get(SuiteRun,flow['id']);parent.status='workflow_cancelled';parent.lease_until=None
+        if stop=='emergency':db.add(AiSecuritySetting(company_id=1,ai_enabled=False))
+        else:
+            db.add(AiUsageLimit(company_id=1,limit_type='per_company',period='daily',max_requests=1,is_active=True))
+            db.add(AiUsageEvent(company_id=1,user_id=parent.user_id,event_type='synthetic_stop',module='CROSS'))
+        db.commit()
+        raise HTTPException(503,'Synthetic lost response after planning and cancellation')
+    monkeypatch.setattr(flows,'prepare_agent',prepare)
+    assert process(client,db)['processed']==1
+    current=state(client,h,flow)
+    assert current['status']=='cancelled' and not current['cancel_errors']
+    assert current['nodes'][0]['run_id']==child_ids[0]
+    assert current['nodes'][0]['run_status']=='cancelled'
+    response=client.get(SUITE+f'/runs/{child_ids[0]}',headers=h)
+    assert response.status_code==200 and response.json()['status']=='cancelled'
+    assert db.query(CRMTask).count()==0
