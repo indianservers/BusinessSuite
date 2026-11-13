@@ -331,3 +331,22 @@ def test_excel_conversation_corrects_rows_then_saves_and_exports_on_server(clien
     sheet=load_workbook(BytesIO(response.content)).active
     assert list(sheet.values)==[('Lead','Owner'),('Synthetic lead','Asha'),('=1+1','Ravi')]
     assert sheet['A3'].data_type=='s'
+
+
+
+def test_quoted_csv_column_names_are_not_stripped_as_title_quotes():
+    from types import SimpleNamespace
+    from app.ai_operator.artifacts import local_plan
+    data=SimpleNamespace(text='Create Excel called Tracker with columns "Task, name", "Owner": Review, Asha',module='CRM')
+    result=local_plan(data,None,None,[])
+    assert result.steps[0].payload['columns']==['Task, name','Owner']
+    assert result.steps[0].payload['rows']==[['Review','Asha']]
+
+
+
+def test_native_business_command_is_not_consumed_as_missing_artifact_rows():
+    from types import SimpleNamespace
+    from app.ai_operator.artifacts import local_plan
+    parent=SimpleNamespace(status='needs_clarification',command='Create Excel called Tracker with columns Task, Owner: Review',plan={'summary':'I need valid table rows.'})
+    data=SimpleNamespace(text='Update lead #12 job title: Director',module='CRM')
+    assert local_plan(data,parent,None,[]) is None

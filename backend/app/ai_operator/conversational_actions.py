@@ -12,7 +12,7 @@ VERSION='conversational-actions-v1'
 async def assigned_task_plan(data, request, model_scope):
     """Resolve an explicit creation assignee through the authorized project API."""
     match=re.fullmatch(r'(.+?)\s+(?:and\s+)?assign(?:ed)?\s+(?:it\s+)?to\s+(.+?)[.! ]*',data.text.strip(),re.I|re.S)
-    if not match or data.module!='PMS':return None
+    if not match or data.module not in {'PMS','CRM'}:return None
     # A quoted title containing assignment words is content, not an instruction.
     if match[1].count('"')%2 or match[1].count('“')!=match[1].count('”'):return None
     from app.ai_operator.workflows import local_plan
@@ -21,28 +21,34 @@ async def assigned_task_plan(data, request, model_scope):
     if plan is None:
         from app.ai_operator.local_nlp import parse
         from app.ai_operator.local_runtime import task_plan
-        intent=parse(draft.text,'PMS',timezone=data.timezone,model_scope=model_scope)
+        intent=parse(draft.text,data.module,timezone=data.timezone,model_scope=model_scope)
         plan=task_plan(intent,draft,[],[])
-    if not plan or not plan.get('steps') or any(s['tool']!='pms.create_task' for s in plan['steps']):
+    if not plan or not plan.get('steps') or any(s['tool']!=data.module.lower()+'.create_task' for s in plan['steps']):
         return {'summary':'No task was created.','question':'Select an existing project and provide a task title before assigning it.','steps':[]},None
     from app.ai_operator.suite import api_call
     assignee=match[2].strip().strip('"“”').casefold()
     for step in plan['steps']:
-        context=await api_call(request.app,request.headers.get('authorization',''),'GET',
-            '/ai-operator/local-context',{'project_id':step['record_id']})
-        if context['project']['workspace_id']!=data.workspace_id:
-            raise HTTPException(422,'Choose a project in the selected workspace')
-        people=context['collaborators']
-        any_user=assignee in {'any eligible user','any user','someone','some user'}
-        ident=re.fullmatch(r'(?:user\s*#?\s*|#)([1-9]\d*)',assignee)
-        matches=[p for p in people if any_user or (p['id']==int(ident[1]) if ident else
-            assignee in {p['name'].casefold(),p['email'].casefold()})]
-        if not matches or not any_user and (len(matches)!=1 or not context.get('collaborators_complete')):
+        if data.module=='PMS':
+            context=await api_call(request.app,request.headers.get('authorization',''),'GET',
+                '/ai-operator/local-context',{'project_id':step['record_id']})
+            if context['project']['workspace_id']!=data.workspace_id:
+                raise HTTPException(422,'Choose a project in the selected workspace')
+            people=context['collaborators'];complete=context.get('collaborators_complete',False)
+        else:
+            if len(assignee)>100:return {'summary':'No task was created.','question':'Supply one exact user name, email or user #ID.','steps':[]},None
+            broad=assignee in {'any eligible user','any user','someone','some user'} or bool(re.fullmatch(r'(?:user\s*#?\s*|#)[1-9]\d*',assignee))
+            directory=await api_call(request.app,request.headers.get('authorization',''),'GET',
+                '/users/search',{'q':'' if broad else assignee,'limit':25})
+            people=directory['items'];complete=len(people)<25
+        from app.ai_operator.identity_resolution import person_id
+        resolved=person_id(assignee,people,complete=complete)
+        if resolved is None:
             return {'summary':'No task was created.','question':'Choose one eligible project member by exact name, email or user #ID; that assignee is missing or ambiguous.','steps':[]},None
-        person=sorted(matches,key=lambda p:p['id'])[0]
-        step['payload']['assignee_user_ids']=[person['id']]
+        field='assignee_user_ids' if data.module=='PMS' else 'owner_user_id'
+        value=[resolved] if data.module=='PMS' else resolved
+        step['payload'][field]=value
         if state:
-            for item in state['intents']:item['slots']['assignee_user_ids']=[person['id']]
+            for item in state['intents']:item['slots'][field]=value
     plan['summary']='Review task creation and assignment to an eligible project member. No task has been created.'
     return plan,state
 WEEKDAY=r'(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)'

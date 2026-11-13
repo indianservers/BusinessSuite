@@ -456,7 +456,7 @@ def local_plan(data,parent,context,attachments):
     from app.ai_operator.suite import Plan,Step
     text=data.text.strip();prefix=data.module.lower() if data.module in ('CRM','PMS','HRMS') else None
     if not prefix:return None
-    if parent and parent.status=='needs_clarification' and not re.match(r'(?i)^(?:create|draft|write|prepare)\b',text):
+    if parent and parent.status=='needs_clarification' and not business_request(text) and not re.match(r'(?i)^(?:create|draft|write|prepare)\b',text):
         original=ARTIFACT_CREATE.match(parent.command)
         if original and parent.plan.get('summary')=='I need a title for the artifact.':text=f'Create {original[1]} called {text}'
         elif original and parent.plan.get('summary')=='I need the table columns.':text=f'{parent.command} with columns {text}'
@@ -468,7 +468,8 @@ def local_plan(data,parent,context,attachments):
     if create:
         kind='dashboard' if create[1].lower()=='dashboard' else 'presentation' if create[1].lower() in ('presentation','slide deck','powerpoint presentation','powerpoint','pptx') else 'table' if create[1].lower() in ('table','spreadsheet','excel workbook','excel spreadsheet','excel sheet','excel','worksheet','chart','bar chart','line chart','pie chart') else 'checklist' if create[1].lower()=='checklist' else 'document'
         rest=re.sub(r'^(?:called|named|titled)\s+','',create[2],flags=re.I).strip()
-        title,sep,content=rest.partition(':');title=title.strip().strip('"\'')
+        title,sep,content=rest.partition(':');title=title.strip()
+        if len(title)>1 and title[0]==title[-1] and title[0] in {'"',"'"}:title=title[1:-1]
         if not title:return Plan(summary='I need a title for the artifact.',question='Give the artifact a title and any content, for example: Create document called Launch brief: goals and next steps.',steps=[])
         if kind=='dashboard':
             panels=[]
