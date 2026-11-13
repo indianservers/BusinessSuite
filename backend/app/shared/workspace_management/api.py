@@ -11,12 +11,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_, false
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from app.models.audit import AuditLog
 from app.shared.models import ServicePolicy
-from app.branches.service import access
+from app.branches.service import access, company_administrator
 from app.apps.srm.services.commercial import tenant
 from app.core.tenant_boundary import company_ids
 from sqlalchemy.exc import IntegrityError
@@ -55,7 +55,13 @@ def context(db, actor, write=False):
     company, branch = tenant(actor), getattr(actor, "_suite_branch_id", None)
     if branch is None:
         raise HTTPException(422, "Select a branch to manage workspaces")
-    allowed, writable, *_ = access(db, actor, company)
+    allowed, writable, all_access, _ = access(db, actor, company)
+    if branch == "all":
+        if write:
+            raise HTTPException(422, "Select a branch to manage workspaces")
+        if not all_access:
+            raise HTTPException(403, "All-branches access is required")
+        return company, None
     if int(branch) not in (writable if write else allowed):
         raise HTTPException(403, "Branch access is required")
     return company, int(branch)
@@ -66,6 +72,11 @@ def prefix(domain, company, branch):
 
 
 def policies(db, domain, company, branch):
+    if branch is None:
+        branches = db.info.get("branch_context")
+        allowed = branches.allowed if branches else ()
+        return db.query(ServicePolicy).filter(ServicePolicy.organization_id == company, ServicePolicy.module_key == domain.permission_module,
+            ServicePolicy.kind == KIND, or_(false(), *(ServicePolicy.scope_key.like(prefix(domain, company, ident) + "%") for ident in allowed)))
     return db.query(ServicePolicy).filter(ServicePolicy.organization_id == company, ServicePolicy.module_key == domain.permission_module,
         ServicePolicy.kind == KIND, ServicePolicy.scope_key.like(prefix(domain, company, branch) + "%"))
 
@@ -81,20 +92,21 @@ def pms_access(db, actor, wid, manage=False, archived=False):
     return workspace_access(db, actor, wid, manage)
 
 
-def visible(domain, actor, data):
-    return data.get("visibility") == "organization" or role_for(data, actor) is not None or domain.administrator(actor)
+def visible(domain, actor, data, company_admin=False):
+    return data.get("visibility") == "organization" or role_for(data, actor) is not None or domain.administrator(actor) or company_admin
 
 
 def get_policy(db, domain, actor, ref, write=False):
     company, branch = context(db, actor, write)
     if len(ref) > 64: raise HTTPException(404, "Workspace not found")
-    row = policies(db, domain, company, branch).filter(ServicePolicy.scope_key == prefix(domain, company, branch) + ref).with_for_update().first()
+    query = policies(db, domain, company, branch)
+    row = query.filter(ServicePolicy.scope_key.endswith(":" + ref, autoescape=True) if branch is None else ServicePolicy.scope_key == prefix(domain, company, branch) + ref).with_for_update().first()
     if domain.module == "pms":
         if not ref.isdigit(): raise HTTPException(404, "Workspace not found")
         pms_access(db, actor, int(ref), write)
-    elif row is None or not visible(domain, actor, row.values_json):
+    elif row is None or not visible(domain, actor, row.values_json, company_administrator(db, actor, company)):
         raise HTTPException(404, "Workspace not found")
-    if write and domain.module != "pms" and role_for(row.values_json, actor) not in {"Owner", "Admin"} and not domain.administrator(actor):
+    if write and domain.module != "pms" and role_for(row.values_json, actor) not in {"Owner", "Admin"} and not domain.administrator(actor) and not company_administrator(db, actor, company):
         raise HTTPException(403, "Workspace management access is required")
     return row, company, branch
 
@@ -112,13 +124,15 @@ def validate_members(db, actor, members, company, branch):
             raise HTTPException(422, "Members must be active users of this company and branch")
 
 
-def output(domain, actor, row, base=None):
+def output(domain, actor, row, base=None, company_admin=False):
     data = deepcopy(row.values_json) if row else {}
     result = {**(base or {}), **data, "id": row.scope_key.rsplit(":", 1)[1] if row else str(base["id"]),
         "version": row.version if row else 0, "updated_at": row.updated_at if row else (base or {}).get("created_at"),
         "can_manage": (base or {}).get("role") in {"Owner", "Admin"} if domain.module == "pms" else role_for(data, actor) in {"Owner", "Admin"} or domain.administrator(actor),
         "can_archive": domain.administrator(actor) if domain.module == "pms" else role_for(data, actor) in {"Owner", "Admin"} or domain.administrator(actor)}
     result.setdefault("status", "Active")
+    if company_admin:
+        result["can_manage"] = result["can_archive"] = True
     result.setdefault("description", "")
     result.setdefault("icon", "layers")
     result.setdefault("color", COLORS[0])
@@ -140,10 +154,11 @@ def output(domain, actor, row, base=None):
 def listing(db, domain, actor):
     domain.authorize(actor)
     company, branch = context(db, actor)
+    company_admin = company_administrator(db, actor, company)
     rows = policies(db, domain, company, branch).all()
     metadata = {r.scope_key.rsplit(":", 1)[1]: r for r in rows}
     if domain.module != "pms":
-        items = [output(domain, actor, r) for r in rows if visible(domain, actor, r.values_json)]
+        items = [output(domain, actor, r, company_admin=company_admin) for r in rows if visible(domain, actor, r.values_json, company_admin)]
     else:
         from app.apps.project_management.workspace_directory import base_workspaces
         items = [output(domain, actor, metadata.get(str(base["id"])), base) for base in base_workspaces(db, actor)]
@@ -165,7 +180,7 @@ def listing(db, domain, actor):
         item["can_manage"] = item["can_manage"] and writable
         item["can_archive"] = item["can_archive"] and writable
     from app.models.company import Branch
-    branch_name = db.query(Branch.name).filter_by(id=branch, company_id=company).scalar()
+    branch_name = db.query(Branch.name).filter_by(id=branch, company_id=company).scalar() if branch is not None else "All branches"
     return {"items": items, "can_create": can_create, "views": list(domain.views), "module": domain.module, "branch_id": branch, "branch_name": branch_name}
 
 

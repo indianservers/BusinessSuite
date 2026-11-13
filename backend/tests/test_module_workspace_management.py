@@ -10,6 +10,54 @@ def payload(module, **changes):
     return {"name": f"{module.upper()} Delivery", "description": "A focused team space", "icon": "team", "color": "#168354", "visibility": "private", "views": list(DOMAINS[module].views[:2]), "members": [], **changes}
 
 
+@pytest.mark.parametrize("module", ["hrms", "crm", "srm", "fam", "pms"])
+def test_admin_aggregate_directory_lists_workspaces_from_every_branch(client, db, studio, module):
+    from app.models.company import Branch
+    headers = studio[3]
+    base = f"/api/v1/{DOMAINS[module].api}/workspace-directory"
+    first = client.post(base, json=payload(module, name="Original branch space"), headers=headers)
+    assert first.status_code == 201, first.text
+    other = Branch(company_id=1, name="Additional admin branch")
+    db.add(other); db.commit()
+    second = client.post(base, json=payload(module, name="Other branch space"), headers={**headers, "X-Suite-Branch": str(other.id)})
+    assert second.status_code == 201, second.text
+    aggregate = {**headers, "X-Suite-Branch": "all"}
+    result = client.get(base, headers=aggregate)
+    assert result.status_code == 200, result.text
+    assert {first.json()["id"], second.json()["id"]} <= {r["id"] for r in result.json()["items"]}
+    assert result.json()["branch_name"] == "All branches"
+    assert not result.json()["can_create"]
+    assert client.get(base + "/" + second.json()["id"], headers=aggregate).status_code == 200
+    assert client.get(base + "/" + second.json()["id"] + "/activity", headers=aggregate).status_code == 200
+
+
+def test_company_admin_sees_private_workspaces_without_membership(client, db, studio):
+    from app.access.models import AccessMembership
+    from app.models.user import Role, Permission
+    owner, member, _, headers, member_headers, *_ = studio
+    member.employee.employment_type = "Full-time"
+    permission = db.query(Permission).filter_by(name="employee_view").first()
+    if permission is None:
+        permission = Permission(name="employee_view", description="View HRMS", module="hrms")
+        db.add(permission); db.flush()
+    member.role = Role(name="workspace_company_admin_reader", permissions=[permission])
+    membership = db.query(AccessMembership).filter_by(user_id=member.id, company_id=1).first()
+    if membership is None:
+        membership = AccessMembership(user_id=member.id, company_id=1, active=True)
+        db.add(membership)
+    membership.is_admin = True
+    db.commit()
+    base = "/api/v1/hrms/workspace-directory"
+    created = client.post(base, json=payload("hrms"), headers=headers)
+    assert created.status_code == 201, created.text
+    response = client.get(base, headers={**member_headers, "X-Suite-Branch": "all"})
+    assert response.status_code == 200, response.text
+    assert created.json()["id"] in {row["id"] for row in response.json()["items"]}
+    membership.is_admin = False
+    db.commit()
+    assert client.get(base, headers={**member_headers, "X-Suite-Branch": "all"}).status_code == 403
+
+
 @pytest.mark.parametrize("module", ["crm", "hrms", "srm", "fam", "pms"])
 def test_workspace_lifecycle_and_audit(client, db, studio, module):
     owner, _, outsider, headers, _, outsider_headers, *_ = studio

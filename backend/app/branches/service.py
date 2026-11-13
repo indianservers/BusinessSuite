@@ -17,6 +17,17 @@ class BranchContext:
     superuser: bool
 
 
+def company_administrator(db, user, company):
+    from app.access.models import AccessMembership
+    connection = db.connection()
+    if not inspect(connection).has_table(AccessMembership.__tablename__):
+        return False
+    return bool(connection.execute(select(AccessMembership.id).where(
+        AccessMembership.user_id == user.id, AccessMembership.company_id == company,
+        AccessMembership.active.is_(True), AccessMembership.is_admin.is_(True),
+    )).first())
+
+
 def access(db, user, company):
     """Resolve freshly on every request. All DB reads here are control-plane reads."""
     connection = db.connection()
@@ -28,8 +39,9 @@ def access(db, user, company):
     active_branches = {r.id for r in branch_rows if r.is_active}
     available = {r.id for r in branch_rows}
     policy = connection.execute(select(BranchPolicy.__table__).where(BranchPolicy.user_id == user.id, BranchPolicy.company_id == company)).mappings().first()
-    all_access = bool(user.is_superuser or policy and policy["all_branches"])
-    manager = bool(user.is_superuser or policy and policy["manage_access"])
+    administrator = user.is_superuser or company_administrator(db, user, company)
+    all_access = bool(administrator or policy and policy["all_branches"])
+    manager = bool(administrator or policy and policy["manage_access"])
     grants = connection.execute(select(BranchGrant.branch_id, BranchGrant.can_write).where(BranchGrant.user_id == user.id, BranchGrant.company_id == company)).all()
     allowed = available if all_access else {r.branch_id for r in grants} & active_branches
     writable = active_branches.copy() if all_access else {r.branch_id for r in grants if r.can_write} & active_branches

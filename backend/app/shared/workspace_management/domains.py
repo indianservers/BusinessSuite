@@ -25,6 +25,8 @@ class WorkspaceDomain:
         RequirePermission(*(self.configure if configure else self.view))(actor)
 
     def administrator(self, actor):
+        if getattr(actor, "_suite_is_company_admin", False):
+            return True
         try:
             if self.module == "hrms" and not actor.is_superuser:
                 grants = getattr(actor, "_suite_grants", None)

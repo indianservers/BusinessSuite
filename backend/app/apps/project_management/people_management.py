@@ -29,6 +29,8 @@ def organization_admin(actor):
     """A company role is not authority over a different company or a narrowed grant."""
     if actor.is_superuser:
         return True
+    if getattr(actor, "_suite_is_company_admin", False):
+        return True
     role = actor.role.name.lower().replace(" ", "_") if actor.role else ""
     grants = getattr(actor, "_suite_grants", None)
     if grants is not None:

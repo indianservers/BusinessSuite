@@ -378,6 +378,8 @@ def bind_authorization(db, user, request):
         company = requested
     user._suite_original_organization = getattr(user, "organization_id", None)
     user.organization_id = company
+    from app.branches.service import company_administrator
+    user._suite_is_company_admin = company_administrator(db, user, company)
     user._suite_permission_objects = None
     policy = policy_for(db, user, company)
     user._suite_policy_version = (
@@ -432,6 +434,7 @@ def bind_authorization(db, user, request):
 
 
 def reset_authorization(user):
+    user._suite_is_company_admin = False
     user._suite_grants = None
     user._suite_permission_objects = None
     user._suite_current_module = None

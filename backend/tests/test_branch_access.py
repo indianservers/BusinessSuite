@@ -127,6 +127,24 @@ def setup(db):
     return user, a, b, first, second, contact
 
 
+def test_company_admin_branch_access_tracks_active_company_membership(db):
+    from app.access.models import AccessMembership
+    from app.branches.service import access
+    user, a, b, *_ = setup(db)
+    member = db.query(AccessMembership).filter_by(user_id=user.id, company_id=1).first()
+    if member is None:
+        member = AccessMembership(user_id=user.id, company_id=1, active=True)
+        db.add(member)
+    member.is_admin = True
+    db.commit()
+    allowed, writable, all_access, manager = access(db, user, 1)
+    assert {a.id, b.id} <= allowed and {a.id, b.id} <= writable
+    assert all_access and manager
+    member.active = False
+    db.commit()
+    assert not access(db, user, 1)[2]
+
+
 def test_super_admin_discovery_preserves_all_branches_and_reads_other_users_records(db):
     from starlette.requests import Request
     from app.branches.api import current_context
