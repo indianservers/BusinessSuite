@@ -809,3 +809,25 @@ test('milestone deadline review shows current proposed dates and hides revision 
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
  const requests=await page.evaluate(()=>(window as any).__botRequests);expect(requests.filter((r:any)=>r.path.endsWith('/approve'))).toHaveLength(0);
 });
+
+
+
+test('existing schedule and event controls remain visible when creation lookups fail',async({page})=>{
+ await page.goto('/action-bot-qa.html');
+ await page.evaluate(()=>(window as any).__blockScheduleOptions());
+ await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ await expect(page.getByText('Keep my existing scheduled review',{exact:true})).toBeVisible();
+ await expect(page.getByText('Some schedule data or creation options are unavailable. You can manage any schedules shown.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Pause agent schedule',exact:true}).click();
+ await expect(page.getByText('Agent · paused',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Cancel agent schedule',exact:true}).click();
+ await expect(page.getByText('Agent · cancelled',{exact:true})).toBeVisible();
+ await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('Keep my existing intake');
+ await page.getByRole('button',{name:'Pause event intake #401',exact:true}).click();
+ await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('paused');
+ await page.getByRole('button',{name:'Cancel event intake #401',exact:true}).click();
+ await expect(page.getByRole('article',{name:'Event trigger 401',exact:true})).toContainText('cancelled');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>/\/(?:activate|resume|approve)$/.test(r.path)).length)).toBe(0);
+});

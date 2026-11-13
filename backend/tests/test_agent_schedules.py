@@ -269,3 +269,53 @@ def test_resume_checks_expiry_revision_session_and_missed_one_time_run(client,db
         assert result.json()['status']==('expired' if mutation=='expiry' else 'complete') and result.json()['next_at'] is None
     else:assert result.status_code in (401,403,409),result.text
     assert db.query(SuiteRun).count()==0
+
+
+
+@pytest.mark.parametrize('stop',['emergency','quota'])
+@pytest.mark.parametrize('stage',['preview','active','waiting'])
+def test_owner_schedule_controls_remain_available_during_company_stop(client,db,stop,stage):
+    from app.ai_agents.models import AiSecuritySetting,AiUsageLimit,AiUsageEvent
+    h,user,agent,value,spec=draft(client,db)
+    if stage!='preview':enable(client,h,value)
+    first=datetime.fromisoformat(spec['scheduled_at'])+timedelta(seconds=1)
+    child_id=None
+    if stage=='waiting':
+        assert asyncio.run(dispatch(db,client.app,first))['processed']==1
+        db.expire_all();child_id=db.get(Job,value['id']).payload_json['pending']['run_id']
+    existing_runs=db.query(SuiteRun).count()
+    if stop=='emergency':db.add(AiSecuritySetting(company_id=1,ai_enabled=False))
+    else:
+        db.add(AiUsageLimit(company_id=1,limit_type='per_company',period='daily',max_requests=1,is_active=True))
+        db.add(AiUsageEvent(company_id=1,user_id=user.id,event_type='synthetic_stop',module='CROSS'))
+    db.commit();blocked=403 if stop=='emergency' else 429
+    for suffix in ['',f'/{value["id"]}']:
+        response=client.get(ROOT+suffix,headers=h)
+        assert response.status_code==200,response.text
+    response=client.post(ROOT+'/preview',headers=h,json={**spec,'request_key':str(uuid4())})
+    assert response.status_code==blocked,response.text
+    response=client.post(ROOT+f'/{value["id"]}/activate',headers=h,json={'preview_hash':value['preview_hash']})
+    assert response.status_code==blocked,response.text
+    if stage!='preview':
+        response=client.post(ROOT+f'/{value["id"]}/pause',headers=h)
+        assert response.status_code==200 and response.json()['status']=='paused'
+        response=client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'preview_hash':value['preview_hash']})
+        assert response.status_code==blocked,response.text
+    other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant'])
+    response=client.post(ROOT+f'/{value["id"]}/cancel',headers=other)
+    assert response.status_code==404,response.text
+    response=client.post(ROOT+f'/{value["id"]}/cancel',headers=h)
+    assert response.status_code==200 and response.json()['status']=='cancelled'
+    controls=response.json()['controls']
+    response=client.post(ROOT+f'/{value["id"]}/cancel',headers=h)
+    assert response.status_code==200 and response.json()['controls']==controls
+    assert asyncio.run(dispatch(db,client.app,first+timedelta(hours=2)))['processed']==0
+    assert db.query(SuiteRun).count()==existing_runs and db.query(CRMTask).count()==0
+    if child_id:
+        # A schedule controls future occurrences; each prepared action keeps its
+        # own explicit approval and cancellation boundary.
+        response=client.get('/api/v1/ai-operator/suite/runs/'+str(child_id),headers=h)
+        assert response.status_code==200 and response.json()['status']=='awaiting_approval'
+        response=client.post('/api/v1/ai-operator/suite/runs/'+str(child_id)+'/cancel',headers=h)
+        assert response.status_code==200 and response.json()['status']=='cancelled'
+    assert tick(client,db)==0

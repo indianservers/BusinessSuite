@@ -202,3 +202,36 @@ def test_event_delivery_index_migration_is_idempotent_and_enforces_source_unique
     with pytest.raises(IntegrityError):
         with db.begin_nested():db.execute(Job.__table__.insert(),{**values,'payload_json':{**values['payload_json'],'ai_request_key':'different-request-key'}})
     db.execute(Job.__table__.insert(),{**values,'payload_json':{'ai_request_key':'different-source-key','event_source':{'subscription_id':1234,'source_id':5679}}})
+
+
+
+@pytest.mark.parametrize('stop',['emergency','quota'])
+@pytest.mark.parametrize('active',[False,True])
+def test_owner_event_controls_remain_available_during_company_stop(client,db,stop,active):
+    from app.ai_agents.models import AiSecuritySetting,AiUsageLimit,AiUsageEvent
+    from ai_test_utils import auth_headers
+    h,user,p,t,agent,value,spec=setup(client,db)
+    if active:value=control(client,h,value,'activate')
+    if stop=='emergency':db.add(AiSecuritySetting(company_id=1,ai_enabled=False))
+    else:
+        db.add(AiUsageLimit(company_id=1,limit_type='per_company',period='daily',max_requests=1,is_active=True))
+        db.add(AiUsageEvent(company_id=1,user_id=user.id,event_type='synthetic_stop',module='CROSS'))
+    db.commit();blocked=403 if stop=='emergency' else 429
+    for suffix in ['',f'/{value["id"]}']:
+        response=client.get(ROOT+suffix,headers=h,params={'workspace_id':p.workspace_id})
+        assert response.status_code==200,response.text
+    response=client.post(ROOT+'/preview',headers=h,json={**spec,'request_key':str(uuid4())})
+    assert response.status_code==blocked,response.text
+    response=client.post(ROOT+f'/{value["id"]}/activate',headers=h,json={'revision':value['revision'],'preview_hash':value['preview_hash']})
+    assert response.status_code==blocked,response.text
+    if active:
+        value=control(client,h,value,'pause')
+        response=client.post(ROOT+f'/{value["id"]}/resume',headers=h,json={'revision':value['revision'],'preview_hash':value['preview_hash']})
+        assert response.status_code==blocked,response.text
+    other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant'])
+    response=client.post(ROOT+f'/{value["id"]}/cancel',headers=other,json={'revision':value['revision']})
+    assert response.status_code==404,response.text
+    value=control(client,h,value,'cancel');assert value['state']=='cancelled'
+    instant=datetime.now(timezone.utc)+timedelta(seconds=2);event(db,user,p,t,instant)
+    assert asyncio.run(events.dispatch(db,client.app,instant))['processed']==0
+    assert db.query(Job).count()==0 and db.query(SuiteRun).count()==0

@@ -65,14 +65,14 @@ def snapshot(db,user,ident):
         'workspace_id':profile['workspace_id'],'project_id':profile['project_id'],'name':profile['name']}
 
 
-def owned(db,user,ident,lock=False):
+def owned(db,user,ident,lock=False,*,control=False):
     from app.ai_operator.suite import authorize
-    authorize(db,user,None)
     q=db.query(Job).filter_by(id=ident,job_type=KIND,created_by=user.id,organization_id=company(user))
     row=(q.with_for_update().populate_existing() if lock else q).first()
     if not row:raise HTTPException(404,'Agent schedule not found')
+    authorize(db,user,None,control=control)
     if (row.payload_json.get('event_source') or {}).get('eligible') is False:raise HTTPException(404,'Agent schedule not found')
-    verify(db,user,row.payload_json['security_context'],history=True)
+    verify(db,user,row.payload_json['security_context'],history=True,control=control)
     return row
 
 
@@ -140,14 +140,19 @@ def activate(ident:int,data:Activation,db:Session=Depends(get_db),user:User=Depe
 @router.get('')
 def listing(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
-    authorize(db,user,None)
+    authorize(db,user,None,control=True)
     rows=db.query(Job).filter_by(job_type=KIND,created_by=user.id,organization_id=company(user)).filter(Job.payload_json['event_source']['eligible'].as_boolean().is_not(False)).order_by(Job.id.desc()).limit(100)
-    return {'items':[public(owned(db,user,r.id)) for r in rows]}
+    return {'items':[public(owned(db,user,r.id,control=True)) for r in rows]}
+
+
+@router.get('/{ident}')
+def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    return public(owned(db,user,ident,control=True))
 
 
 @router.post('/{ident}/cancel')
 def cancel(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=owned(db,user,ident,True)
+    row=owned(db,user,ident,True,control=True)
     if row.status!='agent_cancelled':
         row.status='agent_cancelled';row.run_at=None
         control(db,user,row,'cancelled',now());db.commit()
@@ -163,7 +168,7 @@ def control(db,user,row,action,instant):
 
 @router.post('/{ident}/pause')
 def pause(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=owned(db,user,ident,True)
+    row=owned(db,user,ident,True,control=True)
     if row.status=='agent_paused':return public(row)
     if row.status not in ('agent_active','agent_waiting','agent_preparing'):raise HTTPException(409,'Only an active schedule can be paused')
     instant=now()

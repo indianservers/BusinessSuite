@@ -96,15 +96,15 @@ def signed(row):return {'id':row.id,'company_id':row.organization_id,'version':r
 def sign(row):row.values_json={**row.values_json,'signature':signature(signed(row))}
 
 
-def owned(db,user,ident,lock=False):
+def owned(db,user,ident,lock=False,*,control=False):
     from app.ai_operator.suite import authorize
-    authorize(db,user,None)
     q=db.query(ServicePolicy).filter_by(id=ident,organization_id=company(user),kind=KIND).populate_existing()
     row=(q.with_for_update() if lock else q).first()
     if not row or row.values_json['owner_id']!=user.id:raise HTTPException(404,'Event subscription not found')
+    authorize(db,user,None,control=control)
     if not hmac.compare_digest(str(row.values_json.get('signature','')),signature(signed(row))):raise HTTPException(409,'Event subscription integrity changed')
-    verify(db,user,row.values_json['security_context'],history=True)
-    authorize(db,user,row.values_json['snapshot']['workspace_id'])
+    verify(db,user,row.values_json['security_context'],history=True,control=control)
+    authorize(db,user,row.values_json['snapshot']['workspace_id'],control=control)
     return row
 
 
@@ -248,9 +248,9 @@ def record_webhooks(response:Response,module:Literal['CRM','PMS','HRMS','SRM','F
 @router.get('')
 def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
-    authorize(db,user,workspace_id)
+    authorize(db,user,workspace_id,control=True)
     rows=db.query(ServicePolicy).filter_by(organization_id=company(user),kind=KIND).filter(ServicePolicy.values_json['owner_id'].as_integer()==user.id,ServicePolicy.values_json['snapshot']['workspace_id'].as_integer()==workspace_id if workspace_id else ServicePolicy.values_json['snapshot']['workspace_id'].as_integer().is_(None)).order_by(ServicePolicy.id.desc()).limit(50)
-    return {'items':[public(db,user,owned(db,user,r.id)) for r in rows]}
+    return {'items':[public(db,user,owned(db,user,r.id,control=True)) for r in rows]}
 
 
 @router.post('/preview')
@@ -324,11 +324,13 @@ def whatsapp_conversations(response:Response,workspace_id:int|None=None,query:st
 
 @router.get('/{ident}')
 def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    return public(db,user,owned(db,user,ident))
+    return public(db,user,owned(db,user,ident,control=True))
 
 
 def stage_preview(data,db,user):
     """Stage one immutable preview inside a compound authoring transaction."""
+    from app.ai_operator.suite import authorize
+    authorize(db,user,None)
     frozen=schedules.snapshot(db,user,data.agent_id)
     from app.ai_operator.saved_agents import owned as agent_owned
     profile=agent_owned(db,user,data.agent_id).references['config']
@@ -367,7 +369,7 @@ class Control(Strict):
 
 @router.post('/{ident}/{action}')
 def control(ident:int,action:Literal['activate','pause','resume','cancel'],data:Control,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    row=owned(db,user,ident,True);value=row.values_json;instant=schedules.now()
+    row=owned(db,user,ident,True,control=action in ('pause','cancel'));value=row.values_json;instant=schedules.now()
     if data.revision!=row.version:raise HTTPException(409,'Subscription changed; reload')
     if action in ('activate','resume'):
         if value['state']!=('preview' if action=='activate' else 'paused') or data.preview_hash!=value['preview_hash']:raise HTTPException(409,'Review the subscription before activating intake')

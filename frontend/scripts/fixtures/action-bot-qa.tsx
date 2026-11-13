@@ -35,9 +35,12 @@ function chartAnalysis(table:any,params:any={}){
  return {row_count:all.length,profiles:(table?.columns||[]).map((name:string,index:number)=>({index,name,numeric:index===1?all.length:0,blank:0,nonnumeric:index===1?0:all.length,distinct:all.length})),panels,valid_rows:rows.length,blank_numeric_rows:0,invalid_numeric_rows:0,available_series:units.map((unit:any)=>({unit,key:`series-${unit}`,label:'Amount'})),omitted_units:0,method:'Simulated server Decimal response.',coverage:'This artifact snapshot only.',snapshot:{state:'saved',id:501,revision:params.revision||1}}
 }
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
+let scheduleOptionsBlocked=false;
+(window as any).__blockScheduleOptions=()=>{scheduleOptionsBlocked=true;agentSchedules=[{id:91,status:'active',spec:{prompt:'Keep my existing scheduled review',timezone:'Asia/Kolkata',frequency:'daily',scheduled_at:'2027-01-01T09:00:00Z',expires_at:'2027-02-01T09:00:00Z'},agent_name:'Existing coordinator',agent_revision:1,preview_hash:'a'.repeat(64),occurrences:[],controls:[]}];agentEvents=[{id:401,revision:1,state:'active',spec:{event:'crm.deal_stage',prompt:'Keep my existing intake',timezone:'Asia/Kolkata',expires_at:'2027-02-01T09:00:00Z',max_per_day:5,min_interval_minutes:15,max_event_age_minutes:60},agent_name:'Existing coordinator',preview_hash:'a'.repeat(64),deliveries:[],controls:[]}]};
 api.defaults.adapter=async config=>{
  const path=config.url||'',body=typeof config.data==='string'?JSON.parse(config.data):config.data;
  requests.push({path,method:config.method,body,params:config.params});let data:any={};
+ if(scheduleOptionsBlocked&&config.method==='get'&&(path.endsWith('/suite/agents')||path.endsWith('/suite/reminders')||path.endsWith('/agents/events/catalog')))throw {response:{status:429,data:{detail:'Synthetic quota blocks creation options'}}};
  if(path.endsWith('/builder/model-status'))data={active:true,tensorflow_version:'2.20.0',training_commands:640};
  else if(path.endsWith('/agents/library'))data={items:publications,can_publish:true};
  else if(path.endsWith('/library/targets'))data={members:[{id:7,label:'robot-fixture@example.com'}],teams:[]};
