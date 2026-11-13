@@ -89,9 +89,17 @@ def current_context(request: Request, db: Session = Depends(get_db), user: User 
         except HTTPException:
             pass
     from app.shared.branch_availability import active_branches
+    from app.branches.discovery import branch_choices
     can_write_all = active_branches(db, ctx.company_id) <= set(ctx.writable)
     return {"can_write_all_branches": can_write_all, "company_id": ctx.company_id, "default_branch_id": default_branch_id, "selected": ctx.branch_id, "all_branches": ctx.all_branches, "manage_access": ctx.manage_access,
-            "branches": [{**row, "can_write": row["id"] in ctx.writable} for row in rows]}
+            "branches": [{**row, "can_write": row["id"] in ctx.writable} for row in rows],
+            **({"platform_branches": branch_choices(db, user)} if user.is_superuser else {})}
+
+
+@router.get("/workspaces")
+def admin_workspaces(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.branches.discovery import workspace_choices
+    return workspace_choices(db, user)
 
 
 @router.post("", status_code=201)

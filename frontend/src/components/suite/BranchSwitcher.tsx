@@ -7,11 +7,11 @@ import { Building2, ChevronDown, Settings2 } from "lucide-react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { canAccessRoute } from "@/lib/roles";
+import { switchSuiteContext } from "@/lib/switch-suite-context";
 import "./app-bar.css";
 
-type Branch = { id: number; name: string; code: string; can_write: boolean; is_active?: boolean };
-type Context = { company_id: number; selected: number | null; all_branches: boolean; manage_access: boolean; branches: Branch[] };
+type Branch = { id: number; name: string; code: string; can_write: boolean; is_active?: boolean; company_id?: number; company_name?: string; company_active?: boolean; is_deleted?: boolean };
+type Context = { company_id: number; selected: number | null; all_branches: boolean; manage_access: boolean; branches: Branch[]; platform_branches?: Branch[] };
 
 const detail = (error: any) => error?.response?.data?.detail || "Unable to complete this action.";
 
@@ -27,6 +27,7 @@ export default function BranchSwitcher() {
     return data;
   }, retry: false, refetchOnWindowFocus: true });
   const context = current.data;
+  const choices = user?.is_superuser && context?.platform_branches ? context.platform_branches : context?.branches || [];
   const storedBranch = sessionStorage.getItem("suite-branch");
   const selectedBranch = context?.selected ?? (context?.all_branches ? "all" : "");
   const staleBranch = !!context && !!storedBranch && storedBranch !== String(selectedBranch);
@@ -36,30 +37,24 @@ export default function BranchSwitcher() {
   }
   async function confirmSwitch() {
     if (!pendingSwitch) return;
-    if (!window.dispatchEvent(new Event("suite:before-context-change", {cancelable:true}))) return;
     setBusy(true);
-    await qc.cancelQueries();
     try {
-      const { data: access } = await api.get('/access/me', { headers: { 'X-Suite-Branch': pendingSwitch } });
-      if (user) useAuthStore.getState().setUser({ ...user, access });
+      const company = choices.find(b => String(b.id) === pendingSwitch)?.company_id ?? context?.company_id;
+      if (!company) return;
+      await switchSuiteContext(qc, company, pendingSwitch);
     } catch (e) { setError(detail(e)); setBusy(false); setPendingSwitch(null); return; }
-    sessionStorage.setItem("suite-branch", pendingSwitch);
-    // A reload destroys local component state, in-flight requests, sockets, and
-    // non-query caches; sessionStorage keeps other tabs independent.
-    qc.clear();
-    if (canAccessRoute(window.location.pathname, user?.role, user?.is_superuser)) window.location.reload();
-    else window.location.assign('/dashboard');
+    finally { setBusy(false); }
   }
   if (!user) return null;
   return <div className="suite-branch-control">
     <label className="suite-branch-field">
       <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>
-      <NativeSelect loading={busy || current.isFetching} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={selectedBranch} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
+      <NativeSelect loading={busy || current.isFetching} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={selectedBranch} disabled={busy || !context || !choices.length} onChange={e => void switchBranch(e.target.value)}>
         {!context && <option value="">{current.isError ? "Branch unavailable" : "Loading branches…"}</option>}
-        {context?.all_branches && <option value="all">All branches</option>}
+        {context?.all_branches && <option value="all">{user?.is_superuser ? "All branches · current company" : "All branches"}</option>}
         {context && context.selected === null && !context.all_branches && <option value="">No branch access</option>}
-        {context?.branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.is_active === false ? " (archived)" : ""}{b.can_write ? "" : " · read only"}</option>)}
+        {choices.map(b => <option key={b.id} value={b.id} disabled={b.company_active === false || b.is_deleted}>{b.company_name ? `${b.company_name} · ` : ""}{b.name}{b.is_deleted ? " (trash)" : b.is_active === false ? " (archived)" : ""}{b.can_write ? "" : " · read only"}</option>)}
       </NativeSelect>
       <ChevronDown size={14} className="suite-branch-chevron" aria-hidden="true" />
     </label>
@@ -67,7 +62,7 @@ export default function BranchSwitcher() {
     {current.isError && <button className="text-xs text-destructive" onClick={() => { sessionStorage.removeItem("suite-branch"); window.location.reload(); }}>Retry</button>}
     {error && <p role="alert" className="max-w-48 text-xs text-destructive">{error}</p>}
     {staleBranch && <button role="alert" className="max-w-40 text-xs text-destructive" onClick={() => { sessionStorage.removeItem("suite-branch"); qc.clear(); window.location.reload(); }}>Previous branch access changed. Reload available branches.</button>}
-    <Dialog.Root open={pendingSwitch !== null} onOpenChange={value => { if (!value) setPendingSwitch(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] w-[min(420px,95vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-6"><Dialog.Title className="font-semibold">Switch branch?</Dialog.Title><Dialog.Description className="my-3 text-sm text-muted-foreground">Your page will reload in {pendingSwitch === "all" ? "All branches" : context?.branches.find(b => String(b.id) === pendingSwitch)?.name}. Save any unfinished changes before switching.</Dialog.Description><div className="flex justify-end gap-2"><Dialog.Close asChild><Button variant="outline" disabled={busy}>Stay here</Button></Dialog.Close><Button onClick={() => void confirmSwitch()} disabled={busy}>Switch branch</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>
+    <Dialog.Root open={pendingSwitch !== null} onOpenChange={value => { if (!value) setPendingSwitch(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100] bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-[101] w-[min(420px,95vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-6"><Dialog.Title className="font-semibold">Switch branch?</Dialog.Title><Dialog.Description className="my-3 text-sm text-muted-foreground">Your page will reload in {pendingSwitch === "all" ? "All branches" : choices.find(b => String(b.id) === pendingSwitch)?.name}. Save any unfinished changes before switching.</Dialog.Description><div className="flex justify-end gap-2"><Dialog.Close asChild><Button variant="outline" disabled={busy}>Stay here</Button></Dialog.Close><Button onClick={() => void confirmSwitch()} disabled={busy}>Switch branch</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>
 
   </div>;
 }
