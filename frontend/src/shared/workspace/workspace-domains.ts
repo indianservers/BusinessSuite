@@ -34,7 +34,7 @@ export const operationalWorkspaceDefinitions: Record<WorkspaceDomainModule, Defi
     title: "Sales & Operations Workspaces", description: "Keep checkout, orders, stock and customer payments moving together.", icon: ShoppingCart,
     notice: "Move from customer orders to checkout, fulfillment and collections in one connected suite.",
     domains: [
-      { name: "Salon operations", path: "/srm/salon", description: "Book stylists and resources, complete services and create shared invoices.", category: "Industry operations", icon: CalendarCheck2 },
+      { name: "Appointments", path: "/srm/appointments", description: "Schedule providers and resources, complete services and create shared invoices.", category: "Industry operations", icon: CalendarCheck2 },
       { name: "Construction operations", path: "/srm/construction", description: "Approve BOQ, certify site measurements and bill through the existing ledger.", category: "Industry operations", icon: FolderKanban },
       { name: "Point of sale", path: "/srm/pos", description: "Open checkout and manage cashier sessions using your existing POS controls.", category: "Sales", icon: ShoppingCart },
       { name: "Sales orders", path: "/srm/sales-orders", description: "Follow customer orders from creation through fulfillment and billing.", category: "Sales", icon: ListTodo },
@@ -58,4 +58,4 @@ export const operationalWorkspaceDefinitions: Record<WorkspaceDomainModule, Defi
   },
 };
 
-export const workspaceDomainViewIds = { crm: ["leads", "contacts", "deals", "activities", "quotes", "reports"], hrms: ["employees", "attendance", "leave", "approvals", "documents", "recruitment"], srm: ["pos", "orders", "products", "stock", "invoices", "collections"], fam: ["accounts", "journals", "receivables", "payables", "reconciliation", "statements"] };
+export const workspaceDomainViewIds = { crm: ["leads", "contacts", "deals", "activities", "quotes", "reports"], hrms: ["employees", "attendance", "leave", "approvals", "documents", "recruitment"], srm: ["appointments", "construction", "pos", "orders", "products", "stock", "invoices", "collections"], fam: ["accounts", "journals", "receivables", "payables", "reconciliation", "statements"] };

@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
@@ -90,6 +91,7 @@ const labels: Record<string, string> = {
 };
 
 export default function Breadcrumbs() {
+  const { routeLabel } = useBusinessTerms();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const [title, setTitle] = useState(document.title);
@@ -146,12 +148,12 @@ export default function Breadcrumbs() {
             <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
             {active ? (
               <span aria-current="page" className="font-medium text-foreground">
-                {label}
+                {isRecord ? label : routeLabel(path, label)}
               </span>
             ) : canAccessRoute(path, user?.role, user?.is_superuser) ? (
-              <Link to={path}>{label}</Link>
+              <Link to={path}>{isRecord ? label : routeLabel(path, label)}</Link>
             ) : (
-              <span>{label}</span>
+              <span>{isRecord ? label : routeLabel(path, label)}</span>
             )}
           </span>
         );

@@ -369,32 +369,34 @@ class BusinessProfileInput(BaseModel):
 
 
 @router.get("/business-profile/effective")
-def effective_business_profile(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    from app.shared.business_profile import effective
+def effective_business_profile(workspace_module: str | None = None, workspace_id: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.business_profile import effective, check_workspace
     branch = getattr(actor, '_suite_branch_id', None)
     branch = branch if isinstance(branch, int) else None
-    return {**effective(db, actor.organization_id, branch), 'companyId': actor.organization_id, 'branchId': branch}
+    check_workspace(db, actor, branch, workspace_module, workspace_id)
+    return {**effective(db, actor.organization_id, branch, workspace_module=workspace_module, workspace_id=workspace_id), 'companyId': actor.organization_id, 'branchId': branch}
 
 
 @router.get("/business-profile/configuration")
-def business_profile_configuration(branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+def business_profile_configuration(branch_id: int | None = None, workspace_module: str | None = None, workspace_id: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     from app.shared import business_profile as profile
     from app.shared.form_defaults import check_branch
     from app.shared.models import ServicePolicy
     from app.models.company import Branch
     _, ctx = require_option(db, actor, 'business-profile')
     check_branch(db, ctx['company'], branch_id)
-    key = profile.scope_key(ctx['company'], branch_id)
+    profile.check_workspace(db, actor, branch_id, workspace_module, workspace_id)
+    key = profile.scope_key(ctx['company'], branch_id, workspace_module, workspace_id)
     row = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=profile.KIND, scope_key=key).first()
     return {'catalog': profile.CATALOG, 'companyId': ctx['company'], 'branchId': branch_id,
             'branches': [{'id': b.id, 'name': b.name} for b in db.query(Branch).filter_by(company_id=ctx['company'], is_active=True).order_by(Branch.name).all()],
             'version': row.version if row else 0, 'overrides': row.values_json if row else {},
-            'inherited': profile.effective(db, ctx['company'], branch_id, skip_scope=key),
-            'effective': profile.effective(db, ctx['company'], branch_id)}
+            'inherited': profile.effective(db, ctx['company'], branch_id, skip_scope=key, workspace_module=workspace_module, workspace_id=workspace_id),
+            'effective': profile.effective(db, ctx['company'], branch_id, workspace_module=workspace_module, workspace_id=workspace_id)}
 
 
 @router.put("/business-profile/configuration")
-def save_business_profile(data: BusinessProfileInput, request: Request, branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+def save_business_profile(data: BusinessProfileInput, request: Request, branch_id: int | None = None, workspace_module: str | None = None, workspace_id: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     from sqlalchemy import select
     from sqlalchemy.exc import IntegrityError
     from app.shared import business_profile as profile
@@ -402,10 +404,12 @@ def save_business_profile(data: BusinessProfileInput, request: Request, branch_i
     from app.shared.models import ServicePolicy
     _, ctx = require_option(db, actor, 'business-profile')
     check_branch(db, ctx['company'], branch_id)
+    profile.check_workspace(db, actor, branch_id, workspace_module, workspace_id, write=True)
     values = profile.validate(data.values)
     # Serialize even the first insert so concurrent editors cannot both save version zero.
     db.connection().execute(select(Company.id).where(Company.id == ctx['company']).with_for_update()).one()
-    key = profile.scope_key(ctx['company'], branch_id)
+    profile.check_workspace(db, actor, branch_id, workspace_module, workspace_id)
+    key = profile.scope_key(ctx['company'], branch_id, workspace_module, workspace_id)
     row = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=profile.KIND, scope_key=key).with_for_update().first()
     if data.version != (row.version if row else 0):
         raise HTTPException(409, 'Business profile changed. Reload before saving.')

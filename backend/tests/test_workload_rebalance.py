@@ -693,6 +693,9 @@ def test_partial_pms_workflow_exposes_only_confirmed_receipt_after_acl_change(cl
     from app.ai_operator.suite_models import SuiteRun
     from app.apps.project_management.models import PMSProjectMember,PMSTask
     h,user,pid,workspace,_,tid=setup_load(client,db)
+    # Receipt-only history is the ordinary owner's contract. Company/platform
+    # administrators now have a separate company-wide GET inspection policy.
+    user.is_superuser=False;db.commit()
     _,recipient=auth_headers(client,db,email=f'partial-receipt-{uuid4()}@example.com',permissions=['pms_view'])
     db.add(PMSProjectMember(project_id=pid,user_id=recipient.id,role='Member'));db.commit()
     second=task(client,h,pid,user.id,'Private unfinished task intention',1)

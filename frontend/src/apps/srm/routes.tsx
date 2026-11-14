@@ -45,6 +45,7 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 
 const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
 export const srmRoutes: FrontendRoute[] = [
+  { path: "srm/appointments", element: <IndustryOperationsPage mode="appointments" /> },
   { path: "srm/salon", element: <IndustryOperationsPage mode="salon" /> },
   { path: "srm/construction", element: <IndustryOperationsPage mode="construction" /> },
   { path: "srm/workspaces", element: <OperationalWorkspaceDirectory module="srm" /> },

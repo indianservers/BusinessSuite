@@ -88,3 +88,32 @@ def test_profile_changes_do_not_mutate_pipelines(client, db):
     assert db.get(CRMPipeline, ids[0]).name == 'Existing sales pipeline'
     assert db.get(CRMPipelineStage, ids[1]).name == 'Qualified'
     assert db.get(CRMPipelineStage, ids[1]).pipeline_id == ids[0]
+
+
+def test_workspace_override_requires_native_access_and_inherits_branch(client, db):
+    from test_identity_utils import attach_workflow_branch
+    headers, user = actor(db, superuser=True)
+    branch = attach_workflow_branch(db, user); db.commit()
+    headers = {**headers, 'X-Suite-Branch': str(branch.id)}
+    native = client.post('/api/v1/srm/workspace-directory', headers=headers, json={'name': 'Clinic bookings', 'visibility': 'private', 'views': ['appointments']})
+    assert native.status_code == 201, native.text
+    wid = str(native.json()['id'])
+    assert client.put(URL, headers=headers, json={'version': 0, 'values': {'business_type': 'salon'}}).status_code == 200
+    assert client.put(URL, params={'branch_id': branch.id}, headers=headers, json={'version': 0, 'values': {'terms': {'customer': ['Guest', 'Guests']}}}).status_code == 200
+    params = {'branch_id': branch.id, 'workspace_module': 'srm', 'workspace_id': wid}
+    saved = client.put(URL, params=params, headers=headers, json={'version': 0, 'values': {'business_type': 'hospital'}})
+    assert saved.status_code == 200, saved.text
+    config = client.get(URL, params=params, headers=headers)
+    assert config.status_code == 200, config.text
+    assert config.json()['effective']['terms']['provider'][0] == 'Doctor'
+    assert config.json()['effective']['terms']['customer'][0] == 'Guest'
+    assert config.json()['inherited']['terms']['provider'][0] == 'Stylist'
+    result = client.get(BASE + '/business-profile/effective', params={'workspace_module': 'srm', 'workspace_id': wid}, headers=headers)
+    assert result.status_code == 200, result.text
+    assert result.json()['terms']['provider'][0] == 'Doctor'
+    assert client.get(BASE + '/business-profile/effective', headers=headers).json()['terms']['provider'][0] == 'Stylist'
+    assert client.get(URL, params={**params, 'workspace_id': 'missing'}, headers=headers).status_code == 404
+    assert client.get(URL, params={'workspace_module': 'srm', 'workspace_id': wid}, headers=headers).status_code == 422
+    reset = client.put(URL, params=params, headers=headers, json={'version': 1, 'values': {}})
+    assert reset.status_code == 200, reset.text
+    assert client.get(URL, params=params, headers=headers).json()['effective']['terms']['provider'][0] == 'Stylist'

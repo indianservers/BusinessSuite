@@ -37,7 +37,7 @@ class BaseInput(Strict):
 
 
 class ResourceInput(BaseInput):
-    resource_type: Literal["stylist", "chair", "room"]
+    resource_type: Literal["provider", "doctor", "stylist", "consultant", "technician", "employee", "chair", "room", "equipment", "location"]
     user_id: int | None = Field(None, gt=0)
     timezone: str = "Asia/Kolkata"
     weekdays: list[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4, 5], min_length=1, max_length=7)
@@ -335,9 +335,9 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
     if query(db, user, branch).filter_by(kind='resource', title=data.title).first():
         fail("A resource with this name already exists in this branch", 409)
     if data.user_id:
-        from app.apps.project_management.access import organization_id_for
-        staff = db.get(User, data.user_id)
-        if not staff or not staff.is_active or organization_id_for(staff) != tenant(user):
+        from app.shared.form_defaults import reference_queries
+        staff, _ = reference_queries(db, tenant(user))['users']
+        if not staff.filter(User.id == data.user_id).first():
             fail("Choose an active staff member from this company")
     row = create(db, user, branch, 'resource', data)
     row.status = 'active'
@@ -345,13 +345,29 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
     return out(row)
 
 
+@router.get('/staff-options')
+def staff_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    context(db, user)
+    require(user, 'srm_manage', 'srm_admin')
+    from app.shared.form_defaults import reference_queries
+    staff, _ = reference_queries(db, tenant(user))['users']
+    if search.strip():
+        staff = staff.filter(User.email.ilike('%' + search.strip().replace('%', r'\%').replace('_', r'\_') + '%', escape='\\'))
+    rows = staff.order_by(User.email, User.id).offset(offset).limit(51).all()
+    return {'items': [{'id': row.id, 'name': row.email} for row in rows[:50]], 'has_more': len(rows) > 50}
+
+
+PROVIDER_TYPES = {'provider', 'doctor', 'stylist', 'consultant', 'technician', 'employee'}
+
+
 def available(db, user, branch, starts, minutes, resource_ids, ignore=None):
     if len(set(resource_ids)) != len(resource_ids):
         fail("Select each resource once")
     end = starts + timedelta(minutes=minutes)
     resources = [get(db, user, branch, i, 'resource') for i in resource_ids]
-    if not any(r.data['resource_type'] == 'stylist' for r in resources):
-        fail("Choose a stylist")
+    if not any(r.data['resource_type'] in PROVIDER_TYPES for r in resources):
+        from app.shared.business_profile import term
+        fail(f"Choose a {term(db, tenant(user), 'provider', branch_id=branch).lower()}")
     for r in resources:
         local, local_end = starts.astimezone(ZoneInfo(r.data['timezone'])), end.astimezone(ZoneInfo(r.data['timezone']))
         if r.status != 'active' or local.weekday() not in r.data['weekdays'] or local.date() != local_end.date() or local.time().replace(tzinfo=None) < time.fromisoformat(r.data['opens']) or local_end.time().replace(tzinfo=None) > time.fromisoformat(r.data['closes']):
@@ -367,7 +383,7 @@ def available(db, user, branch, starts, minutes, resource_ids, ignore=None):
         if starts < old_end and old_start < end:
             old_resources = [get(db, user, branch, i, 'resource') for i in booked.data['resource_ids']]
             if set(resource_ids).intersection(booked.data['resource_ids']) or staff_ids.intersection({r.data.get('user_id') for r in old_resources}):
-                fail("Stylist or resource is already booked at that time", 409)
+                fail("Provider or resource is already booked at that time", 409)
 
 
 @router.post("/appointments", status_code=201)
@@ -398,9 +414,12 @@ def appointment(data: AppointmentInput, db: Session = Depends(get_db), user=Depe
     if data.create_pms_task:
         from app.apps.project_management.api.router import create_task_operation
         from app.apps.project_management.schemas import PMSTaskCreate
-        stylist = next(get(db, user, branch, i, 'resource') for i in data.resource_ids if get(db, user, branch, i, 'resource').data['resource_type'] == 'stylist')
-        day = data.starts_at.astimezone(ZoneInfo(stylist.data['timezone'])).date()
-        task = create_task_operation(data.project_id, PMSTaskCreate(task_key=f'SALON-{row.id}', title=data.title, description=f'Salon appointment #{row.id}. Service: {service.item_name}. Manage booking, service and billing in /srm/salon.', start_date=day, due_date=day, estimated_hours=Decimal(data.duration_minutes)/60), db, user, commit=False)
+        provider = next(get(db, user, branch, i, 'resource') for i in data.resource_ids if get(db, user, branch, i, 'resource').data['resource_type'] in PROVIDER_TYPES)
+        day = data.starts_at.astimezone(ZoneInfo(provider.data['timezone'])).date()
+        from app.shared.business_profile import term
+        label = term(db, tenant(user), 'appointment', branch_id=branch)
+        prefix = 'SALON' if provider.data['resource_type'] == 'stylist' else 'APPT'
+        task = create_task_operation(data.project_id, PMSTaskCreate(task_key=f'{prefix}-{row.id}', title=data.title, description=f'{label} #{row.id}. Service: {service.item_name}. Manage booking, service and billing in /srm/appointments.', start_date=day, due_date=day, estimated_hours=Decimal(data.duration_minutes)/60), db, user, commit=False)
         row.data = {**row.data, 'pms_task_id': task.id}
     db.commit()
     return out(row)

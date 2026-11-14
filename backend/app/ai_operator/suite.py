@@ -1528,6 +1528,13 @@ async def _command(data,request,db,user,scope):
                 'planning_issue':'The intelligence provider could not prepare a valid plan. Your request and context are saved. Retry planning or explicitly choose local intelligence.',
                 'can_retry_planning':True}
         retire_drafts(db,run)
+        # Previews can finish before a late recovery/source validation fails.
+        # Retire the parent approval too; a failed plan must leave no pending
+        # approval that looks usable in administration or another client.
+        failed_approval=db.get(AiActionApproval,run.approval_id) if run.approval_id else None
+        if failed_approval and failed_approval.status=='pending' and failed_approval.execution_status=='pending':
+            failed_approval.status='cancelled'
+            failed_approval.execution_status='cancelled'
         db.commit()
     return public(run)
 

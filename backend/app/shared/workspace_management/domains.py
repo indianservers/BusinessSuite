@@ -47,6 +47,6 @@ DOMAINS = {
     "pms": WorkspaceDomain("pms", "project-management", "project_management", ("pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_admin"), ("pms_manage_projects", "pms_admin"), ("projects", "tasks", "board", "timeline", "workload", "team", "activity", "settings")),
     "crm": WorkspaceDomain("crm", "crm", "crm", ("crm_view", "crm_manage", "crm_admin"), ("crm_manage", "crm_admin"), ("leads", "contacts", "deals", "activities", "quotes", "reports")),
     "hrms": WorkspaceDomain("hrms", "hrms", "hrms", ("employee_view", "employee_create", "employee_update", "attendance_view", "leave_view", "leave_apply", "payroll_view"), ("employee_update", "employee_create"), ("employees", "attendance", "leave", "approvals", "documents", "recruitment")),
-    "srm": WorkspaceDomain("srm", "srm", "srm", ("srm_view", "srm_invoice_view", "srm_collection_view", "srm_admin"), ("srm_admin",), ("pos", "orders", "products", "stock", "invoices", "collections")),
+    "srm": WorkspaceDomain("srm", "srm", "srm", ("srm_view", "srm_invoice_view", "srm_collection_view", "srm_admin"), ("srm_admin",), ("appointments", "construction", "pos", "orders", "products", "stock", "invoices", "collections")),
     "fam": WorkspaceDomain("fam", "fam", "fam", tuple(FAM_VIEW_PERMISSIONS), ("fam_admin",), ("accounts", "journals", "receivables", "payables", "reconciliation", "statements")),
 }

@@ -35,7 +35,7 @@ After adding early native validation, four focused cases passed in
 They cover fresh approval/execution of the remaining priority change, unchanged
 completed assignment, source retirement and duplicate rejection, text refusal,
 queued-work refusal and a newly inactive intended collaborator. Counts overlap.
-Live deployment and concurrent race/load acceptance remain unverified.
+Live deployment and broader concurrent load acceptance remain unverified.
 
 The UI starter and shared structured-action classifier passed four focused
 backend cases in `.local/business-suite-qa-fffe1349f71e4f169afb696310dd3315/results.xml`,
@@ -52,11 +52,22 @@ recovery cases plus stop controls passed (21 tests) in
 The injected changes are within a rolled-back savepoint; this demonstrates stale
 identity-map rejection, not independent concurrent-transaction acceptance.
 
-`test_remaining_tasks_concurrency.py` is additional unfinished acceptance work.
-Its committed-database fixture currently fails source preparation with HTTP422,
-before competing recovery requests run. The next diagnostic run was prevented
-by shared-worktree merge conflicts in AI security and branch-boundary code.
-Do not count this test as passing or claim concurrent recovery acceptance yet.
+Independent PostgreSQL recovery-request acceptance now passes in
+`test_remaining_tasks_concurrency.py`: both requests read the same paused source,
+one keeps a pending review, the other fails with HTTP409 policy classification,
+its parent approval and native drafts are cancelled, and no execution jobs or
+domain changes are created. The test releases the preparation transaction before
+its barrier, matching the existing native preview's project-lock release.
+
+The combined gate passed 22 tests in
+`.local/business-suite-qa-37bc5aa1518345aead5e6f2acadbbe54/results.xml`.
+The race exposed an orphan pending parent approval on failed planning; failed
+planning now retires that still-pending parent approval as well as native drafts.
+Ordinary-owner receipt tests explicitly use a non-administrator to preserve their
+scope after the separate company-wide administrative GET inspection policy was
+merged. Initial fixture failures (missing synthetic ownership/capacity metadata)
+and the temporary merge conflict did not establish a concurrency result.
+This bounded two-request race is not a general load or deployment benchmark.
 
 ## Confirmed receipts after assignment changes
 

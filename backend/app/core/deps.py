@@ -132,9 +132,9 @@ def get_current_user(
             from app.branches.boundary import install as install_branch_boundary
             branch_discovery = request.url.path == "/api/v1/access/setup" or request.url.path.startswith(("/api/v1/access/settings", "/api/v1/branches"))
             branch_selection = None if branch_discovery else request.headers.get("X-Suite-Branch")
-            if request.url.path.endswith("/settings/defaults/effective"):
+            if request.url.path.endswith(("/settings/defaults/effective", "/settings/business-profile/effective")):
                 branch_selection = request.headers.get("X-Suite-Branch")
-            if request.url.path.endswith("/settings/defaults/configuration") and request.query_params.get("branch_id"):
+            if request.url.path.endswith(("/settings/defaults/configuration", "/settings/business-profile/configuration")) and request.query_params.get("branch_id"):
                 branch_selection = request.query_params["branch_id"]
             if branch_selection is None and getattr(user, '_suite_admin_read', False):
                 branch_selection = 'all'

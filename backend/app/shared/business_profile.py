@@ -11,8 +11,26 @@ PROFILES = {profile['id']: profile for profile in CATALOG['profiles']}
 KIND = 'business_profile'
 
 
-def scope_key(company_id, branch_id=None):
-    return f'business-profile:company:{company_id}' + (f':branch:{branch_id}' if branch_id else '')
+def scope_key(company_id, branch_id=None, workspace_module=None, workspace_id=None):
+    key = f'business-profile:company:{company_id}' + (f':branch:{branch_id}' if branch_id else '')
+    if workspace_module is not None or workspace_id is not None:
+        if not branch_id or workspace_module not in {'crm', 'srm', 'fam', 'hrms', 'pms'} or not isinstance(workspace_id, str) or not 1 <= len(workspace_id) <= 64:
+            raise HTTPException(422, 'Choose a branch and a supported workspace')
+        key += f':workspace:{workspace_module}:{workspace_id}'
+    return key
+
+
+def check_workspace(db, actor, branch_id, workspace_module, workspace_id, *, write=False):
+    if workspace_module is None and workspace_id is None:
+        return
+    scope_key(actor.organization_id, branch_id, workspace_module, workspace_id)
+    from app.shared.workspace_management.domains import DOMAINS
+    from app.shared.workspace_management.api import get_policy
+    domain = DOMAINS[workspace_module]
+    domain.authorize(actor)
+    row, company, branch = get_policy(db, domain, actor, workspace_id, write)
+    if company != actor.organization_id or branch != branch_id or (row and row.values_json.get('status') == 'Archived'):
+        raise HTTPException(404, 'Workspace not found in the selected branch')
 
 
 def validate(values):
@@ -43,9 +61,12 @@ def resolve(layers):
     return {'business_type': business_type, 'terms': terms, 'custom_terms': deepcopy(overrides)}
 
 
-def effective(db, company_id, branch_id=None, *, skip_scope=None):
+def effective(db, company_id, branch_id=None, *, skip_scope=None, workspace_module=None, workspace_id=None):
     layers, versions = [], {}
-    for key in dict.fromkeys([scope_key(company_id), scope_key(company_id, branch_id)]):
+    keys = [scope_key(company_id), scope_key(company_id, branch_id)]
+    if workspace_id is not None or workspace_module is not None:
+        keys.append(scope_key(company_id, branch_id, workspace_module, workspace_id))
+    for key in dict.fromkeys(keys):
         if key == skip_scope:
             continue
         row = db.query(ServicePolicy).filter_by(organization_id=company_id, kind=KIND, scope_key=key).first()

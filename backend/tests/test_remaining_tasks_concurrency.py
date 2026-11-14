@@ -16,20 +16,12 @@ def test_competing_remaining_reviews_leave_one_executable_replacement(live, monk
     from app.ai_agents.models import AiActionApproval
     from app.apps.project_management.models import PMSProjectMember, PMSTask
     from app.ai_operator import remaining_tasks
-    from app.ai_operator import suite
-    from fastapi import HTTPException
     from tests.rich_text_test_utils import workflow_seed_scope
 
     client=live.client
-    original_preview=suite.preflight
-    async def preview(*args,**kwargs):
-        try:return await original_preview(*args,**kwargs)
-        except HTTPException as exc:
-            pytest.fail(f'Native preview fixture failed: {exc.status_code} {exc.detail}')
-    import pytest
-    monkeypatch.setattr(suite,'preflight',preview)
     with live.factory() as db:
-        h,user,pid,workspace,_,tid=setup_load(client,db)
+        with workflow_seed_scope(db):
+            h,user,pid,workspace,_,tid=setup_load(client,db)
         _,recipient=auth_headers(client,db,email=f'remaining-race-{uuid4()}@example.com',permissions=['pms_view'])
         with workflow_seed_scope(db):
             db.add(PMSProjectMember(project_id=pid,user_id=recipient.id,role='Member'));db.commit()
@@ -38,6 +30,7 @@ def test_competing_remaining_reviews_leave_one_executable_replacement(live, monk
             params={'start':'2026-05-04','task_ids':[tid],'candidate_user_ids':[recipient.id]})
         assert value.status_code==200,value.text
         value=value.json()
+        assert value.get('plan'),value
         source=prepare(client,h,[{'tool':'pms.task_plan','record_id':pid,'payload':{
             'plan':value['plan'],'mode':'atomic','workload_guard':value['workload_guard']}},
             {'tool':'pms.task_plan','record_id':pid,'depends_on':[1],'payload':{'plan':{
@@ -59,6 +52,10 @@ def test_competing_remaining_reviews_leave_one_executable_replacement(live, monk
     original=remaining_tasks.prepare
     def competing_prepare(*args,**kwargs):
         result=original(*args,**kwargs)
+        # Native preview already releases the parent's project lock before
+        # invoking its separate ASGI session. Release it before this test's
+        # barrier too, so the other reader can reach the same checkpoint.
+        args[0].commit()
         ready.wait(timeout=10)
         return result
     monkeypatch.setattr(remaining_tasks,'prepare',competing_prepare)

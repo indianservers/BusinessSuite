@@ -94,6 +94,22 @@ def test_cancellation_releases_slot_and_denies_naive_times(client, business):
     post(client, h, '/appointments', {**data, 'request_id': str(uuid4()), 'starts_at': '2026-11-16T10:00:00'}, 422)
 
 
+@pytest.mark.parametrize('provider_type', ['provider', 'doctor', 'consultant', 'technician', 'employee'])
+def test_common_appointments_support_non_salon_providers(client, db, business, provider_type):
+    h, buyer, project, service = business
+    resource = post(client, h, '/resources', payload(title=f'Test {provider_type}', resource_type=provider_type, weekdays=list(range(7)), opens='09:00', closes='19:00'))
+    data = booking(client, h, buyer, service, resource, project_id=project.id, create_pms_task=True)
+    booked = post(client, h, '/appointments', data)
+    assert booked['status'] == 'booked'
+    from app.apps.project_management.models import PMSTask
+    task = db.get(PMSTask, booked['data']['pms_task_id'])
+    assert task.task_key.startswith('APPT-')
+    assert '/srm/appointments' in task.description and 'Salon appointment' not in task.description
+    post(client, h, '/appointments', {**data, 'request_id': str(uuid4())}, 409)
+    moved = client.put(ROOT + f'/appointments/{booked["id"]}/schedule', headers=h, json={'expected_revision': 1, 'starts_at': '2026-11-16T11:00:00+05:30', 'duration_minutes': 30, 'resource_ids': [resource['id']]})
+    assert moved.status_code == 200, moved.text
+
+
 def test_construction_certification_variation_and_shared_invoice(client, db, business):
     h, buyer, project, _ = business
     item = post(client, h, '/boq', payload(project_id=project.id, code='C-01', unit='m3', quantity='10', unit_rate='1000', tax_rate='18'))

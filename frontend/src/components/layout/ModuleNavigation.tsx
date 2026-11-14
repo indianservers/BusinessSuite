@@ -1,4 +1,5 @@
 import { commonNavigationHref, commonModules, commonRouteContext, moduleContextPath, type CommonModule } from "@/lib/common-routes";
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { sharedNotesPath } from "@/lib/shared-notes";
 import { FileText } from "lucide-react";
 import MenuItemMore, { MenuItemIcon } from "./MenuItemMore";
@@ -30,6 +31,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   collapsed?: boolean; onNavigate: () => void; workspaceId?: number; modulePath?: string; customItems?: RoleNavItem[]; quickActions?: NewAction[];
 }) {
   const location = useLocation(), id = useId();
+  const { routeLabel } = useBusinessTerms();
   const user = useAuthStore(state => state.user);
   const moduleKey = (modulePath || moduleContextPath(location.pathname, location.search)).split("/")[1] || "suite";
   const catalogPath = ["crm", "hrms", "pms", "srm", "fam"].includes(moduleKey) ? `/${moduleKey}` : modulePath || location.pathname;
@@ -70,7 +72,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
     location.pathname === item.to.split("?")[0] || location.pathname.startsWith(item.to.split("?")[0] + "/"))
     .sort((a, b) => b.to.length - a.to.length)[0];
   const activeGroup = current?.group;
-  const displayLabel = (item: {to:string;label:string}) => preferences.menuItems?.[item.to.split(/[?#]/)[0]]?.label || menuLabel(item);
+  const displayLabel = (item: {to:string;label:string}) => preferences.menuItems?.[item.to.split(/[?#]/)[0]]?.label || (customItems ? menuLabel(item) : routeLabel(item.to, menuLabel(item)));
   const items = query.trim() ? available.filter(item => menuMatches(item, query) || displayLabel(item).toLowerCase().includes(query.trim().toLowerCase())) : consolidated;
   const directItems = items.filter(item => landing.direct.some(link => link.to === item.to));
   const groupedItems = items.filter(item => !landing.direct.some(link => link.to === item.to)

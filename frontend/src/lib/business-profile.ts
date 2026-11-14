@@ -21,3 +21,15 @@ export function resolveBusinessProfile(layers: ProfileValues[]): ResolvedProfile
 export function profileTerm(profile: ResolvedProfile, key: TermKey, plural = false): string {
   return profile.terms[key][plural ? 1 : 0];
 }
+
+/** Only known application routes receive labels; record names and custom menus stay intact. */
+export function businessRouteLabel(profile: ResolvedProfile, path: string, fallback: string): string {
+  const terms: Record<string, TermKey> = {
+    '/crm/customers': 'customer', '/srm/customers': 'customer',
+    '/crm/services': 'service', '/srm/services': 'service',
+    '/hrms/employees': 'employee', '/hrms/employee-directory': 'employee',
+    '/pms/projects': 'project', '/srm/appointments': 'appointment',
+  };
+  const key = terms[path.split(/[?#]/)[0].replace(/\/$/, '')];
+  return key ? profileTerm(profile, key, true) : fallback;
+}

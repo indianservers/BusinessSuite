@@ -582,14 +582,14 @@ function isSrmSalesRole(role?: string | null, isSuperuser = false) {
 
 const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
 const srmCollectionOnlyPaths = ["/srm/collections"];
-const srmSalesOnlyPaths = ["/srm/salon", "/srm/construction", "/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
+const srmSalesOnlyPaths = ["/srm/appointments", "/srm/salon", "/srm/construction", "/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
   if (/^\/srm\/forms(?:\/|$)/.test(pathname)) return true;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
   const normalizedRole = normalizeRole(role);
-  if (["/srm/salon", "/srm/construction"].includes(normalizedPath)) {
+  if (["/srm/appointments", "/srm/salon", "/srm/construction"].includes(normalizedPath)) {
     return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
   }
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
@@ -978,7 +978,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Follow-Ups", icon: ClipboardCheck, to: "/srm/follow-ups", group: "Sales & Inventory" },
   { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
-  { label: "Salon operations", icon: CalendarDays, to: "/srm/salon", group: "Industry operations" },
+  { label: "Appointments", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
   { label: "Construction operations", icon: Briefcase, to: "/srm/construction", group: "Industry operations" },
   { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
   { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },
