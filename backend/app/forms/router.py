@@ -347,6 +347,12 @@ def validate_import(data: FormDefinition, user=Depends(get_current_user)):
 
 @router.post("", status_code=201)
 def create(data: Create, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return create_record(data,db,user)
+
+
+def create_record(data,db,user,*,commit=True):
+    from app.models.user import User
+    db.query(User.id).filter_by(id=user.id).with_for_update().one()
     module(data.module_key, db, org(user))
     validate_definition(data.definition, db, user, data.module_key)
     if db.query(SuiteForm).filter_by(owner_id=user.id).count() >= 500:
@@ -360,7 +366,8 @@ def create(data: Create, db: Session = Depends(get_db), user=Depends(get_current
         slug=secrets.token_urlsafe(24),
     )
     db.add(row)
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     db.refresh(row)
     return output(db, row)
 
@@ -374,6 +381,10 @@ def get_form(fid: int, db: Session = Depends(get_db), user=Depends(get_current_u
 def save(
     fid: int, data: Save, db: Session = Depends(get_db), user=Depends(get_current_user)
 ):
+    return save_record(fid,data,db,user)
+
+
+def save_record(fid,data,db,user,*,commit=True):
     row = owned(db, fid, user)
     validate_definition(data.definition, db, user, row.module_key)
     values = {
@@ -398,7 +409,8 @@ def save(
         raise HTTPException(
             409, "This form changed in another tab. Reload before saving."
         )
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     db.expire_all()
     return output(db, owned(db, fid, user))
 

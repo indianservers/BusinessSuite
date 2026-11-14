@@ -226,9 +226,7 @@ def query(db, user, environment, scope="all", search="", status=None):
         rows = rows.filter(ApprovalRequest.status == status)
     if search:
         rows = rows.filter(
-            ApprovalRequest.title.ilike(
-                "%" + search.replace("%", "\\%").replace("_", "\\_") + "%", escape="\\"
-            )
+            ApprovalRequest.title.icontains(search, autoescape=True)
         )
     return rows
 

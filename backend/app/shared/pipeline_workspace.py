@@ -24,7 +24,15 @@ def access(db, user, module, scope, manage=False):
     module_access(db, user, module)
     permissions = {p.name for p in permission_objects(user)}
     allowed = {"crm": {"crm_view", "crm_manage", "crm_admin", "crm_deals_view", "crm_deals_manage"}, "project_management": {"pms_view", "pms_manage", "pms_admin"}, "srm": {"srm_view", "srm_manage", "srm_admin", "srm_sales_manage"}, "hrms": {"recruitment_view", "recruitment_manage", "hrms_view", "hrms_admin"}}[module]
-    if not user.is_superuser and not permissions.intersection(allowed):
+    if module=='crm' and scope=='task_list':
+        from app.apps.crm.api.router import _assert_entity_permission
+        _assert_entity_permission('tasks',user,'view')
+    elif module=='hrms' and scope=='helpdesk_tickets':
+        # Native helpdesk list is available to authenticated users; its query
+        # independently restricts tickets to employee, assignee or escalation.
+        from app.services.helpdesk_access import tickets
+        tickets(db,user)
+    elif not user.is_superuser and not permissions.intersection(allowed):
         raise HTTPException(403, "Module permission required")
     if module == "project_management" and scope.startswith("project:"):
         from app.apps.project_management.access import get_project_for_action
@@ -61,10 +69,10 @@ def policy_key(module, scope, org, user_id=None):
 
 
 def policy(db, module, scope, org, user_id=None):
-    return db.query(ServicePolicy).filter_by(scope_key=policy_key(module, scope, org, user_id), organization_id=org, kind="pipeline_ui").with_for_update().first()
+    return db.query(ServicePolicy).filter_by(scope_key=policy_key(module, scope, org, user_id), organization_id=org, kind="pipeline_ui").with_for_update().populate_existing().first()
 
 
-def write_policy(db, module, scope, user, values, personal=True):
+def write_policy(db, module, scope, user, values, personal=True,*,commit=True):
     org = tenant(user)
     row = policy(db, module, scope, org, user.id if personal else None)
     if row is None:
@@ -73,7 +81,8 @@ def write_policy(db, module, scope, user, values, personal=True):
     row.values_json = {**(row.values_json or {}), **values}
     row.updated_by = user.id
     row.version = (row.version or 0) + 1
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     return row
 
 
@@ -105,16 +114,22 @@ def save_preferences(module: Module, scope: str, data: Preferences, db: Session 
 
 @router.post("/{module}/{scope}/views", status_code=201)
 def create_view(module: Module, scope: str, data: ViewInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return create_view_record(module,scope,data,db,user)
+
+
+def create_view_record(module,scope,data,db,user,*,commit=True):
     if not 1 <= len(scope) <= 60 or any(not (c.isalnum() or c in ":_-") for c in scope):
         raise HTTPException(422, "Invalid board scope")
     access(db, user, module, scope, manage=data.shared)
+    from app.models.user import User
+    db.query(User.id).filter_by(id=user.id).with_for_update().one()
     if not data.name.strip(): raise HTTPException(422, "Name the view")
     row = policy(db, module, scope, tenant(user), None if data.shared else user.id)
     views = list((row.values_json or {}).get("views", [])) if row else []
     if len(views) >= 30: raise HTTPException(422, "At most 30 views are allowed per workspace")
     if any(v["name"].casefold() == data.name.strip().casefold() for v in views): raise HTTPException(409, "A view with this name already exists")
     view = {"id": uuid.uuid4().hex, "name": data.name.strip(), "shared": data.shared, "preferences": data.preferences.model_dump()}
-    write_policy(db, module, scope, user, {"views": [*views, view]}, personal=not data.shared)
+    write_policy(db, module, scope, user, {"views": [*views, view]}, personal=not data.shared,commit=commit)
     return view
 
 

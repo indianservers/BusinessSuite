@@ -105,6 +105,7 @@ def test_company_sample_import_is_explicit_approved_and_reversible(client, db, p
     assert not db.query(ImportBatch).filter_by(source="company_sample").first()
     activate(client, approved)
     headers = login(client, row.email)
+    assert client.get("/api/v1/imports/sample-data/availability", headers=headers).json() == {"available": True}
     initial = client.get("/api/v1/imports/sample-data/status", headers=headers)
     assert initial.status_code == 200, initial.text
     assert initial.json()["batch"] is None
@@ -366,3 +367,14 @@ def test_owner_commit_failure_recovers_without_duplicate_workspace(client, db, p
     assert db.query(User).filter_by(email=row.email).count() == 1
     from app.platform_owner.models import PlatformAudit
     assert store.query(PlatformAudit).filter_by(signup_id=row.id).count() == 1
+
+
+def test_sample_availability_does_not_expose_or_authorize_legacy_company(client, db):
+    from tests.test_pms_workspaces import account
+    _, headers = account(db, "legacy-sample-availability@example.test", True)
+    response = client.get("/api/v1/imports/sample-data/availability", headers=headers)
+    assert response.status_code == 200, response.text
+    assert response.json() == {"available": False}
+    assert client.get("/api/v1/imports/sample-data/status", headers=headers).status_code == 403
+    assert client.post("/api/v1/imports/sample-data/import", headers=headers, json={"confirmation":"import"}).status_code == 403
+    assert client.get("/api/v1/imports/sample-data/availability").status_code in {401, 403}

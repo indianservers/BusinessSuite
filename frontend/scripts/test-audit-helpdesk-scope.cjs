@@ -1,0 +1,91 @@
+const fs = require('node:fs'), path = require('node:path');
+const { chromium, expect: base } = require('playwright/test');
+const expect = base.configure({ timeout: 20000 });
+(async () => {
+  process.chdir(path.resolve(__dirname, '..'));
+  const fixture = path.join(__dirname, '.audit-helpdesk-scope.tsx');
+  fs.writeFileSync(fixture, `import React from'react';import{createRoot}from'react-dom/client';import{MemoryRouter}from'react-router-dom';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import Page from'@/apps/hrms/pages/helpdesk/HelpdeskPage';import{useAuthStore}from'@/store/authStore';import'@/index.css';useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'qa',user:{id:1,email:'qa@example.test',role:'admin',is_superuser:true,access:{companyId:1,grants:{},modules:[]}}});sessionStorage.setItem('suite-branch','1');window.switchHelpdesk=(company,branch)=>{const changed=sessionStorage.getItem('suite-branch')!==String(branch);sessionStorage.setItem('suite-branch',String(branch));useAuthStore.setState({user:{...useAuthStore.getState().user,access:{...useAuthStore.getState().user.access,companyId:company}}});if(changed)window.dispatchEvent(new Event('suite:branch-changed'));};createRoot(document.getElementById('root')).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/hrms/helpdesk']}><Page/></MemoryRouter></QueryClientProvider>);`);
+  const { createServer } = await import('vite');
+  const server = await createServer({ root: process.cwd(), server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } });
+  await server.listen();
+  const browser = await chromium.launch();
+  try {
+    for (const width of [390, 1280]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      const errors = [], writes = [];
+      let context = 'Old', release;
+      page.on('pageerror', e => errors.push(e.message));
+      await page.route('**/api/v1/**', async route => {
+        const request = route.request(), url = new URL(request.url()), p = url.pathname;
+        if (request.method() !== 'GET') {
+          writes.push(request.postDataJSON() || Object.fromEntries(url.searchParams));
+          await new Promise(resolve => { release = resolve; });
+          return route.fulfill({ headers: { 'x-qa-completed': 'yes' }, json: { id: 100 } });
+        }
+        let data = [];
+        if (p.endsWith('/ticket-views')) data = { items: [], revision: 0, limit: 30, unsupported_views: 0 };
+        if (p.endsWith('/tickets')) data = [{ id: context === 'Old' ? 1 : 2, ticket_number: context + '-1', subject: context + ' ticket', description: context + ' private details', status: 'Open', priority: 'Medium', created_at: '2026-11-14T00:00:00Z' }];
+        if (p.endsWith('/analytics')) data = { total: 1, open: 1, resolved: 0, sla_breached: 0, due_soon: 0, first_response_breached: 0, csat_average: 0, csat_responses: 0, by_status: {} };
+        if (p.endsWith('/categories')) data = [{ id: context === 'Old' ? 1 : 2, name: context + ' category' }];
+        await route.fulfill({ json: data });
+      });
+      await page.route('**/qa-helpdesk-scope', r => r.fulfill({ contentType: 'text/html', body: `<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module">import R from'/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/.audit-helpdesk-scope.tsx');</script>` }));
+      await page.goto(server.resolvedUrls.local[0] + 'qa-helpdesk-scope');
+      await expect(page.getByText('Old ticket', { exact: true }).first()).toBeVisible();
+      await page.getByRole('button', { name: 'New Ticket', exact: true }).click();
+      let form = page.getByRole('dialog', { name: 'Create support ticket', exact: true });
+      await form.getByLabel('Ticket subject').fill('Private old draft');
+      await form.getByRole('textbox', { name: 'Description', exact: true }).fill('Private old description');
+      context = 'New';
+      await page.evaluate(() => window.switchHelpdesk(2, 1));
+      await expect(form).toHaveCount(0);
+      await expect(page.getByText('Old ticket', { exact: true })).toHaveCount(0);
+      await expect(page.getByText('New ticket', { exact: true }).first()).toBeVisible();
+      await page.getByRole('button', { name: 'New Ticket', exact: true }).click();
+      form = page.getByRole('dialog', { name: 'Create support ticket', exact: true });
+      await expect(form.getByLabel('Ticket subject')).toHaveValue('');
+      await expect(form.getByRole('option', { name: 'Old category', exact: true })).toHaveCount(0);
+      await form.getByLabel('Ticket subject').fill('Pending old branch');
+      await form.getByRole('textbox', { name: 'Description', exact: true }).fill('Pending branch description');
+      await form.locator('.smart-create-footer').getByRole('button', { name: 'Raise Ticket', exact: true }).click();
+      await expect.poll(() => Boolean(release)).toBe(true);
+      context = 'Branch';
+      await page.evaluate(() => window.switchHelpdesk(2, 2));
+      await expect(form).toHaveCount(0);
+      await page.getByRole('button', { name: 'New Ticket', exact: true }).click();
+      form = page.getByRole('dialog', { name: 'Create support ticket', exact: true });
+      await form.getByLabel('Ticket subject').fill('New branch draft');
+      const finished = page.waitForResponse(r => r.headers()['x-qa-completed'] === 'yes');
+      release(); await (await finished).finished();
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await expect(form.getByLabel('Ticket subject')).toHaveValue('New branch draft');
+      expect(writes).toHaveLength(1);
+      await form.locator('.smart-create-footer').getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.getByRole('button', { name: 'Discard Changes', exact: true }).click();
+      await page.getByText('Branch ticket', { exact: true }).first().click();
+      await page.getByRole('textbox', { name: 'Ticket reply', exact: true }).fill('Private old reply');
+      context = 'Third';
+      await page.evaluate(() => window.switchHelpdesk(3, 2));
+      await expect(page.getByRole('textbox', { name: 'Ticket reply', exact: true })).toHaveCount(0);
+      await expect(page.getByText('Branch private details', { exact: true })).toHaveCount(0);
+      await page.getByText('Third ticket', { exact: true }).first().click();
+      await expect(page.getByRole('textbox', { name: 'Ticket reply', exact: true })).toHaveText('');
+      await page.getByRole('textbox', { name: 'Ticket reply', exact: true }).fill('Pending reply');
+      release = undefined;
+      await page.getByRole('button', { name: 'Send ticket reply', exact: true }).click();
+      await expect.poll(() => Boolean(release)).toBe(true);
+      context = 'Fourth';
+      await page.evaluate(() => window.switchHelpdesk(3, 4));
+      await page.getByText('Fourth ticket', { exact: true }).first().click();
+      await page.getByRole('textbox', { name: 'Ticket reply', exact: true }).fill('New branch reply');
+      const replyFinished = page.waitForResponse(r => r.headers()['x-qa-completed'] === 'yes');
+      release(); await (await replyFinished).finished();
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await expect(page.getByRole('textbox', { name: 'Ticket reply', exact: true })).toHaveText('New branch reply');
+      expect(writes).toHaveLength(2);
+      expect(errors).toEqual([]);
+      await page.close();
+    }
+    console.log('PASS Helpdesk scope: company and branch switches reset records/selections/drafts/replies; late creation and reply completions preserve new drafts at phone/desktop widths');
+  } finally { await browser.close(); await server.close(); fs.unlinkSync(fixture); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

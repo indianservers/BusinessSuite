@@ -208,3 +208,21 @@ def test_draft_batch_can_activate_directly(client, db, program):
     response = client.post(f'{ROOT}/batches/{bid}/transition', headers=program['headers'], json={'status': 'Active'})
     assert response.status_code == 200, response.text
     assert response.json()['status'] == 'Active'
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_batch_search_is_literal(client,db,program,needle):
+    row=db.get(InternBatch,program['batches'][0])
+    row.name='QA'+needle+'Literal';db.commit()
+    base=ROOT+'/batches'
+    result=client.get(base,headers=program['headers'],params={'search':needle,'per_page':1})
+    assert result.status_code==200,result.text
+    assert result.json()['total']==1
+    assert [item['id'] for item in result.json()['items']]==[row.id]
+    row.name='QAplainLiteral';row.code='QA'+needle+'Literal';db.commit()
+    by_code=client.get(base,headers=program['headers'],params={'search':needle})
+    assert by_code.status_code==200,by_code.text
+    assert [item['id'] for item in by_code.json()['items']]==[row.id]
+    ordinary=client.get(base,headers=program['headers'],params={'search':'qaplain'})
+    assert ordinary.status_code==200,ordinary.text
+    assert [item['id'] for item in ordinary.json()['items']]==[row.id]

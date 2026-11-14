@@ -173,7 +173,7 @@ def signup_requests(status: Literal["pending", "approved", "rejected", "all"] = 
     if status != "all":
         query = query.filter(SignupRequest.status == status)
     if search:
-        query = query.filter(or_(*[column.ilike(f"%{search}%") for column in (SignupRequest.name, SignupRequest.company_name, SignupRequest.email)]))
+        query = query.filter(or_(*[column.icontains(search, autoescape=True) for column in (SignupRequest.name, SignupRequest.company_name, SignupRequest.email)]))
     total = query.count()
     rows = query.order_by(SignupRequest.id.desc()).offset((page-1)*40).limit(40).all()
     return {"items": [serialize(row) for row in rows], "total": total, "page": page, "modules": available_modules()}

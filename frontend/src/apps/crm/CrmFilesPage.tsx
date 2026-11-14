@@ -1,20 +1,34 @@
+import { useModuleAction } from "@/hooks/use-module-action";
 import { Button } from "@/components/ui/button";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+import { recordScope, useRecordScope } from "@/shared/records/Record360Workspace";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import MoveBoard from "@/components/interaction/MoveBoard";
 type Cabinet = {
+  can_manage: boolean;
   folders: { id: number; name: string }[];
   files: { id: number; name: string; folder_id: number | null; size: number }[];
 };
 export default function CrmFilesPage() {
+  const scope = useRecordScope();
+  return <FilesWorkspace key={scope} scope={scope} />;
+}
+function FilesWorkspace({ scope }: { scope: string }) {
+  const active = useRef(true), owner = useRef(recordScope(useAuthStore.getState().user));
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const owns = () => active.current && owner.current === recordScope(useAuthStore.getState().user);
+  const createAction = useModuleAction("create"), editAction = useModuleAction("edit");
   const query = useQuery({
-    queryKey: ["crm-file-workspace"],
-    queryFn: () => api.get<Cabinet>("/crm/file-workspace").then((r) => r.data),
+    queryKey: ["crm-file-workspace", scope],
+    queryFn: ({ signal }) => api.get<Cabinet>("/crm/file-workspace", { signal }).then((r) => r.data),
   });
+  const canCreate = query.isSuccess && !!query.data?.can_manage && createAction;
+  const canMove = query.isSuccess && !!query.data?.can_manage && editAction;
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,12 +36,13 @@ export default function CrmFilesPage() {
   const [notice, setNotice] = useState("");
   const [over, setOver] = useState(false);
   async function upload(files: File[]) {
-    if (busy || !files.length) return;
+    if (!owns() || !canCreate || busy || !files.length) return;
     setBusy(true);
     setError("");
     let count = 0;
     try {
       for (const file of files) {
+        if (!owns()) return;
         const form = new FormData();
         form.append("file", file);
         if (target) form.append("folder_id", target);
@@ -37,22 +52,28 @@ export default function CrmFilesPage() {
         count++;
       }
     } catch (e) {
+      if (!owns()) return;
       setError(
         (e as { response?: { data?: { detail?: string } } })?.response?.data
           ?.detail || "Upload failed.",
       );
     } finally {
-      setNotice(`${count} files uploaded`);
-      await query.refetch();
-      setBusy(false);
+      if (owns()) {
+        setNotice(`${count} files uploaded`);
+        setBusy(false);
+        void query.refetch();
+      }
     }
   }
   async function download(file: Cabinet["files"][number]) {
+    if (!owns()) return;
+    setError("");
     try {
       const response = await api.get(
         `/crm/file-workspace/files/${file.id}/download`,
         { responseType: "blob" },
       );
+      if (!owns()) return;
       const url = URL.createObjectURL(response.data);
       const a = document.createElement("a");
       a.href = url;
@@ -60,7 +81,7 @@ export default function CrmFilesPage() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
-      setError("Unable to download file.");
+      if (owns()) setError("Unable to download file.");
     }
   }
   return (
@@ -74,6 +95,7 @@ export default function CrmFilesPage() {
       {(error || query.isError) && (
         <p role="alert" className="move-error">
           {error || "Unable to load files."}
+          {query.isError && <Button type="button" variant="outline" onClick={() => void query.refetch()}>Retry files</Button>}
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
@@ -81,6 +103,7 @@ export default function CrmFilesPage() {
         Upload folder{" "}
         <NativeSelect loading={query.isFetching} error={query.isError}
           className="input max-w-xs"
+          disabled={!canCreate || busy}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
         >
@@ -95,7 +118,7 @@ export default function CrmFilesPage() {
       <div
         className={`rounded-xl border-2 border-dashed p-8 text-center ${over ? "border-primary bg-primary/5" : "border-border"}`}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes("Files")) {
+          if (canCreate && e.dataTransfer.types.includes("Files")) {
             e.preventDefault();
             setOver(true);
           }
@@ -112,7 +135,7 @@ export default function CrmFilesPage() {
           type="file"
           aria-label="Upload CRM files"
           multiple
-          disabled={busy}
+          disabled={!canCreate || busy}
           onChange={(e) => {
             void upload(Array.from(e.target.files || []));
             e.target.value = "";
@@ -123,23 +146,26 @@ export default function CrmFilesPage() {
         <input
           className="input max-w-xs"
           aria-label="CRM folder name"
+          disabled={!canCreate || busy}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Folder name"
         />
         <Button type="submit" variant="default"
-          disabled={busy || !name.trim()}
+          disabled={!canCreate || busy || !name.trim()}
           onClick={async () => {
+            if (!owns() || !canCreate) return;
             setBusy(true);
             setError("");
             try {
               await api.post("/crm/file-workspace/folders", { name });
+              if (!owns()) return;
               setName("");
-              await query.refetch();
+              void query.refetch();
             } catch {
-              setError("Unable to create folder.");
+              if (owns()) setError("Unable to create folder.");
             } finally {
-              setBusy(false);
+              if (owns()) setBusy(false);
             }
           }}
         >
@@ -149,7 +175,7 @@ export default function CrmFilesPage() {
       <MoveBoard
         label="CRM file folders"
         reorder={false}
-        disabled={busy}
+        disabled={!canMove || busy}
         groups={[
           { id: "root", label: "Unfiled" },
           ...(query.data?.folders || []).map((f) => ({
@@ -169,6 +195,7 @@ export default function CrmFilesPage() {
           ),
         }))}
         onMove={async ({ item, group }) => {
+          if (!owns() || !canMove) return;
           try {
             await api.put(`/crm/file-workspace/files/${item.id}/folder`, {
               folder_id: group === "root" ? null : Number(group),
@@ -176,7 +203,7 @@ export default function CrmFilesPage() {
                 item.group === "root" ? null : Number(item.group),
             });
           } finally {
-            await query.refetch();
+            if (owns()) await query.refetch();
           }
         }}
       />

@@ -35,7 +35,7 @@ def recipients(db,user,data):
         if not selected.issubset(permitted):raise HTTPException(403,"Selected interns are outside your scope or are not eligible")
     active_users=db.query(User.id).filter(User.is_active==True)
     q=q.filter(Employee.user_id.in_(active_users),Employee.id.notin_(data.get("exclude_ids",[])))
-    if data.get("search"):q=q.filter((Employee.first_name+" "+Employee.last_name).ilike("%"+data["search"]+"%"))
+    if data.get("search"):q=q.filter((Employee.first_name+" "+Employee.last_name).icontains(data["search"],autoescape=True))
     return q
 
 

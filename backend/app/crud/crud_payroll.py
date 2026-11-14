@@ -995,7 +995,7 @@ def run_payroll(
             SalaryAdvance.requested_deduction_month == month,
             SalaryAdvance.requested_deduction_year == year,
         ).all()
-        salary_advance_total = sum((item.approved_amount or item.requested_amount or Decimal("0")) for item in approved_advances)
+        salary_advance_total = sum((item.approved_amount if item.approved_amount is not None else item.requested_amount or Decimal("0") for item in approved_advances), Decimal("0"))
         period = attendance_input.period if attendance_input else db.query(PayrollPeriod).filter(
             PayrollPeriod.month == month,
             PayrollPeriod.year == year,

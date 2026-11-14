@@ -375,15 +375,18 @@ export default function EnterprisePage() {
       if (version === loadVersion.current) setBusy(false);
     }
   }
-  async function mutate(action: () => Promise<any>) {
+  async function mutate(action: () => Promise<any>, isCurrent:()=>boolean=()=>true) {
+    if(!isCurrent())return;
     setError("");
     setNotice("");
     try {
       await action();
+      if(!isCurrent())return;
       setNotice("Saved and audited.");
       if (section === "branding") window.dispatchEvent(new Event("suite-branding-updated"));
       await load();
     } catch (e: any) {
+      if(!isCurrent())return;
       if (
         String(e.response?.data?.detail).includes("Reauthenticate") ||
         e.response?.status === 428 ||
@@ -391,7 +394,9 @@ export default function EnterprisePage() {
           String(e.response?.data?.detail).includes("tep"))
       ) {
         setPending(() => async () => {
+          if(!isCurrent())return;
           await action();
+          if(!isCurrent())return;
           setNotice("Saved and audited.");
           if (section === "branding") window.dispatchEvent(new Event("suite-branding-updated"));
           await load();

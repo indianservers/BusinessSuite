@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, get_db
 from app.models.user import User, Role as UserRole
@@ -168,20 +168,28 @@ def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_curr
 
 
 @router.get("/workspaces/{workspace_id}/overview")
-def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user), include_people: bool = False):
     """One scoped dataset for the workspace board, people, and list views."""
     workspace, member = workspace_member(db, workspace_id, user)
     projects = db.query(PMSProject).filter_by(workspace_id=workspace_id, deleted_at=None).order_by(PMSProject.name).all()
     project_ids = [p.id for p in projects]
     tasks = db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids), PMSTask.deleted_at.is_(None)).order_by(PMSTask.position, PMSTask.id).all() if project_ids else []
     counts = dict(db.query(PMSComment.task_id, func.count(PMSComment.id)).filter(PMSComment.task_id.in_([t.id for t in tasks])).group_by(PMSComment.task_id).all()) if tasks else {}
-    return {
+    result = {
         "id": workspace.id, "name": workspace.name, "role": member.role,
         "projects": [{"id": p.id, "name": p.name, "project_key": p.project_key} for p in projects],
         "tasks": [{"id": t.id, "project_id": t.project_id, "task_key": t.task_key, "title": t.title, "description": t.description,
                    "status": t.status, "priority": t.priority,"work_type":t.work_type, "assignee_user_id": t.assignee_user_id, "assignee_user_ids": t.assignee_user_ids,
                    "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "updated_at": t.updated_at, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
     }
+
+    if include_people:
+        result["members"] = _members_payload(workspace_id, db)
+        # Only native managers can read invitation metadata. Startup never needs
+        # bearer invitation links; their dedicated endpoint remains unchanged.
+        result["invitations"] = [{key: value for key, value in row.items() if key != "token"}
+            for row in _invitations_payload(workspace_id, db, include_tokens=False)] if member.role in {"Owner", "Admin"} else []
+    return result
 
 
 @router.post("/workspaces", status_code=201)
@@ -201,9 +209,32 @@ def create_workspace(data: WorkspaceInput, db: Session = Depends(get_db), user: 
 @router.get("/workspaces/{workspace_id}/members")
 def members(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     workspace_member(db, workspace_id, user)
-    rows = db.query(PMSWorkspaceMember, User.email).join(User, User.id == PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == workspace_id).all()
+    return _members_payload(workspace_id, db)
+
+
+def _members_payload(workspace_id: int, db: Session):
+    """Read people after the caller has authorized this workspace."""
+    from app.common.models import CommonPerson
+    from app.models.audit import AuditLog
     from .people_management import public_person
-    return [{**public_person(db, db.get(User, m.user_id)), "id": m.id, "user_id": m.user_id, "email": email, "role": m.role} for m, email in rows]
+    rows = (db.query(PMSWorkspaceMember, User)
+        .join(User, User.id == PMSWorkspaceMember.user_id)
+        .options(joinedload(User.person).joinedload(CommonPerson.profile), joinedload(User.role), joinedload(User.employee))
+        .filter(PMSWorkspaceMember.workspace_id == workspace_id).all())
+    inactive = [person.id for _, person in rows if not person.is_active]
+    latest_actions = {}
+    if inactive:
+        latest = (db.query(func.max(AuditLog.id).label("id"))
+            .filter(AuditLog.entity_type == "user", AuditLog.entity_id.in_(inactive),
+                    AuditLog.action.in_(["ACCOUNT_SUSPEND", "ACCOUNT_TERMINATE", "ACCOUNT_ACTIVATE"]))
+            .group_by(AuditLog.entity_id).subquery())
+        latest_actions = dict(db.query(AuditLog.entity_id, AuditLog.action).join(latest, AuditLog.id == latest.c.id).all())
+    result = []
+    for membership, person in rows:
+        status = "active" if person.is_active else "terminated" if latest_actions.get(person.id) == "ACCOUNT_TERMINATE" or (person.person and person.person.status == "terminated") else "suspended"
+        result.append({**public_person(db, person, status=status), "id": membership.id,
+                       "user_id": person.id, "email": person.email, "role": membership.role})
+    return result
 
 
 @router.get("/workspaces/{workspace_id}/eligible-people")
@@ -211,7 +242,7 @@ def eligible_people(workspace_id: int, q: str = Query("", max_length=150), db: S
     workspace, _ = workspace_member(db, workspace_id, user, True)
     query = db.query(User).filter(User.is_active.is_(True)).order_by(User.email)
     if q.strip():
-        query = query.filter(User.email.ilike("%" + q.strip() + "%"))
+        query = query.filter(User.email.icontains(q.strip(), autoescape=True))
     # Evaluate persisted tenancy, even for installation-wide superusers.
     from .people_management import public_person
     return [public_person(db, u) for u in query.all() if organization_id_for(u) == workspace.organization_id]
@@ -338,7 +369,14 @@ def invite(workspace_id: int, data: InviteInput, db: Session = Depends(get_db), 
 @router.get("/workspaces/{workspace_id}/invitations")
 def invitations(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     workspace_member(db, workspace_id, user, True)
+    return _invitations_payload(workspace_id, db)
+
+
+def _invitations_payload(workspace_id: int, db: Session, *, include_tokens: bool = True):
+    """Read invitation metadata after the caller has authorized management."""
     rows = db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id).order_by(PMSWorkspaceInvitation.id.desc()).all()
+    if not rows:
+        return []
     existing_emails = {e[0].lower() for e in db.query(User.email).filter(func.lower(User.email).in_([i.email for i in rows])).all()}
     # Accepted legacy members may have no company/branch login membership. Their
     # account existence is already disclosed by membership in this authorized
@@ -348,7 +386,7 @@ def invitations(workspace_id: int, db: Session = Depends(get_db), user: User = D
         accepted = [i.email for i in rows if i.status == "accepted"]
         existing_emails.update(db.connection().execute(select(func.lower(users.c.email)).select_from(users.join(members, members.c.user_id == users.c.id)).where(members.c.workspace_id == workspace_id, func.lower(users.c.email).in_(accepted))).scalars())
     return [{"id": i.id, "email": i.email, "role": i.role, "account_exists": i.email in existing_emails, "status": "expired" if i.status == "pending" and i.expires_at <= datetime.utcnow() else i.status, "expires_at": i.expires_at,
-             "token": share_token(i) if i.status == "pending" and i.expires_at > datetime.utcnow() and hmac.compare_digest(hashlib.sha256(share_token(i).encode()).hexdigest(), i.token_hash) else None} for i in rows]
+             "token": share_token(i) if include_tokens and i.status == "pending" and i.expires_at > datetime.utcnow() and hmac.compare_digest(hashlib.sha256(share_token(i).encode()).hexdigest(), i.token_hash) else None} for i in rows]
 
 
 @router.post("/workspaces/{workspace_id}/invitations/{invitation_id}/resend", status_code=201)

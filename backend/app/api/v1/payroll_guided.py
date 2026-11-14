@@ -28,7 +28,7 @@ def _allows_action(user, action):
 def employee_options(search: str = "", db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
     query = db.query(Employee).filter(Employee.deleted_at.is_(None))
     if search:
-        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+        query = query.filter((Employee.first_name + " " + Employee.last_name).icontains(search, autoescape=True) | Employee.employee_id.icontains(search, autoescape=True))
     return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
             for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
 

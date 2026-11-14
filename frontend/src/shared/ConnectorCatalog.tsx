@@ -11,10 +11,17 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import ConnectorWorkflows from './ConnectorWorkflows';
 import GoogleLeadForms from './GoogleLeadForms';
+import { useAuthStore } from '@/store/authStore';
+import { canUseFeature } from '@/lib/feature-access';
+import FeatureUnavailable from '@/components/suite/FeatureUnavailable';
 
 type App = {id:string;name:string;category:string;description:string;modules:string[];implemented:boolean;authorization:string[];destination:string|null;actions:string[];setup:string[];documentation_url:string|null;blocked_reason?:string};
 const modules:Record<string,string>={crm:'CRM',pms:'Projects',hrms:'HRMS',srm:'Sales',fam:'Finance'};
 export default function ConnectorCatalog(){
+  const user=useAuthStore(state=>state.user);
+  return canUseFeature(user,'power_apps','power_apps_view') ? <AvailableConnectorCatalog/> : <FeatureUnavailable title="Connectors"/>;
+}
+function AvailableConnectorCatalog(){
   const location=useLocation();
   const root=location.pathname.split('/')[1];
   const module=modules[root]?root:'';

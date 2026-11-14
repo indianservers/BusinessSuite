@@ -297,7 +297,7 @@ def test_all_branches_catalog_creation_uses_discovered_default(client, db, heade
     overview = client.get("/api/v1/branches/context", headers={**headers, "X-Suite-Branch": "all"})
     assert overview.status_code == 200, overview.text
     data = overview.json()
-    assert data["selected"] == data["default_branch_id"]
+    assert data["selected"] is None and data["all_branches"] is True
     destination = data["default_branch_id"]
     assert destination in {branch["id"] for branch in data["branches"] if branch["can_write"]}
     product = create(client, {**headers, "X-Suite-Branch": "all"}, source="srm")
@@ -306,4 +306,18 @@ def test_all_branches_catalog_creation_uses_discovered_default(client, db, heade
     owners = db.connection().execute(select(BranchOwnership.branch_id).where(
         BranchOwnership.resource_table == "audit_logs")).scalars().all()
     assert owners and set(owners) == {destination}
-    assert client.get("/api/v1/branches/context", headers={**headers, "X-Suite-Branch": "all"}).json()["selected"] == destination
+    after = client.get("/api/v1/branches/context", headers={**headers, "X-Suite-Branch": "all"}).json()
+    assert after["selected"] is None and after["all_branches"] is True
+    assert after["default_branch_id"] == destination
+
+
+@pytest.mark.parametrize('kind',['product','service'])
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_catalog_search_is_literal(client,headers,kind,needle):
+    matching=create(client,headers,item(kind,name='QA'+needle+'Literal',code='MATCH'))
+    create(client,headers,item(kind,name='QAplainLiteral',code='PLAIN'))
+    for source in ['crm','srm','pms']:
+        response=client.get(ROOT+'/items',headers=headers,params={'source':source,'kind':kind,'search':needle,'per_page':1,'include_facets':True})
+        assert response.status_code==200,response.text
+        assert response.json()['total']==1
+        assert [row['id'] for row in response.json()['items']]==[matching['id']]

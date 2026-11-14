@@ -240,7 +240,11 @@ def memory_context(db,user,project_id):
     return collect(db,user,project.workspace_id,'PMS',project_id)
 
 
+from app.ai_operator.workload_guard import WorkloadGuard
+
+
 class PlanInput(Strict):
+    workload_guard:WorkloadGuard|None=None
     project_id:int=Field(gt=0)
     plan:TaskPlan
     request_key:str=Field(min_length=8,max_length=100)
@@ -258,7 +262,7 @@ def preview(data:PlanInput,request:Request,db:Session=Depends(get_db),user:User=
         from app.ai_operator.api import owned_run
         ids=owned_run(db,user,data.parent_run_id).selection
     return command(CommandInput(project_id=data.project_id,task_ids=ids,command=data.plan.summary,provider='openai',
-        request_key=data.request_key,local_plan=data.plan,background=True,execution_mode=data.mode,input_mode=data.input_mode,
+        request_key=data.request_key,local_plan=data.plan,background=True,execution_mode=data.mode,input_mode=data.input_mode,workload_guard=data.workload_guard,
         parent_run_id=data.parent_run_id,parent_plan_hash=data.parent_plan_hash),request,db,user)
 
 
@@ -407,13 +411,48 @@ def check_standing_consent(db,user,run):
 @router.post('/runs/{run_id}/undo-preview')
 def undo_preview(run_id:int,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.api import owned_run
-    run=owned_run(db,user,run_id)
-    state=items(db,user,run.project_id,'run_state').filter_by(key=f'run:{run.id}').with_for_update().first()
+    # Historical authorization is not reusable after an assignment changes ACL
+    # state. Authenticate its provenance, then authorize recovery from scratch.
+    run=db.query(OperatorRun).filter_by(id=run_id,user_id=user.id).first()
+    if not run:raise HTTPException(404,'Run not found')
+    project,current_scope=access(db,user,run.project_id)
+    if run.scope_key!=current_scope:raise HTTPException(403,'Run scope changed')
+    from app.ai_agents.models import AiActionApproval
+    from app.ai_agents.security import verify_provenance
+    verify_provenance(user,run.security_context)
+    original=db.get(AiActionApproval,run.approval_id)
+    if not original or original.user_id!=user.id or original.status!='approved' or original.execution_status!='executed':
+        raise HTTPException(409,'Completed approval evidence is required for recovery')
+    verify_provenance(user,original.security_context,payload=original.proposed_action_json)
+    if original.proposed_action_json.get('input',{}).get('run_id')!=run.id or original.related_entity_id!=str(run.id):
+        raise HTTPException(409,'Historical approval belongs to another execution')
+    if digest(run.plan)!=run.plan_hash or digest(original.proposed_action_json.get('preview'))!=run.plan_hash:
+        raise HTTPException(409,'Historical task plan changed')
+    context_for(db,user,run.project_id,run.selection)
+    # Recovery evidence is immutable, owner-scoped history, not a reusable skill
+    # or memory. Its old ACL fingerprint must not authorize the new action.
+    state=db.query(AssistantArtifact).filter_by(user_id=user.id,project_id=run.project_id,
+        scope_key=current_scope,kind='run_state',key=f'run:{run.id}').with_for_update().first()
+    if state:verify_provenance(user,state.security_context)
+    if state and state.payload.get('run_id')!=run.id:raise HTTPException(409,'Recovery evidence belongs to another execution')
     if run.status!='succeeded' or not state or not state.payload.get('after'):
         raise HTTPException(409,'This run has no complete reversible evidence. Use workspace recovery for older or partially completed runs.')
     if state.payload.get('undo_run_id'):
         from app.ai_operator.api import public_run
-        previous=owned_run(db,user,state.payload['undo_run_id'])
+        previous=db.query(OperatorRun).filter_by(id=state.payload['undo_run_id'],user_id=user.id,
+            project_id=run.project_id,scope_key=current_scope).first()
+        if not previous:raise HTTPException(409,'Recovery evidence changed')
+        if previous.status=='succeeded':
+            completed=db.get(AiActionApproval,previous.approval_id)
+            verify_provenance(user,previous.security_context)
+            if not completed or completed.user_id!=user.id or completed.status!='approved' or completed.execution_status!='executed':
+                raise HTTPException(409,'Recovery completion evidence changed')
+            verify_provenance(user,completed.security_context,payload=completed.proposed_action_json)
+            if completed.proposed_action_json.get('input',{}).get('run_id')!=previous.id or completed.related_entity_id!=str(previous.id):
+                raise HTTPException(409,'Recovery approval belongs to another execution')
+            if digest(previous.plan)!=previous.plan_hash or digest(completed.proposed_action_json.get('preview'))!=previous.plan_hash:
+                raise HTTPException(409,'Recovery task plan changed')
+        else:previous=owned_run(db,user,previous.id)
         if previous.status not in ('cancelled','failed','superseded'):
             return {'run':public_run(previous),'manual':state.payload.get('manual',[])}
     db.query(PMSTask).filter(PMSTask.id.in_(run.selection)).order_by(PMSTask.id).populate_existing().with_for_update().all()
@@ -443,7 +482,12 @@ def undo_preview(run_id:int,request:Request,db:Session=Depends(get_db),user:User
         else:manual.append(f'{tool} on task {step["task_id"]} requires manual recovery.')
     if not steps:raise HTTPException(409,'No supported inverse actions. '+ ' '.join(manual))
     plan=TaskPlan.model_validate({'summary':f'Recover supported changes from run #{run.id}','steps':steps})
-    result=preview(PlanInput(project_id=run.project_id,plan=plan,request_key=f'undo:{run.id}:{state.revision}'),request,db,user)
+    recovery_guard=None
+    if (run.snapshots or {}).get('__workload_guard__'):
+        from app.ai_operator.workload_guard import current as current_workload
+        recovery_guard=current_workload(db,user,run.project_id,run.snapshots['__workload_guard__'])
+    result=preview(PlanInput(project_id=run.project_id,plan=plan,request_key=f'undo:{run.id}:{state.revision}',
+        workload_guard=recovery_guard),request,db,user)
     state.payload={**state.payload,'undo_run_id':result['id'],'manual':manual};state.revision+=1;db.commit()
     return {'run':result,'manual':manual}
 

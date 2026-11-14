@@ -10,6 +10,42 @@ from tests.test_crm_deal_catalog import seed
 BASE = "/api/v1/crm/deal-workspace"
 
 
+@pytest.mark.parametrize("needle,other", [("%", "ordinary"), ("_", "X"), ("\\", "ordinary"), ("\\_", "\\X")])
+def test_audit_deal_search_and_facets_are_literal(client, db, superuser_headers, needle, other):
+    import json
+    target = create(client, db, superuser_headers, name=f"Audit {needle} deal", amount=100)
+    unrelated = client.post("/api/v1/crm/deals", headers=superuser_headers, json={"name": f"Audit {other} deal", "amount": 200, "pipeline_id": target["pipeline_id"], "stage_id": target["stage_id"]})
+    assert unrelated.status_code == 201, unrelated.text
+    query = client.get(BASE + "/query", headers=superuser_headers, params={"search": needle})
+    assert query.status_code == 200, query.text
+    assert [row["id"] for row in query.json()["items"]] == [target["id"]]
+    grid = client.get(BASE + "/grid/query", headers=superuser_headers, params={"state": json.dumps({"search": needle})})
+    assert grid.status_code == 200, grid.text
+    assert [row["id"] for row in grid.json()["rows"]] == [target["id"]]
+    assert grid.json()["total"] == 1
+    assert sum(row["sum"] for row in grid.json()["aggregates"]) == 100
+    summary = client.get(BASE + "/summary", headers=superuser_headers, params={"search": needle})
+    assert summary.status_code == 200, summary.text
+    assert summary.json()["counts"]["open"] == 1
+    assert sum(row["pipeline"] for row in summary.json()["currencies"]) == 100
+    facet = client.get(BASE + "/grid/facets", headers=superuser_headers, params={"field": "name", "search": needle})
+    assert facet.status_code == 200, facet.text
+    assert [row["value"] for row in facet.json()["values"]] == [target["name"]]
+
+
+def test_audit_grouped_deals_return_rows_when_stage_expands(client, db, superuser_headers):
+    import json
+    record = create(client, db, superuser_headers, name="QA_TEST_2026_DEAL_GROUP", amount=150000)
+    state = {"grouping": ["stage_id"], "page": 1, "pageSize": 25}
+    root = client.get(BASE + "/grid/query", headers=superuser_headers, params={"state": json.dumps(state)})
+    assert root.status_code == 200, root.text
+    group = next(group for group in root.json()["groups"] if group["value"] == record["stage_id"])
+    expanded = client.get(BASE + "/grid/query", headers=superuser_headers, params={"state": json.dumps({**state, "path": group["path"]})})
+    assert expanded.status_code == 200, expanded.text
+    assert record["id"] in {row["id"] for row in expanded.json()["rows"]}
+    assert expanded.json()["pageTotal"] == group["count"]
+
+
 def create(client, db, headers, **extra):
     payload, _, _ = seed(client, db, headers)
     payload.update(extra)

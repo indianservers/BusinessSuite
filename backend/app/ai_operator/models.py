@@ -14,6 +14,7 @@ class OperatorProvider(Base):
     enabled = Column(Boolean, nullable=False, default=False)
     data_sharing_allowed = Column(Boolean, nullable=False, default=False)
     allow_workspace_inheritance = Column(Boolean, nullable=False, default=False, server_default='false')
+    media_settings = Column(JSON, nullable=False, default=dict, server_default='{}')
     max_tokens = Column(Integer, nullable=False, default=3000)
     input_price = Column(Numeric(14, 6), nullable=True)
     output_price = Column(Numeric(14, 6), nullable=True)

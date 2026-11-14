@@ -4,7 +4,7 @@ from app.access.catalog import permission_objects
 from datetime import date
 from typing import Any
 
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from app.ai_agents.adapters.base import AiAdapterBase, model_to_dict, not_found, permission_denied
 from app.crud import crud_leave
@@ -66,7 +66,7 @@ class HrmsAiAdapter(AiAdapterBase):
         query = str(input["query"])
         rows = (
             self.db.query(CompanyPolicy)
-            .filter(CompanyPolicy.is_published == True, or_(CompanyPolicy.title.ilike(f"%{query}%"), CompanyPolicy.category.ilike(f"%{query}%"), CompanyPolicy.content.ilike(f"%{query}%")))
+            .filter(CompanyPolicy.is_published == True, or_(CompanyPolicy.title.icontains(query, autoescape=True), CompanyPolicy.category.icontains(query, autoescape=True), CompanyPolicy.content.icontains(query, autoescape=True)))
             .limit(20)
             .all()
         )
@@ -108,7 +108,7 @@ class HrmsAiAdapter(AiAdapterBase):
 
     def generate_letter_draft(self, user: User, input: dict[str, Any]) -> dict[str, Any]:
         employee = self._get_employee(user, int(input["employee_id"]))
-        template = self.db.query(DocumentTemplate).filter(DocumentTemplate.template_type.ilike(f"%{input['letter_type']}%"), DocumentTemplate.is_active == True).first()
+        template = self.db.query(DocumentTemplate).filter(DocumentTemplate.template_type.icontains(str(input["letter_type"]), autoescape=True), DocumentTemplate.is_active == True).first()
         return {"draft": {"employee": model_to_dict(employee, ["id", "employee_id", "first_name", "last_name", "work_email"]), "letter_type": input["letter_type"], "template_id": template.id if template else None, "extra_details": input.get("extra_details", {}), "note": "Draft only. No letter has been issued."}}
 
     def create_leave_request_proposal(self, user: User, input: dict[str, Any]) -> dict[str, Any]:
@@ -172,7 +172,7 @@ class HrmsAiAdapter(AiAdapterBase):
     def execute_create_letter_draft(self, user: User, proposed_action: dict[str, Any]) -> dict[str, Any]:
         input = self._approval_input(proposed_action)
         employee = self._get_employee(user, int(input["employee_id"]))
-        template = self.db.query(DocumentTemplate).filter(DocumentTemplate.template_type.ilike(f"%{input['letter_type']}%"), DocumentTemplate.is_active == True).first()
+        template = self.db.query(DocumentTemplate).filter(DocumentTemplate.template_type.icontains(str(input["letter_type"]), autoescape=True), DocumentTemplate.is_active == True).first()
         document = GeneratedDocument(
             template_id=template.id if template else None,
             employee_id=employee.id,
@@ -207,7 +207,7 @@ class HrmsAiAdapter(AiAdapterBase):
                 return row
         return (
             self.db.query(LeaveType)
-            .filter(LeaveType.is_active == True, or_(LeaveType.code.ilike(value), LeaveType.name.ilike(value), LeaveType.name.ilike(f"%{value}%")))
+            .filter(LeaveType.is_active == True, or_(func.lower(LeaveType.code) == value.lower(), LeaveType.name.icontains(value, autoescape=True)))
             .first()
         )
 

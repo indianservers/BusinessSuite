@@ -18,7 +18,7 @@ router = APIRouter()
 class StartInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     project_id: int = Field(gt=0)
-    task_id: int | None = None
+    task_id: int | None = Field(default=None,gt=0)
     session_key: UUID
     timezone: str = Field(default="UTC", max_length=80)
     description: str = Field(default="", max_length=10000)
@@ -43,11 +43,20 @@ def output(row):
 @router.get("/timer")
 def get_timer(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     row = db.get(PMSRunningTimer, user.id)
+    if row and row.active:
+        get_project_for_action(db,row.project_id,user,'browse')
+        if row.task_id:
+            task,_=get_task_project_for_action(db,row.task_id,user,'browse')
+            if task.project_id!=row.project_id:raise HTTPException(409,'Timer task moved; review the native timer')
     return output(row) if row and row.active else None
 
 
 @router.post("/timer/start")
 def start_timer(data: StartInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return start_timer_operation(data,db,user)
+
+
+def start_timer_operation(data:StartInput,db:Session,user:User,*,commit:bool=True):
     get_project_for_action(db, data.project_id, user, "log_time")
     if data.task_id:
         task, _ = get_task_project_for_action(db, data.task_id, user, "log_time")
@@ -57,9 +66,11 @@ def start_timer(data: StartInput, db: Session = Depends(get_db), user: User = De
         ZoneInfo(data.timezone)
     except (ZoneInfoNotFoundError, ValueError):
         raise HTTPException(422, "Choose a valid time zone")
-    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().first()
+    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().populate_existing().first()
     if row and row.active:
         if row.session_key == str(data.session_key):
+            if any(getattr(row,key)!=getattr(data,key) for key in ('project_id','task_id','timezone','description','is_billable')):
+                raise HTTPException(409,"Timer session key was reused with different inputs; refresh your timer")
             return output(row)
         raise HTTPException(409, "Stop your current timer before starting another")
     if row and row.session_key == str(data.session_key):
@@ -70,7 +81,8 @@ def start_timer(data: StartInput, db: Session = Depends(get_db), user: User = De
     row.session_key, row.started_at, row.active, row.log_id = str(data.session_key), datetime.now(timezone.utc), True, None
     db.add(row)
     try:
-        db.commit()
+        db.flush()
+        if commit:db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "A timer was started concurrently; refresh your timer")
@@ -79,14 +91,20 @@ def start_timer(data: StartInput, db: Session = Depends(get_db), user: User = De
 
 @router.post("/timer/stop")
 def stop_timer(data: StopInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().first()
+    return stop_timer_operation(data,db,user)
+
+
+def stop_timer_operation(data:StopInput,db:Session,user:User,*,commit:bool=True):
+    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().populate_existing().first()
     if not row or row.session_key != str(data.session_key):
         raise HTTPException(409, "Timer session changed; refresh before stopping")
-    if not row.active:
-        return {"log_id": row.log_id, "active": False}
     get_project_for_action(db, row.project_id, user, "log_time")
     if row.task_id:
-        get_task_project_for_action(db, row.task_id, user, "log_time")
+        task,_=get_task_project_for_action(db, row.task_id, user, "log_time")
+        if task.project_id!=row.project_id:raise HTTPException(409,"Timer task moved to another project; review the timer")
+    if not row.active:
+        if not row.log_id:raise HTTPException(409,"Timer session was discarded; no time entry was recorded")
+        return {"log_id": row.log_id, "active": False}
     end = datetime.now(timezone.utc)
     start = utc(row.started_at)
     minutes = max(1, math.ceil((end - start).total_seconds() / 60))
@@ -99,15 +117,22 @@ def stop_timer(data: StopInput, db: Session = Depends(get_db), user: User = Depe
     row.active, row.log_id = False, log.id
     db.add(PMSActivity(project_id=row.project_id, task_id=row.task_id, actor_user_id=user.id,
         action="time.logged", entity_type="time_log", entity_id=log.id, summary=f"Timer logged {minutes} minutes"))
-    db.commit()
+    db.flush()
+    if commit:db.commit()
     return {"log_id": log.id, "active": False, "duration_minutes": minutes}
 
 
 @router.post("/timer/discard")
 def discard_timer(data: StopInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().first()
+    return discard_timer_operation(data,db,user)
+
+
+def discard_timer_operation(data:StopInput,db:Session,user:User,*,commit:bool=True):
+    row = db.query(PMSRunningTimer).filter_by(user_id=user.id).with_for_update().populate_existing().first()
     if not row or row.session_key != str(data.session_key):
         raise HTTPException(409, "Timer session changed; refresh first")
+    get_project_for_action(db,row.project_id,user,'log_time')
     row.active = False
-    db.commit()
+    db.flush()
+    if commit:db.commit()
     return {"active": False}

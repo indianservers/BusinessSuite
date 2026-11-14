@@ -1,3 +1,5 @@
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import {useMobile} from "@/components/mobile/useMobile";
 import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
 import "./probation-mobile.css";
@@ -52,6 +54,11 @@ const badgeTone = (status?: string) => {
 };
 
 export default function ProbationPage() {
+  const scope=useRecordScope();
+  return <ScopedProbationPage key={scope} scope={scope}/>;
+}
+function ScopedProbationPage({scope}:{scope:string}) {
+  const ownsScope=useRecordScopeOwner();
   usePageTitle("Probation Management");
   const phone=useMobile(480),reviewFields=useRef<HTMLDivElement>(null);
   const [reviewSaved,setReviewSaved]=useState(0);
@@ -65,65 +72,95 @@ export default function ProbationPage() {
     comments: "",
   });
   const [action, setAction] = useState({ effectiveDate: "", extendedUntil: "", remarks: "" });
+  const actionFields=useRef<HTMLDivElement>(null);
+  const [actionFeedback,setActionFeedback]=useState<{employeeId:number;fields:Record<string,string>;message:string}|null>(null);
 
-  const dashboard = useQuery({ queryKey: ["probation-dashboard"], queryFn: () => probationApi.dashboard().then((r) => r.data) });
-  const dueList = useQuery({ queryKey: ["probation-due-list"], queryFn: () => probationApi.dueList({ days: 90 }).then((r) => r.data as ProbationEmployee[]) });
+  const dashboard = useQuery({ queryKey: ["probation-dashboard",scope], queryFn: () => probationApi.dashboard().then((r) => r.data) });
+  const dueList = useQuery({ queryKey: ["probation-due-list",scope], queryFn: () => probationApi.dueList({ days: 90 }).then((r) => r.data as ProbationEmployee[]) });
 
   const selected = useMemo(
     () => dueList.data?.find((employee) => employee.employeeId === selectedId) ?? dueList.data?.[0],
     [dueList.data, selectedId],
   );
+  const feedback=actionFeedback?.employeeId===selected?.employeeId?actionFeedback:null;
 
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["probation-dashboard"] });
-    qc.invalidateQueries({ queryKey: ["probation-due-list"] });
+    if(!ownsScope())return;
+    qc.invalidateQueries({ queryKey: ["probation-dashboard",scope] });
+    qc.invalidateQueries({ queryKey: ["probation-due-list",scope] });
   };
 
   const submitReview = useMutation({
-    mutationFn: () =>
-      probationApi.review(selected!.employeeId, {
+    mutationFn: () => {
+      if(!ownsScope())throw new Error("Probation context changed");
+      return probationApi.review(selected!.employeeId, {
         performanceRating: Number(review.performanceRating),
         conductRating: Number(review.conductRating),
         attendanceRating: Number(review.attendanceRating),
         recommendation: review.recommendation,
         comments: review.comments || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
+      if(!ownsScope())return;
       toast({ title: "Probation review submitted" });
       if(phone)setReviewSaved(value=>value+1);
       refresh();
     },
-    onError: () => toast({ title: "Could not submit review", variant: "destructive" }),
+    onError: () => {if(ownsScope())toast({ title: "Could not submit review", variant: "destructive" });},
   });
 
   const processAction = useMutation({
-    mutationFn: (type: "confirm" | "extend" | "terminate") => {
+    mutationFn: ({type,employeeId}: {type:"confirm"|"extend"|"terminate";employeeId:number}) => {
+      if(!ownsScope())throw new Error("Probation context changed");
       const payload = {
         effectiveDate: action.effectiveDate || undefined,
         extendedUntil: action.extendedUntil || undefined,
         remarks: action.remarks || undefined,
       };
-      if (type === "confirm") return probationApi.confirm(selected!.employeeId, payload);
-      if (type === "extend") return probationApi.extend(selected!.employeeId, payload);
-      return probationApi.terminate(selected!.employeeId, payload);
+      if (type === "confirm") return probationApi.confirm(employeeId, payload);
+      if (type === "extend") return probationApi.extend(employeeId, payload);
+      return probationApi.terminate(employeeId, payload);
     },
+    onMutate:()=>setActionFeedback(null),
     onSuccess: () => {
+      if(!ownsScope())return;
+      setActionFeedback(null);
       toast({ title: "Probation action processed" });
       refresh();
     },
-    onError: () => toast({ title: "Could not process action", variant: "destructive" }),
+    onError: (error:unknown,target) => {
+      if(!ownsScope())return;
+      const detail=(error as {response?:{data?:{detail?:unknown}}}).response?.data?.detail;
+      const fields:Record<string,string>={};
+      if(Array.isArray(detail))for(const issue of detail){const field=Array.isArray(issue?.loc)?issue.loc.at(-1):undefined;if(['effectiveDate','extendedUntil','remarks'].includes(field)&&typeof issue.msg==='string')fields[field]=issue.msg;}
+      const message=typeof detail==='string'?detail:Object.keys(fields).length?'Check the highlighted fields.':'Could not process action. Please retry.';
+      setActionFeedback({employeeId:target.employeeId,fields,message});
+      if(selected?.employeeId===target.employeeId){const field=Object.keys(fields)[0];if(field)actionFields.current?.querySelector<HTMLInputElement>(`input[name="${field}"]`)?.focus();}
+      toast({ title: "Could not process action", description:message, variant: "destructive" });
+    },
   });
 
   const runAlerts = useMutation({
-    mutationFn: () => probationApi.runAlerts(),
-    onSuccess: (response) => toast({ title: `${response.data.notificationsCreated} notification(s) created` }),
-    onError: () => toast({ title: "Could not run alerts", variant: "destructive" }),
+    mutationFn: () => {if(!ownsScope())throw new Error("Probation context changed");return probationApi.runAlerts();},
+    onSuccess: (response) => {if(ownsScope())toast({ title: `${response.data.notificationsCreated} notification(s) created` });},
+    onError: () => {if(ownsScope())toast({ title: "Could not run alerts", variant: "destructive" });},
   });
 
+  const chooseEmployee=(id:number)=>{
+    if(id===selected?.employeeId||submitReview.isPending||processAction.isPending)return;
+    setSelectedId(id);
+    setReview({performanceRating:"3",conductRating:"3",attendanceRating:"3",recommendation:"confirm",comments:""});
+    setAction({effectiveDate:"",extendedUntil:"",remarks:""});
+    setActionFeedback(null);
+    submitReview.reset();processAction.reset();
+  };
   const downloadLetter = async () => {
+    if(!ownsScope())return;
     if (!selected) return;
     try {
       const response = await probationApi.letter(selected.employeeId);
+      if(!ownsScope())return;
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
       link.href = url;
@@ -131,6 +168,7 @@ export default function ProbationPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch {
+      if(!ownsScope())return;
       toast({ title: "No probation letter is available yet", variant: "destructive" });
     }
   };
@@ -168,7 +206,7 @@ export default function ProbationPage() {
 
       {phone&&(dashboard.isError||dueList.isError)&&<p role="alert" className="text-sm text-destructive">Probation information could not load. <Button variant="outline" onClick={refresh} disabled={dashboard.isFetching||dueList.isFetching}>Retry probation</Button></p>}
       {phone&&dueList.isPending&&<p role="status">Loading probation employees…</p>}
-      {phone&&selected&&<label className="hrms-probation-selector">Employee<NativeSelect aria-label="Probation employee" value={String(selected.employeeId)} onChange={e=>setSelectedId(Number(e.target.value))}>{dueList.data?.map(employee=><option key={employee.employeeId} value={employee.employeeId}>{employee.employeeName} · {employee.employeeCode}</option>)}</NativeSelect></label>}
+      {phone&&selected&&<label className="hrms-probation-selector">Employee<NativeSelect aria-label="Probation employee" value={String(selected.employeeId)} disabled={submitReview.isPending||processAction.isPending} onChange={e=>chooseEmployee(Number(e.target.value))}>{dueList.data?.map(employee=><option key={employee.employeeId} value={employee.employeeId}>{employee.employeeName} · {employee.employeeCode}</option>)}</NativeSelect></label>}
       <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
         <MobileDisclosure title="Employees due for confirmation" maxWidth={480}><Card>
           <CardHeader>
@@ -181,7 +219,7 @@ export default function ProbationPage() {
               <button
                 key={employee.employeeId}
                 type="button"
-                onClick={() => setSelectedId(employee.employeeId)}
+                disabled={submitReview.isPending||processAction.isPending} onClick={() => chooseEmployee(employee.employeeId)}
                 className={`w-full rounded-lg border p-4 text-left hover:bg-muted/40 ${selected?.employeeId === employee.employeeId ? "border-primary bg-primary/5" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -251,17 +289,17 @@ export default function ProbationPage() {
                   <CardTitle className="text-base">HR action</CardTitle>
                   <CardDescription>Confirm, extend, or terminate probation and generate the appropriate letter.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent ref={actionFields} className="space-y-3">
                   <div className="grid gap-3 md:grid-cols-3">
-                    <div className="space-y-2"><Label>Effective date</Label><Input aria-label="Effective date" type="date" value={action.effectiveDate} onChange={(event) => setAction({ ...action, effectiveDate: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Extended until</Label><Input aria-label="Extended until" type="date" value={action.extendedUntil} onChange={(event) => setAction({ ...action, extendedUntil: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Remarks</Label><Input aria-label="Probation remarks" value={action.remarks} onChange={(event) => setAction({ ...action, remarks: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Effective date</Label><Input name="effectiveDate" aria-label="Effective date" aria-invalid={!!feedback?.fields.effectiveDate} type="date" value={action.effectiveDate} onChange={(event) => setAction({ ...action, effectiveDate: event.target.value })} />{feedback?.fields.effectiveDate&&<p className="text-sm text-destructive">{feedback.fields.effectiveDate}</p>}</div>
+                    <div className="space-y-2"><Label>Extended until</Label><Input name="extendedUntil" aria-label="Extended until" aria-invalid={!!feedback?.fields.extendedUntil} type="date" value={action.extendedUntil} onChange={(event) => setAction({ ...action, extendedUntil: event.target.value })} />{feedback?.fields.extendedUntil&&<p className="text-sm text-destructive">{feedback.fields.extendedUntil}</p>}</div>
+                    <div className="space-y-2"><Label>Remarks</Label><Input name="remarks" aria-label="Probation remarks" aria-invalid={!!feedback?.fields.remarks} value={action.remarks} onChange={(event) => setAction({ ...action, remarks: event.target.value })} />{feedback?.fields.remarks&&<p className="text-sm text-destructive">{feedback.fields.remarks}</p>}</div>
                   </div>
-                  {phone&&processAction.isError&&<p role="alert" className="text-destructive">Could not process action. Your dates and remarks are retained.</p>}
+                  {feedback&&<p role="alert" className="text-destructive">{feedback.message} Your dates and remarks are retained.</p>}
                   <CompactActions className="flex flex-wrap gap-2">
-                    <Button onClick={() => processAction.mutate("confirm")} disabled={processAction.isPending}><CheckCircle2 className="h-4 w-4" /> Confirm</Button>
-                    <Button variant="outline" onClick={() => processAction.mutate("extend")} disabled={processAction.isPending}><TimerReset className="h-4 w-4" /> Extend</Button>
-                    <Button variant="destructive" onClick={() => processAction.mutate("terminate")} disabled={processAction.isPending}><UserX className="h-4 w-4" /> Terminate</Button>
+                    <Button onClick={() => processAction.mutate({type:"confirm",employeeId:selected.employeeId})} disabled={processAction.isPending}><CheckCircle2 className="h-4 w-4" /> Confirm</Button>
+                    <Button variant="outline" onClick={() => processAction.mutate({type:"extend",employeeId:selected.employeeId})} disabled={processAction.isPending}><TimerReset className="h-4 w-4" /> Extend</Button>
+                    <Button variant="destructive" onClick={() => processAction.mutate({type:"terminate",employeeId:selected.employeeId})} disabled={processAction.isPending}><UserX className="h-4 w-4" /> Terminate</Button>
                     <Button variant="outline" onClick={downloadLetter}><Download className="h-4 w-4" /> Download letter</Button>
                   </CompactActions>
                 </CardContent>

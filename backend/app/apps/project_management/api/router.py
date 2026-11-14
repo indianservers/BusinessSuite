@@ -3381,17 +3381,17 @@ def list_all_tasks(
             query = query.filter(PMSTag.organization_id == user_org_id)
         query = query.distinct()
     if search:
-        term = f"%{search.strip()}%"
+        term = search.strip()
         query = query.filter(or_(
-            PMSTask.title.ilike(term),
-            PMSTask.task_key.ilike(term),
-            PMSTask.description.ilike(term),
-            PMSTask.epic_key.ilike(term),
-            PMSTask.initiative.ilike(term),
-            PMSTask.component.ilike(term),
-            PMSTask.release_name.ilike(term),
-            PMSProject.name.ilike(term),
-            PMSProject.project_key.ilike(term),
+            PMSTask.title.icontains(term, autoescape=True),
+            PMSTask.task_key.icontains(term, autoescape=True),
+            PMSTask.description.icontains(term, autoescape=True),
+            PMSTask.epic_key.icontains(term, autoescape=True),
+            PMSTask.initiative.icontains(term, autoescape=True),
+            PMSTask.component.icontains(term, autoescape=True),
+            PMSTask.release_name.icontains(term, autoescape=True),
+            PMSProject.name.icontains(term, autoescape=True),
+            PMSProject.project_key.icontains(term, autoescape=True),
         ))
 
     priority_order = case(
@@ -3568,8 +3568,8 @@ def get_backlog(
         PMSTask.deleted_at == None,
     )
     if search:
-        term = f"%{search.strip()}%"
-        task_query = task_query.filter(or_(PMSTask.title.ilike(term), PMSTask.task_key.ilike(term), PMSTask.description.ilike(term)))
+        term = search.strip()
+        task_query = task_query.filter(or_(PMSTask.title.icontains(term, autoescape=True), PMSTask.task_key.icontains(term, autoescape=True), PMSTask.description.icontains(term, autoescape=True)))
     sort_map = {
         "priority": case(
             (PMSTask.priority == "Urgent", 1),
@@ -4477,25 +4477,9 @@ def create_task_time_log(
     task, project = get_task_project_for_action(db, task_id, current_user, "log_time")
     if timelog_in.project_id != project.id:
         raise HTTPException(status_code=400, detail="Task does not belong to selected project")
-    data = timelog_in.dict()
-    data["task_id"] = task.id
-    db_timelog = PMSTimeLog(user_id=current_user.id, **data)
-    db.add(db_timelog)
-    db.flush()
-    _record_activity(
-        db,
-        project.id,
-        current_user,
-        "time.logged",
-        "time_log",
-        db_timelog.id,
-        f"Logged {db_timelog.duration_minutes} minutes on {task.task_key}",
-        task_id=task.id,
-        metadata={"duration_minutes": db_timelog.duration_minutes, "is_billable": db_timelog.is_billable},
-    )
-    db.commit()
-    db.refresh(db_timelog)
-    return db_timelog
+    data = timelog_in.model_copy(update={"task_id":task.id})
+    return create_time_log_operation(data, db, current_user,
+        activity_summary=f"Logged {data.duration_minutes} minutes on {task.task_key}")
 
 
 @router.get("/tasks/{task_id}/checklists", response_model=list[PMSChecklistItemResponse])
@@ -4792,7 +4776,7 @@ def list_tags(
     if not current_user.is_superuser:
         query = query.filter(PMSTag.organization_id == user_org_id)
     if q:
-        query = query.filter(PMSTag.name.ilike(f"%{q.strip()}%"))
+        query = query.filter(PMSTag.name.icontains(q.strip(), autoescape=True))
     return query.order_by(PMSTag.name).all()
 
 
@@ -5335,14 +5319,14 @@ def search_pms_users(
         accessible_project_ids = accessible_project_query(db, current_user).with_entities(PMSProject.id)
         member_ids = db.query(PMSProjectMember.user_id).filter(PMSProjectMember.project_id.in_(accessible_project_ids))
         query = db.query(User).filter(User.is_active == True, User.id.in_(member_ids))
-        term = f"%{q.strip()}%"
+        term = q.strip()
         if q.strip():
-            query = query.filter(User.email.ilike(term))
+            query = query.filter(User.email.icontains(term, autoescape=True))
         return [_pms_user_payload(user) for user in query.order_by(User.email).limit(limit).all()]
     query = _project_user_query(db, project)
     if q.strip():
-        term = f"%{q.strip()}%"
-        query = query.filter(User.email.ilike(term))
+        term = q.strip()
+        query = query.filter(User.email.icontains(term, autoescape=True))
     return [_pms_user_payload(user) for user in query.order_by(User.email).limit(limit).all()]
 
 
@@ -6638,6 +6622,15 @@ def create_time_log(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_time_log_operation(timelog_in, db, current_user)
+
+
+def create_time_log_operation(
+    timelog_in: PMSTimeLogCreate,
+    db: Session,
+    current_user: User,
+    *, commit: bool = True, activity_summary: str | None = None,
+):
     """Create a time log entry."""
     # Verify project exists
     get_project_for_action(db, timelog_in.project_id, current_user, "log_time")
@@ -6656,12 +6649,14 @@ def create_time_log(
         "time.logged",
         "time_log",
         db_timelog.id,
-        f"Logged {db_timelog.duration_minutes} minutes",
+        activity_summary or f"Logged {db_timelog.duration_minutes} minutes",
         task_id=db_timelog.task_id,
         metadata={"duration_minutes": db_timelog.duration_minutes, "is_billable": db_timelog.is_billable},
     )
-    db.commit()
-    db.refresh(db_timelog)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(db_timelog)
     return db_timelog
 
 
@@ -6671,6 +6666,16 @@ def update_time_log(
     timelog_in: PMSTimeLogUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+):
+    return update_time_log_operation(time_log_id, timelog_in, db, current_user)
+
+
+def update_time_log_operation(
+    time_log_id: int,
+    timelog_in: PMSTimeLogUpdate,
+    db: Session,
+    current_user: User,
+    *, commit: bool = True,
 ):
     """Update a time log entry."""
     time_log, project = _get_time_log_for_action(db, time_log_id, current_user, "log_time")
@@ -6699,8 +6704,10 @@ def update_time_log(
         task_id=time_log.task_id,
         metadata=update_data,
     )
-    db.commit()
-    db.refresh(time_log)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(time_log)
     return time_log
 
 
@@ -6709,6 +6716,15 @@ def delete_time_log(
     time_log_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+):
+    return delete_time_log_operation(time_log_id, db, current_user)
+
+
+def delete_time_log_operation(
+    time_log_id: int,
+    db: Session,
+    current_user: User,
+    *, commit: bool = True,
 ):
     """Delete a time log entry."""
     time_log, project = _get_time_log_for_action(db, time_log_id, current_user, "log_time")
@@ -6730,7 +6746,8 @@ def delete_time_log(
         task_id=task_id,
         metadata={"duration_minutes": duration},
     )
-    db.commit()
+    db.flush()
+    if commit:db.commit()
     return {"message": "Time log deleted"}
 
 
@@ -6752,19 +6769,20 @@ def list_time_logs(
     current_user: User = Depends(get_current_user),
 ):
     """List time logs."""
-    accessible_project_ids = accessible_project_query(db, current_user).with_entities(PMSProject.id)
-    query = db.query(PMSTimeLog).filter(PMSTimeLog.project_id.in_(accessible_project_ids))
-    
-    if project_id:
-        # Verify project access
-        get_project_for_action(db, project_id, current_user, "browse")
-        query = query.filter(PMSTimeLog.project_id == project_id)
-    
-    if user_id:
-        query = query.filter(PMSTimeLog.user_id == user_id)
-    
+    query = time_log_query(db,current_user,project_id,user_id)
     timelogs = query.offset(skip).limit(limit).all()
     return _mark_timesheet_locks(db, timelogs)
+
+
+def time_log_query(db,current_user,project_id=None,user_id=None):
+    """Canonical authorized time-log scope shared by native lists and summaries."""
+    accessible_project_ids=accessible_project_query(db,current_user).with_entities(PMSProject.id)
+    query=db.query(PMSTimeLog).filter(PMSTimeLog.project_id.in_(accessible_project_ids))
+    if project_id:
+        get_project_for_action(db,project_id,current_user,'browse')
+        query=query.filter(PMSTimeLog.project_id==project_id)
+    if user_id:query=query.filter(PMSTimeLog.user_id==user_id)
+    return query
 
 
 # ============= SAVED FILTERS, ACTIVITY, REPORTS =============
@@ -6794,6 +6812,11 @@ def create_saved_view(
     current_user: User = Depends(get_current_user),
 ):
     """Create a saved task view with filters, sort state, and visible columns."""
+    return create_saved_view_record(view_in,db,current_user)
+
+
+def create_saved_view_record(view_in,db,current_user,*,commit=True):
+    """Canonical creation; reviewed callers can commit their receipt atomically."""
     if view_in.project_id:
         get_project_for_action(db, view_in.project_id, current_user, "browse")
     data = view_in.dict()
@@ -6814,7 +6837,8 @@ def create_saved_view(
             PMSSavedFilter.id != saved_filter.id,
         ).update({"is_default": False}, synchronize_session=False)
     db.add(saved_filter)
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     db.refresh(saved_filter)
     return _saved_view_payload(saved_filter)
 
@@ -6827,7 +6851,11 @@ def update_saved_view(
     current_user: User = Depends(get_current_user),
 ):
     """Update a saved task view."""
-    saved_filter = db.query(PMSSavedFilter).filter(PMSSavedFilter.id == view_id).first()
+    return update_saved_view_record(view_id,view_in,db,current_user)
+
+
+def update_saved_view_record(view_id,view_in,db,current_user,*,commit=True,manage_defaults=True):
+    saved_filter = db.query(PMSSavedFilter).filter(PMSSavedFilter.id == view_id).with_for_update().populate_existing().first()
     if not saved_filter:
         raise HTTPException(status_code=404, detail="Saved view not found")
     if not _can_manage_saved_view(db, saved_filter, current_user):
@@ -6837,14 +6865,15 @@ def update_saved_view(
         if field in data and data[field] is not None:
             setattr(saved_filter, field, data[field])
     _apply_saved_view_payload(saved_filter, data)
-    if saved_filter.is_default:
+    if saved_filter.is_default and manage_defaults:
         db.query(PMSSavedFilter).filter(
             PMSSavedFilter.user_id == saved_filter.user_id,
             PMSSavedFilter.entity_type == saved_filter.entity_type,
             PMSSavedFilter.id != saved_filter.id,
         ).update({"is_default": False}, synchronize_session=False)
     db.add(saved_filter)
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     db.refresh(saved_filter)
     return _saved_view_payload(saved_filter)
 
@@ -6856,13 +6885,18 @@ def delete_saved_view(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a saved task view."""
-    saved_filter = db.query(PMSSavedFilter).filter(PMSSavedFilter.id == view_id).first()
+    return delete_saved_view_record(view_id,db,current_user)
+
+
+def delete_saved_view_record(view_id,db,current_user,*,commit=True):
+    saved_filter = db.query(PMSSavedFilter).filter(PMSSavedFilter.id == view_id).with_for_update().populate_existing().first()
     if not saved_filter:
         raise HTTPException(status_code=404, detail="Saved view not found")
     if not _can_manage_saved_view(db, saved_filter, current_user):
         raise HTTPException(status_code=403, detail="Can only delete your own views unless you manage the project")
     db.delete(saved_filter)
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     return {"message": "Saved view deleted"}
 
 
@@ -7025,6 +7059,7 @@ def get_workload_heatmap(
     basis: str = Query("hours"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    workspace_id: int | None = None,
 ):
     """Return assignee-by-week workload and capacity for accessible PMS projects."""
     del teamId  # Team-level filtering can be connected when team membership data is introduced.
@@ -7033,10 +7068,16 @@ def get_workload_heatmap(
     range_end = _week_start(to or (range_start + timedelta(weeks=7)))
     if range_end < range_start:
         raise HTTPException(status_code=400, detail="Date range is invalid")
+    if (range_end-range_start).days>84 or range_end>date.max-timedelta(days=6):
+        raise HTTPException(status_code=422,detail="Choose at most thirteen workload weeks within the supported calendar")
     if basis not in {"hours", "story_points", "task_count"}:
         raise HTTPException(status_code=400, detail="basis must be hours, story_points, or task_count")
 
     project_query = accessible_project_query(db, current_user)
+    if workspace_id is not None:
+        if workspace_id <= 0:
+            raise HTTPException(status_code=422, detail="Choose a positive workspace ID")
+        project_query = project_query.filter(PMSProject.workspace_id == workspace_id)
     if projectId:
         get_project_for_action(db, projectId, current_user, "browse")
         project_query = project_query.filter(PMSProject.id == projectId)
@@ -7047,8 +7088,9 @@ def get_workload_heatmap(
 
     task_query = db.query(PMSTask).filter(
         PMSTask.deleted_at == None,
+        PMSTask.status.notin_(CLOSED_STATUSES),
         PMSTask.project_id.in_(project_ids),
-        PMSTask.assignee_user_id != None,
+        or_(PMSTask.assignee_user_id != None, PMSTask.assignments.any()),
         or_(PMSTask.start_date == None, PMSTask.start_date <= range_end + timedelta(days=6)),
         or_(PMSTask.due_date == None, PMSTask.due_date >= range_start),
     )
@@ -7154,7 +7196,7 @@ def get_workload_heatmap(
         availability_days = []
         if basis == "hours" and users_by_id.get(user_id):
             from ..management import effective_capacity
-            availability_days = effective_capacity(db, users_by_id[user_id], range_start, range_end, organization_id_for(current_user))["days"]
+            availability_days = effective_capacity(db, users_by_id[user_id], range_start, range_end + timedelta(days=6), organization_id_for(current_user))["days"]
         totals = {"planned_hours": 0.0, "story_points": 0.0, "task_count": 0, "capacity_hours": 0.0}
         for week in weeks:
             cell = cells[(user_id, week)]

@@ -278,3 +278,35 @@ def test_lead_early_fields_and_partial_restatement_use_native_reviewed_execution
     approve(client,h,value);tick(client,db)
     assert final(client,h,value['id'])['status']=='succeeded'
     db.expire_all();assert db.get(CRMLead,ident).job_title=='Director'
+
+
+
+@pytest.mark.parametrize('text',[
+ 'CRM: create a lead reminder for lead #1 tomorrow',
+ 'CRM: add a lead reminder for lead #1 tomorrow',
+ 'CRM: create a CRM lead reminder for lead #1 tomorrow',
+ 'CRM: add a CRM lead reminder for lead #1 tomorrow',
+])
+def test_lead_reminder_is_not_intercepted_as_lead_creation(text):
+    assert parse(text,'CRM').intent=='reminders.create'
+
+
+def test_literal_lead_name_reminder_still_uses_lead_creation():
+    value=parse('CRM: create a lead name: "Reminder"','CRM')
+    assert value.intent=='leads.create' and value.slots['values']['full_name']=='Reminder'
+
+
+
+@pytest.mark.parametrize('text,intent',[
+ ('CRM: add a lead note for lead #1: Customer requested a callback','note.create'),
+ ('CRM: add a lead record note for lead #1: Customer requested a callback','note.create'),
+ ('CRM: draft a lead outreach message to all leads','leads.message'),
+ ('CRM: create a lead outreach message to all leads','leads.message'),
+])
+def test_lead_compound_objects_keep_their_own_native_action(text,intent):
+    assert parse(text,'CRM').intent==intent
+
+
+def test_labelled_lead_notes_are_still_lead_fields():
+    value=parse('CRM: create a lead notes: Call back','CRM')
+    assert value.intent=='leads.create' and value.slots['values']['notes']=='Call back'

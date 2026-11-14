@@ -120,3 +120,21 @@ def test_shared_catalog_name_changes_refresh_audience_and_postgres_sql_compiles(
         def __getattr__(self,key):return getattr(db,key)
     sql=str(select(offering_relations(PostgreSQLProjection(),db.query(User).filter_by(email='testadmin@test.com').one(),'all')).compile(dialect=postgresql.dialect()))
     assert 'LATERAL' in sql and 'jsonb_array_elements' in sql
+
+
+import pytest
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_growth_search_is_literal_for_people_and_offerings(client,superuser_headers,needle):
+    h=superuser_headers
+    matching=contact(client,h,full_name='QA'+needle+'Literal',email='literal@example.com')
+    contact(client,h,full_name='QAplainLiteral',email='ordinary@example.com')
+    for audience in [False,True]:
+        result=get(client,h,'/records',entity='contacts',audience=audience,search=needle,per_page=1)
+        assert result['total']==1
+        assert [row['id'] for row in result['items']]==[matching['id']]
+    product=post(client,h,'catalog/items?source=crm',{'kind':'product','name':'Offering'+needle+'Literal','code':'SEARCH-OFFERING','price':10,'currency':'INR'})
+    linked=contact(client,h,full_name='Offering customer',email='offering@example.com',catalog_lines=[line(product)])
+    result=get(client,h,'/records',entity='contacts',audience=True,search=needle)
+    assert result['total']==2
+    assert {row['id'] for row in result['items']}=={matching['id'],linked['id']}

@@ -5,7 +5,7 @@ from sqlalchemy import inspect
 from app.apps.business_os.models import BOSEnabledModule
 
 
-def states(db, company):
+def states(db, company, *, organization=None):
     if not inspect(db.connection()).has_table("bos_enabled_modules"):
         return {}
     # Core read avoids business-record scope hooks when checking authorization itself.
@@ -19,12 +19,13 @@ def states(db, company):
     from app.models.company import Company
     from app.access.catalog import MODULES
 
-    organization = (
-        db.connection()
-        .execute(Company.__table__.select().where(Company.__table__.c.id == company))
-        .mappings()
-        .first()
-    )
+    if organization is None:
+        organization = (
+            db.connection()
+            .execute(Company.__table__.select().where(Company.__table__.c.id == company))
+            .mappings()
+            .first()
+        )
     if organization and not organization["is_active"]:
         result.update({key: False for key in MODULES})
     from app.enterprise.controls import disabled_modules
@@ -45,7 +46,7 @@ def enforce(db, company, module):
     )
     if module and active and not active["is_active"]:
         raise HTTPException(403, "Company is inactive")
-    if module and states(db, company).get(module) is False:
+    if module and states(db, company, organization=active).get(module) is False:
         raise HTTPException(403, f"Module disabled for this company: {module}")
 
 

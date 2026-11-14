@@ -1,8 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class CompanyBase(BaseModel):
@@ -30,6 +31,20 @@ class CompanyBase(BaseModel):
 
 
 class CompanyCreate(CompanyBase):
+    working_days_per_week: int = Field(default=5, ge=1, le=7)
+    fiscal_year_start_month: int = Field(default=4, ge=1, le=12)
+    default_timezone: str = Field(default="Asia/Kolkata", max_length=80)
+    default_currency: str = Field(default="INR", pattern=r"^[A-Z]{3}$")
+
+    @field_validator("default_timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Select a valid timezone") from None
+        return value
+
     @field_validator("website")
     @classmethod
     def normalize_website(cls, value: Optional[str]) -> Optional[str]:

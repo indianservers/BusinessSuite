@@ -89,8 +89,11 @@ def summary(kind: Kind, ident: int, source: Source = 'crm', db=Depends(get_db), 
     row, project, customer = context(db, user, kind, ident, source)
     result = {'kind': kind, 'id': row.id, 'name': getattr(row, 'name', None) or getattr(row, 'full_name', None) or getattr(row, 'title', None),
               'status': getattr(row, 'status', None), 'customer': {'id': customer.id, 'name': customer.name} if customer else None,
-              'fields': {key: getattr(row, key, None) for key in ('email', 'phone', 'phone_country_code', 'website', 'industry', 'priority', 'due_date', 'next_follow_up_at', 'owner_user_id')},
+              'fields': {key: getattr(row, key, None) for key in ('email', 'phone', 'phone_country_code', 'website', 'industry', 'priority', 'due_date', 'next_follow_up_at')},
               'projects': [], 'project_count': None, 'relations': [], 'allowed_actions': [], 'sections': {}}
+    from app.shared.user_labels import user_labels
+    owner_id = getattr(row, 'owner_user_id', None)
+    result['fields']['owner'] = user_labels(db, tenant(user), [owner_id]).get(owner_id, 'Owner unavailable' if owner_id else 'Unassigned')
     if kind in ('company', 'contact', 'lead'):
         for field in ('services_offered', 'business_types'):
             result['fields'][field] = ', '.join(getattr(row, field, None) or [])

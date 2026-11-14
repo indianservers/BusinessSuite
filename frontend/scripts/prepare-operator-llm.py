@@ -50,7 +50,7 @@ def download_weights(url, target):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[1] / "public/models/operator-llm")
+    parser.add_argument("--output", type=Path, default=Path('C:/Indian Servers/ERPTrainedModel/generative/SmolLM2-135M-Instruct-tfjs'))
     parser.add_argument("--precision", choices=["float32", "uint8"], default="float32")
     args = parser.parse_args()
     out = args.output.resolve()

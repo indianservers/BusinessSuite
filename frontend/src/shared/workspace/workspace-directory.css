@@ -18,3 +18,6 @@
 .wd-team-actions{display:flex;gap:10px;margin-top:18px}.wd-editor-embedded{padding:4px 0}.wd-invite-form select{width:100%;padding:10px;border:1px solid #dfd1ed;border-radius:8px;background:#fff}
 .wd-create-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;min-height:225px;padding:25px;border:1px dashed #d7bdf4;border-radius:17px;background:linear-gradient(145deg,#fdfbff,#faf6ff);color:#27143d;text-align:center}.wd-create-card>span{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#e9d7ff;color:#7836d1}.wd-create-card strong{font-size:16px;font-weight:700}.wd-create-card small{max-width:210px;font-size:12px;line-height:1.7;color:#7c6594}.wd-create-card:hover{border-color:#ab7ce0;background:#f7f0ff}
 @media(max-width:600px){.wd-accent-picker button{width:42px;height:42px}}
+
+/* Keep long workspace tokens on one line; the full name remains available on hover. */
+.wd-card{min-width:0}.wd-card-heading>div{flex:1}.wd-card h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

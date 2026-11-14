@@ -22,12 +22,8 @@ type Summary = {id:number;kind:RecordKind;name:string;status?:string;customer?:{
 export type WorkItem = {id:string;source:string;source_id:number;title:string;status:string;due_at?:string;assignee_id?:number;priority?:string;project_id?:number;project_name?:string;url:string};
 type Page<T> = {items:T[];total:number|null;page:number;per_page:number;has_more?:boolean;next_cursor?:string|null;sections:Record<string,string>};
 type Event = {id:string;type:string;title:string;body?:string;occurred_at?:string;actor_id?:number;actor_name?:string;url?:string;source:string};
-export function recordScope(user: ReturnType<typeof useAuthStore.getState>["user"]) {return [user?.id,user?.access?.companyId,sessionStorage.getItem("suite-organization"),sessionStorage.getItem("suite-branch"),JSON.stringify(user?.access?.grants)].join(":");}
-export function useRecordScope(){
-  const user=useAuthStore(s=>s.user),[generation,setGeneration]=useState(0);
-  useEffect(()=>{const changed=()=>setGeneration(value=>value+1);const names=['suite:organization-changed','suite:branch-changed','suite:record-access-changed'];names.forEach(name=>window.addEventListener(name,changed));return()=>names.forEach(name=>window.removeEventListener(name,changed));},[]);
-  return `${recordScope(user)}:${generation}`;
-}
+import { useRecordScope } from "@/lib/record-scope";
+export { recordScope, useRecordScope } from "@/lib/record-scope";
 export function recordError(error: unknown) {const value=error as {response?:{data?:{detail?:unknown}}};return typeof value?.response?.data?.detail==="string"?value.response.data.detail:"This section could not be loaded. Retry to refresh it.";}
 export const workSourceLabel:Record<string,string>={pms_task:"PMS task",pms_followup:"Task follow-up",service_followup:"Service follow-up",crm_task:"CRM task",crm_activity:"CRM follow-up",crm_meeting:"CRM meeting"};
 export function WorkRows({items}:{items:WorkItem[]}) {return <div className="r360-work-list">{items.map(item=><article key={item.id} className="r360-work-item"><div><Link to={item.url}><RichTextContent value={item.title} legacyFormat="plain"/></Link><p>{workSourceLabel[item.source]||item.source} · {item.status}{item.due_at?` · Due ${item.due_at.length===10?item.due_at:new Date(item.due_at).toLocaleString()}`:" · Unscheduled"}{item.project_name?` · ${item.project_name}`:""}</p></div><Link className="r360-open" to={item.url}>Open</Link></article>)}</div>;}

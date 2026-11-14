@@ -1,3 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -27,6 +30,7 @@ export default function WorkspaceEnhancements({ terminal = false }: { terminal?:
   </Dialog.Root>;
 }
 function TeamWork() {
+  const user=useAuthStore(s=>s.user),client=useQueryClient(),scope=workspaceDataScope(user);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selected, setSelected] = useState(0);
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -43,9 +47,9 @@ function TeamWork() {
   const canEdit = !!workspace && workspace.role !== "Guest";
   useEffect(() => {
     let active = true;
-    void api.get<Workspace[]>(`${base}/workspaces`).then(({ data }) => { if (active) { setWorkspaces(data); setSelected(data[0]?.id || 0); } }).catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });
+    void client.fetchQuery(pmsWorkspaceOptions(scope)).then(data => { if (active) { setWorkspaces(data); setSelected(data[0]?.id || 0); } }).catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [client,scope]);
   const refresh = useCallback(async () => {
     if (!selected) return;
     const [overview, people] = await Promise.all([

@@ -18,6 +18,7 @@ from app.models.timesheet import Timesheet
 from app.models.user import User
 from app.models.workflow_engine import WorkflowDefinition, WorkflowStepDefinition
 from app.schemas.workflow import WorkflowInboxItem, WorkflowInboxSummary
+from app.shared.approval_targets import validate_step_recipients
 
 router = APIRouter(prefix="/workflow", tags=["Workflow Inbox"])
 
@@ -222,6 +223,7 @@ def add_workflow_step(
             + 1
         )
     step = WorkflowStepDefinition(workflow_id=definition_id, **step_data)
+    validate_step_recipients(db, current_user, step)
     db.add(step)
     db.commit()
     db.refresh(step)
@@ -237,8 +239,14 @@ def update_workflow_step(
     current_user: User = Depends(RequirePermission("company_manage")),
 ):
     step = _step_or_404(db, definition_id, step_id)
+    candidate = WorkflowStepDefinition(**{column.name:getattr(step, column.name) for column in step.__table__.columns})
     for field, value in data.model_dump().items():
-        setattr(step, field, value)
+        setattr(candidate, field, value)
+    if candidate.step_order is None:
+        candidate.step_order = step.step_order
+    validate_step_recipients(db, current_user, candidate)
+    for field in data.model_dump():
+        setattr(step, field, getattr(candidate, field))
     db.commit()
     db.refresh(step)
     return step
@@ -266,6 +274,14 @@ def activate_workflow_definition(
     current_user: User = Depends(RequirePermission("company_manage")),
 ):
     definition = _definition_or_404(db, definition_id)
+    candidates = []
+    for step in definition.steps:
+        candidate = WorkflowStepDefinition(**{column.name:getattr(step, column.name) for column in step.__table__.columns})
+        validate_step_recipients(db, current_user, candidate)
+        candidates.append((step, candidate))
+    for step, candidate in candidates:
+        step.approver_type = candidate.approver_type
+        step.delegation_type = candidate.delegation_type
     definition.is_active = True
     db.commit()
     db.refresh(definition)

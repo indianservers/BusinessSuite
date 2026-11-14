@@ -174,6 +174,7 @@ SUITE = {
     "hrms.leave_types": ("HRMS", "GET", "/leave/types", ()),
     "hrms.my_leave": ("HRMS", "GET", "/leave/my-requests", ()),
     "hrms.request_leave": ("HRMS", "POST", "/leave/apply", ()),
+    "hrms.approve_leave": ("HRMS", "PUT", "/leave/requests/{record_id}/approve", ("leave_approve",)),
     "pms.create_project": (
         "PMS",
         "POST",
@@ -244,6 +245,54 @@ SUITE = {
 # Explicitly reviewed module memory and lookup capabilities. Keep this registry
 # independent of runtime tool registration so new code does not self-authorize.
 SUITE.update({
+    'crm.saved_views':('CRM','GET','/crm/task-views',()),
+    'crm.update_saved_view':('CRM','POST','/ai-operator/suite/crm/views/update-approved',()),
+    'crm.remove_saved_view':('CRM','POST','/ai-operator/suite/crm/views/remove-approved',()),
+    'hrms.saved_views':('HRMS','GET','/helpdesk/ticket-views',()),
+    'hrms.update_saved_view':('HRMS','POST','/ai-operator/suite/hrms/views/update-approved',()),
+    'hrms.remove_saved_view':('HRMS','POST','/ai-operator/suite/hrms/views/remove-approved',()),
+    'crm.forms':('CRM','GET','/ai-operator/suite/crm/forms/records',()),
+    'crm.form':('CRM','GET','/ai-operator/suite/crm/forms/records/{record_id}',()),
+    'crm.create_form':('CRM','POST','/ai-operator/suite/crm/forms/create-approved',()),
+    'crm.edit_form':('CRM','POST','/ai-operator/suite/crm/forms/edit-approved',()),
+    'crm.publish_form':('CRM','POST','/ai-operator/suite/crm/forms/publish-approved',()),
+    'crm.close_form':('CRM','POST','/ai-operator/suite/crm/forms/close-approved',()),
+    'pms.forms':('PMS','GET','/ai-operator/suite/pms/forms/records',()),
+    'pms.form':('PMS','GET','/ai-operator/suite/pms/forms/records/{record_id}',()),
+    'pms.create_form':('PMS','POST','/ai-operator/suite/pms/forms/create-approved',()),
+    'pms.edit_form':('PMS','POST','/ai-operator/suite/pms/forms/edit-approved',()),
+    'pms.publish_form':('PMS','POST','/ai-operator/suite/pms/forms/publish-approved',()),
+    'pms.close_form':('PMS','POST','/ai-operator/suite/pms/forms/close-approved',()),
+    'hrms.forms':('HRMS','GET','/ai-operator/suite/hrms/forms/records',()),
+    'hrms.form':('HRMS','GET','/ai-operator/suite/hrms/forms/records/{record_id}',()),
+    'hrms.create_form':('HRMS','POST','/ai-operator/suite/hrms/forms/create-approved',()),
+    'hrms.edit_form':('HRMS','POST','/ai-operator/suite/hrms/forms/edit-approved',()),
+    'hrms.publish_form':('HRMS','POST','/ai-operator/suite/hrms/forms/publish-approved',()),
+    'hrms.close_form':('HRMS','POST','/ai-operator/suite/hrms/forms/close-approved',()),
+    'hrms.create_saved_view':('HRMS','POST','/ai-operator/suite/hrms/views/create-approved',()),
+    'crm.create_saved_view':('CRM','POST','/ai-operator/suite/crm/views/create-approved',()),
+    'pms.calendar_policy':('PMS','GET','/ai-operator/suite/pms/calendar/policy',()),
+    'pms.calendar_event':('PMS','GET','/ai-operator/suite/pms/calendar/event',()),
+    'pms.calendar_events':('PMS','GET','/ai-operator/suite/pms/calendar/events',()),
+    'pms.calendar_slots':('PMS','GET','/ai-operator/suite/pms/calendar/slots',()),
+    'pms.create_calendar_event':('PMS','POST','/ai-operator/suite/pms/calendar/create-approved',()),
+    'pms.edit_calendar_event':('PMS','POST','/ai-operator/suite/pms/calendar/edit-approved',()),
+    'pms.remove_calendar_event':('PMS','POST','/ai-operator/suite/pms/calendar/remove-approved',()),
+    'pms.timer':('PMS','GET','/ai-operator/suite/pms/timer/{record_id}',()),
+    'pms.start_timer':('PMS','POST','/ai-operator/suite/pms/timer/{record_id}/start-approved',()),
+    'pms.stop_timer':('PMS','POST','/ai-operator/suite/pms/timer/{record_id}/stop-approved',()),
+    'pms.discard_timer':('PMS','POST','/ai-operator/suite/pms/timer/{record_id}/discard-approved',()),
+    'pms.time_summary':('PMS','GET','/ai-operator/suite/pms/time-summary/{record_id}',()),
+    'pms.time_log':('PMS','GET','/ai-operator/suite/pms/time/{record_id}',()),
+    'pms.create_time_log':('PMS','POST','/ai-operator/suite/pms/time/{record_id}/create-approved',()),
+    'pms.edit_time_log':('PMS','POST','/ai-operator/suite/pms/time/{record_id}/edit-approved',()),
+    'pms.remove_time_log':('PMS','POST','/ai-operator/suite/pms/time/{record_id}/remove-approved',()),
+    'pms.workload':('PMS','GET','/ai-operator/suite/pms/workload/{record_id}',()),
+    'pms.rebalance_workload':('PMS','GET','/ai-operator/suite/pms/workload/{record_id}/rebalance',('pms_manage_tasks','pms_manage_projects','pms_admin')),
+    'pms.saved_views':('PMS','GET','/ai-operator/suite/pms/views/records/{record_id}',()),
+    'pms.update_saved_view':('PMS','POST','/ai-operator/suite/pms/views/update-approved',()),
+    'pms.remove_saved_view':('PMS','POST','/ai-operator/suite/pms/views/remove-approved',()),
+    'pms.create_saved_view':('PMS','POST','/ai-operator/suite/pms/views/create-approved',()),
     'crm.people': ('CRM', 'GET', '/users/search', ()),
     'crm.report': ('CRM', 'GET', '/ai-operator/suite/reports/CRM', ()),
     'pms.report': ('PMS', 'GET', '/ai-operator/suite/reports/PMS', ()),
@@ -281,6 +330,10 @@ for _knowledge_module in ('CRM','PMS','HRMS','SRM','FAM'):
     SUITE[f'{_knowledge_module.lower()}.search_knowledge']=(_knowledge_module,'GET','/ai-operator/suite/workspace/conversation-search',())
 
 for _module in ('CRM','PMS','HRMS'):
+    SUITE[f'{_module.lower()}.transcribe_audio']=(_module,'POST','/ai-operator/suite/media/transcribe-approved',())
+    SUITE[f'{_module.lower()}.generate_image']=(_module,'POST','/ai-operator/suite/media/generate-image-approved',())
+    SUITE[f'{_module.lower()}.import_image']=(_module,'POST','/ai-operator/suite/media/import-image-approved',())
+    SUITE[f'{_module.lower()}.edit_image']=(_module,'POST','/ai-operator/suite/media/edit-image-approved',())
     for _name,_method,_path in (
         ('create_artifact','POST','/ai-operator/suite/artifacts/create-approved'),
         ('edit_artifact','POST','/ai-operator/suite/artifacts/edit-approved'),

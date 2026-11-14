@@ -531,3 +531,29 @@ def test_private_teams_and_narrow_scope_do_not_expose_unauthorized_people(
         }
     }
     assert [u.id for u in scope(db, member)] == [member.id]
+
+
+@pytest.mark.parametrize('kind',['teams','batches'])
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_group_and_member_search_are_literal(client,db,directory_data,kind,needle):
+    data,foreign,fh=directory_data
+    owner,member,outsider,headers,mh,oh,project,team,batch=data
+    group=team if kind=='teams' else batch
+    group.name='QA'+needle+'Literal';db.commit()
+    listed=client.get(ROOT+'/groups',headers=headers,params={'kind':kind,'q':needle,'page_size':1})
+    assert listed.status_code==200,listed.text
+    assert [row['id'] for row in listed.json()['items']]==[group.id]
+    group.name='QAplainLiteral';db.commit()
+    absent=client.get(ROOT+'/groups',headers=headers,params={'kind':kind,'q':needle})
+    assert absent.status_code==200,absent.text
+    assert absent.json()['total']==0
+    member.person.display_name='QA'+needle+'Literal';db.commit()
+    detail=client.get(ROOT+f'/groups/{kind}/{group.id}',headers=headers,params={'section':'members','q':needle,'page_size':1})
+    assert detail.status_code==200,detail.text
+    assert detail.json()['members']==1
+    assert [row['id'] for row in detail.json()['items']]==[member.id]
+
+    workspace=client.get(ROOT+f'/workspaces/{team.workspace_id}/people',headers=headers,params={'q':needle,'page_size':1})
+    assert workspace.status_code==200,workspace.text
+    assert workspace.json()['total']==1
+    assert [row['id'] for row in workspace.json()['items']]==[member.id]

@@ -275,8 +275,15 @@ def _perform_action(
         raise HTTPException(status_code=403, detail="Only HR can process final probation action")
     employee = _load_employee(db, employee_id)
     effective = payload.effectiveDate or date.today()
+    if employee.date_of_joining and effective < employee.date_of_joining:
+        raise HTTPException(422, detail=[{'loc':['body','effectiveDate'],
+            'msg':'Effective date cannot precede joining date','type':'value_error'}])
     if action_type == "extend" and not payload.extendedUntil:
         raise HTTPException(status_code=400, detail="extendedUntil is required for extension")
+    if action_type == "extend" and payload.extendedUntil <= max(effective, _probation_end(employee)):
+        raise HTTPException(422, detail=[{'loc':['body','extendedUntil'],
+            'msg':'Extension must end after the effective date and current probation end date',
+            'type':'value_error'}])
     action = ProbationAction(
         organization_id=_org_id(current_user),
         employee_id=employee.id,
@@ -348,24 +355,36 @@ def probation_letter(employee_id: int, db: Session = Depends(get_db), current_us
         "Authorized HR Signatory",
     ]
     try:
+        from io import BytesIO
+        from html import escape
         from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
-        c = canvas.Canvas(path, pagesize=A4)
-        y = A4[1] - 56
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(48, y, title)
-        c.setFont("Helvetica", 11)
-        y -= 36
+        buffer = BytesIO()
+        styles = getSampleStyleSheet()
+        body = styles['BodyText']
+        body.fontSize = 11
+        body.leading = 16
+        story = [Paragraph(escape(title), styles['Title']), Spacer(1, 18)]
         for line in lines[2:]:
-            c.drawString(48, y, str(line))
-            y -= 20
-        c.save()
+            # Escape user content before ReportLab interprets paragraph markup.
+            text = escape(str(line)).replace('\n', '<br/>')
+            story.append(Paragraph(text, body) if text else Spacer(1, 12))
+        document = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=48,
+            rightMargin=48, topMargin=48, bottomMargin=48,
+            title=title, author='HR')
+        document.build(story)
+        content = buffer.getvalue()
     except Exception:
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.write("\n".join(lines))
-        persist_file(path)
+        # Never label a text fallback as a successful PDF or update its receipt.
+        raise HTTPException(503, 'Probation letter could not be generated. Please retry.') from None
+    from uuid import uuid4
+    filename = os.path.basename(path)
+    path = os.path.join(out_dir, f"probation_{employee.id}_{action.id}_{uuid4().hex}.pdf")
+    with open(path, 'wb') as handle:
+        handle.write(content)
+    persist_file(path)
     action.letter_generated = True
     db.commit()
-    persist_file(path)
-    return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))
+    return FileResponse(path, media_type="application/pdf", filename=filename)

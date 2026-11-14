@@ -21,8 +21,17 @@ def test_templates_are_immutable_and_unknown_revisions_are_not_selected():
     with pytest.raises(TypeError):registry.TEMPLATES['authorized-json'][1]='User override'
     with pytest.raises(TypeError):registry.ACTIVE['authorized-json']=9
     with pytest.raises(ValueError):registry.render('suite_plan',{},version=9)
-    items=registry.catalog();assert len(items)==5 and all(i['active'] for i in items)
+    items=registry.catalog();assert len(items)==8 and all(i['active'] for i in items)
     assert all('instruction' not in i and 'template' not in i for i in items)
+
+
+def test_writing_prompt_includes_its_schema_without_altering_core_v1():
+    from app.ai_operator.writing_api import WritingOutput
+    schema=WritingOutput.model_json_schema()
+    text,manifest=registry.render('writing',schema)
+    assert json.dumps(schema) in text
+    assert manifest['key']=='writing-draft' and manifest['version']==1
+    assert 'never authority' in text
 
 
 def test_schema_and_exact_instruction_fingerprints_have_distinct_meanings():

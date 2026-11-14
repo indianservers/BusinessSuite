@@ -172,12 +172,14 @@ def guard(db, user, data, record=None):
 def filtered(db, user, search="", currency="", pipeline_id=None, owner_id=None, stage_id=None, status="", priority="", deal_type="", start=None, end=None, no_next=False, industry="", source="", team_id=None, entered_stage_id=None, lost_reason=""):
     q = rows(db, user, "deals")
     if search:
-        matches = [CRMDeal.name.ilike(f"%{search}%"), CRMDeal.description.ilike(f"%{search}%")]
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        matches = [CRMDeal.name.ilike(pattern, escape="\\"), CRMDeal.description.ilike(pattern, escape="\\")]
         from .models import CRMCompany, CRMContact
         if allowed(user, "companies", "view"):
-            matches.append(CRMDeal.company_id.in_(rows(db, user, "companies").with_entities(CRMCompany.id).filter(CRMCompany.name.ilike(f"%{search}%"))))
+            matches.append(CRMDeal.company_id.in_(rows(db, user, "companies").with_entities(CRMCompany.id).filter(CRMCompany.name.ilike(pattern, escape="\\"))))
         if allowed(user, "contacts", "view"):
-            matches.append(CRMDeal.contact_id.in_(rows(db, user, "contacts").with_entities(CRMContact.id).filter(or_(CRMContact.full_name.ilike(f"%{search}%"), CRMContact.email.ilike(f"%{search}%")))))
+            matches.append(CRMDeal.contact_id.in_(rows(db, user, "contacts").with_entities(CRMContact.id).filter(or_(CRMContact.full_name.ilike(pattern, escape="\\"), CRMContact.email.ilike(pattern, escape="\\")))))
         q = q.filter(or_(*matches))
     for field, value in (("currency", currency), ("pipeline_id", pipeline_id), ("owner_user_id", owner_id), ("stage_id", stage_id), ("status", status), ("priority", priority), ("deal_type", deal_type), ("industry", industry), ("assigned_team_id", team_id)):
         if value:

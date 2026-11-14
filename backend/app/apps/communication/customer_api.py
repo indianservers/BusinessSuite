@@ -117,7 +117,7 @@ class RecipientInput(BaseModel):
 def recipients(search: str = Query('', max_length=160), db: Session = Depends(get_db), user=Depends(view)):
     query = db.query(CustomerRecipient).filter_by(organization_id=company(user))
     if search:
-        query = query.filter(CustomerRecipient.name.ilike('%'+search+'%'))
+        query = query.filter(CustomerRecipient.name.icontains(search,autoescape=True))
     return {'items': [serialize(r) for r in query.order_by(CustomerRecipient.id.desc()).limit(500)]}
 
 

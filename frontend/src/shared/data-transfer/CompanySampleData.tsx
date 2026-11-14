@@ -3,25 +3,30 @@ import {useQueryClient} from "@tanstack/react-query";
 import {recordCache} from "@/lib/smart-cache/integration";
 import {api} from "@/services/api";
 import {Button} from "@/components/ui/button";
-import {useAuthStore} from "@/store/authStore";
+import {useRecordScope} from "@/shared/records/Record360Workspace";
+import {useRecordScopeOwner} from "@/hooks/use-record-scope-owner";
 import {Dialog, DialogContent, DialogTitle, DialogDescription} from "@/components/ui/dialog";
 import {transferError} from "./transfer";
 
 type Status = {requested:boolean; modules:string[]; batch:null|{id:string;branch_id:number;total:number;counts:Record<string,number>}};
 
 export default function CompanySampleData(){
+ const scope=useRecordScope();
+ return <ScopedCompanySampleData key={scope}/>;
+}
+function ScopedCompanySampleData(){
+ const ownsScope=useRecordScopeOwner();
  const queries=useQueryClient();
- const company=useAuthStore(s=>s.user?.access?.companyId);
  const [status,setStatus]=useState<Status>(),[mode,setMode]=useState<"import"|"delete">(),[confirmation,setConfirmation]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState("");
- useEffect(()=>{let active=true;setStatus(undefined);void api.get<Status>("/imports/sample-data/status").then(({data})=>{if(active)setStatus(data);}).catch(()=>{});return()=>{active=false;};},[company]);
+ useEffect(()=>{const controller=new AbortController();void api.get<{available:boolean}>("/imports/sample-data/availability",{signal:controller.signal}).then(({data})=>data.available&&!controller.signal.aborted&&ownsScope()?api.get<Status>("/imports/sample-data/status",{signal:controller.signal}):undefined).then(response=>{if(!response)return;const {data}=response;if(!controller.signal.aborted&&ownsScope())setStatus(data);}).catch(()=>{});return()=>controller.abort();},[]);
  if(!status)return null;
- async function submit(){if(busy||confirmation!==mode)return;setBusy(true);setError("");try{
-  const {data}=await api.post<Status>(`/imports/sample-data/${mode}`,{confirmation,batch_id:status?.batch?.id});setStatus(data);setMode(undefined);setConfirmation("");
-  await recordCache?.invalidateCache();
-  await queries.invalidateQueries({type:"active"});
+ async function submit(){if(busy||confirmation!==mode||!ownsScope())return;setBusy(true);setError("");try{
+  const {data}=await api.post<Status>(`/imports/sample-data/${mode}`,{confirmation,batch_id:status?.batch?.id});if(!ownsScope())return;setStatus(data);setMode(undefined);setConfirmation("");
+  void recordCache?.invalidateCache().catch(()=>{});
+  void queries.invalidateQueries({type:"active"});
   window.dispatchEvent(new Event("suite:metrics-changed"));window.dispatchEvent(new Event("crm:records-changed"));
- }catch(e){setError(transferError(e));}finally{setBusy(false);}}
+ }catch(e){if(ownsScope())setError(transferError(e));}finally{setBusy(false);}}
  return <section className="rounded-xl border bg-white p-4 my-4" aria-label="Company sample data">
   <h2 className="font-semibold">{status.batch?"Company sample data":"Import sample data?"}</h2>
   <p className="text-sm my-2">{status.batch?`${status.batch.total} fictional records imported in branch ${status.batch.branch_id}.`:

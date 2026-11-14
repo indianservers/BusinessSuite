@@ -190,7 +190,7 @@ def projects(db, user, intent):
         get_project_for_action(db, intent.project_id, user)
         query = query.filter(PMSProject.id == intent.project_id)
     if intent.query:
-        query = query.filter(PMSProject.name.ilike(f"%{intent.query}%"))
+        query = query.filter(PMSProject.name.icontains(intent.query, autoescape=True))
     return query.order_by(PMSProject.id).limit(50).all()
 
 
@@ -510,7 +510,7 @@ def read_tool(db, user, intent):
 
         rows = (
             _project_user_query(db, found[0])
-            .filter(User.is_active.is_(True), User.email.ilike(f"%{intent.query}%"))
+            .filter(User.is_active.is_(True), User.email.icontains(intent.query, autoescape=True))
             .limit(50)
             .all()
         )
@@ -544,7 +544,7 @@ def read_tool(db, user, intent):
             ),
         )
     if intent.query and intent.tool in {"tasks.search", "tasks.overdue"}:
-        task_query = task_query.filter(PMSTask.title.ilike(f"%{intent.query}%"))
+        task_query = task_query.filter(PMSTask.title.icontains(intent.query, autoescape=True))
     tasks = task_query.order_by(PMSTask.id).limit(200).all()
     if intent.tool == "tasks.mine":
         tasks = [t for t in tasks if user.id in t.assignee_user_ids]
@@ -583,7 +583,7 @@ def read_tool(db, user, intent):
         query = db.query(model).filter(model.project_id.in_(ids))
         if intent.query:
             column = model.title if model is PMSDocument else model.name
-            query = query.filter(column.ilike(f"%{intent.query}%"))
+            query = query.filter(column.icontains(intent.query, autoescape=True))
         rows = query.limit(50).all()
         return {
             "kind": "records",

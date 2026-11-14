@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -59,6 +59,7 @@ type Statistics = {
   context: { as_of: string; definition: string; timezone: string };
 };
 type Props = {
+  scope: string;
   statistics?: Statistics;
   loading: boolean;
   error?: string;
@@ -101,6 +102,11 @@ const money = (amount: number, currency = "INR") => {
 };
 export default function CRMReferenceDashboard(p: Props) {
   const navigate = useNavigate();
+  const [secondaryScope, setSecondaryScope] = useState("");
+  useEffect(() => { if (!p.loading) setSecondaryScope(p.scope); }, [p.loading, p.scope]);
+  // Keep filters and secondary views mounted across range refreshes. A genuine
+  // actor/branch/permission change remounts this component with its new scope.
+  const secondaryReady = secondaryScope === p.scope;
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
@@ -108,6 +114,7 @@ export default function CRMReferenceDashboard(p: Props) {
   const [monthEvents, setMonthEvents] = useState<CRMCalendarEvent[]>([]);
   const [calendarError, setCalendarError] = useState("");
   useRefreshableEffect(() => {
+    if (!secondaryReady) return;
     let active = true;
     const key = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -127,7 +134,7 @@ export default function CRMReferenceDashboard(p: Props) {
     return () => {
       active = false;
     };
-  }, [month]);
+  }, [month, secondaryReady]);
   const sources = p.statistics?.lead_sources || [];
   const total = sources.reduce((n, r) => n + r.value, 0);
   const currencies = [...new Set(p.deals.map((d) => d.currency || "Unknown"))];
@@ -176,6 +183,7 @@ export default function CRMReferenceDashboard(p: Props) {
     completed_tasks?: number;
   }>();
   useRefreshableEffect(() => {
+    if (!secondaryReady) return;
     let active = true;
     api
       .get("/project-management/portfolio/summary")
@@ -188,7 +196,7 @@ export default function CRMReferenceDashboard(p: Props) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [secondaryReady]);
   const stat = p.statistics;
   const metrics = [
     {
@@ -319,7 +327,7 @@ export default function CRMReferenceDashboard(p: Props) {
               </button>
             ))}
           </section>
-          <ModuleWorkflowBoard module="crm" />
+          {secondaryReady ? <ModuleWorkflowBoard module="crm" /> : <section className="crm-ref-panel" aria-busy="true"><p role="status">Loading sales pipeline…</p></section>}
           <div className="crm-ref-analysis">
             <section className="crm-ref-panel">
               <div className="crm-ref-panel-heading">

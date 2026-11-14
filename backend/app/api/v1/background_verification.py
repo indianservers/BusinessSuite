@@ -70,7 +70,7 @@ def owners(search: str = Query("", max_length=150), db: Session = Depends(get_db
     sensitive(current_user)
     from app.services.metrics.queries import registered_users
     query = registered_users(db, current_user).filter(User.is_active.is_(True))
-    if search: query = query.filter(User.email.ilike("%"+search+"%"))
+    if search: query = query.filter(User.email.icontains(search, autoescape=True))
     return [{"id": u.id, "label": u.email} for u in query.order_by(User.email).limit(50)]
 
 
@@ -79,8 +79,8 @@ def employee_options(search: str = Query("", max_length=150), db: Session = Depe
     sensitive(current_user)
     query = service.employee_query(db, current_user)
     if search.strip():
-        term = "%" + search.strip() + "%"
-        query = query.filter(or_((Employee.first_name + " " + Employee.last_name).ilike(term), Employee.employee_id.ilike(term)))
+        term = search.strip()
+        query = query.filter(or_((Employee.first_name + " " + Employee.last_name).icontains(term, autoescape=True), Employee.employee_id.icontains(term, autoescape=True)))
     return [{"id": e.id, "name": f"{e.first_name} {e.last_name}".strip(), "employee_code": e.employee_id} for e in query.order_by(Employee.first_name, Employee.id).limit(50)]
 
 
@@ -95,8 +95,8 @@ def register(population: Literal["current", "former", "all"] = "current", search
         former = or_(Employee.status.in_(service.FORMER_STATUSES), Employee.deleted_at.is_not(None))
         query = query.filter(former if population == "former" else ~former)
     if search.strip():
-        term = "%" + search.strip() + "%"
-        query = query.filter(or_(Employee.employee_id.ilike(term), (Employee.first_name + " " + Employee.last_name).ilike(term)))
+        term = search.strip()
+        query = query.filter(or_(Employee.employee_id.icontains(term, autoescape=True), (Employee.first_name + " " + Employee.last_name).icontains(term, autoescape=True)))
     latest_id = db.query(func.max(Case.id)).filter(Case.employee_id == Employee.id, Case.status != "Cancelled").correlate(Employee).scalar_subquery()
     query = query.outerjoin(Case, Case.id == latest_id)
     today = business_day(db, current_user)

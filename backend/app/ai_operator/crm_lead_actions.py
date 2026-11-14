@@ -97,7 +97,7 @@ class LeadConvert(Strict):
 
 INTENTS = {'leads.create','leads.update','leads.qualify','leads.convert'}
 CONVERSION_CHOICES = {'contact and customer':(True,True,False),'contact customer and deal':(True,True,True),'contact only':(True,False,False)}
-COMMAND = re.compile(r'^(?:please\s+)?(create|add|draft|update|edit|qualify|convert)\s+(?:a\s+|an\s+|the\s+)?(?:CRM\s+)?lead\b', re.I)
+COMMAND = re.compile(r'^(?:please\s+)?(create|add|draft|update|edit|qualify|convert)\s+(?:a\s+|an\s+|the\s+)?(?:CRM\s+)?lead\b(?!\s+(?:reminders?|follow[- ]?ups?|tasks?|(?:record\s+)?notes?|(?:outreach\s+)?messages?)\b(?!\s*[:=]))', re.I)
 FIELD_NAMES = {'name':'full_name','full name':'full_name','email':'email','phone':'phone','company':'company_name',
                'company name':'company_name','job title':'job_title','source':'source','status':'status','notes':'notes',
                'need':'need','budget':'budget','decision maker':'decisionMaker','timeline':'timeline'}

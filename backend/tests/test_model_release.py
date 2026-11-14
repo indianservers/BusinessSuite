@@ -184,5 +184,53 @@ def test_new_workplace_dialogue_requires_its_separate_probe_gate(candidate,passe
     unseen={'total':120,'passed':96}
     if passed is not None:unseen['workplace_followups']={'version':'workplace-followup-probes-v1','total':90,'passed':passed}
     write('unseen-dialogue-evaluation.json',unseen)
+    native=json.loads((folder/'action-release-evaluation.json').read_text());native['workplace_dialogue']={'format':'workplace-dialogue-runtime-v1','total':21,'passed':21,'failures':[],'model_sha256':release.file_hash(folder/'bundle.json'),'dialogue_sha256':release.file_hash(folder/'dialogue.json')};write('action-release-evaluation.json',native)
     gate=release.assess(folder)
     assert gate['passed']==(passed==77)
+
+
+
+def test_platform_fine_tuning_snapshots_a_verified_active_release(candidate,monkeypatch,tmp_path):
+    from app.platform_owner import nlp_training
+    from app.ai_operator.dialogue_corpus import VERSION
+    root,folder,write=candidate
+    write('dialogue.json',{'format':VERSION,'model':{'b1':[0]*64}})
+    native=json.loads((folder/'action-release-evaluation.json').read_text());native['dialogue_sha256']=release.file_hash(folder/'dialogue.json');write('action-release-evaluation.json',native)
+    assert release.seal(folder,1,'dataset-digest')['passed']
+    release.pointer(root,1)
+    monkeypatch.setattr(nlp_training,'root',lambda:root.parent)
+    args,initial=nlp_training.dialogue_training_args(tmp_path/'next-job')
+    assert initial['mode']=='fine_tune' and initial['job_id']==1
+    assert '--initialize-from' in args
+    copied=tmp_path/'next-job/dialogue-initial'
+    assert (copied/'dialogue.json').read_bytes()==(folder/'dialogue.json').read_bytes()
+    assert release.file_hash(copied/'dialogue.keras')==release.file_hash(folder/'dialogue.keras')
+    (copied/'dialogue.json').write_text('{}')
+    assert json.loads((folder/'dialogue.json').read_text())['format']==VERSION
+
+
+def test_platform_fine_tuning_rejects_tampered_source_without_copying(candidate,monkeypatch,tmp_path):
+    from app.platform_owner import nlp_training
+    root,folder,_=candidate
+    assert release.seal(folder,1,'dataset-digest')['passed'];release.pointer(root,1)
+    monkeypatch.setattr(nlp_training,'root',lambda:root.parent)
+    (folder/'dialogue.keras').write_text('tampered weights')
+    with pytest.raises(ValueError):nlp_training.dialogue_training_args(tmp_path/'next-job')
+    assert not (tmp_path/'next-job/dialogue-initial').exists()
+
+
+def test_first_platform_training_has_no_implicit_external_model(monkeypatch,tmp_path):
+    from app.platform_owner import nlp_training
+    monkeypatch.setattr(nlp_training,'root',lambda:tmp_path)
+    args,initial=nlp_training.dialogue_training_args(tmp_path/'next-job')
+    assert args==[] and initial=={'mode':'from_scratch'}
+
+
+
+def test_workplace_classifier_score_cannot_replace_action_integration(candidate):
+    _,folder,write=candidate
+    write('dialogue-evaluation.json',{'heldout_accuracy':.9,'portable_max_error':1e-7,'workplace_dialogue_version':'workplace-followups-v1','workplace_training_turns':450,'workplace_training_sha256':'a'*64})
+    write('unseen-dialogue-evaluation.json',{'total':120,'passed':96,'workplace_followups':{'version':'workplace-followup-probes-v1','total':90,'passed':81}})
+    gate=release.assess(folder)
+    assert not gate['passed']
+    assert any(item['name']=='Workplace dialogue action integration' and not item['passed'] for item in gate['checks'])

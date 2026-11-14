@@ -1,5 +1,22 @@
 from app.apps.fam.models import FAMFinancialYear, FAMLedger
 from tests.fam_test_utils import fam_admin_headers
+import pytest
+
+
+@pytest.mark.parametrize("field", ["debit_amount", "credit_amount"])
+def test_audit_opening_balance_rejects_negative_amount_without_writing(client, db, field):
+    from app.apps.fam.models import FAMOpeningBalance
+    headers = fam_admin_headers(client, db)
+    assert client.get("/api/v1/fam/module-info", headers=headers).status_code == 200
+    year = db.query(FAMFinancialYear).filter_by(name="FY 2026-27").first()
+    ledger = db.query(FAMLedger).filter_by(ledger_name="Cash").first()
+    before = db.query(FAMOpeningBalance).count()
+    response = client.post("/api/v1/fam/opening-balances", headers=headers, json={
+        "financial_year_id": year.id, "ledger_id": ledger.id, field: -100,
+    })
+    assert response.status_code == 422, response.text
+    assert any(error["loc"][-1] == field for error in response.json()["detail"])
+    assert db.query(FAMOpeningBalance).count() == before
 
 
 def test_fam_opening_balances_must_balance_before_posting(client, db):

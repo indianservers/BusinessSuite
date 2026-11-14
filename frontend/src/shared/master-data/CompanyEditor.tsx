@@ -1,3 +1,4 @@
+import { toast } from "@/hooks/use-toast";
 import BusinessProfileFields, {profileText} from "./BusinessProfileFields";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { defaultText, defaultPaymentTerms } from "@/lib/form-defaults";
@@ -68,9 +69,9 @@ export function CompanyQuickCreate({placement="create",allowSaveNew=true,source=
         savedSnapshot.current=JSON.stringify({...draftValue,...(version!==undefined?{financial:{...financial!,version}}:{})});
         if(version!==undefined)setFinancial(current=>current?{...current,version}:current);
         setRecord(data);
-      }else{clearDraft();onSaved(data,keepOpen);}
+      }else{clearDraft();toast({title:`${recordLabel.charAt(0).toUpperCase()+recordLabel.slice(1)} ${record?"saved":"created"}`,description:data.name});onSaved(data,keepOpen);}
       void Promise.all(['master-companies','master-company','master-channels','universal-contacts','contact-financial','master-company-suggestions'].map(key=>qc.invalidateQueries({queryKey:[key]})));
-      if(keepOpen){customFieldForm.setValues({});setAvailability(undefined);setRecord(undefined);setForm({...values(),country:countryIso(defaults.data?.country),phone_country_code:contract.countries.find(c=>c.iso===countryIso(defaults.data?.country))?.code||'+91'});countryEdited.current=false;phoneCodeEdited.current=false;setEntityKind(defaultEntityKind);setBusinessRoles(roles);setTax([]);setAddresses([]);setChannels(undefined);setFinancial(undefined);setPrimaryId('');contactFields.setValues({});setNewContact(false);setPerson({name:'',email:''});setConfirmed(false);setMatches([]);setTab(0);legalEdited.current=false;defaultsApplied.current=false;setNotice(`${recordLabel} saved. Add another.`);setTimeout(()=>nameRef.current?.focus(),0);}
+      if(keepOpen){customFieldForm.setValues({});setAvailability(undefined);setRecord(undefined);setForm({...values(),country:countryIso(defaults.data?.country),phone_country_code:contract.countries.find(c=>c.iso===countryIso(defaults.data?.country))?.code||'+91'});countryEdited.current=false;phoneCodeEdited.current=false;setEntityKind(defaultEntityKind);setBusinessRoles(roles);setTax([]);setAddresses([]);setChannels(undefined);setFinancial(undefined);setPrimaryId('');contactFields.setValues({});setNewContact(false);setPerson({name:'',email:''});setConfirmed(false);setMatches([]);setTab(0);legalEdited.current=false;defaultsApplied.current=false;setNotice(`${recordLabel.charAt(0).toUpperCase()+recordLabel.slice(1)} saved. Add another.`);setTimeout(()=>nameRef.current?.focus(),0);}
       return true;
     }catch(e){setError(dealError(e));const detail=(e as {response?:{data?:{detail?:{matches?:typeof matches}}}}).response?.data?.detail;setMatches(detail?.matches||[]);return false;}finally{writeLock.current=false;setBusy(false);}
   }

@@ -133,10 +133,24 @@ def test_skip_task_requires_reason(client, superuser_headers):
     )
     assert denied.status_code == 422
 
+    for invalid in [{'reason': '   '}, {'reason': '\t\n'}, {'notes': '   '}]:
+        denied = client.put(
+            f"/api/v1/onboarding/tasks/{task_id}/skip",
+            headers=superuser_headers, json=invalid,
+        )
+        assert denied.status_code == 422, denied.text
+        unchanged = client.get(f"/api/v1/onboarding/{employee.json()['id']}", headers=superuser_headers)
+        assert unchanged.json()['tasks'][0]['status'] == 'pending'
+        assert unchanged.json()['completion_percentage'] == 0
+
     skipped = client.put(
         f"/api/v1/onboarding/tasks/{task_id}/skip",
         headers=superuser_headers,
-        json={"reason": "Handled offline"},
+        json={"reason": "  Handled offline  "},
     )
     assert skipped.status_code == 200
     assert skipped.json()["status"] == "skipped"
+    assert skipped.json()['notes'] == 'Handled offline'
+    updated = client.get(f"/api/v1/onboarding/{employee.json()['id']}", headers=superuser_headers)
+    assert updated.json()['completion_percentage'] == 100
+    assert updated.json()['status'] == 'completed'

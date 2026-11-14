@@ -1,16 +1,20 @@
 const { chromium } = require("playwright"),
   assert = require("node:assert/strict");
 (async () => {
+  const {createServer}=await import('vite');
+  const server=await createServer({root:require('node:path').resolve(__dirname,'..'),server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});
+  await server.listen();
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
     let release,
       fail = false;
     let hold = new Promise((r) => (release = r));
-    const errors = [];
+    const errors = [], reads=[];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/api/v1/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
+      reads.push(path);
       let body = { items: [], pages: 1, total: 0 };
       if (path.endsWith("/custom-fields")) {
         await hold;
@@ -46,7 +50,7 @@ const { chromium } = require("playwright"),
       await route.fulfill({ json: body }).catch(() => {});
     });
     await page.goto(
-      (process.env.PROGRESS_QA_ORIGIN || "http://localhost:5174") +
+      (process.env.PROGRESS_QA_ORIGIN || server.resolvedUrls.local[0].replace(/\/$/,'')) +
         "/progress-deal-qa.html",
     );
     await page.getByRole("button", { name: "Start new deal" }).click();
@@ -61,11 +65,16 @@ const { chromium } = require("playwright"),
       await page.getByRole("button", { name: "Run in background" }).count(),
       0,
     );
+    assert.equal(reads.filter(path=>/^\/api\/v1\/crm\/(companies|products|services)$/.test(path)).length,0,'bulk record lists must not block deal preparation');
     release();
     await page
       .getByRole("dialog", { name: "Create deal", exact: true })
       .waitFor();
     assert.equal(await page.locator(".smart-progress-dialog").count(), 0);
+    await page.getByLabel('Closing date',{exact:true}).fill('1999-01-01');
+    await page.getByText('This closing date is in the past. Review the date for this open deal.',{exact:true}).waitFor();
+    await page.getByLabel('Closing date',{exact:true}).fill('2999-01-01');
+    assert.equal(await page.getByText('This closing date is in the past. Review the date for this open deal.',{exact:true}).count(),0);
     await page
       .getByRole("button", { name: "Close deal form", exact: true })
       .click();
@@ -102,6 +111,7 @@ const { chromium } = require("playwright"),
     );
   } finally {
     await browser.close();
+    await server.close();
   }
 })().catch((e) => {
   console.error(e);

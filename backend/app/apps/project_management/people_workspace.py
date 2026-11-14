@@ -638,7 +638,7 @@ def groups(
     if kind == "teams":
         query = teams_query(db, user)
         if q:
-            query = query.filter(PMSWorkspaceTeam.name.ilike("%" + q + "%"))
+            query = query.filter(PMSWorkspaceTeam.name.icontains(q, autoescape=True))
         total = query.count()
         items = (
             query.order_by(PMSWorkspaceTeam.name, PMSWorkspaceTeam.id)
@@ -724,7 +724,7 @@ def groups(
         }
     query = batches_query(db, user)
     if q:
-        query = query.filter(InternBatch.name.ilike("%" + q + "%"))
+        query = query.filter(InternBatch.name.icontains(q, autoescape=True))
     total = query.count()
     items = (
         query.order_by(InternBatch.start_date.desc(), InternBatch.id)
@@ -1049,9 +1049,9 @@ def group_detail(
     if q:
         people = people.filter(
             or_(
-                User.email.ilike("%" + q + "%"),
-                CommonPerson.display_name.ilike("%" + q + "%"),
-                Employee.employee_id.ilike("%" + q + "%"),
+                User.email.icontains(q, autoescape=True),
+                CommonPerson.display_name.icontains(q, autoescape=True),
+                Employee.employee_id.icontains(q, autoescape=True),
             )
         )
     total = people.count()
@@ -1135,8 +1135,8 @@ def workspace_people(
     if q:
         query = query.filter(
             or_(
-                CommonPerson.display_name.ilike("%" + q + "%"),
-                User.email.ilike("%" + q + "%"),
+                CommonPerson.display_name.icontains(q, autoescape=True),
+                User.email.icontains(q, autoescape=True),
             )
         )
     total = query.count()

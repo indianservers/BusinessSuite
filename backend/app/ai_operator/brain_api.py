@@ -1,7 +1,7 @@
-"""Local model contracts, private memory and an explicit metered cloud fallback.
+"""Server-local generation, private memory and explicit metered cloud fallback.
 
-No local-model endpoint on this server proxies a user's loopback device. The
-browser runs the local model; all generated plans still pass domain validation.
+Historical browser turns remain readable; new generation and weights stay on
+the server. Every model reply still passes native domain validation.
 """
 import json
 from datetime import datetime, timezone
@@ -90,12 +90,33 @@ class SessionInput(Strict):
     project_id: int = Field(gt=0)
 
 
+def local_reply_schema(task_ids=None):
+    """Express cross-kind invariants for decoding; native validation still rules."""
+    base=BrainReply.model_json_schema();properties=base['properties'];variants=[]
+    fields={'ask':['message','question'],'answer':['message'],'unsupported':['message'],
+        'task_plan':['message','task_ids','task_plan'],'project_plan':['message','setup_plan','new_project']}
+    for kind,names in fields.items():
+        if kind=='task_plan' and task_ids==[]:continue
+        props={'kind':{'type':'string','enum':[kind]}}
+        for name in names:
+            value=dict(properties[name])
+            if name=='message':value['maxLength']=400
+            if name=='question':value={'type':'string','minLength':1,'maxLength':500}
+            if name in {'task_plan','setup_plan'}:value=next(v for v in value['anyOf'] if v.get('type')!='null')
+            if name=='task_ids':
+                value={**value,'minItems':1}
+                if task_ids is not None:value['items']={'type':'integer','enum':sorted(set(task_ids))}
+            props[name]=value
+        variants.append({'type':'object','properties':props,'required':['kind',*names],'additionalProperties':False})
+    return {'$defs':base.get('$defs',{}),'anyOf':variants}
+
+
 class TurnInput(Strict):
     request_key: UUID
     revision: int = Field(ge=0)
     text: str = Field(min_length=1, max_length=4000)
     reply: BrainReply
-    runtime: Literal["browser", "cloud"]
+    runtime: Literal["browser", "server", "cloud"]
     model: str = Field(min_length=1, max_length=180)
     fallback_reason: Literal['unavailable','unsupported','invalid_output','context_limit','timeout'] | None = None
 
@@ -118,6 +139,94 @@ class CloudInput(Strict):
         except (ZoneInfoNotFoundError, ValueError):
             raise ValueError("Unknown timezone")
         return self
+
+
+class ServerLocalInput(Strict):
+    text:str=Field(min_length=1,max_length=4000)
+    timezone:str=Field(default='Asia/Kolkata',max_length=80)
+    task_ids:list[int]=Field(default_factory=list,max_length=25)
+    revision_id:int|None=Field(default=None,gt=0)
+    feedback:str|None=Field(default=None,max_length=1500)
+
+    @model_validator(mode='after')
+    def valid_timezone(self):
+        try:ZoneInfo(self.timezone)
+        except (ZoneInfoNotFoundError,ValueError):raise ValueError('Unknown timezone')
+        return self
+
+
+@router.get('/local-runtime')
+def local_runtime_status(project_id:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.suite import authorize
+    from app.ai_operator.server_local_llm import status
+    project=get_project_for_action(db,project_id,user,'manage_tasks')
+    authorize(db,user,project.workspace_id,'PMS',control=True)
+    return status()
+
+
+@router.post('/sessions/{ident}/local')
+def local_generation(ident:int,data:ServerLocalInput,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.suite import authorize
+    from app.ai_operator import server_local_llm
+    from app.ai_agents.security import limits,company
+    row,project=brain_session(db,user,ident)
+    authorize(db,user,project.workspace_id,'PMS')
+    _require_ai_rate_limit(db,request,user,bucket='brain_server_local')
+    packet=brain_context(ident,db,user,','.join(map(str,data.task_ids)))
+    context=dict(packet['context'])
+    tasks=context.get('tasks',[]);context['tasks']=tasks[:12]
+    context['tasks_complete']=bool(context.get('tasks_complete')) and len(tasks)<=12
+    collaborators=context.get('collaborators',[]);context['collaborators']=collaborators[:30]
+    context['collaborators_complete']=bool(context.get('collaborators_complete')) and len(collaborators)<=30
+    context['execution_history']=context.get('execution_history',[])[:3]
+    memories=context.get('project_memory',[]);context['project_memory']=[{**m,'text':m.get('text','')[:600]} for m in memories[:5]]
+    context['memory_complete']=len(memories)<=5 and all(len(m.get('text',''))<=600 for m in memories)
+    if data.revision_id:
+        from app.ai_operator.api import owned_run
+        run=owned_run(db,user,data.revision_id)
+        if run.project_id!=project.id or run.status not in {'awaiting_approval','paused'}:
+            raise HTTPException(409,'Select a pending run in this project to revise')
+        if data.task_ids and not set(data.task_ids).issubset(set(run.selection)):
+            raise HTTPException(422,'Revision must retain its frozen task selection')
+        context['revision_of']={'id':run.id,'selection':run.selection,'plan':run.plan,'result':run.result,
+            'instruction':'Return a complete replacement of pending steps for these frozen targets only. Exclude committed receipt steps. Project setup cannot revise an existing task run.'}
+    turns=packet['session']['turns'];history=[turns[0],*turns[-5:]] if len(turns)>6 else turns
+    payload={'command':data.text,'timezone':data.timezone,'current_date':datetime.now(ZoneInfo(data.timezone)).date().isoformat(),
+        'authorized_context':context,'conversation':[{'user':t['text'],'assistant':t['reply'],'execution':'draft_only'} for t in history],
+        'history_truncated':len(turns)>6}
+    if data.feedback:payload.update(validation_feedback=data.feedback,instruction='Repair the invalid draft or ask a focused clarification. Never invent new IDs.')
+    content=json.dumps(payload,ensure_ascii=False)
+    if len(content)+len(INSTRUCTIONS)>14000:raise HTTPException(422,'LOCAL_MODEL_CONTEXT_LIMIT')
+    decoding_schema=local_reply_schema(data.task_ids or [t['id'] for t in context['tasks']])
+    provenance='server-local-v1|model='+server_local_llm.MODEL+'|revision='+server_local_llm.REVISION+'|decoder=lm-format-enforcer:0.11.3|prompt='+digest({'instructions':INSTRUCTIONS,'schema':decoding_schema})
+    try:
+        raw=server_local_llm.generate([{'role':'system','content':INSTRUCTIONS},{'role':'user','content':content}],limits(db,company(user))['max_seconds'],
+            schema=decoding_schema)
+        # Lossless envelope adaptation only: this model sometimes capitalizes a
+        # kind or puts its entire clarification in message. Never infer action data.
+        raw=dict(raw)
+        if isinstance(raw.get('kind'),str):raw['kind']=raw['kind'].casefold()
+        if raw.get('kind') in {'help','clarify','clarification','question','ask_question'} and isinstance(raw.get('question'),str) and raw['question'].strip():
+            raw['kind']='ask'
+        if raw.get('kind')=='ask' and not raw.get('question') and isinstance(raw.get('message'),str) and raw['message'].strip().endswith('?'):
+            raw['question']=raw['message']
+        try:reply=BrainReply.model_validate(raw)
+        except ValueError:raise HTTPException(422,'LOCAL_MODEL_INVALID_OUTPUT') from None
+        if reply.kind=='task_plan' and data.task_ids and not set(reply.task_ids).issubset(set(data.task_ids)):
+            raise HTTPException(422,'The model proposed targets outside your selected tasks')
+        if data.revision_id and (reply.kind=='project_plan' or reply.kind=='task_plan' and not set(reply.task_ids).issubset(set(run.selection))):
+            raise HTTPException(422,'Revision must retain its frozen task selection')
+        result=validate_reply(db,user,project,reply)
+    except HTTPException as exc:
+        code=exc.detail if isinstance(exc.detail,str) and exc.detail.startswith('LOCAL_MODEL_') else 'LOCAL_MODEL_VALIDATION_REJECTED'
+        AiAuditService(db).log(user=user,agent_id=None,module='PMS',action='operator.brain.local',
+            input_json={'conversation_id':row.id,'policy':provenance},output_json={'error_code':code,'count':0},status='failed')
+        db.commit()
+        raise
+    AiAuditService(db).log(user=user,agent_id=None,module='PMS',action='operator.brain.local',
+        input_json={'conversation_id':row.id,'policy':provenance},output_json={'status':'draft:'+reply.kind,'count':0},status='success')
+    db.commit()
+    return result
 
 
 def brain_session(db, user, ident, lock=False):

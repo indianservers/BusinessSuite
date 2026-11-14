@@ -67,7 +67,7 @@ def local_answer(context):
 
 
 def upload_chunks(db,user,conversation_id):
-    files=uploads.listing(db,user,conversation_id);chunks=[]
+    files=[file for file in uploads.listing(db,user,conversation_id) if not file.get('media')];chunks=[]
     for file in files:
         row=uploads.owned(db,user,conversation_id,file['id']);text=row.result['text']
         for start in range(0,len(text),900):

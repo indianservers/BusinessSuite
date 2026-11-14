@@ -72,6 +72,10 @@ def assess(folder,baseline=None):
         workplace=unseen.get('workplace_followups') or {}
         check('Separate workplace followup wording',workplace.get('version')=='workplace-followup-probes-v1' and workplace.get('total')==90 and type(workplace.get('passed')) is int and 0<=workplace['passed']<=90 and metric(workplace['passed']/90,.85),
             f"{workplace.get('passed',0)}/{workplace.get('total',0)}",'at least 0.85 on 90 frozen synthetic context-labelled probes')
+    if dialogue.get('workplace_dialogue_version'):
+        runtime=native.get('workplace_dialogue') or {}
+        check('Workplace dialogue action integration',runtime.get('format')=='workplace-dialogue-runtime-v1' and runtime.get('total',0)>=21 and runtime.get('passed')==runtime.get('total') and not runtime.get('failures') and runtime.get('model_sha256')==file_hash(folder/'bundle.json') and runtime.get('dialogue_sha256')==file_hash(folder/'dialogue.json'),
+            f"{runtime.get('passed',0)}/{runtime.get('total',0)}",'all 21+ exact-weight planning integration cases; no business execution')
     check('Dialogue numeric parity',metric(dialogue['portable_max_error'],0,1e-5),dialogue['portable_max_error'],'at most 0.00001')
     check('Authored conversation scenarios',conversations['total']>=600 and conversations['passed']==conversations['total'] and not conversations.get('failures'),
         f"{conversations['passed']}/{conversations['total']}",'all scenarios; at least 600')

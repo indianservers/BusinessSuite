@@ -887,3 +887,5 @@
 
 .uc-row-actions { flex-wrap: wrap; max-width: 350px; }
 .uc-row-actions > button:disabled { opacity: .4; cursor: not-allowed; }
+/* The shared grid owns row scrolling; do not clip its tools and rows again. */
+.uc-table-wrap:has(.udg) { max-height: none; min-height: 0; overflow: visible; }

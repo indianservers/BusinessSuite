@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import re
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -88,6 +88,12 @@ def _audit(
     reason: str | None = None,
     details: dict | None = None,
 ) -> None:
+    if step is None and task is not None and task.step_definition_id is not None:
+        step = db.get(WorkflowStepDefinition, task.step_definition_id)
+    event_details = dict(details or {})
+    note = (step.metadata_json or {}).get('audit_note') if step is not None else None
+    if isinstance(note, str) and note.strip():
+        event_details['audit_note'] = note
     db.add(WorkflowAuditEvent(
         instance_id=instance.id,
         task_id=task.id if task else None,
@@ -97,7 +103,7 @@ def _audit(
         before_status=before_status,
         after_status=after_status,
         reason=reason,
-        details_json=details or {},
+        details_json=event_details,
     ))
 
 
@@ -449,14 +455,30 @@ def _apply_step_payload(step: WorkflowStepDefinition, payload: dict) -> None:
     _validate_step(step)
 
 
+@router.get("/approval-targets")
+def approval_targets(search: str = Query('', max_length=100), page: int = Query(1, ge=1),
+                     selected_user: int | None = Query(None, ge=1),
+                     db: Session = Depends(get_db), current_user: User = Depends(RequirePermission('company_manage'))):
+    from app.shared.approval_targets import lookup
+    from app.access.service import primary_company
+    company_id = getattr(current_user, 'organization_id', None) or primary_company(current_user)
+    return lookup(db, company_id, search, page, selected_user)
+
+
+from app.shared.approval_targets import validate_step_recipients as _validate_recipients
+
+
 @router.post("/definitions", response_model=WorkflowDefinitionSchema, status_code=201)
 def create_definition(data: WorkflowDefinitionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("company_manage"))):
+    steps = [WorkflowStepDefinition(**step.model_dump()) for step in data.steps]
+    for step in steps:
+        _validate_step(step)
+        _validate_recipients(db, current_user, step)
     definition = WorkflowDefinition(**data.model_dump(exclude={"steps"}), created_by=current_user.id)
     db.add(definition)
     db.flush()
-    for step in data.steps:
-        step_model = WorkflowStepDefinition(workflow_id=definition.id, **step.model_dump())
-        _validate_step(step_model)
+    for step_model in steps:
+        step_model.workflow_id = definition.id
         db.add(step_model)
     db.commit()
     db.refresh(definition)
@@ -508,6 +530,7 @@ def toggle_definition(definition_id: int, db: Session = Depends(get_db), current
     if not definition.is_active:
         for step in definition.steps:
             _validate_step(step)
+            _validate_recipients(db, current_user, step)
     definition.is_active = not bool(definition.is_active)
     db.commit()
     db.refresh(definition)
@@ -526,6 +549,7 @@ def create_definition_step(definition_id: int, data: dict, db: Session = Depends
         raise HTTPException(status_code=404, detail="Workflow definition not found")
     step = WorkflowStepDefinition(workflow_id=definition_id, step_order=int(data.get("step_order", 1)))
     _apply_step_payload(step, data)
+    _validate_recipients(db, current_user, step)
     db.add(step)
     db.commit()
     db.refresh(step)
@@ -537,6 +561,9 @@ def update_definition_step(definition_id: int, step_id: int, data: dict, db: Ses
     step = db.query(WorkflowStepDefinition).filter(WorkflowStepDefinition.workflow_id == definition_id, WorkflowStepDefinition.id == step_id).first()
     if not step:
         raise HTTPException(status_code=404, detail="Workflow step not found")
+    candidate = WorkflowStepDefinition(**{column.name:getattr(step, column.name) for column in step.__table__.columns})
+    _apply_step_payload(candidate, data)
+    _validate_recipients(db, current_user, candidate)
     _apply_step_payload(step, data)
     db.commit()
     db.refresh(step)

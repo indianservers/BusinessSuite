@@ -1,7 +1,8 @@
 import RouteContent from "@/components/app/RouteContent";
 import PageWorkTools from "@/components/app/PageWorkTools";
-import { isSharedTaskWorkspace } from "@/lib/task-workspace";
+import { isSharedTaskWorkspace, hasPmsWorkspaceShell } from "@/lib/task-workspace";
 import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
+import { requiresFormDefaultsForRoute } from "@/components/forms/form-defaults-route";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import "@/components/visuals/suite-visuals.css";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -31,6 +32,8 @@ function AppLayoutContent() {
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
+  const requiresFormDefaults = requiresFormDefaultsForRoute(location.pathname, location.search, location.hash);
+  const preferencesUnavailable = /^\/hrms\/helpdesk\/?$/.test(location.pathname) ? "Workspace preferences are unavailable. Helpdesk remains available." : "Workspace preferences are unavailable. You can continue viewing this dashboard.";
   const isDealCollection = /^\/crm\/(deals|pipeline)\/?$/.test(location.pathname);
   const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);
   const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname) || /^\/crm\/whatsapp\/inbox\/?$/.test(location.pathname);
@@ -45,15 +48,15 @@ function AppLayoutContent() {
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
-    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /></div>;
+    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /></div>;
   }
 
   if (isSharedTaskWorkspace(location.pathname, location.search)) {
-    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
+    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
-  if (["/pms", "/pms/"].includes(location.pathname) || (location.pathname === "/pms/workspaces" && (["workspace","task","invite"].some(key=>new URLSearchParams(location.search).has(key)) || new URLSearchParams(location.search).has("new") && new URLSearchParams(location.search).get("new") !== "workspace"))) {
-    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="pms-workspace-host min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
+  if (hasPmsWorkspaceShell(location.pathname,location.search)) {
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="pms-workspace-host min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   return (
@@ -81,7 +84,7 @@ function AppLayoutContent() {
           {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <SetupReadiness embedded />
           <ErrorBoundary resetKey={location.pathname+location.search}>
-            <RouteContent><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></RouteContent>
+            <RouteContent><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></RouteContent>
           </ErrorBoundary>
         </main>
         {!mobileLead && <BackToTop />}

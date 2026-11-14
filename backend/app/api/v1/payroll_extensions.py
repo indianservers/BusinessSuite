@@ -20,6 +20,7 @@ from app.api.v1.payroll import (
     _audit,
     _calculate_tax_from_slabs,
     _component_monthly_amount,
+    _ensure_not_locked_period,
     _file_url_from_upload_path,
     _get_payroll_run_or_404,
     _has_permission,
@@ -139,7 +140,7 @@ class SalaryAdvanceCreate(BaseModel):
 
 class SalaryAdvanceReview(BaseModel):
     action: str
-    approved_amount: Decimal | None = None
+    approved_amount: Decimal | None = Field(default=None, ge=0)
     remarks: str | None = None
 
 
@@ -499,14 +500,19 @@ def list_salary_advances(employee_id: Optional[int] = Query(None), status: Optio
 
 @router.put("/salary-advances/{advance_id}/review")
 def review_salary_advance(advance_id: int, data: SalaryAdvanceReview, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_approve"))):
-    item = db.query(SalaryAdvance).filter(SalaryAdvance.id == advance_id).first()
+    item = db.query(SalaryAdvance).filter(SalaryAdvance.id == advance_id).with_for_update().first()
     if not item:
         raise HTTPException(status_code=404, detail="Salary advance not found")
     action = data.action.lower()
     if action not in {"approve", "reject"}:
         raise HTTPException(status_code=400, detail="action must be approve or reject")
+    if item.payroll_record_id is not None or str(item.status).lower() != "pending":
+        raise HTTPException(status_code=409, detail="Only pending advances can be reviewed; this advance is already reviewed or included in payroll")
+    approved = data.approved_amount if data.approved_amount is not None else item.requested_amount
+    if action == "approve" and approved > item.requested_amount:
+        raise HTTPException(status_code=422, detail="Approved amount cannot exceed the requested advance")
     item.status = "Approved" if action == "approve" else "Rejected"
-    item.approved_amount = (data.approved_amount or item.requested_amount) if action == "approve" else Decimal("0")
+    item.approved_amount = approved if action == "approve" else Decimal("0")
     item.reviewed_by = current_user.id
     item.reviewed_at = datetime.now(timezone.utc)
     item.review_remarks = data.remarks
@@ -1410,9 +1416,18 @@ def statutory_portal_submit(
 @router.post("/reimbursements/link-expense-claims")
 def link_expense_claims_to_reimbursements(payroll_run_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_run"))):
     run = _get_payroll_run_or_404(db, payroll_run_id)
+    _ensure_not_locked_period(
+        db, run.month, run.year, "link expense claims",
+        run.company_id, run.branch_id, run.department_id, run.pay_group_id, run.employee_category,
+    )
     period_start = run.pay_period_start or date(run.year, run.month, 1)
     period_end = run.pay_period_end or date(run.year, run.month, calendar.monthrange(run.year, run.month)[1])
+    scope = crud_payroll._payroll_scope_filters(
+        run.company_id, run.branch_id, run.department_id, run.pay_group_id, run.employee_category,
+    )
+    eligible_employees = crud_payroll._scoped_employee_query(db, db.query(Employee.id), scope)
     claims = db.query(ExpenseClaim).filter(
+        ExpenseClaim.employee_id.in_(eligible_employees),
         ExpenseClaim.status.in_(["finance_approved", "approved", "Approved"]),
         ExpenseClaim.expense_date >= period_start,
         ExpenseClaim.expense_date <= period_end,
@@ -1420,16 +1435,45 @@ def link_expense_claims_to_reimbursements(payroll_run_id: int, db: Session = Dep
     created = 0
     skipped_duplicates = 0
     linked_claim_ids: list[int] = []
+    # Reimbursements are added after salary conversion, so their amounts must
+    # already be INR. Use the same period-start FX policy as payroll salaries.
+    # Validate the entire batch before creating even an INR reimbursement.
+    rates: dict[str, PayrollExchangeRate] = {}
+    for claim in claims:
+        if claim.payroll_reimbursement_id:
+            continue
+        currency = (claim.currency or "INR").strip().upper()
+        if currency == "INR" or currency in rates:
+            continue
+        rate = crud_payroll._find_exchange_rate(db, currency, "INR", period_start)
+        if rate is None or Decimal(rate.rate) <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing valid exchange rate {currency}->INR on {period_start} for expense payroll linking",
+            )
+        rates[currency] = rate
     for claim in claims:
         if claim.payroll_reimbursement_id:
             skipped_duplicates += 1
             continue
+        currency = (claim.currency or "INR").strip().upper()
+        amount = claim.approved_amount if claim.approved_amount is not None else claim.amount
+        description = claim.description
+        if currency != "INR":
+            rate = rates[currency]
+            original_amount = amount
+            amount = crud_payroll._money(amount * Decimal(rate.rate))
+            conversion = (
+                f"Expense {claim.claim_number}: {original_amount} {currency} converted to {amount} INR; "
+                f"rate {rate.rate}, effective {rate.effective_date}, payroll period {period_start}"
+            )
+            description = f"{description}\n{conversion}" if description else conversion
         reimbursement = Reimbursement(
             employee_id=claim.employee_id,
             category=claim.claim_type,
-            amount=claim.approved_amount or claim.amount,
+            amount=amount,
             date=claim.expense_date,
-            description=claim.description,
+            description=description,
             receipt_url=claim.receipt_url,
             status="Approved",
             approved_by=current_user.id,

@@ -5,6 +5,9 @@ the same transaction; unknown historical ownership is never publicly visible.
 Core/raw SQL via Session is rejected for private tables, including bulk writes.
 """
 import re
+from functools import lru_cache
+from threading import RLock
+from types import MappingProxyType
 import logging
 from fastapi import HTTPException
 from sqlalchemy import and_, or_, event, exists, select, inspect, delete, literal
@@ -83,25 +86,28 @@ def branch_for_row(connection, table, values, company, tables, target_branch=Non
     return branches
 
 
-def install(db, user, ctx, *, identity_administration=False):
-    if db.info.get("branch_context") is not None:
-        if db.info["branch_context"] != ctx:
-            deny("Branch context cannot change inside a transaction")
-        return lambda: None
-    models = {m.local_table.name: m.class_ for m in Base.registry.mappers}
-    tables = Base.metadata.tables
+# Only immutable SQL structure is reused. Every request still resolves current
+# company/branch rights, and the predicates read live ownership rows at execution.
+# Serialize initial construction to avoid rebuilding the same graph on fan-out.
+_read_guard_lock = RLock()
+
+
+@lru_cache(maxsize=32)
+def _read_guards(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration):
+    models = dict(model_items)
     ownership = BranchOwnership.__table__
-    selected = {ctx.branch_id} if ctx.branch_id else set(ctx.allowed)
     criteria = {}
     for name, model in models.items():
+        if superuser and branch_id is None:
+            continue
         if identity_administration and name in {"users", "common_people", "common_profiles"}:
             continue
-        if name in {"users", "common_people", "common_profiles"} and not (ctx.superuser and ctx.branch_id is None):
+        if name in {"users", "common_people", "common_profiles"} and not (superuser and branch_id is None):
             from app.models.employee import Employee
             from app.branches.models import BranchGrant, BranchPolicy
             branch_users = select(Employee.__table__.c.user_id).where(Employee.__table__.c.branch_id.in_(selected), Employee.__table__.c.deleted_at.is_(None)).union(
-                select(BranchGrant.__table__.c.user_id).where(BranchGrant.__table__.c.company_id == ctx.company_id, BranchGrant.__table__.c.branch_id.in_(selected)),
-                select(BranchPolicy.__table__.c.user_id).where(BranchPolicy.__table__.c.company_id == ctx.company_id, BranchPolicy.__table__.c.all_branches.is_(True), literal(bool(selected))),
+                select(BranchGrant.__table__.c.user_id).where(BranchGrant.__table__.c.company_id == company_id, BranchGrant.__table__.c.branch_id.in_(selected)),
+                select(BranchPolicy.__table__.c.user_id).where(BranchPolicy.__table__.c.company_id == company_id, BranchPolicy.__table__.c.all_branches.is_(True), literal(bool(selected))),
             )
             if name == "common_profiles":
                 from app.common.models import CommonPerson
@@ -111,29 +117,40 @@ def install(db, user, ctx, *, identity_administration=False):
                 # not the private HR/onboarding profile from its home branch.
                 no_employee = ~exists(select(1).where(employee.c.user_id == person.c.user_id, employee.c.deleted_at.is_(None))).correlate(person)
                 home_visible = person.c.user_id.in_(select(employee.c.user_id).where(employee.c.branch_id.in_(selected), employee.c.deleted_at.is_(None)))
-                criteria[model] = model.__table__.c.person_id.in_(select(person.c.id).where(or_(person.c.user_id == user.id, and_(person.c.user_id.in_(branch_users), or_(no_employee, home_visible)))))
+                criteria[model] = model.__table__.c.person_id.in_(select(person.c.id).where(or_(person.c.user_id == actor_id, and_(person.c.user_id.in_(branch_users), or_(no_employee, home_visible)))))
             else:
                 field = model.__table__.c.id if name == "users" else model.__table__.c.user_id
-                criteria[model] = or_(field == user.id, field.in_(branch_users))
+                criteria[model] = or_(field == actor_id, field.in_(branch_users))
             continue
         if name in SHARED:
             continue
         table = model.__table__
-        guard = exists(select(1).where(ownership.c.resource_table == name, ownership.c.resource_key == key_expression(table), ownership.c.company_id == ctx.company_id, ownership.c.branch_id.in_(selected))).correlate(table)
+        guard = exists(select(1).where(ownership.c.resource_table == name, ownership.c.resource_key == key_expression(table), ownership.c.company_id == company_id, ownership.c.branch_id.in_(selected))).correlate(table)
         if name in {"crm_companies", "crm_contacts"}:
             shares = BranchRecordShare.__table__
-            guard = or_(guard, exists(select(1).where(shares.c.company_id == ctx.company_id, shares.c.resource_table == name, shares.c.resource_key == key_expression(table), shares.c.branch_id.in_(selected))).correlate(table))
+            guard = or_(guard, exists(select(1).where(shares.c.company_id == company_id, shares.c.resource_table == name, shares.c.resource_key == key_expression(table), shares.c.branch_id.in_(selected))).correlate(table))
         if name == "fam_ledgers":
             # Only system account definitions are company-shared. Customer and
             # bank ledgers remain private. Their amounts are derived from scoped
             # entries by the accounting response layer.
-            guard = or_(guard, and_(table.c.company_id == ctx.company_id, table.c.system_ledger.is_(True)))
-        # Super Admin can inspect unresolved data only in the explicit/default
-        # all-branches view. A selected branch always filters privileged users.
-        if ctx.superuser and ctx.branch_id is None:
-            continue
+            guard = or_(guard, and_(table.c.company_id == company_id, table.c.system_ledger.is_(True)))
         criteria[model] = guard
     options = [with_loader_criteria(model, guard, include_aliases=True, propagate_to_loaders=False) for model, guard in criteria.items()]
+    return MappingProxyType(criteria), tuple(options)
+
+
+def install(db, user, ctx, *, identity_administration=False):
+    if db.info.get("branch_context") is not None:
+        if db.info["branch_context"] != ctx:
+            deny("Branch context cannot change inside a transaction")
+        return lambda: None
+    models = {m.local_table.name: m.class_ for m in Base.registry.mappers}
+    tables = Base.metadata.tables
+    ownership = BranchOwnership.__table__
+    selected = {ctx.branch_id} if ctx.branch_id else set(ctx.allowed)
+    with _read_guard_lock:
+        criteria, options = _read_guards(tuple(sorted(models.items())), user.id, ctx.company_id,
+            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration)
     protected = set(models) - SHARED
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(n) for n in protected) + r")\b", re.I)
     pending = []

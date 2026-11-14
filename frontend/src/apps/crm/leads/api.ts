@@ -29,6 +29,7 @@ export type Settings = {
   workflows: Workflow[];
 };
 export type LeadDetails = {
+  priority?: "Low" | "Medium" | "High";
   recordType?: "Potential" | "Lead";
   assignmentReason?:string;
   customerTimezone?:string;
@@ -59,6 +60,9 @@ export type Lead = {
   services_offered?: string[];
   business_types?: string[];
   job_title?: string;
+  city?: string;
+  state?: string;
+  country?: string;
   source?: string;
   status: string;
   owner_user_id?: number;
@@ -300,6 +304,12 @@ export function captureEmbed(path: string) {
   <label><input name="consent" type="checkbox" value="yes" required> I agree to be contacted about this enquiry.</label>
   <button type="submit">Submit enquiry</button>
 </form>`;
+}
+
+export function leadFieldErrors(error: unknown): Record<string,string> {
+  const detail=(error as {response?:{data?:{detail?:unknown}}})?.response?.data?.detail;
+  if(!Array.isArray(detail))return {};
+  return Object.fromEntries(detail.filter(item=>item && Array.isArray(item.loc) && typeof item.msg === "string").map(item=>[String(item.loc[item.loc.length-1]),item.msg]));
 }
 
 export function errorMessage(error: unknown): string {

@@ -1,4 +1,4 @@
-type Changes=Record<string,{record_id:number;record_name?:string;project_id?:number;changes:{field:string;before:unknown;after:unknown}[]}>;
+type Changes=Record<string,{record_id:number|string;record_name?:string;project_id?:number;changes:{field:string;before:unknown;after:unknown}[]}>;
 
 export default function NativeActionReview({label,title,entity,changes}:{label:string;title:string;entity:string;changes?:Changes}){
  if(!Object.keys(changes||{}).length)return null;

@@ -18,6 +18,8 @@
 .smart-create-body .notes-document-scroll{overflow:visible;flex:initial}
 /* Phone footer labels may be longer than half the viewport. Keep both actions reachable. */
 @media(max-width:480px){.smart-create-footer>button{min-width:0;white-space:normal;height:auto;min-height:44px;overflow-wrap:anywhere;line-height:1.35}}
+.smart-discard-window>div{flex-wrap:wrap}
+.smart-discard-window>div>button{min-width:0;white-space:normal;height:auto;min-height:40px}
 @media(max-width:480px){
  .smart-create-window.smart-create-phone-sheet{inset:auto 8px calc(8px + env(safe-area-inset-bottom,0px) + max(0px,100dvh - var(--mobile-viewport-height,100dvh)));height:auto;max-height:calc(var(--mobile-viewport-height,100dvh) - 16px - env(safe-area-inset-bottom,0px));border-radius:18px}
  .smart-create-phone-sheet .smart-create-body{max-height:calc(var(--mobile-viewport-height,100dvh) - 180px - env(safe-area-inset-bottom,0px));overscroll-behavior:contain}

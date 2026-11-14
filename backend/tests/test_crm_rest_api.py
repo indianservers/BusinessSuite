@@ -130,10 +130,12 @@ def test_crm_readiness_acceptance_flow_with_pipeline_quote_reports_and_audit(cli
     converted = client.post(
         f"/api/v1/crm/leads/{lead_id}/convert",
         headers=superuser_headers,
-        json={"createContact": True, "createCompany": True, "createDeal": True, "pipelineId": pipeline.json()["id"], "stageId": stage_new.json()["id"]},
+        json={"createContact": True, "createCompany": True, "createDeal": True, "pipelineId": pipeline.json()["id"], "stageId": stage_new.json()["id"], "expectedCloseDate":"2026-07-15", "description":"Reviewed conversion description"},
     )
     assert converted.status_code == 200
     assert converted.json()["lead"]["is_converted"] is True
+    assert converted.json()["deal"]["expected_close_date"] == "2026-07-15"
+    assert converted.json()["deal"]["description"] == "Reviewed conversion description"
     deal_id = converted.json()["deal"]["id"]
 
     moved = client.patch(

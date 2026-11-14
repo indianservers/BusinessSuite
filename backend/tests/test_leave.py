@@ -559,6 +559,7 @@ def test_leave_ledger_tracks_apply_and_cancel(client, db):
     ledger = client.get("/api/v1/leave/ledger", headers=headers)
     assert ledger.status_code == 200
     assert ledger.json()[0]["transaction_type"] == "request_pending"
+    assert ledger.json()[0]["created_by"] == user.id
     assert ledger.json()[0]["amount"] == "-2.0"
     assert ledger.json()[0]["balance_after"] == "19.0"
 

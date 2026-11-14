@@ -31,6 +31,37 @@ def seeded(db):
     return user, headers, company, other, project, task, entry
 
 
+def test_audit_customer_360_combines_only_linked_business_records(db):
+    from app.apps.crm.models import CRMPipeline, CRMPipelineStage, CRMDeal, CRMActivity
+    from app.apps.srm.models import SRMSalesOrder, SRMInvoice
+    from test_identity_utils import own_workflow_records
+    user, _, company, other, *_ = seeded(db)
+    pipeline = CRMPipeline(organization_id=1, name="360 audit pipeline")
+    db.add(pipeline); db.flush()
+    stage = CRMPipelineStage(organization_id=1, pipeline_id=pipeline.id, name="New")
+    db.add(stage); db.flush()
+    deal = CRMDeal(organization_id=1, company_id=company.id, pipeline_id=pipeline.id, stage_id=stage.id, name="Linked 360 deal", owner_user_id=user.id)
+    other_deal = CRMDeal(organization_id=1, company_id=other.id, pipeline_id=pipeline.id, stage_id=stage.id, name="Other company deal", owner_user_id=user.id)
+    activity = CRMActivity(organization_id=1, company_id=company.id, activity_type="Call", subject="Linked 360 call", owner_user_id=user.id, created_by_user_id=user.id)
+    order = SRMSalesOrder(organization_id=1, customer_id=company.id, order_number="SO-360-AUDIT", title="Linked 360 order", created_by=user.id)
+    invoice = SRMInvoice(organization_id=1, customer_id=company.id, invoice_number="INV-360-AUDIT", issue_date=date.today())
+    other_invoice = SRMInvoice(organization_id=1, customer_id=other.id, invoice_number="INV-OTHER-CUSTOMER", issue_date=date.today())
+    db.add_all([deal, other_deal, activity, order, invoice, other_invoice]); db.flush()
+    own_workflow_records(db, deal, other_deal, activity, order, invoice, other_invoice)
+    db.commit()
+    for source in ("crm", "srm"):
+        record = summary("company", company.id, source, db, user)
+        assert any(row["id"] == deal.id and row["kind"] == "deal" for row in record["relations"])
+        assert not any(row["id"] == other_deal.id and row["kind"] == "deal" for row in record["relations"])
+        history = events("company", company.id, source, 1, 100, "all", db, user)
+        titles = {row["title"] for row in history["items"]}
+        assert {"SO-360-AUDIT", "INV-360-AUDIT", "Linked 360 call"} <= titles
+        assert "INV-OTHER-CUSTOMER" not in titles
+        links = {row["title"]: row.get("url") for row in history["items"]}
+        assert links["SO-360-AUDIT"] == f"/srm/sales-orders/{order.id}"
+        assert links["INV-360-AUDIT"] == f"/srm/invoices/{invoice.id}"
+
+
 def test_customer_identity_projects_and_work_are_not_name_matched(db):
     user, _, company, other, project, task, entry = seeded(db)
     first = summary('company', company.id, 'crm', db, user)

@@ -76,7 +76,7 @@ def set_policy(data: AssetPolicy, db=Depends(get_db), user=Depends(RequirePermis
 def approvers(search: str = "", db=Depends(get_db), user=Depends(manager)):
     query = registered_users(db, user).filter(User.is_active.is_(True))
     if search:
-        query = query.filter(User.email.ilike(f"%{search}%"))
+        query = query.filter(User.email.icontains(search, autoescape=True))
     return [{"id": r.id, "name": r.email} for r in query.order_by(User.id).limit(100) if r.is_superuser or user_has_permission(r, "asset_manage")]
 
 
@@ -297,7 +297,7 @@ def export_register(register: str = Query("inventory", pattern="^(inventory|cust
     import csv
     if register == "inventory":
         query = lifecycle.assets(db, user)
-        if search: query = query.filter(or_(Asset.name.ilike(f"%{search}%"), Asset.asset_tag.ilike(f"%{search}%"), Asset.serial_number.ilike(f"%{search}%")))
+        if search: query = query.filter(or_(Asset.name.icontains(search, autoescape=True), Asset.asset_tag.icontains(search, autoescape=True), Asset.serial_number.icontains(search, autoescape=True)))
         if category_id: query = query.filter(Asset.category_id == category_id)
         if status and status not in {"Returned", "Lost / Damaged", "Retired / Disposed"}: query = query.filter(Asset.status == status)
         elif status == "Returned": query = query.filter(Asset.assignments.any(AssetAssignment.returned_date.is_not(None)))
@@ -309,7 +309,7 @@ def export_register(register: str = Query("inventory", pattern="^(inventory|cust
                 yield [a.asset_tag,a.name,a.category.name if a.category else "",a.brand,a.model,a.serial_number,a.location,a.condition,a.status,a.purchase_date,a.purchase_cost,a.warranty_expiry]
     else:
         query = db.query(AssetAssignment).join(Asset).join(Employee).filter(Asset.organization_id == tenant(user), AssetAssignment.is_active.is_(register == "custody"))
-        if search: query = query.filter(or_(Asset.name.ilike(f"%{search}%"), Asset.asset_tag.ilike(f"%{search}%"), (Employee.first_name+" "+Employee.last_name).ilike(f"%{search}%")))
+        if search: query = query.filter(or_(Asset.name.icontains(search, autoescape=True), Asset.asset_tag.icontains(search, autoescape=True), (Employee.first_name+" "+Employee.last_name).icontains(search, autoescape=True)))
         if department:
             from app.models.company import Department
             query=query.filter(Employee.department.has(Department.name == department))

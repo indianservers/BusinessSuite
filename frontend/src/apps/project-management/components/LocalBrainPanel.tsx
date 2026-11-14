@@ -5,7 +5,7 @@ import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { operatorApi, type OperatorProviderName, type OperatorRun } from '@/services/aiOperatorApi';
-import { BROWSER_MODELS, LocalBrainError, loadBrowserBrain, reasonLocally, stopLocalBrain,
+import { SERVER_MODELS, LocalBrainError, loadServerBrain, reasonLocally, stopLocalBrain,
   type BrainPacket, type BrainReply, type BrainRuntime, type BrainSession } from '@/lib/operator/localLLM';
 export type LocalBrainHandle = { plan(text:string,inputMode?:'text'|'voice',revision?:OperatorRun):Promise<boolean>; hasPendingQuestion():boolean };
 type Props = { compact?:boolean; onReply?:(reply:BrainReply)=>void; onBusyChange?:(busy:boolean)=>void; projectId:number; workspaceId?:number|null; provider:OperatorProviderName; cloudEnabled:boolean; allowCloud:boolean; executionMode:'atomic'|'checkpointed';
@@ -13,10 +13,10 @@ type Props = { compact?:boolean; onReply?:(reply:BrainReply)=>void; onBusyChange
 const root='/ai-operator/brain';
 const detail = (e:any) => typeof e?.response?.data?.detail==='string' ? e.response.data.detail : e?.message || 'Local reasoning could not finish.';
 export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function LocalBrainPanel(props,ref) {
-  const uid=useAuthStore(s=>s.user?.id);
-  const runtime:BrainRuntime='browser';
-  const [browserModel,setBrowserModel]=useState<string>(BROWSER_MODELS[0].id);
-  const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[text,setText]=useState(''),[status,setStatus]=useState('Load the TensorFlow.js model to enable local reasoning.');
+  const uid=useAuthStore(s=>s.user?.id),company=useAuthStore(s=>s.user?.access?.companyId);
+  const runtime:BrainRuntime='server';
+  const [browserModel,setBrowserModel]=useState<string>(SERVER_MODELS[0].id);
+  const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[text,setText]=useState(''),[status,setStatus]=useState('Check the server-local model to enable local reasoning.');
   const [error,setError]=useState(''),[session,setSession]=useState<BrainSession|null>(null),[cloudFallback,setCloudFallback]=useState(true);
   const [sessions,setSessions]=useState<BrainSession[]>([]);
   const controller=useRef<AbortController>(), sessionRef=useRef<BrainSession|null>(null),busyRef=useRef(false),sequence=useRef(0);
@@ -33,13 +33,13 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
       if(!sessionRef.current && r.data.items[0])updateSession(r.data.items[0]);
     }).catch(()=>{if(!abort.signal.aborted)setStatus('Private memory will reconnect when you send a message.');});
     return()=>{abort.abort();controller.current?.abort();sequence.current++;};
-  },[props.projectId,uid]);
-  useEffect(()=>()=>{void stopLocalBrain();},[uid]);
+  },[props.projectId,uid,company]);
+  useEffect(()=>{const changed=()=>{sequence.current++;controller.current?.abort();updateSession(null);setSessions([]);setReady(false);setBusy(false);busyRef.current=false;setError('');setStatus('Scope changed. Reconnect the server model in the current project.');};window.addEventListener('suite:organization-changed',changed);window.addEventListener('suite:branch-changed',changed);return()=>{window.removeEventListener('suite:organization-changed',changed);window.removeEventListener('suite:branch-changed',changed);};},[]);
   async function connect() {
     if(busyRef.current)return;busyRef.current=true;setBusy(true);setError('');setReady(false);
     const abort=new AbortController();controller.current=abort;
     try {
-      await loadBrowserBrain(browserModel,setStatus,abort.signal);
+      await loadServerBrain(browserModel,props.projectId,setStatus,abort.signal);
       if(!abort.signal.aborted)setReady(true);
     }catch(e){if(!abort.signal.aborted)setError(detail(e));}
     finally {busyRef.current=false;setBusy(false);}
@@ -52,14 +52,15 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
     const key=crypto.randomUUID();
     try {
       if(!ready && (!props.allowCloud || !cloudFallback || !props.cloudEnabled))
-        throw new LocalBrainError('unavailable','Load the TensorFlow.js model to reason locally. No LLM request was sent.');
+        throw new LocalBrainError('unavailable','Connect the server-local model to reason locally. No LLM request was sent.');
       let active=sessionRef.current;
-      if(!active){active=(await api.post(`${root}/sessions`,{project_id:props.projectId},{signal:abort.signal})).data;updateSession(active);}
+      if(!active){active=(await api.post(`${root}/sessions`,{project_id:props.projectId},{signal:abort.signal})).data;if(abort.signal.aborted||current!==sequence.current)return true;updateSession(active);}
       const packet:BrainPacket=(await api.get(`${root}/sessions/${active!.id}/context`,{params:{task_ids:props.selected.join(',')},signal:abort.signal})).data;
       if(revision)packet.context.revision_of={id:revision.id,selection:revision.selection,plan:revision.plan,result:revision.result,
         instruction:'Return a complete replacement of pending steps for these frozen targets only. Exclude committed receipt steps. Project setup cannot revise an existing task run.'};
+      if(abort.signal.aborted||current!==sequence.current)return true;
       active=packet.session;updateSession(active);
-      let reply:BrainReply, source:'browser'|'cloud'=runtime, model=selectedModel;
+      let reply:BrainReply, source:'server'|'cloud'=runtime, model=selectedModel;
       let failure:LocalBrainError|undefined;
       try {
         if(!ready)throw new LocalBrainError('unavailable','The local model is not loaded or connected.');
@@ -100,6 +101,7 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
       if(revision && (reply.kind==='project_plan' || (reply.kind==='task_plan' && reply.task_ids?.some(id=>!revision.selection.includes(id)))))
         throw new LocalBrainError('invalid_output','The revised draft must stay within the frozen task selection.');
       const saved=(await api.post(`${root}/sessions/${active.id}/turns`,{request_key:key,revision:active.revision,text:command,reply,runtime:source,model:model || 'unknown',fallback_reason:failure?.reason || null},{signal:abort.signal})).data;
+      if(abort.signal.aborted||current!==sequence.current)return true;
       updateSession(saved);setText('');
       props.onReply?.(reply);
       if(reply.kind==='task_plan') {
@@ -122,11 +124,11 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
     return run(command,inputMode,revision);
   }}));
   const controls=<>
-    <div className="flex flex-wrap gap-3"><label>Model<NativeSelect aria-label="Browser brain model" disabled={busy} className="ml-2 rounded border bg-background p-2" value={browserModel} onChange={e=>{setBrowserModel(e.target.value);setReady(false);void stopLocalBrain();}}>{BROWSER_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</NativeSelect></label>
-      <Button variant="outline" disabled={busy} onClick={()=>void connect()}>Load TensorFlow.js model</Button>
-      <Button variant="outline" disabled={busy} onClick={()=>{setReady(false);void stopLocalBrain();setStatus('Local model unloaded.');}}>Unload model</Button>
+    <div className="flex flex-wrap gap-3"><label>Model<NativeSelect aria-label="Server brain model" disabled={busy} className="ml-2 rounded border bg-background p-2" value={browserModel} onChange={e=>{setBrowserModel(e.target.value);setReady(false);void stopLocalBrain();}}>{SERVER_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</NativeSelect></label>
+      <Button variant="outline" disabled={busy} onClick={()=>void connect()}>Check server model</Button>
+      <Button variant="outline" disabled={busy} onClick={()=>{setReady(false);void stopLocalBrain();setStatus('Local connection reset.');}}>Reset connection</Button>
     </div>
-    <p className="text-sm text-muted-foreground">The model runs in a browser worker using TensorFlow.js. Pretrained weights load from this PMS server only when you press Load. Allow approximately 540 MB for weights and additional device memory. This small model may need cloud fallback for complex plans.</p>
+    <p className="text-sm text-muted-foreground">Model weights and generation stay on the server. This small model may need a configured cloud provider for complex plans; fallback requires the choice below.</p>
     <label className="block text-sm"><input type="checkbox" disabled={busy || !props.allowCloud} checked={cloudFallback && props.allowCloud} onChange={e=>setCloudFallback(e.target.checked)} /> Use {props.provider} only when local reasoning is unavailable, unsupported or fails validation</label>
     <label className="block">Private memory<NativeSelect aria-label="Local brain conversation" className="ml-2 rounded border bg-background p-2" disabled={busy} value={session?.id || ''} onChange={e=>updateSession(sessions.find(s=>s.id===Number(e.target.value)) || null)}><option value="">New private conversation</option>{[session,...sessions].filter((s,i,all):s is BrainSession=>!!s && all.findIndex(v=>v?.id===s.id)===i).map(s=><option key={s.id} value={s.id}>Conversation #{s.id} · {s.turns.length} remembered turns</option>)}</NativeSelect></label>
     <Link className="block text-sm text-primary underline" to={`/ai-agents/operator?module=PMS&project=${props.projectId}${props.workspaceId?`&workspace=${props.workspaceId}`:''}`}>Connected AI agent: calendar planning, playbooks, monitors and recovery</Link>
@@ -135,12 +137,12 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
   return <section className={`rounded-lg border p-4 space-y-3 ${props.compact?'local-brain-compact':''}`} aria-label="Local LLM brain">
     {!props.compact && <><h2 className="text-lg font-semibold">Local reasoning assistant</h2>
     <p className="text-sm">A pretrained language model plans from authorized PMS context, private conversation memory and execution receipts. Model replies are drafts; actions require the approval below.</p></>}
-    {props.compact ? <div className="brain-model-strip"><span><i/>{ready?'Local model ready':'Local model not loaded'}</span><Button variant="outline" disabled={busy} onClick={()=>{if(ready){setReady(false);void stopLocalBrain();}else void connect();}}>{ready?'Unload local model':'Load local model'}</Button><details><summary>Model & conversation settings</summary>{controls}</details></div>:controls}
+    {props.compact ? <div className="brain-model-strip"><span><i/>{ready?'Server model available':'Server model not connected'}</span><Button variant="outline" disabled={busy} onClick={()=>{if(ready){setReady(false);void stopLocalBrain();}else void connect();}}>{ready?'Reset connection':'Connect server model'}</Button><details><summary>Model & conversation settings</summary>{controls}</details></div>:controls}
     <p aria-live="polite" className="text-sm">{status}</p>{error && <p role="alert" className="text-destructive">{error}</p>}
     {session?.turns.length ? <div className="max-h-72 overflow-auto space-y-3">{session.turns.map((turn,i)=><div key={i}><p className="text-sm"><strong>You:</strong> {turn.text}</p><p className="whitespace-pre-wrap"><strong>{turn.runtime==='cloud'?'Cloud fallback':'Local model'}:</strong> {turn.reply.message}</p>{turn.reply.question && <p className="font-medium">{turn.reply.question}</p>}</div>)}</div>:null}
     {!props.compact && <textarea aria-label="Local brain message" className="min-h-24 w-full rounded border bg-background p-3" maxLength={4000} value={text} disabled={busy} onChange={e=>setText(e.target.value)} placeholder="Prepare our website launch. Ask me what you need, then build a reviewed plan."/>}
     <div className="flex gap-3">{!props.compact && <Button disabled={busy || !text.trim() || !props.projectId} onClick={()=>void run(text)}>Ask local brain</Button>}
-      {busy && <Button variant="outline" onClick={()=>{controller.current?.abort();void stopLocalBrain();setReady(false);setStatus('Cancelled. No approval was given. Any existing reviewed run remains visible below.');}}>Cancel reasoning</Button>}
+      {busy && <Button variant="outline" onClick={()=>{controller.current?.abort();void stopLocalBrain();setReady(false);setStatus('Stopped waiting. No approval was given. Any existing reviewed run remains visible below.');}}>Stop waiting</Button>}
       <Button variant="outline" disabled={busy || !session} onClick={async()=>{if(session){try{updateSession((await api.delete(`${root}/sessions/${session.id}/memory`)).data);}catch(e){setError(detail(e));}}}}>{props.compact?'Clear conversation':'Clear private memory'}</Button>
     </div>
   </section>;

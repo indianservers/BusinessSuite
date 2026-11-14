@@ -272,3 +272,22 @@ def test_account_link_candidates_exclude_foreign_and_revoked_company_memberships
         response=client.post(ROOT+"/quick-add",headers=superuser_headers,json={"first_name":"Denied link","date_of_joining":str(date.today()),"existing_user_id":account.id})
         assert response.status_code==403,response.text
     assert db.query(Employee).filter(Employee.user_id.in_([foreign.id,revoked.id])).count()==0
+
+
+import pytest
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_account_option_search_is_literal(client,db,superuser_headers,needle):
+    from uuid import uuid4
+    from app.common.models import CommonPerson
+    marker=uuid4().hex[:8]
+    rows=[User(email=f'qa{part}{marker}@example.com',hashed_password='unused-synthetic',is_active=True,is_superuser=False) for part in [needle,'plain']]
+    db.add_all(rows);db.flush()
+    db.add_all([CommonPerson(user_id=row.id,organization_id=1,display_name='Synthetic account') for row in rows])
+    db.commit()
+    response=client.get(ROOT+'/account-options',headers=superuser_headers,params={'q':'qa'+needle})
+    assert response.status_code==200,response.text
+    assert [item['id'] for item in response.json()['items']]==[rows[0].id]
+    normal=client.get(ROOT+'/account-options',headers=superuser_headers,params={'q':'QAPLAIN'})
+    assert normal.status_code==200,normal.text
+    assert [item['id'] for item in normal.json()['items']]==[rows[1].id]

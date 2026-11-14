@@ -934,12 +934,12 @@ def attendance_register(
     if department_id:
         query = query.filter(Employee.department_id == department_id)
     if search:
-        term = f"%{search}%"
+        term = search
         query = query.filter(
-            (Employee.employee_id.ilike(term))
-            | (Employee.first_name.ilike(term))
-            | (Employee.last_name.ilike(term))
-            | (Employee.work_email.ilike(term))
+            (Employee.employee_id.icontains(term, autoescape=True))
+            | (Employee.first_name.icontains(term, autoescape=True))
+            | (Employee.last_name.icontains(term, autoescape=True))
+            | (Employee.work_email.icontains(term, autoescape=True))
         )
     query = query.filter(Employee.date_of_joining <= work_date, (Employee.date_of_exit.is_(None)) | (Employee.date_of_exit >= work_date))
     employees = query.order_by(Employee.employee_id, Employee.first_name).all()

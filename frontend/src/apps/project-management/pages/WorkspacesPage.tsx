@@ -1,3 +1,7 @@
+import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
 import PageWorkTools from "@/components/app/PageWorkTools";
 import RouteContent from "@/components/app/RouteContent";
 import SetupReadiness from "@/components/suite/SetupReadiness";
@@ -76,6 +80,7 @@ function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boo
   },[navigationOpen]);
 
   const { user } = useAuthStore();
+  const workspaceClient=useQueryClient(),workspaceScope=workspaceDataScope(user);
   const requestedWorkspace = Number(params.get("workspace"));
   const signOut = useSignOut("/pms/login");
 
@@ -159,13 +164,14 @@ function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boo
   const progress = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
   const assignablePeople = useMemo(() => members.filter(m => m.role !== "Guest").map(m => ({ id: m.user_id, email: m.email, name: personName(m.email) })), [members]);
   const createProjectId = Number(projectFilter) || projects[0]?.id;
-  const loadWorkspaces = useCallback(async (preferred?: number) => {
+  const loadWorkspaces = useCallback(async (preferred?: number, force = false) => {
     const request=++workspaceRequests.current;
-    const { data } = await api.get<Workspace[]>(`${base}/workspaces`);
+    const data = await workspaceClient.fetchQuery({...pmsWorkspaceOptions(workspaceScope),...(preferred||force?{staleTime:0}:{})});
     if(request!==workspaceRequests.current)return;
     const saved = Number(localStorage.getItem(`pms-workspace-${user?.id}`));
     setWorkspaceLoadFailed(false); setWorkspaces(data); setSelected(current => preferred || (requestedWorkspace ? data.some(w => w.id === requestedWorkspace) ? requestedWorkspace : undefined : data.some(w => w.id === current) ? current : data.some(w => w.id === saved) ? saved : data[0]?.id));
-  }, [user?.id, requestedWorkspace]);
+  }, [user?.id, requestedWorkspace, workspaceClient, workspaceScope]);
+  usePageRefresh(() => loadWorkspaces(undefined,true));
   useEffect(()=>{if(selected&&!requestedWorkspace)setParams(current=>{const next=new URLSearchParams(current);next.set("workspace",String(selected));return next},{replace:true})},[selected,requestedWorkspace,setParams]);
   useEffect(() => { if (selected && user?.id) localStorage.setItem(`pms-workspace-${user.id}`, String(selected)); }, [selected, user?.id]);
   const loadDetails = useCallback(async () => {
@@ -175,14 +181,15 @@ function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boo
     if (pending) return pending;
     const load = async () => {
     const request=++detailsRequest.current;
-    const [overviewResult, peopleResult, invitesResult] = await Promise.allSettled([
-      api.get<{ projects: WorkspaceProject[]; tasks: WorkTask[]; role: string }>(`${base}/workspaces/${selected}/overview`),
-      api.get<WorkspaceMember[]>(`${base}/workspaces/${selected}/members`),
-      manages ? api.get<Invitation[]>(`${base}/workspaces/${selected}/invitations`) : Promise.resolve({ data: [] as Invitation[] }),
+    const overview = await api.get<{ projects: WorkspaceProject[]; tasks: WorkTask[]; role: string; members?: WorkspaceMember[]; invitations?: Invitation[] }>(`${base}/workspaces/${selected}/overview`, {params:{include_people:true}});
+    if (selectedRef.current !== selected || request !== detailsRequest.current) return;
+    // Older rolling-deployment APIs ignore the opt-in flag. Preserve their
+    // existing separately authorized reads instead of inventing empty people.
+    const [peopleResult, invitesResult] = await Promise.allSettled([
+      Array.isArray(overview.data.members) ? Promise.resolve({data:overview.data.members}) : api.get<WorkspaceMember[]>(`${base}/workspaces/${selected}/members`),
+      Array.isArray(overview.data.invitations) ? Promise.resolve({data:overview.data.invitations}) : manages ? api.get<Invitation[]>(`${base}/workspaces/${selected}/invitations`) : Promise.resolve({ data: [] as Invitation[] }),
     ]);
     if (selectedRef.current !== selected || request !== detailsRequest.current) return;
-    if(overviewResult.status === "rejected") throw overviewResult.reason;
-    const overview=overviewResult.value;
     detailsLoadedFor.current = selected;
     setDetailsFailed(false);
     setWorkspaces(current => current.map(w => w.id === selected && w.role !== overview.data.role ? { ...w, role: overview.data.role } : w));
@@ -279,7 +286,7 @@ function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boo
   }
   async function submitModal() {
     await act(async () => {
-      if (modal === "workspace") { const { data } = await api.post<Workspace>(`${base}/workspaces`, { name }); await loadWorkspaces(data.id);switchWorkspace(data.id); setModal(null); }
+      if (modal === "workspace") { const { data } = await api.post<Workspace>(`${base}/workspaces`, { name }); setWorkspaces(current => [...current.filter(workspace => workspace.id !== data.id), data]); switchWorkspace(data.id); setModal(null); toast({ title: "Workspace created", description: data.name }); void loadWorkspaces(data.id).catch(() => setNotice("Workspace created. The list could not be refreshed; refresh to see the latest details.")); }
       if (modal === "join") { const { data } = await api.post(`${base}/workspace-invitations/accept`, { token: token.trim() }); setToken(""); await loadWorkspaces(data.workspace_id);switchWorkspace(data.workspace_id); setModal(null); }
       if (modal === "project" && selected) { const p = await projectsAPI.create({ name, project_key: projectKey, workspace_id: selected, custom_fields:projectCustomFields, status: "Active" }); await loadDetails(); setProjectFilter(String(p.id)); setModal(null); }
       if (modal === "invite" && selected) { const { data } = await api.post(`${base}/workspaces/${selected}/invitations`, { email, role }); setInviteLink(`${window.location.origin}/pms/invitation?token=${encodeURIComponent(data.token)}`); setNotice("Invitation created — waiting for activation or acceptance"); setView("people"); setEmail(""); await loadDetails(); }
@@ -289,9 +296,9 @@ function ScopedWorkspacesPage({ creationWindow = false }: { creationWindow?: boo
   return <div style={{"--wb-accent":workspaceColorMap[selected||0]||workspaceDefaultColor(selected||1)} as CSSProperties} className={`ws-app wb-reference ${navigationCollapsed ? "kf-workspace-collapsed" : ""} ${navigationOpen ? "kf-navigation-open" : ""}`}>
     <Sidebar embedded open={navigationOpen} collapsed={navigationCollapsed && !navigationOpen} onClose={()=>setNavigationOpen(false)} onToggleCollapse={()=>setNavigationCollapsed(value=>!value)} />
     <div className="ws-main"><header className="suite-app-bar ws-topbar"><button className="kf-mobile-menu" aria-label="Open navigation" onClick={()=>setNavigationOpen(true)}><Menu size={20}/></button><div className="wb-module-menu"><ModuleSwitcher/></div><NativeSelect className="ws-mobile-switch" aria-label="Mobile workspace" value={selected || ""} onChange={e => e.target.value === "new" ? openModal("workspace") : switchWorkspace(Number(e.target.value))}><option value="" disabled>Workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}{canCreateWorkspace && <option value="new">+ New workspace</option>}</NativeSelect><div className="kf-workspace-command"><GlobalSearch /></div><div className="ws-connection"><i className={connected ? "live" : ""} /><span>{connected ? "Live updates" : "Auto refresh"}</span></div><BranchSwitcher /><PageRefreshButton compact /><RefreshPagesCatalog /><SuiteNotificationBell /><PMSMoreMenu /><WorkspacePicker items={workspaces} current={workspace} onSelect={switchWorkspace} onCreate={()=>openModal("workspace")} canCreate={canCreateWorkspace} colors={workspaceColorMap} onColor={changeWorkspaceColor}/><PMSProfileMenu onCreateTask={() => { if (canEdit && projects.length) { setQuickWorkType("Task"); setShowTaskCreate(true); } else setNotice("Ask a workspace admin to create a project or grant task access."); }} onMyWork={() => { setView("list"); setProjectFilter(""); setQuery(""); setAssigneeFilter(String(user?.id)); }} onViewPeople={() => setView("people")} /></header>
-      <RouteContent className="ws-content" scrollRoot freshness={false}><SetupReadiness embedded /><InvitationInbox />
+      <RouteContent className="ws-content" scrollRoot freshness={false}><SetupReadiness embedded />{!loading && !detailsLoading && (!selected || detailsLoadedFor.current === selected || detailsFailed) && <InvitationInbox />}
         {error && <div role="alert" className="ws-alert">{error}<button aria-label="Dismiss error" onClick={() => setError("")}><X size={15} /></button></div>}
-        {loading || detailsLoading || pendingWorkspaceScope&&!requestedUnavailable&&!workspaceLoadFailed ? <div className="ws-loading"><Loader2 className="animate-spin" />Loading your workspace…</div> : requestedUnavailable ? <div role="alert" className="ws-onboarding"><h2>Workspace unavailable</h2><p>This workspace is unavailable or you do not have access.</p>{workspaces.length>0&&<button type="button" className="ws-button ws-primary" onClick={()=>switchWorkspace(workspaces[0].id)}>Open an available workspace</button>}</div> : (!workspace||pendingWorkspaceScope) && workspaceLoadFailed ? <div className="ws-onboarding"><h2>Unable to load your workspaces</h2><p>Your work is still saved. Retry the connection.</p><button className="ws-button ws-primary" onClick={() => { setLoading(true); setError(""); void loadWorkspaces().catch(e => { setWorkspaceLoadFailed(true); setError(workspaceError(e)); }).finally(() => setLoading(false)); }}>Retry loading workspaces</button></div> : !workspace ? <div className="ws-onboarding"><div className="ws-onboarding-art"><Folder size={42} /><span><Users size={24} /></span></div><span className="ws-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Good work happens together.</h2><p>Create a home for your projects. Invite your people.<br />Turn the next big idea into done.</p><div>{canCreateWorkspace && <Button type="submit" variant="default" className="ws-button ws-primary" onClick={() => openModal("workspace")}><Plus size={16} />Create workspace</Button>}<button className="ws-button ws-outline" onClick={() => openModal("join")}>Join a workspace</button></div><small>Workspace creation is available to PMS administrators and project managers.</small></div> : <>
+        {loading || detailsLoading || (!!selected && detailsLoadedFor.current !== selected && !detailsFailed) || pendingWorkspaceScope&&!requestedUnavailable&&!workspaceLoadFailed ? <div className="ws-loading"><Loader2 className="animate-spin" />Loading your workspace…</div> : requestedUnavailable ? <div role="alert" className="ws-onboarding"><h2>Workspace unavailable</h2><p>This workspace is unavailable or you do not have access.</p>{workspaces.length>0&&<button type="button" className="ws-button ws-primary" onClick={()=>switchWorkspace(workspaces[0].id)}>Open an available workspace</button>}</div> : (!workspace||pendingWorkspaceScope) && workspaceLoadFailed ? <div className="ws-onboarding"><h2>Unable to load your workspaces</h2><p>Your work is still saved. Retry the connection.</p><button className="ws-button ws-primary" onClick={() => { setLoading(true); setError(""); void loadWorkspaces().catch(e => { setWorkspaceLoadFailed(true); setError(workspaceError(e)); }).finally(() => setLoading(false)); }}>Retry loading workspaces</button></div> : !workspace ? <div className="ws-onboarding"><div className="ws-onboarding-art"><Folder size={42} /><span><Users size={24} /></span></div><span className="ws-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Good work happens together.</h2><p>Create a home for your projects. Invite your people.<br />Turn the next big idea into done.</p><div>{canCreateWorkspace && <Button type="submit" variant="default" className="ws-button ws-primary" onClick={() => openModal("workspace")}><Plus size={16} />Create workspace</Button>}<button className="ws-button ws-outline" onClick={() => openModal("join")}>Join a workspace</button></div><small>Workspace creation is available to PMS administrators and project managers.</small></div> : <>
           {detailsFailed && <div role="alert" className="ws-alert">Workspace data could not be loaded. <button onClick={() => { setDetailsLoading(true); void loadDetails().then(() => { setDetailsFailed(false); }).catch(e => setError(workspaceError(e))).finally(() => setDetailsLoading(false)); }}>Retry workspace</button></div>}
           {!detailsFailed && <>
           <header className="wb-work-header"><h1>{workspace.name}</h1><span>{projects.length} projects · {tasks.length} loaded tasks</span></header>

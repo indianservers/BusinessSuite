@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user, RequirePermission
@@ -22,6 +24,8 @@ from app.schemas.helpdesk import (
 from app.services import helpdesk_access as access
 
 router = APIRouter(prefix="/helpdesk", tags=["HR Helpdesk"])
+from app.apps.hrms.ticket_views import router as ticket_views_router
+router.include_router(ticket_views_router)
 
 
 @router.get("/categories")
@@ -55,10 +59,23 @@ def _create_ticket_record(
     if not current_user.employee:
         raise HTTPException(status_code=400, detail="No employee profile")
 
+    # Both the legacy query route and JSON route share creation invariants.
+    try:
+        HelpdeskTicketCreate(subject=subject, description=description,
+                             category_id=category_id, priority=priority)
+    except ValidationError as exc:
+        raise RequestValidationError([
+            {**error, 'loc': ('body', *error['loc'])}
+            for error in exc.errors(include_context=False)
+        ]) from None
+
     # Several approved workflow steps can create tickets in the same second.
     # Timestamp + employee ID collides; keep references within String(30).
     ticket_number = 'TKT' + uuid4().hex[:27]
     category = db.query(HelpdeskCategory).filter(HelpdeskCategory.id == category_id).first() if category_id else None
+    if category_id is not None and (category is None or not category.is_active):
+        raise HTTPException(422, detail=[{'loc':['body','category_id'],
+            'msg':'Choose an active helpdesk category','type':'value_error'}])
     sla_hours = category.sla_hours if category else 24
     now = datetime.now(timezone.utc)
 

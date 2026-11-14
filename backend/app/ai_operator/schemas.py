@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from app.ai_operator.media_policy import MediaSettings
+from app.ai_operator.workload_guard import WorkloadGuard
 
 Provider = Literal["openai", "gemini", "claude"]
 
@@ -14,6 +16,7 @@ class ProviderUpdate(BaseModel):
     enabled: bool = False
     data_sharing_allowed: bool = False
     allow_workspace_inheritance: bool = False
+    media: MediaSettings | None = None
     max_tokens: int = Field(default=3000, ge=512, le=8192)
     input_price: float | None = Field(default=None, ge=0, le=10000, allow_inf_nan=False)
     output_price: float | None = Field(default=None, ge=0, le=10000, allow_inf_nan=False)
@@ -33,6 +36,7 @@ class CommandInput(BaseModel):
     parent_run_id: int | None = Field(default=None, gt=0)
     parent_plan_hash: str | None = None
     local_plan: "TaskPlan | None" = None
+    workload_guard: WorkloadGuard | None = None
 
     @model_validator(mode="after")
     def validate_context(self):
@@ -40,6 +44,8 @@ class CommandInput(BaseModel):
             ZoneInfo(self.timezone)
         except (ZoneInfoNotFoundError, ValueError):
             raise ValueError("Unknown timezone")
+        if self.workload_guard and (self.execution_mode!="atomic" or self.local_plan is None):
+            raise ValueError("Workload guards require an explicit atomic local plan")
         if self.execution_mode == "checkpointed" and not self.background:
             raise ValueError("Checkpointed execution requires background mode")
         if self.parent_run_id and not self.background:

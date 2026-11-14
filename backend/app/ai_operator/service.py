@@ -258,6 +258,8 @@ class OperatorExecutor:
                     get_task_project_for_action(db, task.id, user, "manage_tasks")
                     if task.deleted_at or digest(task_snapshot(db, task)) != run.snapshots.get(str(task.id)):
                         raise HTTPException(409, "STALE_PLAN")
+                from app.ai_operator.workload_guard import check as check_workload
+                check_workload(db,user,run,proposal)
                 plan = TaskPlan.model_validate(run.plan)
                 validate_plan(db, user, run, plan)
                 run.status = "executing"

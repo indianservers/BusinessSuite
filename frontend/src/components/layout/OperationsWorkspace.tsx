@@ -47,7 +47,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     if (path !== canonical) params.set("operation", path);
     return params.size ? `?${params}` : "";
   };
-  if (pathname !== canonical) return <Navigate replace to={`${canonical}${searchFor(selected)}`} />;
+  if (pathname !== canonical) return <Navigate replace to={`${canonical}${searchFor(selected)}${location.hash}`} />;
   // The shared task workspace supplies the complete PMS shell itself.
   if (isSharedTaskWorkspace(selected, location.search)) return <ErrorBoundary><Suspense fallback={<LoadingState label="Loading tasks" />}>
     <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: selected } }}>

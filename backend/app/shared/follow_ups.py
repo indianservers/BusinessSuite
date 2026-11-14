@@ -261,7 +261,7 @@ def directory(search: str='', status: str='', assigned_user_id: int | None=None,
     if assigned_user_id:
         q = q.filter(FollowUp.assigned_user_id == assigned_user_id)
     if search:
-        q = q.filter(FollowUp.title.ilike('%' + search + '%'))
+        q = q.filter(FollowUp.title.icontains(search, autoescape=True))
     if status:
         q = q.filter(status_expression(q) == status)
     total = q.count()
@@ -501,8 +501,7 @@ def grid_query(state: str=Query('{}', max_length=16000), db=Depends(get_db), use
     fields = {name: GridField(expr, kind) for name, expr, kind in [('id', FollowUp.id, 'id'), ('customer_name', CRMCompany.name, 'text'), ('title', FollowUp.title, 'text'), ('due_at', FollowUp.due_at, 'datetime'), ('assigned_to', User.email, 'text'), ('assigned_user_id', FollowUp.assigned_user_id, 'id'), ('priority', FollowUp.priority, 'text'), ('status', status, 'text'), ('customer_id', FollowUp.customer_id, 'id'), ('order_id', FollowUp.order_id, 'id')]}
     q = apply_filters(q, parsed, fields)
     if parsed.search:
-        text = '%' + parsed.search + '%'
-        q = q.filter(or_(CRMCompany.name.ilike(text), FollowUp.title.ilike(text), User.email.ilike(text)))
+        q = q.filter(or_(CRMCompany.name.icontains(parsed.search, autoescape=True), FollowUp.title.icontains(parsed.search, autoescape=True), User.email.icontains(parsed.search, autoescape=True)))
     total = q.count()
     branch = apply_path(q, parsed, fields)
     result = {'total': total, 'page': parsed.page, 'pageSize': parsed.pageSize, 'rows': [], 'groups': [], 'permissions': {'export': True}}
@@ -633,6 +632,6 @@ def link_options(entity: str, search: str='', db=Depends(get_db), user=Depends(g
     model = _get_resource(entity).model
     candidates = [getattr(model, k) for k in ('name', 'full_name', 'quote_number') if hasattr(model, k)]
     if search and candidates:
-        q = q.filter(or_(*[c.ilike('%' + search + '%') for c in candidates]))
+        q = q.filter(or_(*[c.icontains(search, autoescape=True) for c in candidates]))
     records = q.order_by(model.id.desc()).limit(100).all()
     return [{'id': r.id, 'name': next((getattr(r, k) for k in ('name', 'full_name', 'quote_number') if getattr(r, k, None)), f'#{r.id}')} for r in records]

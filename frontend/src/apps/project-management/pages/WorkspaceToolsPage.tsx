@@ -1,3 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { useAuthStore } from "@/store/authStore";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -28,9 +33,17 @@ const initial = { name: "", project_id: "", description: "", task_ids: [] as num
 const labels = { goal: "Goals", template: "Blueprints", intake: "Intake forms" };
 
 export default function WorkspaceToolsPage() {
+  const scope = useRecordScope();
+  return <ScopedWorkspaceToolsPage key={scope}/>;
+}
+
+function ScopedWorkspaceToolsPage() {
+  const client = useQueryClient();
+  const user = useAuthStore(state => state.user);
+  const workspaceScope = workspaceDataScope(user);
   const [params] = useSearchParams();
   const { pathname } = useLocation();
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(pathname.endsWith("/goals") ? "goal" : pathname.endsWith("/templates") ? "template" : "overview");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selected, setSelected] = useState(0);
   const selectedRef = useRef(selected); selectedRef.current = selected;
@@ -56,9 +69,9 @@ export default function WorkspaceToolsPage() {
 
   useEffect(() => { setTab(pathname.endsWith("/goals") ? "goal" : pathname.endsWith("/templates") || pathname.endsWith("/blueprints") ? "template" : pathname.endsWith("/forms") ? "intake" : "overview"); }, [pathname]);
   const loadWorkspaces = useCallback(async () => {
-    const { data } = await api.get<Workspace[]>(base + "/workspaces");
+    const data = await client.fetchQuery(pmsWorkspaceOptions(workspaceScope));
     setWorkspaces(data); setSelected(current => data.some(w => w.id === current) ? current : data.some(w => w.id === Number(params.get("workspace"))) ? Number(params.get("workspace")) : data[0]?.id || 0);
-  }, [params]);
+  }, [params, client, workspaceScope]);
   useRefreshableEffect(() => { setWorkspaceLoading(true); void loadWorkspaces().catch(e => setError(workspaceError(e))).finally(() => setWorkspaceLoading(false)); }, [loadWorkspaces]);
   const load = useCallback(async () => {
     if (!selected) return;
@@ -111,7 +124,7 @@ export default function WorkspaceToolsPage() {
   }
 
   return <div className="max-w-6xl space-y-5">
-    <header className="flex flex-wrap justify-between gap-3"><div><h1 className="page-title">{tab === "template" ? "Blueprints" : "Workspace tools"}</h1><p className="page-description">Goals track actual task completion. Templates and authenticated intake forms create tasks in your workspace.</p></div><Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link></header>
+    <header className="flex flex-wrap justify-between gap-3"><div><h1 className="page-title">{tab === "template" ? "Blueprints" : tab === "goal" ? "Goals" : tab === "intake" ? "Intake forms" : "Workspace tools"}</h1><p className="page-description">Goals track actual task completion. Templates and authenticated intake forms create tasks in your workspace.</p></div><Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link></header>
     <label className="block max-w-md">Workspace<NativeSelect className={control} aria-label="Tools workspace" disabled={busy} value={selected} onChange={e => { setError(""); setSelected(Number(e.target.value)); }}><option value={0} disabled>Choose workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name} · {w.role}</option>)}</NativeSelect></label>
     {error && <div role="alert" className="rounded border border-destructive p-3 text-destructive">{error}<Button variant="outline" disabled={busy} onClick={() => void act("Refreshing workspace tools", async () => { if (!workspaces.length) await loadWorkspaces(); })}>Retry</Button></div>}
     {notice && <p role="status">{notice}</p>}

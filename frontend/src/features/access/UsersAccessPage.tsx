@@ -1,3 +1,5 @@
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
@@ -286,23 +288,26 @@ function ModuleEditor({
   );
 }
 
-export default function UsersAccessPage({ embedded = false, initialTab }: { embedded?: boolean; initialTab?: string }) {
-  const actor = useAuthStore((s) => s.user);
-  const [company, setCompany] = useState(
-    Number(
-      sessionStorage.getItem("suite-organization") ||
-        actor?.access?.companyId ||
-        1,
-    ),
-  );
-  const branchChoices = useQuery({queryKey:["user-management-branches",company], queryFn:()=>api.get<{manage_access:boolean;branches:{id:number;name:string}[]}>("/branches/context",{headers:{"X-Suite-Organization":String(company)}}).then(r=>r.data)});
-  const [catalog, setCatalog] = useState<Catalog>();
+type AccessPageProps = { embedded?: boolean; initialTab?: string };
+export default function UsersAccessPage(props: AccessPageProps) {
+  const actor = useAuthStore(s => s.user);
+  const scope = useRecordScope();
+  const [tab, setTab] = useState(props.initialTab || (props.embedded ? "User listing" : "Matrix"));
+  const [company, setCompany] = useState(Number(sessionStorage.getItem("suite-organization") || actor?.access?.companyId || 1));
+  useEffect(() => {
+    setCompany(Number(sessionStorage.getItem("suite-organization") || actor?.access?.companyId || 1));
+  }, [actor?.id, actor?.access?.companyId]);
+  return <ScopedUsersAccessPage key={`${scope}:${company}`} {...props} company={company} setCompany={setCompany} scope={scope} tab={tab} setTab={setTab}/>;
+}
+function ScopedUsersAccessPage({ embedded = false, initialTab, company, setCompany, scope, tab, setTab }: AccessPageProps & { tab: string; setTab: (value: string) => void; company: number; setCompany: (value: number) => void; scope: string }) {
+  const actor = useAuthStore(s => s.user);
+  const owns = useRecordScopeOwner();
+  const branchChoices = useQuery({queryKey:["user-management-branches",scope,company], queryFn:({signal})=>api.get<{manage_access:boolean;branches:{id:number;name:string}[]}>("/branches/context",{signal,headers:{"X-Suite-Organization":String(company)}}).then(r=>r.data)});
+
   const [data, setData] = useState<any>();
-  const [templates, setTemplates] = useState<any[]>([]);
+
   const location = useLocation();
   const navigate = useNavigate();
-  const [tab, setTab] = useState(initialTab || (embedded ? "User listing" : "Matrix"));
-  const identityStatistics=useQuery({queryKey:["suite-metrics","access-statistics",actor?.id,company],staleTime:0,queryFn:()=>api.get<Record<string,number>>("/access/statistics",{params:{companyId:company}}).then(r=>r.data)});
   const [filters, setFilters] = useState({
     search: "",
     sort: "name",
@@ -316,6 +321,11 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(100);
   const [revision, setRevision] = useState(0);
+  const catalogQuery=useQuery({queryKey:["access-catalog",actor?.id,company,revision],staleTime:30000,queryFn:({signal})=>api.get<Catalog>("/access/catalog",{params:{companyId:company},signal}).then(r=>r.data)});
+  const templateQuery=useQuery({queryKey:["access-templates",actor?.id,company,scope,revision],staleTime:30000,queryFn:({signal})=>api.get<{items:any[]}>("/access/templates",{params:{companyId:company},signal}).then(r=>r.data)});
+  const catalog=catalogQuery.data;
+  const templates=templateQuery.data?.items||[];
+  useEffect(()=>{setData(undefined);},[company]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -361,7 +371,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
   const [membership, setMembership] = useState<any>();
   const dirty = Object.keys(drafts).length > 0;
   const refresh = () => setRevision((v) => v + 1);
-  const report = (e: any) => setError(err(e));
+  const report = (e: any) => { if(owns())setError(err(e)); };
   useEffect(() => {
     if (!dirty) return;
     const protect = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -372,30 +382,10 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    Promise.all([
-      api.get("/access/catalog", {
-        params: { companyId: company },
-        signal: controller.signal,
-      }),
-      api.get("/access/users", {
-        params: {
-          companyId: company,
-          ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
-          page,
-          perPage,
-        },
-        signal: controller.signal,
-      }),
-      api.get("/access/templates", {
-        params: { companyId: company },
-        signal: controller.signal,
-      }),
-    ])
-      .then(([c, u, t]) => {
-        setCatalog(c.data);
-        setData(u.data);
-        setTemplates(t.data.items);
-      })
+    api.get("/access/users", {
+      params: {companyId:company,...Object.fromEntries(Object.entries(filters).filter(([,v])=>v)),page,perPage},
+      signal:controller.signal,
+    }).then(response=>{if(!controller.signal.aborted)setData(response.data);})
       .catch((e) => {
         if (!controller.signal.aborted) report(e);
       })
@@ -516,9 +506,10 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
     }
   };
   const secure = (action: (token: string) => Promise<void>) => {
+    if(!owns())return;
     setPassword("");
     setError("");
-    setOperation(() => action);
+    setOperation(() => async (token: string) => { if(owns())await action(token); });
   };
   const exportReport = async () => {
     try {
@@ -526,7 +517,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
         params: { companyId: company, ids: Object.keys(selected).join(",") },
         responseType: "blob",
       });
-      download(r.data, "user-access.csv");
+      if(owns())download(r.data, "user-access.csv");
     } catch (e) {
       report(e);
     }
@@ -681,6 +672,8 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
 
 
       </div>
+      {catalogQuery.isError&&<div role="alert">Could not load module and role choices. <Button variant="outline" onClick={()=>void catalogQuery.refetch()}>Retry access choices</Button></div>}
+      {templateQuery.isError&&<div role="alert">Could not load permission templates. <Button variant="outline" onClick={()=>void templateQuery.refetch()}>Retry permission templates</Button></div>}
       {error && (
         <div className="ua-error" role="alert">
           {error}
@@ -1683,7 +1676,9 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 setError("");
                 try {
                   const r = await administratorStepUp(password);
+                  if(!owns())return;
                   await operation(r.data.token);
+                  if(!owns())return;
                   setOperation(undefined);
                   setPassword("");
                 } catch (e) {
@@ -1694,7 +1689,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               }}
             >
               <AdminVerification value={password} onChange={setPassword} />
-              {error && (
+      {error && (
                 <p role="alert" className="ua-error">
                   {error}
                 </p>
@@ -1708,7 +1703,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
         <Dialog
           open
           onOpenChange={(open) => {
-            if (!open) setCreateMode(undefined);
+            if (!open && !busy && !operation) setCreateMode(undefined);
           }}
         >
           <DialogContent className="ua-root ua-step">

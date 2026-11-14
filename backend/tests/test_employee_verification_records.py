@@ -236,30 +236,26 @@ def test_legacy_profile_summary_is_preserved_when_first_case_starts(client, db, 
     db.refresh(current); assert current.background_verification_status == "In Progress"
 
 
-@pytest.mark.skipif(__import__("os").environ.get("RUN_BGV_BROWSER") != "1", reason="Requires Vite on port 5198")
+@pytest.mark.skipif(__import__("os").environ.get("RUN_BGV_BROWSER") != "1", reason="Explicit disposable verification browser integration")
 def test_verification_browser_database(client, db, superuser_headers):
-    import os, socket, subprocess, threading
-    from pathlib import Path
-    import uvicorn
-    from app.main import app
+    if db.get_bind().dialect.name != 'sqlite':
+        pytest.skip('Requires a disposable SQLite copy for browser isolation')
+    from tests.workflow_browser_utils import run_browser
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    from app.models.user import User
     from app.models.company import Branch
-    current, former, _ = people(db)
-    branch = db.get(Branch, current.branch_id)
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1",0)); port = listener.getsockname()[1]
-    server = uvicorn.Server(uvicorn.Config(app,host="127.0.0.1",port=port,lifespan="off",log_level="error"))
-    thread = threading.Thread(target=server.run,daemon=True); thread.start()
-    try:
-        for _ in range(100):
-            if server.started: break
-            time.sleep(.05)
-        assert server.started
-        env = dict(os.environ, BGV_API=f"http://127.0.0.1:{port}", BGV_CURRENT=str(current.id), BGV_FORMER=str(former.id),
-                   BGV_TOKEN=superuser_headers["Authorization"].split(" ",1)[1], BGV_COMPANY=str(branch.company_id), BGV_BRANCH=str(branch.id))
-        result = subprocess.run(["node","scripts/test-employee-verification.cjs"],cwd=Path(__file__).resolve().parents[2]/"frontend",env=env,capture_output=True,text=True,timeout=240)
-        assert result.returncode == 0, result.stdout+result.stderr
-        print(result.stdout)
-        db.expire_all()
-        assert db.query(Case).filter(Case.employee_id.in_([current.id,former.id]), Case.reviewed_at.is_not(None)).count() == 2
-    finally:
-        server.should_exit = True; thread.join(timeout=10)
+    actor=db.query(User).filter_by(email='testadmin@test.com').one()
+    attach_test_identity(db,actor)
+    attach_workflow_branch(db,actor)
+    db.commit()
+    current,former,_=people(db)
+    branch=db.get(Branch,current.branch_id)
+    assert branch is not None
+    ids=[current.id,former.id]
+    before=db.query(Case).filter(Case.employee_id.in_(ids)).count()
+    run_browser(client,db,'test-employee-verification.cjs',{
+        'BGV_CURRENT':str(current.id),'BGV_FORMER':str(former.id),
+        'BGV_TOKEN':superuser_headers['Authorization'].split(' ',1)[1],
+        'BGV_COMPANY':str(branch.company_id),'BGV_BRANCH':str(branch.id)})
+    db.expire_all()
+    assert db.query(Case).filter(Case.employee_id.in_(ids)).count()==before

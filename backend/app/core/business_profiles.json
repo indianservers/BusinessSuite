@@ -1,0 +1,22 @@
+{
+  "terms": {
+    "customer": ["Customer", "Customers"],
+    "appointment": ["Appointment", "Appointments"],
+    "provider": ["Service provider", "Service providers"],
+    "service": ["Service", "Services"],
+    "resource": ["Resource", "Resources"],
+    "project": ["Project", "Projects"],
+    "employee": ["Employee", "Employees"]
+  },
+  "profiles": [
+    {"id": "general", "name": "General business", "terms": {}},
+    {"id": "hospital", "name": "Hospital / Clinic", "terms": {"customer": ["Patient", "Patients"], "provider": ["Doctor", "Doctors"], "appointment": ["Consultation", "Consultations"], "service": ["Consultation type", "Consultation types"], "resource": ["Consultation room", "Consultation rooms"]}},
+    {"id": "salon", "name": "Salon / Spa", "terms": {"provider": ["Stylist", "Stylists"], "resource": ["Chair / Room", "Chairs / Rooms"]}},
+    {"id": "construction", "name": "Construction", "terms": {"customer": ["Client", "Clients"], "provider": ["Site representative", "Site representatives"], "appointment": ["Site visit", "Site visits"], "resource": ["Site resource", "Site resources"]}},
+    {"id": "consulting", "name": "Consulting", "terms": {"customer": ["Client", "Clients"], "provider": ["Consultant", "Consultants"], "appointment": ["Consultation", "Consultations"], "resource": ["Meeting room", "Meeting rooms"]}},
+    {"id": "repairs", "name": "Repairs / Services", "terms": {"provider": ["Technician", "Technicians"], "appointment": ["Service visit", "Service visits"]}},
+    {"id": "retail", "name": "Retail", "terms": {}},
+    {"id": "education", "name": "Education", "terms": {"customer": ["Learner", "Learners"], "provider": ["Instructor", "Instructors"], "appointment": ["Session", "Sessions"], "resource": ["Classroom", "Classrooms"]}},
+    {"id": "custom", "name": "Custom", "terms": {}}
+  ]
+}

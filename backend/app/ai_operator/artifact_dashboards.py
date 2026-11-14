@@ -24,6 +24,10 @@ class Panel(Strict):
 
 def resolve(db,user,workspace_id,panel,export=False):
     from app.ai_operator import artifacts
+    # A typed plan can omit optional panel defaults. Use the same canonical
+    # shape for preflight and saved-version reads instead of indexing raw input.
+    try:panel=Panel.model_validate(panel).model_dump()
+    except ValueError:raise HTTPException(422,'Choose a valid pinned dashboard panel') from None
     item=artifacts.public(db,user,artifacts.owned(db,user,panel['artifact_id']),panel['revision'])
     if item['workspace_id']!=workspace_id:raise HTTPException(403,'Dashboard sources must belong to its workspace')
     if item['kind']=='dashboard':raise HTTPException(422,'Choose a document, checklist, table or presentation; dashboards cannot contain other dashboards')
@@ -80,21 +84,34 @@ def text(item,sources):
     return '\n\n'.join(p for p in parts if p)
 
 
-def export_pdf(item,sources):
+def image_media(sources,media):
+    """Require every exact source's pixels; never silently export a caption alone."""
+    from app.ai_operator.artifact_images import validate
+    result={}
+    for position,source in enumerate(sources,1):
+        if source['kind']=='image':result[position]=validate((media or {}).get(position),source.get('image'))
+    unique={sources[position-1]['image']['sha256']:value for position,value in result.items()}
+    if sum(map(len,unique.values()))>8_000_000:raise HTTPException(413,'Dashboard image export exceeds 8 MB; split its panels')
+    manifests={s['image']['sha256']:s['image'] for s in sources if s['kind']=='image'}
+    if sum(v['width']*v['height'] for v in manifests.values())>24_000_000:raise HTTPException(413,'Dashboard image export exceeds its pixel budget; split its panels')
+    return result
+
+
+def export_pdf(item,sources,media=None):
     from pypdf import PdfReader,PdfWriter
     from app.ai_operator.artifact_exports import pdf,MAX_PAGES
     cover={**item,'kind':'document','content':item['content']+'\n\nVersion-pinned snapshots. Interactive filters are not applied to exports.\n\n'+'\n'.join(
         f"{i}. {panel['label'] or source['title']} — {source['module']} / artifact #{source['id']} / version {source['revision']}"
         for i,(panel,source) in enumerate(zip(item['panels'],sources),1))}
     writer=PdfWriter()
-    for source in [cover,*sources]:
-        reader=PdfReader(io.BytesIO(pdf(source)))
+    for position,source in enumerate([cover,*sources]):
+        reader=PdfReader(io.BytesIO(pdf(source,media_content=(media or {}).get(position))))
         if len(writer.pages)+len(reader.pages)>MAX_PAGES:raise HTTPException(422,'Dashboard exceeds 100 pages; split it into smaller dashboards')
         writer.append(reader)
     stream=io.BytesIO();writer.write(stream);return stream.getvalue()
 
 
-def export_excel(item,sources):
+def export_excel(item,sources,media=None):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment,Font,PatternFill
     from app.ai_operator.artifact_chart_exports import excel
@@ -123,6 +140,10 @@ def export_excel(item,sources):
         for col in range(1,max(len(v) for v in rows)+1):sheet.column_dimensions[__import__('openpyxl').utils.get_column_letter(col)].width=32
         sheet.freeze_panes=f'A{header+1}';sheet.sheet_view.showGridLines=False
         if source['kind']=='table' and source.get('chart'):excel(book,source,sheet.title)
+        if source['kind']=='image':
+            from openpyxl.drawing.image import Image
+            picture=Image(io.BytesIO((media or {})[position]));scale=min(640/picture.width,480/picture.height,1)
+            picture.width*=scale;picture.height*=scale;sheet.add_image(picture,f'A{len(rows)+2}')
     for cell in index[5]:cell.fill=PatternFill('solid',fgColor='15243B');cell.font=Font(color='FFFFFF',bold=True)
     for col,width in (('A',44),('B',24),('C',16),('D',12)):index.column_dimensions[col].width=width
     for row in range(6,len(sources)+6):index.row_dimensions[row].height=60
@@ -138,3 +159,28 @@ def export_excel(item,sources):
     index.sheet_view.showGridLines=False;index.freeze_panes='A6'
     book.active=book.sheetnames.index('Dashboard')
     stream=io.BytesIO();book.save(stream);return stream.getvalue()
+
+
+def word(document,item,sources,media=None):
+    from docx.shared import Inches
+    if item['content']:document.add_paragraph(item['content'])
+    document.add_paragraph('Version-pinned snapshots. Interactive filters are not applied to exports.')
+    for position,(panel,source) in enumerate(zip(item['panels'],sources),1):
+        document.add_heading(panel['label'] or source['title'],1)
+        document.add_paragraph(f"Source artifact #{source['id']} / {source['module']} / version {source['revision']}")
+        if source['content']:document.add_paragraph(source['content'])
+        if source['kind']=='image':
+            image=source['image'];scale=min(6/image['width'],6/image['height'])
+            document.add_picture(io.BytesIO((media or {})[position]),width=Inches(image['width']*scale),height=Inches(image['height']*scale))
+        elif source['kind']=='table':
+            table=document.add_table(rows=1,cols=len(source['columns']));table.style='Table Grid'
+            for cell,value in zip(table.rows[0].cells,source['columns']):cell.text=value
+            for row in source['rows']:
+                for cell,value in zip(table.add_row().cells,row):cell.text=value
+            if source.get('chart'):
+                from app.ai_operator.artifact_charts import summary
+                document.add_paragraph(summary(source,source['revision']))
+        elif source['kind']=='presentation':
+            for slide in source['slides']:
+                document.add_heading(slide['title'],2)
+                for point in slide['bullets']:document.add_paragraph(point,style='List Bullet')

@@ -1,5 +1,9 @@
 import CommonEntityPage from "@/common/CommonEntityPage";
 import { useQueryClient } from "@tanstack/react-query";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { useMobileContext } from "@/components/mobile/useMobileContext";
+import { syncScope } from "@/shared/record-sync/store";
 import { refreshCurrentAccess } from "@/features/access/refresh-current-access";
 import RoutePrefetch from "@/components/app/RoutePrefetch";
 import { lazyRoute } from "@/lib/lazy-route";
@@ -8,6 +12,7 @@ import { ActionTooltipProvider } from "@/components/actions";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
+import RouteTitle from "@/components/app/RouteTitle";
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
@@ -95,20 +100,25 @@ function LegacyModuleLogin() {
 }
 
 function ProtectedRoute({ children, sessionOnly=false }: { children: React.ReactNode;sessionOnly?:boolean }) {
+  const queryClient = useQueryClient();
+  const context = useMobileContext(true);
   const location = useLocation();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
   const roleAllowed = canAccessRoute(location.pathname, user?.role, user?.is_superuser);
   const membershipPath = /^\/pms\/projects(?:\/|$)/.test(location.pathname) || /^\/pms\/tasks\/\d+$/.test(location.pathname);
-  const accessKey = `${user?.id}:${location.pathname}`;
+  const scope = workspaceDataScope(user);
+  const contextReady = context === syncScope();
+  const accessKey = JSON.stringify([context, scope, location.pathname]);
   const [workspaceAccess, setWorkspaceAccess] = useState<{ key: string; allowed: boolean } | null>(null);
   useEffect(() => {
-    if (sessionOnly || !isHydrated || !isAuthenticated || !user || roleAllowed || !membershipPath) return;
+    if (sessionOnly || !contextReady || !isHydrated || !isAuthenticated || !user || roleAllowed || !membershipPath) return;
     let active = true;
-    api.get("/project-management/workspaces").then(({ data }) => {
+    // Share in-flight workspace reads without adding a permission freshness TTL.
+    queryClient.fetchQuery({ ...pmsWorkspaceOptions(scope), staleTime: 0 }).then(data => {
       if (active) setWorkspaceAccess({ key: accessKey, allowed: data.length > 0 });
     }).catch(() => { if (active) setWorkspaceAccess({ key: accessKey, allowed: false }); });
     return () => { active = false; };
-  }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey, sessionOnly]);
+  }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey, sessionOnly, contextReady, scope, queryClient]);
   if (!isHydrated) return <LoadingFallback />;
   if (!isAuthenticated) {
     return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace />;
@@ -117,7 +127,7 @@ function ProtectedRoute({ children, sessionOnly=false }: { children: React.React
   if (sessionOnly) return <>{children}</>;
   if (!roleAllowed) {
     if (!membershipPath) return <AccessDeniedPage />;
-    if (workspaceAccess?.key !== accessKey) return <LoadingFallback />;
+    if (!contextReady || workspaceAccess?.key !== accessKey) return <LoadingFallback />;
     if (!workspaceAccess.allowed) return <AccessDeniedPage />;
   }
   return <>{children}</>;
@@ -237,6 +247,7 @@ export default function App() {
 
   return (
     <SmartCreationProvider routes={routes}>
+      <RouteTitle />
       <RoutePrefetch routes={routes} />
       <SetupReadiness />
       <Suspense fallback={<LoadingFallback />}>

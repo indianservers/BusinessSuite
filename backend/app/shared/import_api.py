@@ -21,6 +21,19 @@ class SampleRequest(BaseModel):
     confirmation: Literal["import"]
 
 
+@router.get("/sample-data/availability")
+def sample_availability(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Discover optional sample-pack eligibility without exposing pack data."""
+    from app.shared import sample_data
+    try:
+        sample_data.context(db, user, request)
+    except HTTPException as error:
+        if error.status_code != 403:
+            raise
+        return {"available": False}
+    return {"available": True}
+
+
 @router.get("/sample-data/status")
 def sample_status(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.shared import sample_data

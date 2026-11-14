@@ -1,6 +1,9 @@
 // Reproducible, offline training: no business text or provider API calls.
 import * as tf from '@tensorflow/tfjs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+import {resolve,join} from 'node:path';
+import {randomUUID} from 'node:crypto';
 await import('./expand-operator-corpus.mjs');
 const corpus = JSON.parse(await readFile(new URL('../src/lib/operator/commandCorpus.json', import.meta.url)));
 function tokens(text) {
@@ -25,7 +28,9 @@ const minimumConfidence = Math.min(...data.filter((_,i) => corpus.examples[i].in
 if (minimumConfidence < 0.90) throw new Error(`Training confidence ${minimumConfidence} below local routing threshold`);
 const metadata = { version: corpus.version, vocabulary, intents,
   trainingExamples: corpus.examples.length, trainingAccuracy: accuracy, threshold: 0.90, margin: 0.35 };
-const output = new URL('../public/models/operator/', import.meta.url);
+// Never regenerate publicly downloadable model files or replace the pinned
+// serving model. This separate candidate needs numeric review before deployment.
+const output = pathToFileURL(resolve(join(process.env.LOCAL_NLP_TRAINING_DIR || 'C:/Indian Servers/ERPTrainedModel/training','legacy-pms-router/candidates',randomUUID()))+'/');
 await mkdir(output, { recursive: true });
 await model.save(tf.io.withSaveHandler(async artifacts => {
   const weights = artifacts.weightData instanceof ArrayBuffer ? Buffer.from(artifacts.weightData) : Buffer.concat(artifacts.weightData.map(b => Buffer.from(b)));

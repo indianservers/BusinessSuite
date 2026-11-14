@@ -1,3 +1,4 @@
+from app.core.config import settings
 from tests.rich_text_test_utils import organization_context
 from uuid import uuid4
 from datetime import timedelta
@@ -157,7 +158,7 @@ def test_bulk_onboarding_is_durable_and_reports_individual_failures(client, db, 
     assert intake.status_code == 200 and intake.json()["total"] == 29 and len(intake.json()["items"]) == 10
 
 
-def test_directory_paginates_20000_people_without_loading_every_profile(client, db, program):
+def test_directory_paginates_20000_people_without_loading_every_profile(client, db, program, record_property):
     from sqlalchemy import event
     p = program
     e = p["interns"][0][0]
@@ -176,7 +177,8 @@ def test_directory_paginates_20000_people_without_loading_every_profile(client, 
         response = client.get(ROOT + "/people", headers=p["headers"], params={"search": "SCALE-", "page": 400, "per_page": 50})
         assert response.status_code == 200, response.text
         assert response.json()["total"] == 20000 and len(response.json()["items"]) == 50
-        assert len(queries) < 35, f"Directory issued {len(queries)} queries"
+        record_property('query_count', len(queries))
+        assert len(queries) < 35, f"Directory issued {len(queries)} queries:\n"+'\n'.join(q[:180] for q in queries)
     finally:
         event.remove(db.bind, "before_cursor_execute", track)
 
@@ -195,7 +197,7 @@ def test_backup_supervisor_scope_and_view_only_permissions(client, db, program):
     from test_identity_utils import attach_workflow_branch
     attach_workflow_branch(db, account)
     db.commit()
-    response = client.post("/api/v1/auth/login", json={"email": account.email, "password": "Admin@123456"})
+    response = client.post("/api/v1/auth/login", json={"email": account.email, "password": settings.BOOTSTRAP_ADMIN_PASSWORD})
     assert response.status_code == 200, response.text
     headers = {"Authorization": "Bearer " + response.json()["access_token"]}
     assert client.get(ROOT + "/people", headers=headers).json()["total"] == 0

@@ -10,6 +10,8 @@ import EngagementFollowUp from './EngagementFollowUp';
 import GroupedRecords from '@/shared/data-grid/GroupedRecords';
 import type { GridColumn } from '@/shared/data-grid/types';
 import { richTextPlainText } from '@/components/rich-text/content';
+import { useRecordScope } from '@/shared/records/Record360Workspace';
+import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 type Kind = 'meetings' | 'calls';
 type Row = {
     id: number;
@@ -74,8 +76,12 @@ function display(value?: string) { return value ? apiDate(value).toLocaleString(
 export default function EngagementWorkspace({ kind }: {
     kind: Kind;
 }) {
+    const scope = useRecordScope();
+    return <ScopedEngagementWorkspace key={`${scope}:${kind}`} kind={kind} scope={scope}/>;
+}
+function ScopedEngagementWorkspace({kind, scope}: {kind:Kind;scope:string}) {
+    const ownsScope = useRecordScopeOwner();
     const user = useAuthStore(s => s.user);
-    const scope = `${user?.id}:${user?.access?.companyId}`;
     const [followUp, setFollowUp] = useState<Row | null>(null);
     const [permissions, setPermissions] = useState<Permissions>();
     const [rows, setRows] = useState<Row[]>([]), [total, setTotal] = useState(0), [pages, setPages] = useState(0);
@@ -162,7 +168,7 @@ export default function EngagementWorkspace({ kind }: {
     const field = <K extends keyof Draft>(key: K, value: Draft[K]) => { setDraft(d => ({ ...d, [key]: value })); setFormError(''); };
     async function save(e: FormEvent) {
         e.preventDefault();
-        if (!editing || savingRef.current || !canManage)
+        if (!editing || savingRef.current || !canManage || !ownsScope())
             return;
         if (meeting && new Date(draft.end) <= new Date(draft.start)) {
             setFormError('Meeting end must be after its start.');
@@ -187,12 +193,13 @@ export default function EngagementWorkspace({ kind }: {
                 await api.post(`/crm/${kind}`, data);
             else
                 await api.patch(`/crm/${kind}/${editing.id}`, data);
+            if (!ownsScope()) return;
             setEditing(null);
             setNotice(meeting ? 'Meeting saved.' : 'Call saved.');
             setRevision(v => v + 1);
         }
         catch (e) {
-            setFormError(errorText(e));
+            if (ownsScope()) setFormError(errorText(e));
         }
         finally {
             savingRef.current = false;

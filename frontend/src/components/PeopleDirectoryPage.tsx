@@ -6,17 +6,32 @@ import ProfileListCard, { ProfileAction } from "./ProfileListCard";
 import PersonRecordPreview from "./PersonRecordPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { canAccessRoute } from "@/lib/roles";
+import { canExplorePeopleDirectory } from "@/lib/people-directory-access";
+import { useMobileContext } from "@/components/mobile/useMobileContext";
+import { syncScope } from "@/shared/record-sync/store";
 
 type Person = { id: number; email: string; name: string; role: string; is_active: boolean; workspace_ids: number[]; profile_photo_url?: string | null };
 type Group = { id: number; name: string };
 type Team = Group & { workspace_id: number; member_ids: number[] };
 type Directory = { items: Person[]; total: number; workspaces: Group[]; teams: Team[] };
 export default function PeopleDirectoryPage() {
+  const user = useAuthStore(s => s.user);
+  const location = useLocation();
+  const scope = useMobileContext(true);
+  if (scope !== syncScope()) return <p role="status">Updating directory context…</p>;
+  if (!user || !canExplorePeopleDirectory(user.primary_role === undefined ? user.role : user.primary_role, user.is_superuser) || !canAccessRoute(location.pathname, user.role, user.is_superuser)) {
+    return <main className="mx-auto w-full max-w-7xl space-y-3 p-4 md:p-8"><h1 className="text-2xl font-semibold">People directory unavailable</h1><p>Organization directory access requires an administrator, HR, manager or executive role.</p></main>;
+  }
+  return <PeopleDirectoryContent key={scope} />;
+}
+
+function PeopleDirectoryContent() {
   const userId = useAuthStore(s => s.user?.id);
   const viewKey = `people-directory-views:${userId}`;
   type SavedView = { name: string; query: string; workspace: string; team: string; role: string };

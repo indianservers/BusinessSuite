@@ -8,6 +8,7 @@ import re
 from copy import deepcopy
 from datetime import datetime,timedelta,timezone
 from uuid import UUID
+from typing import Literal
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import Field,model_validator
 from sqlalchemy.orm import Session
@@ -47,10 +48,27 @@ def variables(body):
     return result
 
 
+class ImageInstruction(Strict):
+    kind:Literal['image_instruction']='image_instruction'
+    title:str=Field(min_length=1,max_length=160)
+    content:str=Field(min_length=1,max_length=3000)
+    columns:list[str]=Field(default_factory=list,max_length=0)
+    rows:list[list[str]]=Field(default_factory=list,max_length=0)
+    aspect_ratio:Literal['1:1','16:9','9:16','4:3','3:4']='1:1'
+
+    @model_validator(mode='after')
+    def valid(self):
+        # Reuse native plain-text and control-character validation, without
+        # permitting a binary manifest, source references or model credentials.
+        artifacts.Body(title=self.title,content=self.content)
+        if not self.content.strip():raise ValueError('Provide image instructions')
+        return self
+
+
 class Preview(Strict):
     request_key:UUID
     name:str=Field(min_length=1,max_length=120)
-    body:artifacts.Body
+    body:artifacts.Body|ImageInstruction
     source_artifact_id:int|None=Field(default=None,gt=0)
     source_revision:int|None=Field(default=None,ge=1)
     template_id:int|None=Field(default=None,gt=0)
@@ -58,6 +76,7 @@ class Preview(Strict):
 
     @model_validator(mode='after')
     def valid(self):
+        if self.body.kind=='image':raise ValueError('Image templates require reviewed image-generation instructions rather than a binary manifest')
         if not self.name.strip():raise ValueError('Provide a template name')
         if re.search(r'[\x00-\x1f\ud800-\udfff\ufffe\uffff]',self.name):raise ValueError('Template names cannot contain control characters')
         if bool(self.template_id)!=bool(self.expected_revision):raise ValueError('Select the template and its current revision together')
@@ -112,7 +131,8 @@ def source_scope(db,user,data,lock=False):
         if (artifact.workspace_id,artifact.references['module'],artifact.references.get('project_id'))!=(source.workspace_id,r['module'],r.get('project_id')):
             raise HTTPException(403,'The source artifact is outside this template scope')
     else:body=public(db,user,source)['body']
-    if body['kind']!=data.body.kind:raise HTTPException(422,'Retain the source template/artifact format')
+    expected='image_instruction' if body['kind']=='image' else body['kind']
+    if expected!=data.body.kind:raise HTTPException(422,'Retain the source template/artifact format')
     return source
 
 
@@ -241,7 +261,15 @@ def render(body,values):
         if isinstance(value,list):return [replace(v) for v in value]
         if isinstance(value,dict):return {k:replace(v) for k,v in value.items()}
         return value
-    return artifacts.Body.model_validate(replace(body)).model_dump(mode='json')
+    model=ImageInstruction if body.get('kind')=='image_instruction' else artifacts.Body
+    return model.model_validate(replace(body)).model_dump(mode='json')
+
+
+def action_body(body,data):
+    if body['kind']!='image_instruction':return body
+    if not data.conversation_id:raise HTTPException(422,'Use image templates in a private conversation')
+    return {'title':body['title'],'prompt':body['content'],'aspect_ratio':body['aspect_ratio'],
+        'conversation_id':data.conversation_id,'references':[]}
 
 
 def supplied(text,expected,missing):
@@ -304,10 +332,13 @@ def prepare(db,user,data,parent):
     try:body=render(value['body'],packet['values'])
     except ValueError:raise HTTPException(422,'Template values do not fit this artifact. Check field lengths, numeric values and chart requirements.') from None
     if prior and parent.status=='awaiting_approval' and literal:
-        old=render(value['body'],prior['values']);steps=(parent.plan or {}).get('steps',[])
-        if len(steps)!=1 or digest(steps[0]['payload'])!=digest(old):raise HTTPException(409,'This draft has manual edits. Continue editing it or cancel it before changing template values.')
-    return Plan(summary='Review this artifact prepared from your private template. Template text and supplied values are not freshly verified business facts.',
-        steps=[Step(tool=f'{data.module.lower()}.create_artifact',payload=body)]),packet
+        old=action_body(render(value['body'],prior['values']),data);steps=(parent.plan or {}).get('steps',[])
+        previous={k:v for k,v in steps[0]['payload'].items() if k not in ('model','media_policy_sha256')} if steps and body['kind']=='image_instruction' else steps[0]['payload'] if steps else {}
+        if len(steps)!=1 or digest(previous)!=digest(old):raise HTTPException(409,'This draft has manual edits. Continue editing it or cancel it before changing template values.')
+    image=body['kind']=='image_instruction'
+    summary='Review a new image-generation call from your private instruction template. No source pixels are copied. Current enabled provider settings and separate approval are required.' if image else 'Review this artifact prepared from your private template. Template text and supplied values are not freshly verified business facts.'
+    return Plan(summary=summary,
+        steps=[Step(tool=f'{data.module.lower()}.{"generate_image" if image else "create_artifact"}',payload=action_body(body,data))]),packet
 
 
 def enforce(db,user,run,steps,lock=False):
@@ -320,5 +351,6 @@ def enforce(db,user,run,steps,lock=False):
     for step in steps:
         tool=TOOLS.get(step.tool)
         if not tool:raise HTTPException(422,'Unknown action tool')
-        if tool.method!='GET' and step.tool not in (f'{value["module"].lower()}.create_artifact',f'{value["module"].lower()}.edit_artifact'):
+        allowed=(f'{value["module"].lower()}.generate_image',) if value['body']['kind']=='image_instruction' else (f'{value["module"].lower()}.create_artifact',f'{value["module"].lower()}.edit_artifact')
+        if tool.method!='GET' and step.tool not in allowed:
             raise HTTPException(403,'Template drafts can only save reviewed artifacts')

@@ -33,6 +33,26 @@ def new_contact(client, headers, **values):
     return result.json()
 
 
+def test_audit_owner_labels_in_directory_detail_and_record_summary(client, db, superuser_headers):
+    actor = db.query(User).filter_by(email="testadmin@test.com").one()
+    actor.person.display_name = "QA Account Owner"
+    db.commit()
+    row = new_contact(client, superuser_headers)
+    assert row["ownerName"] == "QA Account Owner"
+    listing = client.get(ROOT, headers=superuser_headers).json()
+    assert next(item for item in listing["items"] if item["id"] == row["id"])["ownerName"] == "QA Account Owner"
+    detail = client.get(f"{ROOT}/{row['id']}", headers=superuser_headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["ownerName"] == "QA Account Owner"
+    summary = client.get(f"/api/v1/record-360/contact/{row['id']}", headers=superuser_headers)
+    assert summary.status_code == 200, summary.text
+    fields = summary.json()["fields"]
+    assert fields["owner"] == "QA Account Owner"
+    assert "owner_user_id" not in fields
+    from app.shared.user_labels import user_labels
+    assert user_labels(db, 999999, [actor.id]) == {}
+
+
 def test_multiple_relationships_counts_filters_and_conflicts(client, db, superuser_headers):
     row = new_contact(client, superuser_headers)
     assert set(row["tags"]) >= {"Customer", "Vendor", "Partner"}
@@ -439,3 +459,20 @@ def test_long_display_names_fit_canonical_identity_columns(client, superuser_hea
         assert contact.status_code == 200 and contact.json()["name"] == name, contact.text
     company = client.post("/api/v1/master-data/companies", headers=superuser_headers, json={"name":"B" * 180,"roles":["Customer"]})
     assert company.status_code == 201 and company.json()["name"] == "B" * 180, company.text
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_search_and_contains_filter_are_literal(client,superuser_headers,needle):
+    import json,csv,io
+    matching=new_contact(client,superuser_headers,name='QA'+needle+'Literal',email='literal@example.com')
+    new_contact(client,superuser_headers,name='QAplainLiteral',email='ordinary@example.com')
+    for params in [{'search':needle},{'filters':json.dumps([{'field':'name','operator':'contains','value':needle}])}]:
+        result=client.get(ROOT,headers=superuser_headers,params=params)
+        assert result.status_code==200,result.text
+        assert [row['id'] for row in result.json()['items']]==[matching['id']]
+        export=client.get(ROOT+'/export',headers=superuser_headers,params=params)
+        assert export.status_code==200,export.text
+        rows=list(csv.DictReader(io.StringIO(export.text)))
+        assert len(rows)==1
+        assert rows[0]['Name']=='QA'+needle+'Literal'
+        assert rows[0]['Email']=='literal@example.com'

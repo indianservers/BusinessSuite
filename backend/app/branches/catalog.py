@@ -19,6 +19,10 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     "suite_branch_record_shares", "suite_branch_lifecycle",
     # Personal reminder configuration is user-scoped by its API, not a branch transaction.
     "service_follow_up_preferences",
+    # One owner-private running cursor per login, independent of branch.
+    # Company/module scopes restrict it to that owner; native services validate
+    # active project/task access. Recorded logs and activity stay branch-private.
+    "pms_running_timers",
     # Company appearance and shared policy definitions are configuration, not branch transactions.
     "suite_service_policies",
     # Account authorization is company-level configuration. Conversations,

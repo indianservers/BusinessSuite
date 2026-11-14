@@ -1,5 +1,16 @@
+import InventoryProductionOrderForm from "./InventoryProductionOrderForm";
+import InventoryBomForm from "./InventoryBomForm";
+import InventoryProductionPostingForm from "./InventoryProductionPostingForm";
+import InventoryPriceListForm from "./InventoryPriceListForm";
+import InventoryTrackingForms from "./InventoryTrackingForms";
+import InventoryLedgerMappingPage from "./InventoryLedgerMappingPage";
+import "./inventory-master.css";
+import InventoryItemCreateForm from "./InventoryItemCreateForm";
+import InventoryMovementForm from "./InventoryMovementForm";
+import InventoryProcurementForms from "./InventoryProcurementForms";
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import FinancialRecordLookup from "./FinancialRecordLookup";
+import FinancialYearSetupGuidance from "./FinancialYearSetupGuidance";
 import FinancialMobileLineEditor from "./FinancialMobileLineEditor";
 import "./fam-purchase-mobile.css";
 import {useMobile} from "@/components/mobile/useMobile";
@@ -23,7 +34,8 @@ import CompactActions from "@/components/actions/CompactActions";
 import { ActionToolbar } from "@/components/actions";
 import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
-import { CompactFields } from "@/components/forms/CompactForm";
+import CompactForm, { CompactFields } from "@/components/forms/CompactForm";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { ImportWizard, DataExportButton, csvText } from "@/shared/data-transfer";
 import { bankStatementFields } from "@/shared/data-transfer/fields";
@@ -329,7 +341,7 @@ function SettingsView() {
 function DataTable({ rows, columns, renderActions }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode }) {
   const { pathname } = useLocation();
   const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
-  const detailBase = detailRoutes[pathname];
+  const detailBase = /^\/(fam|srm)\/inventory\/items$/.test(pathname) ? pathname : detailRoutes[pathname];
   const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -361,6 +373,8 @@ function ListCreateView({ kind }: { kind: FAMViewKind }) {
   const canWrite = useFinanceWrite(["fam_admin","fam_chart_manage"],"create");
   const config = getListConfig(kind);
   const query = useQuery({ queryKey: ["fam", kind], queryFn: config.query });
+  const ledgerGroups = useQuery({ queryKey: ["fam", "ledgerGroups"], queryFn: famApi.ledgerGroups, enabled: kind === "ledgers" });
+  const groups = listItems(ledgerGroups.data);
   const rows = listItems(query.data);
   const [draft, setDraft] = useState<FAMRecord>(config.initial);
   const mutation = useMutation({
@@ -369,23 +383,34 @@ function ListCreateView({ kind }: { kind: FAMViewKind }) {
    onError: showMutationError });
   return (
     <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
-      <SmartCreateSection title={<>Create {config.label}</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create {config.label}</CardTitle></CardHeader><CardContent className="space-y-3">
-        {config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
-        <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />Create</Button>
-      </CardContent></Card></SmartCreateSection>
+      <SmartCreateSection title={<>Create {config.label}</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create {config.label}</CardTitle></CardHeader><CardContent><form className="space-y-3" onSubmit={event => { event.preventDefault(); if (canWrite && !mutation.isPending) mutation.mutate(); }}>
+        {config.fields.map((field) => kind === "ledgers" && field === "ledger_group_id" ? <Field key={field} label="Ledger group"><NativeSelect required loading={ledgerGroups.isPending} error={ledgerGroups.isError} value={String(draft.ledger_group_id || "")} onChange={event => { const group = groups.find(row => Number(row.id) === Number(event.target.value)); setDraft(current => ({ ...current, ledger_group_id: Number(event.target.value) || "", nature: group?.nature || "" })); }}><option value="">Choose ledger group</option>{groups.map(group => <option key={String(group.id)} value={String(group.id)}>{String(group.group_name)}</option>)}</NativeSelect></Field> : kind === "ledgers" && (field === "nature" || field === "ledger_type") ? <Field key={field} label={field.replace(/_/g, " ")}><NativeSelect required value={String(draft[field] || "")} onChange={event => setDraft(current => ({ ...current, [field]: event.target.value }))}><option value="">Choose {field.replace(/_/g, " ")}</option>{(field === "nature" ? ["asset", "liability", "equity", "income", "expense"] : ["general", "customer", "vendor", "bank", "cash", "tax", "employee", "asset", "liability", "income", "expense"]).map(value => <option key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</NativeSelect></Field> : <Field key={field} label={field.replace(/_/g, " ")}><Input required={kind === "ledgers"} value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
+        {kind === "ledgers" && ledgerGroups.isError && <div role="alert">Ledger groups could not be loaded. <Button type="button" variant="outline" onClick={() => { void ledgerGroups.refetch(); }}>Retry ledger groups</Button></div>}
+        {kind === "ledgers" && ledgerGroups.isSuccess && !groups.length && <p role="status">Create a ledger group before adding a ledger.</p>}
+        <Button type="submit" className="w-full" disabled={!canWrite || mutation.isPending || kind === "ledgers" && !groups.length} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />{mutation.isPending ? "Saving…" : "Create"}</Button>
+      </form></CardContent></Card></SmartCreateSection>
       <Card><CardHeader><CardTitle className="text-base">{config.label} list</CardTitle></CardHeader><CardContent><State label={config.label} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={config.columns} /></CardContent></Card>
     </div>
   );
 }
 
 function OpeningBalancesView() {
+  const scope=useRecordScope();
+  return <OpeningBalancesForm key={scope} scope={scope}/>;
+}
+function OpeningBalancesForm({scope}: {scope:string}) {
   const queryClient = useQueryClient();
   const canWrite = useFinanceWrite(["fam_admin","fam_opening_balance_manage"],"create"),canPost=useFinanceWrite(["fam_admin","fam_opening_balance_manage"],"approve");
-  const query = useQuery({ queryKey: ["fam", "openingBalances"], queryFn: famApi.openingBalances });
+  const query = useQuery({ queryKey: ["fam", "openingBalances",scope], queryFn: famApi.openingBalances });
   const data = (query.data || {}) as FAMRecord;
   const rows = listItems(data);
-  const [draft, setDraft] = useState<FAMRecord>({ financial_year_id: 1, ledger_id: 1, debit_amount: 0, credit_amount: 0, narration: "" });
-  const createMutation = useMutation({ mutationFn: () => famApi.createOpeningBalance(draft), onSuccess: () => { toast({ title: "Opening balance saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const yearsQuery=useQuery({queryKey:["fam","opening-reference-years",scope],queryFn:famApi.financialYears,staleTime:30000,retry:false});
+  const ledgersQuery=useQuery({queryKey:["fam","opening-reference-ledgers",scope],queryFn:famApi.ledgers,staleTime:30000,retry:false});
+  const years=listItems(yearsQuery.data),ledgers=listItems(ledgersQuery.data);
+  const openYears=years.filter(row=>!row.status||row.status==="open"),activeLedgers=ledgers.filter(row=>row.active!==false);
+  const [draft, setDraft] = useState<FAMRecord>({ financial_year_id: "", ledger_id: "", debit_amount: "0", credit_amount: "0", narration: "" });
+  const [entryError,setEntryError]=useState("");
+  const createMutation = useMutation({ mutationFn: () => famApi.createOpeningBalance({...draft,financial_year_id:Number(draft.financial_year_id),ledger_id:Number(draft.ledger_id),debit_amount:Number(draft.debit_amount),credit_amount:Number(draft.credit_amount)}), onSuccess: () => { toast({ title: "Opening balance saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const postMutation = useMutation({ mutationFn: famApi.postOpeningBalances, onSuccess: () => { toast({ title: "Opening balances posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const difference = Number(data.difference || 0);
   return (
@@ -394,10 +419,29 @@ function OpeningBalancesView() {
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Debit</p><p className="text-lg font-semibold">{money(data.debitTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Credit</p><p className="text-lg font-semibold">{money(data.creditTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Difference</p><p className={difference ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-emerald-700"}>{money(difference)}</p></CardContent></Card>
-        <Button className="h-full min-h-20" onClick={() => postMutation.mutate()} disabled={!canPost || Boolean(difference) || postMutation.isPending}><LockKeyhole className="h-4 w-4" />Post balanced opening</Button>
+        <Button className="h-full min-h-20" onClick={() => postMutation.mutate()} disabled={!canPost || query.isPending || query.isError || !rows.length || Boolean(difference) || postMutation.isPending}><LockKeyhole className="h-4 w-4" />Post balanced opening</Button>
       </div>
-      <fieldset disabled={!canWrite || createMutation.isPending}><ListCreateInline fields={["financial_year_id", "ledger_id", "debit_amount", "credit_amount", "narration"]} draft={draft} setDraft={setDraft} onCreate={() => {if(canWrite && !createMutation.isPending)createMutation.mutate();}} /></fieldset>
-      <Card><CardHeader><CardTitle className="text-base">Ledger-wise opening balances</CardTitle></CardHeader><CardContent><State label="opening balances" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["financial_year_id", "ledger_id", "debit_amount", "credit_amount", "posted", "narration"]} /></CardContent></Card>
+      <CompactForm onSubmit={event=>{
+        event.preventDefault();if(!canWrite||createMutation.isPending)return;
+        if(yearsQuery.isError||ledgersQuery.isError||!openYears.some(row=>String(row.id)===String(draft.financial_year_id))||!activeLedgers.some(row=>String(row.id)===String(draft.ledger_id))){setEntryError("Choose an available financial year and ledger.");return;}
+        const debit=Number(draft.debit_amount),credit=Number(draft.credit_amount);
+        if(!Number.isFinite(debit)||!Number.isFinite(credit)||debit<0||credit<0){setEntryError("Debit and credit must be zero or greater.");return;}
+        if(![draft.debit_amount,draft.credit_amount].every(value=>/^(?:\d+\.?\d*|\.\d+)?$/.test(String(value).trim()))){setEntryError("Use decimal numbers for debit and credit amounts.");return;}
+        if(debit&&credit){setEntryError("Enter either a debit or a credit, not both.");return;}
+        setEntryError("");createMutation.mutate();
+      }}><fieldset disabled={!canWrite||createMutation.isPending} className="grid gap-3 rounded-lg border p-4 md:grid-cols-3">
+        <Field label="Financial year"><NativeSelect className="h-11 w-full rounded-md border bg-background px-3" required loading={yearsQuery.isFetching} error={yearsQuery.isError} disabled={yearsQuery.isPending||yearsQuery.isError} value={String(draft.financial_year_id)} onChange={event=>setDraft(current=>({...current,financial_year_id:event.target.value}))}><option value="">Choose financial year</option>{openYears.map(row=><option key={String(row.id)} value={String(row.id)}>{String(row.name)}</option>)}</NativeSelect></Field>
+        <Field label="Ledger"><NativeSelect className="h-11 w-full rounded-md border bg-background px-3" required searchable loading={ledgersQuery.isFetching} error={ledgersQuery.isError} disabled={ledgersQuery.isPending||ledgersQuery.isError} value={String(draft.ledger_id)} onChange={event=>setDraft(current=>({...current,ledger_id:event.target.value}))}><option value="">Choose ledger</option>{activeLedgers.map(row=><option key={String(row.id)} value={String(row.id)}>{String(row.ledger_name)}{row.ledger_code?` · ${row.ledger_code}`:""}</option>)}</NativeSelect></Field>
+        <Field label="Debit amount"><Input inputMode="decimal" value={String(draft.debit_amount)} onChange={event=>setDraft(current=>({...current,debit_amount:event.target.value}))}/></Field>
+        <Field label="Credit amount"><Input inputMode="decimal" value={String(draft.credit_amount)} onChange={event=>setDraft(current=>({...current,credit_amount:event.target.value}))}/></Field>
+        <Field label="Narration"><Input value={String(draft.narration)} onChange={event=>setDraft(current=>({...current,narration:event.target.value}))}/></Field>
+        <Button type="submit" disabled={yearsQuery.isPending||ledgersQuery.isPending||yearsQuery.isError||ledgersQuery.isError}>{createMutation.isPending?"Saving…":"Save opening balance"}</Button>
+      </fieldset></CompactForm>
+      {yearsQuery.isError&&<p role="alert">Financial years could not load. <Button variant="outline" onClick={()=>void yearsQuery.refetch()}>Retry financial years</Button></p>}
+      {ledgersQuery.isError&&<p role="alert">Ledgers could not load. <Button variant="outline" onClick={()=>void ledgersQuery.refetch()}>Retry ledgers</Button></p>}
+      {yearsQuery.isSuccess&&!openYears.length&&<p>No open financial year is available. <Link to="/fam/financial-years" target="_blank" rel="noopener" className="underline">Open financial year settings</Link></p>}
+      {entryError&&<p role="alert">{entryError}</p>}
+      <Card><CardHeader><CardTitle className="text-base">Ledger-wise opening balances</CardTitle></CardHeader><CardContent><State label="opening balances" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows.map(row=>({...row,financial_year:years.find(year=>year.id===row.financial_year_id)?.name||"Financial year unavailable",ledger:ledgers.find(ledger=>ledger.id===row.ledger_id)?.ledger_name||"Ledger unavailable"}))} columns={["financial_year", "ledger", "debit_amount", "credit_amount", "posted", "narration"]} /></CardContent></Card>
     </div>
   );
 }
@@ -462,6 +506,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   return (
     <div className="space-y-4 fam-mobile-voucher">
       <State label="voucher" isLoading={voucherQuery.isLoading || typesQuery.isLoading || ledgersQuery.isLoading} isError={voucherQuery.isError || typesQuery.isError || ledgersQuery.isError} />
+      <FinancialYearSetupGuidance date={String(effective.voucher_date||"")} errors={[saveMutation.error,postMutation.error,cancelMutation.error,reverseMutation.error,cloneMutation.error]}/>
       <RecordSections label="Voucher information" sections={[
         {id:"overview",label:"Overview",content:<>      <div className="grid gap-3 md:grid-cols-4 fam-voucher-overview">
         <Field label="Voucher Type">
@@ -1389,32 +1434,20 @@ function InventoryAccountingView() {
   const grni = (data.grni_reconciliation || {}) as FAMRecord;
   const cogs = (data.cogs_reconciliation || {}) as FAMRecord;
   const gst = (data.gst_reconciliation || {}) as FAMRecord;
-  return <div className="space-y-4"><State label="inventory accounting" isLoading={query.isLoading} isError={query.isError} /><MetricGrid items={[["Status", text(data.status)], ["Unmapped items", text(data.unmapped_items)], ["GL difference", money(gl.difference)], ["GRNI outstanding", money(grni.grni_outstanding)], ["COGS difference", money(cogs.difference)], ["GST exceptions", text(gst.exceptions)]]} /><Card><CardHeader><CardTitle className="text-base">Accounting controls</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{[["Ledger Mapping", "/srm/inventory/items/1/ledger-mapping"], ["GL Reconciliation", "/srm/inventory/reconciliation/gl"], ["GRNI", "/srm/inventory/reconciliation/grni"], ["COGS", "/srm/inventory/reconciliation/cogs"], ["GST", "/srm/inventory/reconciliation/gst"], ["HSN Summary", "/srm/inventory/reports/hsn-summary"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card></div>;
+  return <div className="space-y-4"><State label="inventory accounting" isLoading={query.isLoading} isError={query.isError} /><MetricGrid items={[["Status", text(data.status)], ["Unmapped items", text(data.unmapped_items)], ["GL difference", money(gl.difference)], ["GRNI outstanding", money(grni.grni_outstanding)], ["COGS difference", money(cogs.difference)], ["GST exceptions", text(gst.exceptions)]]} /><Card><CardHeader><CardTitle className="text-base">Accounting controls</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{[["Ledger Mapping", "/fam/inventory/items"], ["GL Reconciliation", "/srm/inventory/reconciliation/gl"], ["GRNI", "/srm/inventory/reconciliation/grni"], ["COGS", "/srm/inventory/reconciliation/cogs"], ["GST", "/srm/inventory/reconciliation/gst"], ["HSN Summary", "/srm/inventory/reports/hsn-summary"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryItemsView() {
-  const queryClient = useQueryClient();
+  const scope = useRecordScope();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
   const api = isSrmInventory ? srmApi : famApi;
-  const query = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventoryItems"], queryFn: () => api.inventoryItems(), refetchInterval: isSrmInventory ? 3000 : false, refetchIntervalInBackground: isSrmInventory, refetchOnWindowFocus: true });
-  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_inventory_manage"]);
-  const [draft, setDraft] = useState<FAMRecord>({ sku: "ITEM-001", item_name: "Demo Stock Item", purchase_rate: 100, sales_rate: 150, reorder_level: 5, min_stock: 2, track_inventory: true });
-  const mutation = useMutation({ mutationFn: () => api.createInventoryItem(draft), onSuccess: () => { toast({ title: isSrmInventory ? "SRM product saved" : "Stock item saved" }); queryClient.invalidateQueries({ queryKey: [isSrmInventory ? "srm" : "fam"] }); } , onError: showMutationError });
-  const fields = isSrmInventory ? ["sku", "item_name", "barcode", "category_name", "unit_code", "hsn_code", "gst_rate", "purchase_rate", "sales_rate", "mrp", "reorder_level", "min_stock"] : ["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"];
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={isSrmInventory ? "Create SRM product" : "Create item"}><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
+  const query = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventoryItems", scope], queryFn: () => api.inventoryItems(), refetchInterval: isSrmInventory ? 3000 : false, refetchIntervalInBackground: isSrmInventory, refetchOnWindowFocus: true });
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><InventoryItemCreateForm source={isSrmInventory ? "srm" : "fam"} /><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/${isSrmInventory ? "srm" : "fam"}/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryLedgerMappingView() {
-  const { id } = useParams();
-  const itemId = id || "1";
-  const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: ["fam", "inventoryLedgerMapping", itemId], queryFn: () => famApi.inventoryLedgerMapping(itemId) });
-  const [draft, setDraft] = useState<FAMRecord>({});
-  const data = { ...((query.data || {}) as FAMRecord), ...draft };
-  const fields = ["inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "gst_rate_id", "hsn_code", "valuation_method", "cost_center_id", "branch_id", "default_warehouse_id"];
-  const mutation = useMutation({ mutationFn: () => famApi.updateInventoryLedgerMapping(itemId, data), onSuccess: () => { toast({ title: "Inventory ledger mapping saved" }); setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <Card><CardHeader><CardTitle className="text-base">{text(data.sku || "Item")} ledger mapping</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3"><State label="ledger mapping" isLoading={query.isLoading} isError={query.isError} />{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(data[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}><Save className="h-4 w-4" />Save mapping</Button></div></CardContent></Card>;
+  return <InventoryLedgerMappingPage/>;
 }
 
 function InventoryItemDetailView({ ledger = false }: { ledger?: boolean }) {
@@ -1425,94 +1458,52 @@ function InventoryItemDetailView({ ledger = false }: { ledger?: boolean }) {
   const data = (query.data || {}) as FAMRecord;
   const rows = ledger ? listItems(query.data) : ((data.ledger as FAMRecord[] | undefined) || []);
   const stats: Array<[string, React.ReactNode]> = [["SKU", text(data.sku)], ["Quantity", text(data.current_quantity)], ["Average cost", text(data.average_cost)], ["Stock value", money(data.stock_value)]];
-  return <Card><CardHeader><CardTitle className="text-base">{ledger ? "Item ledger" : text(data.item_name || "Item detail")}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="item detail" isLoading={query.isLoading} isError={query.isError} />{!ledger ? <div className="grid gap-3 md:grid-cols-4">{stats.map(([label, value]) => <Card key={label}><CardContent className="p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></CardContent></Card>)}</div> : null}<DataTable rows={rows} columns={["movement_id", "warehouse_id", "quantity_in", "quantity_out", "rate", "value", "balance_quantity"]} /></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">{ledger ? "Item ledger" : text(data.item_name || "Item detail")}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="item detail" isLoading={query.isLoading} isError={query.isError} />{!ledger ? <div className="grid gap-3 md:grid-cols-4">{stats.map(([label, value]) => <Card key={label}><CardContent className="p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></CardContent></Card>)}</div> : null}{!ledger&&id&&<Button asChild variant="outline"><Link to={`/${isSrmInventory?"srm":"fam"}/inventory/items/${id}/ledger-mapping`}>Map item accounts</Link></Button>}<DataTable rows={rows} columns={["movement_id", "warehouse_id", "quantity_in", "quantity_out", "rate", "value", "balance_quantity"]} /></CardContent></Card>;
 }
 
 function InventoryMasterView({ kind }: { kind: "groups" | "units" | "warehouses" }) {
+  const scope=useRecordScope(),location=useLocation();
+  return <InventoryMasterForm key={`${scope}:${kind}:${location.pathname}`} kind={kind} scope={scope}/>;
+}
+
+function InventoryMasterForm({kind,scope}:{kind:"groups"|"units"|"warehouses";scope:string}) {
   const location=useLocation();
   const isSrmWarehouse=kind === "warehouses" && location.pathname.startsWith("/srm/inventory");
   const queryClient = useQueryClient();
   const permissions=isSrmWarehouse?["srm_admin","srm_manage"]:["fam_admin","fam_inventory_manage"];
   const canCreate=useFinanceWrite(permissions,"create"),canEdit=useFinanceWrite(permissions,"edit"),canDelete=useFinanceWrite(permissions,"delete");
   const config = {
-    groups: { queryKey: "inventoryGroups", query: famApi.inventoryStockGroups, create: famApi.createInventoryStockGroup, initial: { group_code: "RAW", group_name: "Raw Materials" }, fields: ["group_code", "group_name", "parent_group_id"], columns: ["group_code", "group_name", "parent_group_id", "active"] },
-    units: { queryKey: "inventoryUnits", query: famApi.inventoryUnits, create: famApi.createInventoryUnit, initial: { unit_code: "PCS", unit_name: "Pieces", symbol: "pcs", decimal_allowed: true }, fields: ["unit_code", "unit_name", "symbol"], columns: ["unit_code", "unit_name", "symbol", "decimal_allowed", "active"] },
-    warehouses: { queryKey: "inventoryWarehouses", query: isSrmWarehouse ? srmApi.inventoryWarehouses : famApi.inventoryWarehouses, create: isSrmWarehouse ? srmApi.createInventoryWarehouse : famApi.createInventoryWarehouse, initial: { warehouse_code: "MAIN", warehouse_name: "Main Warehouse" }, fields: ["warehouse_code", "warehouse_name", "branch_id", "address"], columns: ["warehouse_code", "warehouse_name", "branch_id", "active"] },
+    groups: { queryKey: "inventoryGroups", query: famApi.inventoryStockGroups, create: famApi.createInventoryStockGroup, initial: { group_code: "", group_name: "", parent_group_id: null }, fields: ["group_code", "group_name", "parent_group_id"], columns: ["group_code", "group_name", "parent_group_id", "active"] },
+    units: { queryKey: "inventoryUnits", query: famApi.inventoryUnits, create: famApi.createInventoryUnit, initial: { unit_code: "", unit_name: "", symbol: "", decimal_allowed: true }, fields: ["unit_code", "unit_name", "symbol"], columns: ["unit_code", "unit_name", "symbol", "decimal_allowed", "active"] },
+    warehouses: { queryKey: "inventoryWarehouses", query: isSrmWarehouse ? srmApi.inventoryWarehouses : famApi.inventoryWarehouses, create: isSrmWarehouse ? srmApi.createInventoryWarehouse : famApi.createInventoryWarehouse, initial: { warehouse_code: "", warehouse_name: "" }, fields: ["warehouse_code", "warehouse_name", isSrmWarehouse ? "branch" : "branch_id", "address"], columns: ["warehouse_code", "warehouse_name", "branch_id", "active"] },
   }[kind];
-  const query = useQuery({ queryKey: [isSrmWarehouse ? "srm" : "fam", config.queryKey], queryFn: config.query });
+  const query = useQuery({ queryKey: [isSrmWarehouse ? "srm" : "fam", config.queryKey,scope], queryFn: config.query, retry:false });
+  const branches=useQuery({queryKey:["fam","inventory-master-branches",scope],queryFn:famApi.branches,enabled:kind==="warehouses"&&!isSrmWarehouse,retry:false,staleTime:30000});
+  const [formError,setFormError]=useState("");
   const [draft, setDraft] = useState<FAMRecord>(config.initial);
   const [editing,setEditing]=useState<FAMRecord|null>(null),[deleting,setDeleting]=useState<FAMRecord|null>(null);
   const endpoint=isSrmWarehouse?"/srm/inventory/warehouses":`/fam/inventory/${kind==="groups"?"stock-groups":kind}`;
-  const mutation = useMutation({ mutationFn: () => editing ? api.put(`${endpoint}/${editing.id}`,draft) : config.create(draft), onSuccess: () => { toast({ title: "Inventory master saved" }); setEditing(null);setDraft(config.initial); queryClient.invalidateQueries({ queryKey: [isSrmWarehouse ? "srm" : "fam"] }); } , onError: showMutationError });
+  const mutation = useMutation({ mutationFn: () => editing ? api.put(`${endpoint}/${editing.id}`,draft) : config.create(draft), onSuccess: () => { toast({ title: "Inventory master saved" }); setEditing(null);setDraft(config.initial);setFormError(""); queryClient.invalidateQueries({ queryKey: [isSrmWarehouse ? "srm" : "fam"] }); } , onError: error=>{setFormError(apiErrorMessage(error,"Inventory master could not be saved"));showMutationError(error);} });
   const removeMutation=useMutation({mutationFn:()=>api.delete(`${endpoint}/${deleting?.id}`),onSuccess:()=>{setDeleting(null);queryClient.invalidateQueries({queryKey:[isSrmWarehouse?"srm":"fam"]});},onError:showMutationError});
-  const editor = <Card><CardHeader><CardTitle className="text-base">{editing?"Edit":"Create"}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!(editing?canEdit:canCreate) || mutation.isPending} title={!(editing?canEdit:canCreate) ? "Write permission required" : undefined}>{editing?"Save changes":"Save"}</Button>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);}}>Cancel editing</Button>}</CardContent></Card>;
-  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]">{!editing && <SmartCreateSection title={`Create ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`}>{editor}</SmartCreateSection>}<Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div>{editing && <SmartCreateModal definition={{entity:"inventoryMaster",title:`Edit ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`,presentation:"page",size:"compact",mode:"edit"}} busy={mutation.isPending} onClose={()=>{setEditing(null);setDraft(config.initial);}}>{editor}</SmartCreateModal>}<Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
+  const excluded=new Set<string>(editing?[String(editing.id)]:[]);
+  if(kind==="groups")for(let changed=true;changed;){changed=false;for(const row of listItems(query.data))if(excluded.has(String(row.parent_group_id))&&!excluded.has(String(row.id))){excluded.add(String(row.id));changed=true;}}
+  const groupChoices=listItems(query.data).filter(row=>row.active!==false&&!excluded.has(String(row.id)));
+  const branchChoices=listItems(branches.data).filter(row=>row.active!==false);
+  const editor = <Card><CardHeader><CardTitle className="text-base">{editing?"Edit":"Create"}</CardTitle></CardHeader><CardContent><CompactForm compactTabs={false} className="space-y-3" onSubmit={event=>{event.preventDefault();setFormError("");if(!(editing?canEdit:canCreate)||mutation.isPending)return;
+    if(kind==="groups"&&draft.parent_group_id&&(query.isError||!groupChoices.some(row=>String(row.id)===String(draft.parent_group_id)))){setFormError("Choose an available parent group outside this group's descendants.");return;}
+    if(kind==="warehouses"&&!isSrmWarehouse&&draft.branch_id&&(branches.isError||!branchChoices.some(row=>String(row.id)===String(draft.branch_id)))){setFormError("Choose an available branch.");return;}
+    mutation.mutate();}}><fieldset disabled={!(editing?canEdit:canCreate)||mutation.isPending} className="space-y-3">{config.fields.map((field) => <Field key={field} label={field==="parent_group_id"?"Parent group":field==="branch_id"?"Branch":field.replace(/_/g," ")}>{["parent_group_id","branch_id"].includes(field)?<NativeSelect searchable disabled={field==="branch_id"&&!!editing} aria-label={field==="parent_group_id"?"Parent group":"Branch"} value={String(draft[field]??"")} onChange={event=>setDraft(current=>({...current,[field]:event.target.value?Number(event.target.value):null}))}><option value="">Not assigned</option>{(field==="parent_group_id"?groupChoices:branchChoices).map(row=><option key={String(row.id)} value={String(row.id)}>{String(field==="parent_group_id"?row.group_name:row.branch_name)}</option>)}{draft[field]&&!(field==="parent_group_id"?groupChoices:branchChoices).some(row=>String(row.id)===String(draft[field]))?<option value={String(draft[field])}>Unavailable selection</option>:null}</NativeSelect>:<Input required={/_code$|_name$/.test(field)} maxLength={field==="unit_code"?40:field==="unit_name"?120:/_code$/.test(field)?80:180} value={String(draft[field]??"")} onChange={event=>setDraft(current=>({...current,[field]:event.target.value}))}/>}</Field>)}
+    {kind==="groups"&&query.isError&&<p role="alert">Parent groups could not load. <Button type="button" onClick={()=>void query.refetch()}>Retry parent groups</Button></p>}{kind==="warehouses"&&!isSrmWarehouse&&branches.isError&&<p role="alert">Branches could not load. <Button type="button" onClick={()=>void branches.refetch()}>Retry branches</Button></p>}
+    {editing&&kind==="warehouses"&&!isSrmWarehouse&&<p className="text-sm text-muted-foreground">Use branch transfer to move this warehouse to another branch.</p>}{formError&&<p role="alert">{formError}</p>}<Button data-save-action className="w-full inventory-master-submit" type="submit">{editing?"Save changes":"Save"}</Button>{editing&&<Button className="inventory-master-cancel" type="button" variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);setFormError("");}}>Cancel editing</Button>}</fieldset></CompactForm></CardContent></Card>;
+  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]">{!editing && <SmartCreateSection title={`Create ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`}>{editor}</SmartCreateSection>}<Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).map(row=>({...row,parent_group_name:row.parent_group_id?String(listItems(query.data).find(group=>group.id===row.parent_group_id)?.group_name||"Unavailable group"):"Not assigned",branch_name:isSrmWarehouse?row.branch:row.branch_id?String(branchChoices.find(branch=>branch.id===row.branch_id)?.branch_name||"Unavailable branch"):"Not assigned"}))} columns={config.columns.map(column=>column==="parent_group_id"?"parent_group_name":column==="branch_id"?"branch_name":column)} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setFormError("");setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div>{editing && <SmartCreateModal definition={{entity:"inventoryMaster",title:`Edit ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`,presentation:"page",size:"compact",mode:"edit"}} busy={mutation.isPending} onClose={()=>{setEditing(null);setDraft(config.initial);}}>{editor}</SmartCreateModal>}<Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
 }
 
 function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "delivery" }) {
-  const queryClient = useQueryClient();
-  const location = useLocation();
-  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const movementType = mode === "in" ? "stock_in" : mode === "out" ? "stock_out" : mode === "purchase" ? "purchase_receipt" : "delivery_note";
-  const quantityKey = mode === "out" || mode === "delivery" ? "quantity_out" : "quantity_in";
-  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_post","fam_inventory_manage"],"create");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), movement_type: movementType, product_id: 1, warehouse_id: 1, quantity: 1, rate: 100 } : { movement_date: financialToday(), movement_type: movementType, lines: [{ stock_item_id: 1, warehouse_id: 1, [quantityKey]: 1, rate: 100 }] });
-  const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (isSrmInventory) return srmApi.createInventoryStockMovement(draft);
-      const movement = await famApi.createInventoryStockMovement(draft);
-      return famApi.postInventoryStockMovement(String((movement as FAMRecord).id), draft);
-    },
-    onSuccess: async () => {
-      toast({ title: "Stock movement posted" });
-      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: `srm-${movementType}` });
-      else queryClient.invalidateQueries({ queryKey: ["fam"] });
-    },
-   onError: showMutationError });
-  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate"] : ["stock_item_id", "warehouse_id", quantityKey, "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} />}</Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post movement</Button></div></CardContent></Card>;
+  return <InventoryMovementForm kind={mode}/>;
 }
 
 function InventoryOpeningStockView() {
-  const queryClient = useQueryClient();
-  const location = useLocation();
-  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_post","fam_inventory_manage"],"create");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { product_id: 1, warehouse_id: 1, quantity: 1, rate: 100, movement_date: financialToday() } : { stock_item_id: 1, warehouse_id: 1, quantity: 1, rate: 100, opening_date: financialToday() });
-  const mutation = useMutation({
-    mutationFn: () => isSrmInventory ? srmApi.createInventoryOpeningStock(draft) : famApi.createInventoryOpeningStock(draft),
-    onSuccess: async () => {
-      toast({ title: "Opening stock saved" });
-      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-opening-stock" });
-      else queryClient.invalidateQueries({ queryKey: ["fam"] });
-    },
-   onError: showMutationError });
-  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate", "movement_date"] : ["stock_item_id", "warehouse_id", "quantity", "rate", "opening_date"];
-  return (
-    <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-      <SmartCreateSection title={<>Create opening stock</>} size="compact"><Card>
-        <CardHeader><CardTitle className="text-base">Create opening stock</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {fields.map((field) => (
-            <Field key={field} label={field.replace(/_/g, " ")}>
-              {["narration","notes","remarks"].includes(field) ? <RichTextField
-
-                value={String(draft[field] ?? "")}
-                onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : Number(event.target.value) }))}
-              /> : <Input
-                type={field.includes("date") ? "date" : "text"}
-                value={String(draft[field] ?? "")}
-                onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : Number(event.target.value) }))}
-              />}
-            </Field>
-          ))}
-          <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Save opening stock</Button>
-        </CardContent>
-      </Card></SmartCreateSection>
-      <InventorySummaryView kind="summary" />
-    </div>
-  );
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title="Create opening stock" size="compact"><InventoryMovementForm kind="opening"/></SmartCreateSection><InventorySummaryView kind="summary"/></div>;
 }
 
 function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {
@@ -1550,94 +1541,15 @@ function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {
 }
 
 function InventoryBatchesView() {
-  const queryClient = useQueryClient();
+  const scope = useRecordScope();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const batches = useQuery({ queryKey: ["srm", "inventoryBatches"], queryFn: srmApi.inventoryBatches, enabled: isSrmInventory });
-  const serials = useQuery({ queryKey: ["srm", "serialNumbers"], queryFn: srmApi.serialNumbers, enabled: isSrmInventory });
-  const [batchDraft, setBatchDraft] = useState<FAMRecord>({
-    product_id: 1,
-    warehouse_id: 1,
-    batch_number: "BATCH-001",
-    manufacture_date: "2026-06-20",
-    expiry_date: "2027-06-20",
-    quantity: 10,
-    available_quantity: 10,
-    unit_cost: 50,
-    status: "available",
-  });
-  const [serialDraft, setSerialDraft] = useState<FAMRecord>({
-    product_id: 1,
-    warehouse_id: 1,
-    batch_id: "",
-    serial_number: "SER-001",
-    status: "available",
-    received_date: "2026-06-20",
-  });
-  const createBatch = useMutation({
-    mutationFn: () => srmApi.createInventoryBatch({
-      ...batchDraft,
-      batch_id: undefined,
-      received_date: batchDraft.received_date || batchDraft.manufacture_date,
-    }),
-    onSuccess: () => {
-      toast({ title: "Batch saved" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
-  const createSerial = useMutation({
-    mutationFn: () => srmApi.createSerialNumber({
-      ...serialDraft,
-      batch_id: serialDraft.batch_id ? Number(serialDraft.batch_id) : undefined,
-    }),
-    onSuccess: () => {
-      toast({ title: "Serial number saved" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
+  const batches = useQuery({ queryKey: ["srm", "inventoryBatches", scope], queryFn: srmApi.inventoryBatches, enabled: isSrmInventory });
+  const serials = useQuery({ queryKey: ["srm", "serialNumbers", scope], queryFn: srmApi.serialNumbers, enabled: isSrmInventory });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryBatches" />;
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SmartCreateSection title={<>Create batch / expiry lot</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Create batch / expiry lot</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {["product_id", "warehouse_id", "batch_number", "manufacture_date", "expiry_date", "quantity", "available_quantity", "unit_cost", "status", "notes"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                {["narration","notes","remarks"].includes(field) ? <RichTextField
-
-                  value={String(batchDraft[field] ?? "")}
-                  onChange={(event) => setBatchDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                /> : <Input
-                  type={field.includes("date") ? "date" : "text"}
-                  value={String(batchDraft[field] ?? "")}
-                  onChange={(event) => setBatchDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                />}
-              </Field>
-            ))}
-            <div className="md:col-span-2"><Button onClick={() => createBatch.mutate()} disabled={createBatch.isPending}>Save batch</Button></div>
-          </CardContent>
-        </Card></SmartCreateSection>
-        <SmartCreateSection title={<>Register serial number</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Register serial number</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {["product_id", "warehouse_id", "batch_id", "serial_number", "status", "received_date", "reference_number"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                {["narration","notes","remarks"].includes(field) ? <RichTextField
-
-                  value={String(serialDraft[field] ?? "")}
-                  onChange={(event) => setSerialDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                /> : <Input
-                  type={field.includes("date") ? "date" : "text"}
-                  value={String(serialDraft[field] ?? "")}
-                  onChange={(event) => setSerialDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                />}
-              </Field>
-            ))}
-            <div className="md:col-span-2"><Button onClick={() => createSerial.mutate()} disabled={createSerial.isPending}>Save serial</Button></div>
-          </CardContent>
-        </Card></SmartCreateSection>
-      </div>
+      <InventoryTrackingForms />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base">Batches</CardTitle></CardHeader>
@@ -1659,93 +1571,14 @@ function InventoryBatchesView() {
 }
 
 function InventoryPriceListsView() {
-  const queryClient = useQueryClient();
+  const scope = useRecordScope();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const priceLists = useQuery({ queryKey: ["srm", "priceLists"], queryFn: srmApi.priceLists, enabled: isSrmInventory });
-  const [draft, setDraft] = useState<FAMRecord>({
-    price_list_name: "Retail price list",
-    channel: "retail",
-    customer_type: "cash",
-    currency: defaultText("currency", "fam"),
-    effective_from: "2026-06-20",
-    priority: 100,
-    product_id: 1,
-    min_quantity: 1,
-    price: 100,
-    discount_percent: 0,
-    discount_amount: 0,
-  });
-  const createList = useMutation({
-    mutationFn: () => srmApi.createPriceList({
-      price_list_code: draft.price_list_code || undefined,
-      price_list_name: draft.price_list_name,
-      channel: draft.channel,
-      customer_type: draft.customer_type,
-      currency: draft.currency,
-      effective_from: draft.effective_from,
-      effective_to: draft.effective_to || undefined,
-      priority: draft.priority,
-      active: true,
-      notes: draft.notes,
-      lines: [{
-        product_id: draft.product_id,
-        min_quantity: draft.min_quantity,
-        price: draft.price,
-        discount_percent: draft.discount_percent || 0,
-        discount_amount: draft.discount_amount || 0,
-        tax_inclusive: Boolean(draft.tax_inclusive),
-      }],
-    }),
-    onSuccess: () => {
-      toast({ title: "Price list saved" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
-  const lookup = useMutation({
-    mutationFn: () => srmApi.lookupPrices({
-      product_ids: [Number(draft.product_id || 1)],
-      channel: draft.channel,
-      customer_type: draft.customer_type,
-      price_date: draft.effective_from,
-      quantity: draft.min_quantity || 1,
-    }),
-   onError: showMutationError });
+  const priceLists = useQuery({ queryKey: ["srm", "priceLists", scope], queryFn: srmApi.priceLists, enabled: isSrmInventory });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPriceLists" />;
-  const lookupRows = listItems(lookup.data);
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
-        <SmartCreateSection title={<>Create price list</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Create price list</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {["price_list_code", "price_list_name", "channel", "customer_type", "currency", "effective_from", "effective_to", "priority", "product_id", "min_quantity", "price", "discount_percent", "discount_amount"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input
-                  type={field.includes("effective") ? "date" : "text"}
-                  value={String(draft[field] ?? "")}
-                  onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("effective") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                />
-              </Field>
-            ))}
-            <label className="flex items-center gap-2 text-sm md:col-span-2">
-              <input type="checkbox" checked={Boolean(draft.tax_inclusive)} onChange={(event) => setDraft((current) => ({ ...current, tax_inclusive: event.target.checked }))} />
-              Tax inclusive price
-            </label>
-            <div className="flex gap-2 md:col-span-2">
-              <Button onClick={() => createList.mutate()} disabled={createList.isPending}>Save price list</Button>
-              <Button variant="outline" onClick={() => lookup.mutate()} disabled={lookup.isPending}>Test lookup</Button>
-            </div>
-          </CardContent>
-        </Card></SmartCreateSection>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Price lookup</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <State label="price lookup" isLoading={lookup.isPending} isError={lookup.isError} />
-            <DataTable rows={lookupRows} columns={["sku", "item_name", "price_list_name", "base_price", "net_price", "currency"]} />
-          </CardContent>
-        </Card>
-      </div>
+      <InventoryPriceListForm />
       <Card>
         <CardHeader><CardTitle className="text-base">Price lists</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -1758,101 +1591,18 @@ function InventoryPriceListsView() {
 }
 
 function InventoryManufacturingView() {
-  const queryClient = useQueryClient();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const boms = useQuery({ queryKey: ["srm", "boms"], queryFn: srmApi.boms, enabled: isSrmInventory });
-  const orders = useQuery({ queryKey: ["srm", "productionOrders"], queryFn: srmApi.productionOrders, enabled: isSrmInventory });
-  const [bomDraft, setBomDraft] = useState<FAMRecord>({
-    bom_name: "Assembly BOM",
-    finished_product_id: 1,
-    output_quantity: 1,
-    component_product_id: 1,
-    warehouse_id: 1,
-    quantity: 1,
-    unit_cost: 10,
-  });
-  const [orderDraft, setOrderDraft] = useState<FAMRecord>({ bom_id: 1, warehouse_id: 1, planned_quantity: 1, completed_quantity: 1, order_id: 1 });
-  const createBom = useMutation({
-    mutationFn: () => srmApi.createBom({
-      bom_number: bomDraft.bom_number || undefined,
-      bom_name: bomDraft.bom_name,
-      finished_product_id: bomDraft.finished_product_id,
-      output_quantity: bomDraft.output_quantity,
-      status: "active",
-      notes: bomDraft.notes,
-      components: [{
-        component_product_id: bomDraft.component_product_id,
-        warehouse_id: bomDraft.warehouse_id,
-        quantity: bomDraft.quantity,
-        unit_cost: bomDraft.unit_cost,
-      }],
-    }),
-    onSuccess: () => {
-      toast({ title: "BOM saved" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
-  const createOrder = useMutation({
-    mutationFn: () => srmApi.createProductionOrder({
-      bom_id: orderDraft.bom_id,
-      warehouse_id: orderDraft.warehouse_id,
-      planned_quantity: orderDraft.planned_quantity,
-      order_date: orderDraft.order_date,
-      notes: orderDraft.notes,
-    }),
-    onSuccess: () => {
-      toast({ title: "Production order created" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
-  const postOrder = useMutation({
-    mutationFn: () => srmApi.postProductionOrder(String(orderDraft.order_id || 1), {
-      completed_quantity: orderDraft.completed_quantity,
-      warehouse_id: orderDraft.warehouse_id,
-    }),
-    onSuccess: () => {
-      toast({ title: "Production posted and stock updated" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
+  const scope = useRecordScope();
+  const boms = useQuery({ queryKey: ["srm", "boms", scope], queryFn: srmApi.boms, enabled: isSrmInventory });
+  const orders = useQuery({ queryKey: ["srm", "productionOrders", scope], queryFn: srmApi.productionOrders, enabled: isSrmInventory });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryManufacturing" />;
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-3">
-        <SmartCreateSection title={<>Create BOM</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Create BOM</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {["bom_number", "bom_name", "finished_product_id", "output_quantity", "component_product_id", "warehouse_id", "quantity", "unit_cost", "notes"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input value={String(bomDraft[field] ?? "")} onChange={(event) => setBomDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
-              </Field>
-            ))}
-            <Button onClick={() => createBom.mutate()} disabled={createBom.isPending}>Save BOM</Button>
-          </CardContent>
-        </Card></SmartCreateSection>
-        <SmartCreateSection title={<>Create production order</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Create production order</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {["bom_id", "warehouse_id", "planned_quantity", "order_date", "notes"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                {["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}
-              </Field>
-            ))}
-            <Button onClick={() => createOrder.mutate()} disabled={createOrder.isPending}>Create order</Button>
-          </CardContent>
-        </Card></SmartCreateSection>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Post production</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {["order_id", "completed_quantity", "warehouse_id"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: Number(event.target.value) }))} />
-              </Field>
-            ))}
-            <Button onClick={() => postOrder.mutate()} disabled={postOrder.isPending}>Post stock</Button>
-          </CardContent>
-        </Card>
+        <InventoryBomForm />
+        <InventoryProductionOrderForm />
+        <InventoryProductionPostingForm />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -1875,75 +1625,15 @@ function InventoryManufacturingView() {
 }
 
 function InventoryPurchaseOrdersView() {
-  const queryClient = useQueryClient();
+  const scope = useRecordScope();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const purchaseOrders = useQuery({ queryKey: ["srm", "purchaseOrders"], queryFn: srmApi.purchaseOrders, enabled: isSrmInventory });
-  const goodsReceipts = useQuery({ queryKey: ["srm", "goodsReceipts"], queryFn: srmApi.goodsReceipts, enabled: isSrmInventory });
-  const [poDraft, setPoDraft] = useState<FAMRecord>({ vendor_id: 1, vendor_name: "Default Supplier", product_id: 1, warehouse_id: 1, quantity: 1, unit_price: 100, tax_amount: 0 });
-  const [grnDraft, setGrnDraft] = useState<FAMRecord>({ purchase_order_id: 1, purchase_order_line_id: 1, quantity: 1, accepted_quantity: 1, unit_price: 100, tax_amount: 0 });
-  const createPo = useMutation({
-    mutationFn: () => srmApi.createPurchaseOrder({
-      vendor_id: poDraft.vendor_id,
-      vendor_name: poDraft.vendor_name,
-      lines: [{
-        product_id: poDraft.product_id,
-        warehouse_id: poDraft.warehouse_id,
-        quantity: poDraft.quantity,
-        unit_price: poDraft.unit_price,
-        tax_amount: poDraft.tax_amount,
-      }],
-    }),
-    onSuccess: () => {
-      toast({ title: "Purchase order created" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
-  const createGrn = useMutation({
-    mutationFn: () => srmApi.createGoodsReceipt({
-      purchase_order_id: grnDraft.purchase_order_id,
-      reference_number: grnDraft.reference_number,
-      lines: [{
-        purchase_order_line_id: grnDraft.purchase_order_line_id,
-        quantity: grnDraft.quantity,
-        accepted_quantity: grnDraft.accepted_quantity,
-        rejected_quantity: grnDraft.rejected_quantity || 0,
-        unit_price: grnDraft.unit_price,
-        tax_amount: grnDraft.tax_amount,
-      }],
-    }),
-    onSuccess: () => {
-      toast({ title: "GRN posted and stock updated" });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
-    },
-   onError: showMutationError });
+  const purchaseOrders = useQuery({ queryKey: ["srm", "purchaseOrders", scope], queryFn: srmApi.purchaseOrders, enabled: isSrmInventory });
+  const goodsReceipts = useQuery({ queryKey: ["srm", "goodsReceipts", scope], queryFn: srmApi.goodsReceipts, enabled: isSrmInventory });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPurchaseOrders" />;
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SmartCreateSection title={<>Create purchase order</>} size="compact"><Card>
-          <CardHeader><CardTitle className="text-base">Create purchase order</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {["vendor_id", "vendor_name", "product_id", "warehouse_id", "quantity", "unit_price", "tax_amount"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input value={String(poDraft[field] ?? "")} onChange={(event) => setPoDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
-              </Field>
-            ))}
-            <div className="md:col-span-2"><Button onClick={() => createPo.mutate()} disabled={createPo.isPending}>Create PO</Button></div>
-          </CardContent>
-        </Card></SmartCreateSection>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Post GRN</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {["purchase_order_id", "purchase_order_line_id", "quantity", "accepted_quantity", "rejected_quantity", "unit_price", "tax_amount", "reference_number"].map((field) => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input value={String(grnDraft[field] ?? "")} onChange={(event) => setGrnDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
-              </Field>
-            ))}
-            <div className="md:col-span-2"><Button onClick={() => createGrn.mutate()} disabled={createGrn.isPending}>Post GRN</Button></div>
-          </CardContent>
-        </Card>
-      </div>
+      <InventoryProcurementForms />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card><CardHeader><CardTitle className="text-base">Purchase orders</CardTitle></CardHeader><CardContent><State label="purchase orders" isLoading={purchaseOrders.isLoading} isError={purchaseOrders.isError} /><DataTable rows={listItems(purchaseOrders.data)} columns={["po_number", "vendor_name", "status", "order_date", "subtotal", "tax_amount", "total_amount"]} /></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-base">Goods receipts</CardTitle></CardHeader><CardContent><State label="goods receipts" isLoading={goodsReceipts.isLoading} isError={goodsReceipts.isError} /><DataTable rows={listItems(goodsReceipts.data)} columns={["grn_number", "vendor_name", "status", "receipt_date", "reference_number", "total_amount"]} /></CardContent></Card>
@@ -1953,62 +1643,37 @@ function InventoryPurchaseOrdersView() {
 }
 
 function InventoryTransferView() {
-  const queryClient = useQueryClient();
-  const location = useLocation();
-  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_transfer","fam_inventory_manage"],"create");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), product_id: 1, from_warehouse_id: 1, to_warehouse_id: 2, quantity: 1, rate: 100 } : { transfer_date: "2026-06-06", from_warehouse_id: 1, to_warehouse_id: 2, lines: [{ stock_item_id: 1, quantity: 1, rate: 100 }] });
-  const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (isSrmInventory) return srmApi.createInventoryStockTransfer(draft);
-      const transfer = await famApi.createInventoryTransfer(draft);
-      return famApi.postInventoryTransfer(String((transfer as FAMRecord).id));
-    },
-    onSuccess: async () => {
-      toast({ title: "Transfer posted" });
-      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-transfer" });
-      else queryClient.invalidateQueries({ queryKey: ["fam"] });
-    },
-   onError: showMutationError });
-  const headerFields = isSrmInventory ? ["movement_date", "from_warehouse_id", "to_warehouse_id"] : ["transfer_date", "from_warehouse_id", "to_warehouse_id"];
-  const lineFields = isSrmInventory ? ["product_id", "quantity", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post transfer</Button></div></CardContent></Card>;
+  return <InventoryMovementForm kind="transfer" />;
 }
 
 function InventoryAdjustmentView() {
-  const queryClient = useQueryClient();
-  const location = useLocation();
-  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_adjust","fam_inventory_manage"],"create");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), product_id: 1, warehouse_id: 1, reason: "Cycle count", quantity_in: 1, quantity_out: 0, rate: 100 } : { adjustment_date: "2026-06-06", warehouse_id: 1, reason: "Cycle count", lines: [{ stock_item_id: 1, quantity_in: 1, quantity_out: 0, rate: 100 }] });
-  const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (isSrmInventory) return srmApi.createInventoryStockAdjustment(draft);
-      const adjustment = await famApi.createInventoryAdjustment(draft);
-      return famApi.postInventoryAdjustment(String((adjustment as FAMRecord).id), draft);
-    },
-    onSuccess: async () => {
-      toast({ title: "Adjustment posted" });
-      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-adjustment" });
-      else queryClient.invalidateQueries({ queryKey: ["fam"] });
-    },
-   onError: showMutationError });
-  const headerFields = isSrmInventory ? ["movement_date", "warehouse_id", "reason"] : ["adjustment_date", "warehouse_id", "reason"];
-  const lineFields = isSrmInventory ? ["product_id", "quantity_in", "quantity_out", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity_in", "quantity_out", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post adjustment</Button></div></CardContent></Card>;
+  return <InventoryMovementForm kind="adjustment" />;
 }
 
 type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
 
 function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
-  const location = useLocation();
+  const location = useLocation(), scope = useRecordScope();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const financialReport = ["grossMargin", "cogs", "hsnSummary"].includes(kind);
+  const activityReport = ["aging", "dead", "fastSlow"].includes(kind);
+  const salesActivity = isSrmInventory && activityReport;
+  const stockReport = kind === "summary" || kind === "reorder";
+  const salesStock = isSrmInventory && stockReport;
+  const salesValuation = isSrmInventory && kind === "valuation";
+  const salesWarehouse = isSrmInventory && kind === "warehouse";
+  const salesCatalog = isSrmInventory && !financialReport && !salesWarehouse && !salesActivity && !salesValuation && !salesStock;
   const query = useQuery({
-    queryKey: [isSrmInventory ? "srm" : "fam", `inventory-${kind}`],
+    queryKey: [isSrmInventory && !financialReport ? "srm" : "fam", `inventory-${kind}`, scope],
     queryFn: () => {
-      if (isSrmInventory) return srmApi.inventoryItems();
+      if (salesActivity && kind === "aging") return srmApi.inventoryStockAging();
+      if (salesActivity && kind === "dead") return srmApi.inventoryDeadStock();
+      if (salesActivity && kind === "fastSlow") return srmApi.inventoryFastSlowMoving();
+      if (salesStock && kind === "summary") return srmApi.inventoryStockSummary();
+      if (salesStock && kind === "reorder") return srmApi.inventoryReorderAlerts();
+      if (salesValuation) return srmApi.inventoryValuation();
+      if (salesWarehouse) return srmApi.inventoryWarehouseStock();
+      if (salesCatalog) return srmApi.inventoryItems();
       if (kind === "valuation") return famApi.inventoryValuation();
       if (kind === "reorder") return famApi.inventoryReorderAlerts();
       if (kind === "reports") return famApi.inventoryReports();
@@ -2024,18 +1689,28 @@ function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
       if (kind === "srmLink") return famApi.inventorySrmLink();
       return famApi.inventoryStockSummary();
     },
+    retry: false,
   });
-  const data = (query.data || {}) as FAMRecord;
-  const sourceRows = listItems(query.data);
-  const rows = isSrmInventory
-    ? sourceRows.filter((item) => kind !== "reorder" || Number(item.current_quantity || 0) <= Number(item.reorder_level || 0))
-    : kind === "reports" ? ((data.summary as FAMRecord | undefined)?.items as FAMRecord[] | undefined) || [] : sourceRows;
-  const columns = kind === "audit"
+  const data = (query.isError ? {} : query.data || {}) as FAMRecord;
+  const sourceRows = listItems(query.isError ? undefined : query.data);
+  const rows = kind === "reports" && !salesCatalog ? ((data.summary as FAMRecord | undefined)?.items as FAMRecord[] | undefined) || [] : sourceRows;
+  const valuationTotals: FAMRecord[] = !query.isSuccess || kind !== "valuation" ? [] : salesValuation
+    ? (Array.isArray(data.totals_by_currency) ? data.totals_by_currency as FAMRecord[] : [])
+    : data.currency && data.total_inventory_value != null ? [{currency:data.currency,total_inventory_value:data.total_inventory_value}] : [];
+  const columns = kind === "summary" ? (salesStock
+    ? ["sku", "item_name", "current_quantity", "stock_value", "currency", "is_low_stock"]
+    : ["sku", "item_name", "current_quantity", "reserved_quantity", "available_quantity", "stock_value", "currency", "is_low_stock"])
+    : kind === "reorder" ? ["sku", "item_name", "current_quantity", "reorder_level", "min_stock", "is_low_stock"]
+    : kind === "valuation" ? ["sku", "item_name", "current_quantity", "stock_value", "currency"] : kind === "aging" || kind === "dead"
+    ? ["sku", "item_name", "last_movement_date", "age_days"]
+    : kind === "fastSlow"
+      ? ["sku", "item_name", "quantity_out", "movement_class"]
+    : kind === "audit"
     ? ["action", "record_type", "record_id", "performed_at"]
     : kind === "warehouse"
-      ? ["warehouse_name", "sku", "item_name", "quantity", "stock_value"]
+      ? ["warehouse_name", "sku", "item_name", "quantity", "stock_value", "currency"]
       : kind === "grossMargin"
-        ? ["sku", "item_name", "revenue", "cogs", "gross_margin", "gross_margin_percent"]
+        ? ["sku", "item_name", "revenue_status", "revenue", "cogs", "gross_margin", "gross_margin_percent"]
         : kind === "cogs"
           ? ["movement_number", "movement_date", "movement_type", "cogs_value", "voucher_posted", "status"]
           : kind === "hsnSummary"
@@ -2043,55 +1718,82 @@ function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
         : kind === "srmLink"
           ? ["reservation_number", "source_record_type", "source_record_id", "status"]
           : ["sku", "item_name", "current_quantity", "available_quantity", "average_cost", "stock_value", "is_low_stock"];
-  return <Card><CardHeader><CardTitle className="text-base">{kind === "valuation" ? `Total value ${money(data.total_inventory_value)}` : "Inventory records"}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="inventory report" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={columns} /></CardContent></Card>;
+  const reportRows = activityReport ? rows.map(row => ({...row,
+    last_movement_date: row.last_movement_date ?? "No recorded movement",
+    age_days: row.age_days ?? "Not available",
+    movement_class: ({fast:"Fast moving",slow:"Slow moving",non_moving:"No issues recorded"} as Record<string,string>)[String(row.movement_class)] || "Not available",
+  })) : kind === "grossMargin" ? rows.map(row => ({...row, gross_margin: row.gross_margin == null ? "Not available" : row.gross_margin, gross_margin_percent: row.gross_margin_percent == null ? "Not available" : row.gross_margin_percent})) : (kind === "warehouse" || kind === "valuation" || kind === "summary") ? rows.map(row=>({...row,currency:row.currency || data.currency || "Not available"})) : rows;
+  return <Card><CardHeader><CardTitle className="text-base">{kind === "summary" ? "Stock summary" : kind === "reorder" ? "Reorder alerts" : kind === "aging" ? "Stock movement age" : kind === "dead" ? "Stock without recent activity" : kind === "fastSlow" ? "Fast and slow moving stock" : kind === "warehouse" ? "Warehouse stock" : kind === "valuation" ? "Stock valuation" : kind === "grossMargin" ? "Inventory gross margin" : kind === "cogs" ? "Cost of goods issued" : kind === "hsnSummary" ? "HSN stock summary" : "Inventory records"}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="inventory report" isLoading={query.isLoading} isError={query.isError} />{stockReport && <div className="space-y-2"><p className="text-sm">{salesStock ? "On-hand quantities total the warehouse balances you can access." : "Shows on-hand stock, with reserved and available quantities in the stock summary."} Reorder alerts compare on-hand quantity with a positive reorder level, or minimum stock when no reorder level is set. An item without either threshold has no reorder alert.</p>{query.isError && <p role="alert">{apiErrorMessage(query.error,"Stock report unavailable")}</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button></div>}{kind === "valuation" && <div className="space-y-2"><p className="text-sm">{salesValuation ? "Each item sums its warehouse balance values in its recorded currency. Currency totals are separate; no currency conversion is applied." : "Finance stock quantities valued at each stock item's current average cost in the company base currency."}</p>{query.isError && <p role="alert">{apiErrorMessage(query.error,"Stock valuation unavailable")}</p>}{query.isSuccess && valuationTotals.length > 0 && <div aria-label="Valuation totals" className="flex flex-wrap gap-4">{valuationTotals.map(total=><p key={String(total.currency)} className="font-medium">{String(total.currency)} {Number(total.total_inventory_value).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</p>)}</div>}{query.isSuccess && Number(data.unpriced_currency_items || 0) > 0 && <p role="alert">Some items have no valid currency. They are excluded from currency totals.</p>}{query.isSuccess && !salesValuation && !data.currency && <p role="alert">Report currency unavailable. A monetary total cannot be displayed.</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button></div>}{activityReport && <div className="space-y-2"><p className="text-sm">{kind === "fastSlow" ? `Classification uses all recorded ${salesActivity ? "Sales" : "posted Finance"} delivery and stock issue quantities, excluding transfers and adjustments. Fast moving means at least ${Number(data.fast_threshold ?? 10)} units; slow moving means more than zero below that threshold.` : `Age means days since the last ${salesActivity ? "recorded Sales" : "posted Finance"} stock movement. Items without movement history have no known age.${kind === "dead" ? ` This list includes items with no history or at least ${Number(data.threshold_days ?? 90)} days without movement.` : ""}`}</p>{query.isError && <p role="alert">{apiErrorMessage(query.error,"Stock activity report unavailable")}</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button></div>}{kind === "warehouse" && <div className="space-y-2"><p className="text-sm">{salesWarehouse ? "Sales warehouse balances valued at each warehouse's average cost. Currency is shown for each item." : "Finance posted stock quantities valued at each stock item's current average cost."}</p>{query.isError && <p role="alert">{apiErrorMessage(query.error,"Warehouse stock report unavailable")}</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button></div>}{financialReport && kind !== "grossMargin" && <div className="space-y-2">{isSrmInventory && <p className="text-sm">This report uses Finance stock records and requires the corresponding Finance reporting access.</p>}{query.isError && <p role="alert">{apiErrorMessage(query.error,"Inventory report unavailable")}</p>}{query.isSuccess && <p className="text-sm">{data.currency?`Report currency: ${String(data.currency)}`:"Report currency unavailable"}</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button></div>}{kind === "grossMargin" && <div className="space-y-2">{isSrmInventory && <p className="text-sm">This financial report uses Finance stock records and requires Finance inventory reporting access.</p>}{query.isError && <p role="alert">{apiErrorMessage(query.error, "Inventory report unavailable")}</p>}{!!(data.attribution as FAMRecord | undefined)?.currency && <p className="text-sm">Report currency: {String((data.attribution as FAMRecord).currency)}</p>}<Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>{query.isFetching ? "Refreshing inventory report..." : "Retry inventory report"}</Button><p className="text-sm text-muted-foreground">Revenue includes only issued invoice lines attributed through explicit Sales product links, excluding tax. COGS uses historical posted delivery and issue values.</p>{rows.some(row => row.revenue_complete === false) && <p role="alert" className="text-sm">Some rows have incomplete revenue attribution. Revenue shows the attributed amount only; gross margin is unavailable until missing or ambiguous links and unsupported invoice sources or currencies are resolved.</p>}</div>}<DataTable rows={reportRows} columns={columns} /></CardContent></Card>;
+}
+
+function InventorySalesIntegrationView() {
+  const location = useLocation(), scope = useRecordScope();
+  const fromSales = location.pathname.startsWith("/srm/inventory");
+  const query = useQuery({queryKey:["fam","inventory-sales-integration",scope],queryFn:famApi.inventorySrmLink,retry:false});
+  const data = (query.isSuccess ? query.data || {} : {}) as FAMRecord;
+  const valid = query.isSuccess && Array.isArray(data.reservations) && Array.isArray(data.movements);
+  const reservations = valid ? data.reservations as FAMRecord[] : [];
+  const movements = valid ? data.movements as FAMRecord[] : [];
+  return <Card><CardHeader><CardTitle className="text-base">Sales inventory integration</CardTitle></CardHeader><CardContent className="space-y-4">
+    <p className="text-sm">Recorded Finance stock reservations and movements with Sales as their source.</p>
+    {fromSales && <p className="text-sm">These Finance records require Finance inventory viewing access.</p>}
+    <State label="Sales inventory integration" isLoading={query.isLoading} isError={query.isError}/>
+    {query.isError && <p role="alert">{apiErrorMessage(query.error,"Inventory integration unavailable")}</p>}
+    {query.isSuccess && !valid && <p role="alert">Incomplete integration response. Please retry.</p>}
+    <Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry inventory report</Button>
+    {valid && <>
+      <section aria-label="Sales stock reservations" className="space-y-2"><h3 className="font-medium">Stock reservations</h3><DataTable rows={reservations} columns={["reservation_number","quantity","status","source_record_type","source_record_id"]}/></section>
+      <section aria-label="Sales stock movements" className="space-y-2"><h3 className="font-medium">Stock movements</h3><DataTable rows={movements} columns={["movement_number","movement_date","movement_type","status","source_record_type","source_record_id"]}/></section>
+    </>}
+  </CardContent></Card>;
 }
 
 function InventoryReconciliationView() {
-  const location = useLocation();
+  const location = useLocation(), scope = useRecordScope();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const gl = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventory-gl-reconciliation"], queryFn: () => isSrmInventory ? srmApi.inventoryItems() : famApi.inventoryGlReconciliation() });
-  const srm = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventory-srm-reconciliation"], queryFn: () => isSrmInventory ? srmApi.salesOrders() : famApi.inventorySrmReconciliation() });
-  const glData = (gl.data || {}) as FAMRecord;
-  const srmData = (srm.data || {}) as FAMRecord;
-  const products = isSrmInventory ? listItems(gl.data) : [];
-  const orders = isSrmInventory ? listItems(srm.data) : [];
-  return <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Inventory to GL</CardTitle></CardHeader><CardContent className="space-y-3"><State label="GL reconciliation" isLoading={gl.isLoading} isError={gl.isError} /><MetricGrid items={isSrmInventory ? [["Stock valuation", money(products.reduce((sum, item) => sum + Number(item.current_quantity || 0) * Number(item.average_cost || item.purchase_rate || 0), 0))], ["Ledger balance", money(0)], ["Difference", money(0)], ["Status", "SRM stock ready"]] : [["Stock valuation", money(glData.stock_valuation)], ["Ledger balance", money(glData.ledger_balance)], ["Difference", money(glData.difference)], ["Status", text(glData.status)]]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Inventory to SRM</CardTitle></CardHeader><CardContent className="space-y-3"><State label="SRM reconciliation" isLoading={srm.isLoading} isError={srm.isError} /><MetricGrid items={isSrmInventory ? [["SRM sales orders", text(orders.length)], ["SRM invoices", "-"], ["Reservations", "-"], ["Posted movements", text(products.length)]] : [["SRM sales orders", text(srmData.srm_sales_orders)], ["SRM invoices", text(srmData.srm_invoices)], ["Reservations", text(srmData.inventory_reservations)], ["Posted movements", text(srmData.posted_inventory_movements)]]} /><p className="text-sm text-muted-foreground">{isSrmInventory ? "SRM inventory is using live product and sales-order data." : text(srmData.duplicate_deduction_guard)}</p></CardContent></Card></div>;
+  const gl = useQuery({queryKey:["fam","inventory-gl-reconciliation",scope],queryFn:famApi.inventoryGlReconciliation,retry:false});
+  const sales = useQuery({queryKey:["fam","inventory-srm-reconciliation",scope],queryFn:famApi.inventorySrmReconciliation,retry:false});
+  const glData = (gl.isSuccess ? gl.data || {} : {}) as FAMRecord;
+  const salesData = (sales.isSuccess ? sales.data || {} : {}) as FAMRecord;
+  const amount = (value:unknown) => value == null || value === "" || !Number.isFinite(Number(value)) ? "Not available" : !glData.currency ? "Currency unavailable" : `${String(glData.currency)} ${Number(value).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  return <div className="grid gap-4 lg:grid-cols-2">
+    {isSrmInventory&&<p className="text-sm lg:col-span-2">These reconciliation reports use Finance records and require Finance reconciliation access.</p>}
+    <Card><CardHeader><CardTitle className="text-base">Inventory to GL</CardTitle></CardHeader><CardContent className="space-y-3">
+      <State label="GL reconciliation" isLoading={gl.isPending} isError={gl.isError}/>
+      {gl.isError&&<p role="alert">{apiErrorMessage(gl.error,"GL reconciliation unavailable")}</p>}
+      <Button type="button" variant="outline" disabled={gl.isFetching} onClick={()=>void gl.refetch()}>Retry GL reconciliation</Button>
+      {gl.isSuccess&&<MetricGrid items={[["Stock valuation",amount(glData.stock_valuation)],["Ledger balance",amount(glData.ledger_balance)],["Difference",amount(glData.difference)],["Status",text(glData.status)]]}/>}
+    </CardContent></Card>
+    <Card><CardHeader><CardTitle className="text-base">Inventory to Sales</CardTitle></CardHeader><CardContent className="space-y-3">
+      <State label="Sales reconciliation" isLoading={sales.isPending} isError={sales.isError}/>
+      {sales.isError&&<p role="alert">{apiErrorMessage(sales.error,"Sales reconciliation unavailable")}</p>}
+      <Button type="button" variant="outline" disabled={sales.isFetching} onClick={()=>void sales.refetch()}>Retry Sales reconciliation</Button>
+      {sales.isSuccess&&<><MetricGrid items={[["Sales orders",text(salesData.srm_sales_orders)],["Invoices",text(salesData.srm_invoices)],["Reservations",text(salesData.inventory_reservations)],["Posted movements",text(salesData.posted_inventory_movements)]]}/><p className="text-sm text-muted-foreground">{text(salesData.duplicate_deduction_guard)}</p></>}
+    </CardContent></Card>
+  </div>;
 }
 
 function InventoryReconciliationDetailView({ kind }: { kind: "gl" | "grni" | "cogs" | "gst" }) {
-  const query = useQuery({
-    queryKey: ["fam", "inventory-reconciliation", kind],
-    queryFn: () => {
-      if (kind === "grni") return famApi.inventoryGrniReconciliation();
-      if (kind === "cogs") return famApi.inventoryCogsReconciliation();
-      if (kind === "gst") return famApi.inventoryGstReconciliation();
-      return famApi.inventoryGlReconciliation();
-    },
-  });
-  const data = (query.data || {}) as FAMRecord;
-  const rows = listItems(query.data);
-  const columns = kind === "gst"
-    ? ["sku", "hsn_code", "gst_rate_id", "gst_rate_configured", "gst_register_lines", "status"]
-    : kind === "cogs"
-      ? ["movement_number", "stock_issue_value", "cogs_posted", "difference", "status"]
-      : kind === "grni"
-        ? ["movement_number", "reference_number", "grni_value", "purchase_bill_status", "status"]
-        : ["inventory_ledger_id", "stock_valuation", "ledger_balance", "difference", "status"];
-  return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Inventory {kind.toUpperCase()} reconciliation</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        <State label={`${kind} reconciliation`} isLoading={query.isLoading} isError={query.isError} />
-        <MetricGrid items={[
-          ["Status", text(data.status)],
-          ["Difference", money(data.difference)],
-          ["Outstanding", money(data.grni_outstanding || data.stock_issue_value || data.stock_valuation)],
-          ["Exceptions", text(data.exceptions || 0)],
-        ]} />
-        <DataTable rows={rows.length ? rows : [data]} columns={columns} />
-      </CardContent>
-    </Card>
-  );
+  const scope=useRecordScope(),location=useLocation();
+  const query = useQuery({queryKey:["fam","inventory-reconciliation",kind,scope],retry:false,queryFn:()=>{
+    if(kind==="grni")return famApi.inventoryGrniReconciliation();
+    if(kind==="cogs")return famApi.inventoryCogsReconciliation();
+    if(kind==="gst")return famApi.inventoryGstReconciliation();
+    return famApi.inventoryGlReconciliation();
+  }});
+  const data=(query.isSuccess?query.data||{}:{}) as FAMRecord;
+  const rows=listItems(query.isSuccess?query.data:undefined);
+  const amount=(value:unknown)=>value==null||value===""||!Number.isFinite(Number(value))?"Not available":!data.currency?"Currency unavailable":`${String(data.currency)} ${Number(value).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const metrics:Array<[string,React.ReactNode]>=kind==="gst"?[["Stock items",text(data.total)],["Missing mappings",text(data.exceptions)]]:kind==="grni"?[["Status",text(data.status)],["Goods received, not invoiced",amount(data.grni_outstanding)],["Unbilled receipts",text(data.total)]]:kind==="cogs"?[["Status",text(data.status)],["Stock issue value",amount(data.stock_issue_value)],["Cost posted",amount(data.cogs_posted)],["Difference",amount(data.difference)]]:[["Status",text(data.status)],["Stock valuation",amount(data.stock_valuation)],["Ledger balance",amount(data.ledger_balance)],["Difference",amount(data.difference)]];
+  const columns=kind==="gst"?["sku","hsn_code","gst_rate_id","gst_rate_configured","gst_register_lines","status"]:kind==="cogs"?["movement_number","stock_issue_value","cogs_posted","difference","status"]:kind==="grni"?["movement_number","reference_number","grni_value","purchase_bill_status","status"]:["inventory_ledger_id","stock_valuation","ledger_balance","difference","status"];
+  const tableRows=kind==="gl"?(data.inventory_ledger_id==null?[]:[{...data,id:data.inventory_ledger_id}]):rows;
+  return <Card><CardHeader><CardTitle className="text-base">Inventory {kind.toUpperCase()} reconciliation</CardTitle></CardHeader><CardContent className="space-y-3">
+    {location.pathname.startsWith("/srm/")&&<p className="text-sm">This report uses Finance records and requires the corresponding Finance reporting access.</p>}
+    <State label={`${kind} reconciliation`} isLoading={query.isPending} isError={query.isError}/>
+    {query.isError&&<p role="alert">{apiErrorMessage(query.error,"Reconciliation unavailable")}</p>}
+    <Button type="button" variant="outline" disabled={query.isFetching} onClick={()=>void query.refetch()}>Retry {kind.toUpperCase()} reconciliation</Button>
+    {query.isSuccess&&<>{kind!=="gst"&&<p className="text-sm">{data.currency?`Report currency: ${String(data.currency)}`:"Report currency unavailable"}</p>}<MetricGrid items={metrics}/><DataTable rows={tableRows} columns={columns}/></>}
+  </CardContent></Card>;
 }
 
 function MetricGrid({ items }: { items: Array<[string, React.ReactNode]> }) {
@@ -2120,7 +1822,7 @@ const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_i
 function getListConfig(kind: FAMViewKind) {
   if (kind === "financialYears") return { label: "financial year", query: famApi.financialYears, create: famApi.createFinancialYear, initial: { ...defaultFiscalYear("fam"), status: "open", is_current: false }, fields: ["name", "start_date", "end_date"], columns: ["name", "start_date", "end_date", "status", "is_current"] };
   if (kind === "ledgerGroups") return { label: "ledger group", query: famApi.ledgerGroups, create: famApi.createLedgerGroup, initial: { group_name: "", group_code: "", nature: "asset", sequence_order: 100 }, fields: ["group_name", "group_code", "nature", "sequence_order"], columns: ["group_code", "group_name", "nature", "system_group", "active"] };
-  if (kind === "ledgers") return { label: "ledger", query: famApi.ledgers, create: famApi.createLedger, initial: { ledger_code: "", ledger_name: "", ledger_group_id: 1, nature: "asset", ledger_type: "general" }, fields: ["ledger_code", "ledger_name", "ledger_group_id", "nature", "ledger_type"], columns: ["ledger_code", "ledger_name", "nature", "ledger_type", "current_balance_dr", "current_balance_cr", "active"] };
+  if (kind === "ledgers") return { label: "ledger", query: famApi.ledgers, create: famApi.createLedger, initial: { ledger_code: "", ledger_name: "", ledger_group_id: "", nature: "", ledger_type: "general" }, fields: ["ledger_code", "ledger_name", "ledger_group_id", "nature", "ledger_type"], columns: ["ledger_code", "ledger_name", "nature", "ledger_type", "current_balance_dr", "current_balance_cr", "active"] };
   if (kind === "voucherTypes") return { label: "voucher type", query: famApi.voucherTypes, create: famApi.createVoucherType, initial: { voucher_type_code: "", voucher_type_name: "", category: "journal", numbering_prefix: "JV", numbering_sequence: 1, auto_numbering: true }, fields: ["voucher_type_code", "voucher_type_name", "category", "numbering_prefix", "numbering_sequence"], columns: ["voucher_type_code", "voucher_type_name", "category", "numbering_prefix", "numbering_sequence", "active"] };
   if (kind === "costCenters") return { label: "cost center", query: famApi.costCenters, create: famApi.createCostCenter, initial: { code: "", name: "" }, fields: ["code", "name"], columns: ["code", "name", "parent_id", "active"] };
   return { label: "branch", query: famApi.branches, create: famApi.createBranch, initial: { branch_code: "", branch_name: "", gstin: "", state_code: "" }, fields: ["branch_code", "branch_name", "gstin", "state_code"], columns: ["branch_code", "branch_name", "gstin", "state_code", "active"] };
@@ -2249,7 +1951,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryReconciliationGst") content = <InventoryReconciliationDetailView kind="gst" />;
   else if (kind === "inventoryAudit") content = <InventorySummaryView kind="audit" />;
   else if (kind === "inventoryCrmLink") content = <InventorySummaryView kind="crmLink" />;
-  else if (kind === "inventorySrmLink") content = <InventorySummaryView kind="srmLink" />;
+  else if (kind === "inventorySrmLink") content = <InventorySalesIntegrationView />;
   else if (kind === "inventoryReorderAlerts") content = <InventorySummaryView kind="reorder" />;
   else if (kind === "inventoryReports" || kind === "inventoryCompleteReports") content = <InventorySummaryView kind="reports" />;
   else if (kind === "inventoryPurchaseOrders") content = <InventoryPurchaseOrdersView />;

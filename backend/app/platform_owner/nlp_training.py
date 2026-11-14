@@ -43,7 +43,7 @@ def record(db,ident,kind):
 def public(row):
     data=row.data or {}
     return {'id':row.id,'name':row.title,'status':row.state,'created_at':row.created_at,
-            **{key:data[key] for key in ('counts','dataset_id','epochs','metrics','error','release','evaluation') if key in data}}
+            **{key:data[key] for key in ('counts','dataset_id','epochs','metrics','error','release','evaluation','stage') if key in data}}
 
 
 @router.get('')
@@ -148,6 +148,31 @@ def baseline_release():
     except (OSError,ValueError,KeyError,TypeError):return None
 
 
+def dialogue_training_args(directory):
+    """Freeze an already verified platform release for reproducible fine tuning."""
+    import shutil
+    from app.ai_operator.model_release import verify,file_hash
+    from app.ai_operator.dialogue_corpus import VERSION
+    pointer=root()/'platform/active.json'
+    if not pointer.exists():return [],{'mode':'from_scratch'}
+    active=json.loads(pointer.read_text(encoding='utf-8'));ident=active['job_id']
+    if type(ident) is not int or ident<1:raise ValueError('Invalid active model identity')
+    source=root()/'platform/runs'/str(ident)/'model'
+    if active.get('release_sha256') and file_hash(source/'release.json')!=active['release_sha256']:raise ValueError('Active release pointer changed')
+    release=verify(source,ident)
+    bundle=json.loads((source/'dialogue.json').read_text(encoding='utf-8'))
+    hidden=len(bundle.get('model',{}).get('b1',[]))
+    if bundle.get('format')!=VERSION or hidden not in (64,96,128):return [],{'mode':'from_scratch','reason':'Initial feature format or architecture is incompatible'}
+    metrics=json.loads((source/'dialogue-evaluation.json').read_text(encoding='utf-8'));dropout=metrics.get('dropout',.1)
+    import math
+    if type(dropout) not in (int,float) or not math.isfinite(dropout) or not 0<=dropout<=.5:raise ValueError('Invalid initial dropout')
+    target=Path(directory)/'dialogue-initial';target.mkdir(parents=True,exist_ok=True)
+    for name in ('dialogue.json','dialogue.keras'):
+        shutil.copy2(source/name,target/name)
+        if file_hash(target/name)!=release['artifacts'][name]:raise ValueError('Initial model changed during snapshot')
+    return ['--initialize-from',str(target),'--hidden',str(hidden),'--dropout',str(dropout),'--epochs','150'],{'mode':'fine_tune','job_id':ident,'dialogue_sha256':release['artifacts']['dialogue.json']}
+
+
 def native_evaluation(directory):
     repo=Path(__file__).resolve().parents[3]
     subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_action_release.py'),'--model-dir',str(directory/'model')],
@@ -156,6 +181,10 @@ def native_evaluation(directory):
     if dialogue.get('message_dialogue_version'):
         subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_message_action_release.py'),'--model-dir',str(directory/'model')],
             cwd=repo/'backend',check=True,timeout=1080,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+
+
+def training_stage(db,job,name):
+    job.data={**job.data,'stage':name};db.commit()
 
 
 def process(db,ident):
@@ -174,39 +203,51 @@ def process(db,ident):
         repo=Path(__file__).resolve().parents[3]
         python=Path(os.environ.get('LOCAL_NLP_TRAINING_PYTHON') or repo/'.local/tensorflow-venv'/('Scripts/python.exe' if os.name=='nt' else 'bin/python'))
         with (directory/'training.log').open('w',encoding='utf-8') as log:
+            training_stage(db,job,'intent_training')
             subprocess.run([str(python),str(repo/'backend/scripts/train_tensorflow_local_nlp.py'),'--output',str(directory/'model'),
                 '--epochs',str(job.data['epochs']),'--reviewed-examples',str(directory/'reviewed.json'),
                 '--evaluation-examples',str(directory/'holdout.json')],cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=240)
-            subprocess.run([str(python),str(repo/'backend/scripts/train_action_dialogue.py'),'--output',str(directory/'model')],
+            training_stage(db,job,'dialogue_training')
+            dialogue_args,initial=dialogue_training_args(directory)
+            job.data={**job.data,'dialogue_initial':initial};db.commit()
+            subprocess.run([str(python),str(repo/'backend/scripts/train_action_dialogue.py'),'--output',str(directory/'model'),*dialogue_args],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=240)
+            training_stage(db,job,'planning_checks')
             subprocess.run([sys.executable,str(repo/'backend/scripts/benchmark_action_dialogue.py'),'--model-dir',str(directory/'model')],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
+            training_stage(db,job,'wording_checks')
             subprocess.run([sys.executable,str(repo/'backend/scripts/benchmark_unseen_dialogue.py'),'--model-dir',str(directory/'model')],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
         db.expire_all();job=db.get(PlatformRecord,ident);valid_source(db,job)
         if job.state!='training':return
+        training_stage(db,job,'native_action_checks')
         native_evaluation(directory)
         db.expire_all();job=db.get(PlatformRecord,ident);actor,dataset=valid_source(db,job)
         if job.state!='training':return
         from app.ai_operator.model_release import seal,digest
+        training_stage(db,job,'release_checks')
         release=seal(directory/'model',job.id,digest(dataset.data['samples']),baseline_release())
         report=json.loads((directory/'model/evaluation.json').read_text())
         metrics={k:v for k,v in report.items() if k in {'modules','uploaded_evaluation','tensorflow_version','training_examples'}}
         dialogue=json.loads((directory/'model/dialogue-evaluation.json').read_text())
         metrics['dialogue']={k:dialogue[k] for k in ('training_turns','heldout_turns','training_accuracy','heldout_accuracy','portable_max_error','limits')}
+        metrics['dialogue']['initial']=job.data.get('dialogue_initial',{'mode':'from_scratch'})
+        metrics['dialogue'].update({k:dialogue[k] for k in ('epochs','hidden_units','dropout','learning_rate','workplace_dialogue_version','workplace_training_turns') if k in dialogue})
         conversation=json.loads((directory/'model/conversation-evaluation.json').read_text())
         metrics['conversations']={k:conversation[k] for k in ('total','passed','by_kind','limits')}
         unseen=json.loads((directory/'model/unseen-dialogue-evaluation.json').read_text())
         metrics['unseen_dialogue']={k:unseen[k] for k in ('total','passed','accuracy','by_class','limits')}
+        if unseen.get('workplace_followups'):
+            metrics['workplace_followups']={k:unseen['workplace_followups'][k] for k in ('version','total','passed','limits')}
         # Do not expose raw evaluation failures or example text through metrics.
         if isinstance(metrics.get('uploaded_evaluation'),dict):
             metrics['uploaded_evaluation']={k:v for k,v in metrics['uploaded_evaluation'].items() if k in {'passed','total'}}
-        job.state='succeeded';job.data={**job.data,'metrics':metrics,'release':release}
+        job.state='succeeded';job.data={**job.data,'metrics':metrics,'release':release,'stage':'complete' if release['passed'] else 'release_blocked'}
         s.event(db,actor,'nlp.training.succeeded',entity_id=ident);db.commit()
     except Exception:
         db.rollback();job=db.get(PlatformRecord,ident)
         if job and job.state=='training':
-            job.state='failed';job.data={**job.data,'error':'Training failed or approval changed. Check the private server training log.'};db.commit()
+            job.state='failed';job.data={**job.data,'error':'Training stopped during '+str(job.data.get('stage') or 'preparation').replace('_',' ')+'. Check the private server training log.'};db.commit()
 
 
 def run_background(ident):

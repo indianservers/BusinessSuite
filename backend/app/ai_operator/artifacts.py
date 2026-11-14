@@ -22,6 +22,7 @@ from app.ai_operator.suite_tools import Strict
 from app.ai_operator.service import digest
 from app.ai_operator.artifact_charts import Chart
 from app.ai_operator.artifact_dashboards import Panel
+from app.ai_operator.artifact_images import ImageManifest
 
 router=APIRouter(prefix='/suite/artifacts',tags=['Bot artifacts'])
 Module=Literal['CRM','PMS','HRMS']
@@ -41,13 +42,14 @@ class Slide(Strict):
 
 class Body(Strict):
     title:str=Field(min_length=1,max_length=160)
-    kind:Literal['document','checklist','table','presentation','dashboard']='document'
+    kind:Literal['document','checklist','table','presentation','dashboard','image']='document'
     content:str=Field(default='',max_length=20000)
     columns:list[str]=Field(default_factory=list,max_length=12)
     rows:list[list[str]]=Field(default_factory=list,max_length=100)
     slides:list[Slide]=Field(default_factory=list,max_length=20)
     chart:Chart|None=None
     panels:list[Panel]=Field(default_factory=list,max_length=6)
+    image:ImageManifest|None=None
 
     @model_serializer(mode='wrap')
     def serialize(self,handler):
@@ -55,13 +57,18 @@ class Body(Strict):
         if not self.slides:value.pop('slides',None)
         if self.chart is None:value.pop('chart',None)
         if not self.panels:value.pop('panels',None)
+        if self.image is None:value.pop('image',None)
         return value
 
     @model_validator(mode='after')
     def bounded(self):
         if not self.title.strip():raise ValueError('Artifact needs a title')
         if any(re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]',v) for v in [self.title,self.content,*self.columns,*[c for r in self.rows for c in r]]):raise ValueError('Artifact contains unsupported control characters')
-        if self.kind=='dashboard':
+        if self.kind=='image':
+            if self.image is None or self.columns or self.rows or self.slides or self.panels or self.chart:
+                raise ValueError('Images require a binary manifest and no table, slide or dashboard fields')
+        elif self.image is not None:raise ValueError('Only image artifacts may include a binary manifest')
+        elif self.kind=='dashboard':
             if not self.panels or self.columns or self.rows or self.slides:raise ValueError('Dashboards need 1–6 pinned source panels and no table or slide fields')
         elif self.panels:raise ValueError('Only dashboards can contain panels')
         elif self.kind=='presentation':
@@ -218,9 +225,10 @@ def archive(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_u
     db.commit();return {'archived':True}
 
 
-def validate_step(db,user,workspace_id,module,payload,project_id=None):
+def validate_step(db,user,workspace_id,module,payload,project_id=None,*,allow_image=False):
     """Called both before review and immediately before the canonical write."""
     access(db,user,workspace_id,module,project_id)
+    if payload.get('kind')=='image' and not allow_image:raise HTTPException(422,'Image artifacts must be created or edited through reviewed image processing')
     from app.ai_operator.artifact_dashboards import validate
     validate(db,user,workspace_id,payload)
     if 'artifact_id' in payload:
@@ -270,7 +278,12 @@ def approved(db,user,request,data,editing):
 
 def save(db,user,request,data,editing=False):
     run,module,payload=approved(db,user,request,data,editing)
-    key=digest({'run':run.id,'step':data.suite_step})
+    return store_revision(db,user,run,module,payload,data.suite_step,editing=editing)
+
+
+def store_revision(db,user,run,module,payload,step_index,*,editing=False,provenance_extra=None,media_content=None):
+    """Internal persistence for an already verified reviewed executor action."""
+    key=digest({'run':run.id,'step':step_index})
     # A repeated dispatch of this exact reviewed step returns its original receipt.
     previous=db.query(AssistantMessage).join(AssistantConversation,AssistantMessage.conversation_id==AssistantConversation.id).filter(
         AssistantConversation.user_id==user.id,AssistantConversation.organization_id==company(user),
@@ -282,10 +295,21 @@ def save(db,user,request,data,editing=False):
     source=run.result['request'];project_id=source.get('project_id') if module=='PMS' else None
     from app.ai_operator.artifact_templates import enforce as enforce_template
     from app.ai_operator.suite import Step
-    enforce_template(db,user,run,[Step.model_validate(run.plan['steps'][data.suite_step-1])],lock=True)
+    enforce_template(db,user,run,[Step.model_validate(run.plan['steps'][step_index-1])],lock=True)
     from app.ai_operator.artifact_charts import enforce_sources
     enforce_sources(db,user,run)
-    validate_step(db,user,run.workspace_id,module,payload,project_id)
+    validate_step(db,user,run.workspace_id,module,payload,project_id,allow_image=media_content is not None)
+    if payload.get('kind')=='image':
+        expected_tool=f'{module.lower()}.{"edit_image" if editing else "generate_image"}'
+        allowed_tools={expected_tool}
+        if not editing:allowed_tools.add(f'{module.lower()}.import_image')
+        if run.plan['steps'][step_index-1]['tool'] not in allowed_tools:raise HTTPException(403,'Binary images require a reviewed image executor')
+        from app.ai_operator.artifact_images import validate,quota
+        media_content=validate(media_content,payload.get('image'),require_clean=True)
+        # Serialize the per-user binary budget even across distinct Suite runs.
+        db.query(User).filter_by(id=user.id).with_for_update().one()
+        quota(db,user,run.workspace_id,len(media_content))
+    elif media_content is not None:raise HTTPException(422,'Binary content requires an image artifact')
     if editing:
         row=owned(db,user,payload['artifact_id'],True);old=row.references['revision'];revision=old+1
         if old!=payload['expected_revision']:raise HTTPException(409,'Artifact changed. Prepare a new reviewed edit.')
@@ -298,15 +322,22 @@ def save(db,user,request,data,editing=False):
             'suite_artifact':True,'scope_key':scope,'module':module,'project_id':project_id,'conversation_id':source.get('conversation_id'),'kind':payload['kind'],'revision':1})
         db.add(row);db.flush();revision=1
     body=Body.model_validate(payload if not editing else {k:v for k,v in payload.items() if k not in ('artifact_id','expected_revision')}).model_dump(mode='json')
-    citations=list(run.result.get('citations',[]))
+    citations=list(run.result.get('citations',[]));prior_provenance={}
     if editing:
-        for citation in version(db,user,row,old).arguments['provenance'].get('citations',[]):
+        prior_provenance=version(db,user,row,old).arguments['provenance']
+        for citation in prior_provenance.get('citations',[]):
             if citation not in citations:citations.append(citation)
     provenance={'suite_run_id':run.id,'plan_hash':run.plan_hash,'base_revision':old if editing else None,'citations':citations[:50],'note':'Reviewed generated/user content. Source references reflect preparation time; facts require verification.'}
-    template=(run.result or {}).get('artifact_template') or (version(db,user,row,old).arguments['provenance'].get('template') if editing else None)
+    source_media=prior_provenance.get('media') or prior_provenance.get('source_media')
+    if source_media:provenance['source_media']=source_media
+    template=(run.result or {}).get('artifact_template') or prior_provenance.get('template')
+    if provenance_extra:provenance.update(provenance_extra)
     if template:provenance['template']={k:template[k] for k in ('id','revision','definition_hash')}
     msg=AssistantMessage(conversation_id=row.id,request_key=key,request_hash=digest(payload),prompt='Reviewed artifact revision',tool=VERSION_TOOL,
         arguments={'revision':revision,'body':body,'provenance':provenance},status='stored')
+    if media_content is not None:
+        import base64
+        msg.result={'image_b64':base64.b64encode(media_content).decode('ascii')}
     db.add(msg);db.flush()
     if editing:
         changed=db.query(AssistantConversation).filter(AssistantConversation.id==row.id,AssistantConversation.references['revision'].as_integer()==old).update(
@@ -327,8 +358,19 @@ def edit(data:EditApproved,request:Request,db:Session=Depends(get_db),user:User=
     return save(db,user,request,data,True)
 
 
+@router.get('/{ident}/image')
+def image_preview(ident:int,request:Request,revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=owned(db,user,ident)
+    from app.ai_agents.api import _require_ai_rate_limit
+    _require_ai_rate_limit(db,request,user,bucket='artifact_media')
+    from app.ai_operator.artifact_images import bytes_from_version
+    return Response(bytes_from_version(version(db,user,row,revision)),media_type='image/png',headers={
+        'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',
+        'Content-Security-Policy':"default-src 'none'; sandbox",'Content-Disposition':'inline'})
+
+
 @router.get('/{ident}/download')
-def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','pdf','pptx']='md',revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','pdf','pptx','png']='md',revision:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=owned(db,user,ident)
     from app.access.service import check_background_access
     from app.ai_operator.suite import MODULES
@@ -337,18 +379,34 @@ def download(ident:int,request:Request,format:Literal['md','csv','docx','xlsx','
         from app.ai_agents.api import _require_ai_rate_limit
         _require_ai_rate_limit(db,request,user,bucket='artifact_exports')
     item=public(db,user,row,revision)
-    sources=None
+    sources=None;source_media={}
     if item['kind']=='dashboard':
         from app.ai_operator.artifact_dashboards import resolve
         sources=[resolve(db,user,row.workspace_id,panel,export=True) for panel in item['panels']]
-    content,mime=render_download(item,format,sources)
+        if format in ('docx','pdf','xlsx'):
+            from app.ai_operator.artifact_images import bytes_from_version
+            for position,source in enumerate(sources,1):
+                if source['kind']=='image':source_media[position]=bytes_from_version(version(db,user,owned(db,user,source['id']),source['revision']))
+    media_content=None
+    if item['kind']=='image':
+        from app.ai_operator.artifact_images import bytes_from_version
+        media_content=bytes_from_version(version(db,user,row,item['revision']))
+    content,mime=render_download(item,format,sources,media_content=media_content,source_media=source_media)
     AiAuditService(db).log(user=user,agent_id=None,module=item['module'],action='suite.artifact.exported',input_json={'artifact_id':ident,'revision':item['revision']},output_json={'format':format},status='success');db.commit()
     return Response(content,media_type=mime,headers={'Content-Disposition':f'attachment; filename="artifact-{ident}-v{item["revision"]}.{format}"','X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
 
 
-def render_download(item,format,sources=None):
+def render_download(item,format,sources=None,*,media_content=None,source_media=None):
     """Pure export rendering shared by private and explicitly published snapshots."""
     body=io.BytesIO()
+    if item['kind']=='image':
+        if format!='png':raise HTTPException(422,'Download this image artifact as PNG')
+        from app.ai_operator.artifact_images import validate
+        return validate(media_content,item.get('image')),'image/png'
+    if format=='png':raise HTTPException(422,'PNG download requires an image artifact')
+    if sources is not None and format in ('docx','pdf','xlsx'):
+        from app.ai_operator.artifact_dashboards import image_media
+        source_media=image_media(sources,source_media)
     # Spreadsheet expressions are inert strings, including formula-like input.
     def cell(value):return "'"+value if value.lstrip().startswith(('=','+','-','@','\t','\r')) else value
     if format=='csv' and item['kind']!='table' or format=='xlsx' and item['kind'] not in ('table','dashboard'):raise HTTPException(422,'Choose a document download for this artifact')
@@ -356,7 +414,7 @@ def render_download(item,format,sources=None):
         from app.ai_operator.artifact_exports import pdf
         if sources is not None:
             from app.ai_operator.artifact_dashboards import export_pdf
-            content=export_pdf(item,sources)
+            content=export_pdf(item,sources,source_media)
         else:content=pdf(item)
         mime='application/pdf'
     elif format=='pptx':
@@ -368,7 +426,7 @@ def render_download(item,format,sources=None):
         content=stream.getvalue().encode('utf-8-sig');mime='text/csv'
     elif format=='xlsx' and sources is not None:
         from app.ai_operator.artifact_dashboards import export_excel
-        content=export_excel(item,sources);mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content=export_excel(item,sources,source_media);mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     elif format=='xlsx':
         from openpyxl import Workbook
         book=Workbook();sheet=book.active;sheet.title='Artifact'
@@ -386,8 +444,8 @@ def render_download(item,format,sources=None):
         from docx import Document
         document=Document();document.add_heading(item['title'],0)
         if sources is not None:
-            from app.ai_operator.artifact_dashboards import text
-            for line in text(item,sources).splitlines():document.add_paragraph(line)
+            from app.ai_operator.artifact_dashboards import word
+            word(document,item,sources,source_media)
         elif item['kind']=='table':
             if item['content']:document.add_paragraph(item['content'])
             table=document.add_table(rows=1,cols=len(item['columns']));table.style='Table Grid'
@@ -505,7 +563,9 @@ def local_plan(data,parent,context,attachments):
     if not context and (not draft or business_request(text)):return None
     if context and re.match(r'(?i)^(?:show|read|open)\s+(?:the\s+)?artifact\b',text):
         return Plan(summary=f"Server artifact #{context['id']}: {context['title']} (version {context['revision']}). Open the workspace to read its full content and version history.",steps=[])
-    body=deepcopy(draft['payload'] if draft else {k:context.get(k,[]) if k in ('slides','panels') else context.get(k) if k=='chart' else context[k] for k in Body.model_fields})
+    if context and context['kind']=='image':
+        return Plan(summary='This saved artifact contains image pixels.',question=f'Describe the image change using “Edit image #{context["id"]}: your instructions”.',steps=[])
+    body=deepcopy(draft['payload'] if draft else {k:context.get(k,[]) if k in ('slides','panels') else context.get(k) if k=='chart' else context[k] for k in Body.model_fields if k!='image'})
     operation=re.sub(r'(?is)^(?:edit|update|revise)\s+(?:artifact\s*#?\s*\d+|(?:this|the)\s+(?:artifact|document|table|checklist|presentation|deck))\s*:?\s*','',text)
     if body['kind']=='table' and re.fullmatch(r'(?i)(?:analy[sz]e (?:(?:this|the) )?(?:artifact\s*#?\s*\d+|table|chart)|show (?:the )?chart statistics)[.! ]*',operation):
         from app.ai_operator.artifact_charts import summary,evidence

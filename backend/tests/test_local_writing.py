@@ -110,3 +110,81 @@ def test_writing_endpoint_requires_current_module_access(client,db):
     headers,_=auth_headers(client,db,email='writing-restricted@example.com',permissions=['ai_assistant'])
     response=client.post('/api/v1/ai-operator/writing/draft',headers=headers,json={'module':'CRM','action':'client_email','text':'Hello'})
     assert response.status_code == 403,response.text
+
+
+@pytest.mark.parametrize('provider',['gemini','openai','claude'])
+def test_cloud_writing_uses_existing_scoped_gateway_and_stays_a_draft(client,db,monkeypatch,provider):
+    import json
+    from tests.test_ai_operator import setup_operator,mock_provider
+    from app.ai_operator.models import OperatorApiLog
+    from app.apps.crm.models import CRMTask
+    h,user,_,_=setup_operator(client,db,provider=provider)
+    user.is_superuser=True;db.commit()
+    calls=mock_provider(monkeypatch,{'text':'Review R-742 on Friday.','subject':'R-742','missing_details':[]})
+    before=db.query(CRMTask).count()
+    response=client.post('/api/v1/ai-operator/writing/draft',headers=h,json={
+        'module':'CRM','action':'improve','provider':provider,'text':'Review R-742 on Friday.'})
+    assert response.status_code==200,response.text
+    result=response.json()
+    assert result['method']=='server-language-model' and result['cloud_calls']==1
+    assert result['text']=='Review R-742 on Friday.'
+    assert len(calls)==1 and 'R-742' in json.dumps(json.loads(calls[0].content))
+    log=db.query(OperatorApiLog).filter_by(user_id=user.id,purpose='writing').one()
+    assert log.provider==provider and log.module=='CRM' and log.status=='success'
+    assert db.query(CRMTask).count()==before
+    assert 'unit-test-secret-key' not in response.text
+
+
+def test_local_writing_never_falls_back_to_a_connected_cloud_provider(client,db,monkeypatch):
+    from tests.test_suite_operator import setup_suite
+    from tests.test_ai_operator import mock_provider
+    h,_,_,_=setup_suite(client,db)
+    calls=mock_provider(monkeypatch,{})
+    response=client.post('/api/v1/ai-operator/writing/draft',headers=h,json={
+        'module':'CRM','action':'translate','text':'Hello Asha','language':'Hindi'})
+    assert response.status_code==200,response.text
+    assert response.json()['cloud_calls']==0 and response.json()['missing_details']
+    assert not calls
+
+
+@pytest.mark.parametrize('output',[{'text':'Sent to everyone','subject':'Done','missing_details':[],'tools':['send']}, {'text':'','subject':'','missing_details':[]}])
+def test_cloud_writing_rejects_invalid_output_without_using_local_fallback(client,db,monkeypatch,output):
+    from tests.test_suite_operator import setup_suite
+    from tests.test_ai_operator import mock_provider
+    from app.ai_operator.models import OperatorApiLog
+    h,user,_,_=setup_suite(client,db)
+    calls=mock_provider(monkeypatch,output)
+    response=client.post('/api/v1/ai-operator/writing/draft',headers=h,json={
+        'module':'CRM','action':'improve','provider':'gemini','text':'Review R-742.'})
+    assert response.status_code==502,response.text
+    assert len(calls)==1
+    assert db.query(OperatorApiLog).filter_by(user_id=user.id,purpose='writing').one().status=='failed'
+
+
+def test_writing_provider_scope_cannot_fall_back_from_a_disabled_workspace_override(client,db,monkeypatch):
+    from tests.test_suite_operator import setup_suite
+    from tests.test_ai_operator import mock_provider
+    from app.ai_operator.models import OperatorProvider
+    h,user,_,_=setup_suite(client,db)
+    created=client.post('/api/v1/project-management/workspaces',headers=h,json={'name':'Writing override QA'})
+    assert created.status_code==201,created.text
+    workspace=created.json()['id']
+    db.add(OperatorProvider(scope_key=f'workspace:{workspace}',provider='gemini',model='blocked',encrypted_key='unused',enabled=False,data_sharing_allowed=False,updated_by=user.id));db.commit()
+    calls=mock_provider(monkeypatch,{})
+    response=client.post('/api/v1/ai-operator/writing/draft',headers=h,json={
+        'module':'PMS','workspace_id':workspace,'action':'improve','provider':'gemini','text':'Review R-742.'})
+    assert response.status_code==409,response.text
+    assert not calls
+
+
+def test_writing_provider_failure_has_one_attempt_and_no_silent_fallback(client,db,monkeypatch):
+    from tests.test_suite_operator import setup_suite
+    from tests.test_ai_operator import mock_provider
+    h,_,_,_=setup_suite(client,db)
+    calls=mock_provider(monkeypatch,{},status=429)
+    response=client.post('/api/v1/ai-operator/writing/draft',headers=h,json={
+        'module':'CRM','action':'improve','provider':'gemini','text':'Review R-742.'})
+    assert response.status_code==502,response.text
+    assert response.json()['detail']=='PROVIDER_HTTP_429'
+    assert len(calls)==1
+    assert 'unit-test-secret-key' not in response.text

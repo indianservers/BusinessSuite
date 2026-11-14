@@ -260,3 +260,19 @@ def test_persistent_invite_resend_notification_and_recipient_inbox(client, db):
     assert client.get(BASE + "/workspace-invitations/mine", headers=rh).json() == []
     assert client.post(f"{BASE}/workspace-invitations/{second.json()['id']}/accept", headers=rh).status_code == 400
     assert all(i["token"] is None for i in client.get(root, headers=oh).json())
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_native_workspace_people_search_is_literal(client,db,needle):
+    owner,headers=account(db,'search-owner@example.com',True)
+    match,_=account(db,'qa'+needle+'literal@example.com')
+    ordinary,_=account(db,'qaplainliteral@example.com')
+    created=client.post(BASE+'/workspaces',headers=headers,json={'name':'Literal member search'})
+    assert created.status_code==201,created.text
+    path=f"{BASE}/workspaces/{created.json()['id']}/eligible-people"
+    response=client.get(path,headers=headers,params={'q':'qa'+needle})
+    assert response.status_code==200,response.text
+    assert [row['id'] for row in response.json()]==[match.id]
+    normal=client.get(path,headers=headers,params={'q':'QAPLAIN'})
+    assert normal.status_code==200,normal.text
+    assert [row['id'] for row in normal.json()]==[ordinary.id]

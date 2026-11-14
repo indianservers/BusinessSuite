@@ -1903,9 +1903,10 @@ def _apply_search(query, resource: Resource, search: str | None):
         return query
     model = resource.model
     clauses = []
+    literal = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     for key in resource.search:
         if hasattr(model, key):
-            clauses.append(getattr(model, key).ilike(f"%{search}%"))
+            clauses.append(getattr(model, key).ilike(f"%{literal}%", escape="\\"))
     return query.filter(or_(*clauses)) if clauses else query
 
 
@@ -8313,7 +8314,8 @@ def convert_lead(
             amount=amount or Decimal("0"),
             probability=probability,
             expected_revenue=(amount or Decimal("0")) * Decimal(probability) / Decimal("100"),
-            expected_close_date=lead.expected_close_date,
+            expected_close_date=payload.expectedCloseDate or lead.expected_close_date,
+            description=payload.description,
             status="Open",
             lead_source=lead.source,
             source=lead.source,
@@ -8596,13 +8598,46 @@ def statistics_records(kind:str,period:str="all",page:int=Query(1,ge=1),page_siz
     return records(db,current_user,kind,period,page,page_size)
 
 
+@router.get("/dashboard/records")
+def crm_dashboard_records(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    """Share one fresh auth context across the dashboard's existing bounded lists."""
+    resources = {}
+    for entity in ("companies", "deals", "tasks", "activities", "pipeline-stages"):
+        try:
+            resources[entity] = list_records(
+                entity=entity, request=request, page=1, per_page=100,
+                search=None, q=None,
+                sort_by="position" if entity == "pipeline-stages" else None,
+                sort_order="asc" if entity == "pipeline-stages" else "desc",
+                include_deleted=False, deleted_only=False, owner_id=None,
+                db=db, current_user=current_user,
+            )
+        except HTTPException as exc:
+            if exc.status_code != 403:
+                raise
+            # Independent native lists can be denied without hiding allowed panels.
+            resources[entity] = {"items": [], "status": 403, "error": exc.detail}
+    return {"resources": resources}
+
+
 @router.get("/dashboard")
 def crm_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
     period: str = "all",
+    statistics_only: bool = False,
 ):
     organization_id = _organization_id(db, current_user)
+    from app.services.metrics.crm import dashboard_statistics
+    period_statistics = dashboard_statistics(db, current_user, period)
+    if statistics_only:
+        # The current dashboard renders these full-query, scoped statistics.
+        # Legacy API consumers retain the additional summary below by default.
+        return {"period_statistics": period_statistics, "context": period_statistics["context"]}
     from app.services.metrics.registry import crm_query,open_deals as canonical_open_deals
     from app.services.metrics.queries import amounts_by_currency,business_context
     leads_query=crm_query(db,current_user,"leads")
@@ -8612,8 +8647,6 @@ def crm_dashboard(
     pipeline=amounts_by_currency(open_deals_query,CRMDeal.currency,CRMDeal.amount)
     now = datetime.now(timezone.utc)
     overdue = activities_query.filter(CRMActivity.due_date.is_not(None), CRMActivity.due_date < now, CRMActivity.status.notin_(["Completed", "Done", "Cancelled"])).count()
-    from app.services.metrics.crm import dashboard_statistics
-    period_statistics=dashboard_statistics(db,current_user,period)
     return {
         "period_statistics":period_statistics,
         "summary": {
@@ -8818,6 +8851,8 @@ router.include_router(file_workspace_router)
 
 from ..engagements import router as engagements_router
 router.include_router(engagements_router)
+from app.apps.crm.task_views import router as task_views_router
+router.include_router(task_views_router)
 
 @router.post("/pipelines/{pipeline_id}/stages/reorder")
 def reorder_pipeline_stages(pipeline_id: int, payload: OrderInput, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):

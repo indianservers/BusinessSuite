@@ -225,7 +225,7 @@ def skip_task(
         raise HTTPException(status_code=404, detail="Onboarding task not found")
     if not _can_update_task(current_user, task):
         raise HTTPException(status_code=403, detail="Not allowed to update this onboarding task")
-    notes = data.reason or data.notes
+    notes = (data.reason or data.notes or "").strip()
     if not notes:
         raise HTTPException(status_code=422, detail="Reason is required to skip a task")
     return mark_task(db, task=task, status="skipped", user_id=current_user.id, notes=notes)

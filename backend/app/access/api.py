@@ -953,16 +953,16 @@ def audit_log(
         from sqlalchemy import or_, select
         from app.common.models import CommonPerson
 
-        term = "%" + search[:100] + "%"
+        term = search[:100]
         matching = (
             select(User.id)
             .outerjoin(CommonPerson, CommonPerson.user_id == User.id)
-            .where(or_(User.email.ilike(term), CommonPerson.display_name.ilike(term)))
+            .where(or_(User.email.icontains(term, autoescape=True), CommonPerson.display_name.icontains(term, autoescape=True)))
         )
         query = query.filter(
             or_(
-                AccessAudit.operation.ilike(term),
-                AccessAudit.reason.ilike(term),
+                AccessAudit.operation.icontains(term, autoescape=True),
+                AccessAudit.reason.icontains(term, autoescape=True),
                 AccessAudit.actor_id.in_(matching),
                 AccessAudit.target_id.in_(matching),
             )

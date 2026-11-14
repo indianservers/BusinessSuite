@@ -73,7 +73,7 @@ def destinations(kind: KINDS, q: str = Query("", max_length=150), preferred: str
     from .people_workspace import teams_query, batches_query, scope, load_users
     query = accessible_project_query(db, actor) if kind == "projects" else teams_query(db, actor) if kind == "teams" else batches_query(db, actor)
     model = PMSProject if kind == "projects" else PMSWorkspaceTeam if kind == "teams" else InternBatch
-    if q: query = query.filter(model.name.ilike(f"%{q}%"))
+    if q: query = query.filter(model.name.icontains(q, autoescape=True))
     total = query.count()
     rows = []
     preferred_ids = [int(i) for i in preferred.split(",") if i.isdigit()][:30]

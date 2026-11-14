@@ -10,3 +10,8 @@ def test_fam_inventory_cogs_reconciliation_endpoint_matches_delivery_posting(cli
     assert response.status_code == 200, response.text
     assert response.json()["status"] in {"matched", "variance"}
     assert response.json()["items"]
+
+    assert response.json()['currency']=='INR'
+    from decimal import Decimal
+    for row in response.json()['items']:
+        assert Decimal(str(row['difference']))==Decimal(str(row['stock_issue_value']))-Decimal(str(row['cogs_posted']))

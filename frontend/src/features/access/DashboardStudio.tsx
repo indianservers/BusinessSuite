@@ -1,7 +1,10 @@
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { useRecordScope } from '@/shared/records/Record360Workspace';
+import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -169,19 +172,28 @@ function Widget({ widget, company }: { widget: any; company: number }) {
   );
 }
 
-export default function DashboardStudio({
-  company,
-  mutate,
-}: {
+type StudioProps={
   company: number;
-  mutate: (f: () => Promise<any>) => Promise<void>;
-}) {
+  mutate: (f: () => Promise<any>, isCurrent?:()=>boolean) => Promise<void>;
+};
+export default function DashboardStudio(props:StudioProps) {
+  const scope=useRecordScope();
+  const key=`${props.company}:${scope}`,current=useRef(key);
+  current.current=key;
+  return <ScopedDashboardStudio key={key} {...props} scope={scope} contextCurrent={()=>current.current===key}/>;
+}
+function ScopedDashboardStudio({company,mutate,scope,contextCurrent}:StudioProps&{scope:string;contextCurrent:()=>boolean}) {
+  const ownsRecordScope=useRecordScopeOwner();
+  const ownsScope=()=>contextCurrent()&&ownsRecordScope();
   const user = useAuthStore((s) => s.user);
+  const draftKey=useRef<string|null>(null),cloneKey=useRef<string|null>(null);
+  const [saving,setSaving]=useState(false);
+  const roles=useQuery({queryKey:['dashboard-role-choices',company,scope],queryFn:()=>api.get('/access/catalog',{params:{companyId:company}}).then(r=>r.data.legacyRoles as {id:number;name:string}[]),retry:false});
   const [saved, setSaved] = useState<any[]>([]),
     [selected, setSelected] = useState<any>(null),
     [name, setName] = useState("My business dashboard"),
     [widgets, setWidgets] = useState<any[]>([]),
-    [shared, setShared] = useState(""),
+    [shared, setShared] = useState<number[]>([]),
     [dirty, setDirty] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
@@ -192,8 +204,8 @@ export default function DashboardStudio({
       .get(root + "/policies", {
         params: { companyId: company, kind: "dashboard" },
       })
-      .then((r) => setSaved(r.data))
-      .catch((e) => setError(message(e)));
+      .then((r) => {if(ownsScope())setSaved(r.data);})
+      .catch((e) => {if(ownsScope())setError(message(e));});
   }, [company]);
   function change(rows: any[]) {
     setWidgets(rows);
@@ -202,10 +214,11 @@ export default function DashboardStudio({
   function choose(id: string) {
     if (dirty && !window.confirm("Discard unsaved dashboard changes?")) return;
     const row = saved.find((r) => String(r.id) === id);
+    draftKey.current=null;cloneKey.current=null;
     setSelected(row || null);
     setWidgets(row?.values_json.widgets || []);
     setName(row?.values_json.name || "My business dashboard");
-    setShared((row?.values_json.sharedRoles || []).join(","));
+    setShared(row?.values_json.sharedRoles || []);
     setDirty(false);
   }
   function move(index: number, direction: number) {
@@ -216,25 +229,13 @@ export default function DashboardStudio({
     change(next);
   }
   async function save(clone = false) {
+    if(saving||!ownsScope())return;
     setError("");
-    let roles: number[] = [];
-    try {
-      roles = shared
-        ? shared.split(",").map((v) => {
-            if (!/^\d+$/.test(v.trim()))
-              throw new Error("Enter comma-separated numeric role IDs");
-            return Number(v.trim());
-          })
-        : [];
-    } catch (e) {
-      setError(message(e));
-      return;
-    }
-    await mutate(async () => {
-      const key =
-        clone || !selected
-          ? `user:${user?.id}:${Date.now()}`
-          : selected.scope_key.split(":dashboard:")[1];
+    const newKey=()=>`user:${user?.id}:${crypto.randomUUID()}`;
+    const key=clone?(cloneKey.current??=newKey()):selected?selected.scope_key.split(':dashboard:')[1]:(draftKey.current??=newKey());
+    setSaving(true);
+    try{await mutate(async () => {
+      if(!ownsScope())throw new Error('Dashboard context changed');
       const result = await api.put(root + "/policies", {
         companyId: company,
         kind: "dashboard",
@@ -244,9 +245,11 @@ export default function DashboardStudio({
         values: {
           name: clone ? name + " copy" : name,
           widgets,
-          sharedRoles: roles,
+          sharedRoles: shared,
         },
       });
+      if(!ownsScope())return;
+      if(clone)cloneKey.current=null;
       setSelected(result.data);
       setName(result.data.values_json.name);
       setDirty(false);
@@ -254,10 +257,10 @@ export default function DashboardStudio({
         result.data,
         ...old.filter((r) => r.id !== result.data.id),
       ]);
-    });
+    },ownsScope);}finally{if(ownsScope())setSaving(false);}
   }
   return (
-    <section className="cc-card ec-studio">
+    <fieldset disabled={saving} className="cc-card ec-studio min-w-0">
       <div className="cc-heading">
         <div>
           <h2>Dashboard studio</h2>
@@ -289,15 +292,14 @@ export default function DashboardStudio({
             setDirty(true);
           }}
         />
-        <input
-          aria-label="Share dashboard with role IDs"
-          value={shared}
-          placeholder="Role IDs to share"
-          onChange={(e) => {
-            setShared(e.target.value);
-            setDirty(true);
-          }}
-        />
+        <fieldset className="min-w-0 space-y-2">
+          <legend>Share dashboard with roles</legend>
+          {roles.isPending&&<p role="status">Loading role choices…</p>}
+          {roles.data?.map(role=><label key={role.id} className="flex items-center gap-2"><input type="checkbox" checked={shared.includes(role.id)} onChange={e=>{setShared(current=>e.target.checked?[...current,role.id]:current.filter(id=>id!==role.id));setDirty(true);}}/>{role.name}</label>)}
+          {roles.isError&&<p role="alert">Role choices could not load. <Button type="button" variant="outline" onClick={()=>void roles.refetch()}>Retry role choices</Button></p>}
+          {roles.data&&shared.filter(id=>!roles.data!.some(role=>role.id===id)).map(id=><p key={id}>A previously selected role is unavailable. <Button type="button" variant="outline" onClick={()=>{setShared(current=>current.filter(value=>value!==id));setDirty(true);}}>Remove unavailable role</Button></p>)}
+          {!shared.length&&<p className="text-xs text-muted-foreground">Private to you until roles are selected.</p>}
+        </fieldset>
         <Button
           variant="outline"
           disabled={widgets.length >= 24}
@@ -416,6 +418,6 @@ export default function DashboardStudio({
           </article>
         ))}
       </div>
-    </section>
+    </fieldset>
   );
 }

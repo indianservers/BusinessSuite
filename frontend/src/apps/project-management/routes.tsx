@@ -1,3 +1,4 @@
+import { Navigate, useLocation } from "react-router-dom";
 import { lazyRoute } from "@/lib/lazy-route";
 import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import { ProjectDetailFrame } from "./components/ProjectDetailHeader";
@@ -92,6 +93,10 @@ const MyAssignmentsPage=lazyRoute(()=>import("./pages/MyAssignmentsPage"));
 const AssignmentControlsPage=lazyRoute(()=>import("./pages/AssignmentControlsPage"));
 const WorkReviewsPage = lazyRoute(() => import("./pages/WorkReviewsPage"));
 const SharedCatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
+function PmsNavigationRedirect({to="/pms/workspace-tools"}: {to?:string}) {
+  const location=useLocation();
+  return <Navigate replace to={`${to}${location.search}${location.hash}`}/>;
+}
 export const projectManagementRoutes: FrontendRoute[] = [
   {path:"pms/import-data",element:<ImportWorkspace module="pms"/>},
  {path:"pms/tasks-follow-ups",element:<TasksFollowUpsPage/>},
@@ -175,7 +180,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   // KaryaFlow software delivery workspaces
   { path: "pms/work-hub", element: <ImpactWorkHubPage /> },
   { path: "pms/impact", element: <ImpactWorkHubPage /> },
-  { path: "pms/ai-planner", element: <AIOperatorPage /> },
+  { path: "pms/ai-planner", element: <PmsNavigationRedirect to="/pms/operator" /> },
   { path: "pms/timeline-plus", element: <TimelineDependenciesPage /> },
   { path: "pms/dependency-timeline", element: <TimelineDependenciesPage /> },
   { path: "pms/automation-ai", element: <AutomationAIPage /> },
@@ -183,11 +188,11 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/live", element: <LiveWorkManagementPage /> },
   { path: "pms/teams-live", element: <LiveWorkManagementPage /> },
   { path: "pms/backlog", element: <BacklogPage /> },
-  { path: "pms/issues", element: <SoftwarePlanningPage /> },
+  { path: "pms/issues", element: <PmsNavigationRedirect to="/pms/software" /> },
   { path: "pms/roadmap", element: <RoadmapPage /> },
   { path: "pms/workload", element: <WorkloadPage /> },
   { path: "pms/capacity", element: <WorkloadPage /> },
-  { path: "pms/releases", element: <SoftwarePlanningPage /> },
+  { path: "pms/releases", element: <PmsNavigationRedirect to="/pms/software" /> },
   { path: "pms/automation", element: <AutomationAIPage /> },
   { path: "pms/goals", element: <CommandCenterPage /> },
   { path: "pms/forms", element: <FormsPage /> },
@@ -198,12 +203,12 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/org-chart", element: <OrgChartPage /> },
   { path: "pms/trash", element: <TrashPage /> },
   { path: "pms/templates", element: <CommandCenterPage /> },
-  { path: "pms/components", element: <CommandCenterPage /> },
-  { path: "pms/workflows", element: <CommandCenterPage /> },
-  { path: "pms/security", element: <CommandCenterPage /> },
-  { path: "pms/dependencies", element: <RoadmapPage /> },
+  { path: "pms/components", element: <PmsNavigationRedirect /> },
+  { path: "pms/workflows", element: <PmsNavigationRedirect /> },
+  { path: "pms/security", element: <PmsNavigationRedirect /> },
+  { path: "pms/dependencies", element: <PmsNavigationRedirect to="/pms/roadmap" /> },
   { path: "pms/navigator", element: <TaskListPage /> },
-  { path: "pms/apps", element: <CommandCenterPage /> },
+  { path: "pms/apps", element: <PmsNavigationRedirect /> },
   { path: "pms/dashboards", element: <DashboardsPage /> },
   { path: "pms/docs", element: <DocsPage /> },
   { path: "pms/notes", element: <NotesPage /> },
@@ -211,15 +216,15 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/task-types", element: <TaskTypesPage /> },
   { path: "pms/tags", element: <TagManagerPage /> },
   { path: "pms/plans", element: <PlansPage /> },
-  { path: "pms/issue-navigator-pro", element: <TaskListPage /> },
-  { path: "pms/backlog-grooming", element: <BacklogPage /> },
-  { path: "pms/sprint-lifecycle", element: <BacklogPage /> },
+  { path: "pms/issue-navigator-pro", element: <PmsNavigationRedirect to="/pms/navigator" /> },
+  { path: "pms/backlog-grooming", element: <PmsNavigationRedirect to="/pms/backlog" /> },
+  { path: "pms/sprint-lifecycle", element: <PmsNavigationRedirect to="/pms/backlog" /> },
   { path: "pms/blueprints", element: <EnterpriseEnginePage /> },
-  { path: "pms/resource-utilization", element: <WorkloadPage /> },
+  { path: "pms/resource-utilization", element: <PmsNavigationRedirect to="/pms/workload" /> },
   
   // Module-level workspaces
   { path: "pms/calendar", element: <CalendarPage /> },
-  { path: "pms/planner", element: <CalendarPage /> },
+  { path: "pms/planner", element: <PmsNavigationRedirect to="/pms/calendar" /> },
   { path: "pms/gantt", element: <GanttPage /> },
   { path: "pms/sprints", element: <SprintsPage /> },
   { path: "pms/files", element: <FilesPage /> },

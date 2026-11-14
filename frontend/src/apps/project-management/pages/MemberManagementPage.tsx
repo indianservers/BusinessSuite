@@ -1,3 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { useAuthStore } from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
@@ -23,6 +28,15 @@ const control = "min-h-10 rounded-md border bg-background px-3 py-2 text-sm";
 const inviteUrl = (token: string) => `${window.location.origin}/pms/invitation?token=${encodeURIComponent(token)}`;
 
 export default function MemberManagementPage() {
+  const scope = useRecordScope();
+  return <ScopedMemberManagementPage key={scope}/>;
+}
+
+function ScopedMemberManagementPage() {
+  const client = useQueryClient();
+  const user = useAuthStore(state => state.user);
+  const workspaceScope = workspaceDataScope(user);
+  const [workspaceOptionsReady, setWorkspaceOptionsReady] = useState(false);
   const [params, setParams] = useSearchParams();
   const { projectId } = useParams();
   const wid = Number(params.get("workspace"));
@@ -54,13 +68,16 @@ export default function MemberManagementPage() {
   };
   useEffect(() => {
     let active = true;
-    void api.get<Workspace[]>(`${base}/workspaces`).then(r => {
+    void client.fetchQuery(pmsWorkspaceOptions(workspaceScope)).then(data => {
       if (!active) return;
-      setWorkspaces(r.data);
-      if (!wid && !pid && r.data.length) setParams(p => { const next = new URLSearchParams(p); next.set("workspace", String(r.data[0].id)); return next; }, { replace: true });
+      setWorkspaces(data);
+      setWorkspaceOptionsReady(true);
     }).catch(e => { if (active) { setError(workspaceError(e)); setLoading(false); } });
     return () => { active = false; };
-  }, [wid, pid, setParams]);
+  }, [client, workspaceScope]);
+  useEffect(() => {
+    if (!wid && !pid && workspaces.length) setParams(p => { const next = new URLSearchParams(p); next.set("workspace", String(workspaces[0].id)); return next; }, { replace: true });
+  }, [wid, pid, workspaces, setParams]);
   const load = useCallback(async () => {
     const request = ++generation.current;
     const selectedProject = pid ? (await api.get<Project>(`${base}/projects/${pid}`)).data : undefined;
@@ -85,11 +102,12 @@ export default function MemberManagementPage() {
     setWorkspaceMembers(wm.data); setMembers(pid ? pm.data : wm.data); setPeople(directory.data); setInvitations(invites.data); setProjects(library.data);
   }, [wid, pid, workspaces, setParams]);
   useEffect(() => {
+    if (!workspaceOptionsReady) return;
     let active = true;
     setLoading(true); setError(""); setMembers([]); setPeople([]); setInvitations([]);
     void load().catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; generation.current++; };
-  }, [load]);
+  }, [load, workspaceOptionsReady]);
   usePageRefresh(load);
   useEffect(() => { const changed = () => { void load().catch(e => setError(workspaceError(e))); }; window.addEventListener("pms:people-changed", changed); return () => window.removeEventListener("pms:people-changed", changed); }, [load]);
   const act = async (action: () => Promise<void>) => {

@@ -76,6 +76,8 @@ def queue_approved_plan(db, user, approval):
     if (digest(run.plan) != run.plan_hash or digest(approval.proposed_action_json.get("preview")) != run.plan_hash
             or approval.proposed_action_json.get("execution_mode") != run.execution_mode):
         raise HTTPException(409, "Plan changed")
+    from app.ai_operator.workload_guard import check as check_workload
+    check_workload(db,user,run,approval.proposed_action_json)
     approval.status, approval.execution_status = "approved", "queued"
     approval.approved_by, approval.approved_at = user.id, now_utc()
     run.status = "queued"

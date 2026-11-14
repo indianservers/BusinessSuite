@@ -1,5 +1,6 @@
 """Launch browser checks against the fixture app, never a developer database."""
 import os
+import re
 import socket
 import subprocess
 import threading
@@ -12,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.deps import get_db
 
 
-def run_browser(client, db, script, values):
+def run_browser(client, db, script, values, *, timeout_seconds=120):
     # Real browsers issue concurrent reads. Give each request its own session,
     # using a file-backed copy of the fixture rather than sharing its ORM session.
     temporary = TemporaryDirectory(prefix="pms-workflow-browser-")
@@ -55,8 +56,9 @@ def run_browser(client, db, script, values):
                "WORKFLOW_TEST_CACHE": str(Path(temporary.name) / "vite-cache"), **values}
         result = subprocess.run(["node", f"scripts/{script}"],
                                 cwd=Path(__file__).resolve().parents[2] / "frontend",
-                                env=env, capture_output=True, text=True, timeout=120)
-        assert result.returncode == 0, f"Browser runner exited {result.returncode}\n" + result.stdout + result.stderr
+                                env=env, capture_output=True, text=True, timeout=timeout_seconds)
+        detail = re.sub(r"Bearer [A-Za-z0-9._-]+", "Bearer [fixture token]", result.stdout + result.stderr)
+        assert result.returncode == 0, f"Browser runner exited {result.returncode}\n" + detail
     finally:
         server.should_exit = True
         thread.join(timeout=10)

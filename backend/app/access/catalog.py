@@ -101,6 +101,8 @@ def key_for_source(source, default=None):
     if source.startswith("app.forms."):
         return "forms"
     if source in {
+        "app.shared.import_api",
+        "app.shared.accounting_sync.api",
         "app.shared.workspace_management.api",
         "app.shared.payment_requests",
         "app.shared.record_360",
@@ -179,6 +181,15 @@ def request_module(request):
         # Company administration; the endpoint checks approval, membership and
         # the current application grants before creating any sample records.
         return None
+    if request.url.path.startswith("/api/v1/imports/"):
+        source = request.url.path.split("/")[4]
+        return {"pms": "project_management", "crm": "crm", "srm": "srm", "hrms": "hrms", "fam": "fam"}.get(source)
+    if request.url.path.startswith("/api/v1/accounting-sync/"):
+        path = request.url.path.removeprefix("/api/v1/accounting-sync/")
+        if path.startswith("customer-360/") or path in {"invoices", "report-sources", "daily-sales"}:
+            source = request.query_params.get("source", "crm" if path.startswith("customer-360/") else "srm")
+            return source if source in {"crm", "srm"} else None
+        return "fam"
     if request.url.path.startswith("/api/v1/pipeline-workspaces/"):
         source = request.url.path.split("/")[4]
         return source if source in {"crm", "srm", "hrms", "project_management"} else None

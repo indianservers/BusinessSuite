@@ -11,7 +11,7 @@ const source = require('node:fs').readFileSync(path.join(__dirname,'../src/servi
  .replace(/import \{ selectedBranch \}[^;]+;/,'const selectedBranch = () => null;');
 const code = buildSync({stdin:{contents:source,resolveDir:path.join(__dirname,'..'),loader:'ts'},bundle:true,platform:'node',format:'cjs',external:['axios'],define:{'import.meta.env':'{}'},write:false}).outputFiles[0].text;
 global.sessionStorage = {getItem:()=>null};
-global.window = {dispatchEvent:()=>{}};
+global.window = {location:{search:""},dispatchEvent:()=>{}};
 function load(adapter) {
  let loggedOut=0;
  const state=global.__sessionTestState={accessToken:'expired',refreshToken:'refresh-old',setTokens(a,r){state.accessToken=a;state.refreshToken=r;},logout(){loggedOut++;state.accessToken=null;state.refreshToken=null;}};

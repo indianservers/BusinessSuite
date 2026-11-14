@@ -279,3 +279,19 @@ def test_crm_member_picker_includes_people_after_first_hundred(client, db, studi
     created = client.post(base, json=payload("crm", members=[{"user_id": target["user_id"], "role": "Member"}]), headers=headers)
     assert created.status_code == 201, created.text
     assert created.json()["members"] == [{"user_id": target["user_id"], "role": "Member"}]
+
+
+@pytest.mark.parametrize('module',['crm','hrms','srm','fam','pms'])
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_eligible_people_search_is_literal(client,db,studio,module,needle):
+    owner,member,_,headers,*_=studio
+    member.email='qa'+needle+'literal@example.com';db.commit()
+    base=f'/api/v1/{DOMAINS[module].api}/workspace-directory/eligible-people'
+    response=client.get(base,headers=headers,params={'q':needle})
+    assert response.status_code==200,response.text
+    ids={row['user_id'] for row in response.json()}
+    assert member.id in ids
+    assert owner.id not in ids
+    normal=client.get(base,headers=headers,params={'q':'LITERAL'})
+    assert normal.status_code==200,normal.text
+    assert member.id in {row['user_id'] for row in normal.json()}

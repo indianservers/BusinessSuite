@@ -103,7 +103,7 @@ def scoped_reactivation(db, actor, target):
     return bool(latest and latest.action == "ACCOUNT_SUSPEND" and latest.module == "project_management" and latest.organization_id == organization_id_for(actor))
 
 
-def public_person(db, user):
+def public_person(db, user, *, status=None):
     person = user.person
     profile = person.profile if person else None
     employee = getattr(user, "employee", None)
@@ -112,7 +112,7 @@ def public_person(db, user):
         "name": person.display_name if person else user.email.split("@")[0],
         "photo_url": profile.profile_photo_url if profile and profile.directory_visibility == "public" else None,
         "role": "Super Admin" if user.is_superuser else user.role.name if user.role else "User",
-        "status": person_status(db, user), "availability": "Unavailable" if not user.is_active else "On leave" if employee and (employee.status or "").lower() == "on leave" else "Available",
+        "status": person_status(db, user) if status is None else status, "availability": "Unavailable" if not user.is_active else "On leave" if employee and (employee.status or "").lower() == "on leave" else "Available",
         "available_from": data.get("available_from"), "employment_status": employee.status if employee else None}
 
 

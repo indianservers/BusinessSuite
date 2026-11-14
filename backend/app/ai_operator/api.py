@@ -76,6 +76,14 @@ from app.ai_operator.workbench import router as workbench_router
 router.include_router(workbench_router)
 from app.ai_operator.suite import router as suite_router
 router.include_router(suite_router)
+from app.ai_operator.media_actions import router as media_router
+router.include_router(media_router)
+from app.ai_operator.image_actions import router as image_router
+router.include_router(image_router)
+from app.ai_operator.saved_view_actions import router as saved_view_router
+router.include_router(saved_view_router)
+from app.ai_operator.crm_saved_view_actions import router as crm_view_router
+router.include_router(crm_view_router)
 from app.ai_operator.briefing import router as briefing_router
 router.include_router(briefing_router)
 from app.ai_operator.reporting import router as reporting_router
@@ -97,16 +105,18 @@ router.include_router(workspace_router)
 
 
 def public_provider(row):
+    from app.ai_operator.media_policy import settings as media_settings
     return {"provider": row.provider, "model": row.model, "enabled": row.enabled,
         "data_sharing_allowed": row.data_sharing_allowed, "has_key": bool(row.encrypted_key),
         "max_tokens": row.max_tokens, "input_price": row.input_price, "output_price": row.output_price,
-        "allow_workspace_inheritance": row.allow_workspace_inheritance}
+        "allow_workspace_inheritance": row.allow_workspace_inheritance,
+        "media":media_settings(row).model_dump()}
 
 
 def public_run(row):
-    return {name: getattr(row, name) for name in (
+    return {"workload_guard":(row.snapshots or {}).get("__workload_guard__"),**{name: getattr(row, name) for name in (
         "id", "project_id", "command", "input_mode", "provider", "status", "selection", "plan", "plan_hash",
-        "approval_id", "result", "error_code", "created_at", "updated_at", "background", "execution_mode", "parent_run_id", "revision", "timezone")}
+        "approval_id", "result", "error_code", "created_at", "updated_at", "background", "execution_mode", "parent_run_id", "revision", "timezone")}}
 
 
 def owned_run(db, user, run_id, lock=False):
@@ -138,6 +148,8 @@ def providers(workspace_id: int | None = None, db: Session = Depends(get_db), us
 def save_provider(provider: Provider, payload: ProviderUpdate, workspace_id: int | None = None,
                   db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _require_ai_admin(user)
+    if provider!='gemini' and payload.media is not None:
+        raise HTTPException(422,'Media capabilities are currently available only for Gemini')
     scope = scope_key(db, user, workspace_id, manage=True)
     row = db.query(OperatorProvider).filter_by(scope_key=scope, provider=provider).with_for_update().first()
     if not row:
@@ -147,12 +159,15 @@ def save_provider(provider: Provider, payload: ProviderUpdate, workspace_id: int
         db.add(row)
     if payload.api_key is not None:
         row.encrypted_key = encrypt_key(payload.api_key.get_secret_value())
-    for name, value in payload.model_dump(exclude={"api_key"}).items():
+    for name, value in payload.model_dump(exclude={"api_key","media"}).items():
         setattr(row, name, value)
+    if 'media' in payload.model_fields_set:
+        row.media_settings=payload.media.model_dump() if payload.media else {}
     row.updated_by = user.id
     AiAuditService(db).log(user=user, agent_id=None, module="CROSS" if getattr(user,"_suite_current_module",None)=="ai" else "PMS", action="operator.provider.updated",
         input_json={"provider": provider, "scope": scope, "key_rotated": payload.api_key is not None},
-        output_json={"model": row.model, "enabled": row.enabled}, status="success")
+        output_json={"model": row.model, "enabled": row.enabled,
+            "policy":"media:"+json.dumps(row.media_settings or {},sort_keys=True)}, status="success")
     db.commit()
     return public_provider(row)
 
@@ -242,6 +257,10 @@ def command(payload: CommandInput, request: Request, db: Session = Depends(get_d
         snapshots={str(t.id): digest(s) for t, s in zip(tasks, context["tasks"])},
         background=payload.background, execution_mode=payload.execution_mode, timezone=payload.timezone,
         parent_run_id=parent.id if parent else None, revision=parent.revision + 1 if parent else 1)
+    if payload.workload_guard:
+        from app.ai_operator.workload_guard import KEY,revalidate
+        guard=revalidate(db,user,run.project_id,payload.workload_guard)
+        run.snapshots={**run.snapshots,KEY:guard}
     db.add(run)
     try:
         db.flush()
@@ -399,6 +418,8 @@ def resume(run_id: int, payload: ResumeInput, db: Session = Depends(get_db), use
     from app.ai_operator.jobs import authorize, check_snapshots, emit, now_utc
     authorize(db, user, row)
     check_snapshots(db, user, row)
+    from app.ai_operator.workload_guard import check as check_workload
+    check_workload(db, user, row, approval.proposed_action_json)
     job = db.query(OperatorJob).filter_by(run_id=row.id, kind="execute").with_for_update().first()
     if not job or job.status != "failed":
         raise HTTPException(409, "Run has no failed execution job")
@@ -428,3 +449,30 @@ def events(run_id: int, after_id: int = Query(0, ge=0), limit: int = Query(100, 
     page = rows[:limit]
     return {"items": [{"id": e.id, "type": e.event_type, "payload": e.payload, "created_at": e.created_at} for e in page],
         "next_cursor": page[-1].id if page else after_id, "has_more": len(rows) > limit, "run": public_run(run)}
+
+from app.ai_operator.hrms_saved_view_actions import router as hrms_view_router
+router.include_router(hrms_view_router)
+
+from app.ai_operator.form_actions import router as form_actions_router
+router.include_router(form_actions_router)
+
+from app.ai_operator.pms_view_changes import router as pms_view_changes_router
+router.include_router(pms_view_changes_router)
+
+from app.ai_operator.workload_intelligence import router as workload_intelligence_router
+router.include_router(workload_intelligence_router)
+
+from app.ai_operator.calendar_actions import router as calendar_actions_router
+router.include_router(calendar_actions_router)
+
+from app.ai_operator.time_actions import router as time_actions_router
+router.include_router(time_actions_router)
+
+from app.ai_operator.time_intelligence import router as time_intelligence_router
+router.include_router(time_intelligence_router)
+
+from app.ai_operator.timer_actions import router as timer_actions_router
+router.include_router(timer_actions_router)
+
+from app.ai_operator.workload_rebalance import router as workload_rebalance_router
+router.include_router(workload_rebalance_router)

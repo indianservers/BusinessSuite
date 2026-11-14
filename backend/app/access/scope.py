@@ -261,6 +261,10 @@ def install_scope(db, user, company, grants):
                 members.c.user_id==user.id,or_(workspaces.c.organization_id==company,workspaces.c.organization_id.is_(None)))
             return or_(model.scope_key.in_([f'company:{company}',f'user:{user.id}']),model.scope_key.in_(authorized))
         columns = model.__table__.c
+        if model.__tablename__ == 'pms_running_timers':
+            # Personal timer storage is global to its owner. Native services
+            # reauthorize selected project/task access for every read/write.
+            return model.user_id == user.id
         if model.__tablename__ in {"pms_private_notes", "pms_note_folders"}:
             # Personal documents are anchored by their owner, including when
             # project/task are null. Notes services independently enforce private

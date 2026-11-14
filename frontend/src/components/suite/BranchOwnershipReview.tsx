@@ -1,3 +1,4 @@
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -8,23 +9,26 @@ type Branch = { id: number; name: string };
 type Inventory = { tables: { table: string; category: string }[] };
 type Review = { total: number; items: { resource_key: string; name?: string; title?: string; order_number?: string; invoice_number?: string; branch_id?: number }[] };
 
-export default function BranchOwnershipReview({ branches }: { branches: Branch[] }) {
+export default function BranchOwnershipReview({ branches, scope }: { branches: Branch[]; scope: string }) {
+  const owns = useRecordScopeOwner();
   const [table, setTable] = useState("crm_companies");
   const [branch, setBranch] = useState("");
   const [keys, setKeys] = useState<string[]>([]);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const inventory = useQuery<Inventory>({ queryKey: ["branch-ownership-inventory"], queryFn: async () => (await api.get("/branches/ownership/inventory")).data });
-  const review = useQuery<Review>({ queryKey: ["branch-ownership-review", table], enabled: false, retry: false, queryFn: async () => (await api.get("/branches/ownership/unassigned", { params: { table_name: table } })).data });
+  const inventory = useQuery<Inventory>({ queryKey: ["branch-ownership-inventory", scope], queryFn: async ({signal}) => (await api.get("/branches/ownership/inventory",{signal})).data });
+  const review = useQuery<Review>({ queryKey: ["branch-ownership-review", scope, table], enabled: false, retry: false, queryFn: async ({signal}) => (await api.get("/branches/ownership/unassigned", { signal, params: { table_name: table } })).data });
   async function action(path: string, payload: object) {
+    if(!owns()||busy)return;
     setBusy(true); setMessage("");
     try {
       const response = await api.post(path, { reason, ...payload });
+      if(!owns())return;
       setMessage(`Assigned ${response.data.total ?? response.data.assigned} records. Unresolved records remain hidden from branch-restricted users.`);
       setKeys([]); await review.refetch();
-    } catch (error: any) { setMessage(error?.response?.data?.detail || "Unable to update ownership."); }
-    finally { setBusy(false); }
+    } catch (error: any) { if(owns())setMessage(error?.response?.data?.detail || "Unable to update ownership."); }
+    finally { if(owns())setBusy(false); }
   }
   return <details className="mt-5 border-t pt-4"><summary className="cursor-pointer font-medium">Review historical data ownership</summary><div className="mt-3 grid gap-3 text-sm">
     <p className="text-muted-foreground">Assign existing records using trusted evidence. A creator's current branch is not historical evidence. Child records inherit from their parents when the evidence agrees.</p>

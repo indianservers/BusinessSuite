@@ -702,3 +702,23 @@ def test_guided_currency_multipliers_are_not_treated_as_single_units(text, expec
     from app.ai_operator.assistant_api import parse_local
 
     assert parse_local(text, 1).amount == expected
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_conversation_search_is_literal_and_private(client,db,superuser_headers,needle):
+    from app.ai_operator.assistant_models import AssistantConversation
+    from app.models.user import User
+    first=client.post(BASE+'/conversations',headers=superuser_headers,json={'title':'QA'+needle+'Literal'})
+    ordinary=client.post(BASE+'/conversations',headers=superuser_headers,json={'title':'QAplainLiteral'})
+    assert first.status_code==201,first.text
+    assert ordinary.status_code==201,ordinary.text
+    other=User(email=uuid4().hex+'@example.com',hashed_password='unused-synthetic',is_active=True)
+    db.add(other);db.flush()
+    db.add(AssistantConversation(organization_id=1,user_id=other.id,title='QA'+needle+'Literal',references={}))
+    db.commit()
+    response=client.get(BASE+'/conversations',headers=superuser_headers,params={'q':needle})
+    assert response.status_code==200,response.text
+    assert [row['id'] for row in response.json()]==[first.json()['id']]
+    normal=client.get(BASE+'/conversations',headers=superuser_headers,params={'q':'qaplain'})
+    assert normal.status_code==200,normal.text
+    assert [row['id'] for row in normal.json()]==[ordinary.json()['id']]

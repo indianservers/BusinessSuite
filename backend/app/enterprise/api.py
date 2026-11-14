@@ -13,7 +13,7 @@ from app.access.control import mutate, record
 from app.access import service
 from app.access.catalog import catalog
 from app.core.deps import get_db, get_current_user
-from app.models.user import User
+from app.models.user import User, Role
 from app.models.company import Company, Branch, Department
 from app.models.helpdesk import HelpdeskTicket, HelpdeskReply
 from app.apps.saas.models import TenantSubscriptionPlan, TenantSubscription
@@ -592,7 +592,7 @@ def validate_policy(data):
             raise HTTPException(422, "Invalid error state")
     elif data.kind == "dashboard":
         if not isinstance(values.get("sharedRoles", []), list) or any(
-            type(role) is not int for role in values.get("sharedRoles", [])
+            type(role) is not int or not 0 < role <= 2147483647 for role in values.get("sharedRoles", [])
         ):
             raise HTTPException(422, "Shared roles must be numeric role IDs")
         if (
@@ -695,6 +695,10 @@ def save_policy(
         data.kind in {"recovery_request", "support_access_request"},
     )
     validate_policy(data)
+    if data.kind == 'dashboard':
+        roles = set(data.values.get('sharedRoles', []))
+        if roles and db.query(Role.id).filter(Role.id.in_(roles)).count() != len(roles):
+            raise HTTPException(422, 'Choose existing roles to share this dashboard')
     if data.kind == "dashboard" and not data.key.startswith(f"user:{actor.id}:"):
         raise HTTPException(403, "Dashboard ownership must match the current user")
     if data.kind == "governance":
@@ -706,6 +710,21 @@ def save_policy(
         .with_for_update()
         .first()
     )
+    if (data.kind == 'dashboard' and row and row.updated_by == actor.id
+            and row.version == data.version + 1
+            and json.dumps(row.values_json,sort_keys=True) == json.dumps(data.values,sort_keys=True)):
+        from app.access.models import AccessAudit
+        receipt = db.query(AccessAudit.id).filter(
+            AccessAudit.company_id == data.companyId, AccessAudit.actor_id == actor.id,
+            AccessAudit.operation == 'enterprise.policy.saved', AccessAudit.reason == data.reason,
+            AccessAudit.after_json['kind'].as_string() == 'dashboard',
+            AccessAudit.after_json['key'].as_string() == data.key,
+            AccessAudit.after_json['version'].as_integer() == row.version,
+        ).first()
+        if receipt:
+            result = serialize(row)
+            db.commit()
+            return result
     if row and row.version != data.version or not row and data.version:
         raise HTTPException(409, "Policy version changed")
     existed = row is not None

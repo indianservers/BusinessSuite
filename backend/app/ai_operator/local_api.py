@@ -1,12 +1,38 @@
 """Inspect the non-sensitive corpus used to fit the offline local intent model."""
 from typing import Literal
-from fastapi import APIRouter, Depends,Query
+from fastapi import APIRouter, Depends,Query,HTTPException,Request
+from pydantic import BaseModel,ConfigDict,Field,model_validator
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user,get_db
 from app.models.user import User
 from app.ai_operator.local_corpus import VERSION,FAMILIES,examples
 
 router=APIRouter(prefix='/suite',tags=['Local NLP model'])
+
+
+class PmsClassifyInput(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+    texts:list[str]=Field(min_length=1,max_length=75)
+
+    @model_validator(mode='after')
+    def bounded(self):
+        if any(not value.strip() or len(value)>4000 for value in self.texts) or sum(map(len,self.texts))>12000:
+            raise ValueError('Use nonempty clauses of at most 4000 characters, 12000 characters total')
+        return self
+
+
+@router.post('/pms-routing/classify')
+def classify_pms(data:PmsClassifyInput,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.suite import authorize
+    from app.access.service import check_background_access
+    from app.ai_agents.api import _require_ai_rate_limit
+    authorize(db,user,None,'PMS')
+    check_background_access(db,user,'project_management','view')
+    _require_ai_rate_limit(db,request,user,bucket='pms_local_router')
+    from app.ai_operator.pms_local_router import classify
+    try:return classify(data.texts)
+    except (OSError,ValueError,KeyError,TypeError):
+        raise HTTPException(503,'Server PMS routing model unavailable; no cloud request was made') from None
 
 
 @router.get('/local-model')

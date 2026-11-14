@@ -19,15 +19,15 @@ def filtered_employees(db,user,filters):
     q=employee_query(db,user,include_employees=bool(filters.get("include_employees")))
     if filters.get("employee_id"):q=q.filter(Employee.id==filters["employee_id"])
     if filters.get("search"):
-        term="%"+filters["search"]+"%";q=q.filter(or_(Employee.first_name.ilike(term),Employee.last_name.ilike(term),Employee.employee_id.ilike(term),Employee.personal_email.ilike(term)))
+        q=q.filter(or_(*[column.icontains(filters["search"],autoescape=True) for column in (Employee.first_name,Employee.last_name,Employee.employee_id,Employee.personal_email)]))
     for field in ["department_id","reporting_manager_id","status"]:
         if filters.get(field):q=q.filter(getattr(Employee,field)==filters[field])
     members=db.query(InternBatchMembership.employee_id).join(InternBatch,InternBatch.id==InternBatchMembership.batch_id).filter(InternBatchMembership.status=="Active")
     if filters.get("batch_id"):q=q.filter(Employee.id.in_(members.filter(InternBatch.id==filters["batch_id"])))
     if filters.get("program"):q=q.filter(Employee.id.in_(members.filter(InternBatch.program==filters["program"])))
     if filters.get("mentor_id"):q=q.filter(Employee.id.in_(members.filter(InternBatch.mentor_user_id==filters["mentor_id"])))
-    if filters.get("college"):q=q.filter(Employee.id.in_(db.query(EmployeeEducation.employee_id).filter(EmployeeEducation.institution.ilike("%"+filters["college"]+"%"))))
-    if filters.get("skill"):q=q.filter(Employee.id.in_(db.query(EmployeeSkill.employee_id).filter(EmployeeSkill.skill_name.ilike("%"+filters["skill"]+"%"))))
+    if filters.get("college"):q=q.filter(Employee.id.in_(db.query(EmployeeEducation.employee_id).filter(EmployeeEducation.institution.icontains(filters["college"],autoescape=True))))
+    if filters.get("skill"):q=q.filter(Employee.id.in_(db.query(EmployeeSkill.employee_id).filter(EmployeeSkill.skill_name.icontains(filters["skill"],autoescape=True))))
     return q
 
 

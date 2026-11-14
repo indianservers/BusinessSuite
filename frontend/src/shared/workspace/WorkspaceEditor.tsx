@@ -1,3 +1,5 @@
+import * as Alert from "@radix-ui/react-alert-dialog";
+import "../creation/smart-creation.css";
 import { CreationSurfaceContext } from "@/shared/creation/CreationSurfaceContext";
 import { useContext, useState } from "react";
 import { Search, Check } from "lucide-react";
@@ -11,6 +13,13 @@ type View = { id: string; label: string };
 export function WorkspaceEditor({ workspace, views, moduleLabel, company, branchLabel, pms, people, loadingPeople, busy, error, onSave, onClose }: { workspace?: SavedWorkspace; views: View[]; moduleLabel: string; company?: string; branchLabel?: string; pms: boolean; people: { user_id: number; email: string }[]; loadingPeople: boolean; busy: boolean; error?: string; onSave: (draft: WorkspaceDraft) => void; onClose: () => void }) {
   const inside = useContext(CreationSurfaceContext);
   const [draft, setDraft] = useState<WorkspaceDraft>(() => workspace ? { name: workspace.name, description: workspace.description || "", icon: workspace.icon || "layers", color: workspace.color || workspaceAccentColors[0], visibility: workspace.visibility || "private", views: workspace.views || views.map(view => view.id), members: pms ? [] : workspace.members || [], status: workspace.status, expected_version: workspace.version, expected_status: workspace.status } : { name: "", description: "", icon: "layers", color: workspaceAccentColors[0], visibility: "private", views: views.map(view => view.id), members: [], status: "Active" });
+  const [initialDraft] = useState(() => JSON.stringify(draft));
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const requestClose = () => {
+    if (busy) return;
+    if (inside || JSON.stringify(draft) === initialDraft) onClose();
+    else setConfirmDiscard(true);
+  };
   const [iconQuery, setIconQuery] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const change = <K extends keyof WorkspaceDraft>(key: K, value: WorkspaceDraft[K]) => setDraft(current => ({ ...current, [key]: value }));
@@ -22,8 +31,9 @@ export function WorkspaceEditor({ workspace, views, moduleLabel, company, branch
     <div className="wd-editor-section"><h3>Workspace tools</h3><p>Choose the tools for this space. Existing record permissions continue to apply.</p><div className="wd-view-picker">{views.map(view => <label key={view.id}><input type="checkbox" checked={draft.views.includes(view.id)} onChange={event => change("views", event.target.checked ? [...draft.views, view.id] : draft.views.filter(id => id !== view.id))} />{view.label}</label>)}</div></div>
     {!pms && <div className="wd-editor-section"><h3>Members</h3><p>Membership opens this workspace. It does not grant access to confidential records.</p>{loadingPeople ? <p role="status">Loading eligible people…</p> : <label>Add member<Input aria-label="Search workspace members" placeholder="Search by email" value={memberQuery} onChange={event => setMemberQuery(event.target.value)}/><select aria-label="Add workspace member" value="" onChange={event => { const user_id = Number(event.target.value); if (user_id) change("members", [...draft.members, { user_id, role: "Member" }]); }}><option value="">Select a person</option>{people.filter(person => person.email.toLowerCase().includes(memberQuery.trim().toLowerCase()) && person.user_id !== workspace?.owner_id && !draft.members.some(member => member.user_id === person.user_id)).map(person => <option key={person.user_id} value={person.user_id}>{person.email}</option>)}</select></label>}{draft.members.map(member => <div className="wd-member-edit" key={member.user_id}><span>{people.find(person => person.user_id === member.user_id)?.email || `Member #${member.user_id}`}</span><select aria-label={`Role for member ${member.user_id}`} value={member.role} onChange={event => change("members", draft.members.map(row => row.user_id === member.user_id ? { ...row, role: event.target.value as typeof member.role } : row))}><option>Member</option><option>Admin</option><option>Guest</option></select><button type="button" onClick={() => change("members", draft.members.filter(row => row.user_id !== member.user_id))}>Remove</button></div>)}</div>}
     {pms && <p className="wd-editor-hint">Owners and members are managed through the existing PMS people and invitation tools.</p>}
-    </fieldset>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<footer><Button type="button" variant="outline" disabled={busy} onClick={onClose}>Cancel</Button><Button disabled={busy || !draft.name.trim()}>{busy ? "Saving…" : workspace ? "Save workspace" : "Create Workspace"}</Button></footer>
+    </fieldset>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<footer><Button type="button" variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button><Button disabled={busy || !draft.name.trim()}>{busy ? "Saving…" : workspace ? "Save workspace" : "Create Workspace"}</Button></footer>
   </form></>;
   if (inside) return <div className="wd-editor-embedded">{content}</div>;
-  return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}><DialogContent className="wd-editor" onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>{content}</DialogContent></Dialog>;
+  return <><Dialog open onOpenChange={open => { if (!open) requestClose(); }}><DialogContent className="wd-editor" onPointerDownOutside={event => { event.preventDefault(); requestClose(); }} onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>{content}</DialogContent></Dialog>
+    <Alert.Root open={confirmDiscard} onOpenChange={setConfirmDiscard}><Alert.Portal><Alert.Overlay className="smart-discard-overlay" /><Alert.Content className="smart-discard-window"><Alert.Title>Discard changes?</Alert.Title><Alert.Description>Your unsaved workspace changes will be lost.</Alert.Description><div><Alert.Cancel asChild><Button variant="outline">Continue Editing</Button></Alert.Cancel><Alert.Action asChild><Button variant="destructive" onClick={onClose}>Discard Changes</Button></Alert.Action></div></Alert.Content></Alert.Portal></Alert.Root></>;
 }

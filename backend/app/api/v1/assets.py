@@ -50,7 +50,7 @@ def employee_options(search: str = "", db: Session = Depends(get_db), current_us
     from app.services.metrics.queries import employee_records
     query = employee_records(db, current_user).filter(Employee.status == "Active")
     if search:
-        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+        query = query.filter((Employee.first_name + " " + Employee.last_name).icontains(search, autoescape=True) | Employee.employee_id.icontains(search, autoescape=True))
     return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
             for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
 
@@ -67,8 +67,8 @@ def list_assignments(employee_id: Optional[int] = None, active: bool = True,
         _employee(db, employee_id, current_user)
         query = query.filter(AssetAssignment.employee_id == employee_id)
     if search:
-        query = query.join(Employee).filter(or_(Asset.name.ilike(f"%{search}%"), Asset.asset_tag.ilike(f"%{search}%"),
-            (Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%"), Employee.employee_id.ilike(f"%{search}%")))
+        query = query.join(Employee).filter(or_(Asset.name.icontains(search, autoescape=True), Asset.asset_tag.icontains(search, autoescape=True),
+            (Employee.first_name + " " + Employee.last_name).icontains(search, autoescape=True), Employee.employee_id.icontains(search, autoescape=True)))
     if status:
         if status == "Acknowledged": query = query.filter(AssetAssignment.acknowledgement_signed.is_(True))
         elif status == "Acknowledgment pending": query = query.filter(AssetAssignment.acknowledgement_signed.is_(False))
@@ -186,8 +186,7 @@ def list_assets(
 ):
     query = db.query(Asset).filter(Asset.organization_id == tenant(current_user))
     if search:
-        like = f"%{search}%"
-        query = query.filter((Asset.name.ilike(like)) | (Asset.asset_tag.ilike(like)) | (Asset.serial_number.ilike(like)))
+        query = query.filter((Asset.name.icontains(search, autoescape=True)) | (Asset.asset_tag.icontains(search, autoescape=True)) | (Asset.serial_number.icontains(search, autoescape=True)))
     if status_filter == "Returned":
         query = query.filter(Asset.assignments.any(AssetAssignment.returned_date.is_not(None)))
     elif status_filter == "Lost / Damaged":

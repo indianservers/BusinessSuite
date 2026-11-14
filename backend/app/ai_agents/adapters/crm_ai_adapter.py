@@ -53,12 +53,12 @@ class CrmAiAdapter(AiAdapterBase):
             if lead.phone:
                 conditions.append(CRMLead.phone == lead.phone)
             if lead.company_name:
-                conditions.append(CRMLead.company_name.ilike(f"%{lead.company_name}%"))
+                conditions.append(CRMLead.company_name.icontains(lead.company_name, autoescape=True))
             query = query.filter(CRMLead.id != lead.id)
         for field, column in (("email", CRMLead.email), ("mobile", CRMLead.phone), ("company_name", CRMLead.company_name)):
             value = input.get(field)
             if value:
-                conditions.append(column.ilike(f"%{value}%") if field == "company_name" else column == value)
+                conditions.append(column.icontains(str(value), autoescape=True) if field == "company_name" else column == value)
         if not conditions:
             return {"duplicates": [], "message": "Provide lead_id, email, mobile, or company_name to search duplicates."}
         rows = query.filter(or_(*conditions)).limit(25).all()

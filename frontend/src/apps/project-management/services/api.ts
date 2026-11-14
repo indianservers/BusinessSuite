@@ -818,7 +818,7 @@ export const reportsAPI = {
     return response.data;
   },
 
-  workloadHeatmap: async (filters: { projectId?: string | number; teamId?: string | number; sprintId?: string | number; from?: string; to?: string; basis?: "hours" | "story_points" | "task_count" } = {}) => {
+  workloadHeatmap: async (filters: { workspace_id?: string | number; projectId?: string | number; teamId?: string | number; sprintId?: string | number; from?: string; to?: string; basis?: "hours" | "story_points" | "task_count" } = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") params.append(key, String(value));

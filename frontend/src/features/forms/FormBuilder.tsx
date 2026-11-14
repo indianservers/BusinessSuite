@@ -143,6 +143,7 @@ export default function FormBuilder({
   share,
   close,
   open,
+  reviewMode = false,
 }: {
   draft: Definition;
   selected: string;
@@ -153,6 +154,7 @@ export default function FormBuilder({
   share: () => void;
   close: () => void;
   open: boolean;
+  reviewMode?: boolean;
 }) {
   const [past, setPast] = useState<Definition[]>([]);
   const [future, setFuture] = useState<Definition[]>([]);
@@ -570,10 +572,10 @@ export default function FormBuilder({
           >
             Export form definition
           </button>
-          <button disabled={!open} onClick={share}>
+          {!reviewMode && <button disabled={!open} onClick={share}>
             Publishing settings
-          </button>
-          {open && <button onClick={close}>Close responses</button>}
+          </button>}
+          {!reviewMode && open && <button onClick={close}>Close responses</button>}
         </aside>
       </div>
     </DndContext>

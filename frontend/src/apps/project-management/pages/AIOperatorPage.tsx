@@ -116,7 +116,7 @@ export default function AIOperatorPage() {
       let decision: ConversationDecision;
       if (routingMode === "cloud" && !localDialogue) decision = { route: 'cloud', reason: 'Cloud planning selected.' };
       else {
-        setRoutingStatus("Checking command on this device…");
+        setRoutingStatus("Checking command with the server-local classifier…");
         const localText = expandLocalFollowup(command);
         const needsContext = !!localDialogue || /^(?:rename|retitle|set (?:estimated hours|estimate|story points|points|description)|change (?:estimated hours|estimate|story points|points|description)|update description|estimate|post|write|add (?:a )?(?:comment|checklist)|complete checklist|reopen checklist|remove checklist|delete checklist|move.*sprint|set sprint)/i.test(localText.trim()) || /^(?:please )?(?:create|new|add (?:a )?(?:task|subtask|project|dependency|milestone)|assign|set assignee|make [\w-]+ depend|[\w-]+ blocks|(?:remove|delete) dependency)/i.test(localText.trim());
         if (needsContext || !selection.length || /^(?:help|what |which |why |show local|cancel|never ?mind|yes|okay|ok|confirm|looks good|go ahead|proceed|(?:(?:set|change) (?:priority|status)(?: to)?|set (?:start|due) date(?: to)?)$)/i.test(localText.trim())) {

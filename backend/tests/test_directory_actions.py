@@ -120,3 +120,25 @@ def test_undo_rejects_edited_project_role(client, db, directory_data):
     response=client.post(ACTIONS+f"/{result['undo_ids'][0]}/undo",headers=h)
     assert response.status_code==409,response.text
     assert db.query(PMSProjectMember).filter_by(project_id=project['id'],user_id=outsider.id).one().role=='Viewer'
+
+
+import pytest
+
+@pytest.mark.parametrize('kind',['projects','teams','batches'])
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_destination_search_is_literal(client,db,directory_data,kind,needle):
+    from app.apps.project_management.models import PMSProject
+    data, foreign, fh=directory_data
+    owner, member, outsider, headers, mh, oh, project, team, batch=data
+    row=db.get(PMSProject,project['id']) if kind=='projects' else team if kind=='teams' else batch
+    row.name='QA'+needle+'Literal';db.commit()
+    first=client.get(ACTIONS+'/destinations',headers=headers,params={'kind':kind,'q':needle})
+    assert first.status_code==200,first.text
+    assert row.id in {item['id'] for item in first.json()['items']}
+    row.name='QAplainLiteral';db.commit()
+    second=client.get(ACTIONS+'/destinations',headers=headers,params={'kind':kind,'q':needle})
+    assert second.status_code==200,second.text
+    assert row.id not in {item['id'] for item in second.json()['items']}
+    ordinary=client.get(ACTIONS+'/destinations',headers=headers,params={'kind':kind,'q':'qaplain'})
+    assert ordinary.status_code==200,ordinary.text
+    assert row.id in {item['id'] for item in ordinary.json()['items']}

@@ -501,3 +501,21 @@ def test_inline_image_presentation_attributes_are_bounded_and_sanitized(notes_cl
     unsafe=content.replace('360','99999').replace('right','javascript:alert(1)')
     result=c.post('/notes',json={'content':unsafe}).json()['content']
     assert 'data-note-width' not in result and 'data-note-align' not in result
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_private_note_search_is_literal(notes_client,needle):
+    c,owner,other,actor=notes_client
+    match=c.post('/notes',json={'title':'QA'+needle+'Literal','content':'Synthetic search note'})
+    plain=c.post('/notes',json={'title':'QAplainLiteral','content':'Synthetic ordinary note'})
+    assert match.status_code==201,match.text
+    assert plain.status_code==201,plain.text
+    result=c.get('/notes',params={'q':needle})
+    assert result.status_code==200,result.text
+    ids={row['id'] for row in result.json()}
+    assert match.json()['id'] in ids
+    assert plain.json()['id'] not in ids
+    actor[0]=other
+    hidden=c.get('/notes',params={'q':needle})
+    assert hidden.status_code==200,hidden.text
+    assert match.json()['id'] not in {row['id'] for row in hidden.json()}

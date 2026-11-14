@@ -21,8 +21,8 @@ def application_query(db, user, search="", status=""):
     if status:
         q = q.filter(InternApplication.status == status)
     if search.strip():
-        term = "%" + search.strip() + "%"
-        q = q.filter(or_(InternApplication.full_name.ilike(term), InternApplication.email.ilike(term), InternApplication.reference.ilike(term)))
+        term = search.strip()
+        q = q.filter(or_(InternApplication.full_name.icontains(term, autoescape=True), InternApplication.email.icontains(term, autoescape=True), InternApplication.reference.icontains(term, autoescape=True)))
     return q
 
 

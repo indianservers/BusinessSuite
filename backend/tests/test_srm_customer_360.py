@@ -109,3 +109,31 @@ def test_srm_customer_360_empty_search_and_rbac(client, db):
     assert response.status_code == 200
     assert response.json()["matched"] is False
     assert response.json()["sales_orders"] == []
+
+
+import pytest
+from tests.test_import_workspace import import_headers
+from tests.rich_text_test_utils import organization_context
+
+@pytest.mark.parametrize('kind',['order','engagement','contract','invoice'])
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/'])
+def test_audit_customer_reference_search_is_literal(client,db,import_headers,kind,needle):
+    from app.apps.crm.models import CRMCompany
+    from test_identity_utils import own_workflow_records
+    customers=[CRMCompany(organization_id=1,name=name,account_type='Customer') for name in ['Ordinary buyer','Literal buyer']]
+    db.add_all(customers);db.flush()
+    rows=[]
+    for name,customer in zip(['QAplainLiteral','QA'+needle+'Literal'],customers):
+        values={'organization_id':1,'customer_id':customer.id}
+        if kind=='order':row=SRMSalesOrder(order_number=name,title=name,**values)
+        elif kind=='engagement':row=SRMEngagement(engagement_number=name,name=name,**values)
+        elif kind=='contract':row=SRMContract(contract_number=name,title=name,**values)
+        else:row=SRMInvoice(invoice_number=name,**values)
+        db.add(row);rows.append(row)
+    own_workflow_records(db,*customers,*rows);db.commit()
+    response=client.get('/api/v1/srm/customer-360',headers=import_headers,params={'q':needle})
+    assert response.status_code==200,response.text
+    assert response.json()['customer_id']==customers[1].id
+    ordinary=client.get('/api/v1/srm/customer-360',headers=import_headers,params={'q':'qaplain'})
+    assert ordinary.status_code==200,ordinary.text
+    assert ordinary.json()['customer_id']==customers[0].id

@@ -25,4 +25,16 @@ if __name__ == "__main__":
         conn.exec_driver_sql(f'CREATE DATABASE {quoted}')
     admin.dispose()
     env = dict(os.environ, TEST_DATABASE_URL=target.render_as_string(hide_password=False), ENVIRONMENT="test", DEBUG="false")
-    raise SystemExit(subprocess.call([sys.executable, "-m", "pytest", *sys.argv[1:]], env=env))
+    try:
+        code=subprocess.call([sys.executable, "-m", "pytest", *sys.argv[1:]], env=env)
+    finally:
+        if os.environ.get('POSTGRES_TEST_CLEANUP')=='1':
+            # name was validated above, differs from the app DB, and release
+            # evaluators generate a fresh UUID name for every invocation.
+            cleanup=create_engine(url.set(database="postgres"),isolation_level="AUTOCOMMIT")
+            try:
+                with cleanup.connect() as conn:
+                    quoted=cleanup.dialect.identifier_preparer.quote_identifier(name)
+                    conn.exec_driver_sql(f'DROP DATABASE IF EXISTS {quoted} WITH (FORCE)')
+            finally:cleanup.dispose()
+    raise SystemExit(code)

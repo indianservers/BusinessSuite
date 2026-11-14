@@ -10,3 +10,5 @@ def test_fam_inventory_grni_reconciliation_endpoint_returns_outstanding(client, 
     assert response.status_code == 200, response.text
     assert "grni_outstanding" in response.json()
     assert response.json()["items"]
+
+    assert response.json()['currency']=='INR'

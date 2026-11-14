@@ -161,7 +161,7 @@ def facets(field: str, search: str = Query("", max_length=100), state: str = Que
     parsed = parse_query(state); parsed.filters = without_field(parsed.filters, field)
     q = scoped_query(db, user, base, parsed); definition = field_for(fields(), field); column = definition.expression
     if search:
-        escaped = search.replace("%", "\\%").replace("_", "\\_")
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         if definition.kind == "id" and field in {"pipeline_id", "stage_id", "company_id", "owner_user_id"}:
             if field == "company_id" and allowed(user, "companies", "view"): lookup = rows(db, user, "companies").filter(CRMCompany.name.ilike(f"%{escaped}%", escape="\\")).with_entities(CRMCompany.id)
             elif field == "stage_id": lookup = db.query(CRMPipelineStage.id).filter(CRMPipelineStage.name.ilike(f"%{escaped}%", escape="\\"), CRMPipelineStage.organization_id == lm.core()._organization_id(db, user))

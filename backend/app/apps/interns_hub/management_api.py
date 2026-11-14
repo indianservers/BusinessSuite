@@ -72,7 +72,7 @@ def batches(mentor_id:int|None=None,date_from:date|None=None,date_to:date|None=N
     if hide_empty:
         occupied=db.query(InternBatchMembership.batch_id).filter(InternBatchMembership.status=="Active",InternBatchMembership.employee_id.in_(eligible))
         q=q.filter(InternBatch.id.in_(occupied))
-    if search:q=q.filter(or_(InternBatch.name.ilike("%"+search+"%"),InternBatch.code.ilike("%"+search+"%")))
+    if search:q=q.filter(or_(InternBatch.name.icontains(search, autoescape=True),InternBatch.code.icontains(search, autoescape=True)))
     if status:q=q.filter(InternBatch.status==status)
     if department_id:q=q.filter(InternBatch.department_id==department_id)
     if mentor_id:q=q.filter(InternBatch.mentor_user_id==mentor_id)
@@ -247,7 +247,7 @@ class DistributionInput(BaseModel):
 def project_tasks(project_id:int,search:str="",page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=100),user=Depends(require_admin),db:Session=Depends(get_db)):
     get_project_for_action(db,project_id,user,"manage_tasks")
     q=db.query(PMSTask).filter_by(project_id=project_id,deleted_at=None)
-    if search:q=q.filter(PMSTask.title.ilike("%"+search+"%"))
+    if search:q=q.filter(PMSTask.title.icontains(search,autoescape=True))
     return {"items":[{"id":t.id,"title":t.title,"task_key":t.task_key,"status":t.status,"due_date":t.due_date} for t in q.order_by(PMSTask.id.desc()).offset((page-1)*per_page).limit(per_page)],"total":q.count()}
 
 

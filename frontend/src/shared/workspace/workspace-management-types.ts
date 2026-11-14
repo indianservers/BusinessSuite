@@ -6,7 +6,7 @@ export type WorkspaceActivity = { id: number | string; summary: string; actor?: 
 export const workspaceApiBase = (module: WorkspaceModule) => `/${module === "pms" ? "project-management" : module}/workspace-directory`;
 
 export function workspaceDataScope(user: AuthUser | null) {
-  return JSON.stringify([user?.id, user?.access?.companyId, sessionStorage.getItem("suite-organization"), sessionStorage.getItem("suite-branch"), user?.role, user?.is_superuser, user?.access?.companyDisabledModules, user?.access?.grants]);
+  return JSON.stringify([user?.id, user?.access?.companyId, sessionStorage.getItem("suite-tenant"), sessionStorage.getItem("suite-organization"), sessionStorage.getItem("suite-branch"), user?.role, user?.is_superuser, user?.access?.companyDisabledModules, user?.access?.grants]);
 }
 export function workspaceSelectionKey(user: AuthUser | null, module: WorkspaceModule) {
   return `suite:workspace-selected:v1:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-organization") || ""}:${sessionStorage.getItem("suite-branch") || ""}:${module}`;

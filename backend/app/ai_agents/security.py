@@ -313,7 +313,12 @@ def seal(db, user, payload=None, session_id=None, tenant=None):
     return {**data, "signature": signature(data)}
 
 
-def verify(db, user, context, payload=None, confirmation=False, history=False, *, control=False):
+def verify_provenance(user, context, payload=None):
+    """Verify immutable owner/company provenance, never current execution authority.
+
+    Recovery callers must separately authorize every current record and issue a
+    fresh approval. This deliberately does not make old approvals executable.
+    """
     if not isinstance(context, dict):
         raise HTTPException(
             409, "Prepare a fresh AI preview; legacy context is unverified"
@@ -327,6 +332,13 @@ def verify(db, user, context, payload=None, confirmation=False, history=False, *
         or data.get("company_id") != company(user)
     ):
         raise HTTPException(403, "AI actor or company context does not match")
+    if payload is not None and data.get('operation') != digest(payload):
+        raise HTTPException(409, 'The historical AI operation changed')
+    return data
+
+
+def verify(db, user, context, payload=None, confirmation=False, history=False, *, control=False):
+    data=verify_provenance(user,context)
     if not history:
         session_check(db, user, data.get("session_id"))
     request = db.info.get("ai_request_context")
@@ -355,7 +367,7 @@ def verify(db, user, context, payload=None, confirmation=False, history=False, *
     return data
 
 
-def strict_input(schema, value, depth=0):
+def strict_input(schema, value, depth=0, *, max_bytes=16000, max_text_length=8000):
     if depth > 10:
         raise HTTPException(422, "AI input nesting limit exceeded")
     if not isinstance(value, dict):
@@ -384,7 +396,7 @@ def strict_input(schema, value, depth=0):
                 raise HTTPException(422, "AI collection limit exceeded")
             for child in item:
                 walk(child, level + 1)
-        elif isinstance(item, str) and len(item) > 8000:
+        elif isinstance(item, str) and len(item) > max_text_length:
             raise HTTPException(422, "AI text limit exceeded")
 
     walk(value)
@@ -392,7 +404,7 @@ def strict_input(schema, value, depth=0):
         encoded = json.dumps(value, default=str, allow_nan=False).encode()
     except (ValueError, TypeError, RecursionError):
         raise HTTPException(422, "AI arguments are not bounded JSON") from None
-    if len(encoded) > 16000:
+    if len(encoded) > max_bytes:
         raise HTTPException(422, "AI input limit exceeded")
     for key, item in value.items():
         field = properties[key]
@@ -619,12 +631,12 @@ def boundary(method, path):
     # Exact capability paths are checked by callers; this is an independent baseline.
 
 
-def redact(value, depth=0):
+def redact(value, depth=0, *, max_list_items=50):
     if depth > 8:
         return "[bounded]"
     if isinstance(value, dict):
         return {
-            str(k): redact(v, depth + 1)
+            str(k): redact(v, depth + 1, max_list_items=max_list_items)
             for k, v in value.items()
             if not any(
                 word in str(k).lower()
@@ -647,15 +659,15 @@ def redact(value, depth=0):
             )
         }
     if isinstance(value, list):
-        return [redact(v, depth + 1) for v in value[:50]]
+        return [redact(v, depth + 1, max_list_items=max_list_items) for v in value[:max_list_items]]
     if isinstance(value, str):
         return value[:8000]
     return value
 
 
-def bounded_result(db, user, value):
+def bounded_result(db, user, value, *, max_list_items=50):
     """Cap disclosed tool data in bytes; preserve valid JSON on truncation."""
-    value = redact(value)
+    value = redact(value,max_list_items=max_list_items)
     cap = limits(db, company(user))["max_result_bytes"]
     if len(json.dumps(value, default=str, ensure_ascii=False).encode()) > cap:
         return {
@@ -998,8 +1010,19 @@ def acl_epoch(db, flush_context, instances):
 
     affected = set()
     subjects = {}
+    parent_cache={}
+    def parent_record(table,ident):
+        key=(table.name,ident)
+        if key not in parent_cache:
+            columns=[table.c[field] for field in ('organization_id','project_id','workspace_id','owner_user_id','manager_user_id','reporter_user_id','assignee_user_id') if field in table.c]
+            parent_cache[key]=db.connection().execute(select(*columns).where(table.c.id==ident)).mappings().first()
+        return parent_cache[key]
     fields = {
         "organization_id",
+        "project_id",
+        "workspace_id",
+        "user_id",
+        "role",
         "owner_user_id",
         "assignee_user_id",
         "assignee_user_ids",
@@ -1018,6 +1041,33 @@ def acl_epoch(db, flush_context, instances):
             continue
         state = state_of(row)
         watched=fields
+        if getattr(type(row),'__tablename__',None)=='pms_saved_filters':
+            # A personal filter is presentation state, not a grant on tasks.
+            # Deleting it cannot revoke another user's record access. Scope or
+            # sharing changes and deletion of a shared view remain conservative.
+            watched={'organization_id','project_id','user_id','visibility','is_shared'}
+            changed=any(name in state.attrs and state.attrs[name].history.has_changes() for name in watched)
+            if row in db.deleted and row.visibility=='private' and row.is_shared is False and not changed:
+                continue
+        if getattr(type(row),'__tablename__',None)=='pms_calendar_events':
+            watched={'owner_id','workspace_id','visibility'}
+            changed=any(name in state.attrs and state.attrs[name].history.has_changes() for name in watched)
+            if row in db.deleted and row.visibility=='private' and not changed:continue
+        if getattr(type(row),'__tablename__',None)=='pms_time_logs':
+            # A log grants no access to its project or owner. Removing the data
+            # preserves historical execution receipts; reads still require the
+            # live project and owner. Reparenting/ownership changes invalidate.
+            watched={'project_id','user_id'}
+            changed=any(name in state.attrs and state.attrs[name].history.has_changes() for name in watched)
+            if row in db.deleted and not changed:continue
+        if getattr(type(row),'__tablename__',None)=='pms_running_timers':
+            # This owner-private cursor grants no project access. Switching its
+            # selected project/session preserves execution history; current
+            # reads/actions reauthorize that project and bind exact timer state.
+            # Ownership changes still revoke cached context.
+            watched={'user_id'}
+            changed=state.attrs['user_id'].history.has_changes()
+            if row in db.deleted and not changed:continue
         if getattr(type(row),'__tablename__',None)=='pms_milestones':
             # Milestone responsibility grants no access: the required project
             # parent governs visibility. Reparenting does change that boundary.
@@ -1031,13 +1081,56 @@ def acl_epoch(db, flush_context, instances):
                 or (db.info.get("ai_request_context") or {}).get("company_id")
                 or 1
             )
-            affected.add(tenant)
-            subjects[tenant] = (
+            tenants={tenant}
+            parent_subject=None
+            if 'organization_id' in state.attrs:
+                tenants.update(value for value in state.attrs['organization_id'].history.deleted if type(value) is int and value>0)
+            if source.startswith('app.apps.project_management.'):
+                from app.apps.project_management.models import PMSProject,PMSWorkspace,PMSTask
+                def identities(field):
+                    current=getattr(row,field,None)
+                    previous=state.attrs[field].history.deleted if field in state.attrs else ()
+                    return {value for value in (current,*previous) if type(value) is int and value>0}
+                known={value for value in (getattr(row,'organization_id',None),) if type(value) is int and value>0}
+                if 'organization_id' in state.attrs:known.update(value for value in state.attrs['organization_id'].history.deleted if type(value) is int and value>0)
+                projects=identities('project_id');workspaces=identities('workspace_id')
+                if getattr(type(row),'__tablename__',None)=='pms_calendar_events':
+                    from app.common.models import CommonPerson
+                    owners=identities('owner_id')
+                    if owners:known.update(value for value in db.connection().execute(select(CommonPerson.organization_id).where(CommonPerson.user_id.in_(owners))).scalars() if value)
+                for ident in identities('task_id'):
+                    parent=parent_record(PMSTask.__table__,ident)
+                    if parent:
+                        projects.add(parent['project_id'])
+                        parent_subject=parent_subject or parent.get('reporter_user_id') or parent.get('assignee_user_id')
+                for ident in projects:
+                    parent=parent_record(PMSProject.__table__,ident)
+                    if parent:
+                        if parent['organization_id']:known.add(parent['organization_id'])
+                        if parent['workspace_id']:workspaces.add(parent['workspace_id'])
+                        parent_subject=parent_subject or parent.get('owner_user_id') or parent.get('manager_user_id')
+                for ident in workspaces:
+                    parent=parent_record(PMSWorkspace.__table__,ident)
+                    if parent and parent['organization_id']:known.add(parent['organization_id'])
+                # Child rows often have no organization column. Resolve their
+                # real parents rather than assigning background writes to 1.
+                if known:tenants=known
+            subject = (
                 getattr(row, "updated_by_user_id", None)
                 or getattr(row, "owner_user_id", None)
+                or (getattr(row,"owner_id",None) if getattr(type(row),'__tablename__',None)=='pms_calendar_events' else None)
                 or getattr(row, "assignee_user_id", None)
                 or getattr(row, "user_id", None)
+                or getattr(row, "reporter_user_id", None)
+                or parent_subject
             )
+            if not subject:
+                subject=next((value for field in ('owner_user_id','assignee_user_id','user_id') if field in state.attrs
+                    for value in state.attrs[field].history.deleted if type(value) is int and value>0),None)
+            # Moving a record must revoke its previous company's cached scope,
+            # including background writes with no request-bound actor.
+            for changed_tenant in tenants:
+                affected.add(changed_tenant);subjects[changed_tenant]=subject or subjects.get(changed_tenant)
     for tenant in sorted(affected):
         if (
             not db.connection()
@@ -1086,6 +1179,7 @@ def acl_epoch(db, flush_context, instances):
                 )
         if db.info.get("ai_request_context"):
             db.info["ai_request_context"].pop("fingerprint", None)
+            db.info["ai_request_context"].pop("control_fingerprint", None)
 
 
 def visible_history(db, user, rows, *, control=False):
@@ -1113,6 +1207,8 @@ def bulk_acl_epoch(execution):
         return
     acl_fields = {
         "organization_id",
+        "project_id",
+        "workspace_id",
         "owner_user_id",
         "assignee_user_id",
         "assignee_user_ids",
@@ -1124,6 +1220,8 @@ def bulk_acl_epoch(execution):
         "user_id",
         "role",
     }
+    if name=='pms_saved_filters':acl_fields={'organization_id','project_id','user_id','visibility','is_shared'}
+    if name=='pms_calendar_events':acl_fields={'owner_id','workspace_id','visibility'}
     if execution.is_update:
         changed = {
             getattr(k, "name", str(k))
@@ -1140,6 +1238,8 @@ def bulk_acl_epoch(execution):
         "pms_projects",
         "pms_workspaces",
         "pms_tasks",
+        "pms_saved_filters",
+        "pms_calendar_events",
     } and not any(part in name for part in ("member", "team")):
         return
     from app.shared.models import ServicePolicy
@@ -1178,6 +1278,7 @@ def bulk_acl_epoch(execution):
             )
         )
     ctx.pop("fingerprint", None)
+    ctx.pop("control_fingerprint", None)
 
 
 def execution_budget(db, user, run):

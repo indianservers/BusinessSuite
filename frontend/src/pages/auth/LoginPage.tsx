@@ -367,8 +367,9 @@ export default function LoginPage() {
         </section>
         <section className="suite-login-card" aria-labelledby="login-title">
           <p className="suite-login-company">
-            {branding.data?.company_name || "Your connected business workspace"}
+            Business Suite
           </p>
+          <p className="suite-login-organization" title={branding.data?.company_name}>{branding.data?.company_name||"\u00a0"}</p>
           <h1 id="login-title" ref={heading} tabIndex={-1}>
             {title}
           </h1>
@@ -747,7 +748,7 @@ export default function LoginPage() {
                 }}>
                   <label htmlFor="application-email">Application email</label>
                   <input id="application-email" name="application_email" type="email" autoComplete="email" required defaultValue={email || ""}/>
-                  <button className="suite-secondary" disabled={statusBusy}>{statusBusy ? "Sending…" : "Email my application status link"}</button>
+                  <button className="suite-secondary" disabled={statusBusy}>{statusBusy ? "Sendingâ€¦" : "Email my application status link"}</button>
                 </form>
               </details>
               {(firebase.isPending || providers.isPending) && (

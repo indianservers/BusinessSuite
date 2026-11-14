@@ -182,6 +182,7 @@ export const aiAgentsApi = {
   getSecuritySummary: () => api.get("/ai-agents/security/summary"),
   getSecurityEvents: (params?: Record<string, unknown>) => api.get<AiAuditLog[]>("/ai-agents/security/events", { params }),
   getPermissions: () => api.get<AiPermissionRule[]>("/ai-agents/security/permissions"),
+  getPermissionTargets: (params: { search: string; page: number; selected_user?: number }) => api.get<{users:{id:number;name:string;email:string}[];roles:{id:number;name:string}[];selected_user:{id:number;name:string;email:string}|null;page:number;total:number;has_more:boolean}>("/ai-agents/security/permission-targets", { params }),
   updatePermissions: (payload: AiPermissionRule[]) => api.put("/ai-agents/security/permissions", payload),
   getAnalyticsSummary: () => api.get("/ai-agents/analytics/summary"),
   getAnalyticsByAgent: () => api.get("/ai-agents/analytics/by-agent"),

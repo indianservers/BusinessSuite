@@ -9,6 +9,7 @@ const {phoneError,emailError,textError,identityError,applicationErrors,contract}
 let count=0;
 function check(actual,expected){assert.equal(actual,expected);count++;}
 for(const value of ['9876543210','9123456780'])check(phoneError(value,'+91',true),'');
+check(phoneError('12','+91',true),'Enter a national phone number with 4 to 15 digits.');
 for(const value of ['987654321','98765432101','abcdefghij','98765abc10','+919876543210','98765 43210','98765.3210','-987654321','1e00000009','😀123456789','９８７６５４３２１０',9876543210,null])check(!!phoneError(value,'+91',true),true);
 for(const code of ['','91','+999',null,91])check(!!phoneError('9876543210',code,true),true);
 for(const country of contract.countries)check(!!phoneError('123',country.code,true),true);

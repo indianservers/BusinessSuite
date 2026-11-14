@@ -1,5 +1,7 @@
 import { commonRouteContext, commonNavigationHref, commonModules, commonEntities, commonEntityModules, commonPagePath, moduleContextPath, type CommonModule, type CommonEntity } from "./common-routes";
 import { useAuthStore } from "@/store/authStore";
+import { canUseFeature } from "./feature-access";
+import { canExplorePeopleDirectory } from "./people-directory-access";
 import { categorizeNavigation } from "./navigation-categories";
 import {
   AlertTriangle,
@@ -580,13 +582,16 @@ function isSrmSalesRole(role?: string | null, isSuperuser = false) {
 
 const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
 const srmCollectionOnlyPaths = ["/srm/collections"];
-const srmSalesOnlyPaths = ["/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
+const srmSalesOnlyPaths = ["/srm/salon", "/srm/construction", "/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
   if (/^\/srm\/forms(?:\/|$)/.test(pathname)) return true;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
   const normalizedRole = normalizeRole(role);
+  if (["/srm/salon", "/srm/construction"].includes(normalizedPath)) {
+    return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  }
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
   if (normalizedPath === "/srm/settings") return true;
   if (normalizedPath === "/srm/reports") return isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
@@ -893,7 +898,6 @@ const crmNav: RoleNavItem[] = [
 
 const projectManagementNav: RoleNavItem[] = [
   { label: "Workspace board", icon: LayoutDashboard, to: "/pms", group: "Projects & tasks", exact: true },
-  { label: "Command Center", icon: Globe2, to: "/pms/command-center", group: "Overview", badge: "New" },
   { label: "Enterprise Engine", icon: ShieldCheck, to: "/pms/enterprise-engine", group: "Settings & administration", badge: "Pro" },
   { label: "Product Launch", icon: Package, to: "/pms/product-launch", group: "Projects & tasks", badge: "Launch" },
   { label: "Dependency Management", icon: Network, to: "/pms/dependency-management", group: "Planning & delivery", badge: "Path" },
@@ -902,18 +906,13 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Project Financials", icon: DollarSign, to: "/pms/project-financials", group: "Reports & finances", badge: "Cost" },
   { label: "Risk Register", icon: ShieldAlert, to: "/pms/risk-register", group: "Planning & delivery", badge: "RAID" },
   { label: "Impact Work Hub", icon: Target, to: "/pms/work-hub", group: "Projects & tasks", badge: "AI" },
-  { label: "Planner", icon: CalendarDays, to: "/pms/planner", group: "Planning & delivery" },
-  { label: "AI Planner", icon: Sparkles, to: "/pms/ai-planner", group: "Planning & delivery" },
   { label: "Live Work", icon: Gauge, to: "/pms/live", group: "Projects & tasks", badge: "Realtime" },
   { label: "Software Delivery", icon: GitBranch, to: "/pms/software", group: "Planning & delivery", badge: "Agile" },
   { label: "Backlog", icon: Inbox, to: "/pms/backlog", group: "Planning & delivery", badge: "Drag" },
-  { label: "Backlog Grooming", icon: ClipboardCheck, to: "/pms/backlog-grooming", group: "Planning & delivery" },
-  { label: "Issues", icon: AlertTriangle, to: "/pms/issues", group: "Projects & tasks" },
   { label: "Tasks", icon: ListChecks, to: "/pms/tasks", group: "Projects & tasks" },
   { label: "Tasks & Follow-ups", icon: Clock, to: "/pms/tasks-follow-ups", group: "Projects & tasks" },
   { label: "My Notes", icon: FileText, to: "/pms/notes", group: "Collaboration" },
   { label: "Issue Navigator", icon: Search, to: "/pms/navigator", group: "Projects & tasks" },
-  { label: "Issue Navigator Pro", icon: FileSearch, to: "/pms/issue-navigator-pro", group: "Projects & tasks" },
   { label: "Dashboards", icon: BarChart3, to: "/pms/dashboards", group: "Reports & finances" },
   { label: "Workspaces", icon: Briefcase, to: "/pms/workspaces", group: "Projects & tasks" },
   { label: "Projects", icon: Briefcase, to: "/pms/projects", group: "Projects & tasks" },
@@ -921,21 +920,14 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Goals", icon: Trophy, to: "/pms/goals", group: "Planning & delivery" },
   { label: "Roadmap", icon: CalendarDays, to: "/pms/roadmap", group: "Planning & delivery" },
   { label: "Timeline Plus", icon: CalendarDays, to: "/pms/timeline-plus", group: "Planning & delivery", badge: "Deps" },
-  { label: "Dependencies", icon: Network, to: "/pms/dependencies", group: "Planning & delivery" },
-  { label: "Releases", icon: Package, to: "/pms/releases", group: "Planning & delivery" },
   { label: "Forms", icon: FileText, to: "/pms/forms", group: "Settings & administration" },
   { label: "Templates", icon: BookOpen, to: "/pms/templates", group: "Settings & administration" },
   { label: "Calendar", icon: CalendarDays, to: "/pms/calendar", group: "Planning & delivery" },
   { label: "Gantt", icon: GitMerge, to: "/pms/gantt", group: "Planning & delivery" },
   { label: "Sprints", icon: Timer, to: "/pms/sprints", group: "Planning & delivery" },
-  { label: "Sprint Lifecycle", icon: Timer, to: "/pms/sprint-lifecycle", group: "Planning & delivery" },
-  { label: "Components", icon: Package, to: "/pms/components", group: "Settings & administration" },
-  { label: "Workflows", icon: GitBranch, to: "/pms/workflows", group: "Settings & administration" },
   { label: "Project workflows", icon: GitBranch, to: "/pms/workflow-schemes", group: "Settings & administration" },
   { label: "Transition approvals", icon: CheckCircle2, to: "/pms/transition-approvals", group: "Planning & delivery" },
   { label: "Blueprints", icon: Workflow, to: "/pms/blueprints", group: "Settings & administration" },
-  { label: "Resource Utilization", icon: Users, to: "/pms/resource-utilization", group: "Planning & delivery" },
-  { label: "Apps & Integrations", icon: Network, to: "/pms/apps", group: "Settings & administration" },
   { label: "Teams Live", icon: Users, to: "/pms/teams-live", group: "People & access", badge: "Drag" },
   { label: "Files", icon: FileText, to: "/pms/files", group: "Collaboration" },
   { label: "Time Tracking", icon: Clock, to: "/pms/time-tracking", group: "Collaboration" },
@@ -946,7 +938,6 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Client Portal", icon: Users, to: "/pms/client-portal", group: "Collaboration" },
   { label: "Audit Logs", icon: ShieldCheck, to: "/pms/audit-logs", group: "Settings & administration" },
   { label: "PM Settings", icon: Settings, to: "/pms/settings", group: "Settings & administration" },
-  { label: "Security", icon: ShieldCheck, to: "/pms/security", group: "Settings & administration" },
   { label: "PM Admin", icon: ShieldCheck, to: "/pms/admin", group: "Settings & administration" },
   { label: "Members & invitations", icon: Users, to: "/pms/members", group: "People & access" },
   { label: "People directory", icon: Users, to: "/pms/people", group: "People & access" },
@@ -987,6 +978,8 @@ const srmNav: RoleNavItem[] = [
   { label: "Follow-Ups", icon: ClipboardCheck, to: "/srm/follow-ups", group: "Sales & Inventory" },
   { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
+  { label: "Salon operations", icon: CalendarDays, to: "/srm/salon", group: "Industry operations" },
+  { label: "Construction operations", icon: Briefcase, to: "/srm/construction", group: "Industry operations" },
   { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
   { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },
   { label: "POS Returns", icon: RotateCcw, to: "/srm/pos/returns", group: "Sales & Inventory" },
@@ -1206,7 +1199,9 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   const root = pathname.split("/")[1];
   if (["crm", "srm", "hrms", "pms", "fam"].includes(root) && available.length && canAccessRoute(`/${root}`, role, isSuperuser)) {
     available.push({label:"Import data",icon:Upload,to:`/${root}/import-data`,group:"Settings & administration"});
-    available.push({label:"Connectors & authorization",icon:KeyRound,to:`/${root}/connectors`,group:"Settings & administration"});
+    if (canAccessRoute(`/${root}/connectors`, role, isSuperuser)) {
+      available.push({label:"Connectors & authorization",icon:KeyRound,to:`/${root}/connectors`,group:"Settings & administration"});
+    }
   }
   const categorized = categorizeNavigation(available, getActiveModule(pathname));
   if (!commonModules.includes(root as CommonModule)) return categorized;
@@ -1375,7 +1370,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/custom-fields": ["admin"],
   "/enterprise": ["admin"],
   "/engagement": ["admin", "ceo", "hr", "manager"],
-  "/helpdesk": ["admin", "hr", "manager"],
+  "/helpdesk": ["admin", "hr", "manager", "employee"],
   "/documents": ["admin", "hr", "employee"],
   "/letters-certificates": ["admin", "hr"],
   "/employee-directory": ["admin", "ceo", "hr", "manager"],
@@ -1407,6 +1402,17 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
     return Boolean(context && canAccessRoute(context.contextPath, role, isSuperuser) && canAccessRoute(context.nativePath, role, isSuperuser));
   }
   pathname = pathname.split(/[?#]/)[0];
+  if (pathname === "/employee-directory") pathname = "/hrms/employee-directory";
+  const directoryRoute = ["/hrms/employee-directory", "/employee-directory"].includes(pathname);
+  const directoryIdentity = useAuthStore.getState().user;
+  // Module display aliases are presentation roles; the directory API uses the
+  // authenticated account role. Preserve explicit role checks for other actors.
+  const directoryRole = directoryIdentity && directoryIdentity.role === role && directoryIdentity.primary_role !== undefined
+    ? directoryIdentity.primary_role : role;
+  if (directoryRoute && !canExplorePeopleDirectory(directoryRole, isSuperuser)) return false;
+  const featureUser={access:useAuthStore.getState().user?.access,is_superuser:isSuperuser};
+  if(/^\/crm\/(?:communication-hub|send-reminders|emails|webforms|campaigns|consents|whatsapp|auto-responses|delivery-logs|communication-timeline)(?:\/|$)/.test(pathname) && !canUseFeature(featureUser,"communication"))return false;
+  if(/^\/(?:(?:crm|srm|hrms|pms|fam)\/)?connectors\/?$/.test(pathname) && !canUseFeature(featureUser,"power_apps","power_apps_view"))return false;
   if (/^\/(crm|srm|hrms|fam)\/workspaces\/?$/.test(pathname)) return canAccessRoute("/" + pathname.split("/")[1], role, isSuperuser);
   if (pathname === "/connectors") return true;
   if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
@@ -1427,6 +1433,7 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
     const module = centralModuleForPath(access, pathname);
     if (module) return Boolean(access.grants[module.key]?.enabled) && (!["hrms","crm","project_management","srm","fam","ai"].includes(module.key) || isFrontendModuleEnabled(module.key));
   }
+  if (directoryRoute) return true;
   if (["/pms/people", "/pms/directory"].includes(pathname)) return isSuperuser || ["admin", "ceo", "hr", "manager"].includes(getRoleKey(role)) || normalizeRole(role) === "pms_org_admin";
   // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
   if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;

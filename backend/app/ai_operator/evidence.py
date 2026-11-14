@@ -17,6 +17,11 @@ def records(value):
 
 def source_link(tool, row, project_id=None):
     ident = row.get('id')
+    if tool in {'pms.calendar_event','pms.calendar_events','pms.calendar_slots'}:return row.get('calendar_url') or '/pms/calendar'
+    if tool in {'pms.timer','pms.time_log','pms.time_summary'}:return '/pms/time-tracking?projectId='+str(row.get('project_id'))
+    if tool=='pms.workload':
+        from urllib.parse import urlencode
+        return '/pms/workload?'+urlencode({**({'workspace_id':row['workspace_id']} if row.get('scope')=='authorized_workspace_projects' else {'projectId':row.get('project_id') or ident}),'from':row.get('start',''),'to':row.get('end',''),'basis':'hours'})
     if tool.endswith('.report'):
         return '/ai-agents/operator'
     if tool in {'pms.milestone','pms.milestones','pms.update_milestone'}:return '/pms/projects/'+str(row.get('project_id'))+'/milestones'

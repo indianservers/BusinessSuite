@@ -147,6 +147,7 @@ export const famApi = {
   createInventoryWarehouse: (data: FAMRecord) => create("/fam/inventory/warehouses", data),
   createInventoryOpeningStock: (data: FAMRecord) => create("/fam/inventory/opening-stock", data),
   inventoryStockMovements: () => list("/fam/inventory/stock-movements"),
+  postInventoryDocument: (kind: "stock-in" | "stock-out" | "purchase-receipts" | "delivery-notes", data: FAMRecord) => create(`/fam/inventory/${kind}`, data),
   createInventoryStockMovement: (data: FAMRecord) => create("/fam/inventory/stock-movements", data),
   postInventoryStockMovement: (id: number | string, data: FAMRecord) => api.post(`/fam/inventory/stock-movements/${id}/post`, data).then((res) => res.data),
   inventoryStockSummary: () => api.get("/fam/inventory/stock-summary").then((res) => res.data),

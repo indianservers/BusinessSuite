@@ -10,10 +10,17 @@
   .mobile-dock-icon{display:flex;align-items:center;justify-content:center;height:26px}
   .mobile-module-dock button:focus-visible,.mobile-dock-sheet a:focus-visible{outline:2px solid #9670ec;outline-offset:2px}
   body:has(.mobile-module-dock) .kf-main{padding-bottom:var(--mobile-dock-space)!important}
+  body:has(.mobile-module-dock):not(:has(.srm-pos)) #suite-main.kf-main{margin-bottom:calc(164px + env(safe-area-inset-bottom,0px));padding-bottom:12px!important;animation-name:suite-page-fade}
+  body.mobile-keyboard-open:has(.mobile-module-dock) #suite-main.kf-main{margin-bottom:0}
+  body.mobile-keyboard-open:has(.mobile-module-dock) .action-bot-launcher{display:none}
   .mobile-dock-fullscreen{height:100dvh;padding-bottom:var(--mobile-dock-space,0px);box-sizing:border-box;overflow:hidden}
   .mobile-dock-tasks{display:block;overflow:auto}
   .mobile-dock-tasks :is(.pms-task-reference,.wa-app){min-height:calc(100dvh - var(--mobile-dock-space));height:calc(100dvh - var(--mobile-dock-space))}
   body:has(.mobile-module-dock) :is(.workspace-back-to-top,.pms-ai-launcher){bottom:calc(102px + env(safe-area-inset-bottom,0px))!important}
+  body:has(.mobile-module-dock) .action-bot-launcher{right:66px;bottom:calc(105px + env(safe-area-inset-bottom,0px))}
+  body:has(.mobile-module-dock) .action-bot-panel:not(.action-bot-expanded){bottom:calc(159px + env(safe-area-inset-bottom,0px));height:min(620px,calc(100dvh - 181px - env(safe-area-inset-bottom,0px)))}
+  body:has(.mobile-module-dock):has(.srm-pos) .action-bot-launcher{bottom:calc(174px + env(safe-area-inset-bottom,0px))}
+  body:has(.mobile-module-dock):has(.srm-pos) .action-bot-panel:not(.action-bot-expanded){bottom:calc(228px + env(safe-area-inset-bottom,0px));height:min(620px,calc(100dvh - 250px - env(safe-area-inset-bottom,0px)))}
   .mobile-dock-sheet[role=dialog]{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;transform:none;width:calc(100% - 24px);max-width:none;max-height:80dvh;border-radius:26px;padding:16px 20px 20px;gap:8px}
   .mobile-dock-handle{width:36px;height:4px;margin:0 auto 8px;border-radius:9px;background:hsl(var(--muted-foreground)/.25)}
   .mobile-dock-eyebrow{font-size:10px;letter-spacing:.12em;font-weight:700;color:#8b6acd}

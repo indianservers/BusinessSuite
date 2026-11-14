@@ -424,3 +424,27 @@ def test_private_note_chat_response_does_not_mint_links_or_cache_bytes(db, stora
         assert not path.exists()
     finally:
         context.reset(token)
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_storage_library_search_is_literal(client,db,superuser_headers,needle):
+    from uuid import uuid4
+    def row(name,company=1,module='crm'):
+        item=StorageObject(organization_id=company,module=module,relative_path='qa/'+uuid4().hex,filename=name,content_type='text/plain',size=1,sha256='0'*64,provider='local',status='local',versions=[])
+        db.add(item);return item
+    matching=row('QA'+needle+'Literal.txt')
+    plain=row('QAplainLiteral.txt')
+    row('QA'+needle+'Literal.txt',module='pms')
+    # ORM scope must exclude the same literal filename owned by another tenant.
+    from app.models.company import Company
+    if not db.get(Company,2):db.add(Company(id=2,name='Foreign file library'))
+    db.flush()
+    row('QA'+needle+'Literal.txt',company=2)
+    db.commit()
+    result=client.get(ROOT+'/files',headers=superuser_headers,params={'search':needle,'module':'crm'})
+    assert result.status_code==200,result.text
+    assert result.json()['total']==1
+    assert [item['id'] for item in result.json()['items']]==[matching.id]
+    normal=client.get(ROOT+'/files',headers=superuser_headers,params={'search':'qaplain','module':'crm'})
+    assert normal.status_code==200,normal.text
+    assert [item['id'] for item in normal.json()['items']]==[plain.id]

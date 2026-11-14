@@ -10,6 +10,27 @@ from tests.test_import_workspace import import_headers
 
 BASE="/api/v1/accounting-sync/connections"
 
+
+def test_shared_accounting_and_imports_use_real_module_entitlements(client, db, import_headers):
+    from app.apps.business_os.models import BOSEnabledModule
+    def enabled(module, value):
+        row=db.query(BOSEnabledModule).filter_by(company_id=1,module_key=module).first()
+        if row is None:
+            row=BOSEnabledModule(company_id=1,module_key=module,display_name=module)
+            db.add(row)
+        row.enabled=value
+        db.commit()
+    enabled("api",False)
+    enabled("import_api",False)
+    assert client.get(BASE,headers=import_headers).status_code==200
+    assert client.get('/api/v1/imports/crm/catalog',headers=import_headers).status_code==200
+    enabled("fam",False)
+    assert client.get(BASE,headers=import_headers).status_code==403
+    assert client.get('/api/v1/imports/fam/catalog',headers=import_headers).status_code==403
+    enabled("crm",False)
+    assert client.get('/api/v1/imports/crm/catalog',headers=import_headers).status_code==403
+    assert client.get('/api/v1/accounting-sync/customer-360/lead/999',headers=import_headers).status_code==403
+
 def snapshot():
     return {"customers":[{"external_id":"c1","name":"Acme","currency":"INR"}],"invoices":[{"external_id":"i1","customer_external_id":"c1","currency":"INR","amount":"1000.10","outstanding":"600.10","status":"open"}],"payments":[{"external_id":"p1","customer_external_id":"c1","currency":"INR","amount":"400"}]}
 

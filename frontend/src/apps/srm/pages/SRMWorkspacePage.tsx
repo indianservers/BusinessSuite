@@ -1,4 +1,10 @@
+import POSReturnForm from "../components/POSReturnForm";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import Customer360Workspace from "@/shared/records/Customer360Page";
 import SalesDashboard from "./SalesDashboard";
+import { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
+import { money as catalogMoney, type CatalogLine } from "@/shared/catalog/api";
+import { salesOrderInput, salesOrderLineAmounts } from "../sales-order-input";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { columnValue } from "@/shared/data-grid/column-presentation";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -605,7 +611,7 @@ function SalesInventoryLaunchpad() {
   );
 }
 
-function Customer360View() { return <CompaniesPage source="srm" role="Customer"/>; }
+function Customer360View() { return <Customer360Workspace source="srm"/>; }
 
 function MetricCard({ label, value }: { label: string; value: unknown }) {
   return <Card><SuiteMetric label={label} value={formatValue(value)} icon={BarChart3}/></Card>;
@@ -1589,65 +1595,14 @@ function CashierClosingView() {
 }
 
 function POSReturnsView() {
-  const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: ["srm", "posReturns"], queryFn: srmApi.posReturns });
-  const [draft, setDraft] = useState({
-    order_number: "",
-    sales_order_line_id: "",
-    product_id: "",
-    quantity: "1",
-    unit_price: "0",
-    tax_amount: "0",
-    refund_method: "cash",
-    reason: "",
-  });
-  const mutation = useMutation({
-    mutationFn: () => srmApi.createPosReturn({
-      order_number: draft.order_number,
-      refund_method: draft.refund_method,
-      reason: draft.reason,
-      lines: [{
-        sales_order_line_id: amountField(draft.sales_order_line_id),
-        product_id: amountField(draft.product_id),
-        quantity: amountField(draft.quantity, 1),
-        unit_price: amountField(draft.unit_price),
-        tax_amount: amountField(draft.tax_amount),
-        restock: true,
-        condition: "sellable",
-      }],
-    }),
-    onSuccess: async (result) => {
-      toast({ title: "POS return created" });
-      setDraft((current) => ({ ...current, sales_order_line_id: "", product_id: "", quantity: "1", tax_amount: "0", reason: "" }));
-      await syncSrmNow(queryClient, {
-        type: "pos_return_completed",
-        source: "srm-pos-returns",
-        ids: { return_id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
-      });
-    },
-    onError: (error) => toast({ title: "Return failed", description: apiErrorMessage(error), variant: "destructive" }),
-  });
+  const scope = useRecordScope();
+  const query = useQuery({ queryKey: ["srm", "posReturns", scope], queryFn: srmApi.posReturns });
   const rows = asList(query.data);
   return (
     <div className="space-y-4">
       <PageHeader meta={viewMeta.posReturns} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-        <SmartCreateSection title={<>Create return</>} size="standard"><Card>
-          <CardHeader><CardTitle className="text-base">Create return</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <label className="space-y-2 text-sm"><span className="font-medium">POS order number</span><Input value={draft.order_number} onChange={(event) => setDraft((current) => ({ ...current, order_number: event.target.value }))} placeholder="POS-00001" /></label>
-            <label className="space-y-2 text-sm"><span className="font-medium">Sales order line ID</span><Input value={draft.sales_order_line_id} onChange={(event) => setDraft((current) => ({ ...current, sales_order_line_id: event.target.value }))} /></label>
-            <label className="space-y-2 text-sm"><span className="font-medium">Product ID</span><Input value={draft.product_id} onChange={(event) => setDraft((current) => ({ ...current, product_id: event.target.value }))} /></label>
-            <div className="grid grid-cols-3 gap-2">
-              <label className="space-y-2 text-sm"><span className="font-medium">Qty</span><Input value={draft.quantity} onChange={(event) => setDraft((current) => ({ ...current, quantity: event.target.value }))} /></label>
-              <label className="space-y-2 text-sm"><span className="font-medium">Rate</span><Input value={draft.unit_price} onChange={(event) => setDraft((current) => ({ ...current, unit_price: event.target.value }))} /></label>
-              <label className="space-y-2 text-sm"><span className="font-medium">Tax</span><Input value={draft.tax_amount} onChange={(event) => setDraft((current) => ({ ...current, tax_amount: event.target.value }))} /></label>
-            </div>
-            <label className="space-y-2 text-sm"><span className="font-medium">Refund method</span><Input value={draft.refund_method} onChange={(event) => setDraft((current) => ({ ...current, refund_method: event.target.value }))} /></label>
-            <label className="space-y-2 text-sm"><span className="font-medium">Reason</span><Input value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value }))} /></label>
-            <Button className="w-full" onClick={() => mutation.mutate()} disabled={!draft.order_number || mutation.isPending}>Create return</Button>
-          </CardContent>
-        </Card></SmartCreateSection>
+        <POSReturnForm />
         <Card>
           <CardHeader><CardTitle className="text-base">Return register</CardTitle></CardHeader>
           <CardContent>
@@ -1710,10 +1665,15 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
     return defaults;
   });
   const [restoredDraft] = useState(() => kind === "salesOrders" && !!sessionStorage.getItem(draftKey));
+  const [orderLines, setOrderLines] = useState<CatalogLine[]>(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem(draftKey) || "null"); if (Array.isArray(saved?.lines)) return saved.lines; } catch { /* Keep other recovered draft fields. */ }
+    const id = Number(salesOrder.product_id);
+    return Number.isSafeInteger(id) && id > 0 ? [{ item_id: id, kind: "product", name: salesOrder.line_description, quantity: Number(salesOrder.quantity), unit_price: Number(salesOrder.unit_price), discount: 0, currency: salesOrder.currency, tax_rate: Number(salesOrder.tax_amount) === 0 ? 0 : Number(salesOrder.tax_amount) / (Number(salesOrder.quantity) * Number(salesOrder.unit_price)) * 100 }] : [];
+  });
   useEffect(() => {
     if (kind !== "salesOrders") return;
-    try { sessionStorage.setItem(draftKey, JSON.stringify(salesOrder)); } catch { /* Saving the record remains available without browser storage. */ }
-  }, [draftKey, kind, salesOrder]);
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ ...salesOrder, lines: orderLines })); } catch { /* Saving the record remains available without browser storage. */ }
+  }, [draftKey, kind, salesOrder, orderLines]);
   const [contract, setContract] = useState({
     title: "",
     sales_order_id: contextId("sales_order_id"),
@@ -1750,31 +1710,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
   const mutation = useMutation({
     mutationFn: async () => {
       if (kind === "salesOrders") {
-        if (!salesOrder.title.trim()) throw new Error("Sales order title is required.");
-        const quantity = amountField(salesOrder.quantity, 1);
-        const unitPrice = amountField(salesOrder.unit_price);
-        const taxAmount = amountField(salesOrder.tax_amount);
-        const subtotal = quantity * unitPrice;
-        return srmApi.createSalesOrder(compactRecord({
-          title: salesOrder.title.trim(),
-          customer_id: numericField(salesOrder.customer_id),
-          currency: salesOrder.currency,
-          subtotal,
-          tax_amount: taxAmount,
-          total_amount: subtotal + taxAmount,
-          expected_start_date: salesOrder.expected_start_date,
-          expected_end_date: salesOrder.expected_end_date,
-          terms: salesOrder.terms,
-          lines: salesOrder.line_description.trim() || numericField(salesOrder.product_id) ? [{
-            product_id: numericField(salesOrder.product_id),
-            service_type: numericField(salesOrder.product_id) ? "product" : "service",
-            description: salesOrder.line_description.trim(),
-            quantity,
-            unit_price: unitPrice,
-            tax_amount: taxAmount,
-            line_total: subtotal + taxAmount,
-          }] : [],
-        }));
+        return srmApi.createSalesOrder(salesOrderInput(salesOrder, orderLines), { recordSync: false });
       }
       if (kind === "contracts") {
         if (!contract.title.trim()) throw new Error("Contract title is required.");
@@ -1828,8 +1764,13 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
       const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
       setMessage(text);
       toast({ title: text });
+      if (kind === "salesOrders") {
+        onSaved?.();
+        void syncSrmNow(queryClient, { type: "sales_order_changed", source: "srm-salesOrders-create", ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined } }).catch(() => toast({ title: "Sales order saved", description: "The list could not be refreshed. Refresh to see the latest details." }));
+        return;
+      }
       await syncSrmNow(queryClient, {
-        type: kind === "salesOrders" ? "sales_order_changed" : "inventory_changed",
+        type: "inventory_changed",
         source: `srm-${kind}-create`,
         ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
       });
@@ -1854,18 +1795,13 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
         <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
           {kind === "salesOrders" ? (
             <>
-              <div className="grid gap-3 md:grid-cols-4">
-                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Title</span><Input value={salesOrder.title} onChange={(event) => setSalesOrder((current) => ({ ...current, title: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={salesOrder.customer_id} onChange={(event) => setSalesOrder((current) => ({ ...current, customer_id: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={salesOrder.currency} onChange={currency => setSalesOrder((current) => ({ ...current, currency }))} /></label>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-2 text-sm"><span className="font-medium">Title</span><Input required maxLength={220} value={salesOrder.title} onChange={event => setSalesOrder(current => ({ ...current, title: event.target.value }))}/></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer</span><SharedCustomerSelect value={salesOrder.customer_id} onChange={customer_id => setSalesOrder(current => ({ ...current, customer_id }))}/></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={salesOrder.currency} onChange={currency => setSalesOrder(current => ({ ...current, currency }))}/></label>
               </div>
-              <div className="grid gap-3 md:grid-cols-6">
-                <label className="space-y-2 text-sm"><span className="font-medium">Product ID</span><Input inputMode="numeric" value={salesOrder.product_id} onChange={(event) => setSalesOrder((current) => ({ ...current, product_id: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Line item</span><Input value={salesOrder.line_description} onChange={(event) => setSalesOrder((current) => ({ ...current, line_description: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Qty</span><Input inputMode="decimal" value={salesOrder.quantity} onChange={(event) => setSalesOrder((current) => ({ ...current, quantity: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Unit price</span><Input inputMode="decimal" value={salesOrder.unit_price} onChange={(event) => setSalesOrder((current) => ({ ...current, unit_price: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Tax</span><Input inputMode="decimal" value={salesOrder.tax_amount} onChange={(event) => setSalesOrder((current) => ({ ...current, tax_amount: event.target.value }))} /></label>
-              </div>
+              <section data-form-section-label="Products and services"><CatalogLinesEditor source="srm" showTax value={orderLines} onChange={setOrderLines} currency={salesOrder.currency} disabled={mutation.isPending}/></section>
+              <p role="status">Order total (including tax): {catalogMoney(orderLines.reduce((sum, line) => sum + salesOrderLineAmounts(line).total, 0), salesOrder.currency)}</p>
               <div className="grid gap-3 md:grid-cols-3">
                 <label className="space-y-2 text-sm"><span className="font-medium">Start date</span><Input type="date" value={salesOrder.expected_start_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_start_date: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">End date</span><Input type="date" value={salesOrder.expected_end_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_end_date: event.target.value }))} /></label>
@@ -1923,7 +1859,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
             </>
           ) : null}
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving..." : `Create ${viewMeta[kind].title.slice(0, -1)}`}</Button>
+            <Button type="submit" data-save-action data-srm-order-submit={kind === "salesOrders" ? "true" : undefined} disabled={mutation.isPending}>{mutation.isPending ? "Saving..." : `Create ${viewMeta[kind].title.slice(0, -1)}`}</Button>
             <ActionMessage message={message} />
           </div>
         </CompactForm>
@@ -2037,7 +1973,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     const isPosSale = metadata.source === "pos";
                     return (
                       <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span><span className="srm-record-label" title={formatValue(name)}>{formatValue(name)}</span></span></td>
+                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span><span className="srm-record-label" title={String(name)}>{String(name)}</span></span></td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>
                         </td>

@@ -100,9 +100,9 @@ def slide_pages(item):
     return pages
 
 
-def pdf(item):
+def pdf(item,*,media_content=None):
     pdf_glyphs(item)
-    return slide_pdf(item) if item['kind']=='presentation' else document_pdf(item)
+    return slide_pdf(item) if item['kind']=='presentation' else document_pdf(item,media_content=media_content)
 
 
 def slide_pdf(item):
@@ -123,7 +123,7 @@ def slide_pdf(item):
     c.save();return stream.getvalue()
 
 
-def document_pdf(item):
+def document_pdf(item,*,media_content=None):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4,landscape
     from reportlab.lib.styles import ParagraphStyle
@@ -141,6 +141,13 @@ def document_pdf(item):
     story=[paragraph(item['title'],title),paragraph(f"{item['module']} / version {item['revision']} / reviewed artifact",small)]
     for block in item.get('content','').split('\n\n'):
         if block.strip():story.append(paragraph(block))
+    if item['kind']=='image':
+        from app.ai_operator.artifact_images import validate
+        from reportlab.platypus import Image
+        content=validate(media_content,item.get('image'));manifest=item['image']
+        scale=min(doc.width/manifest['width'],480/manifest['height'],1)
+        picture=Image(io.BytesIO(content),width=manifest['width']*scale,height=manifest['height']*scale)
+        picture.hAlign='LEFT';story.extend([Spacer(1,8),picture,Spacer(1,12)])
     if item.get('chart'):
         from app.ai_operator.artifact_chart_exports import pdf_flowables
         story.extend(pdf_flowables(item,doc.width,paragraph,cell,head))

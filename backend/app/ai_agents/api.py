@@ -669,6 +669,19 @@ def security_events(module: str | None = None, db: Session = Depends(get_db), cu
     return [{"id": row.id, "action": row.action, "module": row.module, "status": row.status, "created_at": row.created_at, "input_json": metadata(row.input_json), "output_json": metadata(row.output_json)} for row in rows]
 
 
+from app.shared.approval_targets import queries as _permission_targets
+
+
+@router.get("/security/permission-targets")
+def permission_targets(search: str = Query('', max_length=100), page: int = Query(1, ge=1),
+                       selected_user: int | None = Query(None, ge=1),
+                       db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _require_ai_access(current_user)
+    _require_ai_admin(current_user)
+    from app.shared.approval_targets import lookup
+    return lookup(db, _company_id(current_user), search, page, selected_user)
+
+
 @router.get("/security/permissions")
 def get_permissions(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _require_ai_access(current_user)
@@ -687,6 +700,19 @@ def update_permissions(
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     company_id = _company_id(current_user)
+    users, roles = _permission_targets(db, company_id)
+    from app.models.user import Role
+    # Validate the whole batch before changing any rule.
+    for item in payload:
+        if not db.query(AiAgent.id).filter(AiAgent.id == item.agent_id).first():
+            raise HTTPException(422, 'Choose an available AI agent')
+        if item.user_id is not None and not users.filter(User.id == item.user_id).first():
+            raise HTTPException(422, 'Choose an active user in this company')
+        if item.role_id is not None and not roles.filter(Role.id == item.role_id).first():
+            raise HTTPException(422, 'Choose an available role in this company')
+        if item.id is not None and not db.query(AiAgentPermission.id).filter(
+                AiAgentPermission.id == item.id, AiAgentPermission.company_id == company_id).first():
+            raise HTTPException(404, 'Permission rule not found')
     for item in payload:
         row = db.query(AiAgentPermission).filter(AiAgentPermission.id == item.id, AiAgentPermission.company_id == company_id).first() if item.id else None
         if not row:

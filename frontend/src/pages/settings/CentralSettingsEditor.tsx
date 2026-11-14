@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+const BusinessProfile = lazy(() => import("./BusinessProfileSettings"));
 const Defaults = lazy(() => import("./DefaultsSettings"));
 const FilesStorage = lazy(() => import("./FilesStorageSettings"));
 const Companies = lazy(() => import("@/shared/master-data/CompaniesPage"));
@@ -15,9 +16,12 @@ const Users = lazy(() => import("@/features/access/UsersAccessPage"));
 
 export const centralEditorKeys = new Set(["business-defaults", "files-storage", "shared-companies", "api-credentials", "webhooks", "crm-webhooks", "crm-scoring", "crm-territories", "crm-automation", "crm", "crm-pipelines", "crm-approvals", "sales", "finance", "pms", "documents", "security", "audit", "modules", "connections", "communication", "global", "ai", "financial-years", "cost-centers", "accounting-branches", "voucher-types", "payment-modes", "tax-settings", "roles"]);
 
+centralEditorKeys.add("business-profile");
+
 export default function CentralSettingsEditor({ section }: { section: string }) {
   let editor;
   switch (section) {
+    case "business-profile": editor = <BusinessProfile/>; break;
     case "business-defaults": editor = <Defaults/>; break;
     case "files-storage": editor = <FilesStorage/>; break;
     case "shared-companies": editor = <Companies/>; break;

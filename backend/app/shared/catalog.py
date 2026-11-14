@@ -375,7 +375,7 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         if status != "all": query = query.where(model.active == (status == "Active"))
         if category: query = query.where(model.category_name == category)
         if workspace_id: query = query.where(CatalogDetails.workspace_id == workspace_id)
-        if search: query = query.where(or_(model.item_name.ilike(f"%{search}%"), code.ilike(f"%{search}%"), model.description.ilike(f"%{search}%")))
+        if search: query = query.where(or_(model.item_name.icontains(search, autoescape=True), code.icontains(search, autoescape=True), model.description.icontains(search, autoescape=True)))
         if keys is not None:
             selected_ids = [int(value.split(":")[1]) for value in keys if value.startswith(selected + ":")]
             query = query.where(model.id.in_(selected_ids))

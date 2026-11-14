@@ -386,7 +386,7 @@ def conversations(
     ).filter(AssistantConversation.references['suite_memory'].as_boolean().is_not(True),AssistantConversation.references['suite_conversation'].as_boolean().is_not(True))
     return [
         {"id": r.id, "title": r.title, "created_at": r.created_at}
-        for r in rows.filter(AssistantConversation.title.ilike(f"%{q[:100]}%"))
+        for r in rows.filter(AssistantConversation.title.icontains(q[:100], autoescape=True))
         .order_by(AssistantConversation.id.desc())
         .limit(50)
     ]

@@ -4,7 +4,7 @@ import MoveBoard from "@/components/interaction/MoveBoard";
 import { api } from "@/services/api";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, Gauge, RefreshCw, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import type { PMSWorkloadHeatmapResponse } from "../types";
 type WorkloadBasis = "hours" | "story_points" | "task_count";
 
 type WorkloadFilters = {
+  workspace_id: string;
   projectId: string;
   sprintId: string;
   teamId: string;
@@ -26,6 +27,7 @@ type WorkloadFilters = {
 };
 
 const initialFilters: WorkloadFilters = {
+  workspace_id: "",
   projectId: "",
   sprintId: "",
   teamId: "",
@@ -34,14 +36,38 @@ const initialFilters: WorkloadFilters = {
   basis: "hours",
 };
 
+function linkedFilters(params: URLSearchParams): WorkloadFilters {
+  const result = { ...initialFilters };
+  const workspace = params.get("workspace_id") || "";
+  if (/^[1-9]\d{0,9}$/.test(workspace)) result.workspace_id = workspace;
+  const project = params.get("projectId") || "";
+  if (/^[1-9]\d{0,9}$/.test(project)) result.projectId = project;
+  const validDate = (value: string | null): value is string => {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(value + "T00:00:00Z");
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  };
+  const from = params.get("from"), to = params.get("to");
+  if (validDate(from)) result.from = from;
+  if (validDate(to)) result.to = to;
+  const basis = params.get("basis");
+  if (basis === "hours" || basis === "story_points" || basis === "task_count") result.basis = basis;
+  return result;
+}
+
 export default function WorkloadPage() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<WorkloadFilters>(initialFilters);
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<WorkloadFilters>(() => linkedFilters(searchParams));
   const [data, setData] = useState<PMSWorkloadHeatmapResponse | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ userName: string; week: string; cell: PMSWorkloadHeatmapResponse["rows"][number]["cells"][number] } | null>(null);
   const [loading, setLoading] = useState(true);
   const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setFilters(linkedFilters(searchParams));
+    setSelectedCell(null);
+  }, [searchParams]);
 
   const load = () => {
     setLoading(true);
@@ -55,7 +81,7 @@ export default function WorkloadPage() {
 
   useRefreshableEffect(() => {
     load();
-  }, [filters.projectId, filters.sprintId, filters.teamId, filters.from, filters.to, filters.basis]);
+  }, [filters.workspace_id, filters.projectId, filters.sprintId, filters.teamId, filters.from, filters.to, filters.basis]);
 
   const visibleSprints = useMemo(() => {
     const sprints = data?.sprints || [];
@@ -72,6 +98,7 @@ export default function WorkloadPage() {
         <div>
           <h1 className="page-title">Workload</h1>
           <p className="page-description">Compare weekly assignment load against working hours, dated capacity, holidays and approved leave.</p>
+          {filters.workspace_id && <p className="text-sm text-muted-foreground">Workspace {filters.workspace_id}: authorized projects only. Work outside this scope may add load.</p>}
         </div>
         <Button variant="outline" asChild><Link to="/pms/management">Manage dated capacity & working schedules</Link></Button>
         <Button variant="outline" onClick={load}>

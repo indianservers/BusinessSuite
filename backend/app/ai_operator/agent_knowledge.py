@@ -18,6 +18,7 @@ def sources(db,user,bindings,workspace_id):
         chat=chats.owned(db,user,ref.conversation_id)
         if chat.workspace_id!=workspace_id:raise HTTPException(403,'Agent knowledge must use the same workspace')
         row=uploads.owned(db,user,chat.id,ref.attachment_id)
+        if row.arguments.get('media'):raise HTTPException(422,'Agent knowledge requires extracted text; raw images and audio cannot be indexed yet')
         if row.arguments['sha256']!=ref.sha256:raise HTTPException(409,'Agent knowledge source changed; select it again')
         result.append((chat,row))
     return result
@@ -60,6 +61,7 @@ def available(db,user,workspace_id):
         try:verify(db,user,row.security_context,history=True)
         except HTTPException:continue
         file=row.arguments;chat=conversations[row.conversation_id]
+        if file.get('media'):continue
         result.append({'conversation_id':chat['id'],'attachment_id':row.id,'sha256':file['sha256'],
             'name':file['name'],'conversation_title':chat['title'],'notes':file['notes'],'size':file['size']})
     return result

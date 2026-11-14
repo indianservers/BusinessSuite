@@ -131,14 +131,14 @@ def list_companies(
 ):
     query = db.query(Company).filter(Company.is_active == True)
     if search:
-        pattern = f"%{search.strip()}%"
+        pattern = search.strip()
         query = query.filter(
-            (Company.name.ilike(pattern))
-            | (Company.legal_name.ilike(pattern))
-            | (Company.registration_number.ilike(pattern))
-            | (Company.pan_number.ilike(pattern))
-            | (Company.city.ilike(pattern))
-            | (Company.state.ilike(pattern))
+            (Company.name.icontains(pattern, autoescape=True))
+            | (Company.legal_name.icontains(pattern, autoescape=True))
+            | (Company.registration_number.icontains(pattern, autoescape=True))
+            | (Company.pan_number.icontains(pattern, autoescape=True))
+            | (Company.city.icontains(pattern, autoescape=True))
+            | (Company.state.icontains(pattern, autoescape=True))
         )
     return query.order_by(Company.name.asc()).all()
 
@@ -207,12 +207,12 @@ def list_branches(
     if company_id:
         q = q.filter(Branch.company_id == company_id)
     if search:
-        pattern = f"%{search.strip()}%"
+        pattern = search.strip()
         q = q.filter(
-            (Branch.name.ilike(pattern))
-            | (Branch.code.ilike(pattern))
-            | (Branch.city.ilike(pattern))
-            | (Branch.state.ilike(pattern))
+            (Branch.name.icontains(pattern, autoescape=True))
+            | (Branch.code.icontains(pattern, autoescape=True))
+            | (Branch.city.icontains(pattern, autoescape=True))
+            | (Branch.state.icontains(pattern, autoescape=True))
         )
     return q.order_by(Branch.name.asc()).all()
 
@@ -298,11 +298,11 @@ def list_departments(
     if branch_id:
         q = q.filter(Department.branch_id == branch_id)
     if search:
-        pattern = f"%{search.strip()}%"
+        pattern = search.strip()
         q = q.filter(
-            (Department.name.ilike(pattern))
-            | (Department.code.ilike(pattern))
-            | (Department.description.ilike(pattern))
+            (Department.name.icontains(pattern, autoescape=True))
+            | (Department.code.icontains(pattern, autoescape=True))
+            | (Department.description.icontains(pattern, autoescape=True))
         )
     return q.order_by(Department.name.asc()).all()
 
@@ -374,12 +374,12 @@ def list_designations(
     if department_id:
         q = q.filter(Designation.department_id == department_id)
     if search:
-        pattern = f"%{search.strip()}%"
+        pattern = search.strip()
         q = q.filter(
-            (Designation.name.ilike(pattern))
-            | (Designation.code.ilike(pattern))
-            | (Designation.grade.ilike(pattern))
-            | (Designation.description.ilike(pattern))
+            (Designation.name.icontains(pattern, autoescape=True))
+            | (Designation.code.icontains(pattern, autoescape=True))
+            | (Designation.grade.icontains(pattern, autoescape=True))
+            | (Designation.description.icontains(pattern, autoescape=True))
         )
     return q.order_by(Designation.name.asc()).all()
 

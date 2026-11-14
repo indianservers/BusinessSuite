@@ -3,6 +3,18 @@ import {platformApi as api} from '@/services/platform-api';
 import {Alert,message,useData,download,type Data} from './shared';
 
 const ROOT='/platform/nlp-training';
+function percent(value:unknown){return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1?`${(value*100).toFixed(1)}%`:'Not measured'}
+function DialogueChecks({job}:{job:Data}){
+ const dialogue=job.metrics?.dialogue,initial=dialogue?.initial,probes=job.metrics?.workplace_followups;
+ if(!dialogue)return null;
+ return <section aria-label={`Dialogue checks for run ${job.id}`}><h4>Dialogue follow-up checks</h4>
+ <p>{initial?.mode==='fine_tune'?`Fine-tuned from verified run #${initial.job_id}.`:initial?.mode==='from_scratch'?'Trained from a fresh dialogue model.':'Starting-model provenance was not recorded for this older run.'}</p>
+ <p>Seen training examples: {percent(dialogue.training_accuracy)} · Authored development wording: {percent(dialogue.heldout_accuracy)}</p>
+ {probes&&<p>Separate workplace probes: {probes.passed}/{probes.total} correct · {probes.version}</p>}
+ {dialogue.workplace_training_turns&&<p>{dialogue.workplace_training_turns} curated workplace dialogue turns · {dialogue.workplace_dialogue_version}</p>}
+ <p>These synthetic dialogue checks do not measure production accuracy. All action and release checks still apply.</p></section>
+}
+
 export default function NlpTraining(){
  const result=useData<Data>(ROOT);
  const [file,setFile]=useState<File>();const [name,setName]=useState('Training commands');
@@ -25,13 +37,13 @@ export default function NlpTraining(){
  <h2>2. Review datasets</h2>{(data?.datasets||[]).filter((d:Data)=>d.status!=='deleted').map((d:Data)=><article className="po-panel" key={d.id}><strong>{d.name} · #{d.id}</strong><p>{d.counts?.total} distinct examples · {d.status} · {Object.entries(d.counts?.modules||{}).map(([k,v])=>`${k}: ${v}`).join(' / ')}</p>
  {d.status==='pending'&&<><label><input type="checkbox" checked={!!checked[d.id]} onChange={e=>setChecked({...checked,[d.id]:e.target.checked})}/> I reviewed every uploaded row and removed all customer, personal and secret data.</label><button disabled={busy||!checked[d.id]} onClick={()=>void act(()=>api.post(`${ROOT}/datasets/${d.id}/approve`,{privacy_reviewed:true}),'Dataset approved')}>Approve dataset #{d.id}</button></>}
  <button disabled={busy} onClick={()=>void act(()=>api.delete(`${ROOT}/datasets/${d.id}`),'Dataset removed from future training')}>Remove dataset #{d.id}</button></article>)}
- <h2>3. Train on server</h2><form className="po-form" onSubmit={e=>{e.preventDefault();void act(()=>api.post(ROOT+'/jobs',{dataset_id:Number(selected),epochs,request_key:crypto.randomUUID()}),'Training queued on server')}}>
+ <h2>3. Train on server</h2><p>Dialogue updates reuse a verified active model when compatible. Intent-model epochs below apply to command recognition; dialogue tuning has its own recorded checkpoints.</p><form className="po-form" onSubmit={e=>{e.preventDefault();void act(()=>api.post(ROOT+'/jobs',{dataset_id:Number(selected),epochs,request_key:crypto.randomUUID()}),'Training queued on server')}}>
  <label>Approved dataset<select required value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Select approved dataset</option>{(data?.datasets||[]).filter((d:Data)=>d.status==='approved').map((d:Data)=><option key={d.id} value={d.id}>{d.name} · #{d.id}</option>)}</select></label>
- <label>Epochs<input type="number" min={50} max={400} value={epochs} onChange={e=>setEpochs(Number(e.target.value))}/></label><button className="po-primary" disabled={busy||!selected||running}>Start TensorFlow training</button></form>
+ <label>Intent-model epochs<input type="number" min={50} max={400} value={epochs} onChange={e=>setEpochs(Number(e.target.value))}/></label><button className="po-primary" disabled={busy||!selected||running}>Start TensorFlow training</button></form>
  <h2>4. Evaluate candidates & release</h2><p>Active model: {data?.active_job_id?`run #${data.active_job_id}`:'authored base model'}. Training accuracy measures seen examples; frozen wording and canonical action tests are separate release checks.</p>
  <p>{data?.learning_policy}</p><p>Policy: {data?.release_policy||'action-model-release-v1'} · All gates must pass before activation. Signed artifacts are checked again when activated. Sales remains experimental.</p>
  {data?.active_integrity&&<p role={data.active_integrity==='invalid'?'alert':'status'}>Active artifact integrity: {data.active_integrity}. {data.active_integrity==='invalid'?'The runtime refuses the altered platform artifacts. Restore a verified release or the authored base model.':''}</p>}
- {(data?.jobs||[]).map((j:Data)=><article className="po-panel" key={j.id}><h3>Run #{j.id} · {j.status}</h3><p>{j.name} · {j.epochs} epochs</p>{j.error&&<Alert error={j.error}/>}<details><summary>Training and evaluation metrics</summary><pre style={{whiteSpace:'pre-wrap'}}>{j.metrics?JSON.stringify(j.metrics,null,2):''}</pre></details>
+ {(data?.jobs||[]).map((j:Data)=><article className="po-panel" key={j.id}><h3>Run #{j.id} · {j.status}</h3><p>{j.name} · {j.epochs} intent-model epochs</p>{j.stage&&<p role="status">Training stage: {String(j.stage).replace(/_/g,' ')}</p>}{j.error&&<Alert error={j.error}/>}<DialogueChecks job={j}/><details><summary>Training and evaluation metrics</summary><pre style={{whiteSpace:'pre-wrap'}}>{j.metrics?JSON.stringify(j.metrics,null,2):''}</pre></details>
  {j.evaluation&&<p role="status">Evaluation: {j.evaluation.state}{j.evaluation.error?` · ${j.evaluation.error}`:''}</p>}
  {j.release&&<section aria-label={`Release gates for run ${j.id}`}><h4>{j.release.passed?'Release gates passed':'Release blocked'}</h4><ul>{j.release.checks.map((c:Data)=><li key={c.name}>{c.passed?'Passed':'Blocked'} · {c.name} · {typeof c.actual==='object'?JSON.stringify(c.actual):String(c.actual)} · {c.required}</li>)}</ul><p>{j.release.limitations}</p></section>}
  {j.status==='succeeded'&&<><button disabled={busy||running||(data?.active_job_id===j.id&&!!j.release)} onClick={()=>void act(()=>api.post(`${ROOT}/jobs/${j.id}/evaluate`),'Server evaluation queued; active model unchanged')}>Evaluate candidate #{j.id}</button><button disabled={busy||running||data?.active_job_id===j.id||!j.release?.passed} onClick={()=>void act(()=>api.post(`${ROOT}/jobs/${j.id}/activate`),`Run #${j.id} activated`)}>Activate model #{j.id}</button></>}</article>)}

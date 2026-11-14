@@ -13,7 +13,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -946,7 +946,8 @@ def post_srm_invoice_to_fam(db: Session, request: Request, user: User, company_i
             raise HTTPException(422, "Tax posting is configured only for India GST and UAE VAT")
     voucher = create_and_post_voucher(db, request, user, company_id, "SV", invoice_date, invoice.invoice_number, f"SRM sales invoice {invoice.invoice_number}", "invoice", invoice.id, lines)
     add_mapping(db, company_id, "invoice", invoice.id, "voucher", voucher.id)
-    bill = create_or_get_bill_reference(db, company_id, party, party.ledger_id, voucher.id, invoice.invoice_number, invoice_date, invoice.due_date or invoice_date + timedelta(days=party.payment_terms_days or 0), "invoice", total, Decimal(invoice.balance_amount if invoice.balance_amount is not None else total), "invoice", invoice.id)
+    # Import the gross invoice balance; receipt allocations are replayed separately.
+    bill = create_or_get_bill_reference(db, company_id, party, party.ledger_id, voucher.id, invoice.invoice_number, invoice_date, invoice.due_date or invoice_date + timedelta(days=party.payment_terms_days or 0), "invoice", total, total, "invoice", invoice.id)
     job.status = "posted"
     job.voucher_id = voucher.id
     job.error_message = None
@@ -3345,10 +3346,30 @@ def list_stock_groups(db: Session = Depends(get_db), current_user: User = Depend
     return {"items": [serialize(item) for item in items], "total": len(items)}
 
 
+def validate_stock_group_parent(db: Session, company_id: int, parent_id: int | None, group_id: int | None = None):
+    if parent_id is None:
+        return
+    parent = db.query(FAMStockGroup).filter_by(id=parent_id, company_id=company_id, active=True).first()
+    if not parent:
+        raise HTTPException(status_code=422, detail="Choose an active parent group in this company")
+    seen = {group_id} if group_id is not None else set()
+    while parent is not None:
+        if parent.id in seen:
+            raise HTTPException(status_code=422, detail="Parent group would create a hierarchy cycle")
+        seen.add(parent.id)
+        parent = db.query(FAMStockGroup).filter_by(id=parent.parent_group_id, company_id=company_id).first() if parent.parent_group_id is not None else None
+
+
+def validate_warehouse_branch(db: Session, company_id: int, branch_id: int | None):
+    if branch_id is not None and not db.query(FAMBranch).filter_by(id=branch_id, company_id=company_id, active=True).first():
+        raise HTTPException(status_code=422, detail="Choose an active branch in this company")
+
+
 @router.post("/inventory/categories", status_code=status.HTTP_201_CREATED)
 @router.post("/inventory/stock-groups", status_code=status.HTTP_201_CREATED)
 def create_stock_group(payload: InventoryGroupPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
+    validate_stock_group_parent(db, company_id, payload.parent_group_id)
     item = FAMStockGroup(company_id=company_id, **payload.model_dump())
     db.add(item)
     db.flush()
@@ -3385,6 +3406,7 @@ def list_warehouses(db: Session = Depends(get_db), current_user: User = Depends(
 @router.post("/inventory/warehouses", status_code=status.HTTP_201_CREATED)
 def create_warehouse(payload: InventoryWarehousePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
+    validate_warehouse_branch(db, company_id, payload.branch_id)
     item = FAMWarehouse(company_id=company_id, **payload.model_dump())
     db.add(item)
     db.flush()
@@ -3398,10 +3420,17 @@ def list_inventory_items(search: str | None = None, db: Session = Depends(get_db
     company_id = bootstrap(db, current_user)
     query = db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id)
     if search:
-        normalized = f"%{search.lower()}%"
-        query = query.filter(or_(func.lower(FAMStockItem.sku).like(normalized), func.lower(FAMStockItem.item_name).like(normalized), func.lower(FAMStockItem.hsn_code).like(normalized)))
+        normalized = search.lower()
+        query = query.filter(or_(func.lower(FAMStockItem.sku).contains(normalized, autoescape=True), func.lower(FAMStockItem.item_name).contains(normalized, autoescape=True), func.lower(FAMStockItem.hsn_code).contains(normalized, autoescape=True)))
     items = query.order_by(FAMStockItem.item_name).all()
     return {"items": [serialize(item) for item in items], "total": len(items)}
+
+
+def validate_item_master_references(db: Session, company_id: int, payload: InventoryItemPayload):
+    for field, model, label in [("stock_group_id", FAMStockGroup, "Stock group"), ("unit_id", FAMUnitOfMeasure, "Unit"), ("default_warehouse_id", FAMWarehouse, "Warehouse")]:
+        value = getattr(payload, field)
+        if value is not None and not db.query(model).filter(model.company_id == company_id, model.id == value, model.active.is_(True)).first():
+            raise HTTPException(status_code=422, detail=f"{label} is unavailable for this company")
 
 
 @router.post("/inventory/items", status_code=status.HTTP_201_CREATED)
@@ -3409,6 +3438,7 @@ def create_inventory_item(payload: InventoryItemPayload, request: Request, db: S
     company_id = bootstrap(db, current_user)
     if db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id, FAMStockItem.sku == payload.sku).first():
         raise HTTPException(status_code=409, detail="Stock item SKU already exists")
+    validate_item_master_references(db, company_id, payload)
     inventory, cogs = ensure_inventory_ledgers(db, company_id)
     item = FAMStockItem(company_id=company_id, created_by=current_user.id, inventory_ledger_id=payload.inventory_ledger_id or inventory.id, cogs_ledger_id=payload.cogs_ledger_id or cogs.id, **payload.model_dump(exclude={"inventory_ledger_id", "cogs_ledger_id"}))
     db.add(item)
@@ -3439,7 +3469,16 @@ def update_inventory_item_ledger_mapping(id: int, payload: InventoryLedgerMappin
     company_id = bootstrap(db, current_user)
     item = inventory_item_or_404(db, company_id, id)
     old = get_inventory_item_ledger_mapping(id, db, current_user)
-    for key, value in payload.model_dump().items():
+    changes = payload.model_dump(exclude_unset=True)
+    if "branch_id" in changes and changes["branch_id"] != item.branch_id:
+        raise HTTPException(status_code=403, detail="Use branch transfer to change item ownership")
+    for key, value in changes.items():
+        if value is None:
+            continue
+        model = FAMLedger if key.endswith("_ledger_id") else {"gst_rate_id": FAMGSTRate, "cost_center_id": FAMCostCenter, "default_warehouse_id": FAMWarehouse}.get(key)
+        if model is not None and not db.query(model).filter(model.id == value, model.company_id == company_id, model.active.is_(True)).first():
+            raise HTTPException(status_code=422, detail=f"{key.replace('_', ' ').removesuffix(' id').capitalize()} is unavailable for this company")
+    for key, value in changes.items():
         setattr(item, key, value)
     inventory_audit(db, request, current_user, company_id, "item_ledger_mapping", item.id, "UPDATE", old, get_inventory_item_ledger_mapping(id, db, current_user))
     db.commit()
@@ -3450,6 +3489,7 @@ def update_inventory_item_ledger_mapping(id: int, payload: InventoryLedgerMappin
 def update_inventory_item(id: int, payload: InventoryItemPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     item = inventory_item_or_404(db, company_id, id)
+    validate_item_master_references(db, company_id, payload)
     old = serialize(item)
     for key, value in payload.model_dump().items():
         setattr(item, key, value)
@@ -3534,6 +3574,11 @@ def list_stock_movements_by_type(movement_type: str, db: Session, current_user: 
 
 def create_posted_stock_document(movement_type: str, payload: StockMovementPayload, request: Request, db: Session, current_user: User) -> dict[str, Any]:
     company_id = bootstrap(db, current_user)
+    if not payload.lines:
+        raise HTTPException(status_code=422, detail="Stock document lines are required")
+    inward = movement_type in {"stock_in", "purchase_receipt"}
+    if any((line.quantity_in <= 0 if inward else line.quantity_out <= 0) for line in payload.lines):
+        raise HTTPException(status_code=422, detail="Stock quantities must match the document direction")
     if inventory_source_exists(db, company_id, payload.source_module, payload.source_record_type or movement_type, payload.source_record_id):
         raise HTTPException(status_code=409, detail="Inventory posting already exists for this source")
     movement = FAMStockMovement(company_id=company_id, movement_number=payload.movement_number or generated_number("MOV"), movement_date=payload.movement_date, movement_type=movement_type, reference_number=payload.reference_number, narration=payload.narration, source_module=payload.source_module or "fam", source_record_type=payload.source_record_type or movement_type, source_record_id=payload.source_record_id, created_by=current_user.id)
@@ -3665,7 +3710,7 @@ def post_stock_movement(id: int, payload: StockMovementPayload, request: Request
 def stock_summary(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = inventory_summary_rows(db, company_id)
-    return {"items": rows, "total": len(rows), "total_stock_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
+    return {"items": rows, "total": len(rows), "currency": inventory_reconciliation_currency(db, company_id), "total_stock_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
 
 
 @router.get("/inventory/item-ledger/{id}")
@@ -3683,6 +3728,8 @@ def create_stock_transfer(payload: StockTransferPayload, request: Request, db: S
         raise HTTPException(status_code=422, detail="Transfer warehouses must be different")
     warehouse_or_404(db, company_id, payload.from_warehouse_id)
     warehouse_or_404(db, company_id, payload.to_warehouse_id)
+    for line in payload.lines:
+        inventory_item_or_404(db, company_id, line.stock_item_id)
     transfer = FAMStockTransfer(company_id=company_id, transfer_number=payload.transfer_number or generated_number("TRF"), transfer_date=payload.transfer_date, from_warehouse_id=payload.from_warehouse_id, to_warehouse_id=payload.to_warehouse_id, notes=payload.notes, lines_json=[line.model_dump(mode="json") for line in payload.lines], created_by=current_user.id)
     db.add(transfer)
     db.flush()
@@ -3741,6 +3788,10 @@ def post_transfer_accounting(id: int, request: Request, db: Session = Depends(ge
 def create_stock_adjustment(payload: StockAdjustmentPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_STOCK_ADJUST_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     warehouse_or_404(db, company_id, payload.warehouse_id)
+    if not payload.lines:
+        raise HTTPException(status_code=422, detail="Stock adjustment lines are required")
+    for line in payload.lines:
+        inventory_item_or_404(db, company_id, line.stock_item_id)
     adjustment = FAMStockAdjustment(company_id=company_id, adjustment_number=payload.adjustment_number or generated_number("ADJ"), adjustment_date=payload.adjustment_date, warehouse_id=payload.warehouse_id, adjustment_type=payload.adjustment_type, reason=payload.reason, notes=payload.notes, lines_json=[line.model_dump(mode="json") for line in payload.lines], created_by=current_user.id)
     db.add(adjustment)
     db.flush()
@@ -3820,7 +3871,7 @@ def post_adjustment_accounting(id: int, payload: dict[str, Any] | None = Body(de
 def inventory_valuation(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VALUATION_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = inventory_summary_rows(db, company_id)
-    return {"items": rows, "total": len(rows), "valuation_method": "weighted_average", "total_inventory_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
+    return {"items": rows, "total": len(rows), "valuation_method": "weighted_average", "valuation_basis": "stock_item_current_average_cost", "currency": inventory_reconciliation_currency(db, company_id), "total_inventory_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
 
 
 @router.get("/inventory/valuation/{item_id}")
@@ -3835,7 +3886,7 @@ def inventory_item_valuation(item_id: int, db: Session = Depends(get_db), curren
 def reorder_alerts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = [row for row in inventory_summary_rows(db, company_id) if row.get("is_low_stock")]
-    return {"items": rows, "total": len(rows)}
+    return {"items": rows, "total": len(rows), "currency": inventory_reconciliation_currency(db, company_id)}
 
 
 @router.post("/inventory/post-cogs")
@@ -3896,10 +3947,14 @@ def inventory_report_item_ledger(item_id: int, db: Session = Depends(get_db), cu
 def inventory_report_warehouse_stock(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows: dict[tuple[int, int], dict[str, Any]] = {}
-    lines = db.query(FAMStockMovementLine).filter(FAMStockMovementLine.company_id == company_id).all()
+    lines = (db.query(FAMStockMovementLine)
+        .join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id)
+        .filter(FAMStockMovementLine.company_id == company_id,
+                FAMStockMovement.company_id == company_id,
+                FAMStockMovement.status == "posted").all())
     for line in lines:
         key = (line.warehouse_id, line.stock_item_id)
-        row = rows.setdefault(key, {"warehouse_id": line.warehouse_id, "stock_item_id": line.stock_item_id, "quantity": Decimal("0"), "stock_value": Decimal("0")})
+        row = rows.setdefault(key, {"id": f"warehouse:{line.warehouse_id}:item:{line.stock_item_id}", "warehouse_id": line.warehouse_id, "stock_item_id": line.stock_item_id, "quantity": Decimal("0"), "stock_value": Decimal("0")})
         row["quantity"] += decimal_value(line.quantity_in) - decimal_value(line.quantity_out)
     for row in rows.values():
         item = inventory_item_or_404(db, company_id, int(row["stock_item_id"]))
@@ -3909,7 +3964,7 @@ def inventory_report_warehouse_stock(db: Session = Depends(get_db), current_user
         row["warehouse_name"] = warehouse.warehouse_name
         row["stock_value"] = (row["quantity"] * decimal_value(item.average_cost)).quantize(Decimal("0.01"))
     serialized = [{**row, "quantity": float(row["quantity"]), "stock_value": float(row["stock_value"])} for row in rows.values()]
-    return {"items": serialized, "total": len(serialized)}
+    return {"items": serialized, "total": len(serialized), "currency": inventory_reconciliation_currency(db, company_id)}
 
 
 @router.get("/inventory/reports/stock-aging")
@@ -3917,16 +3972,14 @@ def inventory_report_warehouse_stock(db: Session = Depends(get_db), current_user
 def inventory_report_stock_aging(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     today = date.today()
+    last_dates = dict(db.query(FAMStockMovementLine.stock_item_id, func.max(FAMStockMovement.movement_date))
+        .join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id)
+        .filter(FAMStockMovementLine.company_id == company_id,
+                FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted")
+        .group_by(FAMStockMovementLine.stock_item_id).all())
     rows = []
     for item in db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id).all():
-        last_line = (
-            db.query(FAMStockMovementLine)
-            .join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id)
-            .filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.stock_item_id == item.id)
-            .order_by(FAMStockMovement.movement_date.desc())
-            .first()
-        )
-        movement_date = db.query(FAMStockMovement.movement_date).filter(FAMStockMovement.id == last_line.movement_id).scalar() if last_line else None
+        movement_date = last_dates.get(item.id)
         age_days = (today - movement_date).days if movement_date else None
         rows.append({**stock_item_payload(db, company_id, item), "last_movement_date": movement_date.isoformat() if movement_date else None, "age_days": age_days})
     return {"items": rows, "total": len(rows)}
@@ -3940,7 +3993,7 @@ def inventory_report_reorder(db: Session = Depends(get_db), current_user: User =
 
 @router.get("/inventory/reports/dead-stock")
 @router.get("/inventory/dead-stock")
-def inventory_report_dead_stock(days: int = 90, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
+def inventory_report_dead_stock(days: int = Query(90, ge=1, le=36500), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     aging = inventory_report_stock_aging(db, current_user)
     rows = [item for item in aging["items"] if item.get("age_days") is None or int(item.get("age_days") or 0) >= days]
     return {"items": rows, "total": len(rows), "threshold_days": days}
@@ -3950,9 +4003,17 @@ def inventory_report_dead_stock(days: int = 90, db: Session = Depends(get_db), c
 @router.get("/inventory/fast-slow-moving")
 def inventory_report_fast_slow_moving(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
+    # Transfers and adjustments are not commercial issues; drafts never affect activity.
+    issued_quantities = dict(db.query(FAMStockMovementLine.stock_item_id, func.sum(FAMStockMovementLine.quantity_out))
+        .join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id)
+        .filter(FAMStockMovementLine.company_id == company_id,
+                FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted",
+                FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue"]),
+                FAMStockMovementLine.quantity_out > 0)
+        .group_by(FAMStockMovementLine.stock_item_id).all())
     rows = []
     for item in db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id).all():
-        qty_out = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.quantity_out), 0)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.stock_item_id == item.id).scalar())
+        qty_out = decimal_value(issued_quantities.get(item.id))
         rows.append({**stock_item_payload(db, company_id, item), "quantity_out": float(qty_out), "movement_class": "fast" if qty_out >= 10 else "slow" if qty_out > 0 else "non_moving"})
     return {"items": sorted(rows, key=lambda row: row["quantity_out"], reverse=True), "total": len(rows)}
 
@@ -3980,17 +4041,26 @@ def inventory_report_sales_item_register(db: Session = Depends(get_db), current_
 @router.get("/inventory/gross-margin")
 def inventory_report_gross_margin(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
+    from app.apps.fam.inventory_margin import attributed_revenue
+    items = db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id).all()
+    revenues, linked, attribution = attributed_revenue(db, company_id, [item.id for item in items])
     rows = []
-    for item in db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id).all():
-        revenue = Decimal("0")
-        sales_lines = db.query(SRMInvoiceLine).filter(or_(SRMInvoiceLine.description.ilike(f"%{item.sku}%"), SRMInvoiceLine.description.ilike(f"%{item.item_name}%"))).all()
-        for line in sales_lines:
-            revenue += decimal_value(line.line_total)
-        qty_out = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.quantity_out), 0)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.stock_item_id == item.id).scalar())
-        cost = (qty_out * decimal_value(item.average_cost)).quantize(Decimal("0.01"))
+    posted_costs = dict(db.query(FAMStockMovementLine.stock_item_id, func.sum(FAMStockMovementLine.value)).join(
+        FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id
+    ).filter(
+        FAMStockMovementLine.company_id == company_id,
+        FAMStockMovement.company_id == company_id,
+        FAMStockMovement.status == "posted",
+        FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue"]),
+        FAMStockMovementLine.quantity_out > 0,
+    ).group_by(FAMStockMovementLine.stock_item_id).all())
+    for item in items:
+        revenue = decimal_value(revenues.get(item.id, 0)).quantize(Decimal("0.01"))
+        complete = item.id in linked and not attribution["unattributed_invoice_lines"] and not attribution["ambiguous_product_links"]
+        cost = decimal_value(posted_costs.get(item.id, 0)).quantize(Decimal("0.01"))
         margin = revenue - cost
-        rows.append({**stock_item_payload(db, company_id, item), "revenue": float(revenue), "cogs": float(cost), "gross_margin": float(margin), "gross_margin_percent": float((margin / revenue * Decimal("100")).quantize(Decimal("0.01"))) if revenue else 0})
-    return {"items": rows, "total": len(rows)}
+        rows.append({**stock_item_payload(db, company_id, item), "revenue": float(revenue), "cogs": float(cost), "gross_margin": float(margin) if complete else None, "gross_margin_percent": (float((margin / revenue * Decimal("100")).quantize(Decimal("0.01"))) if revenue else 0) if complete else None, "revenue_complete": complete, "revenue_status": "Attributed" if complete else "Incomplete attribution"})
+    return {"items": rows, "total": len(rows), "attribution": attribution}
 
 
 @router.get("/inventory/reports/cogs")
@@ -4001,7 +4071,7 @@ def inventory_report_cogs(db: Session = Depends(get_db), current_user: User = De
     for movement in movements:
         total = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.value), 0)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.movement_id == movement.id, FAMStockMovementLine.quantity_out > 0).scalar())
         rows.append({**serialize(movement), "cogs_value": float(total), "voucher_posted": bool(movement.voucher_id)})
-    return {"items": rows, "total": len(rows), "total_cogs": float(sum(decimal_value(row["cogs_value"]) for row in rows))}
+    return {"currency": inventory_reconciliation_currency(db, company_id), "items": rows, "total": len(rows), "total_cogs": float(sum(decimal_value(row["cogs_value"]) for row in rows))}
 
 
 @router.get("/inventory/reports/hsn-summary")
@@ -4010,12 +4080,12 @@ def inventory_report_hsn_summary(db: Session = Depends(get_db), current_user: Us
     grouped: dict[str, dict[str, Any]] = {}
     for item in db.query(FAMStockItem).filter(FAMStockItem.company_id == company_id).all():
         key = item.hsn_code or "unmapped"
-        row = grouped.setdefault(key, {"hsn_code": key, "items": 0, "quantity": Decimal("0"), "stock_value": Decimal("0")})
+        row = grouped.setdefault(key, {"id": "hsn:"+key, "hsn_code": key, "items": 0, "quantity": Decimal("0"), "stock_value": Decimal("0")})
         row["items"] += 1
         row["quantity"] += decimal_value(item.current_quantity)
         row["stock_value"] += decimal_value(item.current_quantity) * decimal_value(item.average_cost)
     rows = [{**row, "quantity": float(row["quantity"]), "stock_value": float(row["stock_value"].quantize(Decimal("0.01")))} for row in grouped.values()]
-    return {"items": rows, "total": len(rows)}
+    return {"currency": inventory_reconciliation_currency(db, company_id), "items": rows, "total": len(rows)}
 
 
 @router.get("/inventory/reports/stock-movement-audit")
@@ -4025,6 +4095,11 @@ def inventory_report_stock_movement_audit(db: Session = Depends(get_db), current
     rows = db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id, FAMAuditLog.record_type.ilike("inventory_%")).order_by(FAMAuditLog.performed_at.desc()).limit(200).all()
     rows_statistics_total = count_rows_before_page(db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id, FAMAuditLog.record_type.ilike('inventory_%')).order_by(FAMAuditLog.performed_at.desc()).limit(200))
     return {"items": [serialize(row) for row in rows], "total": rows_statistics_total}
+
+
+def inventory_reconciliation_currency(db: Session, company_id: int) -> str | None:
+    settings = db.query(FAMCompanyFinancialSettings).filter_by(company_id=company_id).first()
+    return settings.base_currency if settings else None
 
 
 @router.get("/inventory/reconciliation/gl")
@@ -4037,7 +4112,7 @@ def inventory_gl_reconciliation(db: Session = Depends(get_db), current_user: Use
     credits = decimal_value(db.query(func.coalesce(func.sum(FAMLedgerEntry.credit_amount), 0)).filter(FAMLedgerEntry.company_id == company_id, FAMLedgerEntry.ledger_id == inventory.id).scalar())
     ledger_balance = debits - credits
     difference = stock_value - ledger_balance
-    return {"inventory_ledger_id": inventory.id, "stock_valuation": float(stock_value), "ledger_balance": float(ledger_balance), "difference": float(difference), "status": "matched" if difference == 0 else "variance"}
+    return {"currency": inventory_reconciliation_currency(db, company_id), "inventory_ledger_id": inventory.id, "stock_valuation": float(stock_value), "ledger_balance": float(ledger_balance), "difference": float(difference), "status": "matched" if difference == 0 else "variance"}
 
 
 @router.get("/inventory/reconciliation/srm")
@@ -4062,7 +4137,7 @@ def inventory_grni_reconciliation(db: Session = Depends(get_db), current_user: U
         if not linked_bill:
             total += value
             unbilled.append({**serialize(movement), "grni_value": float(value), "purchase_bill_status": "not_linked"})
-    return {"items": unbilled, "total": len(unbilled), "grni_outstanding": float(total), "status": "matched" if total == 0 else "open"}
+    return {"currency": inventory_reconciliation_currency(db, company_id), "items": unbilled, "total": len(unbilled), "grni_outstanding": float(total), "status": "matched" if total == 0 else "open"}
 
 
 @router.get("/inventory/reconciliation/cogs")
@@ -4079,9 +4154,9 @@ def inventory_cogs_reconciliation(db: Session = Depends(get_db), current_user: U
             voucher_value = decimal_value(db.query(func.coalesce(func.sum(FAMVoucherLine.debit_amount), 0)).filter(FAMVoucherLine.voucher_id == movement.voucher_id).scalar())
         issue_total += issue_value
         posted_total += voucher_value
-        rows.append({**serialize(movement), "stock_issue_value": float(issue_value), "cogs_posted": float(voucher_value), "status": "matched" if issue_value == voucher_value else "variance"})
+        rows.append({**serialize(movement), "stock_issue_value": float(issue_value), "cogs_posted": float(voucher_value), "difference": float(issue_value-voucher_value), "status": "matched" if issue_value == voucher_value else "variance"})
     difference = issue_total - posted_total
-    return {"items": rows, "total": len(rows), "stock_issue_value": float(issue_total), "cogs_posted": float(posted_total), "difference": float(difference), "status": "matched" if difference == 0 else "variance"}
+    return {"currency": inventory_reconciliation_currency(db, company_id), "items": rows, "total": len(rows), "stock_issue_value": float(issue_total), "cogs_posted": float(posted_total), "difference": float(difference), "status": "matched" if difference == 0 else "variance"}
 
 
 @router.get("/inventory/reconciliation/gst")
@@ -4092,7 +4167,7 @@ def inventory_gst_reconciliation(db: Session = Depends(get_db), current_user: Us
     for item in items:
         gst_rate = db.query(FAMGSTRate).filter(FAMGSTRate.company_id == company_id, FAMGSTRate.id == item.gst_rate_id).first() if item.gst_rate_id else None
         register_lines = db.query(FAMGSTTransactionLine).filter(FAMGSTTransactionLine.company_id == company_id, FAMGSTTransactionLine.hsn_sac_code == item.hsn_code).count() if item.hsn_code else 0
-        rows.append({"stock_item_id": item.id, "sku": item.sku, "hsn_code": item.hsn_code, "gst_rate_id": item.gst_rate_id, "gst_rate_configured": bool(gst_rate), "gst_register_lines": register_lines, "status": "mapped" if item.hsn_code and gst_rate else "missing_mapping"})
+        rows.append({"id": item.id, "stock_item_id": item.id, "sku": item.sku, "hsn_code": item.hsn_code, "gst_rate_id": item.gst_rate_id, "gst_rate_configured": bool(gst_rate), "gst_register_lines": register_lines, "status": "mapped" if item.hsn_code and gst_rate else "missing_mapping"})
     return {"items": rows, "total": len(rows), "exceptions": len([row for row in rows if row["status"] != "mapped"])}
 
 
@@ -4142,12 +4217,62 @@ def release_reservation(payload: InventoryReleaseReservationPayload, request: Re
     return serialize(reservation)
 
 
+@router.get("/inventory/sales-products")
+def inventory_sales_product_options(search: str = Query("", max_length=160), page: int = Query(1, ge=1), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
+    from app.apps.srm.models import SRMProduct
+    company_id = bootstrap(db, current_user)
+    query = db.query(SRMProduct).filter(SRMProduct.organization_id == company_id, SRMProduct.active.is_(True), SRMProduct.product_type == "product")
+    if search.strip():
+        query = query.filter(or_(SRMProduct.sku.icontains(search.strip(), autoescape=True), SRMProduct.item_name.icontains(search.strip(), autoescape=True)))
+    total = query.count()
+    rows = query.order_by(SRMProduct.item_name, SRMProduct.id).offset((page-1)*25).limit(25).all()
+    return {"items":[{"id":row.id, "label":f"{row.item_name} ({row.sku})"} for row in rows], "total":total, "page":page, "has_more":page*25<total}
+
+
+@router.get("/inventory/items/{id}/sales-products")
+def inventory_linked_sales_products(id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
+    from app.apps.srm.models import SRMProduct
+    from app.apps.fam.inventory_margin import product_identity
+    company_id = bootstrap(db, current_user)
+    inventory_item_or_404(db, company_id, id)
+    links = db.query(FAMInventoryIntegrationLink).filter_by(company_id=company_id, stock_item_id=id, target_module="srm", target_record_type="product", active=True).order_by(FAMInventoryIntegrationLink.id).all()
+    identities = {product_identity(row.target_record_id) for row in links}
+    products = {row.id:row for row in db.query(SRMProduct).filter(SRMProduct.organization_id==company_id, SRMProduct.id.in_(identities-{None})).all()}
+    return {"items":[{"id":row.id,"product_id":product.id if product else None,"label":f"{product.item_name} ({product.sku})" if product else "Unavailable Sales product", "available":bool(product and product.active and product.product_type=="product")} for row in links for product in [products.get(product_identity(row.target_record_id))]]}
+
+
+@router.delete("/inventory/items/{id}/sales-products/{link_id}")
+def unlink_inventory_sales_product(id: int, link_id: int, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
+    from app.apps.srm.models import SRMProduct
+    from app.apps.fam.inventory_margin import product_identity
+    company_id = bootstrap(db, current_user)
+    inventory_item_or_404(db, company_id, id)
+    query = db.query(FAMInventoryIntegrationLink).filter_by(id=link_id,company_id=company_id,stock_item_id=id,target_module="srm",target_record_type="product")
+    link = query.first()
+    if not link:
+        raise HTTPException(404,"Sales product mapping not found")
+    identity = product_identity(link.target_record_id)
+    if identity:
+        db.query(SRMProduct).filter_by(id=identity,organization_id=company_id).with_for_update().first()
+    link = query.populate_existing().first()
+    if link.active:
+        before = serialize(link)
+        link.active = False
+        inventory_audit(db,request,current_user,company_id,"integration_link",link.id,"UNLINK",before,serialize(link))
+    db.commit()
+    return {"id":link.id,"active":False}
+
+
 @router.post("/inventory/items/{id}/link")
 def link_inventory_item(id: int, payload: InventoryIntegrationLinkPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     item = inventory_item_or_404(db, company_id, id)
     if payload.stock_item_id != item.id:
         raise HTTPException(status_code=422, detail="Payload stock_item_id must match route item")
+    if payload.target_module.strip().lower() == "srm" and payload.target_record_type.strip().lower() == "product":
+        from app.apps.fam.inventory_margin import validate_product_link
+        identity = validate_product_link(db, company_id, item.id, payload.target_record_id)
+        payload = payload.model_copy(update={"target_module":"srm", "target_record_type":"product", "target_record_id":identity})
     link = db.query(FAMInventoryIntegrationLink).filter(FAMInventoryIntegrationLink.company_id == company_id, FAMInventoryIntegrationLink.stock_item_id == item.id, FAMInventoryIntegrationLink.target_module == payload.target_module, FAMInventoryIntegrationLink.target_record_type == payload.target_record_type, FAMInventoryIntegrationLink.target_record_id == payload.target_record_id).first()
     if not link:
         link = FAMInventoryIntegrationLink(company_id=company_id, created_by=current_user.id, **payload.model_dump())
@@ -4654,9 +4779,10 @@ def _inventory_master_actions(path,model,payload_model):
         from pydantic import ValidationError
         try:values=payload_model.model_validate({**serialize(row),**payload}).model_dump()
         except ValidationError:raise HTTPException(422,'Check the inventory master fields') from None
-        if model==FAMStockGroup and values.get('parent_group_id'):
-            parent=db.query(model).filter_by(id=values['parent_group_id'],company_id=company,active=True).first()
-            if not parent or parent.id==row.id:raise HTTPException(422,'Choose another active group in this company')
+        if model==FAMStockGroup:
+            validate_stock_group_parent(db, company, values.get('parent_group_id'), row.id)
+        if model==FAMWarehouse:
+            validate_warehouse_branch(db, company, values.get('branch_id'))
         before=serialize(row)
         for key,value in values.items():setattr(row,key,value)
         inventory_audit(db,request,user,company,path,row.id,'UPDATE',before,serialize(row));db.commit();return serialize(row)

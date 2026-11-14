@@ -206,7 +206,7 @@ def files(module: str = "", search: str = Query("", max_length=160), page: int =
     company = admin(db, user)
     query = db.query(StorageObject).filter_by(organization_id=company)
     if module: query = query.filter_by(module=module)
-    if search: query = query.filter(StorageObject.filename.ilike("%"+search.replace("%", "\\%").replace("_", "\\_")+"%", escape="\\"))
+    if search: query = query.filter(StorageObject.filename.icontains(search, autoescape=True))
     count = query.count()
     rows = query.order_by(StorageObject.id.desc()).offset((page-1)*30).limit(30).all()
     return {"total": count, "page": page, "items": [{"id": r.id, "module": r.module, "filename": r.filename, "size": r.size, "content_type": r.content_type,

@@ -106,3 +106,43 @@ def test_parser_handles_documents_and_rejects_unsupported_or_bomb_content():
     from reportlab.pdfgen.canvas import Canvas
     pdf=io.BytesIO();canvas=Canvas(pdf);canvas.drawString(40,700,'Server parsed delivery notes');canvas.save()
     assert 'delivery notes' in parse(pdf.getvalue(),'notes.pdf')['text']
+
+
+def test_media_attachments_are_private_validated_and_not_silently_indexed(client,db):
+    import pytest
+    from fastapi import HTTPException
+    from app.ai_operator import agent_knowledge
+    from PIL import Image
+    import wave
+    h,owner,_,_=setup_suite(client,db);ident=chat(client,h)
+    image=io.BytesIO();Image.new('RGB',(4,3),'blue').save(image,format='PNG')
+    audio=io.BytesIO()
+    with wave.open(audio,'wb') as value:
+        value.setnchannels(1);value.setsampwidth(2);value.setframerate(8000);value.writeframes(b'\x00\x00'*8000)
+    other,_=auth_headers(client,db,email=f'{uuid4()}@example.com',permissions=['ai_assistant'])
+    for name,content,kind in [('reference.png',image.getvalue(),'image'),('meeting.wav',audio.getvalue(),'audio')]:
+        file=upload(client,h,ident,name,content)
+        assert file['media']['kind']==kind and file['row_count']==0
+        assert 'content_b64' not in file
+        restored=client.get(f'{ROOT}/conversations/{ident}',headers=h).json()
+        assert next(v for v in restored['attachments'] if v['id']==file['id'])['media']==file['media']
+        url=f'{ROOT}/conversations/{ident}/attachments/{file["id"]}/download'
+        download=client.get(url,headers=h)
+        assert download.content==content and download.headers['cache-control']=='private, no-store'
+        denied=client.get(url,headers=other);assert denied.status_code==404
+        response=client.post(ROOT+'/commands',headers=h,json={'request_key':str(uuid4()),'provider':'local',
+            'conversation_id':ident,'text':'Summarize this file','attachment_ids':[file['id']]})
+        assert response.status_code==422
+        assert upload(client,h,ident,name,content)['id']==file['id']
+        # The same boundary applies to saved-agent retrieval, not only commands.
+        with pytest.raises(HTTPException) as blocked:
+            agent_knowledge.sources(db,owner,[{'conversation_id':ident,'attachment_id':file['id'],'sha256':file['sha256']}],None)
+        assert blocked.value.status_code==422
+        assert all(v['attachment_id']!=file['id'] for v in agent_knowledge.available(db,owner,None))
+        from app.ai_operator.workspace_search import upload_chunks
+        searchable,chunks=upload_chunks(db,owner,ident)
+        assert not searchable and not chunks
+    for name,content in [('fake.png',b'<svg>not a PNG</svg>'),('wrong.jpg',image.getvalue()),('broken.wav',audio.getvalue()[:-100])]:
+        response=client.post(f'{ROOT}/conversations/{ident}/attachments',headers=h,files={'file':(name,content)})
+        assert response.status_code==422
+    assert db.query(CRMTask).count()==0

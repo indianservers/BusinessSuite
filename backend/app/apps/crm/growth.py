@@ -65,7 +65,7 @@ def filtered(db, user, entity, scope, kind, item_id, search, active_only):
     org = crm()._organization_id(db,user)
     if search:
         fields = [getattr(model,key) for key in ('full_name','name','email','phone','company_name') if hasattr(model,key)]
-        q=q.filter(or_(*(field.ilike('%'+search+'%') for field in fields)))
+        q=q.filter(or_(*(field.icontains(search, autoescape=True) for field in fields)))
     if active_only and hasattr(model,'status'):
         q=q.filter(~func.lower(func.coalesce(model.status,'')).in_(CLOSED))
     if entity=='leads':

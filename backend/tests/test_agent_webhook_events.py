@@ -112,3 +112,26 @@ def test_fam_voucher_record_contract_uses_the_existing_native_read_api(client,db
     voucher=create_balanced_voucher(client,h,amount=100)
     result=read_record(db,user,1,'fam','voucher',voucher['id'])
     assert result['id']==voucher['id'] and result['status']=='draft'
+
+
+@pytest.mark.parametrize("needle", ["%", "_", chr(92), chr(92)+"%", chr(92)+"_", "/"])
+def test_webhook_picker_name_search_is_literal(client, db, shared_setup, needle):
+    h,identity,lead=shared_setup
+    ids=[]
+    for name in ["QA hook "+needle+" literal", "QA hook ordinary"]:
+        response=client.post('/api/v1/access/services/webhooks',headers=h,json={
+            'companyId':1,'module':'crm','entity':'lead','events':['record.changed'],
+            'runAsUserId':identity.id,'name':name,'secret':SECRET,'reason':'Synthetic literal search check'})
+        assert response.status_code==201,response.text
+        ids.append(response.json()['id'])
+    response=client.get(ROOT+'/webhooks',headers=h,params={'module':'CRM','query':'QA hook '+needle})
+    assert response.status_code==200,response.text
+    assert [r['id'] for r in response.json()['items']]==[ids[0]]
+    assert not response.json()['has_more']
+    assert SECRET not in response.text
+    ordinary=client.get(ROOT+'/webhooks',headers=h,params={'module':'CRM','query':'QA HOOK ORDINARY'})
+    assert ordinary.status_code==200,ordinary.text
+    assert [r['id'] for r in ordinary.json()['items']]==[ids[1]]
+    other=client.get(ROOT+'/webhooks',headers=h,params={'module':'PMS','query':'QA hook '+needle})
+    assert other.status_code==200,other.text
+    assert other.json()['items']==[]

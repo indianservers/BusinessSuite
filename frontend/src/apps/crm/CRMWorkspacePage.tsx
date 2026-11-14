@@ -1,3 +1,4 @@
+import Customer360Workspace from "@/shared/records/Customer360Page";
 import BusinessProfileFields, {profileText} from "@/shared/master-data/BusinessProfileFields";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
@@ -18,14 +19,14 @@ import CalendarSyncControls from "./templates/CalendarSyncControls";
 import IndustryPackOnboarding from "./templates/IndustryPackOnboarding";
 import industryTemplates from "../../../../backend/app/apps/industry_packs/catalog.json";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults, leadSourceOptions } from "@/lib/form-defaults";
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, defaultToday, defaultsScope, formDefaults, leadSourceOptions } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import CustomFieldsManager from "./CustomFieldsManager";
 import FieldControl, { fieldShown, fieldOptions, fieldInPipeline } from "@/shared/custom-fields/FieldControl";
 import CompaniesPage from "@/shared/master-data/CompaniesPage";
-import Record360Workspace from "@/shared/records/Record360Workspace";
+import Record360Workspace, { useRecordScope } from "@/shared/records/Record360Workspace";
 import PipelineStageEditor from "@/shared/pipeline/PipelineStageEditor";
 import { prefillDealCompany, prefillDealLead, fillEmptyDealFields, changeDealCompany } from "./deals/deal-prefill";
 import { CompanyQuickCreate } from "@/shared/master-data/CompanySelect";
@@ -760,75 +761,79 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   return <CRMListPage kind={kind} />;
 }
 
+const dashboardRecordEntities = ["companies", "deals", "tasks", "activities", "pipeline-stages"] as const;
+const dashboardRecordStates = (create: (entity: typeof dashboardRecordEntities[number]) => CRMApiState<CRMRecord[]>) => ({
+  companies: create("companies"), deals: create("deals"), tasks: create("tasks"),
+  activities: create("activities"), "pipeline-stages": create("pipeline-stages"),
+});
+function useDashboardRecords(scope: string) {
+  const empty = () => dashboardRecordStates(() => ({data: [], loading: true, error: null}));
+  const [state, setState] = useState(() => ({scope, resources: empty()}));
+  useRefreshableEffect(() => {
+    let active = true, controller: AbortController;
+    const load = () => {
+      controller?.abort(); controller = new AbortController();
+      const signal = controller.signal;
+      setState({scope, resources: empty()});
+      directoryApi.get("/crm/dashboard/records", {signal, recordCache: false}).then(response => {
+        if (!active || signal.aborted) return;
+        setState({scope, resources: dashboardRecordStates(entity => {
+          const result = response.data.resources[entity];
+          return {data: (result.items || []).map((item: CRMApiRecord) => normalizeApiRecord(kindlessEntity(entity), item)), loading: false, error: result.error || null};
+        })});
+      }).catch(error => {
+        if (!active || signal.aborted) return;
+        setState({scope, resources: dashboardRecordStates(() => ({data: [], loading: false, error: error?.response?.data?.detail || "CRM API is not reachable."}))});
+      });
+    };
+    load();
+    const updated = (event: Event) => { const url = (event as CustomEvent<{url: string}>).detail?.url || ""; if (dashboardRecordEntities.some(entity => url.split("?")[0].endsWith(`/crm/${entity}`))) load(); };
+    window.addEventListener("suite:records-updated", updated);
+    return () => { active = false; controller?.abort(); window.removeEventListener("suite:records-updated", updated); };
+  }, [scope]);
+  return state.scope === scope ? state.resources : empty();
+}
+
 function CRMDashboard() {
   const navigate = useNavigate();
-  const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
-  const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
-  const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
-  const taskState = useCrmRecords<CRMRecord>("tasks", emptyRecords);
-  const activityState = useCrmRecords<CRMRecord>("activities", emptyRecords);
-  const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
-  const [canonical,setCanonical]=useState<{data?:{leads_created:number;open_deals:number;won_deals:number;lost_deals:number;win_rate:number|null;pipeline_by_currency:{currency:string;amount:string}[];weighted_by_currency:{currency:string;amount:string}[];overdue_followups:number;lead_sources:{name:string;value:number}[];context:{definition:string;timezone:string;as_of:string}};error?:string;loading:boolean}>({loading:true});
+  const scope = useRecordScope();
+  const records = useDashboardRecords(scope);
+  const companyState = records.companies, dealState = records.deals, taskState = records.tasks, activityState = records.activities, stageState = records["pipeline-stages"];
+  const [canonicalState,setCanonical]=useState<{scope:string;data?:{leads_created:number;open_deals:number;won_deals:number;lost_deals:number;win_rate:number|null;pipeline_by_currency:{currency:string;amount:string}[];weighted_by_currency:{currency:string;amount:string}[];overdue_followups:number;lead_sources:{name:string;value:number}[];context:{definition:string;timezone:string;as_of:string}};error?:string;loading:boolean}>({scope,loading:true});
+  const canonical = canonicalState.scope === scope ? canonicalState : {scope,loading:true,data:undefined,error:undefined};
   const moneyGroups=(rows?:{currency:string;amount:string}[])=>!rows?"Not available":rows.length?rows.map(row=>`${row.currency} ${Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" / "):"0 (no open deals)";
   const [dateRange, setDateRange] = useState<"month" | "quarter" | "all">("month");
-  useRefreshableEffect(()=>{let active=true;const load=()=>{setCanonical({loading:true});statisticsApi.get("/crm/dashboard",{params:{period:dateRange}}).then(r=>{if(active)setCanonical({data:r.data.period_statistics,loading:false})}).catch(e=>{if(active)setCanonical({loading:false,error:e?.response?.data?.detail||"Authoritative statistics unavailable. Refresh to retry."})})};load();window.addEventListener("suite:metrics-changed",load);return()=>{active=false;window.removeEventListener("suite:metrics-changed",load)}},[dateRange]);
+  useRefreshableEffect(()=>{let active=true;const load=()=>{setCanonical({scope,loading:true});statisticsApi.get("/crm/dashboard",{params:{period:dateRange,statistics_only:true}}).then(r=>{if(active)setCanonical({scope,data:r.data.period_statistics,loading:false})}).catch(e=>{if(active)setCanonical({scope,loading:false,error:e?.response?.data?.detail||"Authoritative statistics unavailable. Refresh to retry."})})};load();window.addEventListener("suite:metrics-changed",load);return()=>{active=false;window.removeEventListener("suite:metrics-changed",load)}},[dateRange,scope]);
   useCreateIntent(kind => { if (dashboardQuickCreateKinds.some(item => item.kind === kind)) navigate(kind === "tasks" ? "/pms/tasks/new" : `/crm/${kind}?new=${kind}`); });
-  const [forecastState, setForecastState] = useState<CRMApiState<{ summary: CRMApiRecord; items: CRMApiRecord[] }>>({ data: { summary: {}, items: [] }, loading: true, error: null });
-  const [calendarState, setCalendarState] = useState<CRMApiState<CRMCalendarEvent[]>>({ data: [], loading: true, error: null });
-  const crmLeads = useMemo(() => leadState.data.map(recordToLead), [leadState.data]);
+  const [calendarSnapshot, setCalendarState] = useState<CRMApiState<CRMCalendarEvent[]> & {scope:string}>({scope, data: [], loading: true, error: null });
+  const calendarState = calendarSnapshot.scope === scope ? calendarSnapshot : {scope,data:[],loading:true,error:null};
   const companyNames = useMemo(() => companyNameLookup(companyState.data), [companyState.data]);
   const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, stageState.data, companyNames)), [dealState.data, stageState.data, companyNames]);
   const { start, end, label } = useMemo(() => dashboardDateWindow(dateRange), [dateRange]);
-  const filteredLeads = useMemo(() => crmLeads.filter((lead) => isWithinWindow(leadCreatedAt(lead), start, end)), [crmLeads, start, end]);
   const filteredDeals = useMemo(() => crmDeals.filter((deal) => isWithinWindow(deal.closeDate, start, end) || dateRange === "all"), [crmDeals, start, end, dateRange]);
   const openCrmDeals = filteredDeals.filter(isOpenDeal);
   const wonCrmDeals = crmDeals.filter((deal) => isWonDeal(deal.stage));
   const lostCrmDeals = crmDeals.filter((deal) => isLostDeal(deal.stage));
   const pipelineValue = openCrmDeals.reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = openCrmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
-  const overdueFollowUps = useMemo(() => {
-    const leadFollowUps = crmLeads.filter((lead) => lead.nextFollowUp && isPastDue(lead.nextFollowUp) && lead.status !== "Converted").length;
-    const taskFollowUps = taskState.data.filter((task) => isTaskOpen(task.status) && isPastDue(String(task.due || task.due_date || ""))).length;
-    return leadFollowUps + taskFollowUps;
-  }, [crmLeads, taskState.data]);
   const openDeals = openCrmDeals.length;
   const wonDeals = filteredDeals.filter((deal) => isWonDeal(deal.stage)).length;
   const lostDeals = filteredDeals.filter((deal) => isLostDeal(deal.stage)).length;
   const winRate = wonDeals + lostDeals ? Math.round((wonDeals / (wonDeals + lostDeals)) * 100) : 0;
   const staleOpenDeals = openCrmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date()).length;
-  const forecastSummary = forecastState.data.summary;
-  const forecastAmount = Number(forecastSummary.weightedAmount || forecastSummary.weighted_amount || weighted || 0);
-  const salesVelocity = openCrmDeals.length ? pipelineValue / Math.max(openCrmDeals.length, 1) : 0;
-  const averageDealAge = averageDaysOpen(filteredDeals);
   const pipelineStages = useMemo(() => orderedPipelineStages(stageState.data, crmDeals), [stageState.data, crmDeals]);
   const sourceData = canonical.data?.lead_sources || [];
   const priorityDeals = useMemo(() => priorityDealRows(openCrmDeals), [openCrmDeals]);
   const todayItems = useMemo(() => todayWorkItems(calendarState.data, taskState.data, activityState.data).slice(0, 7), [calendarState.data, taskState.data, activityState.data]);
-  const briefingRows = useMemo(() => smartBriefingRows({
-    overdueFollowUps: canonical.data?.overdue_followups ?? overdueFollowUps,
+  const briefingRows = useMemo(() => canonical.data ? smartBriefingRows({
+    overdueFollowUps: canonical.data.overdue_followups,
     staleOpenDeals,
     closingThisWeek: openCrmDeals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length,
     highValueDeals: priorityDeals.filter((deal) => deal.reason.includes("High value")).length,
     pipelineValue,
-  }), [canonical.data?.overdue_followups, overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
-  const loading = leadState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
-  const error = canonical.error || leadState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
-
-  useRefreshableEffect(() => {
-    let cancelled = false;
-    setForecastState((current) => ({ ...current, loading: true, error: null }));
-    crmApi
-      .forecast({ startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) })
-      .then((response) => {
-        if (!cancelled) setForecastState({ data: { summary: response.data.summary || {}, items: response.data.items || [] }, loading: false, error: null });
-      })
-      .catch((err) => {
-        if (!cancelled) setForecastState({ data: { summary: {}, items: [] }, loading: false, error: err?.response?.data?.detail || "Forecast data is not available." });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [start, end]);
+  }) : [], [canonical.data, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
+  const loading = companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || calendarState.loading;
+  const error = canonical.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || calendarState.error;
 
   useRefreshableEffect(() => {
     let cancelled = false;
@@ -837,22 +842,22 @@ function CRMDashboard() {
     windowStart.setDate(today.getDate() - 7);
     const windowEnd = new Date(today);
     windowEnd.setDate(today.getDate() + 7);
-    setCalendarState((current) => ({ ...current, loading: true, error: null }));
+    setCalendarState({scope, data: [], loading: true, error: null });
     crmApi
       .calendar({ startDate: windowStart.toISOString().slice(0, 10), endDate: windowEnd.toISOString().slice(0, 10) })
       .then((response) => {
-        if (!cancelled) setCalendarState({ data: response.data.items || [], loading: false, error: null });
+        if (!cancelled) setCalendarState({scope, data: response.data.items || [], loading: false, error: null });
       })
       .catch((err) => {
-        if (!cancelled) setCalendarState({ data: [], loading: false, error: err?.response?.data?.detail || "Calendar work items are not available." });
+        if (!cancelled) setCalendarState({scope, data: [], loading: false, error: err?.response?.data?.detail || "Calendar work items are not available." });
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [scope]);
 
   return <>
-    <CRMReferenceDashboard statistics={canonical.data} loading={canonical.loading || loading} error={error || undefined} range={dateRange} onRange={setDateRange} onCreate={(kind) => navigate(kind === "tasks" ? "/pms/tasks/new" : `/crm/${kind}?new=${kind}`)} stages={pipelineStages} deals={crmDeals} briefing={briefingRows} today={todayItems} events={calendarState.data} tasks={taskState.data} />
+    <CRMReferenceDashboard key={scope} scope={scope} statistics={canonical.data} loading={canonical.loading || loading} error={error || undefined} range={dateRange} onRange={setDateRange} onCreate={(kind) => navigate(kind === "tasks" ? "/pms/tasks/new" : `/crm/${kind}?new=${kind}`)} stages={pipelineStages} deals={crmDeals} briefing={briefingRows} today={todayItems} events={calendarState.data} tasks={taskState.data} />
   </>;
 }
 
@@ -5199,12 +5204,12 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
     const operation=progress.start({id:operationId("deal-form"),title:dealId?"Loading Deal Details":"Preparing New Deal",description:"Loading fields, permissions, and form settings.",mode:"modal",operationType:"fetch",steps,cancellable:true,onCancel:()=>{active=false;controller.abort();close();},onRetry:()=>setReload(v=>v+1),errorTitle:"Unable to Load Deal Form"});
     formProgress.current=operation;
     const stage=(id:string,status:ProgressStep["status"])=>{const step=steps.find(s=>s.id===id);if(step)step.status=status;operation.update({steps:steps.map(s=>({...s}))});};
-    const resources = ["companies", "contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "deal-workspace/pipelines", "deal-workspace/pipeline-stages", "products", "services", "custom-fields"];
+    const resources = ["contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "deal-workspace/pipelines", "deal-workspace/pipeline-stages", "custom-fields"];
     setError(null);setLookups(undefined);setRecord(null);
-    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}, {signal:controller.signal,progress:false,recordCache:false}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {}, controller.signal)).catch(error => {if (["companies", "contacts", "products", "services", "territories", "custom-fields"].includes(resource) && error?.response?.status === 403) return [];throw error;})] as const)).then(entries=>{stage("records","completed");stage("fields","completed");return entries;}), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`,{signal:controller.signal,progress:false,recordCache:false}) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions",{signal:controller.signal,progress:false}).then(response=>{stage("permissions","completed");return response;})]).then(([entries, response, permissions]) => {
+    void Promise.all([Promise.all(resources.map(async resource => [resource, await (resource === "contacts" ? crmApi.list(resource, {per_page: 100, page: 1}, {signal:controller.signal,progress:false,recordCache:false}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {}, controller.signal)).catch(error => {if (["companies", "contacts", "products", "services", "territories", "custom-fields"].includes(resource) && error?.response?.status === 403) return [];throw error;})] as const)).then(entries=>{stage("records","completed");stage("fields","completed");return entries;}), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`,{signal:controller.signal,progress:false,recordCache:false}) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions",{signal:controller.signal,progress:false}).then(response=>{stage("permissions","completed");return response;})]).then(([entries, response, permissions]) => {
       if (!active) return;
       stage("form","active");
-      const options = Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]));
+      const options: Record<string, CRMRecord[]> = {companies: [], contacts: [], products: [], services: [], ...Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]))};
       options.pipelines = options["deal-workspace/pipelines"];
       options["pipeline-stages"] = options["deal-workspace/pipeline-stages"];
       if (response?.data.related?.account) options.companies = [normalizeApiRecord("companies", response.data.related.account), ...options.companies.filter(item => item.id !== response.data.related.account.id)];
@@ -5225,6 +5230,7 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
       const response=dealId?await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version}):await crmApi.create("deals", payload);
       if(automatic&&record)setRecord({...record,...recordToDealRow(response.data,{companyNames:new Map(),contactNames:new Map(),ownerNames:new Map(),territoryNames:new Map(),stageNames:new Map(),pipelineNames:new Map(),stages:lookups["pipeline-stages"]})});
       sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}${draftScope?":"+draftScope:""}`);
+      if(!automatic)toast({title: dealId ? "Deal updated" : "Deal created"});
       saved();if(!automatic)close();return response.data;
     } catch(err) {setError(dealError(err));} finally {saveLock.current=false;setSaving(false);}
   }}/>;
@@ -5249,6 +5255,31 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [autofillNotice, setAutofillNotice] = useState("");
   const [inlineSeedName, setInlineSeedName] = useState("");
+  const [leadCompanyMatch,setLeadCompanyMatch]=useState<{name:string;state:"loading"|"missing"|"ambiguous"|"error";canCreate?:boolean}>();
+  const companyLookup=useRef<AbortController>();
+  const prefillLead=useRef<CRMApiRecord>();
+  const companyLookupScope=defaultsScope();
+  useEffect(()=>{setLeadCompanyMatch(undefined);return()=>companyLookup.current?.abort();},[companyLookupScope]);
+  const prefillFromLead = async (lead:CRMApiRecord) => {
+    companyLookup.current?.abort();
+    const controller=new AbortController();companyLookup.current=controller;prefillLead.current=lead;
+    setLeadCompanyMatch(undefined);
+    const next=prefillDealLead(draft,lead,[...companies,...addedCompanies],[...contacts,...addedContacts]);
+    setDraft(current=>prefillDealLead(current,lead,[...companies,...addedCompanies],[...contacts,...addedContacts]));
+    setAutofillNotice("Empty fields filled from the selected lead. Review company, contact and deal details before saving.");
+    const name=String(lead.company_name||lead.companyName||lead.company||"").trim();
+    if(next.companyId||!name)return;
+    setLeadCompanyMatch({name,state:"loading"});
+    try{
+      const {data}=await directoryApi.get<{items:CRMRecord[];total:number;canCreate:boolean}>("/master-data/companies",{params:{source:"crm",entity_kind:"companies",exact_name:name,per_page:2},signal:controller.signal,progress:false});
+      if(controller.signal.aborted||companyLookup.current!==controller)return;
+      if(data.total===1&&data.items.length===1){
+        const company=data.items[0];setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company]);
+        setDraft(current=>prefillDealLead(current,lead,[company],[...contacts,...addedContacts]));
+        setLeadCompanyMatch(undefined);setAutofillNotice(`Matched the lead's company to ${String(company.name)}. Existing values were preserved.`);
+      }else setLeadCompanyMatch({name,state:data.total>1?"ambiguous":"missing",canCreate:data.canCreate});
+    }catch{if(!controller.signal.aborted)setLeadCompanyMatch({name,state:"error"});}
+  };
   const allProducts = [...products, ...addedProducts];
   const createInline = async (record: CRMRecord, customFields?: CRMApiRecord) => {
     if (!inlineKind) return;
@@ -5275,6 +5306,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
   const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
   const visibleContacts = useMemo(() => [...contacts, ...addedContacts].filter((contact) => !draft.companyId || !(contact.companyId || contact.company_id) || String(contact.companyId || contact.company_id) === String(draft.companyId)), [contacts, addedContacts, draft.companyId]);
   const productTotal = dealProductTotal(lines);
+  const pastOpenCloseDate = String(draft.status || "Open") === "Open" && /^\d{4}-\d{2}-\d{2}$/.test(valueText(draft.expectedCloseDate)) && valueText(draft.expectedCloseDate) < defaultToday("crm");
   const currencyMoney = (amount: number) => dealMoney(amount, draft.currency || "INR");
   const amountSource = lines.length > 0 ? "Product lines" : "Manual amount";
   const effectiveAmount = lines.length > 0 ? deal && JSON.stringify(lines) === JSON.stringify(initialLines) ? deal.amount : productTotal : Number(draft.amount || 0);
@@ -5324,14 +5356,15 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
             {Object.keys(fieldErrors).length > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{Object.values(fieldErrors).join(" ")}</p>}
             {duplicate.length > 0 && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">A deal with this name already exists in your permitted scope. {duplicate.map(item => <a key={String(item.id)} className="ml-2 underline" href={`/crm/deals/${item.id}`} target="_blank" rel="noreferrer">Review #{String(item.id)}</a>)}</p>}
             {((formTab === "simple" && quickSection === "details") || (formTab === "advanced" && advancedTab === 0)) && <LeadFormSection title="Opportunity">
-              {mode === "create" && <LeadFormField label="Prefill from lead" wide group><DealRecordSelect resource="leads" name="Lead" value={valueText(draft.prefillLeadId)} initial={[]} onChange={value=>patch("prefillLeadId",value)} onSelected={lead=>{setDraft(current=>prefillDealLead(current,lead,[...companies,...addedCompanies],[...contacts,...addedContacts]));setAutofillNotice("Empty fields filled from the selected lead. Review company, contact and deal details before saving.");}}/><p className="text-xs text-muted-foreground">Optional: use an existing lead to fill empty fields. Existing values are preserved.</p></LeadFormField>}
-              <LeadFormField label="Customer / company" group><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => {setDraft(v => changeDealCompany(v,value));setAutofillNotice("Company changed. Contacts are reset so only contacts belonging to this customer are linked.");}} initial={[...companies, ...addedCompanies]}
+              {mode === "create" && <LeadFormField label="Prefill from lead" wide group><DealRecordSelect resource="leads" name="Lead" value={valueText(draft.prefillLeadId)} initial={[]} onChange={value=>{companyLookup.current?.abort();setLeadCompanyMatch(undefined);patch("prefillLeadId",value);}} onSelected={lead=>void prefillFromLead(lead)}/><p className="text-xs text-muted-foreground">Optional: use an existing lead to fill empty fields. Existing values are preserved.</p></LeadFormField>}
+              <LeadFormField label="Customer / company" group><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => {companyLookup.current?.abort();setLeadCompanyMatch(undefined);setDraft(v => changeDealCompany(v,value));setAutofillNotice("Company changed. Contacts are reset so only contacts belonging to this customer are linked.");}} initial={[...companies, ...addedCompanies]}
                 onCreate={name=>{setInlineSeedName(name);setInlineError(null);setInlineKind("companies");}}
                 onSelected={company=>{setDraft(current=>prefillDealCompany(current,company));void directoryApi.get(`/master-data/companies/${company.id}`,{params:{source:"crm"}}).then(response=>setDraft(current=>prefillDealCompany(current,response.data))).catch(()=>setAutofillNotice("Company selected. Choose a contact if its details could not be loaded."));}}/></LeadFormField>
               <LeadFormField label="Contact" group><DealRecordSelect resource="contacts" name="Contact" value={valueText(draft.contactId)} companyId={valueText(draft.companyId)} onChange={value => patch("contactId", value)} initial={visibleContacts}
                 onCreate={name=>{setInlineSeedName(name);setInlineError(null);setInlineKind("contacts");}}
-                onSelected={contact=>setDraft(current=>fillEmptyDealFields(current,{companyId:contact.company_id||contact.companyId}))}/></LeadFormField>
+                onSelected={contact=>{companyLookup.current?.abort();setLeadCompanyMatch(undefined);setDraft(current=>fillEmptyDealFields(current,{companyId:contact.company_id||contact.companyId}));}}/></LeadFormField>
               {autofillNotice && <p role="status" className="col-span-full text-xs text-muted-foreground">{autofillNotice}</p>}
+              {leadCompanyMatch&&<div role="status" className="col-span-full text-sm">{leadCompanyMatch.state==="loading"?`Checking company ${leadCompanyMatch.name}…`:leadCompanyMatch.state==="ambiguous"?`More than one company matches ${leadCompanyMatch.name}. Choose the correct company above.`:leadCompanyMatch.state==="error"?"The lead's company could not be checked.":`No matching company found for ${leadCompanyMatch.name}.`}{leadCompanyMatch.state==="missing"&&leadCompanyMatch.canCreate&&<Button type="button" variant="outline" onClick={()=>{setInlineSeedName(leadCompanyMatch.name);setInlineKind("companies");}}>Create company {leadCompanyMatch.name}</Button>}{leadCompanyMatch.state==="error"&&<Button type="button" variant="outline" onClick={()=>{if(prefillLead.current)void prefillFromLead(prefillLead.current);}}>Retry company match</Button>}</div>}
               <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
               <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><NativeSelect aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Currency"><CurrencySelect value={valueText(draft.currency || "INR")} onChange={currency => patch("currency", currency)}/></LeadFormField>
@@ -5340,7 +5373,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
               <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
               <LeadFormField label="Stage" required error={fieldErrors.stageId}><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
-              <LeadFormField label="Closing date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
+              <LeadFormField label="Closing date"><Input aria-label="Closing date" aria-describedby={pastOpenCloseDate?"deal-close-warning":undefined} className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} />{pastOpenCloseDate&&<p id="deal-close-warning" role="status" className="text-xs text-amber-700 dark:text-amber-300">This closing date is in the past. Review the date for this open deal.</p>}</LeadFormField>
               <LeadFormField label="Description" wide>{formTab === "simple" ? <textarea rows={2} className="w-full rounded-md border bg-background p-3" value={valueText(draft.description)} onChange={event => patch("description", event.target.value)} placeholder="Short description..."/> : <RichTextField className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." />}</LeadFormField>
             </LeadFormSection>}
             {formTab === "advanced" && advancedTab === 0 && <LeadFormSection title="Classification"><LeadFormField label="Deal type"><LeadFormSelect value={valueText(draft.deal_type || "New Business")} values={["New Business", "Existing Business", "Renewal", "Upsell", "Cross-sell"]} onChange={value => patch("deal_type", value)}/></LeadFormField><LeadFormField label="Industry"><Input value={valueText(draft.industry)} onChange={e => patch("industry", e.target.value)}/></LeadFormField><LeadFormField label="Internal reference"><Input value={valueText(draft.internal_reference)} onChange={e => patch("internal_reference", e.target.value)}/></LeadFormField><LeadFormField label="Tags"><Input value={valueText(draft.tags_text)} onChange={e => patch("tags_text", e.target.value)}/></LeadFormField><LeadFormField label="Deal ID"><p>{deal ? `DEAL-${deal.id}` : "Assigned automatically on save"}</p></LeadFormField></LeadFormSection>}
@@ -5352,7 +5385,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
 
                 {advancedTab === 3 && <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>}
                 {advancedTab === 1 && <><LeadFormField label="Estimated deal value"><Input type="number" min={0} step="0.01" value={valueText(draft.amount)} onChange={e => patch("amount", e.target.value)}/></LeadFormField><LeadFormField label="Deal currency"><CurrencySelect value={valueText(draft.currency || "INR")} onChange={currency => patch("currency", currency)}/></LeadFormField><LeadFormField label="Expected revenue"><p>{currencyMoney(effectiveAmount * Number(draft.probability || 0) / 100)}</p></LeadFormField></>}
-                {advancedTab === 3 && <LeadFormField label="Expected closing date"><Input type="date" value={valueText(draft.expectedCloseDate)} onChange={e => patch("expectedCloseDate", e.target.value)}/></LeadFormField>}
+                {advancedTab === 3 && <LeadFormField label="Expected closing date"><Input aria-label="Expected closing date" aria-describedby={pastOpenCloseDate?"deal-close-warning":undefined} type="date" value={valueText(draft.expectedCloseDate)} onChange={e => patch("expectedCloseDate", e.target.value)}/>{pastOpenCloseDate&&<p id="deal-close-warning" role="status" className="text-xs text-amber-700 dark:text-amber-300">This closing date is in the past. Review the date for this open deal.</p>}</LeadFormField>}
               </LeadFormSection>
             ) : null}
             {visibleCustomFields.length ? <div className="sm:col-span-2"><CrmRecordFields errors={fieldErrors} state={{fields:visibleCustomFields as CRMApiRecord[],values:customValues,setValues:setCustomValues,loading:false,error:"",validate:()=>customValues}}/></div> : null}
@@ -5372,7 +5405,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
       </div>
     </div>
     </DealDialog.Content>
-    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind === "contacts" ? <CRMContactQuickCreate initialValues={{name:inlineSeedName,companyId:draft.companyId}} close={()=>setInlineKind(null)} saved={record=>{if(!record)return;const created=normalizeApiRecord("contacts",record);setAddedContacts(items=>[...items.filter(item=>item.id!==created.id),created]);setDraft(current=>({...current,contactId:created.id}));}}/> : (inlineKind === "products" || inlineKind === "services") && <CatalogEditor source="crm" defaultKind={inlineKind === "services" ? "service" : "product"} close={()=>setInlineKind(null)} saved={item=>{const created={...item,catalogKind:item.kind} as unknown as CRMRecord;setAddedProducts(items=>[...items,created]);setLines(items=>[...items,{key:crypto.randomUUID(),productId:`${item.kind}:${item.id}`,unitPrice:String(item.price),quantity:"1",discount:"0"}]);setInlineKind(null);}}/>}
+    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{companyLookup.current?.abort();setLeadCompanyMatch(undefined);setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind === "contacts" ? <CRMContactQuickCreate initialValues={{name:inlineSeedName,companyId:draft.companyId}} close={()=>setInlineKind(null)} saved={record=>{if(!record)return;const created=normalizeApiRecord("contacts",record);setAddedContacts(items=>[...items.filter(item=>item.id!==created.id),created]);setDraft(current=>({...current,contactId:created.id}));}}/> : (inlineKind === "products" || inlineKind === "services") && <CatalogEditor source="crm" defaultKind={inlineKind === "services" ? "service" : "product"} close={()=>setInlineKind(null)} saved={item=>{const created={...item,catalogKind:item.kind} as unknown as CRMRecord;setAddedProducts(items=>[...items,created]);setLines(items=>[...items,{key:crypto.randomUUID(),productId:`${item.kind}:${item.id}`,unitPrice:String(item.price),quantity:"1",discount:"0"}]);setInlineKind(null);}}/>}
     </DealDialog.Root>, document.body
   );
 }
@@ -7308,7 +7341,7 @@ function LostAnalysisPage() {
   );
 }
 
-function Customer360Page() { return <CompaniesPage role="Customer"/>; }
+function Customer360Page() { return <Customer360Workspace source="crm"/>; }
 
 function ImportExportPage() { return <CRMTransferHub/>; }
 

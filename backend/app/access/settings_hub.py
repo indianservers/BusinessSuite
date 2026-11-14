@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 
 # id, label, group, description, destination, module, any required permission, org scope
 OPTIONS = [
+    ("business-profile", "Business Profile & Terminology", "Business defaults", "Choose business type and company or branch terminology. Pipelines stay independent.", None, None, (), True),
     ("files-storage", "Files & Storage", "Company", "Google Drive, OneDrive, Box or Dropbox for attachments, module folders and the file register.", None, None, (), True),
     ("shared-companies", "Shared companies", "Company", "Business company records shared across Business Suite.", None, "crm", ("crm_view", "crm_manage", "crm_admin", "crm_companies_view", "crm_companies_manage"), False),
     ("appearance", "Homepage Banner", "Appearance", "Banner image, crop, positioning and overlay for your company homepage.", None, None, (), True),
@@ -94,7 +95,7 @@ def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
     if key in {"internships", "task-packs"} and not ctx.get("intern_admin", False):
         return False
-    if key == "business-defaults":
+    if key in {"business-defaults", "business-profile"}:
         return can_edit_company(ctx)
     if key == "company-profile":
         return can_view_company(ctx)
@@ -349,6 +350,68 @@ def update_form_defaults(data: DefaultsUpdate, request: Request, module: str | N
         db.rollback()
         raise HTTPException(409, "Defaults changed since you opened them. Reload before saving.")
     return {"saved": True, "version": row.version}
+
+
+class BusinessProfileInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    version: int = Field(ge=0)
+    values: dict
+
+
+@router.get("/business-profile/effective")
+def effective_business_profile(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.business_profile import effective
+    branch = getattr(actor, '_suite_branch_id', None)
+    branch = branch if isinstance(branch, int) else None
+    return {**effective(db, actor.organization_id, branch), 'companyId': actor.organization_id, 'branchId': branch}
+
+
+@router.get("/business-profile/configuration")
+def business_profile_configuration(branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared import business_profile as profile
+    from app.shared.form_defaults import check_branch
+    from app.shared.models import ServicePolicy
+    from app.models.company import Branch
+    _, ctx = require_option(db, actor, 'business-profile')
+    check_branch(db, ctx['company'], branch_id)
+    key = profile.scope_key(ctx['company'], branch_id)
+    row = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=profile.KIND, scope_key=key).first()
+    return {'catalog': profile.CATALOG, 'companyId': ctx['company'], 'branchId': branch_id,
+            'branches': [{'id': b.id, 'name': b.name} for b in db.query(Branch).filter_by(company_id=ctx['company'], is_active=True).order_by(Branch.name).all()],
+            'version': row.version if row else 0, 'overrides': row.values_json if row else {},
+            'inherited': profile.effective(db, ctx['company'], branch_id, skip_scope=key),
+            'effective': profile.effective(db, ctx['company'], branch_id)}
+
+
+@router.put("/business-profile/configuration")
+def save_business_profile(data: BusinessProfileInput, request: Request, branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from sqlalchemy import select
+    from sqlalchemy.exc import IntegrityError
+    from app.shared import business_profile as profile
+    from app.shared.form_defaults import check_branch
+    from app.shared.models import ServicePolicy
+    _, ctx = require_option(db, actor, 'business-profile')
+    check_branch(db, ctx['company'], branch_id)
+    values = profile.validate(data.values)
+    # Serialize even the first insert so concurrent editors cannot both save version zero.
+    db.connection().execute(select(Company.id).where(Company.id == ctx['company']).with_for_update()).one()
+    key = profile.scope_key(ctx['company'], branch_id)
+    row = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=profile.KIND, scope_key=key).with_for_update().first()
+    if data.version != (row.version if row else 0):
+        raise HTTPException(409, 'Business profile changed. Reload before saving.')
+    before = dict(row.values_json) if row else {}
+    if row:
+        row.values_json, row.version, row.updated_by = values, row.version + 1, actor.id
+    else:
+        row = ServicePolicy(organization_id=ctx['company'], scope_key=key, kind=profile.KIND, module_key='*', values_json=values, version=1, updated_by=actor.id)
+        db.add(row)
+    service.audit(db, actor, ctx['company'], 'settings.business-profile.updated', key, before, values, request=request)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, 'Business profile changed. Reload before saving.')
+    return {'saved': True, 'version': row.version}
 
 
 @router.get("/options/{key}")

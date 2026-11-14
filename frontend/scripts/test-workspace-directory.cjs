@@ -1,5 +1,10 @@
 const { chromium, expect } = require("playwright/test");
 (async () => {
+  const {createServer}=await import('vite');
+  const server=await createServer({root:require('node:path').resolve(__dirname,'..'),server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});
+  await server.listen();
+  const origin=server.resolvedUrls.local[0].replace(/\/$/,'');
+  require('node:fs').mkdirSync('outputs',{recursive:true});
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
@@ -12,7 +17,7 @@ const { chromium, expect } = require("playwright/test");
       return r.fulfill({
         json: r.request().url().endsWith("/activity") ? [] : { items: emptyResponses ? [] : [
           { id: "1", name: "Design Workspace", role: "Owner", status: "Active", views: [], version: 0 },
-          { id: "2", name: "Recent Workspace", role: "Member", status: "Active", views: [], version: 0 },
+          { id: "2", name: "QA_TEST_2026_WORKSPACE_001_".repeat(5), role: "Member", status: "Active", views: [], version: 0 },
         ], can_create: true },
       });
     });
@@ -22,12 +27,21 @@ const { chromium, expect } = require("playwright/test");
         body: '<div id="root"></div><script type="module">import R from "/@react-refresh";R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import("/scripts/fixtures/workspace-directory-qa.tsx");</script>',
       }),
     );
-    await page.goto("http://localhost:5174/workspace-directory-qa");
+    await page.goto(origin+"/workspace-directory-qa");
+    // Allow the unbundled fixture to mount before checking directory behavior.
     await expect(
       page.getByRole("heading", { name: "Workspaces", exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({timeout:30000});
     const list = page.getByRole("region", { name: "Workspace list" });
     await expect(list.getByRole("link")).toHaveCount(2);
+    for (const width of [1280,390]) {
+      await page.setViewportSize({width,height:800});
+      const title=list.getByRole('heading',{name:'QA_TEST_2026_WORKSPACE_001_'.repeat(5),exact:true});
+      await expect(title).toHaveAttribute('title','QA_TEST_2026_WORKSPACE_001_'.repeat(5));
+      const bounds=await title.evaluate(el=>({width:el.clientWidth,fullWidth:el.scrollWidth,height:el.clientHeight,lineHeight:parseFloat(getComputedStyle(el).lineHeight),overflow:getComputedStyle(el).textOverflow}));
+      if(bounds.width>=bounds.fullWidth||bounds.height>bounds.lineHeight+1||bounds.overflow!=='ellipsis')throw Error('Long workspace name should truncate on one line: '+JSON.stringify({width,...bounds}));
+    }
+    await page.setViewportSize({width:1280,height:800});
     await expect(
       list.getByRole("link", { name: /Design Workspace/ }),
     ).toHaveAttribute("href", "/pms/workspaces?space=1");
@@ -54,7 +68,8 @@ const { chromium, expect } = require("playwright/test");
     await expect(list.getByRole("button",{name:"Unfavorite Design Workspace",exact:true})).toHaveAttribute("aria-pressed","true");
     await list.getByLabel("Add grouping column").selectOption({label:"Access / Category"});
     await list.getByRole("button",{name:"Expand loaded groups",exact:true}).click();
-    await expect(list.locator(".suite-group-badge")).toHaveCount(2);
+    await expect(list.locator(".suite-group-badge").filter({hasText:/^Owner$/})).toHaveCount(1);
+    await expect(list.locator(".suite-group-badge").filter({hasText:/^Member$/})).toHaveCount(1);
     await expect(list.getByRole("link",{name:/Design Workspace/})).toHaveAttribute("href","/pms/workspaces?space=1");
     const resize=list.getByRole("separator",{name:"Resize Workspace",exact:true});
     const width=Number(await resize.getAttribute("aria-valuenow"));await resize.focus();await page.keyboard.press("ArrowRight");
@@ -72,6 +87,7 @@ const { chromium, expect } = require("playwright/test");
     );
   } finally {
     await browser.close();
+    await server.close();
   }
 })().catch((e) => {
   console.error(e);

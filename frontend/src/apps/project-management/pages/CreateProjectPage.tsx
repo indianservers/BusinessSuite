@@ -1,3 +1,4 @@
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
 import {recordDraftKey,useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { useAuthStore } from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -6,7 +7,10 @@ import { api } from "@/services/api";
 import { type FieldRecord, fieldPath } from "../components/CustomFields";
 import { CustomFieldsForm, type FieldDraft } from "../components/CustomFields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { workspaceError } from "./workspaceTypes";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,8 +29,12 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
   const [canEdit, setCanEdit] = useState(!editing);
   const [searchParams] = useSearchParams();
   const [workspaceId, setWorkspaceId] = useState<number | undefined>(() => Number(searchParams.get("workspace_id")) || undefined);
-  const [workspaces, setWorkspaces] = useState<{ id: number; name: string; role: string }[]>([]);
-  const [workspaceLoading, setWorkspaceLoading] = useState(!editing);
+  const actor = useAuthStore(state => state.user);
+  const workspaceQuery = useQuery({
+    ...pmsWorkspaceOptions(workspaceDataScope(actor)), enabled: !editing,
+  });
+  const workspaces = useMemo(() => (workspaceQuery.data || []).filter(workspace => ["Owner", "Admin"].includes(workspace.role)), [workspaceQuery.data]);
+  const workspaceLoading = !editing && workspaceQuery.isPending;
   const [brief, setBrief] = useState("");
   const [createAnother, setCreateAnother] = useState(false);
   const draftScope = useRef(`project:${Number(searchParams.get("workspace_id")) || "default"}:new`);
@@ -42,16 +50,9 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
-    if (editing) return;
-    let active = true;
-    api.get<typeof workspaces>("/project-management/workspaces").then(({ data }) => {
-      if (!active) return;
-      const allowed = data.filter(workspace => ["Owner", "Admin"].includes(workspace.role));
-      setWorkspaces(allowed);
-      setWorkspaceId(current => current || allowed[0]?.id);
-    }).catch(error => { if (active) setError(error?.response?.data?.detail || "Workspaces could not be loaded. Reopen the form to retry."); }).finally(() => { if (active) setWorkspaceLoading(false); });
-    return () => { active = false; };
-  }, [editing]);
+    if (editing || !workspaceQuery.data) return;
+    setWorkspaceId(current => workspaces.some(workspace => workspace.id === current) ? current : workspaces[0]?.id);
+  }, [editing, workspaces, workspaceQuery.data]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -139,8 +140,9 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
         </CardHeader>
         <CardContent>
           <CompactForm className="space-y-5" onSubmit={submit}>
+            {!editing && workspaceQuery.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><p>Workspaces could not be loaded. {workspaceError(workspaceQuery.error)}</p><Button type="button" variant="outline" disabled={workspaceQuery.isFetching} onClick={() => { void workspaceQuery.refetch(); }}>{workspaceQuery.isFetching ? "Retrying…" : "Retry loading workspaces"}</Button></div>}
             {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-            <fieldset disabled={loading || !canEdit || submitting || !editing && workspaceLoading} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">
+            <fieldset disabled={loading || !canEdit || submitting} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">
               {!editing && <label className="space-y-2">Workspace<NativeSelect aria-label="Project workspace" value={workspaceId || ""} loading={workspaceLoading} onChange={event => setWorkspaceId(Number(event.target.value) || undefined)} required><option value="">Choose workspace</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</NativeSelect></label>}
               <div className="space-y-2">
                 <Label htmlFor="project-name">Project name</Label>

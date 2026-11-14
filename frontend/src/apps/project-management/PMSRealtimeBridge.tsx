@@ -3,7 +3,9 @@ import { usePMSRealtime } from "./realtime";
 
 export default function PMSRealtimeBridge() {
   const location = useLocation();
-  const isPmsRoute = location.pathname.startsWith("/pms");
-  usePMSRealtime({ enabled: isPmsRoute && location.pathname !== "/pms/workspaces", showToast: isPmsRoute });
+  const path = location.pathname.replace(/\/+$/, "");
+  const isPmsRoute = path === "/pms" || path.startsWith("/pms/");
+  const ownsWorkspaceFeed = path === "/pms" || path === "/pms/workspaces";
+  usePMSRealtime({ enabled: isPmsRoute && !ownsWorkspaceFeed, showToast: isPmsRoute });
   return null;
 }

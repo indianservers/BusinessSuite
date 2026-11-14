@@ -498,6 +498,8 @@ def draft_project_invoice_service(project_id,data,db,user,*,commit=True):
     require(user, "srm_invoice_create", "srm_admin")
     project(db, project_id, user)
     lock_tenant(db, user)
+    from app.apps.srm.industry_api import guard_billing_mode
+    guard_billing_mode(db, user, 'pms_project', project_id=project_id)
     previous = (
         db.query(InvoiceContext)
         .filter_by(project_id=project_id, request_id=str(data.request_id))

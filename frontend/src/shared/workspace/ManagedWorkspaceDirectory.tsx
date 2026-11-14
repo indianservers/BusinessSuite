@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { toast } from "@/hooks/use-toast";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Archive, Layers3, ListTodo, Plus, Settings2, Users } from "lucide-react";
@@ -32,6 +33,9 @@ function ManagedWorkspaceContent({ module, title, description, icon, views, acti
   const qc = useQueryClient();
   const base = workspaceApiBase(module);
   const key = ["managed-workspaces", module, scope];
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const owns = () => active.current && scope === workspaceDataScope(useAuthStore.getState().user);
   const selected = params.get("space");
   const createIntent = params.get("new") === "workspace";
   const tab = params.get("spaceTab") || "overview";
@@ -70,7 +74,21 @@ function ManagedWorkspaceContent({ module, title, description, icon, views, acti
     };
     window.addEventListener(recordSavedEvent, saved); return () => window.removeEventListener(recordSavedEvent, saved);
   }, [qc, module, scope, base, editor, pendingStatus]);
-  const mutation = useMutation({ mutationFn: ({ draft, existing }: { draft: WorkspaceDraft; existing?: SavedWorkspace }) => existing ? api.put<SavedWorkspace>(`${base}/${existing.id}`, draft).then(response => response.data) : api.post<SavedWorkspace>(base, draft).then(response => response.data), onError: error => { if ((error as { response?: { status?: number } }).response?.status === 409) void refresh(); }, onSuccess: async saved => { qc.setQueryData(["managed-workspace-detail", module, scope, saved.id], saved); await refresh(); setEditor(null); setPendingStatus(null); setNotice(`Workspace “${saved.name}” saved.`); } });
+  const mutation = useMutation({ mutationFn: ({ draft, existing }: { draft: WorkspaceDraft; existing?: SavedWorkspace }) => {
+    if (!owns()) throw new Error("The workspace context changed. Reopen this form.");
+    return existing ? api.put<SavedWorkspace>(`${base}/${existing.id}`, draft).then(response => response.data) : api.post<SavedWorkspace>(base, draft).then(response => response.data);
+  }, onError: error => { if (owns() && (error as { response?: { status?: number } }).response?.status === 409) void refresh(); }, onSuccess: (saved, { existing }) => {
+    if (!owns()) return;
+    toast({ title: existing ? "Workspace saved" : "Workspace created", description: saved.name });
+    qc.setQueryData(["managed-workspace-detail", module, scope, saved.id], saved);
+    qc.setQueryData<{ items: SavedWorkspace[]; can_create: boolean; branch_name?: string }>(key, current => {
+      if (!current) return current;
+      const found = current.items.some(item => item.id === saved.id);
+      return { ...current, items: found ? current.items.map(item => item.id === saved.id ? saved : item) : [saved, ...current.items] };
+    });
+    setEditor(null); setPendingStatus(null); setNotice(`Workspace “${saved.name}” saved.`);
+    void refresh().catch(() => undefined);
+  } });
   function selectTab(value: string) { setParams(current => { const next = new URLSearchParams(current); next.set("spaceTab", value); return next; }); }
   function back() { setParams(current => { const next = new URLSearchParams(current); next.delete("space"); next.delete("spaceTab"); return next; }); }
   const openEditor = (value: SavedWorkspace | "new") => { if (mutation.isPending) return; mutation.reset(); setEditor(value); };

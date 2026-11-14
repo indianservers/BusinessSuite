@@ -1,6 +1,77 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('saved task view names use the existing separate draft review',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Create saved task view called QA view');
+ await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ const name=page.getByRole('textbox',{name:'Step 1 name',exact:true});await expect(name).toHaveValue('QA view');
+ await name.fill('Delivery focus');await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ await expect(name).toHaveValue('Delivery focus');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.find((r:any)=>r.path.endsWith('/revise')).body.changes).toEqual([{step:1,field:'name',value:'Delivery focus'}]);
+ expect(requests.some((r:any)=>r.path.endsWith('/approve'))).toBe(false);
+});
+
+test('image quota rejections are explicit and do not offer an automatic replay',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot',exact:true});await expect(input).toBeEnabled();
+ await input.fill('Show image quota rejection');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('alert')).toContainText('quota limit of 0');
+ await expect(page.getByRole('alert')).toContainText('No automatic model retry');
+ await expect(page.getByRole('button',{name:'Resume remaining reviewed actions',exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/resume')||r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('image prompts remain editable proposals until exact separate approval',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot',exact:true});await expect(input).toBeEnabled();
+ await input.fill('Create image called Banner: a blue delivery van');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ const prompt=page.getByRole('textbox',{name:'Step 1 prompt',exact:true});await expect(prompt).toHaveValue('a blue delivery van');
+ await prompt.fill('a red delivery van');await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ await expect(prompt).toHaveValue('a red delivery van');
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.find((r:any)=>r.path.endsWith('/revise')).body.changes).toEqual([{step:1,field:'prompt',value:'a red delivery van'}]);
+ expect(requests.filter((r:any)=>r.path.endsWith('/approve'))).toHaveLength(0);
+});
+
+test('raw media stays unselected and cannot masquerade as extracted knowledge',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();await page.getByRole('tab',{name:'Files (0)',exact:true}).click();
+ const input=page.getByLabel('Upload bot files',{exact:true});await expect(input).toHaveAttribute('accept',/\.wav/);await expect(input).toBeEnabled();
+ await input.setInputFiles({name:'meeting.wav',mimeType:'audio/wav',buffer:Buffer.from('synthetic fixture; backend independently validates PCM')});
+ const choice=page.getByRole('checkbox',{name:'Use meeting.wav in next request',exact:true});
+ await expect(choice).toBeDisabled();await expect(choice).not.toBeChecked();
+ await expect(page.getByText('No transcription or speech understanding has been performed.',{exact:false}).first()).toBeVisible();
+ await expect(page.getByRole('button',{name:'Prepare reviewed actions',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Prepare transcription review',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Message action bot',exact:true})).toHaveValue('Transcribe audio file #1');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')).length)).toBe(0);
+ await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Show my tasks');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.find((r:any)=>r.path.endsWith('/commands')).body.attachment_ids).toEqual([]);
+ expect(requests.filter((r:any)=>r.path.endsWith('/approve'))).toHaveLength(0);
+});
+
+test('audio transcription review explains provider and waits for separate approval',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot',exact:true});await expect(input).toBeEnabled();
+ await input.fill('Transcribe audio file #1');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toBeVisible();
+ await expect(page.getByText('cost is unknown.',{exact:false}).first()).toBeVisible();
+ await expect(page.getByText('media policy sha256',{exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Expand bot workspace',exact:true}).click();
+ await page.getByRole('tab',{name:'Review & edit',exact:true}).click();
+ await page.getByRole('textbox',{name:'Step 1 title',exact:true}).fill('Delivery meeting transcript');
+ await page.getByRole('button',{name:'Save edits for new review',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Step 1 title',exact:true})).toHaveValue('Delivery meeting transcript');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
 test('activity exposes core policy fingerprints without copying the user message',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
  await page.getByRole('textbox',{name:'Message action bot',exact:true}).fill('Show core planning versions');await page.getByRole('button',{name:'Send bot message',exact:true}).click();

@@ -8,8 +8,5 @@ export function usePageTitle(title: string) {
 
   useEffect(() => {
     document.title = `${title} - ${product.name}`;
-    return () => {
-      document.title = product.name;
-    };
   }, [product.name, title]);
 }

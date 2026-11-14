@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock3, Loader2, Mic, MicOff, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { api } from '@/services/api';
+import { useRecordScope } from '@/shared/records/Record360Workspace';
 
 type Tool={name:string;module:string;description:string;approval_required:boolean;record_id_required:boolean};
 type Run={id:number;command:string;status:string;plan_hash:string;plan:{summary:string;question?:string;steps:{tool:string;record_id?:number|object;payload:Record<string,unknown>}[]}|null;receipts:{step:number;tool:string;record_id:number;status:string;pms_run_id?:number;delivery_counts?:Record<string,number>}[];result?:{citations?:EvidenceSource[];evidence_note?:string;request?:{module?:string;provider?:string;parent_run_id?:number}};error_code?:string;pms_previews?:Record<string,{id:number;kind:string;project_id:number;impact?:unknown;manual?:string[]}>};
@@ -28,6 +29,10 @@ function Value({value}:{value:unknown}){
 }
 
 export default function SuiteOperatorPage(){
+  const scope=useRecordScope();
+  return <ScopedSuiteOperatorPage key={scope}/>;
+}
+function ScopedSuiteOperatorPage(){
   const [params,setParams]=useSearchParams();
   const [scopeRevision,setScopeRevision]=useState(0);
   const scopeEpoch=useRef(0);

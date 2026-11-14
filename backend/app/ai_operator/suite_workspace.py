@@ -1,5 +1,6 @@
 """Reviewable revisions and result cards for the existing server action engine."""
 from copy import deepcopy
+import re
 from typing import Any,Literal
 from pydantic import Field
 from fastapi import HTTPException
@@ -7,7 +8,7 @@ from app.ai_operator.suite_tools import Strict
 
 class DraftChange(Strict):
     step: int = Field(ge=1,le=12)
-    field: Literal['title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body','content','slides','chart','panels']
+    field: Literal['duration_minutes','log_date','start_at','end_at','timezone','meeting_url','kind','title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body','content','slides','chart','panels','prompt','submit_label','success_message','accent','fields','workflow','settings']
     value: Any
 
 class DraftRevision(Strict):
@@ -16,7 +17,17 @@ class DraftRevision(Strict):
     changes: list[DraftChange] = Field(min_length=1,max_length=40)
 
 EDITABLE={'crm.create_task','crm.update_task','pms.create_task','pms.create_project','pms.create_milestone','hrms.create_ticket','hrms.request_leave'}
+EDITABLE.update(m+'.'+action+'_form' for m in ('crm','pms','hrms') for action in ('create','edit'))
+EDITABLE.update({'pms.create_saved_view','pms.update_saved_view'})
+EDITABLE.add('pms.start_timer')
+EDITABLE.update({'pms.create_time_log','pms.edit_time_log'})
+EDITABLE.update({'pms.create_calendar_event','pms.edit_calendar_event'})
+EDITABLE.add('crm.create_saved_view')
+EDITABLE.add('hrms.create_saved_view')
+EDITABLE.update({'crm.update_saved_view','hrms.update_saved_view'})
 EDITABLE.update(f'{m}.{a}_artifact' for m in ('crm','pms','hrms') for a in ('create','edit'))
+EDITABLE.update(f'{m}.transcribe_audio' for m in ('crm','pms','hrms'))
+EDITABLE.update(f'{m}.{action}_image' for m in ('crm','pms','hrms') for action in ('generate','edit'))
 
 
 def draft_workflow(plan):
@@ -90,7 +101,14 @@ def result_cards(run):
     for index,step in enumerate(run.plan.get('steps',[]),1):
         receipt=receipts.get(index);payload=step.get('payload',{});tool=step['tool'];record=(receipt or {}).get('record_id');href=None
         if receipt and receipt.get('status')=='succeeded':
-            if tool in {'crm.create_task','crm.update_task'}:href='/crm/tasks'
+            if tool in {m+'.'+action+'_form' for m in ('crm','pms','hrms') for action in ('create','edit','publish','close')} and type(record) is int:href=receipt.get('form_url') or f'/{tool.split(".")[0]}/forms/{record}/edit'
+            elif tool in {'pms.start_timer','pms.stop_timer','pms.discard_timer'}:href=f'/pms/time-tracking?projectId={step.get("record_id")}'
+            elif tool in {'pms.create_time_log','pms.edit_time_log','pms.remove_time_log'}:href=f'/pms/time-tracking?projectId={step.get("record_id")}'
+            elif tool in {'pms.create_calendar_event','pms.edit_calendar_event','pms.remove_calendar_event'}:href=receipt.get('calendar_url') or '/pms/calendar'
+            elif tool in {'crm.create_task','crm.update_task'}:href='/crm/tasks'
+            elif tool in {'crm.remove_saved_view','hrms.remove_saved_view'}:href='/crm/tasks' if tool.startswith('crm.') else '/hrms/helpdesk'
+            elif tool in {'hrms.create_saved_view','hrms.update_saved_view'} and isinstance(record,str) and re.fullmatch(r'[a-f0-9]{32}',record):href=f'/hrms/helpdesk?view={record}'
+            elif tool in {'crm.create_saved_view','crm.update_saved_view'} and isinstance(record,str) and re.fullmatch(r'[a-f0-9]{32}',record):href=f'/crm/tasks?view={record}'
             elif tool in {'crm.create_lead','crm.update_lead','crm.qualify_lead','crm.convert_lead'}:href='/crm/leads'
             elif tool in {'hrms.status_ticket','hrms.assign_ticket','hrms.escalate_ticket','hrms.reply_ticket'}:href='/hrms/helpdesk'
             elif tool=='hrms.update_employee' and record:href=f'/hrms/employees/{record}'
@@ -98,12 +116,19 @@ def result_cards(run):
             elif tool=='hrms.request_leave':href='/leave'
             elif tool=='pms.update_milestone' and type(receipt.get('project_id')) is int:href=f"/pms/projects/{receipt['project_id']}/milestones"
             elif tool=='pms.create_project' and record:href=f'/pms/projects/{record}'
+            elif tool=='pms.remove_saved_view':href='/pms/tasks/advanced'
+            elif tool in {'pms.create_saved_view','pms.update_saved_view'} and record:href=f'/pms/tasks/advanced?view={record}'
             elif tool.startswith('pms.'):
                 project=step.get('record_id') or request.get('project_id')
                 if isinstance(project,dict):project=(receipts.get(project.get('$step')) or {}).get('record_id')
                 if type(project) is int:href=f'/pms/projects/{project}'
+        timer_body=None
+        if receipt and receipt.get('status')=='succeeded':
+            if tool=='pms.stop_timer' and type(receipt.get('duration_minutes')) is int:timer_body=f"Recorded {receipt['duration_minutes']} minute(s) as Pending time."
+            elif tool=='pms.start_timer':timer_body='Timer started; time is not recorded until it is stopped.'
+            elif tool=='pms.discard_timer':timer_body='Timer discarded without recording time.'
         cards.append({'id':f'{run.id}-{index}','step':index,'kind':'record' if receipt else 'draft',
             'title':str(payload.get('title') or payload.get('subject') or payload.get('name') or tool.replace('.',' '))[:220],
-            'tool':tool,'status':receipt.get('status','succeeded') if receipt else run.status,'record_id':record,'href':href,
+            'body':timer_body,'tool':tool,'status':receipt.get('status','succeeded') if receipt else run.status,'record_id':record,'href':href,
             'artifact_id':receipt.get('artifact_id') if receipt else None,'artifact_revision':receipt.get('artifact_revision') if receipt else None})
     return cards

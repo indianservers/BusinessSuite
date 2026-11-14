@@ -233,7 +233,7 @@ def record_webhooks(response:Response,module:Literal['CRM','PMS','HRMS','SRM','F
     authorize(db,user,workspace_id,module);admin(user,db);company_access(db,user,company(user))
     q=db.query(AutomationWebhookEndpoint).filter_by(organization_id=company(user),is_active=True,
         target_url='internal:'+webhook_sources.MODULES[module])
-    if query.strip():q=q.filter(AutomationWebhookEndpoint.name.ilike('%'+query.strip()+'%'))
+    if query.strip():q=q.filter(AutomationWebhookEndpoint.name.icontains(query.strip(),autoescape=True))
     rows=q.order_by(AutomationWebhookEndpoint.id).limit(51).all();items=[]
     for row in rows:
         try:webhook_sources.endpoint(db,user,row.id,module)

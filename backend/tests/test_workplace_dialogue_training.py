@@ -35,3 +35,52 @@ def test_workplace_addition_does_not_leak_old_wording_probes_into_training():
     from app.ai_operator.message_dialogue_validation import cases as fresh
     training={normalized(row['text']) for row in turns()}
     assert not training&{normalized(row['text']) for row in [*original(),*message(),*fresh()]}
+
+
+
+def test_learned_cancellation_discards_only_the_unexecuted_draft(monkeypatch):
+    from app.ai_operator.local_dialogue import continue_action
+    from app.ai_operator.local_nlp import Interpretation
+    monkeypatch.setattr('app.ai_operator.dialogue_tensorflow.predict',lambda *args:{'act':'cancel_action','score':.99,'margin':.98})
+    prior={'module':'CRM','intent':'tasks.create','slots':{'action_verb':'create','_awaiting':'title'}}
+    result=continue_action(Interpretation('CRM','unsupported'),prior,'Please withdraw the unexecuted work item we are preparing','Asia/Kolkata')
+    assert result.intent=='cancelled' and not result.slots
+    # The same predicted act cannot discard a quoted title or an explicit new
+    # create command; model output is not an authority over user content.
+    result=continue_action(Interpretation('CRM','unsupported'),prior,'"Cancel the pending draft review"','Asia/Kolkata')
+    assert result.intent!='cancelled' and result.slots['title']=='Cancel the pending draft review'
+    result=continue_action(Interpretation('CRM','tasks.create',1,{'title':'Review pending draft','action_verb':'create'}),prior,'Create task called Review pending draft','Asia/Kolkata')
+    assert result.intent!='cancelled'
+
+
+def test_learned_new_conversation_request_keeps_pending_details_separate(monkeypatch):
+    from app.ai_operator.local_dialogue import continue_action
+    from app.ai_operator.local_nlp import Interpretation
+    monkeypatch.setattr('app.ai_operator.dialogue_tensorflow.predict',lambda *args:{'act':'new_request','score':.99,'margin':.98})
+    prior={'module':'CRM','intent':'tasks.create','slots':{'action_verb':'create','_awaiting':'title','priority':'High'}}
+    result=continue_action(Interpretation('CRM','unsupported'),prior,'Open an independent discussion about a different work item','Asia/Kolkata')
+    assert result.question and result.slots==prior['slots'] and 'title' not in result.slots
+
+
+
+def test_learned_confirmation_cannot_fill_a_missing_field_or_override_labelled_title(monkeypatch):
+    from app.ai_operator.local_dialogue import continue_action
+    from app.ai_operator.local_nlp import Interpretation
+    monkeypatch.setattr('app.ai_operator.dialogue_tensorflow.predict',lambda *args:{'act':'confirm_action','score':.99,'margin':.98})
+    prior={'module':'CRM','intent':'tasks.create','slots':{'action_verb':'create','_awaiting':'title'}}
+    text='I approve the current reviewed proposal'
+    result=continue_action(Interpretation('CRM','unsupported'),prior,text,'Asia/Kolkata')
+    assert result.question and 'title' not in result.slots
+    result=continue_action(Interpretation('CRM','unsupported'),prior,'Title: '+text,'Asia/Kolkata')
+    assert not result.question and result.slots['title']==text
+
+
+
+def test_moderate_confidence_clear_acknowledgement_only_asks_for_missing_field(monkeypatch):
+    from app.ai_operator.local_dialogue import continue_action
+    from app.ai_operator.local_nlp import Interpretation
+    monkeypatch.setattr('app.ai_operator.dialogue_tensorflow.predict',lambda *args:{'act':'clarify','score':.84,'margin':.72})
+    prior={'module':'CRM','intent':'tasks.create','slots':{'action_verb':'create','_awaiting':'title'}}
+    for text in ['Okay I am following the discussion so far','I approve the reviewed proposal']:
+        result=continue_action(Interpretation('CRM','unsupported'),prior,text,'Asia/Kolkata')
+        assert result.question and 'title' not in result.slots

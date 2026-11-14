@@ -81,7 +81,10 @@ export const operationAliases: Record<string, string> = {
   "/pms/planner": "/pms/calendar", "/pms/dependency-timeline": "/pms/timeline-plus",
   "/pms/dependencies": "/pms/roadmap", "/pms/capacity": "/pms/workload",
   "/pms/resource-utilization": "/pms/workload", "/pms/teams-live": "/pms/live",
-  "/pms/workspace-tools": "/pms/command-center", "/pms/blueprints": "/pms/enterprise-engine",
+  "/pms/workspace-tools": "/pms/command-center",
+  "/pms/components": "/pms/command-center", "/pms/workflows": "/pms/command-center",
+  "/pms/security": "/pms/command-center", "/pms/apps": "/pms/command-center",
+  "/pms/blueprints": "/pms/enterprise-engine",
   "/pms/ai-planner": "/pms/operator",
 };
 

@@ -65,8 +65,8 @@ def apply_audience(q,model,entity,relations,offerings,match,search='',workspace_
     tests=[select(1).select_from(relations).where(*common,relations.c.kind==kind,relations.c.item_id==ident).correlate(model).exists() for kind,ident in offerings]
     if tests: q=q.filter(and_(*tests) if match=='all' else or_(*tests))
     if search:
-        normal=[getattr(model,key).ilike('%'+search+'%') for key in ('full_name','name','email','phone','company_name') if hasattr(model,key)]
-        product=select(1).select_from(relations).where(*common,relations.c.name.ilike('%'+search+'%')).correlate(model).exists()
+        normal=[getattr(model,key).icontains(search, autoescape=True) for key in ('full_name','name','email','phone','company_name') if hasattr(model,key)]
+        product=select(1).select_from(relations).where(*common,relations.c.name.icontains(search, autoescape=True)).correlate(model).exists()
         q=q.filter(or_(*normal,product))
     if workspace_id:
         ids=select(func.coalesce(CatalogDetails.product_id,CatalogDetails.service_id)).where(CatalogDetails.workspace_id==workspace_id)

@@ -3,8 +3,8 @@ import { Check, ChevronDown, Loader2, Plus, Search, X } from "lucide-react";
 import "./smart-record-picker.css";
 
 export type RecordSuggestion<T> = { id: string; label: string; description?: string; searchText?: string; record: T };
-export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId }: {
-  inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
+export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId, placeholder }: {
+  placeholder?: string; inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
   items: RecordSuggestion<T>[]; selected?: RecordSuggestion<T>; onSelect: (record: T) => void; onClear: () => void;
   loading?: boolean; error?: string; retry?: () => void; onCreate?: (seedName: string) => void; hasMore?: boolean; loadMore?: () => void;
 }) {
@@ -24,7 +24,7 @@ export default function SmartRecordPicker<T>({ name, value, search, onSearch, it
       <Search size={16} aria-hidden="true"/>
       <input id={inputId} ref={input} data-record-picker role="combobox" aria-label={`Search ${name.toLowerCase()}`} aria-autocomplete="list" aria-expanded={open}
         aria-controls={`${id}-list`} aria-activedescendant={open && ranked.length ? `${id}-option-${activeIndex}` : undefined}
-        autoComplete="off" placeholder={`Search ${name.toLowerCase()} by name, email or phone…`}
+        autoComplete="off" placeholder={placeholder || `Search ${name.toLowerCase()} by name, email or phone…`}
         value={open ? search : selected?.label || (value ? `Selected ${name.toLowerCase()} #${value}` : "")}
         onFocus={() => { setOpen(true); setActive(0); }}
         onChange={event => { onSearch(event.target.value); setOpen(true); setActive(0); }}

@@ -63,6 +63,11 @@ const expect=base.configure({timeout:30000});
  const capture=()=>page.locator(suffix?'.fam-bank-rule-form, .fam-bank-rule-form :is(label,input,select,button)':'main :is(form,label,input,select,button,.fam-statement-summary)').evaluateAll(nodes=>nodes.filter(n=>n.checkVisibility()).map(n=>{const s=getComputedStyle(n),r=n.getBoundingClientRect();return[n.tagName,s.fontSize,s.display,s.padding,r.width,r.height]}));
  const before=await capture();await page.locator('style[data-vite-dev-id$="/fam-mobile-workflows.css"]').evaluate(el=>el.media='not all');expect(await capture()).toEqual(before);
  }
- expect(errors).toEqual([]);console.log('PASS FAM: seven phone widths, report filters/all four types/export/error/empty, rules create/edit/cancel/validation/dependencies/retry, mocked reviewed posting and permission gates, desktop style parity');
+ await page.goto(url+'?rules&cached-bank',{waitUntil:'domcontentloaded',timeout:90000});
+ await expect(page.getByRole('button',{name:'Edit Office rent',exact:true})).toBeVisible();
+ await expect(page.getByLabel(/^Bank statement/).locator('option')).toHaveText(['Select imported statement','November statement.csv']);
+ await page.getByRole('button',{name:'Create bank rule',exact:true}).click();
+ await expect(page.locator('.fam-bank-rule-form').getByLabel(/^Bank account/).locator('option')).toHaveText(['Select bank','Business bank · XXXX1234']);
+ expect(errors).toEqual([]);console.log('PASS FAM: seven phone widths, report filters/all four types/export/error/empty, rules create/edit/cancel/validation/dependencies/retry, mocked reviewed posting and permission gates, desktop style parity, cached bank-page navigation');
  }finally{await browser.close();await server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

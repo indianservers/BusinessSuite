@@ -197,7 +197,7 @@ def list_signups(status: str = "active", search: str = Query("", max_length=180)
     if end: query = query.filter(Signup.created_at <= end)
     if module: query = query.filter(cast(Signup.requested_modules, String).contains('"'+module+'"'))
     if search:
-        query = query.filter(or_(*[col.ilike("%"+search+"%") for col in [Signup.name, Signup.company_name, Signup.email, Signup.phone, Signup.campaign]]))
+        query = query.filter(or_(*[col.icontains(search, autoescape=True) for col in [Signup.name, Signup.company_name, Signup.email, Signup.phone, Signup.campaign]]))
     if priority: query = query.filter(cast(Signup.workflow, String).contains('"'+priority+'"'))
     total = query.count()
     rows = query.order_by(Signup.id.desc()).offset((page-1)*page_size).limit(page_size).all()
@@ -590,7 +590,7 @@ def api_key(data: ApiKeyInput, actor=Depends(current_platform_admin), db: Sessio
 def events(search: str = "", page: int = Query(1, ge=1), actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     s.require(actor, "audit.read")
     query = db.query(PlatformEvent)
-    if search: query = query.filter(PlatformEvent.action.ilike("%"+search[:100]+"%"))
+    if search: query = query.filter(PlatformEvent.action.icontains(search[:100], autoescape=True))
     return {"items": [s.encode(r) for r in query.order_by(PlatformEvent.id.desc()).offset((page-1)*50).limit(50)], "total": query.count()}
 
 
@@ -606,10 +606,10 @@ def global_search(q: str = Query(min_length=2, max_length=100), actor=Depends(cu
     result = {"signups": [], "customers": []}
     if "signup.read" in s.permissions(actor):
         result["signups"] = [{"id": r.id, "name": r.company_name or r.name, "status": r.status} for r in
-            s.scoped(db.query(Signup).filter(Signup.deleted_at.is_(None), or_(Signup.name.ilike("%"+q+"%"), Signup.email.ilike("%"+q+"%"), Signup.company_name.ilike("%"+q+"%"))), actor, Signup).limit(15)]
+            s.scoped(db.query(Signup).filter(Signup.deleted_at.is_(None), or_(Signup.name.icontains(q, autoescape=True), Signup.email.icontains(q, autoescape=True), Signup.company_name.icontains(q, autoescape=True))), actor, Signup).limit(15)]
     if "tenant.read" in s.permissions(actor):
         result["customers"] = [{"id": r.id, "name": r.name, "status": r.status} for r in
-            s.scoped(db.query(PlatformTenant).filter(PlatformTenant.name.ilike("%"+q+"%")), actor, PlatformTenant).limit(15)]
+            s.scoped(db.query(PlatformTenant).filter(PlatformTenant.name.icontains(q, autoescape=True)), actor, PlatformTenant).limit(15)]
     return result
 
 
@@ -688,7 +688,7 @@ def plan_edit(ident: int, data: PlanInput, actor=Depends(current_platform_admin)
 def customers(search: str = "", status: str = "", actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     s.require(actor, "tenant.read")
     query = s.scoped(db.query(PlatformTenant).filter(PlatformTenant.status != "removed"), actor, PlatformTenant)
-    if search: query = query.filter(or_(PlatformTenant.name.ilike("%"+search[:150]+"%"), PlatformTenant.admin_email.ilike("%"+search[:150]+"%")))
+    if search: query = query.filter(or_(PlatformTenant.name.icontains(search[:150], autoescape=True), PlatformTenant.admin_email.icontains(search[:150], autoescape=True)))
     if status: query = query.filter_by(status=status)
     return [s.encode(r) for r in query.order_by(PlatformTenant.id.desc()).limit(1000)]
 

@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
+const {chromium,expect}=require('playwright/test');
+(async()=>{
+ const root=path.resolve(__dirname,'..'),fixture=path.join(root,'.tmp-audit-launcher-fixture.tsx');
+ fs.writeFileSync(fixture,`import React,{useState}from'react';import{createRoot}from'react-dom/client';import{MemoryRouter}from'react-router-dom';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import{CustomerAccounting}from './src/shared/accounting/ConnectedAccounting';import PremiumLauncher from './src/components/suite/PremiumLauncher';import{SmartCreateModal}from './src/shared/creation/SmartCreateModal';import './src/index.css';function App(){const[open,setOpen]=useState(false);return <><PremiumLauncher applications={[]}><div data-testid="accounting"><CustomerAccounting kind="lead" id={4}/></div><button>Outside applications</button><button onClick={()=>setOpen(true)}>Open draft form</button></PremiumLauncher>{open&&<SmartCreateModal definition={{entity:'lead',title:'Create lead',presentation:'page',size:'compact'}} onClose={()=>setOpen(false)}><form onSubmit={e=>e.preventDefault()}><label>Name<input/></label><button type="submit">Create lead</button><button type="button">Save as Draft</button></form></SmartCreateModal>}</>};createRoot(document.getElementById('root')).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter><App/></MemoryRouter></QueryClientProvider>);`);
+ const {createServer}=await import('vite');const server=await createServer({root,server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});await server.listen();const browser=await chromium.launch();
+ let page;const errors=[];try{
+ page=await browser.newPage({viewport:{width:1280,height:672}});page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/**',route=>route.request().url().includes('/accounting-sync/')?route.fulfill({status:403,json:{detail:'Module disabled for this company: api'}}):route.fulfill({json:{image:'',mobile_image:'',x:50,y:50,mobile_x:50,mobile_y:50,zoom:1,overlay:'#ffffff',opacity:0}}));
+ await page.route('**/qa-audit-launcher',route=>route.fulfill({contentType:'text/html',body:'<div id="root"></div><script type="module" src="/.tmp-audit-launcher-fixture.tsx"></script>'}));
+ await page.goto('http://127.0.0.1:'+server.httpServer.address().port+'/qa-audit-launcher');
+ await expect(page.getByTestId('accounting').getByText('Connected accounting is unavailable for this workspace or your access.',{exact:true})).toBeVisible();assert.equal(await page.getByText('Module disabled for this company: api',{exact:true}).count(),0);
+ const menu=page.locator('.launcher-app-menu'),summary=menu.locator('summary');
+ await summary.click();await expect(menu).toHaveAttribute('open','');await page.keyboard.press('Escape');assert.equal(await menu.evaluate(el=>el.open),false);await expect(summary).toBeFocused();
+ await summary.click();await page.getByRole('button',{name:'Outside applications',exact:true}).click();assert.equal(await menu.evaluate(el=>el.open),false);
+ await page.getByRole('button',{name:'Open draft form',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByLabel('Name',{exact:true}).fill('Unsaved draft');await dialog.getByRole('button',{name:'Close creation window',exact:true}).click();
+ const confirm=page.getByRole('alertdialog');await expect(confirm).toBeVisible();await expect(confirm.getByRole('button')).toHaveCount(3);
+ for(const width of [1280,390,320]){await page.setViewportSize({width,height:844});assert(await confirm.evaluate(el=>{const bounds=el.getBoundingClientRect();return [...el.querySelectorAll('button')].every(button=>{const r=button.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom;});}),'discard buttons must stay inside the confirmation dialog');}
+ await confirm.getByRole('button',{name:'Continue Editing',exact:true}).click();await expect(dialog.getByLabel('Name',{exact:true})).toHaveValue('Unsaved draft');
+ await dialog.getByRole('button',{name:'Close creation window',exact:true}).click();await confirm.getByRole('button',{name:'Discard Changes',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+ assert.deepEqual(errors,[]);console.log('PASS launcher Escape/outside dismissal and discard footer bounds at laptop/phone widths');
+ }catch(e){console.error(errors);if(page)console.error((await page.locator('body').innerText()).slice(-1500));throw e;}finally{await browser.close();await server.close();fs.unlinkSync(fixture);}
+})().catch(e=>{console.error(e);process.exitCode=1});

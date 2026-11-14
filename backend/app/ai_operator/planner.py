@@ -69,7 +69,7 @@ def publish_plan(db, user, run, plan, snapshots):
     else:
         approval = AiActionApproval(user_id=user.id, agent_id=agent.id, module="PMS", action_type="EXECUTE_PMS_OPERATOR_PLAN",
             related_entity_type="operator_run", related_entity_id=str(run.id),
-            proposed_action_json={"input": {"run_id": run.id, "plan_hash": run.plan_hash}, "preview": run.plan,
+            proposed_action_json={"input": {"run_id": run.id, "plan_hash": run.plan_hash,**({"workload_guard":run.snapshots["__workload_guard__"]} if "__workload_guard__" in run.snapshots else {})}, "preview": run.plan,
                                   "task_ids": run.selection, "execution_mode": run.execution_mode},
             status="pending", execution_status="pending", idempotency_key=f"operator:{run.id}:{run.plan_hash}")
         db.add(approval)

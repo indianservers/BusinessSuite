@@ -1,10 +1,68 @@
 """Shared company identity, communication, and birthday behavior."""
 from datetime import date
+import pytest
+import json
 from app.apps.crm.models import CRMContact, CRMCompany
 from app.shared.master_data_models import ContactBirthday
 from tests.test_contact_directory import directory_identity
 
 ROOT = "/api/v1/master-data"
+
+
+@pytest.mark.parametrize("needle,other", [("%", "ordinary"), ("_", "X"), ("\\", "ordinary"), ("\\_", "\\X")])
+@pytest.mark.parametrize("entity", ["companies", "contacts", "company-directory/query"])
+def test_shared_company_search_is_literal(client, db, superuser_headers, directory_identity, needle, other, entity):
+    target = company(client, superuser_headers, name=f"Audit {needle} Target", newPrimaryContact={"name": f"Audit {needle} Contact"})
+    company(client, superuser_headers, name=f"Audit {other} Target", newPrimaryContact={"name": f"Audit {other} Contact"})
+    params = {"state": json.dumps({"search": needle})} if entity == "company-directory/query" else {"search": needle}
+    response = client.get(ROOT + "/" + entity, headers=superuser_headers, params=params)
+    assert response.status_code == 200, response.text
+    if entity == "contacts":
+        # Company creation also makes its canonical business contact searchable.
+        rows = response.json()["items"]
+        assert target["primaryContactId"] in {row["id"] for row in rows}
+        assert all(needle in row["name"] for row in rows)
+        assert all(row["name"] not in {f"Audit {other} Target", f"Audit {other} Contact"} for row in rows)
+    else:
+        rows = response.json()["rows" if entity == "company-directory/query" else "items"]
+        assert [row["id"] for row in rows] == [target["id"]]
+
+
+def test_shared_company_phone_search_preserves_substring_matching(client, db, superuser_headers, directory_identity):
+    target = company(client, superuser_headers, name="Audit phone lookup", phone="9876543210", phone_country_code="+91")
+    response = client.get(ROOT + "/companies", headers=superuser_headers, params={"search": "765432"})
+    assert response.status_code == 200, response.text
+    assert [row["id"] for row in response.json()["items"]] == [target["id"]]
+
+
+def test_audit_exact_company_match_is_scoped_and_literal(client, db, superuser_headers, directory_identity):
+    target = company(client, superuser_headers, name="QA%_Lead Company")
+    company(client, superuser_headers, name="QA%_Lead Company North")
+    db.add(CRMCompany(organization_id=999, name="QA%_Lead Company"))
+    db.commit()
+    response = client.get(ROOT + "/companies", headers=superuser_headers, params={"exact_name": "  qa%_lead company  ", "per_page": 2})
+    assert response.status_code == 200, response.text
+    assert response.json()["total"] == 1
+    assert [row["id"] for row in response.json()["items"]] == [target["id"]]
+    assert response.json()["canCreate"] is True
+
+
+def test_business_customer_creation_appears_in_customer_and_company_directories(client, db, superuser_headers, directory_identity):
+    response = client.post(ROOT + "/companies", headers=superuser_headers, json={
+        "name": "QA_TEST_2026_CUSTOMER_AUDIT", "entityKind": "Company",
+        "businessType": "Individual", "roles": ["Customer"],
+    })
+    assert response.status_code == 201, response.text
+    saved = response.json()
+    assert saved["entityKind"] == "Company"
+    assert "Customer" in saved["roles"]
+    for params in [{"role": "Customer", "entity_kind": "all"}, {"entity_kind": "companies"}]:
+        listed = client.get(ROOT + "/company-directory/query", headers=superuser_headers, params={**params, "state": '{"search":"QA_TEST_2026_CUSTOMER_AUDIT"}'})
+        assert listed.status_code == 200, listed.text
+        assert saved["id"] in {row["id"] for row in listed.json()["rows"]}
+    detail = client.get(f"{ROOT}/companies/{saved['id']}", headers=superuser_headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["entityKind"] == "Company"
 
 
 def test_contact_assignment_options_use_login_identifiers(client, db, superuser_headers, directory_identity):

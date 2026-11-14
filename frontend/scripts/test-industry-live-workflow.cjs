@@ -1,0 +1,104 @@
+const fs = require('node:fs'), path = require('node:path');
+const { chromium, expect: baseExpect } = require('playwright/test');
+const expect = baseExpect.configure({ timeout: 25000 });
+(async () => {
+  const apiOrigin = process.env.WORKFLOW_TEST_ORIGIN;
+  if (!apiOrigin || new URL(apiOrigin).hostname !== '127.0.0.1') throw new Error('Run through the disposable industry pytest fixture');
+  const fixture = path.join(__dirname, '.industry-live.tsx');
+  fs.writeFileSync(fixture, `import React from'react';import{createRoot}from'react-dom/client';import{BrowserRouter,Routes,Route}from'react-router-dom';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import Page from'@/apps/srm/industry/IndustryOperationsPage';import Invoice from'@/apps/srm/pages/SharedInvoicePage';import{useAuthStore}from'@/store/authStore';import{api}from'@/services/api';import'@/index.css';const c=(window as any).__INDUSTRY_QA__;sessionStorage.setItem('suite-branch',c.branch);sessionStorage.setItem('suite-organization','1');useAuthStore.setState({isHydrated:true,isAuthenticated:true,accessToken:c.token});const{data:user}=await api.get('/auth/me');useAuthStore.setState({user:{...user,role:typeof user.role==='object'?user.role.name:user.role}});createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><Routes><Route path='/srm/invoices/:id' element={<main className='p-4'><Invoice/></main>}/><Route path='*' element={<Page mode={new URLSearchParams(location.search).get('mode')==='construction'?'construction':'salon'}/>}/></Routes></BrowserRouter></QueryClientProvider>);`);
+  const { createServer } = await import('vite');
+  const server = await createServer({ root: process.cwd(), cacheDir: process.env.WORKFLOW_TEST_CACHE, server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, proxy: { '/api': { target: apiOrigin, changeOrigin: true } } } });
+  await server.listen();
+  const origin = server.resolvedUrls.local[0], browser = await chromium.launch({ headless: true });
+  const headers = { Authorization: 'Bearer ' + process.env.INDUSTRY_TOKEN, 'X-Suite-Organization': '1', 'X-Suite-Branch': process.env.INDUSTRY_BRANCH };
+  async function saved(page) { await expect(page.getByRole('form', { name: 'Create operation' })).toHaveCount(0); await expect(page.getByRole('status').filter({ hasText: 'Saved successfully' })).toBeVisible(); }
+  async function pick(page, name, value) { await page.getByRole('combobox', { name: 'Search ' + name }).fill(value); await page.getByRole('option').filter({ hasText: value }).first().click(); }
+  async function issueAndCollect(page, link, amount) {
+    const id = (await link.getAttribute('href')).split('/').pop();
+    await link.click();
+    await page.getByRole('button', { name: 'Issue invoice', exact: true }).click();
+    await expect(page.getByText('Document: issued', { exact: true })).toBeVisible();
+    await page.getByText('Payment and collection actions', { exact: true }).click();
+    await page.getByLabel('Amount received', { exact: true }).fill(String(amount));
+    await page.getByLabel('Bank / payment reference', { exact: true }).fill('Synthetic local workflow acceptance');
+    const payment = page.waitForResponse(r => new URL(r.url()).pathname.endsWith(`/invoices/${id}/payments`) && r.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Record received payment', exact: true }).click();
+    expect((await payment).status()).toBe(201);
+    await expect(page.getByText('Outstanding: 0', { exact: true })).toBeVisible();
+    const invoice = await page.request.get(apiOrigin + '/api/v1/srm/invoices/' + id, { headers });
+    expect(invoice.status()).toBe(200);
+    const data = await invoice.json(); expect(Number(data.balance_amount)).toBe(0); expect(Number(data.paid_amount)).toBe(amount);
+    const customer = await page.request.get(apiOrigin + `/api/v1/srm/business/customers/${data.customer_id}/history`, { headers });
+    expect(customer.status()).toBe(200); expect((await customer.json()).invoices.some(r => String(r.id) === id && Number(r.balance_amount) === 0)).toBe(true);
+    const pdf = await page.request.get(apiOrigin + `/api/v1/srm/invoices/${id}/pdf`, { headers });
+    expect(pdf.status()).toBe(200); expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
+    return id;
+  }
+  try {
+    for (const width of [390, 1280]) {
+      const page = await browser.newPage({ viewport: { width, height: 1000 }, timezoneId: 'Asia/Kolkata' });
+      const errors = [], external = [];
+      page.on('pageerror', e => errors.push(e.message));
+      await page.route('**/*', route => { const u = new URL(route.request().url()); if (![new URL(origin).origin, apiOrigin].includes(u.origin)) { external.push(u.origin); return route.abort(); } return route.continue(); });
+      await page.route('**/srm/industry/live-qa*', route => route.fulfill({ contentType: 'text/html', body: `<html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script>window.__AI_HRMS_CONFIG__={apiBaseUrl:'/api/v1',uploadsBaseUrl:'/uploads'};window.__INDUSTRY_QA__=${JSON.stringify({ token: process.env.INDUSTRY_TOKEN, branch: process.env.INDUSTRY_BRANCH })}</script><script type="module">import R from'/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/.industry-live.tsx');</script></html>` }));
+      await page.goto(origin + 'srm/industry/live-qa', { waitUntil: 'networkidle' });
+      await page.getByRole('tab', { name: 'Salon resources' }).click();
+      await page.getByRole('button', { name: 'New resource', exact: true }).click();
+      await page.getByLabel('Title', { exact: true }).fill('QA stylist ' + width);
+      await page.getByRole('button', { name: 'Save operation', exact: true }).click(); await saved(page);
+      await page.getByRole('tab', { name: 'Appointments', exact: true }).click();
+      await page.getByRole('button', { name: 'New appointment', exact: true }).click();
+      await page.getByLabel('Title', { exact: true }).fill('QA haircut ' + width);
+      await pick(page, 'customer', 'Shared buyer'); await pick(page, 'service', 'Haircut');
+      await pick(page, 'project', 'Salon delivery project');
+      await page.getByLabel('Appointment time', { exact: true }).fill('2026-11-16T10:00');
+      await page.getByRole('checkbox', { name: 'QA stylist ' + width + ' · stylist' }).check();
+      await page.getByRole('button', { name: 'Save operation', exact: true }).click(); await saved(page);
+      const visit = page.locator('article').filter({ hasText: 'QA haircut ' + width });
+      await expect(visit).toBeVisible();
+      await expect(visit.getByRole('link', { name: 'Open PMS delivery task' })).toBeVisible();
+      await visit.getByText('Reschedule', { exact: true }).click();
+      await visit.getByLabel('New appointment time', { exact: true }).fill('2026-11-16T11:00');
+      await visit.getByRole('button', { name: 'Save new schedule' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Appointment rescheduled' })).toBeVisible();
+      for (const status of ['checked in', 'in service', 'completed']) await visit.getByRole('button', { name: status, exact: true }).click();
+      await visit.getByRole('button', { name: 'Create invoice draft' }).click();
+      const invoiceLink = visit.getByRole('link', { name: 'Open shared invoice' }); await expect(invoiceLink).toBeVisible();
+      const salonId = (await invoiceLink.getAttribute('href')).split('/').pop();
+      const native = await page.request.get(apiOrigin + '/api/v1/srm/invoices/' + salonId, { headers }); expect(native.status()).toBe(200); expect((await native.json()).total_amount).toBe(590);
+      await page.reload({ waitUntil: 'networkidle' }); await expect(page.locator('article').filter({ hasText: 'QA haircut ' + width }).getByRole('link', { name: 'Open shared invoice' })).toBeVisible();
+      await page.screenshot({ path: 'outputs/industry-salon-' + width + '.png', fullPage: true });
+      await issueAndCollect(page, page.locator('article').filter({ hasText: 'QA haircut ' + width }).getByRole('link', { name: 'Open shared invoice' }), 590);
+      await page.goto(origin + 'srm/industry/live-qa?mode=construction', { waitUntil: 'networkidle' });
+      await pick(page, 'project', 'Connected project');
+      await page.getByRole('button', { name: 'New boq', exact: true }).click();
+      await page.getByLabel('Title', { exact: true }).fill('QA foundation ' + width);
+      await page.getByLabel('Item code', { exact: true }).fill('QA-' + width);
+      await page.getByLabel('Unit', { exact: true }).fill('m3'); await page.getByLabel('Quantity', { exact: true }).fill('10'); await page.getByLabel('Unit rate', { exact: true }).fill('1000');
+      await page.getByRole('button', { name: 'Save operation', exact: true }).click(); await saved(page);
+      await page.locator('article').filter({ hasText: 'QA foundation ' + width }).getByRole('button', { name: 'Approve', exact: true }).click();
+      await expect(page.locator('article').filter({ hasText: 'QA foundation ' + width }).getByText('approved', { exact: true })).toBeVisible();
+      await page.getByRole('tab', { name: 'Measurements', exact: true }).click();
+      await page.getByRole('button', { name: 'New measurement', exact: true }).click();
+      await page.getByLabel('Title', { exact: true }).fill('QA certified ' + width);
+      await page.getByLabel('Approved BOQ item').selectOption({ label: 'QA-' + width + ' · QA foundation ' + width });
+      await page.getByLabel('Measured quantity', { exact: true }).fill('6'); await page.getByLabel('Measured on', { exact: true }).fill('2026-11-16');
+      await page.getByRole('button', { name: 'Save operation', exact: true }).click(); await saved(page);
+      const measurement = page.locator('article').filter({ hasText: 'QA certified ' + width });
+      await measurement.getByRole('button', { name: 'Approve', exact: true }).click(); await expect(measurement.getByText('approved', { exact: true })).toBeVisible();
+      await page.getByLabel('Retention to track on new invoices (%)', { exact: true }).fill('5');
+      await measurement.getByRole('button', { name: 'Create invoice draft' }).click();
+      const constructionLink = measurement.getByRole('link', { name: 'Open shared invoice' }); await expect(constructionLink).toBeVisible();
+      const constructionId = (await constructionLink.getAttribute('href')).split('/').pop();
+      const invoice = await page.request.get(apiOrigin + '/api/v1/srm/invoices/' + constructionId, { headers }); expect(invoice.status()).toBe(200); expect((await invoice.json()).total_amount).toBe(6000);
+      const billing = await page.request.get(apiOrigin + '/api/v1/project-management/projects/' + process.env.INDUSTRY_PROJECT + '/billing', { headers }); expect(billing.status()).toBe(200); expect((await billing.json()).invoices.some(r => String(r.id) === constructionId)).toBe(true);
+      await page.screenshot({ path: 'outputs/industry-construction-' + width + '.png', fullPage: true });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await issueAndCollect(page, constructionLink, 6000);
+      const paidProject = await page.request.get(apiOrigin + '/api/v1/project-management/projects/' + process.env.INDUSTRY_PROJECT + '/billing', { headers });
+      expect(paidProject.status()).toBe(200); expect((await paidProject.json()).invoices.some(r => String(r.id) === constructionId && Number(r.balance_amount) === 0)).toBe(true);
+      expect(errors).toEqual([]); expect(external).toEqual([]); await page.close();
+      console.log('PASS industry real API ' + width + 'px: booking/PMS task and BOQ/measurement → native invoice issue → payment UI → zero balance in Sales/CRM/PMS; valid PDF');
+    }
+  } finally { await browser.close(); await server.close(); fs.unlinkSync(fixture); }
+})().catch(error => { console.error(String(error?.stack || error).replace(/Bearer [A-Za-z0-9._-]+/g, 'Bearer [fixture token]')); process.exitCode = 1; });

@@ -1,8 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 
 class FAMBaseSchema(BaseModel):
@@ -64,8 +64,8 @@ class LedgerPayload(FAMBaseSchema):
 class OpeningBalancePayload(FAMBaseSchema):
     financial_year_id: int
     ledger_id: int
-    debit_amount: Decimal = Decimal("0")
-    credit_amount: Decimal = Decimal("0")
+    debit_amount: Decimal = Field(default=Decimal("0"), ge=0)
+    credit_amount: Decimal = Field(default=Decimal("0"), ge=0)
     narration: str | None = None
 
 
@@ -442,24 +442,36 @@ class VendorPaymentPreparePayload(FAMBaseSchema):
 
 
 class InventoryGroupPayload(FAMBaseSchema):
-    group_code: str
-    group_name: str
+    group_code: str = Field(min_length=1, max_length=80)
+    group_name: str = Field(min_length=1, max_length=180)
     parent_group_id: int | None = None
     description: str | None = None
     active: bool = True
 
 
+    @field_validator("group_code", "group_name", mode="before")
+    @classmethod
+    def trim_identity(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
 class InventoryUnitPayload(FAMBaseSchema):
-    unit_code: str
-    unit_name: str
+    unit_code: str = Field(min_length=1, max_length=40)
+    unit_name: str = Field(min_length=1, max_length=120)
     symbol: str | None = None
     decimal_allowed: bool = True
     active: bool = True
 
 
+    @field_validator("unit_code", "unit_name", mode="before")
+    @classmethod
+    def trim_identity(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
 class InventoryWarehousePayload(FAMBaseSchema):
-    warehouse_code: str
-    warehouse_name: str
+    warehouse_code: str = Field(min_length=1, max_length=80)
+    warehouse_name: str = Field(min_length=1, max_length=180)
     branch_id: int | None = None
     address: str | None = None
     contact_person: str | None = None
@@ -469,9 +481,15 @@ class InventoryWarehousePayload(FAMBaseSchema):
     active: bool = True
 
 
+    @field_validator("warehouse_code", "warehouse_name", mode="before")
+    @classmethod
+    def trim_identity(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
 class InventoryItemPayload(FAMBaseSchema):
-    sku: str
-    item_name: str
+    sku: str = Field(min_length=1, max_length=80)
+    item_name: str = Field(min_length=1, max_length=220)
     stock_group_id: int | None = None
     unit_id: int | None = None
     default_warehouse_id: int | None = None
@@ -484,16 +502,16 @@ class InventoryItemPayload(FAMBaseSchema):
     grni_ledger_id: int | None = None
     cost_center_id: int | None = None
     branch_id: int | None = None
-    valuation_method: str = "weighted_average"
+    valuation_method: Literal["weighted_average"] = "weighted_average"
     barcode: str | None = None
     description: str | None = None
     hsn_code: str | None = None
     gst_rate_id: int | None = None
-    purchase_rate: Decimal = Decimal("0")
-    sales_rate: Decimal = Decimal("0")
-    reorder_level: Decimal = Decimal("0")
-    min_stock: Decimal = Decimal("0")
-    max_stock: Decimal = Decimal("0")
+    purchase_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    sales_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    reorder_level: Decimal = Field(default=Decimal("0"), ge=0)
+    min_stock: Decimal = Field(default=Decimal("0"), ge=0)
+    max_stock: Decimal = Field(default=Decimal("0"), ge=0)
     track_inventory: bool = True
     batch_tracking: bool = False
     serial_tracking: bool = False
@@ -502,23 +520,35 @@ class InventoryItemPayload(FAMBaseSchema):
     source_app_reference: str | None = None
 
 
+    @field_validator("sku", "item_name", mode="before")
+    @classmethod
+    def trim_identity(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
 class InventoryOpeningPayload(FAMBaseSchema):
     opening_number: str | None = None
     opening_date: date
     stock_item_id: int
     warehouse_id: int
-    quantity: Decimal
-    rate: Decimal = Decimal("0")
+    quantity: Decimal = Field(gt=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     notes: str | None = None
 
 
 class StockMovementLinePayload(FAMBaseSchema):
     stock_item_id: int
     warehouse_id: int
-    quantity_in: Decimal = Decimal("0")
-    quantity_out: Decimal = Decimal("0")
-    rate: Decimal = Decimal("0")
+    quantity_in: Decimal = Field(default=Decimal("0"), ge=0)
+    quantity_out: Decimal = Field(default=Decimal("0"), ge=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def require_one_direction(self):
+        if (self.quantity_in > 0) == (self.quantity_out > 0):
+            raise ValueError("Enter a positive quantity in either stock in or stock out")
+        return self
 
 
 class StockMovementPayload(FAMBaseSchema):
@@ -535,8 +565,8 @@ class StockMovementPayload(FAMBaseSchema):
 
 class StockTransferLinePayload(FAMBaseSchema):
     stock_item_id: int
-    quantity: Decimal
-    rate: Decimal = Decimal("0")
+    quantity: Decimal = Field(gt=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     notes: str | None = None
 
 
@@ -546,15 +576,21 @@ class StockTransferPayload(FAMBaseSchema):
     from_warehouse_id: int
     to_warehouse_id: int
     notes: str | None = None
-    lines: list[StockTransferLinePayload] = Field(default_factory=list)
+    lines: list[StockTransferLinePayload] = Field(min_length=1)
 
 
 class StockAdjustmentLinePayload(FAMBaseSchema):
     stock_item_id: int
-    quantity_in: Decimal = Decimal("0")
-    quantity_out: Decimal = Decimal("0")
-    rate: Decimal = Decimal("0")
+    quantity_in: Decimal = Field(default=Decimal("0"), ge=0)
+    quantity_out: Decimal = Field(default=Decimal("0"), ge=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def require_one_direction(self):
+        if (self.quantity_in > 0) == (self.quantity_out > 0):
+            raise ValueError("Enter a positive quantity in either stock in or stock out")
+        return self
 
 
 class StockAdjustmentPayload(FAMBaseSchema):
@@ -627,7 +663,7 @@ class InventoryLedgerMappingPayload(FAMBaseSchema):
     grni_ledger_id: int | None = None
     gst_rate_id: int | None = None
     hsn_code: str | None = None
-    valuation_method: str = "weighted_average"
+    valuation_method: Literal["weighted_average"] = "weighted_average"
     cost_center_id: int | None = None
     branch_id: int | None = None
     default_warehouse_id: int | None = None

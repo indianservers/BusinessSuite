@@ -198,3 +198,17 @@ def test_exit_asset_helpdesk_and_announcements(client, db, superuser_headers):
     closed = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
     assert closed.status_code == 200, closed.text
     assert closed.json()["status"] == "Completed"
+    from app.models.employee import EmployeeLifecycleEvent
+    db.expire_all()
+    former = db.get(Employee, employee['id'])
+    assert former.status == 'Resigned'
+    assert former.date_of_exit == date.today()
+    events = db.query(EmployeeLifecycleEvent).filter_by(employee_id=former.id, event_type='Exit completed')
+    assert events.count() == 1
+    history_id = events.one().id
+    repeated = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
+    assert repeated.status_code == 200, repeated.text
+    assert events.count() == 1 and events.one().id == history_id
+    rewritten = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}", headers=superuser_headers,
+        json={'reason': 'Should not overwrite completed exit history'})
+    assert rewritten.status_code == 409, rewritten.text

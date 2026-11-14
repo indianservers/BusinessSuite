@@ -150,9 +150,9 @@ def list_accounts(search: str = Query("", max_length=150), status: str = "", rol
     db: Session = Depends(get_db), actor: User = Depends(get_current_active_superuser)):
     query = db.query(User).outerjoin(Employee, Employee.user_id == User.id)
     if search:
-        term = "%" + search.strip() + "%"
-        query = query.filter(or_(User.email.ilike(term), Employee.first_name.ilike(term),
-                                 Employee.last_name.ilike(term), Employee.employee_id.ilike(term)))
+        term = search.strip()
+        query = query.filter(or_(User.email.icontains(term, autoescape=True), Employee.first_name.icontains(term, autoescape=True),
+                                 Employee.last_name.icontains(term, autoescape=True), Employee.employee_id.icontains(term, autoescape=True)))
     if role_id is not None:
         query = query.filter(User.role_id == role_id)
     latest = db.query(AuditLog.entity_id, func.max(AuditLog.id).label("latest_id")).filter(

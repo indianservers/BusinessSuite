@@ -233,7 +233,7 @@ def _apply_directory_filters(
     if location_id:
         query = query.filter(Employee.location_id == location_id)
     if skills:
-        query = query.filter(or_(Employee.skills_tags.ilike(f"%{skills.strip()}%"), Employee.skills.any(EmployeeSkill.skill_name.ilike(f"%{skills.strip()}%"))))
+        query = query.filter(or_(Employee.skills_tags.icontains(skills.strip(), autoescape=True), Employee.skills.any(EmployeeSkill.skill_name.icontains(skills.strip(), autoescape=True))))
     if work_location:
         query = query.filter(Employee.work_location == work_location)
     if employment_type:
@@ -253,15 +253,15 @@ def _apply_directory_filters(
     if joined_before:
         query = query.filter(Employee.date_of_joining <= joined_before)
     if search:
-        pattern = f"%{search.strip()}%"
+        pattern = search.strip()
         query = query.filter(
-            (Employee.first_name.ilike(pattern))
-            | (Employee.last_name.ilike(pattern))
-            | (Employee.employee_id.ilike(pattern))
-            | (Employee.work_email.ilike(pattern))
-            | (Employee.personal_email.ilike(pattern))
-            | (Employee.preferred_display_name.ilike(pattern))
-            | (Employee.skills_tags.ilike(pattern))
+            (Employee.first_name.icontains(pattern, autoescape=True))
+            | (Employee.last_name.icontains(pattern, autoescape=True))
+            | (Employee.employee_id.icontains(pattern, autoescape=True))
+            | (Employee.work_email.icontains(pattern, autoescape=True))
+            | (Employee.personal_email.icontains(pattern, autoescape=True))
+            | (Employee.preferred_display_name.icontains(pattern, autoescape=True))
+            | (Employee.skills_tags.icontains(pattern, autoescape=True))
         )
     return query
 
@@ -696,13 +696,13 @@ def org_search_autocomplete(
     _rate_limit_directory_search(current_user)
     query = _directory_query(db)
     if q.strip():
-        pattern = f"%{q.strip()}%"
+        pattern = q.strip()
         query = query.filter(
-            (Employee.first_name.ilike(pattern))
-            | (Employee.last_name.ilike(pattern))
-            | (Employee.employee_id.ilike(pattern))
-            | (Employee.preferred_display_name.ilike(pattern))
-            | (Employee.skills_tags.ilike(pattern))
+            (Employee.first_name.icontains(pattern, autoescape=True))
+            | (Employee.last_name.icontains(pattern, autoescape=True))
+            | (Employee.employee_id.icontains(pattern, autoescape=True))
+            | (Employee.preferred_display_name.icontains(pattern, autoescape=True))
+            | (Employee.skills_tags.icontains(pattern, autoescape=True))
         )
     rows = query.order_by(Employee.first_name.asc()).limit(limit).all()
     return [
@@ -1290,8 +1290,8 @@ def list_employee_user_options(
 ):
     query = db.query(User).filter(User.is_active.is_(True)).outerjoin(Employee, Employee.user_id == User.id)
     if search:
-        term = f"%{search}%"
-        query = query.filter(User.email.ilike(term))
+        term = search
+        query = query.filter(User.email.icontains(term, autoescape=True))
     if include_employee_id:
         query = query.filter((Employee.id.is_(None)) | (Employee.id == include_employee_id))
     else:

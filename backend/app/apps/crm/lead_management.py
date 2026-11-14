@@ -718,6 +718,7 @@ class Interest(Strict):
 
 
 class DetailsPatch(Strict):
+    priority: Literal["Low", "Medium", "High"] | None = None
     qualification: Qualification | None = None
     interests: list[Interest] | None = Field(default=None, max_length=50)
     lossReason: str | None = Field(default=None, max_length=1000)
@@ -1232,10 +1233,11 @@ def list_leads(
     settings = config(db, core()._organization_id(db, user))
     query = filter_record_type(visible_query(db, user), record_type)
     if search:
+        literal = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         query = query.filter(
             or_(
                 *[
-                    getattr(CRMLead, key).ilike(f"%{search}%")
+                    getattr(CRMLead, key).ilike(f"%{literal}%", escape="\\")
                     for key in ["full_name", "email", "phone", "company_name"]
                 ]
             )

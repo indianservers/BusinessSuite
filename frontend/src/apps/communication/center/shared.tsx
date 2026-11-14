@@ -2,12 +2,18 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { recordScope, useRecordScope } from '@/shared/records/Record360Workspace';
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
 export const centerBase='/communication/engagement';
-export function useCenterScope(){const user=useAuthStore(s=>s.user);return `${user?.id}:${sessionStorage.getItem('suite-organization')||'default'}:${sessionStorage.getItem('suite-branch')||'default'}`;}
+export function useCenterScope(){
+  // Subscribe to context events, but keep persisted draft/preference keys stable.
+  useRecordScope();
+  const user=useAuthStore(s=>s.user);
+  return recordScope(user);
+}
 export function usePreference<T,>(key:string,initial:T){
   const scope=useCenterScope(),storageKey=`communication:${scope}:${key}`;
   const read=():T=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null')??initial;}catch{return initial;}};

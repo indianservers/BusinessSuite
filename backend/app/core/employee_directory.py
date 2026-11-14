@@ -43,8 +43,8 @@ def apply_employee_directory_filters(query, values):
             for _ in range(5): normalized = func.replace(normalized, "  ", " ")
             query = query.filter(func.lower(normalized) == " ".join(values[key].split()).lower())
     if values.get("search"):
-        term = "%" + values["search"].strip() + "%"
-        query = query.filter(or_(*[column.ilike(term) for column in (
+        term = values["search"].strip()
+        query = query.filter(or_(*[column.icontains(term, autoescape=True) for column in (
             Employee.first_name, Employee.last_name, Employee.employee_id,
             Employee.personal_email, Employee.work_email, Employee.phone_number,
             Employee.first_name + " " + Employee.last_name,

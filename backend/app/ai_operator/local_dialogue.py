@@ -42,6 +42,15 @@ def continue_action(current,prior,text,timezone,*,instant=None,model_scope=None)
         return Interpretation(prior['module'],'cancelled',1,{},None,{})
     # Permission bypasses, destructive requests and compound operations stay rejected.
     if current.question and any(word in current.question for word in ('cannot bypass','destructive')):return current
+    # Learned dialogue controls can only cancel a pending proposal or ask a
+    # question. Quoted/labelled text and explicit new business commands remain
+    # literal data or their own requests; no neural act approves execution.
+    literal=answer.startswith(('"','“')) or bool(re.match(r'^(?:title|subject|body|reason)\s*[:=]',answer,re.I))
+    learned=bool(not literal and act and act['score']>=.9 and act['margin']>=.25)
+    if learned and act['act']=='cancel_action' and re.search(r'\b(?:draft|proposal|pending|unfinished|unexecuted|prepar(?:e|ing|ation)|work (?:item|request))\b',control) and re.match(r'^(?:please\s+)?(?:cancel|discard|withdraw|abandon|drop|stop|end|scrap|i (?:no longer|am withdrawing|want))\b',control):
+        return Interpretation(prior['module'],'cancelled',1,{},None,current.neural)
+    if learned and act['act']=='new_request' and re.search(r'\b(?:separate|unrelated|independent|fresh|new (?:chat|conversation))\b',control):
+        return Interpretation(prior['module'],name,1,dict(old),'Start a new conversation for that independent request, or cancel this pending draft. Its details have not been reused or executed.',current.neural)
     if re.fullmatch(r'not (?:high|medium|low|urgent|critical)',plain) and (name=='tasks.priority' or name in {'tasks.create','ticket.create'}):
         revised=dict(old);revised.pop('priority',None);revised['_awaiting']='priority'
         return Interpretation(prior['module'],name,1,revised,'Which priority should replace it: High, Medium or Low?',current.neural)
@@ -52,12 +61,13 @@ def continue_action(current,prior,text,timezone,*,instant=None,model_scope=None)
         return Interpretation(prior['module'],name,1,revised,'What date should replace it?',current.neural)
     # An answer to a field question is not an approval or a literal question title.
     help_reply=re.fullmatch(r'(?:what does (?:that|this) mean|which options are available|what are my choices|can you explain|could you explain|explain this field|help me choose|I (?:do not|don\'t) know|I need help|not sure|what should I enter|why do you need this)',control,re.I)
-    if not answer.startswith(('"','“')) and act and act['act']=='clarify' and act['score']>=.9 and act['margin']>=.25 and re.search(r'\b(?:explain|explanation|clarify|clarification|understand|question|choices|options|answer|guidance|meaning)\b',control):help_reply=True
+    if not literal and act and act['act']=='clarify' and act['score']>=.9 and act['margin']>=.25 and re.search(r'\b(?:explain|explanation|describe|clarify|clarification|understand|question|choices|options|answer|guidance|meaning)\b',control):help_reply=True
     ambiguous=control in {'yes','okay','ok','sure','no','approve','confirm','go ahead','do it'}
     # The trained act can recognize longer acknowledgements while a field is
     # still missing. This only asks for detail; it never grants execution.
-    if pending and pending!='is_half_day' and not answer.startswith(('\"','“')) and act and act['act']=='clarify' and act['score']>=.9 and act['margin']>=.25:
-        if re.match(r'^(?:yes|sure|ok(?:ay)?|fine|agreed|all right|sounds (?:good|reasonable)|that (?:looks|seems|sounds) (?:fine|good|reasonable)|i (?:agree|confirm))\b',control):ambiguous=True
+    if pending and pending!='is_half_day' and not literal and act and act['act']=='clarify' and act['score']>=.8 and act['margin']>=.3:
+        if re.match(r'^(?:yes|sure|ok(?:ay)?|fine|agreed|all right|sounds (?:good|reasonable)|that (?:looks|seems|sounds) (?:fine|good|reasonable)|i (?:agree|confirm|approve|authorize|consent))\b',control):ambiguous=True
+    if pending and pending!='is_half_day' and learned and act['act']=='confirm_action':ambiguous=True
     if pending and (help_reply or ambiguous and pending!='is_half_day'):
         examples={'title':'a short title such as Review client response','subject':'the exact email subject','body':'the exact message text',
                   'project_id':'an existing project ID','record_id':'an existing record ID','date':'a date such as tomorrow',

@@ -139,7 +139,7 @@ api.defaults.adapter=async config=>{
  else if(/\/conversations\/\d+(?:\/resume)?$/.test(path)){const id=Number(path.match(/conversations\/(\d+)/)![1]);data={...chats.find(c=>c.id===id),runs:chatRuns.get(id)||[],attachments:chatFiles.get(id)||[]}}
  else if(/\/conversations\/\d+\/attachments$/.test(path)){
   const id=Number(path.match(/conversations\/(\d+)/)![1]);const file=(config.data as FormData).get('file') as File;
-  const text=await file.text();data={id:++fileSeq,name:file.name,size:file.size,format:'.csv',preview:text.trim().split('\n').map(line=>line.split(',')),row_count:1,notes:[],excerpt:text};chatFiles.set(id,[...(chatFiles.get(id)||[]),data])
+  const text=await file.text();data={id:++fileSeq,name:file.name,size:file.size,format:'.csv',preview:text.trim().split('\n').map(line=>line.split(',')),row_count:1,notes:[],excerpt:text};if(file.name.endsWith('.wav'))data={...data,format:'.wav',preview:[],row_count:0,media:{kind:'audio',mime_type:'audio/wav',duration_seconds:1},excerpt:'Audio stored privately. No transcription or speech understanding has been performed.',notes:['Audio stored privately. No transcription or speech understanding has been performed.']};chatFiles.set(id,[...(chatFiles.get(id)||[]),data])
  }else if(/\/conversations\/\d+\/attachments\/\d+$/.test(path)){
   const [id,file]=path.match(/conversations\/(\d+)\/attachments\/(\d+)/)!.slice(1).map(Number);chatFiles.set(id,(chatFiles.get(id)||[]).filter(f=>f.id!==file));data={deleted:true}
  }else if(/\/runs\/\d+\/revise$/.test(path)){
@@ -157,6 +157,20 @@ api.defaults.adapter=async config=>{
   const missing=body.text==='create a task';
   run={id:++seq,command:body.text,status:missing?'needs_clarification':body.text==='what are todays jobs'?'answered':'awaiting_approval',plan_hash:'0'.repeat(64),plan:{summary:missing?'I need a title.':body.text==='what are todays jobs'?'No jobs in this development sample.':'Review this exact task.',...(missing?{question:'What title should I use?'}:{}),steps:missing||body.text==='what are todays jobs'?[]:[{tool:'crm.create_task',payload:{title:body.text,preview_token:'hidden-signature'}}]},receipts:[]};data=run;
   run.result={request:body};
+  if(body.text==='Show restricted completion'||body.text==='Show restricted partial workflow'){
+   run.status=body.text==='Show restricted completion'?'succeeded':'paused';run.plan={summary:'Only confirmed execution details are available.',steps:[]};
+   run.result={history_restricted:true,...(body.text==='Show restricted partial workflow'?{remaining_review_prompt:`Review remaining PMS workflow #${run.id}`,request:{module:'PMS',project_id:22}}:{})};run.receipts=[{step:1,tool:'pms.task_plan',record_id:22}];run.can_resume=true;
+   if(body.text==='Show restricted partial workflow')run.workflow_steps=[
+    {step:1,tool:'pms.task_plan',depends_on:[],status:'succeeded',attempts:1},
+    {step:2,tool:'pms.task_plan',depends_on:[1],status:'not_confirmed',attempts:0}];
+  }
+  if(body.text==='Create saved task view called QA view'){run.plan={summary:'Review this private task view. No tasks, sharing or defaults change.',steps:[{tool:'pms.create_saved_view',payload:{name:'QA view',project_id:22,filters:{status:'Blocked',priority:'High'}}}]}}
+  if(body.text==='Show image quota rejection'){run.status='needs_reconciliation';run.plan={summary:'Media request rejected.',steps:[]};run.can_resume=false;run.result.media_error={provider_http_status:429,quota_limit:0,retry_after_seconds:61}}
+
+  if(/^Create image called Banner:/i.test(body.text)){run.plan={summary:'Review creating this image using Gemini. Your instruction will be sent to Gemini; cost is unknown. No business records will be created.',steps:[{tool:'crm.generate_image',payload:{title:'Banner',prompt:'a blue delivery van',conversation_id:body.conversation_id,model:'gemini-3.1-flash-image',media_policy_sha256:'b'.repeat(64),aspect_ratio:'1:1',references:[]}}]}}
+
+  if(/^Transcribe audio file #\d+$/i.test(body.text)){const id=Number(body.text.match(/#(\d+)/)![1]);run.plan={summary:'Review audio transcription using Gemini / gemini-3.5-flash-lite. Audio is sent to Gemini; cost is unknown. No tasks or messages will be created.',steps:[{tool:'crm.transcribe_audio',payload:{title:'Transcript – meeting.wav',conversation_id:body.conversation_id,attachment_id:id,sha256:'a'.repeat(64),model:'gemini-3.5-flash-lite',media_policy_sha256:'b'.repeat(64)}}]}}
+
   if(body.text==='PMS: reschedule milestone #84 to 2027-03-25'){run.status='awaiting_approval';run.plan={summary:'Review the milestone deadline.',steps:[{tool:'pms.update_milestone',record_id:84,payload:{due_date:'2027-03-25',expected_revision:'a'.repeat(64)}}]};run.result.milestone_changes={'1':{record_id:84,record_name:'Release review',project_id:12,changes:[{field:'due_date',before:'2027-03-20',after:'2027-03-25'}]}}}
   if(body.text==='HRMS: resolve ticket #42'){run.status='awaiting_approval';run.plan={summary:'Review the exact ticket status change.',steps:[{tool:'hrms.status_ticket',record_id:42,payload:{status:'Resolved',expected_version:3}}]};run.result.ticket_changes={'1':{record_id:42,changes:[{field:'status',before:'Open',after:'Resolved'}]}}}
   if(body.text==='HRMS: update employee #12 office extension: 204'){run.status='awaiting_approval';run.plan={summary:'Review employee contact changes.',steps:[{tool:'hrms.update_employee',record_id:12,payload:{office_extension:'204',desk_code:null}}]};run.result.profile_changes={'1':{record_id:12,changes:[{field:'office_extension',before:'101',after:'204'},{field:'desk_code',before:'A-12',after:null}]}}}

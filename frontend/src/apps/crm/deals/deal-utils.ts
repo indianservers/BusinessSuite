@@ -1,4 +1,5 @@
 import {crmApi, type CRMApiRecord} from "../api";
+import {defaultText} from "@/lib/form-defaults";
 
 export function dealError(error: unknown): string {
   const value = error as {response?: {data?: {detail?: unknown}}; message?: string};
@@ -28,8 +29,8 @@ export async function dealOptions(resource: string, params: Record<string, strin
 
 export function dealMoney(amount: unknown, currency: unknown = "INR") {
   const code = String(currency || "INR");
-  try {return new Intl.NumberFormat(undefined, {style: "currency", currency: code, maximumFractionDigits: 2}).format(Number(amount || 0));}
-  catch {return `${code} ${Number(amount || 0).toLocaleString()}`;}
+  try {return new Intl.NumberFormat(defaultText("number_format"), {style: "currency", currency: code, maximumFractionDigits: 2}).format(Number(amount || 0));}
+  catch {return `${code} ${Number(amount || 0).toLocaleString(defaultText("number_format"))}`;}
 }
 
 export const dealTabs = ["Deal Overview", "Financial Information", "People and Ownership", "Timeline", "Qualification", "Notes & Attachments"];

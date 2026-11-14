@@ -1,3 +1,4 @@
+import SalaryAdvanceReviewButtons from "./SalaryAdvanceReviewButtons";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useModuleAction } from "@/hooks/use-module-action";
@@ -1053,6 +1054,10 @@ export default function PayrollPage() {
     onSuccess: () => {
       toast({ title: "Salary advance reviewed" });
       qc.invalidateQueries({ queryKey: ["payroll-salary-advances"] });
+    },
+    onError: error => {
+      toast({ title: "Salary advance could not be reviewed", description: readableApiError(error), variant: "destructive" });
+      void qc.invalidateQueries({ queryKey: ["payroll-salary-advances"] });
     },
   });
 
@@ -2550,10 +2555,10 @@ export default function PayrollPage() {
                   <Input placeholder="Reason" value={advanceReason} onChange={(event) => setAdvanceReason(event.target.value)} />
                   <Button onClick={() => createSalaryAdvanceMutation.mutate()} disabled={createSalaryAdvanceMutation.isPending}>Request Advance</Button>
                 </div>
-                <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-1" items={((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)) || []} fields={standardRecordGroups(((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)) || [])} gridClassName="space-y-2" renderItem={(item) => (
+                <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-1" items={((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string; payroll_record_id?: number | null }[] | undefined || []).slice(0, 5)) || []} fields={standardRecordGroups(((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string; payroll_record_id?: number | null }[] | undefined || []).slice(0, 5)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
                       <span>#{item.employee_id} - {formatCurrency(item.requested_amount)}</span>
-                      <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "approve", amount: Number(item.approved_amount || item.requested_amount) })}>Approve</Button><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "reject" })}>Reject</Button></div>
+                      <SalaryAdvanceReviewButtons item={item} canReview={canRunPayroll} busy={reviewSalaryAdvanceMutation.isPending} onReview={value => reviewSalaryAdvanceMutation.mutate(value)}/>
                     </div>
                   )}/>
                 <SmartCreateSection title="Create Query"><div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">

@@ -168,11 +168,11 @@ def list_candidates(
     if status:
         q = q.filter(Candidate.status == status)
     if search:
-        term = f"%{search}%"
+        term = search
         q = q.filter(or_(
-            Candidate.first_name.ilike(term),
-            Candidate.last_name.ilike(term),
-            Candidate.email.ilike(term),
+            Candidate.first_name.icontains(term, autoescape=True),
+            Candidate.last_name.icontains(term, autoescape=True),
+            Candidate.email.icontains(term, autoescape=True),
         ))
     return q.order_by(Candidate.applied_at.desc()).offset((page-1)*per_page).limit(per_page).all()
 

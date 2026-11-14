@@ -1,3 +1,8 @@
+import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
+import TicketSavedViews, {type TicketView} from './TicketSavedViews';
+import {useAuthStore} from '@/store/authStore';
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure, MobileSheet } from "@/components/mobile/MobilePrimitives";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
@@ -66,9 +71,17 @@ interface HelpdeskAnalytics {
 }
 
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
-const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
+const STATUSES = ["Open", "In Progress", "Pending", "Resolved", "Closed"];
 
 export default function HelpdeskPage() {
+  const scope = useRecordScope();
+  return <ScopedHelpdeskPage key={scope} scope={scope}/>;
+}
+
+function ScopedHelpdeskPage({ scope }: { scope: string }) {
+  const ownsScope = useRecordScopeOwner();
+  const canViewAnalytics = useDefinitionPermission(["helpdesk_manage"], "view");
+  const canUpdateStatus = useDefinitionPermission(["helpdesk_manage"], "edit");
   usePageTitle("Helpdesk");
   const phone = useMobile(480);
   const [discardReply, setDiscardReply] = useState(false);
@@ -77,99 +90,136 @@ export default function HelpdeskPage() {
   useCreateIntent(kind => { if (kind === "ticket") setShowForm(true); });
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Open");
+  const user=useAuthStore(s=>s.user);
+  const [filters,setFilters]=useState<TicketView>({status:'Open',priority:'',assigned_to_me:false,my_tickets:false});
+  const statusFilter=filters.status;
+  function setStatusFilter(status:string){setFilters(old=>({...old,status}));setSelectedTicket(null)}
+  function applyView(view:TicketView){setFilters(view);setSelectedTicket(null)}
 
   const ticketsQuery = useQuery({
-    queryKey: ["tickets", statusFilter],
-    queryFn: () => helpdeskApi.tickets({ status: statusFilter || undefined }).then((r) => r.data as Ticket[]),
+    queryKey: ["tickets", filters, scope],
+    queryFn: () => helpdeskApi.tickets({ ...filters, status: filters.status || undefined, priority: filters.priority || undefined }).then((r) => r.data as Ticket[]),
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ["helpdesk-categories"],
+    queryKey: ["helpdesk-categories", scope],
     queryFn: () => helpdeskApi.categories().then((r) => r.data),
   });
 
   const analyticsQuery = useQuery({
-    queryKey: ["helpdesk-analytics"],
+    queryKey: ["helpdesk-analytics", scope],
+    enabled: canViewAnalytics,
     queryFn: () => helpdeskApi.analytics().then((r) => r.data as HelpdeskAnalytics),
     retry: false,
   });
 
   const slaQuery = useQuery({
-    queryKey: ["helpdesk-sla-breaches"],
+    queryKey: ["helpdesk-sla-breaches", scope],
+    enabled: canViewAnalytics,
     queryFn: () => helpdeskApi.slaBreaches().then((r) => r.data as Ticket[]),
     retry: false,
   });
 
   const repliesQuery = useQuery({
-    queryKey: ["ticket-replies", selectedTicket?.id],
+    queryKey: ["ticket-replies", selectedTicket?.id, scope],
     queryFn: () => helpdeskApi.getReplies(selectedTicket!.id).then((r) => r.data as Reply[]),
     enabled: !!selectedTicket,
   });
 
   const { data: tickets, isLoading, refetch } = ticketsQuery;
   const { data: categories } = categoriesQuery;
-  const { data: analytics } = analyticsQuery;
-  const { data: slaBreaches } = slaQuery;
+  const analytics = canViewAnalytics && analyticsQuery.isSuccess ? analyticsQuery.data : undefined;
+  const slaBreaches = canViewAnalytics && slaQuery.isSuccess ? slaQuery.data : undefined;
+  const visibleQueries = canViewAnalytics ? [ticketsQuery, categoriesQuery, analyticsQuery, slaQuery] : [ticketsQuery, categoriesQuery];
   const { data: replies, refetch: refetchReplies } = repliesQuery;
 
-  const { control: editorControl, register, handleSubmit, reset, formState: { errors } } = useForm<TicketForm>({
+  const [createError, setCreateError] = useState("");
+  const { control: editorControl, register, handleSubmit, reset, setError, clearErrors, formState: { errors } } = useForm<TicketForm>({
     defaultValues: { priority: "Medium" },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: TicketForm) =>
-      helpdeskApi.createTicket({
+    mutationFn: (data: TicketForm) => {
+      if (!ownsScope()) throw new Error("Helpdesk context changed");
+      return helpdeskApi.createTicket({
         subject: data.subject,
         description: data.description,
         priority: data.priority,
         category_id: data.category_id ? Number(data.category_id) : undefined,
-      }),
+      });
+    },
     onSuccess: () => {
+      if (!ownsScope()) return;
+      setCreateError("");
       toast({ title: "Ticket raised successfully" });
       reset();
       setShowForm(false);
       refetch();
-      qc.invalidateQueries({ queryKey: ["helpdesk-analytics"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-analytics", scope] });
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
     },
     onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed";
+      if (!ownsScope()) return;
+      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      const issues = Array.isArray(detail) ? detail : [];
+      let focused = false;
+      for (const issue of issues) {
+        const field = Array.isArray(issue?.loc) ? issue.loc.at(-1) : undefined;
+        if (["subject", "description", "category_id", "priority"].includes(field) && typeof issue.msg === "string") {
+          setError(field as keyof TicketForm, { type: "server", message: issue.msg }, { shouldFocus: !focused });
+          focused = true;
+        }
+      }
+      const msg = typeof detail === "string" ? detail : "Ticket could not be created. Check the highlighted fields and try again.";
+      setCreateError(msg);
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => helpdeskApi.updateStatus(id, status),
+    mutationFn: ({ id, status }: { id: number; status: string }) => {
+      if (!ownsScope()) throw new Error("Helpdesk context changed");
+      if (!canUpdateStatus) throw new Error("You cannot manage ticket status");
+      return helpdeskApi.updateStatus(id, status);
+    },
     onSuccess: (_, { id, status }) => {
+      if (!ownsScope()) return;
       toast({ title: `Ticket ${status}` });
       refetch();
-      qc.invalidateQueries({ queryKey: ["helpdesk-analytics"] });
-      qc.invalidateQueries({ queryKey: ["helpdesk-sla-breaches"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-analytics", scope] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-sla-breaches", scope] });
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
-      setSelectedTicket((ticket) => ticket && (!phone || ticket.id === id) ? { ...ticket, status } : ticket);
+      setSelectedTicket((ticket) => ticket && ticket.id === id ? { ...ticket, status } : ticket);
     },
   });
 
   const replyMutation = useMutation({
-    mutationFn: (message: string) => helpdeskApi.addReply(selectedTicket!.id, message),
+    mutationFn: (message: string) => {
+      if (!ownsScope()) throw new Error("Helpdesk context changed");
+      return helpdeskApi.addReply(selectedTicket!.id, message);
+    },
     onSuccess: () => {
+      if (!ownsScope()) return;
       setReplyText("");
       refetchReplies();
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
     },
-    onError: () => toast({ title: "Failed to send reply", variant: "destructive" }),
+    onError: () => { if (ownsScope()) toast({ title: "Failed to send reply", variant: "destructive" }); },
   });
 
   const csatMutation = useMutation({
-    mutationFn: ({ id, rating }: { id: number; rating: number }) => helpdeskApi.submitCsat(id, rating),
+    mutationFn: ({ id, rating }: { id: number; rating: number }) => {
+      if (!ownsScope()) throw new Error("Helpdesk context changed");
+      return helpdeskApi.submitCsat(id, rating);
+    },
     onSuccess: (_, { id, rating }) => {
+      if (!ownsScope()) return;
       toast({ title: "CSAT captured", description: `${rating}/5 rating saved.` });
       refetch();
-      qc.invalidateQueries({ queryKey: ["helpdesk-analytics"] });
-      setSelectedTicket((ticket) => ticket && (!phone || ticket.id === id) ? { ...ticket, satisfaction_rating: rating } : ticket);
+      qc.invalidateQueries({ queryKey: ["helpdesk-analytics", scope] });
+      setSelectedTicket((ticket) => ticket && ticket.id === id ? { ...ticket, satisfaction_rating: rating } : ticket);
     },
-    onError: () => toast({ title: "Unable to save CSAT", variant: "destructive" }),
+    onError: () => { if (ownsScope()) toast({ title: "Unable to save CSAT", variant: "destructive" }); },
   });
 
   const priorityBadge: Record<string, string> = {
@@ -202,13 +252,13 @@ export default function HelpdeskPage() {
                     <CardTitle className="text-base">{selectedTicket.subject}</CardTitle>
                     <CardDescription>{selectedTicket.ticket_number} - {selectedTicket.category?.name || "Uncategorized"}</CardDescription>
                   </div>
-                  <NativeSelect aria-label="Ticket status" disabled={phone && ticketBusy} value={selectedTicket.status} onChange={(e) => updateStatusMutation.mutate({ id: selectedTicket.id, status: e.target.value })} className="h-8 rounded border border-input bg-background px-2 text-xs">
+                  {canUpdateStatus ? <NativeSelect aria-label="Ticket status" disabled={ticketBusy} value={selectedTicket.status} onChange={(e) => updateStatusMutation.mutate({ id: selectedTicket.id, status: e.target.value })} className="h-8 rounded border border-input bg-background px-2 text-xs">
                     {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </NativeSelect>
+                  </NativeSelect> : <Badge variant="outline">{selectedTicket.status}</Badge>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {phone && updateStatusMutation.isError && <p role="alert" className="text-sm text-destructive">Status could not update. Choose the status to retry.</p>}
+                {updateStatusMutation.isError && <p role="alert" className="text-sm text-destructive">Status could not update. Choose the status to retry.</p>}
                 <div className="rounded-lg bg-muted/30 p-4">
                   <div className="text-sm"><RichTextContent legacyFormat="plain" value={selectedTicket.description}/></div>
                   <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(selectedTicket.created_at)}</p>
@@ -279,7 +329,7 @@ export default function HelpdeskPage() {
         </Button>
       </div>
 
-      <div className="hrms-helpdesk-kpis grid grid-cols-2 gap-4 lg:grid-cols-6">
+      {canViewAnalytics && <div className="hrms-helpdesk-kpis grid grid-cols-2 gap-4 lg:grid-cols-6">
         {[
           { label: "Open", value: analytics?.open ?? 0, icon: LifeBuoy },
           { label: "Resolved", value: analytics?.resolved ?? 0, icon: MessageSquare },
@@ -293,16 +343,16 @@ export default function HelpdeskPage() {
             <Card key={item.label}>
               <CardContent className="p-4 text-center">
                 <Icon className="mx-auto mb-2 h-4 w-4 text-primary" />
-                <p className="text-2xl font-bold">{phone && analytics === undefined ? "—" : item.value}</p>
+                <p className="text-2xl font-bold">{analytics === undefined ? "—" : item.value}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.label}</p>
               </CardContent>
             </Card>
           );
         })}
-      </div>
+      </div>}
 
-      {phone && [ticketsQuery, categoriesQuery, analyticsQuery, slaQuery].some(query => query.isError) && <p role="alert" className="text-sm text-destructive">Helpdesk information could not load. <Button variant="outline" onClick={() => { for (const query of [ticketsQuery, categoriesQuery, analyticsQuery, slaQuery]) if (query.isError) void query.refetch(); }}>Retry helpdesk</Button></p>}
-      <MobileDisclosure title="SLA and queue analytics" maxWidth={480}><div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      {visibleQueries.some(query => query.isError) && <p role="alert" className="text-sm text-destructive">Helpdesk information could not load. <Button variant="outline" onClick={() => { for (const query of visibleQueries) if (query.isError) void query.refetch(); }}>Retry helpdesk</Button></p>}
+      {canViewAnalytics && <MobileDisclosure title="SLA and queue analytics" maxWidth={480}><div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">SLA Breach Dashboard</CardTitle>
@@ -318,13 +368,13 @@ export default function HelpdeskPage() {
                 <Badge data-priority-badge data-priority={ticket.priority} variant="destructive">{ticket.priority}</Badge>
               </div>
             ))}
-            {(!phone || slaQuery.isSuccess) && !slaBreaches?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No breached tickets right now.</p>}
+            {slaQuery.isSuccess && !slaBreaches?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No breached tickets right now.</p>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">CSAT + Queue Mix</CardTitle>
-            <CardDescription>{phone && analytics === undefined ? "Satisfaction responses have not loaded." : `${analytics?.csat_responses || 0} satisfaction responses captured.`}</CardDescription>
+            <CardDescription>{analytics === undefined ? "Satisfaction responses have not loaded." : `${analytics?.csat_responses || 0} satisfaction responses captured.`}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(analytics?.by_status || {}).map(([status, count]) => (
@@ -336,31 +386,33 @@ export default function HelpdeskPage() {
             {!analytics && <p className="text-sm text-muted-foreground">Analytics are available for helpdesk managers.</p>}
           </CardContent>
         </Card>
-      </div></MobileDisclosure>
+      </div></MobileDisclosure>}
 
       {showForm && (
         <SmartCreateModal definition={{ entity: "ticket", title: "Create support ticket", presentation: "page", size: "standard" }} busy={createMutation.isPending} mobileSheet={phone} onClose={() => setShowForm(false)}>
         <Card className="hrms-helpdesk-create-card">
           <CardHeader><CardTitle className="text-base">Raise a Ticket</CardTitle></CardHeader>
           <CardContent>
-            <CompactForm onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="hrms-helpdesk-create grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CompactForm onSubmit={handleSubmit((data) => { clearErrors(); setCreateError(""); createMutation.mutate(data); })} className="hrms-helpdesk-create grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Subject *</Label>
-                <Input aria-label="Ticket subject" aria-invalid={!!errors.subject} autoFocus {...register("subject", { required: "Required" })} placeholder="Brief description of the issue" />
+                <Input aria-label="Ticket subject" aria-invalid={!!errors.subject} autoFocus maxLength={300} {...register("subject", { required: "Required", validate: value => Boolean(value.trim()) || "Enter a ticket subject" })} placeholder="Brief description of the issue" />
                 {errors.subject && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.subject.message}/></div>}
               </div>
               <div className="space-y-1.5">
                 <Label>Category</Label>
-                <NativeSelect aria-label="Ticket category" loading={phone && categoriesQuery.isFetching} error={phone && categoriesQuery.isError} {...register("category_id")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Ticket category" aria-invalid={!!errors.category_id} loading={phone && categoriesQuery.isFetching} error={phone && categoriesQuery.isError} {...register("category_id")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select category</option>
                   {(categories as { id: number; name: string }[])?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </NativeSelect>
+                {errors.category_id && <p role="alert" className="text-xs text-destructive">{errors.category_id.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>
-                <NativeSelect aria-label="Ticket priority" {...register("priority")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Ticket priority" aria-invalid={!!errors.priority} {...register("priority")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                 </NativeSelect>
+                {errors.priority && <p role="alert" className="text-xs text-destructive">{errors.priority.message}</p>}
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Description *</Label>
@@ -368,7 +420,7 @@ export default function HelpdeskPage() {
                 {errors.description && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.description.message}/></div>}
               </div>
               {phone && categoriesQuery.isError && <p role="alert" className="hrms-helpdesk-create-error text-sm text-destructive">Categories could not load. <Button type="button" variant="outline" onClick={() => void categoriesQuery.refetch()}>Retry categories</Button></p>}
-              {phone && createMutation.isError && <p role="alert" className="hrms-helpdesk-create-error text-sm text-destructive">Ticket could not create. Your ticket details are retained.</p>}
+              {createError && <p role="alert" className="hrms-helpdesk-create-error text-sm text-destructive">{createError} Your ticket details are retained.</p>}
               <div className="hrms-helpdesk-create-actions flex gap-3 sm:col-span-2">
                 <Button data-save-action={phone ? "" : undefined} type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Submitting..." : "Raise Ticket"}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -379,6 +431,7 @@ export default function HelpdeskPage() {
         </SmartCreateModal>
       )}
 
+      <TicketSavedViews scope={`${user?.id||0}:${user?.access?.companyId||0}`} filters={filters} onApply={applyView}/>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-1">
           <div className="flex gap-2">
@@ -391,6 +444,11 @@ export default function HelpdeskPage() {
             </Button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <NativeSelect aria-label="Filter ticket priority" value={filters.priority} onChange={e=>applyView({...filters,priority:e.target.value})}><option value="">All priorities</option>{PRIORITIES.map(value=><option key={value}>{value}</option>)}</NativeSelect>
+            <label className="text-sm"><input type="checkbox" checked={filters.assigned_to_me} onChange={e=>applyView({...filters,assigned_to_me:e.target.checked})}/> Assigned to me</label>
+            <label className="text-sm"><input type="checkbox" checked={filters.my_tickets} onChange={e=>applyView({...filters,my_tickets:e.target.checked})}/> Raised by me</label>
+          </div>
           <div className="space-y-2">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <Card key={i}><CardContent className="p-4"><div className="h-16 rounded bg-muted/40" /></CardContent></Card>)

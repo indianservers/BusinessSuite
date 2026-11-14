@@ -180,6 +180,7 @@
     "id",
     "input_price",
     "max_tokens",
+    "media_settings",
     "model",
     "output_price",
     "provider",

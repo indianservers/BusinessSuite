@@ -59,10 +59,16 @@ class HelpdeskTicketEscalation(BaseModel):
 
 
 class HelpdeskTicketCreate(BaseModel):
-    subject: str
-    description: str
-    category_id: Optional[int] = None
-    priority: str = "Medium"
+    subject: str = Field(min_length=1,max_length=300)
+    description: str = Field(min_length=1)
+    category_id: Optional[int] = Field(default=None,gt=0,le=2147483647)
+    priority: Literal['Low','Medium','High','Critical'] = "Medium"
+
+    @field_validator('subject','description')
+    @classmethod
+    def content_required(cls,value):
+        if not value.strip():raise ValueError('Enter ticket details')
+        return value
 
 
 class HelpdeskTicketStatusUpdate(BaseModel):

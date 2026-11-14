@@ -40,6 +40,7 @@ const categories: Record<string, readonly Category[]> = {
     { name: "AI tools", paths: ["/ai-agents"] },
   ],
   srm: [
+    { name: "Industry operations", paths: ["/srm/salon", "/srm/construction"] },
     { name: "Business relationships", paths: ["/srm/customers", "/srm/companies", "/srm/vendors"] },
     { name: "Overview", paths: ["/srm/dashboard", "/srm"] },
     { name: "Sales & contracts", paths: ["/srm/whatsapp-communication", "/srm/follow-ups", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/customer-360", "/srm/gantt"] },

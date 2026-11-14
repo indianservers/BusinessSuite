@@ -220,7 +220,7 @@ class SalaryAdvanceCreate(BaseModel):
 
 class SalaryAdvanceReview(BaseModel):
     action: str
-    approved_amount: Decimal | None = None
+    approved_amount: Decimal | None = Field(default=None, ge=0)
     remarks: str | None = None
 
 
@@ -3665,12 +3665,15 @@ def review_reimbursement(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_approve")),
 ):
-    reimbursement = db.query(Reimbursement).filter(Reimbursement.id == reimbursement_id).first()
+    reimbursement = db.query(Reimbursement).filter(Reimbursement.id == reimbursement_id).with_for_update().first()
     if not reimbursement:
         raise HTTPException(status_code=404, detail="Reimbursement not found")
     action = data.action.lower()
     if action not in {"approve", "reject"}:
         raise HTTPException(status_code=400, detail="action must be approve or reject")
+    if reimbursement.payroll_record_id is not None or (reimbursement.status or "").lower() == "paid":
+        raise HTTPException(status_code=409, detail="Reimbursement is already included in payroll and cannot be reviewed again")
+    _ensure_not_locked_for_date(db, reimbursement.date, "review reimbursement")
     old_status = reimbursement.status
     reimbursement.status = "Approved" if action == "approve" else "Rejected"
     reimbursement.approved_by = current_user.id if action == "approve" else None

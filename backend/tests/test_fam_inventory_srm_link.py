@@ -21,4 +21,12 @@ def test_inventory_srm_link_shows_reservations_and_movements(client, db, superus
 
     link = client.get("/api/v1/fam/inventory/srm-link", headers=headers)
     assert link.status_code == 200, link.text
-    assert link.json()["total"] >= 2
+    data=link.json()
+    assert data["total"]==2
+    assert [row["id"] for row in data["reservations"]]==[reserve.json()["id"]]
+    assert [row["id"] for row in data["movements"]]==[movement.json()["id"]]
+    assert data["reservations"][0]["source_record_id"]=="SO-P9"
+    assert data["reservations"][0]["quantity"]==2
+    assert data["movements"][0]["source_record_id"]=="INV-P9"
+    assert data["movements"][0]["status"]=="posted"
+    assert all(row["source_module"]=="srm" for row in data["reservations"]+data["movements"])

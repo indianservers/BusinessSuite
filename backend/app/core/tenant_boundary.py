@@ -211,6 +211,12 @@ def install(db, user, company, *, verified_portal=False):
                 workspace = workspace_model.__table__
                 workspace_scopes = select(literal("workspace:") + cast(workspace.c.id, String)).where(predicate(workspace_model, (*stack, model)))
                 result = or_(result, table.c.scope_key.in_(workspace_scopes))
+        elif table.name == "pms_running_timers":
+            # One global owner-private cursor per login, not one per company or
+            # project. Services independently authorize its active project/task
+            # before exposing content or recording time. Hiding an old inactive
+            # cursor behind parent filters causes duplicate-PK starts.
+            result = table.c.user_id == user.id
         elif model is User:
             result = table.c.id.in_(member_users)
         elif model.__module__ == "app.models.company" and any(
@@ -464,6 +470,8 @@ def install(db, user, company, *, verified_portal=False):
 
     def validate_fields(model, values, new=False):
         table = model.__table__
+        if table.name == 'pms_running_timers' and values.get('user_id',user.id) != user.id:
+            denied('timer_owner_write',model)
         if table.name in {"ai_operator_providers", "ai_operator_api_logs"} and values.get("scope_key") not in {None, f"company:{company}", f"user:{user.id}"}:
             scope_value = str(values.get("scope_key"))
             workspace_id = scope_value.removeprefix("workspace:")
@@ -478,6 +486,11 @@ def install(db, user, company, *, verified_portal=False):
                     denied("tenant_write", model)
             column = table.c.get(name)
             if column is None or value is None:
+                continue
+            if table.name == 'pms_running_timers' and name == 'user_id' and value == user.id:
+                # A platform owner need not be listed as a company employee to
+                # update their own global personal cursor. Other-owner writes
+                # are explicitly denied above; business parent checks remain.
                 continue
             if name in ACTOR_FIELDS and value == user.id:
                 continue

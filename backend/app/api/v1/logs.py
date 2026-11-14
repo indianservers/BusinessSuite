@@ -29,7 +29,7 @@ def list_audit_logs(
 ):
     query = db.query(AuditLog)
     if endpoint:
-        query = query.filter(AuditLog.endpoint.ilike(f"%{endpoint}%"))
+        query = query.filter(AuditLog.endpoint.icontains(endpoint, autoescape=True))
     if method:
         query = query.filter(AuditLog.method == method.upper())
     if status_min is not None:
@@ -88,7 +88,7 @@ def list_error_logs(
 ):
     query = db.query(AuditLog).filter(AuditLog.status_code >= 400)
     if endpoint:
-        query = query.filter(AuditLog.endpoint.ilike(f"%{endpoint}%"))
+        query = query.filter(AuditLog.endpoint.icontains(endpoint, autoescape=True))
     return query.order_by(AuditLog.id.desc()).limit(limit).all()
 
 
@@ -102,7 +102,7 @@ def log_analysis(
 ):
     query = db.query(AuditLog)
     if endpoint:
-        query = query.filter(AuditLog.endpoint.ilike(f"%{endpoint}%"))
+        query = query.filter(AuditLog.endpoint.icontains(endpoint, autoescape=True))
     if from_at:
         query = query.filter(AuditLog.created_at >= from_at)
     if to_at:

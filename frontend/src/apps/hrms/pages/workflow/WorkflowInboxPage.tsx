@@ -1,4 +1,7 @@
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
+import ApprovalTargetPicker from '@/components/forms/ApprovalTargetPicker';
+import { useRecordScope } from '@/shared/records/Record360Workspace';
+import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { useMobile } from "@/components/mobile/useMobile";
 import "./workflow-inbox-mobile.css";
@@ -80,7 +83,7 @@ const blankStep = (order: number): WorkflowStep => ({
   step_order: order,
   step_type: "Approval",
   approver_type: "Role",
-  approver_value: "hr",
+  approver_value: "",
   condition_expression: "",
   timeout_hours: "24",
   escalation_user_id: "",
@@ -103,6 +106,11 @@ function hrmsActionUrl(url: string) {
 }
 
 export default function WorkflowInboxPage() {
+  const scope=useRecordScope();
+  return <ScopedWorkflowInbox key={scope} scope={scope}/>;
+}
+function ScopedWorkflowInbox({scope}:{scope:string}) {
+  const ownsScope=useRecordScopeOwner();
   usePageTitle("Workflow Inbox");
   const qc = useQueryClient();
   const phone = useMobile(480);
@@ -122,21 +130,22 @@ export default function WorkflowInboxPage() {
   const [steps, setSteps] = useState<WorkflowStep[]>([blankStep(1)]);
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["workflow-inbox", mine],
+    queryKey: ["workflow-inbox", mine, scope],
     queryFn: () => workflowApi.inbox(mine).then((response) => response.data as WorkflowSummary),
   });
 
   const definitionsQuery = useQuery({
-    queryKey: ["workflow-definitions"],
+    queryKey: ["workflow-definitions", scope],
     queryFn: () => workflowApi.definitions().then((response) => response.data as WorkflowDefinition[]),
     retry: false,
   });
 
   const definitions = definitionsQuery.data;
   const createDefinition = useMutation({
-    onMutate: () => { if (phone) setSaveError(""); },
-    mutationFn: () =>
-      workflowApi.createDefinition({
+    onMutate: () => { setSaveError(""); },
+    mutationFn: () => {
+      if(!ownsScope())throw new Error('Workflow context changed');
+      return workflowApi.createDefinition({
         ...definitionForm,
         steps: steps.map((step, index) => ({
           step_order: index + 1,
@@ -146,18 +155,23 @@ export default function WorkflowInboxPage() {
           condition_expression: step.condition_expression || null,
           timeout_hours: step.timeout_hours ? Number(step.timeout_hours) : null,
           escalation_user_id: step.escalation_user_id ? Number(step.escalation_user_id) : null,
+          delegation_type: step.delegation_role.trim() ? "Role" : null,
+          delegation_value: step.delegation_role.trim() || null,
+          metadata_json: step.audit_note.trim() ? { audit_note: step.audit_note.trim() } : null,
           is_required: step.is_required,
         })),
-      }),
+      });
+    },
     onSuccess: () => {
+      if(!ownsScope())return;
       toast({ title: "Workflow definition saved" });
       if (phone) { setEditorOpen(false); setSaveError(""); }
       setDefinitionForm({ name: "", module: "leave", trigger_event: "leave_submitted", description: "" });
       setSteps([blankStep(1)]);
-      qc.invalidateQueries({ queryKey: ["workflow-definitions"] });
+      qc.invalidateQueries({ queryKey: ["workflow-definitions", scope] });
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
     },
-    onError: () => { if (phone) setSaveError("Unable to save workflow. Your entries are retained; try Save Workflow again."); toast({ title: "Unable to save workflow", variant: "destructive" }); },
+    onError: () => { if(!ownsScope())return;setSaveError("Unable to save workflow. Your entries are retained; try Save Workflow again."); toast({ title: "Unable to save workflow", variant: "destructive" }); },
   });
 
   const sourceRows = useMemo(() => Object.entries(data?.by_source || {}), [data]);
@@ -180,68 +194,68 @@ export default function WorkflowInboxPage() {
               <div className="hrms-workflow-info grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Name</Label>
-                  <Input disabled={phone && createDefinition.isPending} aria-label="Name" value={definitionForm.name} onChange={(e) => setDefinitionForm({ ...definitionForm, name: e.target.value })} placeholder="Leave approval - India" />
+                  <Input disabled={createDefinition.isPending} aria-label="Name" value={definitionForm.name} onChange={(e) => setDefinitionForm({ ...definitionForm, name: e.target.value })} placeholder="Leave approval - India" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Module</Label>
-                  <NativeSelect disabled={phone && createDefinition.isPending} className="h-10 w-full rounded-md border bg-background px-3 text-sm" aria-label="Module" value={definitionForm.module} onChange={(e) => setDefinitionForm({ ...definitionForm, module: e.target.value })}>
+                  <NativeSelect disabled={createDefinition.isPending} className="h-10 w-full rounded-md border bg-background px-3 text-sm" aria-label="Module" value={definitionForm.module} onChange={(e) => setDefinitionForm({ ...definitionForm, module: e.target.value })}>
                     {["leave", "payroll", "attendance", "documents", "onboarding", "helpdesk", "reimbursement"].map((module) => <option key={module}>{module}</option>)}
                   </NativeSelect>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Trigger Event</Label>
-                  <Input disabled={phone && createDefinition.isPending} aria-label="Trigger Event" value={definitionForm.trigger_event} onChange={(e) => setDefinitionForm({ ...definitionForm, trigger_event: e.target.value })} placeholder="leave_submitted" />
+                  <Input disabled={createDefinition.isPending} aria-label="Trigger Event" value={definitionForm.trigger_event} onChange={(e) => setDefinitionForm({ ...definitionForm, trigger_event: e.target.value })} placeholder="leave_submitted" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Description</Label>
-                  <Input disabled={phone && createDefinition.isPending} aria-label="Description" value={definitionForm.description} onChange={(e) => setDefinitionForm({ ...definitionForm, description: e.target.value })} />
+                  <Input disabled={createDefinition.isPending} aria-label="Description" value={definitionForm.description} onChange={(e) => setDefinitionForm({ ...definitionForm, description: e.target.value })} />
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">Approval Steps</p>
-                  <Button disabled={phone && createDefinition.isPending} variant="outline" size="sm" onClick={addStep}><Plus className="mr-2 h-4 w-4" />Add Step</Button>
+                  <Button disabled={createDefinition.isPending} variant="outline" size="sm" onClick={addStep}><Plus className="mr-2 h-4 w-4" />Add Step</Button>
                 </div>
                 {steps.map((step, index) => (
                   <div key={index} className="hrms-workflow-edit-step rounded-lg border p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <Badge variant="outline">Step {index + 1}</Badge>
-                      {steps.length > 1 && <Button disabled={phone && createDefinition.isPending} aria-label={`Remove step ${index + 1}`} variant="ghost" size="icon" onClick={() => removeStep(index)}><Trash2 className="h-4 w-4" /></Button>}
+                      {steps.length > 1 && <Button disabled={createDefinition.isPending} aria-label={`Remove step ${index + 1}`} variant="ghost" size="icon" onClick={() => removeStep(index)}><Trash2 className="h-4 w-4" /></Button>}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label>Approver Type</Label>
-                        <NativeSelect disabled={phone && createDefinition.isPending} className="h-10 w-full rounded-md border bg-background px-3 text-sm" aria-label={`Step ${index + 1} Approver Type`} value={step.approver_type} onChange={(e) => updateStep(index, { approver_type: e.target.value })}>
+                        <NativeSelect disabled={createDefinition.isPending} className="h-10 w-full rounded-md border bg-background px-3 text-sm" aria-label={`Step ${index + 1} Approver Type`} value={step.approver_type} onChange={(e) => updateStep(index, { approver_type: e.target.value, approver_value:'' })}>
                           {["Role", "User"].map((type) => <option key={type}>{type}</option>)}
                         </NativeSelect>
                       </div>
                       <div className="space-y-1.5">
-                        <Label>Approver Value</Label>
-                        <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Approver Value`} value={step.approver_value} onChange={(e) => updateStep(index, { approver_value: e.target.value })} placeholder="hr or user ID" />
+                        <Label>Approver</Label>
+                        <ApprovalTargetPicker key={step.approver_type} disabled={createDefinition.isPending} kind={step.approver_type==='User'?'User':'Role'} label={`Step ${index + 1} Approver`} value={step.approver_value} onChange={value=>updateStep(index,{approver_value:value})}/>
                       </div>
                       <MobileDisclosure maxWidth={480} title={`Step ${index + 1} conditions & escalation`}>
                       <div className="space-y-1.5">
                         <Label>Condition</Label>
-                        <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Condition`} value={step.condition_expression} onChange={(e) => updateStep(index, { condition_expression: e.target.value })} placeholder="days_count > 3" />
+                        <Input disabled={createDefinition.isPending} aria-label={`Step ${index + 1} Condition`} value={step.condition_expression} onChange={(e) => updateStep(index, { condition_expression: e.target.value })} placeholder="days_count > 3" />
                       </div>
                       <div className="space-y-1.5">
                         <Label>Delegation Role</Label>
-                        <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Delegation Role`} value={step.delegation_role} onChange={(e) => updateStep(index, { delegation_role: e.target.value })} placeholder="backup_hr_manager" />
+                        <ApprovalTargetPicker disabled={createDefinition.isPending} kind="Role" label={`Step ${index + 1} Delegation Role`} value={step.delegation_role} onChange={value=>updateStep(index,{delegation_role:value})}/>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label>Timeout Hrs</Label>
-                          <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Timeout Hrs`} type="number" value={step.timeout_hours} onChange={(e) => updateStep(index, { timeout_hours: e.target.value })} />
+                          <Input disabled={createDefinition.isPending} aria-label={`Step ${index + 1} Timeout Hrs`} type="number" value={step.timeout_hours} onChange={(e) => updateStep(index, { timeout_hours: e.target.value })} />
                         </div>
                         <div className="space-y-1.5">
-                          <Label>Escalate User ID</Label>
-                          <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Escalate User ID`} type="number" value={step.escalation_user_id} onChange={(e) => updateStep(index, { escalation_user_id: e.target.value })} />
+                          <Label>Escalate to</Label>
+                          <ApprovalTargetPicker disabled={createDefinition.isPending} kind="User" label={`Step ${index + 1} Escalate to`} value={step.escalation_user_id} onChange={value=>updateStep(index,{escalation_user_id:value})}/>
                         </div>
                       </div>
                       <div className="space-y-1.5 sm:col-span-2">
                         <Label>Audit Note</Label>
-                        <Input disabled={phone && createDefinition.isPending} aria-label={`Step ${index + 1} Audit Note`} value={step.audit_note} onChange={(e) => updateStep(index, { audit_note: e.target.value })} placeholder="Captured in approval audit trail" />
+                        <Input disabled={createDefinition.isPending} aria-label={`Step ${index + 1} Audit Note`} value={step.audit_note} onChange={(e) => updateStep(index, { audit_note: e.target.value })} placeholder="Captured in approval audit trail" />
                       </div>
                       </MobileDisclosure>
                     </div>
@@ -254,7 +268,7 @@ export default function WorkflowInboxPage() {
                   {[
                     ["Condition examples", "days_count > 3, amount > 10000, department = Finance"],
                     ["Escalation policy", "Timeout escalates to user/role and marks request at risk."],
-                    ["Delegation policy", "Backup role handles approvals during leave or out-of-office periods."],
+                    ["Delegation policy", "A configured delegation role receives this step's approvals instead of the original approver."],
                   ].map(([title, detail]) => (
                     <div key={title} className="rounded-md border bg-background p-3">
                       <p className="text-sm font-semibold">{title}</p>
@@ -264,10 +278,10 @@ export default function WorkflowInboxPage() {
                 </CardContent>
               </Card></MobileDisclosure>
 
-              {phone && saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-              <Button data-save-action={phone || undefined} aria-busy={phone && createDefinition.isPending || undefined} disabled={!definitionForm.name || !definitionForm.trigger_event || createDefinition.isPending} onClick={() => createDefinition.mutate()}>
+              {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+              <Button data-save-action={phone || undefined} aria-busy={createDefinition.isPending || undefined} disabled={!definitionForm.name || !definitionForm.trigger_event || steps.some(step=>!step.approver_value)||createDefinition.isPending} onClick={() => createDefinition.mutate()}>
                 <Save className="mr-2 h-4 w-4" />
-                {phone && createDefinition.isPending ? "Saving workflow…" : "Save Workflow"}
+                {createDefinition.isPending ? "Saving workflow…" : "Save Workflow"}
               </Button>
             </CardContent>
           </Card>

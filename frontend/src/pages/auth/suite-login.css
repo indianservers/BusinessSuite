@@ -55,6 +55,7 @@
   line-height: 1.6;
   color: #526786;
 }
+.suite-login-card .suite-login-organization { min-height:18px; line-height:18px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .suite-login-card .suite-login-company {
   font-size: 12px;
   color: #5935df;

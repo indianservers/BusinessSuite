@@ -395,11 +395,13 @@ def filter_entity_kind(q, entity_kind):
 
 
 @router.get("/companies")
-def list_companies(source: Source = "crm", search: str = Query("", max_length=180), role: str = Query("", max_length=30), page: int = Query(1, ge=1), per_page: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), actor: User = Depends(get_current_user), entity_kind: Literal["all", "companies", "individuals"] = "all"):
+def list_companies(source: Source = "crm", search: str = Query("", max_length=180), role: str = Query("", max_length=30), page: int = Query(1, ge=1), per_page: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), actor: User = Depends(get_current_user), entity_kind: Literal["all", "companies", "individuals"] = "all", exact_name: str = Query("", max_length=255)):
     q = filter_entity_kind(companies(db, actor, source), entity_kind)
+    if exact_name.strip():
+        q = q.filter(func.lower(func.trim(CRMCompany.name)) == exact_name.strip().lower())
     if search:
-        clean = search.replace("%", "\\%").replace("_", "\\_")
-        q = q.filter(or_(CRMCompany.name.ilike(f"%{clean}%", escape="\\"), CRMCompany.email.ilike(f"%{clean}%", escape="\\"), CRMCompany.phone.contains(clean)))
+        clean = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        q = q.filter(or_(CRMCompany.name.ilike(f"%{clean}%", escape="\\"), CRMCompany.email.ilike(f"%{clean}%", escape="\\"), CRMCompany.phone.ilike(f"%{clean}%", escape="\\")))
     if role:
         roles = role.split(",")
         if "Vendor" in roles or "Supplier" in roles: roles = list(set(roles) | {"Vendor", "Supplier"})
@@ -440,7 +442,7 @@ def list_contacts(source: Source = "crm", search: str = Query("", max_length=180
     else:
         q = q.filter(or_(CRMContact.created_by_user_id == actor.id, CRMContact.company_id.in_(companies(db, actor, source).with_entities(CRMCompany.id))))
     if search:
-        clean = search.replace("%", "\\%").replace("_", "\\_")
+        clean = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         q = q.filter(or_(CRMContact.full_name.ilike(f"%{clean}%", escape="\\"), CRMContact.email.ilike(f"%{clean}%", escape="\\"), CRMContact.phone.ilike(f"%{clean}%", escape="\\")))
     total = q.count()
     return {"items": [{"id": x.id, "name": x.full_name, "email": x.email, "phone": x.phone, "companyId": x.company_id} for x in q.order_by(CRMContact.full_name, CRMContact.id).offset((page - 1) * per_page).limit(per_page)], "total": total}
@@ -1035,7 +1037,7 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
     fields["vendorClassification"] = GridField(category, "text")
     q = apply_filters(q, parsed, fields)
     if parsed.search:
-        value = "%" + parsed.search.replace("%", "\\%").replace("_", "\\_") + "%"
+        value = "%" + parsed.search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         q = q.filter(or_(CRMCompany.name.ilike(value, escape="\\"), CRMCompany.email.ilike(value, escape="\\"), CRMCompany.phone.ilike(value, escape="\\")))
     total = q.count()
     branch = apply_path(q, parsed, fields)

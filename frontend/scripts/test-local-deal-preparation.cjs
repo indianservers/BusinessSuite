@@ -1,0 +1,33 @@
+// Read-only business-data timing probe; launch with private loopback credentials.
+const fs=require('node:fs');const{chromium}=require('playwright');
+const origin=process.env.LOCAL_AUDIT_ORIGIN,backend=process.env.LOCAL_AUDIT_BACKEND;
+if(!origin||!backend||![origin,backend].every(v=>new URL(v).hostname==='127.0.0.1'))throw new Error('Explicit loopback targets required');
+const sanitize=v=>{let s=String(v);for(const key of['LOCAL_AUDIT_EMAIL','LOCAL_AUDIT_PASSWORD'])if(process.env[key])s=s.split(process.env[key]).join('[private]');return s.replace(/Bearer [A-Za-z0-9._-]+/g,'Bearer [private]').replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[private token]');};
+(async()=>{
+ const browser=await chromium.launch({headless:true}),page=await browser.newPage({viewport:{width:1280,height:672}}),pending=new Set(),requests=new Map();let stage='login';
+ const interval=Math.max(8000,Number(process.env.LOCAL_AUDIT_SAMPLE_INTERVAL_MS)||8000);
+ const report={target:'BusinessSuite localhost5191/API1534; development mode; no business record writes',started_at:new Date().toISOString(),sample_interval_ms:interval,samples:[],requests:[],blockedWrites:[],externalOrigins:[],pageErrors:[],reloads:[]};
+ await page.addInitScript(()=>{window.__dealProbeAborts=[];const Original=window.AbortController;window.AbortController=class extends Original{abort(...args){window.__dealProbeAborts.push({at:Date.now(),stack:new Error('abort origin').stack});super.abort(...args);}};});
+ page.on('websocket',socket=>socket.on('framereceived',frame=>{try{const data=JSON.parse(String(frame.payload));if(['update','full-reload','error'].includes(data.type))report.reloads.push({at:Date.now(),type:data.type,paths:(data.updates||[]).map(u=>u.path)});}catch{}}));
+ const origins=new Set([new URL(origin).origin,new URL(backend).origin]);
+ await page.route('**/*',route=>{const q=route.request(),u=new URL(q.url());if(!origins.has(u.origin)){report.externalOrigins.push(u.origin);return route.abort();}
+  if(u.pathname.startsWith('/api/v1/')&&!['GET','HEAD','OPTIONS'].includes(q.method())&&!['/api/v1/auth/login','/api/v1/auth/refresh','/api/v1/project-management/custom-fields/records'].includes(u.pathname)&&!u.pathname.endsWith('/query')&&!u.pathname.includes('/preferences')&&!u.pathname.includes('/view-preferences')){report.blockedWrites.push({stage,method:q.method(),path:u.pathname});return route.fulfill({status:409,json:{detail:'Read-only timing probe; write not performed'}});}return route.continue();});
+ page.on('request',q=>{const u=new URL(q.url());if(!u.pathname.startsWith('/api/v1/'))return;requests.set(q,{stage,path:u.pathname,method:q.method(),started:Date.now()});if(['xhr','fetch'].includes(q.resourceType())&&!/stream|events/.test(u.pathname))pending.add(q);});
+ page.on('response',r=>{const row=requests.get(r.request());if(row){row.status=r.status();row.ttfb_ms=Date.now()-row.started;}});
+ const finish=q=>{pending.delete(q);const r=requests.get(q);if(r){r.elapsed_ms=Date.now()-r.started;if(q.failure())r.failure=q.failure().errorText;delete r.started;report.requests.push(r);requests.delete(q);}};page.on('requestfinished',finish);page.on('requestfailed',finish);page.on('pageerror',e=>report.pageErrors.push(sanitize(e.message)));
+ async function quiet(){const start=Date.now();let idle=0;while(Date.now()-start<15000){if(!pending.size){if(!idle)idle=Date.now();if(Date.now()-idle>=400)return true;}else idle=0;await new Promise(r=>setTimeout(r,50));}return false;}
+ try{
+  await page.goto(origin+'/crm/deals',{waitUntil:'domcontentloaded'});await page.getByLabel('Email address',{exact:true}).fill(process.env.LOCAL_AUDIT_EMAIL);await page.getByLabel('Password',{exact:true}).fill(process.env.LOCAL_AUDIT_PASSWORD);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(u=>!['/login','/post-login'].includes(u.pathname));await page.locator('h1:visible').first().waitFor();
+  stage='deals-page';await page.goto(origin+'/crm/deals',{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Deals',exact:true}).waitFor();await quiet();
+  for(let i=0;i<=20;i++){
+   if(i)await new Promise(r=>setTimeout(r,interval));
+   stage='open-'+i;const start=Date.now();await page.getByRole('button',{name:'Create deal',exact:true}).first().click();const input=page.getByPlaceholder('Enter deal name...',{exact:true});await Promise.race([input.waitFor({state:'visible',timeout:60000}),page.getByText('Unable to Load Deal Form',{exact:true}).waitFor({state:'visible',timeout:60000}).then(()=>{throw new Error('Deal form displayed an explicit load error; inspect HTTP statuses and screenshot before classifying timing');})]);if(!await input.isEditable())throw new Error('Deal name did not become editable');const ready=Date.now()-start;const settled=await quiet();
+   report.samples.push({sample:i,kind:i?'warm':'first',form_ready_ms:ready,data_settled_ms:Date.now()-start,api_quiet:settled,requests:report.requests.filter(r=>r.stage===stage).length});
+   if(process.env.LOCAL_AUDIT_OUTPUT)fs.writeFileSync(process.env.LOCAL_AUDIT_OUTPUT,JSON.stringify(report,null,2));
+   await page.getByRole('button',{name:'Close deal form',exact:true}).click();await input.waitFor({state:'hidden'});await quiet();
+  }
+  const warm=report.samples.filter(s=>s.kind==='warm').map(s=>s.form_ready_ms).sort((a,b)=>a-b);report.summary={first_ms:report.samples[0].form_ready_ms,warm_samples:warm.length,warm_p50_ms:warm[Math.ceil(warm.length*.5)-1],warm_p95_ms:warm[Math.ceil(warm.length*.95)-1],warm_max_ms:warm.at(-1),api_errors:report.requests.filter(r=>r.status>=400).length,blocked_writes:report.blockedWrites.length,page_errors:report.pageErrors.length};report.completed=true;
+ }catch(e){report.completed=false;report.error=sanitize(e.stack||e);report.failure_ui={path:new URL(page.url()).pathname,preparing:await page.getByText('Preparing New Deal',{exact:true}).count(),form:await page.getByRole('button',{name:'Close deal form',exact:true}).count()};if(process.env.LOCAL_AUDIT_OUTPUT)await page.screenshot({path:process.env.LOCAL_AUDIT_OUTPUT.replace(/\.json$/,'.png'),fullPage:true});}
+ finally{report.aborts=(await page.evaluate(()=>window.__dealProbeAborts||[])).map(r=>({...r,stack:sanitize(r.stack)}));report.finished_at=new Date().toISOString();if(process.env.LOCAL_AUDIT_OUTPUT)fs.writeFileSync(process.env.LOCAL_AUDIT_OUTPUT,JSON.stringify(report,null,2));await page.unrouteAll({behavior:'wait'});await browser.close();}
+ console.log(JSON.stringify({completed:report.completed,summary:report.summary,error:report.error}));if(!report.completed)process.exitCode=1;
+})().catch(e=>{console.error(sanitize(e.stack||e));process.exitCode=1});

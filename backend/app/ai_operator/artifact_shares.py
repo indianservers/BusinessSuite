@@ -1,7 +1,7 @@
 """Reviewed artifact snapshots in the existing signed organization policy store.
 
-Private conversation isolation is never bypassed. Only the owner reads the
-private source, before publishing an explicitly reviewed, content-only snapshot.
+Only the owner reads private sources before publishing a reviewed snapshot.
+Image readers access explicit publication copies, never private source history.
 """
 import hmac
 import json
@@ -128,7 +128,8 @@ def metadata(db,user,row):
         'module':root['module'] if root else None,'source_revision':root['source_revision'] if root else None,
         'can_manage':manager(db,user,row),'can_revoke':admin(db,user),'definition_hash':digest(definition) if definition else None,
         'audience':value['audience'] if manager(db,user,row) else None,
-        'pending':{k:v for k,v in pending.items() if k not in ('grant','input_hash','request_key')} if pending else None,
+        'pending':{**{k:v for k,v in pending.items() if k not in ('grant','input_hash','request_key','assets')},
+            'image_positions':list((pending.get('assets') or {}).keys())} if pending else None,
         'history':value.get('history',[]) if manager(db,user,row) else []}
 
 
@@ -174,8 +175,12 @@ def source_shares(ident:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 
 
 @router.post('/preview')
-def preview(data:Preview,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def preview(data:Preview,request:Request,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     require_admin(db,user);definition=bundle(db,user,data.source_id,data.source_revision)
+    from app.ai_operator.artifact_share_images import positions
+    if positions(definition):
+        from app.ai_agents.api import _require_ai_rate_limit
+        _require_ai_rate_limit(db,request,user,bucket='artifact_media')
     audience_check(db,user,data.audience,definition['workspace_id'])
     key=f'company:{company(user)}:artifact-share:{user.id}:{data.request_key}';input_hash=digest(data.model_dump(mode='json',exclude={'request_key'}))
     row=entry(db,user,data.share_id,True) if data.share_id else db.query(ServicePolicy).filter_by(scope_key=key,kind=KIND,organization_id=company(user)).with_for_update().first()
@@ -202,6 +207,9 @@ def preview(data:Preview,db:Session=Depends(get_db),user:User=Depends(get_curren
             return metadata(db,user,existing)
     review={'definition':definition,'audience':data.audience.model_dump(),'base_revision':row.version,
         'proposed_revision':row.version if row.values_json['status']=='draft' else row.version+1}
+    from app.ai_operator.artifact_share_images import stage
+    assets=stage(db,user,row,definition,review['proposed_revision'])
+    if assets:review['assets']=assets
     hashed=digest(review)
     row.values_json={**row.values_json,'pending':{**review,'preview_hash':hashed,'grant':seal(db,user,hashed),
         'request_key':str(data.request_key),'input_hash':input_hash}}
@@ -213,20 +221,28 @@ def publish(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Dep
     row=entry(db,user,ident,True);manage(db,user,row);value=row.values_json;pending=value.get('pending')
     if not pending and value['status']=='active' and value.get('last_published_hash')==data.preview_hash:
         root=value['definition']['root'];bundle(db,user,root['source_id'],root['source_revision'])
+        from app.ai_operator.artifact_share_images import positions,load
+        for position in positions(value['definition']):load(db,row,value['definition'],value.get('assets') or {},row.version,int(position))
         return metadata(db,user,row)
     if not pending or pending['preview_hash']!=data.preview_hash:raise HTTPException(409,'Review the current artifact share preview')
     review={k:pending[k] for k in ('definition','audience','base_revision','proposed_revision')}
+    if pending.get('assets'):review['assets']=pending['assets']
     if digest(review)!=data.preview_hash or pending['base_revision']!=row.version:raise HTTPException(409,'Artifact share review changed')
     verify(db,user,pending['grant'],payload=data.preview_hash,confirmation=True)
     root=pending['definition']['root'];current=bundle(db,user,root['source_id'],root['source_revision'])
     if current!=pending['definition']:raise HTTPException(409,'Pinned source snapshot changed; prepare a fresh share review')
     audience_check(db,user,Audience.model_validate(pending['audience']),value['workspace_id'])
+    from app.ai_operator.artifact_share_images import positions,load,transition
+    for position in positions(current):load(db,row,current,pending.get('assets') or {},pending['proposed_revision'],int(position),staged=True)
+    transition(db,row,value.get('assets') or {},'retired')
+    transition(db,row,pending.get('assets') or {},'published')
     history=value.get('history',[])
     if value['definition']:history=[*history,{'revision':row.version,'title':value['definition']['root']['body']['title'],
         'source_revision':value['definition']['root']['source_revision'],'definition_hash':digest(value['definition'])}][-20:]
     row.version=pending['proposed_revision'];row.updated_by=user.id
     row.values_json={**value,'status':'active','definition':current,'audience':pending['audience'],'pending':None,'history':history,
-        'owner_fingerprint':fingerprint(db,user,company(user)),'last_published_hash':data.preview_hash}
+        'owner_fingerprint':fingerprint(db,user,company(user)),'last_published_hash':data.preview_hash,
+        'assets':pending.get('assets') or {}}
     sign(row);audit(db,user,row,'published');db.commit();return metadata(db,user,row)
 
 
@@ -234,13 +250,18 @@ def publish(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Dep
 def discard(ident:int,data:Confirmation,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=entry(db,user,ident,True);manage(db,user,row);pending=row.values_json.get('pending')
     if not pending or pending['preview_hash']!=data.preview_hash:raise HTTPException(409,'Artifact share review changed')
+    from app.ai_operator.artifact_share_images import transition
+    transition(db,row,pending.get('assets') or {},'retired')
     row.values_json={**row.values_json,'pending':None};sign(row);audit(db,user,row,'preview_discarded');db.commit()
     return {'id':row.id,'revision':row.version,'status':row.values_json['status'],'pending':None}
 
 
 def retire(db,user,row,action):
+    from app.ai_operator.artifact_share_images import transition
+    transition(db,row,row.values_json.get('assets') or {},'retired')
+    transition(db,row,(row.values_json.get('pending') or {}).get('assets') or {},'retired')
     row.version+=1;row.updated_by=user.id
-    row.values_json={**row.values_json,'status':'revoked','definition':None,'pending':None,'history':[],'last_published_hash':None}
+    row.values_json={**row.values_json,'status':'revoked','definition':None,'pending':None,'history':[],'last_published_hash':None,'assets':{}}
     sign(row);audit(db,user,row,action)
 
 
@@ -266,7 +287,10 @@ def item(row,source,position=None):
     public_id=f'share-{row.id}'+(f'-panel-{position}' if position else '')
     value={**body,'id':public_id,'module':source['module'],'revision':source['source_revision'],'current_revision':source['source_revision'],
         'provenance':{'citations':[],'note':f'Reviewed shared snapshot / share #{row.id} edition {row.version}. Content is not independently verified. Private citations and conversation history are excluded.'}}
-    if body['kind']=='dashboard':value['panels']=[{**p,'artifact_id':i} for i,p in enumerate(body['panels'],1)]
+    if body['kind']=='dashboard':
+        value['panels']=[{**p,'artifact_id':i} for i,p in enumerate(body['panels'],1)]
+        value['image_panel_positions']=[int(key) for key in (row.values_json.get('assets') or {}) if key!='0']
+    if body['kind']=='image':value['provenance']['note']+=' Text retrieval includes only the saved caption and metadata; pixels are served through the authorized image endpoint.'
     return value
 
 
@@ -301,13 +325,56 @@ def analysis(ident:int,request:Request,response:Response,position:int|None=Query
         category_query=category_query,series_key=series_key,order=order,limit=limit,chart_kind=chart_kind)
 
 
+def image_response(content):
+    return Response(content,media_type='image/png',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',
+        'Content-Security-Policy':"default-src 'none'; sandbox",'Content-Disposition':'inline'})
+
+
+@router.get('/{ident}/preview-image')
+def preview_image(ident:int,request:Request,preview_hash:str=Query(pattern=r'^[a-f0-9]{64}$'),position:int=Query(default=0,ge=0,le=6),
+    db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=entry(db,user,ident);manage(db,user,row)
+    pending=metadata(db,user,row).get('pending')
+    if not pending or pending['preview_hash']!=preview_hash:raise HTTPException(409,'Review the current image publication preview')
+    from app.ai_agents.api import _require_ai_rate_limit
+    from app.ai_operator.artifact_share_images import load
+    _require_ai_rate_limit(db,request,user,bucket='artifact_media')
+    original=row.values_json['pending']
+    return image_response(load(db,row,original['definition'],original.get('assets') or {},original['proposed_revision'],position,staged=True))
+
+
+@router.get('/{ident}/image')
+def image(ident:int,request:Request,revision:int|None=None,position:int=Query(default=0,ge=0,le=6),
+    db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    row=entry(db,user,ident);definition=available(db,user,row,revision)
+    from app.ai_agents.api import _require_ai_rate_limit
+    from app.ai_operator.artifact_share_images import load
+    _require_ai_rate_limit(db,request,user,bucket='artifact_media')
+    return image_response(load(db,row,definition,row.values_json.get('assets') or {},row.version,position))
+
+
 @router.get('/{ident}/download')
-def download(ident:int,request:Request,revision:int|None=None,format:Literal['md','csv','docx','xlsx','pdf','pptx']='md',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def download(ident:int,request:Request,revision:int|None=None,position:int|None=Query(default=None,ge=1,le=6),format:Literal['md','csv','docx','xlsx','pdf','pptx','png']='md',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     row=entry(db,user,ident);definition=available(db,user,row,revision,True)
     from app.ai_agents.api import _require_ai_rate_limit
     _require_ai_rate_limit(db,request,user,bucket='artifact_exports')
-    root=item(row,definition['root']);sources=[item(row,s,i) for i,s in enumerate(definition['sources'],1)] if root['kind']=='dashboard' else None
-    value,mime=artifacts.render_download(root,format,sources)
+    source=definition['root']
+    if position:
+        if source['body']['kind']!='dashboard' or position>len(definition['sources']):raise HTTPException(404,'Shared image panel not found')
+        source=definition['sources'][position-1]
+        if source['body']['kind']!='image' or format!='png':raise HTTPException(422,'Panel downloads currently require an image and PNG format')
+    root=item(row,source,position);sources=[item(row,s,i) for i,s in enumerate(definition['sources'],1)] if root['kind']=='dashboard' else None
+    source_media={}
+    if sources and format in ('docx','pdf','xlsx'):
+        from app.ai_operator.artifact_share_images import load
+        for index,source_item in enumerate(sources,1):
+            if source_item['kind']=='image':source_media[index]=load(db,row,definition,row.values_json.get('assets') or {},row.version,index)
+    pixels=None
+    if root['kind']=='image':
+        from app.ai_operator.artifact_share_images import load
+        pixels=load(db,row,definition,row.values_json.get('assets') or {},row.version,position or 0)
+    value,mime=artifacts.render_download(root,format,sources,media_content=pixels,source_media=source_media)
     audit(db,user,row,'exported');db.commit()
-    return Response(value,media_type=mime,headers={'Content-Disposition':f'attachment; filename="shared-artifact-{row.id}-edition-{row.version}.{format}"',
+    suffix=f'-panel-{position}' if position else ''
+    return Response(value,media_type=mime,headers={'Content-Disposition':f'attachment; filename="shared-artifact-{row.id}-edition-{row.version}{suffix}.{format}"',
         'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})

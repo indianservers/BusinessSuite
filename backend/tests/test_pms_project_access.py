@@ -153,6 +153,15 @@ def _user(db, email: str, permission_names: list[str] | None = None) -> User:
     return user
 
 
+def _organization(db, user, ident):
+    """Legacy direct-service fixtures still need a real company for event FKs."""
+    from app.models.company import Company
+    if not db.get(Company, ident):
+        db.add(Company(id=ident, name=f"Synthetic PMS organization {ident}"))
+        db.commit()
+    user.organization_id = ident
+
+
 def test_project_creator_becomes_manager_and_can_add_member(db):
     manager = _user(db, "pms-manager@example.com", ["pms_manage_projects"])
     viewer = _user(db, "pms-viewer@example.com")
@@ -310,6 +319,11 @@ def test_task_saved_views_store_filters_columns_and_permissions(db):
 
 
 def test_all_tasks_endpoint_scopes_by_accessible_organization(db):
+    from app.models.company import Company
+    for identity in (101,202):
+        if not db.get(Company,identity):
+            db.add(Company(id=identity,name=f"Synthetic PMS organization {identity}"))
+    db.flush()
     org_one_manager = _user(db, "pms-org-one-manager@example.com", ["pms_manage_projects"])
     org_two_manager = _user(db, "pms-org-two-manager@example.com", ["pms_manage_projects"])
     org_one_manager.organization_id = 101
@@ -366,7 +380,7 @@ def test_all_tasks_endpoint_scopes_by_accessible_organization(db):
 
 def test_task_checklist_crud_reorder_and_activity_events(db):
     manager = _user(db, "pms-checklist-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 303
+    _organization(db, manager, 303)
     project = create_project(
         PMSProjectCreate(name="Checklist Project", project_key="CHK"),
         db=db,
@@ -420,7 +434,7 @@ def test_task_checklist_crud_reorder_and_activity_events(db):
 
 def test_task_subtasks_crud_progress_and_cycle_guard(db):
     manager = _user(db, "pms-subtask-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 707
+    _organization(db, manager, 707)
     project = create_project(
         PMSProjectCreate(name="Subtask Delivery", project_key="SUB"),
         db=db,
@@ -463,7 +477,7 @@ def test_task_subtasks_crud_progress_and_cycle_guard(db):
 
 def test_task_story_points_and_tags_have_validation_and_activity(db):
     manager = _user(db, "pms-tags-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 404
+    _organization(db, manager, 404)
     project = create_project(
         PMSProjectCreate(name="Tagged Planning", project_key="TAG"),
         db=db,
@@ -495,7 +509,7 @@ def test_task_story_points_and_tags_have_validation_and_activity(db):
 
 def test_task_time_logs_crud_and_activity_events(db):
     manager = _user(db, "pms-time-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 505
+    _organization(db, manager, 505)
     project = create_project(
         PMSProjectCreate(name="Time Tracking", project_key="TT"),
         db=db,
@@ -545,11 +559,11 @@ def test_task_time_logs_crud_and_activity_events(db):
 
 def test_pms_weekly_timesheet_submit_approve_reject_flow(db):
     manager = _user(db, "pms-timesheet-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 515
+    _organization(db, manager, 515)
     member = _user(db, "pms-timesheet-member@example.com")
-    member.organization_id = 515
+    _organization(db, member, 515)
     outsider = _user(db, "pms-timesheet-outsider@example.com")
-    outsider.organization_id = 909
+    _organization(db, outsider, 909)
     project = create_project(
         PMSProjectCreate(name="Timesheet Project", project_key="TSH"),
         db=db,
@@ -623,7 +637,7 @@ def test_pms_weekly_timesheet_submit_approve_reject_flow(db):
 
 def test_backlog_move_to_sprint_and_reorder(db):
     manager = _user(db, "pms-backlog-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 606
+    _organization(db, manager, 606)
     project = create_project(
         PMSProjectCreate(name="Backlog Planning", project_key="BL"),
         db=db,
@@ -674,7 +688,7 @@ def test_backlog_move_to_sprint_and_reorder(db):
 
 def test_gantt_dependencies_schedule_and_cycle_validation(db):
     manager = _user(db, "pms-gantt-manager@example.com", ["pms_manage_projects"])
-    manager.organization_id = 808
+    _organization(db, manager, 808)
     project = create_project(
         PMSProjectCreate(name="Timeline Delivery", project_key="GAN"),
         db=db,
@@ -1100,7 +1114,7 @@ def test_portfolio_dashboard_is_accessible_scoped_and_calculates_health(db):
     outsider = _user(db, "pms-portfolio-outsider@example.com")
     from test_identity_utils import attach_test_identity
     attach_test_identity(db, manager)
-    manager.organization_id = 1
+    _organization(db, manager, 1)
     client = create_client(
         PMSClientCreate(name="Acme Portfolio", company_name="Acme"),
         db=db,
@@ -1637,7 +1651,7 @@ def test_documents_project_access_revision_history_and_conflict(db):
 def test_subtask_multi_assignment_ordering_and_promotion(db):
     from app.apps.project_management.api.router import reorder_task_subtasks, ChecklistReorderRequest
     manager = _user(db, "subtask-enhanced@example.com", ["pms_manage_projects"])
-    manager.organization_id = 707
+    _organization(db, manager, 707)
     project = create_project(PMSProjectCreate(name="Subtask controls", project_key="STC"), db=db, current_user=manager)
     parent = create_task(project.id, PMSTaskCreate(title="Parent", task_key="STC-1"), db=db, current_user=manager)
     first = create_task_subtask(parent.id, SubtaskCreateRequest(title=" First ", assignee_user_ids=[manager.id, manager.id]), db=db, current_user=manager)

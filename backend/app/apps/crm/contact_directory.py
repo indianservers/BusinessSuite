@@ -12,6 +12,7 @@ from sqlalchemy import func, or_, and_, exists, select, inspect, String
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
+from app.shared.user_labels import user_labels
 from app.models.audit import AuditLog
 from app.apps.crm.models import CRMContact, CRMLead, CRMCompany, CRMLeadConversionLog
 from app.apps.crm.financial_data import FinancialData, save_profile
@@ -59,12 +60,31 @@ def labels(row):
     return sorted(x for x in values if x.casefold() not in IDENTITY_TAGS)
 
 
-def serialize(row):
-    return {"id": row.id, "name": row.full_name, "email": row.email, "phone": row.phone,
+def linked_entity_kinds(db, rows):
+    """Resolve only visible page contacts from company-qualified account links."""
+    if not rows:
+        return {}
+    from app.shared.master_data_models import CompanyMasterDetails
+    organizations = {row.id: row.organization_id for row in rows}
+    query = (db.query(ContactIdentityLink.contact_id, ContactIdentityLink.organization_id, CompanyMasterDetails.business_type)
+        .select_from(ContactIdentityLink)
+        .join(CRMCompany, and_(CRMCompany.id == ContactIdentityLink.account_id, CRMCompany.organization_id == ContactIdentityLink.organization_id))
+        .outerjoin(CompanyMasterDetails, and_(CompanyMasterDetails.account_id == CRMCompany.id, CompanyMasterDetails.organization_id == ContactIdentityLink.organization_id))
+        .filter(ContactIdentityLink.contact_id.in_(organizations), ContactIdentityLink.organization_id.in_(set(organizations.values())), CRMCompany.deleted_at.is_(None)))
+    kinds = {}
+    for contact_id, organization_id, business_type in query.all():
+        if organizations.get(contact_id) == organization_id:
+            kinds.setdefault(contact_id, set()).add("Individual" if business_type == "Individual" else "Company")
+    # A merged identity may have conflicting account kinds; never guess one.
+    return {contact_id: next(iter(values)) if len(values) == 1 else None for contact_id, values in kinds.items()}
+
+
+def serialize(row, owner_names=None, entity_kinds=None):
+    return {"id": row.id, "name": row.full_name, "email": row.email, "phone": row.phone, "entityKind": (entity_kinds or {}).get(row.id),
         "city": row.city, "state": row.state, "country": row.country,
         "pincode": getattr(row, "postal_code", None) or getattr(row, "pincode", None),
         "phoneCountryCode": row.phone_country_code, "organization": row.company_name, "companyId": row.company_id,
-        "ownerId": row.owner_user_id, "status": row.status, "tags": labels(row),
+        "ownerId": row.owner_user_id, "ownerName": (owner_names or {}).get(row.owner_user_id), "status": row.status, "tags": labels(row),
         "lastInteraction": row.last_contacted_at, "nextFollowUp": row.next_follow_up_at,
         "createdAt": row.created_at, "updatedAt": row.updated_at, "version": version(row),
         "deletedAt": row.deleted_at, "notes": row.notes,
@@ -94,8 +114,7 @@ class Condition(BaseModel):
 
 def filtered(q, search="", relationship="", status="", filters="", match="and"):
     if search:
-        term = "%" + search.replace("%", "\\%").replace("_", "\\_") + "%"
-        q = q.filter(or_(*(column.ilike(term, escape="\\") for column in [CRMContact.full_name, CRMContact.email, CRMContact.phone, CRMContact.company_name])))
+        q = q.filter(or_(*(column.icontains(search, autoescape=True) for column in [CRMContact.full_name, CRMContact.email, CRMContact.phone, CRMContact.company_name])))
     if relationship:
         if relationship.casefold() in IDENTITY_TAGS:
             # HR/account directories retain their own authorization and data.
@@ -127,8 +146,7 @@ def filtered(q, search="", relationship="", status="", filters="", match="and"):
             elif condition.operator == "equals":
                 clauses.append(func.lower(column) == condition.value.lower())
             else:
-                value = condition.value.replace("%", "\\%").replace("_", "\\_")
-                clauses.append(column.ilike(f"%{value}%", escape="\\"))
+                clauses.append(column.icontains(condition.value, autoescape=True))
         if clauses:
             q = q.filter((or_ if match == "or" else and_)(*clauses))
     return q
@@ -198,7 +216,9 @@ def directory(search: str = Query("", max_length=180), relationship: str = Query
     def financial_summary(ident):
         profile = profiles.get(ident)
         return {"gstNumber": profile.gst_number or "", "bankAccountCount": len(profile.bank_accounts), "upiCount": len(profile.upi_ids)} if profile else {"gstNumber": "", "bankAccountCount": 0, "upiCount": 0}
-    return {"items": [{**serialize(x), **financial_summary(x.id), "unconvertedLeadIds": lead_ids.get(x.id, [])} for x in rows], "total": total, "page": page, "stats": stats, "canManage": manage, "canConvert": can_convert, "canExport": can_export, "canPermanentlyDelete": actor.is_superuser, "classifications": CLASSIFICATIONS}
+    owner_names = user_labels(db, core()._organization_id(db, actor), [x.owner_user_id for x in rows])
+    entity_kinds = linked_entity_kinds(db, rows)
+    return {"items": [{**serialize(x, owner_names, entity_kinds), **financial_summary(x.id), "unconvertedLeadIds": lead_ids.get(x.id, [])} for x in rows], "total": total, "page": page, "stats": stats, "canManage": manage, "canConvert": can_convert, "canExport": can_export, "canPermanentlyDelete": actor.is_superuser, "classifications": CLASSIFICATIONS}
 
 
 @router.get("/export")
@@ -320,7 +340,7 @@ def create_contact(data: ContactEdit, db: Session = Depends(get_db), actor: User
     save_directory_channels(db, actor, row, data)
     save_profile_availability(db, actor, row, data.branch_availability, action="create")
     db.commit()
-    return serialize(row)
+    return serialize(row, user_labels(db, row.organization_id, [row.owner_user_id]), linked_entity_kinds(db, [row]))
 
 
 @router.patch("/{ident}")
@@ -360,7 +380,7 @@ def edit_contact(ident: int, data: ContactEdit, db: Session = Depends(get_db), a
     save_directory_channels(db, actor, row, data, data.version)
     save_profile_availability(db, actor, row, data.branch_availability)
     db.commit()
-    return serialize(row)
+    return serialize(row, user_labels(db, row.organization_id, [row.owner_user_id]), linked_entity_kinds(db, [row]))
 
 
 def save_directory_channels(db, actor, row, data, initial_version=None):
@@ -463,7 +483,7 @@ def detail(ident: int, db: Session = Depends(get_db), actor: User = Depends(get_
             CRMLead.id.in_(select(ContactIdentityLink.lead_id).where(ContactIdentityLink.contact_id == ident))).all()
     except HTTPException:
         leads = []
-    return {**serialize(row), "leads": [{"id": x.id, "name": x.full_name, "status": x.status, "converted": x.is_converted} for x in leads], "related": related}
+    return {**serialize(row, user_labels(db, row.organization_id, [row.owner_user_id]), linked_entity_kinds(db, [row])), "leads": [{"id": x.id, "name": x.full_name, "status": x.status, "converted": x.is_converted} for x in leads], "related": related}
 
 
 @router.get("/{ident}/duplicates")

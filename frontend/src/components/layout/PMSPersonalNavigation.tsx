@@ -1,5 +1,8 @@
 import { commonRouteContext } from "@/lib/common-routes";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import { api } from "@/services/api";
 import { groupPmsRecents, pmsPageLabel, pmsPageResource } from "@/lib/pms-page-labels";
 import { useEffect } from "react";
@@ -21,6 +24,7 @@ export const pmsPrimaryPages = [
 export default function PMSPersonalNavigation({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
   const user = useAuthStore(s => s.user), location = useLocation();
   const scope = suiteScope(user?.id, user?.access?.companyId);
+  const queryClient=useQueryClient(),nameScope=useRecordScope(),workspaceScope=workspaceDataScope(user);
   const saved = usePmsNavigation(s => s.contexts[scope] || emptyPmsNavigation);
   const { visit, pin, move } = usePmsNavigation();
   const permitted = (p: PmsPage) => (p.path.startsWith("/pms") || commonRouteContext(p.path)?.module === "pms") && canAccessRoute(p.path, user?.role, user?.is_superuser);
@@ -36,8 +40,12 @@ export default function PMSPersonalNavigation({ collapsed = false, onNavigate }:
     const resource = pmsPageResource(path); return resource ? [[resource.key, resource] as const] : [];
   })).values()];
   const results = useQueries({ queries: resources.map(resource => ({
-    queryKey: ["pms-page-name", user?.id, user?.access?.companyId, resource.key],
+    queryKey: ["pms-page-name", nameScope, resource.key],
     queryFn: async () => {
+      if (resource.key.startsWith("workspace:")) {
+        const rows=await queryClient.fetchQuery(pmsWorkspaceOptions(workspaceScope));
+        return rows.find(row=>String(row.id)===resource.key.slice("workspace:".length))?.name || resource.fallback;
+      }
       const {data} = await api.get(resource.endpoint, { progress: false });
       return String(data.person?.name || data.name || data.title || resource.fallback);
     },

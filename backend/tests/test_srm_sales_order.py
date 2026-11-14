@@ -3,6 +3,20 @@ from app.apps.srm.models import SRMAuditLog, SRMSalesOrder
 from tests.srm_test_utils import create_sales_order
 
 
+def test_sales_order_rejects_invalid_and_cross_organization_customer(client, db, superuser_headers):
+    from app.apps.crm.models import CRMCompany
+    foreign = CRMCompany(name="Other organization customer", organization_id=987654)
+    db.add(foreign)
+    db.commit()
+    before = db.query(SRMSalesOrder).count()
+    for customer_id, expected in [("QA_TEST_CUSTOMER", 422), (987654321, 404), (foreign.id, 404)]:
+        response = client.post("/api/v1/srm/sales-orders", headers=superuser_headers, json={"title": "Invalid customer order", "customer_id": customer_id})
+        assert response.status_code == expected, response.text
+    conflict = client.post("/api/v1/srm/sales-orders", headers=superuser_headers, json={"title": "Conflicting customer order", "customer_id": 101, "crm_company_id": 102})
+    assert conflict.status_code == 422, conflict.text
+    assert db.query(SRMSalesOrder).count() == before
+
+
 def test_srm_sales_order_create_submit_confirm_audits(client, db, superuser_headers):
     order = create_sales_order(client, superuser_headers)
     line = client.post(f"/api/v1/srm/sales-orders/{order['id']}/lines", headers=superuser_headers, json={

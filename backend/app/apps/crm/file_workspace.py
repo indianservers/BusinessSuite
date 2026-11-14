@@ -39,9 +39,17 @@ def folder(db, identity, organization):
 @router.get("/file-workspace")
 def cabinet(db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
     organization = access(db, user)
+    from .api.router import _assert_entity_permission
+    can_manage = True
+    try:
+        _assert_entity_permission("files", user, "manage")
+    except HTTPException as error:
+        if error.status_code != 403:
+            raise
+        can_manage = False
     from .api.router import _apply_record_visibility, _base_query, _get_resource
     files = _apply_record_visibility(_base_query(db, _get_resource("files"), organization), _get_resource("files"), user, db)
-    return {"folders": [{"id": f.id, "name": f.name} for f in db.query(CRMFileFolder).filter_by(organization_id=organization).order_by(CRMFileFolder.name)], "files": [{"id": f.id, "name": f.original_name, "folder_id": f.folder_id, "size": f.size_bytes} for f in files.order_by(CRMFileAsset.id.desc()).limit(200)]}
+    return {"can_manage": can_manage, "folders": [{"id": f.id, "name": f.name} for f in db.query(CRMFileFolder).filter_by(organization_id=organization).order_by(CRMFileFolder.name)], "files": [{"id": f.id, "name": f.original_name, "folder_id": f.folder_id, "size": f.size_bytes} for f in files.order_by(CRMFileAsset.id.desc()).limit(200)]}
 
 
 @router.post("/file-workspace/folders", status_code=201)

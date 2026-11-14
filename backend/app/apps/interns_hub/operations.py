@@ -50,8 +50,8 @@ def directory(db, user, search="", kind="all", department_id=None, batch_id=None
     elif kind == "employee":
         q = q.filter(func.lower(Employee.employment_type) != "intern")
     if search.strip():
-        term = "%" + search.strip() + "%"
-        q = q.filter(or_((Employee.first_name + " " + Employee.last_name).ilike(term), Employee.employee_id.ilike(term), Employee.work_email.ilike(term), Employee.personal_email.ilike(term)))
+        term = search.strip()
+        q = q.filter(or_((Employee.first_name + " " + Employee.last_name).icontains(term, autoescape=True), Employee.employee_id.icontains(term, autoescape=True), Employee.work_email.icontains(term, autoescape=True), Employee.personal_email.icontains(term, autoescape=True)))
     if department_id:
         q = q.filter(Employee.department_id == department_id)
     if batch_id:

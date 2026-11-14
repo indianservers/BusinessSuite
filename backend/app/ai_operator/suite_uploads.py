@@ -18,13 +18,26 @@ from app.ai_operator import suite_conversations as chats
 
 MAX_BYTES=5_000_000
 TOOL='suite.attachment'
-FORMATS={'.xlsx','.csv','.txt','.docx','.pdf'}
+FORMATS={'.xlsx','.csv','.txt','.docx','.pdf','.png','.jpg','.jpeg','.webp','.wav'}
+MEDIA_FORMATS={'.png','.jpg','.jpeg','.webp','.wav'}
 
 
 def parse(content,name):
     suffix=PurePosixPath(name).suffix.lower()
-    if suffix not in FORMATS:raise HTTPException(422,'Use XLSX, CSV, TXT, DOCX or text-based PDF. Macros and legacy Office formats are not supported.')
+    if suffix not in FORMATS:raise HTTPException(422,'Use XLSX, CSV, TXT, DOCX, text PDF, PNG, JPEG, WEBP or PCM WAV. Macros and legacy Office formats are not supported.')
     if not content or len(content)>MAX_BYTES:raise HTTPException(413,'Use a nonempty file of at most 5 MB')
+    if suffix in MEDIA_FORMATS:
+        from app.ai_operator.gemini_media import image_bytes,wav_duration
+        if suffix=='.wav':
+            duration=wav_duration(content)
+            media={'kind':'audio','mime_type':'audio/wav','duration_seconds':duration}
+            note='Audio stored privately. No transcription or speech understanding has been performed.'
+        else:
+            mime={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'}[suffix]
+            _,width,height=image_bytes(content,mime)
+            media={'kind':'image','mime_type':mime,'width':width,'height':height}
+            note='Image stored privately. No OCR, visual understanding or image editing has been performed.'
+        return {'text':note,'rows':[],'notes':[note],'media':media}
     rows=[];notes=[];text=''
     try:
         if suffix in {'.xlsx','.docx'}:
@@ -92,7 +105,8 @@ def parse(content,name):
 def public(row):
     a=row.arguments
     return {'id':row.id,'name':a['name'],'size':a['size'],'format':a['format'],'sha256':a['sha256'],
-        'preview':a['preview'],'row_count':a['row_count'],'notes':a['notes'],'excerpt':a['excerpt'],'created_at':row.created_at}
+        'preview':a['preview'],'row_count':a['row_count'],'notes':a['notes'],'excerpt':a['excerpt'],'created_at':row.created_at,
+        **({'media':a['media']} if a.get('media') else {})}
 
 
 def owned(db,user,conversation_id,ident):
@@ -127,7 +141,8 @@ def store(db,user,conversation_id,filename,content):
     extracted=parse(content,name)
     row=AssistantMessage(conversation_id=chat.id,request_key=str(uuid4()),request_hash=sha,prompt='Private uploaded context',tool=TOOL,
         arguments={'name':name,'format':PurePosixPath(name).suffix.lower(),'sha256':sha,'size':len(content),
-            'preview':extracted['rows'][:9],'row_count':max(0,len(extracted['rows'])-1),'notes':extracted['notes'],'excerpt':extracted['text'][:2000]},
+            'preview':extracted['rows'][:9],'row_count':max(0,len(extracted['rows'])-1),'notes':extracted['notes'],'excerpt':extracted['text'][:2000],
+            **({'media':extracted['media']} if extracted.get('media') else {})},
         status='stored',result={**extracted,'content_b64':base64.b64encode(content).decode('ascii')})
     db.add(row);db.commit();db.refresh(row)
     return public(row)
@@ -138,6 +153,7 @@ def context(db,user,conversation_id,ids):
     result=[]
     for ident in dict.fromkeys(ids):
         row=owned(db,user,conversation_id,ident)
+        if row.arguments.get('media'):raise HTTPException(422,'This media file has no extracted text yet. Transcribe audio or extract image text before using it as knowledge.')
         result.append({'id':f'upload:{row.id}','tool':'suite.attachment','record_id':row.id,'label':row.arguments['name'],
             'href':f'#bot-attachment-{row.id}','text':row.result['text'],'notes':row.arguments['notes']})
     return result

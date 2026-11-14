@@ -13,7 +13,7 @@ let origin=process.env.HUB_ORIGIN;
   const errors=[],writes=[];let backfills=0;
   page.on('pageerror',e=>{errors.push(e.message);console.error('Browser runtime:',e.message);});
   page.on('console',message=>{if(message.type()==='error')console.error('Browser console:',message.text());});
-  let rows=[{id:1,name:'Hub customer',email:'hub@example.com',phone:'9876543210',phoneCountryCode:'+91',status:'Active',tags:['Customer','Vendor','Lead','Prospect'],roles:['Customer','Vendor'],version:'1'}];
+  let rows=[{id:1,name:'Hub customer',ownerId:204,ownerName:'QA Account Owner',email:'hub@example.com',phone:'9876543210',phoneCountryCode:'+91',status:'Active',tags:['Customer','Vendor','Lead','Prospect'],roles:['Customer','Vendor'],version:'1'}];
   await page.route('**/api/v1/**',async route=>{
    const request=route.request(),path=new URL(request.url()).pathname,method=request.method();let data={items:[],total:0};
    if(method!=='GET'){const body=request.postDataJSON();writes.push({path,body});
@@ -35,6 +35,12 @@ let origin=process.env.HUB_ORIGIN;
   if(!built)await page.route('**/*',route=>route.request().isNavigationRequest()?route.fulfill({contentType:'text/html',body:`<html><body><div id="root"></div><script type="module">import R from '/@react-refresh'; R.injectIntoGlobalHook(window); window.$RefreshReg$=()=>{}; window.$RefreshSig$=()=>(type)=>type; window.__vite_plugin_react_preamble_installed__=true; await import('/scripts/setup-new-harness.tsx');</script></body></html>`}):route.fallback());
   await page.goto(origin+'/company-admin');await expect(page.getByRole('heading',{name:'Company Admin',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:/Insights · Analytics/})).toHaveAttribute('href','/analytics');await expect(page.getByRole('link',{name:/^Settings Company/})).toHaveAttribute('href','/settings');
   await page.goto(origin+'/crm/records');await expect(page.getByRole('heading',{name:'Relationship Hub'})).toBeVisible();await expect.poll(()=>backfills).toBe(1);
+  await expect(page.getByRole('button',{name:'View Hub customer',exact:true})).toBeVisible();
+  await expect(page.getByText('QA Account Owner',{exact:true})).toBeVisible();
+  await expect(page.getByText('User #204',{exact:true})).toHaveCount(0);
+  await page.setViewportSize({width:1280,height:495});
+  expect(await page.locator('.uc-table-wrap').evaluate(el=>el.scrollHeight<=el.clientHeight+1),'the shared grid must not be clipped inside a second vertical viewport').toBe(true);
+  await page.setViewportSize({width:1600,height:1000});
   if(built){
    const category=page.locator('.module-menu-category').filter({has:page.locator('.module-menu-category-name',{hasText:'Customers & leads'})});
    await expect(category.getByRole('link',{name:'Potential Clients',exact:true})).toBeVisible();

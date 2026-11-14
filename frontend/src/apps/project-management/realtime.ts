@@ -1,4 +1,5 @@
 import { selectedBranch } from "@/lib/branch-context";
+import { useRecordScope } from "@/lib/record-scope";
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { notificationsMuted } from "@/store/personalStore";
@@ -110,6 +111,7 @@ export function usePMSRealtime({
   enabled?: boolean;
 }) {
   const token = useAuthStore((state) => state.accessToken);
+  const scope = useRecordScope();
   const onEventRef = useRef(onEvent);
   const pollRef = useRef(onFallbackPoll);
 
@@ -124,12 +126,13 @@ export function usePMSRealtime({
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let closedByEffect = false;
+    const controller = new AbortController();
     let feedTimer: ReturnType<typeof setTimeout> | null = null;
     let feedCursor: number | undefined;
     let feedTicks = 0;
 
     const subscribe = () => {
-      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      if (closedByEffect || !socket || socket.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({
         action: "subscribe",
         projectIds: projectId ? [projectId] : [],
@@ -147,7 +150,7 @@ export function usePMSRealtime({
     };
 
     const startPolling = () => {
-      if (!pollRef.current || pollTimer) return;
+      if (closedByEffect || !pollRef.current || pollTimer) return;
       pollTimer = setInterval(() => pollRef.current?.(), pollIntervalMs);
     };
 
@@ -157,6 +160,7 @@ export function usePMSRealtime({
     };
 
     const connect = () => {
+      if (closedByEffect) return;
       try {
         socket = new WebSocket(wsUrl(token));
       } catch {
@@ -164,12 +168,14 @@ export function usePMSRealtime({
         return;
       }
       socket.onopen = () => {
+        if (closedByEffect) return;
         useRealtimeStore.getState().setTransport("websocket");
         useRealtimeStore.getState().setConnected(true);
         stopPolling();
         subscribe();
       };
       socket.onmessage = (message) => {
+        if (closedByEffect) return;
         const event = JSON.parse(message.data) as PMSRealtimeEvent;
         useRealtimeStore.getState().receive(event);
         if (!["connected", "subscribed", "user.presence"].includes(event.type)) {
@@ -183,10 +189,12 @@ export function usePMSRealtime({
         }
       };
       socket.onerror = () => {
+        if (closedByEffect) return;
         useRealtimeStore.getState().setConnected(false);
         startPolling();
       };
       socket.onclose = () => {
+        if (closedByEffect) return;
         useRealtimeStore.getState().setConnected(false);
         startPolling();
         if (!closedByEffect) reconnectTimer = setTimeout(connect, 5000);
@@ -194,8 +202,10 @@ export function usePMSRealtime({
     };
 
     const pollFeed = async () => {
+      if (closedByEffect) return;
       try {
         const { data } = await api.get<{ cursor: number; events: PMSRealtimeEvent[] }>("/project-management/realtime/events", {
+          signal: controller.signal,
           params: { ...(feedCursor === undefined ? {} : { cursor: feedCursor }), ...(taskId ? {task_id: taskId} : {}) },
         });
         if (closedByEffect) return;
@@ -210,13 +220,14 @@ export function usePMSRealtime({
         // Also recover from a lost publish, tab suspension or expired retention.
         if (++feedTicks % 5 === 0) pollRef.current?.();
       } catch {
+        if (closedByEffect) return;
         useRealtimeStore.getState().setConnected(false);
         pollRef.current?.();
       } finally {
         if (!closedByEffect) feedTimer = setTimeout(pollFeed, document.hidden ? 15000 : 3000);
       }
     };
-    void api.get<{ transport: string }>("/project-management/realtime/config", { progress:false })
+    void api.get<{ transport: string }>("/project-management/realtime/config", { progress:false, signal: controller.signal })
       .then(({ data }) => {
         if (closedByEffect) return;
         if (data.transport === "database") { useRealtimeStore.getState().setTransport("database"); void pollFeed(); }
@@ -225,10 +236,11 @@ export function usePMSRealtime({
 
     return () => {
       closedByEffect = true;
+      controller.abort();
       if (feedTimer) clearTimeout(feedTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (pollTimer) clearInterval(pollTimer);
       socket?.close();
     };
-  }, [enabled, pollIntervalMs, projectId, showToast, taskId, token]);
+  }, [enabled, pollIntervalMs, projectId, showToast, taskId, token, scope]);
 }

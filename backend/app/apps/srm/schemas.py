@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 
 class SRMSalesOrderLineInput(BaseModel):
@@ -143,21 +143,27 @@ class SRMProductCreate(BaseModel):
     category_name: str | None = None
     unit_code: str = "PCS"
     hsn_code: str | None = None
-    gst_rate: Decimal = Decimal("0")
-    purchase_rate: Decimal = Decimal("0")
-    sales_rate: Decimal = Decimal("0")
-    mrp: Decimal = Decimal("0")
+    gst_rate: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    purchase_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    sales_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    mrp: Decimal = Field(default=Decimal("0"), ge=0)
     current_quantity: Decimal = Decimal("0")
     average_cost: Decimal = Decimal("0")
-    reorder_level: Decimal = Decimal("0")
-    min_stock: Decimal = Decimal("0")
-    max_stock: Decimal = Decimal("0")
+    reorder_level: Decimal = Field(default=Decimal("0"), ge=0)
+    min_stock: Decimal = Field(default=Decimal("0"), ge=0)
+    max_stock: Decimal = Field(default=Decimal("0"), ge=0)
     track_inventory: bool = True
     batch_tracking: bool = False
     serial_tracking: bool = False
     expiry_tracking: bool = False
     active: bool = True
     metadata_json: dict[str, Any] | None = None
+
+
+    @field_validator("sku", "item_name", mode="before")
+    @classmethod
+    def trim_identity(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SRMProductUpdate(BaseModel):
@@ -170,13 +176,13 @@ class SRMProductUpdate(BaseModel):
     category_name: str | None = None
     unit_code: str | None = None
     hsn_code: str | None = None
-    gst_rate: Decimal | None = None
-    purchase_rate: Decimal | None = None
-    sales_rate: Decimal | None = None
-    mrp: Decimal | None = None
-    reorder_level: Decimal | None = None
-    min_stock: Decimal | None = None
-    max_stock: Decimal | None = None
+    gst_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    purchase_rate: Decimal | None = Field(default=None, ge=0)
+    sales_rate: Decimal | None = Field(default=None, ge=0)
+    mrp: Decimal | None = Field(default=None, ge=0)
+    reorder_level: Decimal | None = Field(default=None, ge=0)
+    min_stock: Decimal | None = Field(default=None, ge=0)
+    max_stock: Decimal | None = Field(default=None, ge=0)
     track_inventory: bool | None = None
     batch_tracking: bool | None = None
     serial_tracking: bool | None = None
@@ -188,8 +194,8 @@ class SRMProductUpdate(BaseModel):
 class SRMOpeningStockCreate(BaseModel):
     product_id: int
     warehouse_id: int
-    quantity: Decimal
-    rate: Decimal = Decimal("0")
+    quantity: Decimal = Field(gt=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     movement_date: date | None = None
     reference_number: str | None = None
     notes: str | None = None
@@ -199,8 +205,8 @@ class SRMStockMovementCreate(BaseModel):
     product_id: int
     warehouse_id: int
     movement_type: str = "stock_in"
-    quantity: Decimal
-    rate: Decimal = Decimal("0")
+    quantity: Decimal = Field(gt=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     movement_date: date | None = None
     reference_number: str | None = None
     notes: str | None = None
@@ -210,8 +216,8 @@ class SRMStockTransferCreate(BaseModel):
     product_id: int
     from_warehouse_id: int
     to_warehouse_id: int
-    quantity: Decimal
-    rate: Decimal = Decimal("0")
+    quantity: Decimal = Field(gt=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     movement_date: date | None = None
     reference_number: str | None = None
     notes: str | None = None
@@ -220,13 +226,19 @@ class SRMStockTransferCreate(BaseModel):
 class SRMStockAdjustmentCreate(BaseModel):
     product_id: int
     warehouse_id: int
-    quantity_in: Decimal = Decimal("0")
-    quantity_out: Decimal = Decimal("0")
-    rate: Decimal = Decimal("0")
+    quantity_in: Decimal = Field(default=Decimal("0"), ge=0)
+    quantity_out: Decimal = Field(default=Decimal("0"), ge=0)
+    rate: Decimal = Field(default=Decimal("0"), ge=0)
     reason: str | None = None
     movement_date: date | None = None
     reference_number: str | None = None
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def require_one_direction(self):
+        if (self.quantity_in > 0) == (self.quantity_out > 0):
+            raise ValueError("Enter a positive quantity in either stock in or stock out")
+        return self
 
 
 class SRMPurchaseOrderLineCreate(BaseModel):
@@ -234,9 +246,9 @@ class SRMPurchaseOrderLineCreate(BaseModel):
     warehouse_id: int | None = None
     item_code: str | None = None
     description: str | None = None
-    quantity: Decimal = Decimal("1")
-    unit_price: Decimal = Decimal("0")
-    tax_amount: Decimal = Decimal("0")
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
+    tax_amount: Decimal = Field(default=Decimal("0"), ge=0)
     line_total: Decimal | None = None
     metadata_json: dict[str, Any] | None = None
 
@@ -258,11 +270,11 @@ class SRMGoodsReceiptLineCreate(BaseModel):
     warehouse_id: int | None = None
     item_code: str | None = None
     description: str | None = None
-    quantity: Decimal = Decimal("1")
-    accepted_quantity: Decimal | None = None
-    rejected_quantity: Decimal = Decimal("0")
-    unit_price: Decimal = Decimal("0")
-    tax_amount: Decimal = Decimal("0")
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    accepted_quantity: Decimal | None = Field(default=None, ge=0)
+    rejected_quantity: Decimal = Field(default=Decimal("0"), ge=0)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
+    tax_amount: Decimal = Field(default=Decimal("0"), ge=0)
     line_total: Decimal | None = None
     metadata_json: dict[str, Any] | None = None
 
@@ -281,21 +293,27 @@ class SRMGoodsReceiptCreate(BaseModel):
 
 class SRMPriceListLineCreate(BaseModel):
     product_id: int
-    min_quantity: Decimal = Decimal("1")
-    price: Decimal
-    discount_percent: Decimal = Decimal("0")
-    discount_amount: Decimal = Decimal("0")
+    min_quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    price: Decimal = Field(ge=0)
+    discount_percent: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    discount_amount: Decimal = Field(default=Decimal("0"), ge=0)
     tax_inclusive: bool = False
     active: bool = True
     metadata_json: dict[str, Any] | None = None
 
+    @model_validator(mode="after")
+    def discount_within_price(self):
+        if self.discount_amount > self.price:
+            raise ValueError("Discount amount cannot exceed the price")
+        return self
+
 
 class SRMPriceListCreate(BaseModel):
-    price_list_code: str | None = None
+    price_list_code: str | None = Field(default=None, max_length=80)
     price_list_name: str = Field(..., min_length=1, max_length=180)
-    channel: str = "retail"
-    customer_type: str = "cash"
-    currency: str = "INR"
+    channel: str = Field(default="retail", max_length=80)
+    customer_type: str = Field(default="cash", max_length=80)
+    currency: str = Field(default="INR", max_length=10)
     effective_from: date | None = None
     effective_to: date | None = None
     priority: int = 100
@@ -304,13 +322,23 @@ class SRMPriceListCreate(BaseModel):
     metadata_json: dict[str, Any] | None = None
     lines: list[SRMPriceListLineCreate]
 
+    @field_validator("price_list_name", mode="before")
+    @classmethod
+    def trim_price_list_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("price_list_code", mode="before")
+    @classmethod
+    def normalize_optional_code(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
 
 class SRMPriceLookupRequest(BaseModel):
     product_ids: list[int]
     channel: str | None = None
     customer_type: str | None = None
     price_date: date | None = None
-    quantity: Decimal = Decimal("1")
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
 
 
 class SRMInventoryBatchCreate(BaseModel):
@@ -322,10 +350,15 @@ class SRMInventoryBatchCreate(BaseModel):
     received_date: date | None = None
     quantity: Decimal = Decimal("0")
     available_quantity: Decimal | None = None
-    unit_cost: Decimal = Decimal("0")
+    unit_cost: Decimal = Field(default=Decimal("0"), ge=0)
     status: str = "available"
     notes: str | None = None
     metadata_json: dict[str, Any] | None = None
+
+    @field_validator("batch_number", mode="before")
+    @classmethod
+    def trim_batch_number(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SRMSerialNumberCreate(BaseModel):
@@ -338,40 +371,60 @@ class SRMSerialNumberCreate(BaseModel):
     reference_number: str | None = None
     metadata_json: dict[str, Any] | None = None
 
+    @field_validator("serial_number", mode="before")
+    @classmethod
+    def trim_serial_number(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
 
 class SRMBOMComponentCreate(BaseModel):
     component_product_id: int
     warehouse_id: int | None = None
-    quantity: Decimal = Decimal("1")
-    scrap_percent: Decimal = Decimal("0")
-    unit_cost: Decimal = Decimal("0")
-    line_total: Decimal | None = None
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    scrap_percent: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    unit_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    line_total: Decimal | None = Field(default=None, ge=0)
     metadata_json: dict[str, Any] | None = None
 
 
 class SRMBillOfMaterialCreate(BaseModel):
-    bom_number: str | None = None
+    bom_number: str | None = Field(default=None, max_length=80)
     bom_name: str = Field(..., min_length=1, max_length=180)
     finished_product_id: int
-    output_quantity: Decimal = Decimal("1")
+    output_quantity: Decimal = Field(default=Decimal("1"), gt=0)
     status: str = "active"
     notes: str | None = None
     metadata_json: dict[str, Any] | None = None
     components: list[SRMBOMComponentCreate]
 
+    @field_validator("bom_name", mode="before")
+    @classmethod
+    def trim_bom_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("bom_number", mode="before")
+    @classmethod
+    def normalize_bom_number(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
 
 class SRMProductionOrderCreate(BaseModel):
-    production_number: str | None = None
+    production_number: str | None = Field(default=None, max_length=80)
     bom_id: int
     warehouse_id: int | None = None
-    planned_quantity: Decimal = Decimal("1")
+    planned_quantity: Decimal = Field(default=Decimal("1"), gt=0)
     order_date: date | None = None
     notes: str | None = None
     metadata_json: dict[str, Any] | None = None
 
+    @field_validator("production_number", mode="before")
+    @classmethod
+    def normalize_production_number(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
 
 class SRMProductionPostRequest(BaseModel):
-    completed_quantity: Decimal | None = None
+    completed_quantity: Decimal | None = Field(default=None, gt=0)
     warehouse_id: int | None = None
     completed_at: datetime | None = None
 

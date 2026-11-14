@@ -1,3 +1,4 @@
+import { updateLeadSummary } from "./lead-summary";
 import CRMRowQuickActions from "../CRMRowQuickActions";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
 import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
@@ -58,6 +59,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -72,6 +74,7 @@ import {
   Settings,
   download,
   errorMessage,
+  leadFieldErrors,
   potentialClientsApi,
   publicUrl,
   captureEmbed,
@@ -185,14 +188,11 @@ function Field({
   children: React.ReactNode;
 }) {
   const controlId = React.useId();
+  let assigned=false;
   return (
     <div className="lm-field">
       <label htmlFor={controlId}>{label}</label>
-      {React.isValidElement(children)
-        ? React.cloneElement(children as React.ReactElement<{ id?: string }>, {
-            id: controlId,
-          })
-        : children}
+      {React.Children.map(children,child=>{if(assigned || !React.isValidElement(child))return child;assigned=true;return React.cloneElement(child as React.ReactElement<{id?:string}>,{id:controlId});})}
     </div>
   );
 }
@@ -271,11 +271,13 @@ function LeadWorkbench() {
     const changed=(event:Event)=>{
       const change=(event as CustomEvent<RecordSaved>).detail;
       if(!/^\/crm\/lead-management\/leads(?:\/\d+)?$/.test(change.url))return;
+      setRevision(v=>v+1);
       const lead=change.record as unknown as Lead;
       if(!lead?.id||!lead.full_name)return;
       setResult(current=>{
         if(!current)return current;
         const exists=current.items.some(row=>row.id===lead.id);
+        if(!search&&!stage&&!owner&&queue==="all"&&(lead.details?.recordType==="Potential")===potential) current=updateLeadSummary(current,lead,change.method==="post"&&/\/leads$/.test(change.url));
         const hidden=queue!=="archived"&&lead.details?.archived||queue==="archived"&&!lead.details?.archived;
         if(hidden){const items=current.items.filter(row=>row.id!==lead.id);return {...current,items,total:Math.max(0,current.total-(current.items.length-items.length))};}
         if(!exists&&(page!==1||search||stage||owner||queue!=="all"||(lead.details?.recordType==="Potential")!==potential))return current;
@@ -333,7 +335,7 @@ function LeadWorkbench() {
         },
         controller.signal,
       )
-      .then((r) => setResult(r.data))
+      .then((r) => {if(!controller.signal.aborted)setResult(r.data);})
       .catch((err) => {
         if (!controller.signal.aborted) setError(errorMessage(err));
       })
@@ -1182,15 +1184,31 @@ export function CaptureDialog({
   const dismiss = () => {if(!saving)close();};
   const clearFullDraft=useRecordDraft(`${potential?"potential":"lead"}:capture`,{values,catalogLines,customValues:customFieldForm.values,sharedConfirmed,sharedReason},draft=>{setValues(draft.values);setCatalogLines(draft.catalogLines||[]);customFieldForm.setValues(draft.customValues||{});setSharedConfirmed(draft.sharedConfirmed);setSharedReason(draft.sharedReason);},!customFieldForm.loading);
   const [step, setStep] = useState(0);
+  const [captureErrors,setCaptureErrors]=useState<Record<string,string>>({});
   const captureForm = useRef<HTMLFormElement>(null);
   const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
   const priority = values.capture_priority || "Medium";
   const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
   const update = (name: string, value: string) => {
     setValues(v => ({...v, [name]: value}));
+    setCaptureErrors(current=>{const next={...current};delete next[name];if(name==="phone_country_code")delete next.phone;return next;});
     if (name === "full_name") setError("");
   };
-  const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><UserRound size={19}/><input aria-label={label} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span></label>;
+  const stepErrors = (index:number) => {
+    const errors:Record<string,string>={};
+    if(index===0&&!values.full_name?.trim())errors.full_name="Lead name is required.";
+    if(index===1||index===0&&quickCapture){const email=emailError(values.email);if(email)errors.email=email;}
+    if(index===1||index===0&&(mobile||quickCapture)){const phone=phoneError(values.phone,values.phone_country_code);if(phone)errors.phone=phone;}
+    if(index===0&&quickCapture&&!values.email?.trim()&&!values.phone?.trim())errors.phone="Add a phone number or email so you can follow up with this lead.";
+    return errors;
+  };
+  const nextStep = () => {
+    const errors=stepErrors(step);setCaptureErrors(errors);setError("");
+    if(Object.keys(errors).length){requestAnimationFrame(()=>captureForm.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());return;}
+    try{customFieldForm.validate();}catch(error){setError(error instanceof Error?error.message:"Check the custom fields.");return;}
+    setStep(step+1);
+  };
+  const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><UserRound size={19}/><input aria-label={label} aria-invalid={!!captureErrors[name]} aria-describedby={captureErrors[name]?`lead-capture-error-${name}`:undefined} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span>{captureErrors[name]&&<small id={`lead-capture-error-${name}`} role="alert" className="text-destructive">{captureErrors[name]}</small>}</label>;
   return <Dialog open onOpenChange={open => {if (!open) dismiss();}}>
     <DialogContent className="lead-create-dialog" overlayClassName="lead-create-overlay">
       <aside className="lead-create-aside">
@@ -1213,6 +1231,7 @@ export function CaptureDialog({
             const nameMissing = !values.full_name?.trim();
             if (quickCapture && !nameMissing && !values.email?.trim() && !values.phone?.trim()) { setStep(0); setError("Add a phone number or email so you can follow up with this lead."); return; }
             const contactError = emailError(values.email) || phoneError(values.phone, values.phone_country_code);
+            setCaptureErrors({...stepErrors(0),...stepErrors(1)});
             if (nameMissing || contactError) {
               setStep(nameMissing ? 0 : 1);
               setError(nameMissing ? quickCapture ? "Lead name and one contact method are required." : "Lead name is required. Everything else can be added later." : String(contactError));
@@ -1236,10 +1255,10 @@ export function CaptureDialog({
                     full_name: values.full_name.trim(),
                     source: values.source || defaultText("lead_source", "crm"),
                     status: values.status || bootstrap.settings.stages[0]?.name || "New",
-                    notes: [values.notes, `Priority: ${priority}`].filter(Boolean).join("\n"),
                     owner_user_id: values.owner_user_id ?? defaultOwner,
                   }).filter(([name, value]) => value !== "" && name !== "capture_priority"),
                 ),
+                details: { priority: priority as "Low" | "Medium" | "High" },
               });
               clearFullDraft();
               sessionStorage.removeItem(key);
@@ -1261,14 +1280,14 @@ export function CaptureDialog({
             <p className="lead-create-subtitle">{quickCapture && step === 0 ? "Add a name and either a phone number or email. Reveal more details when needed." : ["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
-              {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}
+              {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput error={captureErrors.phone} value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}
               <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
               {(mobile || quickCapture) && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
               {(!(mobile || quickCapture) || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field">Priority<span data-priority-badge data-priority={priority} className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
             </div>}
-            {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
+            {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput error={captureErrors.phone} value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}<BusinessProfileFields services={values.services_offered} types={values.business_types} onChange={update} disabled={saving}/></div>}
             {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><NativeSelect aria-label="Assign to employee" value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}<fieldset className="lead-create-grid"><legend className="lead-create-subtitle">Location</legend>{field("city", "City")}{field("country", "Country")}</fieldset></>}
             <SharedNumberConfirmation phone={values.phone} countryCode={values.phone_country_code} email={values.email} confirmed={sharedConfirmed} reason={sharedReason} onChange={(a,b)=>{setSharedConfirmed(a);setSharedReason(b);}}/>{duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
@@ -1276,7 +1295,7 @@ export function CaptureDialog({
             <CrmRecordFields state={customFieldForm}/>
             {error && <ErrorNotice message={error}/>}
           </div>
-          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={() => setStep(step + 1)} disabled={saving}>Next<ArrowRight size={16}/></Button>}<Button type="submit" data-save-action disabled={saving||customFieldForm.loading||!!customFieldForm.error}>{saving ? "Saving…" : "Create lead"}</Button>{customFieldForm.loading&&<span role="status">Loading custom fields...</span>}{customFieldForm.error&&<p role="alert">{customFieldForm.error}</p>}</div></footer>
+          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={nextStep} disabled={saving||customFieldForm.loading||!!customFieldForm.error}>Next<ArrowRight size={16}/></Button>}<Button type="submit" data-save-action disabled={saving||customFieldForm.loading||!!customFieldForm.error}>{saving ? "Saving…" : "Create lead"}</Button>{customFieldForm.loading&&<span role="status">Loading custom fields...</span>}{customFieldForm.error&&<p role="alert">{customFieldForm.error}</p>}</div></footer>
         </CompactForm>
     </DialogContent>
   </Dialog>;
@@ -1303,6 +1322,9 @@ export function LeadDrawer({
   const canEdit=useModuleAction("edit"),canCreate=useModuleAction("create"),canAssign=useModuleAction("assign"),canDelete=useModuleAction("delete");
   const { toast } = useToast();
   const [lead, setLead] = useState<Lead>();
+  const [fieldErrors,setFieldErrors]=useState<Record<string,string>>({});
+  const [discardOpen,setDiscardOpen]=useState(false);
+  const leadSaving=useRef(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
@@ -1335,6 +1357,7 @@ export function LeadDrawer({
   const [editingCustomFields,setEditingCustomFields]=useState(false);
   const editingSection = useRef<HTMLDetailsElement>(null);
   useRefreshableEffect(() => {
+    if(leadSaving.current)return;
     const controller = new AbortController();
     setError("");
     leadsApi
@@ -1353,23 +1376,20 @@ export function LeadDrawer({
     return () => controller.abort();
   }, [id, reload, targetStage]);
   const dismiss = () => {
-    if (
-      !busy &&
-      (!(dirty || teamDirty) ||
-        window.confirm("Discard unsaved changes to this lead?"))
-    )
-      close();
+    if(busy||leadSaving.current)return;
+    if(dirty || teamDirty)setDiscardOpen(true);else close();
   };
   const setValue = (key: string, value: unknown) => {
     if (JSON.stringify(value ?? null) === JSON.stringify(values[key] ?? (lead as unknown as Record<string, unknown>)?.[key] ?? null)) return;
     setValues((current) => ({ ...current, [key]: value }));
+    setFieldErrors(current=>Object.fromEntries(Object.entries(current).filter(([field])=>field!==key)));
     setDirty(true);
   };
   const setDetail = (patch: Partial<LeadDetails>) => {
     setDetails((current) => ({ ...current, ...patch }));
     setDirty(true);
   };
-  const value = (key: keyof Lead) => String(values[key] ?? lead?.[key] ?? "");
+  const value = (key: keyof Lead) => String(Object.prototype.hasOwnProperty.call(values,key) ? values[key] ?? "" : lead?.[key] ?? "");
   const act = async (operation: () => Promise<unknown>, message: string) => {
     setBusy(true);
     setError("");
@@ -1386,10 +1406,14 @@ export function LeadDrawer({
       setBusy(false);
     }
   };
-  const leadSaving=useRef(false);
   const latestDraft=useRef({values,details,customValues:customFieldForm.values});latestDraft.current={values,details,customValues:customFieldForm.values};
   const save = async (automatic=false) => {
     if (!lead||!canEdit||leadSaving.current) return false;
+    const validation:Record<string,string>={};
+    const amount=values.estimated_value ?? lead.estimated_value;
+    if(amount!=null && (!Number.isFinite(Number(amount)) || Number(amount)<0))validation.estimated_value="Estimated value must be zero or greater.";
+    const email=emailError(values.email ?? lead.email);if(email)validation.email=email;
+    if(Object.keys(validation).length){setFieldErrors(validation);setError("Correct the highlighted lead fields before saving.");return false;}
     const writable = [
       "qualification",
       "interests",
@@ -1401,11 +1425,12 @@ export function LeadDrawer({
       "reviewAt",
       "assignmentReason",
       "customerTimezone",
+      "priority",
     ];
     const patch = Object.fromEntries(
       Object.entries(details).filter(([key]) => writable.includes(key)),
     );
-    leadSaving.current=true;setBusy(true);setError("");
+    leadSaving.current=true;setBusy(true);setError("");setFieldErrors({});
     const captured=JSON.stringify(latestDraft.current);
     try{
       const response=await leadsApi.update(id,{values,details:patch,customFields:customFieldForm.validate(),version:lead.version});
@@ -1414,7 +1439,7 @@ export function LeadDrawer({
       if(JSON.stringify(latestDraft.current)===captured){setDirty(false);setDetails(response.data.details);}
       if(!automatic){setEditingCustomFields(false);toast({title:"Lead saved"});}
       changed();return true;
-    }catch(error){setError(errorMessage(error));return false;}
+    }catch(error){setError(errorMessage(error));setFieldErrors(leadFieldErrors(error));return false;}
     finally{leadSaving.current=false;setBusy(false);}
   };
   const auto=useRecordAutosave({value:{values,details,customValues:customFieldForm.values},enabled:!!lead&&canEdit&&!busy&&!customFieldForm.loading&&!teamDirty&&!targetStage,dirty,save:()=>save(true)});
@@ -1446,7 +1471,8 @@ export function LeadDrawer({
           />
         )}
         <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
-        {bootstrap.canManage && canEdit && lead && !lead.is_converted && <div className="lm-lead-save-toolbar"><span role="status">{busy ? "Saving…" : auto.message || (dirty ? "Unsaved changes" : "All changes saved")}</span><Button type="button" variant="outline" onClick={() => { if (editingSection.current) { editingSection.current.open = true; editingSection.current.scrollIntoView({block:"start",behavior:"smooth"}); } }}>Edit lead</Button><Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button></div>}
+        {bootstrap.canManage && canEdit && lead && !lead.is_converted && <div className="lm-lead-save-toolbar"><span role="status">{busy ? "Saving…" : (dirty ? auto.message || "Unsaved changes" : "All changes saved")}</span><Button type="button" variant="outline" onClick={() => { if (editingSection.current) { editingSection.current.open = true; editingSection.current.scrollIntoView({block:"start",behavior:"smooth"}); } }}>Edit lead</Button><Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button></div>}
+        {lead && error && <ErrorNotice message={error}/> }
         <Record360Workspace key={id} kind="lead" id={id} actions={<Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button>}/>
         <details ref={editingSection}><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
         <div className="wfp-body wf-space">
@@ -1518,7 +1544,6 @@ export function LeadDrawer({
                 </button>
               ))}
             </nav>
-            {error && <ErrorNotice message={error} />}
             <fieldset
               className="lm-fieldset"
               disabled={!bootstrap.canManage || !canEdit || busy}
@@ -1570,6 +1595,10 @@ export function LeadDrawer({
                     {[
                       ["full_name", "Name"],
                       ["company_name", "Company"],
+                      ["job_title", "Job Title"],
+                      ["city", "City"],
+                      ["state", "State"],
+                      ["country", "Country"],
                       ["email", "Email"],
                       ["source", "Source"],
                       ["estimated_value", "Estimated value"],
@@ -1586,6 +1615,8 @@ export function LeadDrawer({
                           min={key === "estimated_value" ? 0 : undefined}
                           step={key === "estimated_value" ? "0.01" : undefined}
                           value={value(key as keyof Lead)}
+                          aria-invalid={!!fieldErrors[key]}
+                          aria-describedby={fieldErrors[key] ? `lead-${id}-${key}-error` : undefined}
                           onChange={(e) =>
                             setValue(
                               key,
@@ -1597,9 +1628,11 @@ export function LeadDrawer({
                             )
                           }
                         />
+                        {fieldErrors[key] && <small id={`lead-${id}-${key}-error`} className="text-destructive">{fieldErrors[key]}</small>}
                       </Field>
                     ))}
                     <BusinessProfileFields services={values.services_offered ?? lead.services_offered} types={values.business_types ?? lead.business_types} onChange={setValue} disabled={!canEdit || busy}/>
+                    <Field label="Priority"><NativeSelect aria-label="Lead priority" value={details.priority || lead.notes?.match(/^Priority:\s*(Low|Medium|High)\s*$/im)?.[1] || "Medium"} onChange={event=>setDetail({priority:event.target.value as "Low"|"Medium"|"High"})}>{["Low","Medium","High"].map(priority=><option key={priority}>{priority}</option>)}</NativeSelect></Field>
                     <Field label="Phone">
                       <PhoneInput
                         value={value("phone")}
@@ -2293,6 +2326,7 @@ export function LeadDrawer({
         )}
         </div>
       </details>
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}><AlertDialogContent><AlertDialogTitle>Discard lead changes?</AlertDialogTitle><AlertDialogDescription>Your unsaved changes will be lost.</AlertDialogDescription><AlertDialogFooter><AlertDialogCancel>Continue editing</AlertDialogCancel><AlertDialogAction onClick={close}>Discard changes</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
       </DialogContent>
     </Dialog>
   );

@@ -85,7 +85,7 @@ def drafts(environment: str = "development", view: Literal["all", "mine", "share
         query = query.join(AutomationDeployment, AutomationDeployment.resource_id == PowerResource.id).filter(AutomationDeployment.version_id.is_not(None), AutomationDeployment.status.in_(["published", "active", "paused"]))
     if view == "drafts": query = query.filter(PowerResource.status == "draft")
     if search:
-        query = query.filter(PowerResource.name.ilike("%" + search.replace("%", "\\%").replace("_", "\\_") + "%", escape="\\"))
+        query = query.filter(PowerResource.name.icontains(search, autoescape=True))
     return {"items": [serialize(row) for row in query.order_by(PowerResource.updated_at.desc(), PowerResource.id.desc()).offset(offset).limit(limit)], "total": query.count()}
 
 def find_draft(db, user, environment, resource_id):

@@ -332,15 +332,17 @@ def create_leave_request(db: Session, employee_id: int, data: dict) -> LeaveRequ
     if has_overlapping_leave(db, employee_id, from_date, to_date):
         raise ValueError("Leave dates overlap an existing pending or approved request")
 
-    # Check balance
-    year = from_date.year
-    balance = get_leave_balance(db, employee_id, data["leave_type_id"], year)
-    if not balance:
-        raise ValueError("No leave balance allocated for this leave type and year")
-
-    available = get_available_balance(balance)
-    if available < days:
-        raise ValueError(f"Insufficient leave balance. Available: {available}, Requested: {days}")
+    # Annual allowances are independent, including when one request spans years.
+    balances = []
+    for year in range(from_date.year, to_date.year + 1):
+        year_days = calculate_leave_days(max(from_date, date(year, 1, 1)), min(to_date, date(year, 12, 31)), data.get("is_half_day", False))
+        balance = get_leave_balance(db, employee_id, data["leave_type_id"], year)
+        if not balance:
+            raise ValueError(f"No leave balance allocated for this leave type and year {year}")
+        available = get_available_balance(balance)
+        if available < year_days:
+            raise ValueError(f"Insufficient leave balance for {year}. Available: {available}, Requested: {year_days}")
+        balances.append((balance, year_days))
 
     employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     company_id = employee.branch.company_id if employee and employee.branch else None
@@ -355,22 +357,39 @@ def create_leave_request(db: Session, employee_id: int, data: dict) -> LeaveRequ
     )
     db.add(request)
 
-    # Update pending balance
-    balance.pending = balance.pending + days
     db.flush()
-    add_ledger_entry(
-        db,
-        balance=balance,
-        transaction_type="request_pending",
-        amount=-days,
-        balance_after=get_available_balance(balance),
-        leave_request_id=request.id,
-        reason="Leave request submitted",
-    )
+    for balance, year_days in balances:
+        balance.pending = balance.pending + year_days
+        add_ledger_entry(
+            db,
+            balance=balance,
+            transaction_type="request_pending",
+            amount=-year_days,
+            balance_after=get_available_balance(balance),
+            leave_request_id=request.id,
+            reason="Leave request submitted",
+            created_by=employee.user_id if employee else None,
+        )
 
     db.commit()
     db.refresh(request)
     return request
+
+
+def _request_balance_slices(db: Session, request: LeaveRequest) -> list[tuple[LeaveBalance, Decimal]]:
+    # Reverse the recorded pending debits, including historical cross-year requests
+    # that were charged entirely to their starting year.
+    entries = db.query(LeaveBalanceLedger).filter_by(leave_request_id=request.id, transaction_type="request_pending").all()
+    if not entries:
+        balance = get_leave_balance(db, request.employee_id, request.leave_type_id, request.from_date.year)
+        return [(balance, request.days_count)] if balance else []
+    amounts = {}
+    for entry in entries:
+        balance = db.query(LeaveBalance).filter_by(id=entry.leave_balance_id, employee_id=request.employee_id, leave_type_id=request.leave_type_id).first() if entry.leave_balance_id is not None else get_leave_balance(db, request.employee_id, request.leave_type_id, entry.year)
+        if balance:
+            previous = amounts.get(balance.id, (balance, Decimal("0")))[1]
+            amounts[balance.id] = (balance, previous - Decimal(entry.amount))
+    return [amounts[key] for key in sorted(amounts) if amounts[key][1] > 0]
 
 
 def approve_leave_request(
@@ -391,18 +410,16 @@ def approve_leave_request(
     request.review_remarks = remarks
 
     # Update balance
-    year = request.from_date.year
-    balance = get_leave_balance(db, request.employee_id, request.leave_type_id, year)
-    if balance:
-        balance.pending = max(Decimal("0"), balance.pending - request.days_count)
+    for balance, charged_days in _request_balance_slices(db, request):
+        balance.pending = max(Decimal("0"), balance.pending - charged_days)
         if status == "Approved":
-            balance.used = balance.used + request.days_count
+            balance.used = balance.used + charged_days
             transaction_type = "request_approved"
             amount = Decimal("0")
             reason = "Leave request approved"
         else:
             transaction_type = "request_rejected"
-            amount = request.days_count
+            amount = charged_days
             reason = "Leave request rejected"
         add_ledger_entry(
             db,
@@ -429,14 +446,13 @@ def cancel_leave_request(db: Session, request_id: int, actor_id: int | None = No
         return None
 
     request.status = "Cancelled"
-    balance = get_leave_balance(db, request.employee_id, request.leave_type_id, request.from_date.year)
-    if balance:
-        balance.pending = max(Decimal("0"), balance.pending - request.days_count)
+    for balance, charged_days in _request_balance_slices(db, request):
+        balance.pending = max(Decimal("0"), balance.pending - charged_days)
         add_ledger_entry(
             db,
             balance=balance,
             transaction_type="request_cancelled",
-            amount=request.days_count,
+            amount=charged_days,
             balance_after=get_available_balance(balance),
             leave_request_id=request.id,
             reason="Leave request cancelled",

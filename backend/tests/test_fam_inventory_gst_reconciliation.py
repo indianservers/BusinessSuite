@@ -9,3 +9,5 @@ def test_fam_inventory_gst_reconciliation_endpoint_lists_hsn_readiness(client, d
     assert response.status_code == 200, response.text
     assert response.json()["items"]
     assert "exceptions" in response.json()
+
+    assert all(row['id']==row['stock_item_id'] for row in response.json()['items'])

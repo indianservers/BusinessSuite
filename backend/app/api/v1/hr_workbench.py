@@ -497,7 +497,7 @@ def eligible_account_query(db, user, search):
     company = tenant(user)
     same_company = or_(exists(select(1).where(people.c.user_id==users.c.id,people.c.organization_id==company)), exists(select(1).where(memberships.c.user_id==users.c.id,memberships.c.company_id==company,memberships.c.active.is_(True))))
     revoked = exists(select(1).where(memberships.c.user_id==users.c.id,memberships.c.company_id==company,memberships.c.active.is_(False)))
-    return select(users.c.id,users.c.email).select_from(users.outerjoin(roles,roles.c.id==users.c.role_id)).where(users.c.is_active.is_(True),users.c.is_superuser.is_(False),~exists(select(1).where(employees.c.user_id==users.c.id)),same_company,~revoked,or_(users.c.role_id.is_(None),roles.c.name.notin_(["admin","super_admin"])),users.c.email.ilike("%"+search.strip()+"%"))
+    return select(users.c.id,users.c.email).select_from(users.outerjoin(roles,roles.c.id==users.c.role_id)).where(users.c.is_active.is_(True),users.c.is_superuser.is_(False),~exists(select(1).where(employees.c.user_id==users.c.id)),same_company,~revoked,or_(users.c.role_id.is_(None),roles.c.name.notin_(["admin","super_admin"])),users.c.email.icontains(search.strip(), autoescape=True))
 
 
 @router.get("/account-options")

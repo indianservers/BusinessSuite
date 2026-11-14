@@ -193,6 +193,10 @@ def create_event_operation(data,db,user,*,commit=True):
 
 @router.put('/planner/events/{event_id}')
 def edit_event(event_id:int,data:EventSave,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    return edit_event_operation(event_id,data,db,user)
+
+
+def edit_event_operation(event_id,data,db,user,*,commit=True):
     event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).populate_existing().with_for_update().first()
     if not event: raise HTTPException(404,"Event not found")
     validate_scope(db,user,data)
@@ -201,16 +205,21 @@ def edit_event(event_id:int,data:EventSave,db:Session=Depends(get_db),user:User=
         raise HTTPException(409,"Event changed. Reload before saving.")
     for name, value in values.items():
         setattr(event, name, value)
-    db.commit();db.refresh(event)
+    db.commit() if commit else db.flush()
+    db.refresh(event)
     return event_output(event,user)
 
 @router.delete('/planner/events/{event_id}',status_code=204)
 def delete_event(event_id:int,revision:int=Query(ge=1),db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    delete_event_operation(event_id,revision,db,user)
+
+
+def delete_event_operation(event_id,revision,db,user,*,commit=True):
     event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).populate_existing().with_for_update().first()
     if not event: raise HTTPException(404,"Event not found")
     if event.revision != revision: raise HTTPException(409,"Event changed. Reload before deleting.")
     db.delete(event)
-    db.commit()
+    db.commit() if commit else db.flush()
 
 @router.get('/planner/free-slots')
 def free_slots(day:date,minutes:int=Query(60,ge=15,le=240),timezone_name:str|None=Query(None,alias="timezone",max_length=80),db:Session=Depends(get_db),user:User=Depends(get_current_user)):

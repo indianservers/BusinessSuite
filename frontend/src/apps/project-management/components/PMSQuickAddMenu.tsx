@@ -1,3 +1,8 @@
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
+import { useQueryClient } from "@tanstack/react-query";
+import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
+import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Folder, Users, LayoutGrid, Bug, FileText } from "lucide-react";
@@ -8,26 +13,41 @@ import NewMenu, { type NewAction } from "@/components/app/NewMenu";
 import { contextualDestination } from "@/shared/creation/registry";
 
 
-export default function PMSQuickAddMenu({ children }: { children?: (actions: NewAction[], loading?: boolean) => ReactNode } = {}) {
+type QuickAddProps = { children?: (actions: NewAction[], loading?: boolean) => ReactNode };
+
+export default function PMSQuickAddMenu(props: QuickAddProps = {}) {
+  const scope = useRecordScope(), location = useLocation();
+  return <ScopedPMSQuickAddMenu key={`${scope}:${location.pathname}:${location.search}`} {...props} scope={scope}/>;
+}
+
+function ScopedPMSQuickAddMenu({ children, scope }: QuickAddProps & {scope:string}) {
   const location = useLocation();
   const routerNavigate = useNavigate();
-  const navigate = (path: string) => routerNavigate(contextualDestination(path, location));
+  const ownsScope = useRecordScopeOwner();
+  const navigate = (path: string) => { if (ownsScope()) routerNavigate(contextualDestination(path, location)); };
   const user = useAuthStore(s => s.user);
+  const client = useQueryClient();
+  const workspaceScope = workspaceDataScope(user);
   const [context, setContext] = useState<{ id: number; role: string; name: string }>();
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true; setLoading(true); setContext(undefined);
     const project = location.pathname.match(/\/pms\/projects\/(\d+)/)?.[1];
     void Promise.all([
-      api.get<{ id: number; role: string; name: string }[]>("/project-management/workspaces"),
-      project ? api.get<{ workspace_id?: number }>(`/project-management/projects/${project}`).then(r => r.data.workspace_id).catch(() => undefined) : Promise.resolve(undefined),
-    ]).then(([{ data }, projectWorkspace]) => {
+      client.fetchQuery(pmsWorkspaceOptions(workspaceScope)),
+      project ? client.fetchQuery({
+        queryKey: ["pms-quick-add-project-context", workspaceScope, project],
+        queryFn: ({signal}) => api.get<{ workspace_id?: number }>(`/project-management/projects/${project}`, {signal, timeout:15000}).then(r => r.data.workspace_id ?? null),
+        staleTime: 30000,
+        retry: false,
+      }).catch(() => undefined) : Promise.resolve(undefined),
+    ]).then(([data, projectWorkspace]) => {
       if (!active) return;
       const preferred = projectWorkspace || Number(new URLSearchParams(location.search).get("workspace")) || Number(localStorage.getItem(`pms-workspace-${user?.id}`));
       setContext(data.find(w => w.id === preferred) || data[0]);
     }).catch(() => undefined).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [location.pathname, location.search, user?.id]);
+  }, [location.pathname, location.search, user?.id, scope, workspaceScope, client]);
   const open = (kind: string) => {
     const params = new URLSearchParams({ new: kind });
     if (context) params.set("workspace", String(context.id));

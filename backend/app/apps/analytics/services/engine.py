@@ -277,11 +277,15 @@ def write_xlsx(file_path: str, rows: list[dict[str, Any]], fields: list[str]) ->
 def write_pdf(file_path: str, title: str, rows: list[dict[str, Any]], fields: list[str]) -> None:
     styles = getSampleStyleSheet()
     story = [Paragraph(html.escape(title), styles["Title"]), Spacer(1, 12)]
-    table_data = [fields] + [[str(row.get(field, "") if row.get(field) is not None else "")[:80] for field in fields] for row in rows[:100]]
-    table = Table(table_data, repeatRows=1)
+    cell_style = styles["BodyText"].clone("ExportCell", fontSize=7, leading=9, spaceBefore=0, spaceAfter=0)
+    def cell(value):
+        return Paragraph(html.escape(str(value if value is not None else "")).replace("\n", "<br/>"), cell_style)
+    table_data = [[cell(field) for field in fields]] + [[cell(row.get(field)) for field in fields] for row in rows]
+    document = SimpleDocTemplate(file_path, pagesize=letter)
+    table = Table(table_data, colWidths=[document.width / len(fields)] * len(fields), repeatRows=1)
     table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey), ("GRID", (0, 0), (-1, -1), 0.25, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 7)]))
     story.append(table)
-    SimpleDocTemplate(file_path, pagesize=letter).build(story)
+    document.build(story)
 
 
 def _column_letter(index: int) -> str:

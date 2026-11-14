@@ -10,7 +10,8 @@ export const NATIONAL_PHONE_LENGTH=contract.national_phone_length;
 export const phoneFields=new Set(['mobile','mobile_number','phone','phone_number','alternate_phone','whatsapp_number','emergency_contact','emergency_contact_number','contact_phone','contact_number','business_phone_number','primary_phone','secondary_phone']);
 export function phoneError(number:unknown,code:unknown,required=false,mobile=false) {
   if(!required&&(number===''||number==null))return '';
-  if(typeof number!=='string'||!/^[0-9]{4,15}$/.test(number))return 'Enter a national phone number using digits only.';
+  if(typeof number!=='string'||!/^[0-9]+$/.test(number))return 'Enter a national phone number using digits only.';
+  if(number.length<4||number.length>15)return 'Enter a national phone number with 4 to 15 digits.';
   if(typeof code!=='string'||!contract.countries.some(country=>country.code===code))return 'Select a supported country calling code.';
   if(code==='+91'&&number.length!==10)return 'Indian phone numbers require 10 national digits.';
   if(mobile&&code==='+91'&&!/^[6-9][0-9]{9}$/.test(number))return 'Indian mobile numbers must begin with 6, 7, 8 or 9.';

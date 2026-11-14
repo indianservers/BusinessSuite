@@ -122,6 +122,31 @@ def test_licensing_reuses_plans_and_enforces_native_api(client, db, shared_setup
     )
 
 
+def test_entitlement_checks_observe_module_and_company_changes_immediately(client, db, shared_setup):
+    from app.apps.business_os.models import BOSEnabledModule
+    headers, _, _ = shared_setup
+    company = db.get(Company, 1)
+    module = db.query(BOSEnabledModule).filter_by(company_id=1, module_key='crm').first()
+    if module is None:
+        module = BOSEnabledModule(company_id=1, module_key='crm', display_name='CRM', enabled=True)
+        db.add(module)
+    module.enabled = True
+    db.commit()
+    assert client.get('/api/v1/crm/leads', headers=headers).status_code == 200
+    module.enabled = False
+    db.commit()
+    assert client.get('/api/v1/crm/leads', headers=headers).status_code == 403
+    module.enabled = True
+    db.commit()
+    assert client.get('/api/v1/crm/leads', headers=headers).status_code == 200
+    company.is_active = False
+    db.commit()
+    assert client.get('/api/v1/crm/leads', headers=headers).status_code == 403
+    company.is_active = True
+    db.commit()
+    assert client.get('/api/v1/crm/leads', headers=headers).status_code == 200
+
+
 def test_scoped_analytics_cannot_aggregate_another_company_or_owner(
     client, db, shared_setup
 ):

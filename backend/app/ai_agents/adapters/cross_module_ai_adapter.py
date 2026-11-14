@@ -42,9 +42,9 @@ class CrossModuleAiAdapter(AiAdapterBase):
         query_text = str(input["query"])
         limit = min(int(input.get("limit") or 20), 50)
         org_id = self.org_id(user)
-        lead_query = self.db.query(CRMLead).filter(CRMLead.deleted_at == None, or_(CRMLead.full_name.ilike(f"%{query_text}%"), CRMLead.email.ilike(f"%{query_text}%"), CRMLead.company_name.ilike(f"%{query_text}%")))
-        deal_query = self.db.query(CRMDeal).filter(CRMDeal.deleted_at == None, or_(CRMDeal.name.ilike(f"%{query_text}%"), CRMDeal.description.ilike(f"%{query_text}%")))
-        company_query = self.db.query(CRMCompany).filter(CRMCompany.deleted_at == None, or_(CRMCompany.name.ilike(f"%{query_text}%"), CRMCompany.email.ilike(f"%{query_text}%"), CRMCompany.website.ilike(f"%{query_text}%")))
+        lead_query = self.db.query(CRMLead).filter(CRMLead.deleted_at == None, or_(CRMLead.full_name.icontains(query_text, autoescape=True), CRMLead.email.icontains(query_text, autoescape=True), CRMLead.company_name.icontains(query_text, autoescape=True)))
+        deal_query = self.db.query(CRMDeal).filter(CRMDeal.deleted_at == None, or_(CRMDeal.name.icontains(query_text, autoescape=True), CRMDeal.description.icontains(query_text, autoescape=True)))
+        company_query = self.db.query(CRMCompany).filter(CRMCompany.deleted_at == None, or_(CRMCompany.name.icontains(query_text, autoescape=True), CRMCompany.email.icontains(query_text, autoescape=True), CRMCompany.website.icontains(query_text, autoescape=True)))
         if not user.is_superuser and org_id is not None:
             lead_query = lead_query.filter(CRMLead.organization_id == org_id)
             deal_query = deal_query.filter(CRMDeal.organization_id == org_id)
@@ -59,15 +59,15 @@ class CrossModuleAiAdapter(AiAdapterBase):
         query_text = str(input["query"])
         limit = min(int(input.get("limit") or 20), 50)
         project_ids = [row.id for row in accessible_project_query(self.db, user).all()]
-        project_rows = self.db.query(PMSProject).filter(PMSProject.id.in_(project_ids), PMSProject.name.ilike(f"%{query_text}%")).limit(limit).all() if project_ids else []
-        task_rows = self.db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids), PMSTask.deleted_at == None, or_(PMSTask.title.ilike(f"%{query_text}%"), PMSTask.task_key.ilike(f"%{query_text}%"))).limit(limit).all() if project_ids else []
+        project_rows = self.db.query(PMSProject).filter(PMSProject.id.in_(project_ids), PMSProject.name.icontains(query_text, autoescape=True)).limit(limit).all() if project_ids else []
+        task_rows = self.db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids), PMSTask.deleted_at == None, or_(PMSTask.title.icontains(query_text, autoescape=True), PMSTask.task_key.icontains(query_text, autoescape=True))).limit(limit).all() if project_ids else []
         return {"projects": [model_to_dict(row) for row in project_rows], "tasks": [model_to_dict(row) for row in task_rows]}
 
     def safe_search_hrms(self, user: User, input: dict[str, Any]) -> dict[str, Any]:
         query_text = str(input["query"])
         limit = min(int(input.get("limit") or 20), 50)
         org_id = self.org_id(user)
-        query = self.db.query(Employee).filter(Employee.deleted_at == None, or_(Employee.first_name.ilike(f"%{query_text}%"), Employee.last_name.ilike(f"%{query_text}%"), Employee.employee_id.ilike(f"%{query_text}%"), Employee.work_email.ilike(f"%{query_text}%")))
+        query = self.db.query(Employee).filter(Employee.deleted_at == None, or_(Employee.first_name.icontains(query_text, autoescape=True), Employee.last_name.icontains(query_text, autoescape=True), Employee.employee_id.icontains(query_text, autoescape=True), Employee.work_email.icontains(query_text, autoescape=True)))
         rows = query.limit(limit).all()
         return {"employees": [model_to_dict(row, ["id", "employee_id", "first_name", "last_name", "work_email", "status", "department_id", "designation_id"]) for row in rows]}
 

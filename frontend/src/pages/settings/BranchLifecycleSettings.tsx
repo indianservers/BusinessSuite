@@ -1,3 +1,4 @@
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { Button } from "@/components/ui/button";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
@@ -11,9 +12,10 @@ const titles: Record<Action, string> = {rename:"Rename branch",trash:"Move branc
 const reasons: Record<Action, string> = {rename:"Rename branch in Main Settings",trash:"Branch no longer in use",protect:"Move branch to protected recovery",restore:"Restore branch from recovery"};
 const date = (value: string) => new Date(value).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
 
-export default function BranchLifecycleSettings() {
+export default function BranchLifecycleSettings({ scope }: { scope: string }) {
+  const owns = useRecordScopeOwner();
   const qc = useQueryClient();
-  const branches = useQuery({queryKey:["settings-branch-lifecycle"],queryFn:()=>api.get<{branches:Branch[];retention_days:number}>("/branches/manage").then(r=>r.data),staleTime:0});
+  const branches = useQuery({queryKey:["settings-branch-lifecycle",scope],queryFn:({signal})=>api.get<{branches:Branch[];retention_days:number}>("/branches/manage",{signal}).then(r=>r.data),staleTime:0});
   const [tab,setTab] = useState<"active"|"trash"|"protected">("active");
   const [pending,setPending] = useState<{branch:Branch;action:Action}|null>(null);
   const [name,setName] = useState("");
@@ -42,15 +44,24 @@ export default function BranchLifecycleSettings() {
     {!visible.length && <p role="status">{tab==="active"?"No active branches available.":tab==="trash"?"Trash is empty.":"No branches in protected recovery."}</p>}
     <Dialog open={!!pending} onOpenChange={value=>{if(!value&&!busy){setPending(null);setError("");}}}><DialogContent className="settings-branch-dialog">
       <DialogTitle className="text-lg font-semibold">{pending?titles[pending.action]:"Branch action"}</DialogTitle>
-      {pending && <CompactForm onSubmit={async e=>{e.preventDefault();setBusy(true);setError("");const {branch,action}=pending;
+      {pending && <CompactForm onSubmit={async e=>{e.preventDefault();if(!owns()||busy||branches.isFetching)return;setBusy(true);setError("");const {branch,action}=pending;
         try{
           const body={reason:reason.trim(),expected_version:branch.version};
           if(action==="rename")await api.patch(`/branches/${branch.id}`,{...body,name:name.trim()});else await api.post(`/branches/${branch.id}/${action}`,body);
+          if(!owns())return;
           setPending(null);setMessage(action==="rename"?"Branch renamed. Its records and permissions are unchanged.":action==="restore"?"Branch restored with its existing records and memberships.":action==="protect"?"Moved to protected recovery. You can still restore this branch.":"Branch moved to Trash. Its records and permissions are retained.");
           setTab(action==="trash"?"trash":action==="protect"?"protected":"active");
           if(action==="trash" && sessionStorage.getItem("suite-branch")===String(branch.id)){sessionStorage.removeItem("suite-branch");window.location.reload();return;}
-          await qc.invalidateQueries({predicate:q=>q.queryKey.some(k=>typeof k==="string" && (/branch/.test(k)||k==="shared-settings"))});
-        }catch(err:any){setError(typeof err?.response?.data?.detail==="string"?err.response.data.detail:"Could not complete branch action. Refresh and try again.");}finally{setBusy(false);}
+          void qc.invalidateQueries({predicate:q=>q.queryKey.some(k=>typeof k==="string" && (/branch/.test(k)||k==="shared-settings"))});
+        }catch(err:any){
+          if(!owns())return;
+          setError(typeof err?.response?.data?.detail==="string"?err.response.data.detail:"Could not complete branch action. Refresh and try again.");
+          if(err?.response?.status===409)void branches.refetch().then(result=>{
+            if(!owns()||!result.data)return;
+            const latest=result.data.branches.find(item=>item.id===branch.id);
+            if(latest)setPending(current=>current?.branch.id===branch.id&&current.action===action?{...current,branch:latest}:current);
+          });
+        }finally{if(owns())setBusy(false);}
       }}>
         <p><strong>{pending.branch.name}</strong> · {pending.branch.code}</p>
         {pending.action==="rename" && <label>New branch name<input autoFocus required maxLength={150} value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>}
@@ -59,7 +70,7 @@ export default function BranchLifecycleSettings() {
         {pending.action==="restore" && <p>This reactivates the branch and restores access through its existing memberships. Current company permissions and user status still apply.</p>}
         <label>Reason<input required minLength={5} maxLength={1000} value={reason} disabled={busy} onChange={e=>setReason(e.target.value)}/></label>
         {error && <p role="alert">{error}</p>}
-        <div className="settings-branch-actions"><Button variant="outline" type="button" disabled={busy} onClick={()=>setPending(null)}>Cancel</Button><button className="settings-primary" disabled={busy||reason.trim().length<5||(pending.action==="rename"&&!name.trim())}>{busy?"Saving…":titles[pending.action]}</button></div>
+        <div className="settings-branch-actions"><Button variant="outline" type="button" disabled={busy} onClick={()=>setPending(null)}>Cancel</Button><button className="settings-primary" disabled={busy||branches.isFetching||reason.trim().length<5||(pending.action==="rename"&&!name.trim())}>{busy?"Saving…":titles[pending.action]}</button></div>
       </CompactForm>}
     </DialogContent></Dialog>
   </section>;

@@ -12,6 +12,39 @@ from app.models.user import User
 ROOT = "/api/v1/crm/lead-management"
 
 
+def test_audit_lead_search_treats_wildcards_as_literal(client, db, superuser_headers):
+    names = ["QA_TEST_2026_LEAD_001", "QA%LEAD", "QA_LEAD", r"QA\LEAD"]
+    records = {name: create(client, superuser_headers, full_name=name) for name in names}
+    for endpoint in [ROOT + "/leads", "/api/v1/crm/leads"]:
+        for term in ["QA%LEAD", "QA_LEAD", r"QA\LEAD"]:
+            response = client.get(endpoint, headers=superuser_headers, params={"search": term})
+            assert response.status_code == 200, response.text
+            payload = response.json()
+            items = payload if isinstance(payload, list) else payload["items"]
+            assert [row["id"] for row in items] == [records[term]["id"]]
+
+
+def test_audit_lead_location_job_title_and_priority_roundtrip(client, db, superuser_headers):
+    values = {"full_name": "QA_TEST_2026_LEAD_FIELDS", "job_title": "Finance manager", "city": "Vijayawada", "country": "India", "notes": "Original notes"}
+    created = client.post(ROOT + "/leads", headers=superuser_headers, json={"values": values, "details": {"priority": "High"}})
+    assert created.status_code == 201, created.text
+    record = created.json()
+    for key, value in values.items():
+        assert record[key] == value
+    assert record["details"]["priority"] == "High"
+    endpoint = f"{ROOT}/leads/{record['id']}"
+    saved = client.patch(endpoint, headers=superuser_headers, json={"values": {"job_title": "Director", "city": "Hyderabad", "country": "India"}, "details": {"priority": "Low"}, "version": record["version"]})
+    assert saved.status_code == 200, saved.text
+    reread = client.get(endpoint, headers=superuser_headers)
+    assert reread.status_code == 200, reread.text
+    assert reread.json()["job_title"] == "Director"
+    assert reread.json()["city"] == "Hyderabad"
+    assert reread.json()["details"]["priority"] == "Low"
+    assert reread.json()["notes"] == "Original notes"
+    invalid = client.patch(endpoint, headers=superuser_headers, json={"details": {"priority": "Urgent"}})
+    assert invalid.status_code == 422, invalid.text
+
+
 def create(client, headers, **values):
     response = client.post(
         ROOT + "/leads",

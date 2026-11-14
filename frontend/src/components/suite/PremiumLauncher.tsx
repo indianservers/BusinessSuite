@@ -45,6 +45,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
   const [notice, setNotice] = useState<{ message: string; removed?: string; index?: number } | null>(null);
   const search = useRef<HTMLInputElement>(null);
   const searchBox = useRef<HTMLDivElement>(null);
+  const appMenu = useRef<HTMLDetailsElement>(null);
   const navigate = useNavigate();
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const destination = (m: ModuleIndexItem) => authenticated ? m.homePath : `/login?next=${encodeURIComponent(m.homePath)}`;
@@ -56,10 +57,10 @@ export default function PremiumLauncher({ applications, authenticated = false, c
   useEffect(() => { setActive(0); }, [visibleKeys]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search.current?.focus(); setOpen(true); }
-      if (e.key === "Escape") { setOpen(false); search.current?.blur(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); if(appMenu.current)appMenu.current.open=false; search.current?.focus(); setOpen(true); }
+      if (e.key === "Escape") { setOpen(false); search.current?.blur(); if(appMenu.current?.open){appMenu.current.open=false;appMenu.current.querySelector("summary")?.focus();} }
     };
-    const outside = (e: PointerEvent) => { if (!searchBox.current?.contains(e.target as Node)) setOpen(false); };
+    const outside = (e: PointerEvent) => { if (!searchBox.current?.contains(e.target as Node)) setOpen(false); if(appMenu.current && !appMenu.current.contains(e.target as Node))appMenu.current.open=false; };
     window.addEventListener("keydown", key); document.addEventListener("pointerdown", outside);
     return () => { window.removeEventListener("keydown", key); document.removeEventListener("pointerdown", outside); };
   }, []);
@@ -86,7 +87,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
       <nav className="launcher-nav" aria-label="Suite navigation">
         {!authenticated && <Link to="/signup">Sign up for a trial</Link>}
         <Link className="launcher-nav-home" to={authenticated ? "/dashboard" : "/"}><Home size={19}/>Home</Link>
-        <details className="launcher-app-menu"><summary><LayoutGrid size={18}/>Applications<ChevronDown size={15}/></summary><div>{applications.map(m => <Link key={m.key} to={destination(m)} onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")}><m.icon size={18}/>{m.name}</Link>)}</div></details>
+        <details ref={appMenu} className="launcher-app-menu"><summary><LayoutGrid size={18}/>Applications<ChevronDown size={15}/></summary><div>{applications.map(m => <Link key={m.key} to={destination(m)} onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")}><m.icon size={18}/>{m.name}</Link>)}</div></details>
         <Link to={authenticated ? "/company-admin" : "/login?next=%2Fcompany-admin"}><Settings size={19}/>Settings</Link>
       </nav>
       <div className="launcher-search-box" ref={searchBox}>

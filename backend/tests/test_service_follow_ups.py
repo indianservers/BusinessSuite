@@ -316,3 +316,30 @@ def test_line_can_disable_catalog_follow_up(db, setup):
     db.flush()
     create_for_order(db, order, u)
     assert db.query(FollowUp).count() == 0
+
+
+@pytest.mark.parametrize('needle',['%','_',chr(92),'/',chr(92)+'%',chr(92)+'_'])
+def test_audit_follow_up_and_contact_search_are_literal(db,setup,needle):
+    from app.shared.follow_ups import directory,link_options
+    from app.apps.crm.models import CRMContact
+    u,c,p=setup
+    saved=[]
+    for name in ['QA'+needle+'Literal','QAplainLiteral']:
+        payload=data(c,p);payload.title=name
+        saved.append(create(db,u,payload))
+    result=directory(search=needle,page=1,per_page=1,db=db,user=u)
+    assert result['total']==1
+    assert [row['id'] for row in result['items']]==[saved[0].id]
+    import json
+    from app.shared.follow_ups import grid_query
+    grid=grid_query(state=json.dumps({'search':needle,'pageSize':1}),db=db,user=u)
+    assert grid['total']==1
+    assert grid['pageTotal']==1
+    assert [row['id'] for row in grid['rows']]==[saved[0].id]
+    grouped=grid_query(state=json.dumps({'search':needle,'grouping':['priority']}),db=db,user=u)
+    assert grouped['total']==1
+    assert sum(row['count'] for row in grouped['groups'])==1
+    contacts=[CRMContact(organization_id=1,company_id=c.id,first_name=name,full_name=name) for name in ['QA'+needle+'Literal','QAplainLiteral']]
+    db.add_all(contacts);db.flush()
+    assert [row['id'] for row in link_options('contacts',needle,db,u)]==[contacts[0].id]
+    assert [row['id'] for row in link_options('contacts','qaplain',db,u)]==[contacts[1].id]

@@ -6,6 +6,7 @@ const source = fs.readFileSync(path.resolve(__dirname, '../src/apps/crm/deals/de
 const code = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020}}).outputText;
 const calls = [];
 let fail = false;
+let locale = 'en-IN';
 const mod = {exports: {}};
 const crmApi = {list: async (resource, params) => {
   calls.push({resource, ...params});
@@ -13,9 +14,11 @@ const crmApi = {list: async (resource, params) => {
   if (fail && params.page === 2) throw new Error('Network interruption');
   return {data: {items: params.page <= 2 ? Array.from({length: 100}, (_, i) => ({id: (params.page - 1) * 100 + i + 1})) : [{id: 201}], total: 201, pages: 3}};
 }};
-new Function('module', 'exports', 'require', code)(mod, mod.exports, request => request === '../api' ? {crmApi} : require(request));
+new Function('module', 'exports', 'require', code)(mod, mod.exports, request => request === '../api' ? {crmApi} : request === '@/lib/form-defaults' ? {defaultText:()=>locale} : require(request));
 (async () => {
   const {dealOptions, dealError, dealMoney} = mod.exports;
+  assert.equal(dealMoney(150000,'INR'),new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(150000));
+  locale='en-US';assert.equal(dealMoney(150000,'INR'),new Intl.NumberFormat('en-US',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(150000));locale='en-IN';
   const choices = await dealOptions('pipeline-stages');
   assert.equal(choices.length, 201);
   assert.equal(choices[200].id, 201);

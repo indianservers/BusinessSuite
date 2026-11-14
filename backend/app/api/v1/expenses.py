@@ -24,7 +24,7 @@ def expense_employees(search: str = "", db: Session = Depends(get_db), current_u
             return []
         query = query.filter((Employee.id == current_user.employee.id) | (Employee.reporting_manager_id == current_user.employee.id))
     if search:
-        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+        query = query.filter((Employee.first_name + " " + Employee.last_name).icontains(search, autoescape=True) | Employee.employee_id.icontains(search, autoescape=True))
     return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
             for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
 

@@ -32,6 +32,8 @@ import TimelineExplorer from './center/TimelineExplorer';
 import DeliveryWorkspace from './center/DeliveryWorkspace';
 import { usePreference,useCenterScope } from './center/shared';
 import './center/center.css';
+import { canUseFeature } from '@/lib/feature-access';
+import FeatureUnavailable from '@/components/suite/FeatureUnavailable';
 
 type Destination={label:string;path:string;section:string};
 const groups=[
@@ -47,6 +49,10 @@ const groups=[
 ];
 function sectionFor(path:string){if(path.includes('/send-reminders'))return 'reminders';if(path.includes('/birthdays'))return 'birthdays';if(path.includes('/email-templates'))return 'templates';if(path.includes('/emails'))return 'emails';if(path.includes('/webforms'))return 'webforms';if(path.includes('/campaigns'))return 'campaigns';if(path.includes('/consents'))return 'consents';if(path.includes('/whatsapp'))return 'whatsapp';if(path.includes('/auto-responses'))return 'auto-responses';if(path.includes('/delivery-logs'))return 'delivery-logs';if(path.includes('/communication-timeline'))return 'timeline';return 'hub';}
 export default function CommunicationHubPage(){
+ const user=useAuthStore(state=>state.user);
+ return canUseFeature(user,'communication') ? <AvailableCommunicationHub/> : <FeatureUnavailable title="Communication tools"/>;
+}
+function AvailableCommunicationHub(){
  const location=useLocation(),navigate=useNavigate(),user=useAuthStore(s=>s.user),query=new URLSearchParams(location.search),scope=useCenterScope();
  const aliases:Record<string,string>={'email-templates':'templates',logs:'delivery-logs','delivery-logs':'delivery-logs'};
  const requested=query.get('section')||query.get('tab')||query.get('operation')||'';
