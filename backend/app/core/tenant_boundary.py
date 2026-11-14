@@ -117,7 +117,7 @@ def company_ids(db, user):
     return {int(value) for value in ids if value is not None} - revoked
 
 
-def install(db, user, company, *, verified_portal=False):
+def install(db, user, company, *, verified_portal=False, enforce_superuser_company=False):
     if db.info.get("security_boundary"):
         return lambda: None
     if (
@@ -126,7 +126,7 @@ def install(db, user, company, *, verified_portal=False):
         and company not in company_ids(db, user)
     ):
         raise HTTPException(403, "Verified company membership is required")
-    if user.is_superuser:
+    if user.is_superuser and not enforce_superuser_company:
         return lambda: None
     from app.models.company import Company
 
@@ -139,7 +139,7 @@ def install(db, user, company, *, verified_portal=False):
     ):
         raise HTTPException(403, "Company context is unavailable")
     # Global Super Admin is the existing installation-wide authority, not a role string.
-    if user.is_superuser:
+    if user.is_superuser and not enforce_superuser_company:
         return lambda: None
     from app.models.user import User
     from app.common.models import CommonPerson
@@ -179,6 +179,9 @@ def install(db, user, company, *, verified_portal=False):
         if model in cache:
             return cache[model]
         table = model.__table__
+        if table.name in {'ai_suite_runs', 'ai_messages', 'pms_assistant_messages'} and getattr(user, '_suite_admin_read', False):
+            from app.access.admin_reads import company_clause
+            return company_clause(model, user)
         if table.name in GLOBAL_CATALOGUES:
             return None
         if table.name in INTERNAL_TABLES:

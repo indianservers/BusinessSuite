@@ -69,6 +69,7 @@ def allowed(row, user):
         row.owner_user_id == user.id
         or user.id in (row.sharing or [])
         or user.is_superuser
+        or getattr(user, "_suite_admin_read", False)
     )
 
 

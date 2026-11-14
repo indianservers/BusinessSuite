@@ -26,7 +26,7 @@ def scope_key(db, user, workspace_id=None, *, manage=False):
     company=getattr(person,"organization_id",None) or (employee.branch.company_id if employee and employee.branch else None)
     from app.access.models import AccessMembership
     selected=getattr(user,"organization_id",None)
-    if selected and db.query(AccessMembership).filter_by(user_id=user.id,company_id=selected,active=True).first():company=selected
+    if selected and (user.is_superuser or getattr(user, '_suite_is_company_admin', False) or db.query(AccessMembership).filter_by(user_id=user.id,company_id=selected,active=True).first()):company=selected
     # Never share an unscoped/global provider credential between unrelated users.
     return f"company:{company}" if company is not None else f"user:{user.id}"
 

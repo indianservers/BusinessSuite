@@ -93,16 +93,16 @@ _read_guard_lock = RLock()
 
 
 @lru_cache(maxsize=32)
-def _read_guards(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration):
+def _read_guards(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration, company_admin=False):
     models = dict(model_items)
     ownership = BranchOwnership.__table__
     criteria = {}
     for name, model in models.items():
-        if superuser and branch_id is None:
+        if (superuser or company_admin) and branch_id is None:
             continue
         if identity_administration and name in {"users", "common_people", "common_profiles"}:
             continue
-        if name in {"users", "common_people", "common_profiles"} and not (superuser and branch_id is None):
+        if name in {"users", "common_people", "common_profiles"} and not ((superuser or company_admin) and branch_id is None):
             from app.models.employee import Employee
             from app.branches.models import BranchGrant, BranchPolicy
             branch_users = select(Employee.__table__.c.user_id).where(Employee.__table__.c.branch_id.in_(selected), Employee.__table__.c.deleted_at.is_(None)).union(
@@ -150,7 +150,7 @@ def install(db, user, ctx, *, identity_administration=False):
     selected = {ctx.branch_id} if ctx.branch_id else set(ctx.allowed)
     with _read_guard_lock:
         criteria, options = _read_guards(tuple(sorted(models.items())), user.id, ctx.company_id,
-            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration)
+            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration, ctx.company_admin)
     protected = set(models) - SHARED
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(n) for n in protected) + r")\b", re.I)
     pending = []

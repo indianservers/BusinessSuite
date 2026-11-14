@@ -16,18 +16,18 @@ def test_competing_remaining_reviews_leave_one_executable_replacement(live, monk
     from app.ai_agents.models import AiActionApproval
     from app.apps.project_management.models import PMSProjectMember, PMSTask
     from app.ai_operator import remaining_tasks
-    from app.ai_operator import pms_agent
+    from app.ai_operator import suite
     from fastapi import HTTPException
     from tests.rich_text_test_utils import workflow_seed_scope
 
     client=live.client
-    original_preview=pms_agent.prepare_step
+    original_preview=suite.preflight
     async def preview(*args,**kwargs):
         try:return await original_preview(*args,**kwargs)
         except HTTPException as exc:
             pytest.fail(f'Native preview fixture failed: {exc.status_code} {exc.detail}')
     import pytest
-    monkeypatch.setattr(pms_agent,'prepare_step',preview)
+    monkeypatch.setattr(suite,'preflight',preview)
     with live.factory() as db:
         h,user,pid,workspace,_,tid=setup_load(client,db)
         _,recipient=auth_headers(client,db,email=f'remaining-race-{uuid4()}@example.com',permissions=['pms_view'])

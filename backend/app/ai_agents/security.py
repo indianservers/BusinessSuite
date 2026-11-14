@@ -338,6 +338,10 @@ def verify_provenance(user, context, payload=None):
 
 
 def verify(db, user, context, payload=None, confirmation=False, history=False, *, control=False):
+    if getattr(user, '_suite_admin_read', False) and history and payload is None and not confirmation:
+        if isinstance(context, dict) and context.get('company_id') not in (None, company(user)):
+            raise HTTPException(403, 'Historical record belongs to another company')
+        return {'company_id':company(user), 'read_only_administrator':True}
     data=verify_provenance(user,context)
     if not history:
         session_check(db, user, data.get("session_id"))
@@ -814,6 +818,7 @@ def bind_http(db, user, request, claims):
         "user_id": user.id,
         "company_id": company(user),
         "session_id": getattr(user, "_suite_session_id", None),
+        "admin_read": bool(getattr(user, '_suite_admin_read', False)),
         "correlation_id": getattr(request.state, "request_id", None) or uuid4().hex,
     }
     ai_path = request.url.path.startswith(
@@ -894,6 +899,8 @@ def delegated_token(authorization, method, path, payload=None):
 
 def history_guard(db, user, row):
     verify(db, user, row.security_context, history=True)
+    if getattr(user, '_suite_admin_read', False):
+        return
     if getattr(row, "agent_id", None):
         from app.ai_agents.services.advanced_security import AiAgentPermissionService
 
@@ -941,7 +948,15 @@ def isolate_history(execution):
     from app.ai_agents.models import AiConversation, AiMessage
     from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage
     from sqlalchemy.orm import with_loader_criteria
-    from sqlalchemy import and_, or_
+    from sqlalchemy import and_, or_, select
+
+    if ctx.get('admin_read'):
+        filters = [with_loader_criteria(model, model.organization_id == ctx['company_id'], include_aliases=True)
+                   for model in (AiConversation, AssistantConversation)]
+        for model, parent in ((AiMessage,AiConversation),(AssistantMessage,AssistantConversation)):
+            filters.append(with_loader_criteria(model, model.conversation_id.in_(select(parent.__table__.c.id).where(parent.__table__.c.organization_id==ctx['company_id'])), include_aliases=True))
+        execution.statement = execution.statement.options(*filters)
+        return
 
     control = bool(execution.execution_options.get("ai_owner_control"))
     with db.no_autoflush:
@@ -1307,6 +1322,8 @@ def handoff_guard(db, user, row, recipient=False):
 
     if row.organization_id != company(user):
         raise HTTPException(404, "Handoff note not found")
+    if getattr(user, "_suite_admin_read", False):
+        return
     if not recipient and user.id not in (row.created_by, row.assigned_to):
         raise HTTPException(404, "Handoff note not found")
     creator = db.get(User, row.created_by)

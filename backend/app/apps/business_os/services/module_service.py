@@ -148,6 +148,8 @@ def is_module_enabled(db: Session, module_key: str, company_id: int = 1) -> bool
 
 
 def assert_module_enabled(db: Session, module_key: str, company_id: int = 1) -> None:
+    if db.info.get('admin_read_company') == company_id and db.info.get('security_write_request') is False:
+        return
     key = normalize_module_key(module_key)
     if not is_module_enabled(db, key, company_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Business OS module disabled: {key}")

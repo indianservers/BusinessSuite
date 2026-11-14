@@ -131,6 +131,8 @@ def authorize(db, user, workspace_id, module=None, *, control=False):
     from app.ai_agents.security import ORIGIN,company
     branch=db.info.get('branch_context')
     ORIGIN.set({"company_id":company(user),**({'branch_id':branch.branch_id} if branch and branch.branch_id else {})})
+    if getattr(user, '_suite_admin_read', False):
+        return scope_key(db, user, workspace_id)
     from app.access.service import check_background_access
     check_background_access(db, user, "ai", "view")
     _require_ai_access(user)
@@ -430,13 +432,14 @@ def retire_drafts(db,run):
 
 
 def owned(db, user, ident, lock=False, *, control=False):
-    query = db.query(SuiteRun).filter_by(id=ident, user_id=user.id)
+    from app.access.admin_reads import owner_clause, allowed
+    query = db.query(SuiteRun).filter(SuiteRun.id==ident, owner_clause(SuiteRun,user))
     run = (query.with_for_update().populate_existing() if lock else query).first()
     if not run:
         raise HTTPException(404, 'Suite run not found')
     from app.ai_agents.security import verify
     verify(db,user,run.security_context,history=True,control=control)
-    if authorize(db, user, run.workspace_id, control=control) != run.scope_key:
+    if not allowed(user) and authorize(db, user, run.workspace_id, control=control) != run.scope_key:
         raise HTTPException(403, 'Suite scope changed')
     return run
 

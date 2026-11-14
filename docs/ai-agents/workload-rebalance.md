@@ -43,6 +43,21 @@ ten targeted browser tests, and `npx tsc --noEmit`. Browser coverage uses develo
 fixtures and verifies no automatic write requests and project-selection hiding;
 it does not establish authenticated live UI acceptance.
 
+Reservation now refreshes the locked source workflow with `populate_existing()`.
+A deterministic PostgreSQL regression reproduced acceptance of a cancellation
+hidden by the request's identity map before this fix. Cancellation and plan-hash
+changes now reject the replacement and retire its new native drafts. Six focused
+recovery cases plus stop controls passed (21 tests) in
+`.local/business-suite-qa-ef64bf83c5c8427c894f7ce1d9bfc09f/results.xml`.
+The injected changes are within a rolled-back savepoint; this demonstrates stale
+identity-map rejection, not independent concurrent-transaction acceptance.
+
+`test_remaining_tasks_concurrency.py` is additional unfinished acceptance work.
+Its committed-database fixture currently fails source preparation with HTTP422,
+before competing recovery requests run. The next diagnostic run was prevented
+by shared-worktree merge conflicts in AI security and branch-boundary code.
+Do not count this test as passing or claim concurrent recovery acceptance yet.
+
 ## Confirmed receipts after assignment changes
 
 An assignment can invalidate the workflow's old history permission fingerprint.

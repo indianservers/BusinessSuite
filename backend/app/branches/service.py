@@ -15,6 +15,7 @@ class BranchContext:
     all_branches: bool
     manage_access: bool
     superuser: bool
+    company_admin: bool = False
 
 
 def company_administrator(db, user, company):
@@ -80,7 +81,7 @@ def context(db, user, company, selected=None):
         # Default to a concrete destination, including for administrators.
         # Cross-branch reports can still request an explicit read-only scope.
         branch_id = home if home in writable else min(writable) if writable else home if home in allowed else min(allowed) if allowed else None
-    return BranchContext(company, branch_id, frozenset(allowed), frozenset(writable), all_access, manager, bool(user.is_superuser))
+    return BranchContext(company, branch_id, frozenset(allowed), frozenset(writable), all_access, manager, bool(user.is_superuser), company_administrator(db, user, company))
 
 
 def audit(db, user, company, operation, reason, details):

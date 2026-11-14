@@ -82,12 +82,13 @@ def access(db,user,data,validate_knowledge=True):
 
 
 def owned(db,user,ident,lock=False):
-    q=db.query(AssistantConversation).filter_by(id=ident,user_id=user.id,organization_id=company(user),deleted_at=None)
+    from app.access.admin_reads import allowed, owner_clause
+    q=db.query(AssistantConversation).filter_by(id=ident,organization_id=company(user),deleted_at=None).filter(owner_clause(AssistantConversation,user))
     row=(q.with_for_update() if lock else q).first()
     if not row or not row.references.get('saved_agent'):raise HTTPException(404,'Agent not found')
     verify(db,user,row.security_context,history=True)
     data=Config.model_validate(row.references['config'])
-    if access(db,user,data,validate_knowledge=False)!=row.references['scope_key']:raise HTTPException(403,'Agent scope changed')
+    if not allowed(user) and access(db,user,data,validate_knowledge=False)!=row.references['scope_key']:raise HTTPException(403,'Agent scope changed')
     return row
 
 
@@ -100,9 +101,11 @@ def public(row):
 def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
     scope=authorize(db,user,workspace_id);items=[]
-    rows=db.query(AssistantConversation).filter_by(user_id=user.id,organization_id=company(user),workspace_id=workspace_id,deleted_at=None).filter(
-        AssistantConversation.references['saved_agent'].as_boolean()==True,
-        AssistantConversation.references['scope_key'].as_string()==scope).order_by(AssistantConversation.id.desc()).limit(50)
+    from app.access.admin_reads import allowed, owner_clause
+    rows=db.query(AssistantConversation).filter_by(organization_id=company(user),workspace_id=workspace_id,deleted_at=None).filter(
+        AssistantConversation.references['saved_agent'].as_boolean()==True,owner_clause(AssistantConversation,user)).order_by(AssistantConversation.id.desc())
+    if not allowed(user):rows=rows.filter(AssistantConversation.references['scope_key'].as_string()==scope)
+    rows=rows.limit(50)
     for row in rows:
         try:items.append(public(owned(db,user,row.id)))
         except HTTPException:continue

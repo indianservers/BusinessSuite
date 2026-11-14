@@ -60,8 +60,8 @@ def connections(
         .filter_by(
             organization_id=organization(user),
             environment=environment,
-            owner_user_id=user.id,
         )
+        .filter(True if getattr(user, "_suite_admin_read", False) else Connection.owner_user_id==user.id)
         .order_by(Connection.id.desc())
         .limit(200)
         .all()

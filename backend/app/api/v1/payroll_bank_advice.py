@@ -42,6 +42,9 @@ IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$", re.IGNORECASE)
 
 
 def _current_company_id(user: User) -> int | None:
+    if getattr(user, '_suite_admin_read', False):
+        from app.apps.srm.services.commercial import tenant
+        return tenant(user)
     if user.employee and user.employee.branch:
         return user.employee.branch.company_id
     return None

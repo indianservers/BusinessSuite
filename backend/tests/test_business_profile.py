@@ -18,6 +18,9 @@ def test_profile_round_trip_reset_and_stale_write(client, db):
     assert result['overrides'] == values
     assert result['effective']['terms']['customer'] == ['Patient', 'Patients']
     assert result['effective']['terms']['employee'] == ['Employee', 'Employees']
+    history = client.get(BASE + '/history/business-profile', headers=headers)
+    assert history.status_code == 200, history.text
+    assert 'business_type' in history.json()['items'][0]['fields']
     assert client.put(URL, headers=headers, json={'version': 0, 'values': {}}).status_code == 409
     assert client.put(URL, headers=headers, json={'version': 1, 'values': {}}).status_code == 200
     assert effective(db, 1)['business_type'] == 'general'
@@ -68,3 +71,20 @@ def test_profile_switch_only_changes_template_terms():
     profile = resolve([{'business_type': 'salon', 'terms': {'customer': ['Guest', 'Guests']}}, {'business_type': 'hospital'}])
     assert profile['terms']['provider'][0] == 'Doctor'
     assert profile['terms']['customer'][0] == 'Guest'
+
+
+def test_profile_changes_do_not_mutate_pipelines(client, db):
+    from app.apps.crm.models import CRMPipeline, CRMPipelineStage
+    headers, _ = actor(db, superuser=True)
+    pipeline = CRMPipeline(organization_id=1, name='Existing sales pipeline', active=True)
+    db.add(pipeline); db.flush()
+    stage = CRMPipelineStage(pipeline_id=pipeline.id, name='Qualified', stage_type='open', active=True)
+    db.add(stage); db.commit()
+    ids = pipeline.id, stage.id
+    for version, business_type in enumerate(['hospital', 'salon', 'construction']):
+        response = client.put(URL, headers=headers, json={'version': version, 'values': {'business_type': business_type}})
+        assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(CRMPipeline, ids[0]).name == 'Existing sales pipeline'
+    assert db.get(CRMPipelineStage, ids[1]).name == 'Qualified'
+    assert db.get(CRMPipelineStage, ids[1]).pipeline_id == ids[0]

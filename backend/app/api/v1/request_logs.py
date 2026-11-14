@@ -13,12 +13,14 @@ router = APIRouter()
 
 
 def global_audit_admin(user: User = Depends(get_current_user)):
-    if not user.is_superuser:
+    if not (user.is_superuser or getattr(user, "_suite_admin_read", False)):
         raise HTTPException(403, 'Administrator access required')
     return user
 
 
 def scoped_query(db, user):
+    if getattr(user, "_suite_admin_read", False):
+        return db.query(AuditLog), "company"
     if user.is_superuser:
         return db.query(AuditLog), 'suite'
     from app.apps.project_management.models import PMSWorkspaceMember, PMSProject

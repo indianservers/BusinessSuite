@@ -77,6 +77,9 @@ def context(db, actor):
               else service.legacy_grants(db, actor, company))
     from app.branches.roles import effective_grants
     grants = effective_grants(db, actor, company, getattr(actor, '_suite_branch_id', None), grants)
+    if getattr(actor, '_suite_admin_read', False):
+        from app.access.admin_reads import grants as company_read_grants
+        grants = company_read_grants(db, actor, grants)
     is_admin = actor.is_superuser or (service.schema_ready(db) and bool(db.query(AccessMembership).filter_by(
         user_id=actor.id, company_id=company, active=True, is_admin=True).first()))
     from app.apps.interns_hub.management_access import require_admin
@@ -87,12 +90,14 @@ def context(db, actor):
         intern_admin = False
     from app.branches.service import access as branch_access
     branch_manager = branch_access(db, actor, company)[3]
-    return {"branch_manager": branch_manager, "intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy or getattr(actor, '_suite_branch_roles_fingerprint', None)),
+    return {"admin_read":bool(getattr(actor, "_suite_admin_read", False)), "branch_manager": branch_manager, "intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy or getattr(actor, '_suite_branch_roles_fingerprint', None)),
             "permissions": permission_names(actor), "super": actor.is_superuser}
 
 
 def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
+    if ctx.get("admin_read") and ctx["admin"]:
+        return True
     if key in {"internships", "task-packs"} and not ctx.get("intern_admin", False):
         return False
     if key in {"business-defaults", "business-profile"}:
@@ -182,7 +187,7 @@ def list_settings(db: Session = Depends(get_db), actor: User = Depends(get_curre
         states["communication"] = {"state": "ready" if configured else "attention", "label": "Configured" if configured else "Not configured", "detail": "Email provider configuration only; live delivery has not been verified."}
     for option in options:
         option["status"] = states.get(option["id"])
-        option["historyAvailable"] = option["id"] in {"company-profile", "business-defaults"} and can_edit_company(ctx)
+        option["historyAvailable"] = option["id"] in {"company-profile", "business-defaults", "business-profile"} and can_edit_company(ctx)
     return dict(companyId=ctx["company"], companyName=company.name if company else "Company", options=options)
 
 
@@ -244,14 +249,19 @@ def update_company_profile(data: ProfileUpdate, request: Request, db: Session = 
 @router.get("/history/{key}")
 def setting_history(key: str, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     _, ctx = require_option(db, actor, key)
-    if key not in {"company-profile", "business-defaults"} or not can_edit_company(ctx):
+    if key not in {"company-profile", "business-defaults", "business-profile"} or not can_edit_company(ctx):
         raise HTTPException(403, "Change history requires company configuration access")
     from app.access.models import AccessAudit
     defaults = {"default_timezone", "default_currency", "working_days_per_week", "fiscal_year_start_month"}
-    rows = db.query(AccessAudit).filter(AccessAudit.company_id == ctx["company"], AccessAudit.operation.in_(["settings.company.updated", "settings.defaults.updated"])).order_by(AccessAudit.created_at.desc(), AccessAudit.id.desc()).limit(200).all()
+    rows = db.query(AccessAudit).filter(AccessAudit.company_id == ctx["company"], AccessAudit.operation.in_(["settings.company.updated", "settings.defaults.updated", "settings.business-profile.updated"])).order_by(AccessAudit.created_at.desc(), AccessAudit.id.desc()).limit(200).all()
     result = []
     for row in rows:
-        if row.operation == "settings.defaults.updated":
+        if row.operation == 'settings.business-profile.updated':
+            if key != 'business-profile': continue
+            changed = sorted(k for k in set(row.before_json or {}) | set(row.after_json or {}) if (row.before_json or {}).get(k) != (row.after_json or {}).get(k))
+        elif key == 'business-profile':
+            continue
+        elif row.operation == "settings.defaults.updated":
             if key != "business-defaults": continue
             changed = sorted(k for k in set(row.before_json or {}) | set(row.after_json or {}) if (row.before_json or {}).get(k) != (row.after_json or {}).get(k))
         else:

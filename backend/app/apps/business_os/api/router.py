@@ -45,7 +45,9 @@ def get_modules(db: Session = Depends(get_db), current_user: User = Depends(get_
         metadata_json={'home_path': meta.get('home_path'), 'optional': meta.get('optional', True)}
     ) for key, meta in sorted(CORE_MODULES.items())]
     enabled = sorted(r.module_key for r in rows if r.enabled)
-    return {"company_id": company_id, "modules": [serialize_module(row) for row in rows], "enabled_modules": enabled, "supported_combinations": SUPPORTED_COMBINATIONS}
+    return {"company_id": company_id, "modules": [serialize_module(row) for row in rows], "enabled_modules": enabled,
+            "readable_modules": sorted(CORE_MODULES) if getattr(current_user, '_suite_admin_read', False) else enabled,
+            "supported_combinations": SUPPORTED_COMBINATIONS}
 
 
 @router.put("/modules")

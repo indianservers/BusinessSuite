@@ -84,6 +84,9 @@ def legacy_grants(db, user, company=None):
             )
     from app.access.entitlements import apply
 
+    if getattr(user, '_suite_admin_read', False):
+        from app.access.admin_reads import grants as company_read_grants
+        return company_read_grants(db, user, by_module)
     return apply(
         db,
         company or getattr(user, "organization_id", None) or primary_company(user),
@@ -380,6 +383,7 @@ def bind_authorization(db, user, request):
     user.organization_id = company
     from app.branches.service import company_administrator
     user._suite_is_company_admin = company_administrator(db, user, company)
+    user._suite_admin_read = request.method in {'GET', 'HEAD'} and bool(user.is_superuser or user._suite_is_company_admin)
     user._suite_permission_objects = None
     policy = policy_for(db, user, company)
     user._suite_policy_version = (
@@ -398,13 +402,17 @@ def bind_authorization(db, user, request):
     # administration otherwise retains its company-level authority.
     if not control or request.url.path == "/api/v1/access/me":
         user._suite_grants = effective_grants(db, user, company, request.headers.get("X-Suite-Branch"), user._suite_grants)
+    if user._suite_is_company_admin and user._suite_admin_read:
+        from app.access.admin_reads import grants as company_read_grants
+        user._suite_grants = company_read_grants(db, user, user._suite_grants)
     if request.url.path == "/api/v1/business-os/modules" and request.method == "GET":
         module = None
     if request.url.path.startswith('/api/v1/branches/') or request.url.path == '/api/v1/branches':
         module = None  # Branch discovery/admin has its own explicit authority checks.
     from app.access.entitlements import enforce
 
-    enforce(db, company, module)
+    if not user._suite_admin_read:
+        enforce(db, company, module)
     from app.enterprise.controls import governance_module_check
     governance_module_check(db,user,company,module,action_for(request))
     from app.enterprise.controls import reserve_api_request
@@ -416,7 +424,11 @@ def bind_authorization(db, user, request):
         )
         return lambda: reset_authorization(user)
     grants = user._suite_grants
-    user._suite_permission_objects = effective_objects(db, grants, module)
+    if user._suite_admin_read:
+        from app.access.admin_reads import permission_objects as read_permissions
+        user._suite_permission_objects = read_permissions(db)
+    else:
+        user._suite_permission_objects = effective_objects(db, grants, module)
     if module:
         grant = grants.get(module, {})
         if not grant.get("enabled"):
@@ -434,6 +446,7 @@ def bind_authorization(db, user, request):
 
 
 def reset_authorization(user):
+    user._suite_admin_read = False
     user._suite_is_company_admin = False
     user._suite_grants = None
     user._suite_permission_objects = None

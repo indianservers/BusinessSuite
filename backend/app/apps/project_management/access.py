@@ -76,7 +76,7 @@ def module_identity_allowed(db: Session, user: User, company_id: int) -> bool:
     """Workspace membership cannot override a disabled account/module policy."""
     if not user or not user.is_active:
         return False
-    if user.is_superuser:
+    if user.is_superuser or (getattr(user, "_suite_admin_read", False) and company_id == organization_id_for(user)):
         return True
     from app.access.models import AccessMembership
     from app.access.service import policy_for, resolved_grants
@@ -96,6 +96,8 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
         return False
     if not same_organization(project, user):
         return False
+    if getattr(user, "_suite_admin_read", False) and action in {"browse", "browse_client"}:
+        return True
     if getattr(project, "is_task_collection", False) and action in {"edit_project", "administer", "create_project"}:
         return False
     if project.workspace_id:

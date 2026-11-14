@@ -29,7 +29,12 @@ def test_business_os_module_enable_disable_api_blocking_and_preservation(client,
         assert set(response.json()["enabled_modules"]) == {"srm", "project_management"}
         assert "crm" not in enabled_module_keys(db, 1)
 
-        blocked = client.get("/api/v1/crm/leads", headers=superuser_headers)
+        readable = client.get("/api/v1/crm/leads", headers=superuser_headers)
+        assert readable.status_code == 200
+        data = readable.json()
+        rows = data if isinstance(data, list) else data["items"]
+        assert preserved.id in {row["id"] for row in rows}
+        blocked = client.post("/api/v1/crm/leads", headers=superuser_headers, json={})
         assert blocked.status_code == 403
         assert blocked.json()["historical_data_preserved"] is True
 

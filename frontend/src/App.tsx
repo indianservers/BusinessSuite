@@ -154,7 +154,7 @@ export default function App() {
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return;
     api.get("/business-os/modules").then((response) => {
-      setBusinessOsEnabledModules(response.data.enabled_modules || []);
+      setBusinessOsEnabledModules(response.data.readable_modules || response.data.enabled_modules || []);
     }).catch(() => undefined);
   }, [isHydrated, isAuthenticated]);
   useEffect(() => {

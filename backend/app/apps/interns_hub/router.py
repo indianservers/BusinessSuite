@@ -378,7 +378,15 @@ def create_ticket(data: TicketInput, e=Depends(intern), db: Session = Depends(ge
 @router.get("/admin/interns")
 def admin_interns(page: int = Query(1, ge=1), per_page: int = Query(50, ge=1, le=100), user=Depends(admin), db: Session = Depends(get_db)):
     from .management_access import employee_query
-    return [{**profile(e),"summary":summary(db,e)} for e in employee_query(db,user).order_by(Employee.id).offset((page-1)*per_page).limit(per_page)]
+    from sqlalchemy.orm import selectinload, joinedload
+    from .pms_adapter import summaries
+    from app.apps.srm.services.commercial import tenant
+    employees = employee_query(db,user).options(
+        selectinload(Employee.educations),selectinload(Employee.skills),selectinload(Employee.documents),
+        joinedload(Employee.department),joinedload(Employee.designation),joinedload(Employee.branch),joinedload(Employee.reporting_manager)
+    ).order_by(Employee.id).offset((page-1)*per_page).limit(per_page).all()
+    metrics = summaries(db,employees,today(),tenant(user))
+    return [{**profile(e),"summary":metrics[e.id]} for e in employees]
 
 
 @router.get("/admin/interns/{employee_id}")
