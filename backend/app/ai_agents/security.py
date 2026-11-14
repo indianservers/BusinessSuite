@@ -226,7 +226,7 @@ def _fingerprint_state(db, user, tenant):
             "grants": (
                 service.resolved_grants(db, policy)
                 if policy
-                else service.legacy_grants(db, user, tenant)
+                else service.legacy_grants(db, user, tenant, administrative_read=False)
             ),
             "nativePermissions": sorted(names),
             "entitlements": entitlements.states(db, tenant),

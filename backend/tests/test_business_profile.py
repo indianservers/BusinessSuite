@@ -6,6 +6,40 @@ from tests.test_settings_hub import actor, BASE
 URL = BASE + '/business-profile/configuration'
 
 
+@pytest.mark.parametrize('field,label,expected', [
+    ('customer_id', 'Customer ID', 'Patient ID'), ('customer_name', 'Customer name', 'Patient name'),
+    ('service', 'Services', 'Consultation types'), ('appointment_date', 'Appointment Date', 'Consultation Date'),
+    ('employee', 'Employee', 'Employee'), ('custom_customer', 'Customer', 'Customer'),
+    ('customer_id', 'Billing recipient', 'Billing recipient'), ('project_id', 'Site reference', 'Site reference'),
+])
+def test_semantic_fields_preserve_custom_captions(field, label, expected):
+    from app.shared.business_profile import field_label
+    assert field_label(resolve([{'business_type': 'hospital'}]), field, label) == expected
+
+
+def test_first_login_selection_is_company_admin_only_and_preserves_existing_companies(client, db):
+    from app.apps.saas.models import TenantSubscription, TenantSubscriptionPlan
+    headers, _ = actor(db, superuser=True)
+    endpoint = BASE + '/business-profile/onboarding'
+    assert client.get(endpoint, headers=headers).json()['required'] is False
+    subscription = db.query(TenantSubscription).filter_by(company_id=1).first()
+    if subscription is None:
+        plan = TenantSubscriptionPlan(code='business-profile-test', name='Profile test plan', features_json=['hrms', 'crm', 'srm', 'fam', 'project_management'], config_json={})
+        db.add(plan); db.flush()
+        subscription = TenantSubscription(company_id=1, plan_id=plan.id, status='active', admin_override=True)
+        db.add(subscription)
+    subscription.config_json = {**(subscription.config_json or {}), 'business_profile_required': True}
+    db.commit()
+    status = client.get(endpoint, headers=headers)
+    assert status.status_code == 200, status.text
+    assert status.json()['required'] is True
+    reader, _ = actor(db, 'profile-onboarding-employee')
+    assert client.get(endpoint, headers=reader).json()['required'] is False
+    saved = client.put(URL, headers=headers, json={'version': 0, 'values': {'business_type': 'general'}})
+    assert saved.status_code == 200, saved.text
+    assert client.get(endpoint, headers=headers).json()['required'] is False
+
+
 def test_profile_round_trip_reset_and_stale_write(client, db):
     headers, _ = actor(db, superuser=True)
     first = client.get(URL, headers=headers)
@@ -111,6 +145,10 @@ def test_workspace_override_requires_native_access_and_inherits_branch(client, d
     result = client.get(BASE + '/business-profile/effective', params={'workspace_module': 'srm', 'workspace_id': wid}, headers=headers)
     assert result.status_code == 200, result.text
     assert result.json()['terms']['provider'][0] == 'Doctor'
+    reader, member = actor(db, 'private-workspace-profile-reader', permissions=['srm_view'])
+    attach_workflow_branch(db, member); db.commit()
+    private = client.get(BASE + '/business-profile/effective', params={'workspace_module': 'srm', 'workspace_id': wid}, headers={**reader, 'X-Suite-Branch': str(branch.id)})
+    assert private.status_code == 404, private.text
     assert client.get(BASE + '/business-profile/effective', headers=headers).json()['terms']['provider'][0] == 'Stylist'
     assert client.get(URL, params={**params, 'workspace_id': 'missing'}, headers=headers).status_code == 404
     assert client.get(URL, params={'workspace_module': 'srm', 'workspace_id': wid}, headers=headers).status_code == 422

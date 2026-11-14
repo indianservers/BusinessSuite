@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -487,7 +488,7 @@ export default function CustomerCommunications({whatsappOnly=false,initialTab="o
           <div className="space-y-4">
             <Card>
               <CardContent className="space-y-3 p-4">
-                <h3 className="font-semibold">Customers</h3>
+                <h3 className="font-semibold"><BusinessTerm name="customer" plural/></h3>
                 {!recipients.data?.items?.length && (
                   <p className="text-sm text-muted-foreground">
                     No customer recipients yet.

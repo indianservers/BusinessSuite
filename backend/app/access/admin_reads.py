@@ -24,6 +24,8 @@ def definitions(db):
 
 def grants(db, user, base=None):
     from app.access.entitlements import states
+    from app.enterprise.controls import disabled_modules
+    unlicensed = disabled_modules(db, user.organization_id)
     disabled = {key for key, enabled in states(db, user.organization_id).items() if not enabled}
     names = definitions(db)
     result = {}
@@ -32,9 +34,9 @@ def grants(db, user, base=None):
     for module in catalog(db):
         key = module['key']
         previous = (base or {}).get(key, {})
-        result[key] = {**previous, 'enabled':True, 'role':previous.get('role', 'super_admin') if user.is_superuser else roles.get(key, 'admin'),
+        result[key] = {**previous, 'enabled':key not in unlicensed, 'role':previous.get('role', 'super_admin') if user.is_superuser else roles.get(key, 'admin'),
             'permissions':sorted(names[key]),
-            'actions':sorted((set(previous.get('actions', [])) if key not in disabled else set()) | {'view', 'export'}),
+            'actions':sorted((set(previous.get('actions', [])) if key not in disabled else set()) | {'view', 'export'}) if key not in unlicensed else [],
             'scope':'organization'}
     return result
 

@@ -26,8 +26,8 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return start < 0 ? <>{text}</> : <>{text.slice(0, start)}<mark>{text.slice(start, start + term.length)}</mark>{text.slice(start + term.length)}</>;
 }
 
-export default function PremiumLauncher({ applications, authenticated = false, company, children, favorites = [], onFavorite, unread = {}, compact = false, onCompact, query, onQuery, favoritesOnly, onFavoritesOnly, onReorder, workspaceCount = 0, loading = false }: {
-  applications: ModuleIndexItem[]; authenticated?: boolean; company?: string; children?: ReactNode;
+export default function PremiumLauncher({ applications, authenticated = false, company, children, businessHeadline, businessDescription, favorites = [], onFavorite, unread = {}, compact = false, onCompact, query, onQuery, favoritesOnly, onFavoritesOnly, onReorder, workspaceCount = 0, loading = false }: {
+  applications: ModuleIndexItem[]; authenticated?: boolean; company?: string; children?: ReactNode; businessHeadline?: ReactNode; businessDescription?: string;
   favorites?: string[]; onFavorite?: (key: string) => void; unread?: Record<string, number>;
   compact?: boolean; onCompact?: (value: boolean) => void;
   query?: string; onQuery?: (value: string) => void; favoritesOnly?: boolean;
@@ -100,7 +100,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
       <div className="launcher-account"><Link className="launcher-help" to="/help"><HelpCircle size={19}/><span>Help</span></Link>{authenticated ? <><SuiteNotificationBell/><SuiteProfileMenu/></> : <Link className="launcher-signin" to="/login">Sign in</Link>}</div>
     </header>
     <main id="suite-main" tabIndex={-1}>
-      <HomepageBanner company={company}/>
+      <HomepageBanner company={company} headline={businessHeadline} description={businessDescription}/>
       <div className="launcher-body">
         {authenticated && <div className="launcher-company"><details className="launcher-view-options"><summary>View options</summary><div>{onCompact && <label><input type="checkbox" checked={compact} onChange={e => onCompact(e.target.checked)}/>Compact view</label>}</div></details><CompanySwitcher/><BranchSwitcher/></div>}
         {children}

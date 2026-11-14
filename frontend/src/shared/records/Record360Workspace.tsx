@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -31,6 +32,7 @@ function SectionError({error,retry}:{error:unknown;retry:()=>void}) {return <div
 
 /** Same content in a directory pane, modal or full page; domain forms are passed in. */
 export default function Record360Workspace({kind,id,source="crm",actions,details,onAction,heading,summaryFields}:{kind:RecordKind;id:number;source?:RecordSource;actions?:ReactNode;details?:ReactNode;heading?:string;summaryFields?:Record<string,string|number|null>;onAction?:(action:"note"|"task"|"call"|"meeting"|"email")=>void}) {
+  const { term } = useBusinessTerms();
   const scope=useRecordScope(), location=useLocation();
   const [filter,setFilter]=useState("all"),[expanded,setExpanded]=useState(false);
   const workPages=useCursorPages(`${scope}:${source}:${kind}:${id}`),historyPages=useCursorPages(`${scope}:${source}:${kind}:${id}:${filter}`);
@@ -53,11 +55,11 @@ export default function Record360Workspace({kind,id,source="crm",actions,details
     {query.isError&&<SectionError error={query.error} retry={()=>void query.refetch()}/>}
     {record&&<><header className="r360-header"><div>{!heading&&<p className="r360-eyebrow">{kind} · 360°</p>}<h2>{heading||record.name}</h2>{!heading&&<p>{record.status||""}</p>}</div><div className="r360-actions">{(source==='crm'||source==='srm')&&['company','contact','lead','deal'].includes(kind)&&<Suspense fallback={null}><RecordTemplatePicker entity={kind==='company'?'account':kind as 'lead'|'contact'|'deal'} recordId={id} source={source}/></Suspense>}{actions}{location.pathname!==fullPath&&<Button variant="outline" size="sm" asChild><Link to={fullPath}>Open full record</Link></Button>}<Button variant="outline" size="sm" onClick={refresh}>Refresh</Button></div></header>
       <div className="r360-layout"><aside className="r360-summary"><h3>Summary</h3><dl>{Object.entries(summaryFields??record.fields).filter(([,value])=>value!==null&&value!=="").map(([key,value])=><div key={key}><dt>{key.replace(/_/g," ")}</dt><dd>{String(value)}</dd></div>)}</dl>
-        {record.customer&&kind!=="company"&&<section><h3>Customer</h3><Link to={`/${module}/customers/${record.customer.id}/360`}>{record.customer.name}</Link></section>}
-        {record.project&&<section><h3>Project</h3><Link to={`/pms/projects/${record.project.id}`}>{record.project.name}</Link></section>}
+        {record.customer&&kind!=="company"&&<section><h3>{term('customer')}</h3><Link to={`/${module}/customers/${record.customer.id}/360`}>{record.customer.name}</Link></section>}
+        {record.project&&<section><h3>{term('project')}</h3><Link to={`/pms/projects/${record.project.id}`}>{record.project.name}</Link></section>}
         {!details&&source==="crm"&&["lead","contact","company","deal"].includes(kind)&&<CrmFieldsReadOnly entity={kind==="company"?"companies":`${kind}s`} recordId={id} companySource={kind==="company"?source:undefined}/>}
         {kind==="task"&&<TaskRecordLinks key={`${scope}:${id}`} taskId={id}/>}
-        {record.projects.length>0&&<section><h3>Related projects</h3>{record.projects.map(project=><p key={project.id}><Link to={`/pms/projects/${project.id}`}>{project.name}</Link> · {project.status}</p>)}{(record.project_count||0)>record.projects.length&&<p>Showing {record.projects.length} of {record.project_count}. <Link to={`/pms/tasks-follow-ups?customer=${id}`}>View all delivery work</Link></p>}</section>}
+        {record.projects.length>0&&<section><h3>Related {term('project', true).toLowerCase()}</h3>{record.projects.map(project=><p key={project.id}><Link to={`/pms/projects/${project.id}`}>{project.name}</Link> · {project.status}</p>)}{(record.project_count||0)>record.projects.length&&<p>Showing {record.projects.length} of {record.project_count}. <Link to={`/pms/tasks-follow-ups?customer=${id}`}>View all delivery work</Link></p>}</section>}
         {!!record.relations?.length&&<section><h3>People & deals</h3>{record.relations.map(relation=><p key={`${relation.kind}:${relation.id}`}><Link to={relation.url}>{relation.name}</Link> · {relation.kind}</p>)}</section>}
         {details&&<details className="r360-details"><summary>Details & related records</summary><div key={scope}>{details}</div></details>}
       </aside><div className="r360-content">

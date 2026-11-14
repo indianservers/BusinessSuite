@@ -342,10 +342,12 @@ def probation_letter(employee_id: int, db: Session = Depends(get_db), current_us
         "extend": "Probation Extension Letter",
         "terminate": "Probation Termination Letter",
     }.get(action.action_type, "Probation Letter")
+    from app.shared.business_profile import employee_profile
+    employee_label = employee_profile(db, employee)["terms"]["employee"][0]
     lines = [
         title,
         "",
-        f"Employee: {_employee_name(employee)} ({employee.employee_id})",
+        f"{employee_label}: {_employee_name(employee)} ({employee.employee_id})",
         f"Effective date: {action.effective_date}",
         f"Action: {action.action_type.title()}",
         f"Extended until: {action.extended_until or '-'}",

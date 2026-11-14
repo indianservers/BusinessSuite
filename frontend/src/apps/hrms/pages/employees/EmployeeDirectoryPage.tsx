@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -93,7 +94,8 @@ function useDebouncedValue(value: string, delay = 300) {
 }
 
 export default function EmployeeDirectoryPage() {
-  usePageTitle("Employee Directory");
+  const { term } = useBusinessTerms();
+  usePageTitle(`${term('employee')} Directory`);
   const phone = useMobile(480);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -308,13 +310,13 @@ export default function EmployeeDirectoryPage() {
     <div className="hrms-employee-directory space-y-6">
       <div className="hrms-directory-header flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="page-title">Employee Directory</h1>
+          <h1 className="page-title">{term('employee')} Directory</h1>
           <p className="page-description">{phone && !data ? "—" : data?.total ?? 0} people available</p>
         </div>
         <div className="flex flex-col gap-2 md:flex-row">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input aria-label="Search employees" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, ID, email, or skill" className="pl-9" />
+            <Input aria-label={`Search ${term('employee', true).toLowerCase()}`} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, ID, email, or skill" className="pl-9" />
             {!!suggestions?.length && (
               <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow">
                 {suggestions.map((item: { id: number; label: string; subtitle: string }) => (
@@ -368,7 +370,7 @@ export default function EmployeeDirectoryPage() {
       <MobileSheet open={filtersOpen} onClose={()=>setFiltersOpen(false)} title="Employee filters"><div className="mobile-filter-fields">{filterPanel}</div><button type="button" className="mobile-primary-action" onClick={()=>setFiltersOpen(false)}>Show employees</button></MobileSheet>
       <div className="mobile-only-panel"><div className="mobile-filter-chips">{[departmentId&&`Department ${departmentId}`,branchId&&`Branch ${branchId}`,skills,...(phone?[designationId&&`Designation ${designationId}`,locationId&&`Location ${locationId}`,teamOnly&&"My team",sortBy!=="name"&&`Sort: ${sortBy}`,sortOrder!=="asc"&&"Descending"]:[])].filter(Boolean).map(chip=><span key={String(chip)}>{chip}</span>)}</div></div>
 
-      {phone && directoryQuery.isError && <p role="alert">Employee directory could not load. <Button disabled={directoryQuery.isFetching} variant="outline" onClick={() => void directoryQuery.refetch()}>Retry employee directory</Button></p>}
+      {phone && directoryQuery.isError && <p role="alert">{term('employee')} directory could not load. <Button disabled={directoryQuery.isFetching} variant="outline" onClick={() => void directoryQuery.refetch()}>Retry {term('employee').toLowerCase()} directory</Button></p>}
       {phone && directoryQuery.isError && !data ? null : isLoading ? (
         <div role={phone?"status":undefined} aria-label={phone?"Loading employees":undefined} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => <Card key={index}><CardContent className="p-4"><div className="h-24 rounded skeleton" /></CardContent></Card>)}

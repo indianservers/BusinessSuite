@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import {useRouteViewState} from "@/hooks/use-route-view-state";
 import { LoadingState } from "@/components/ui/state";
@@ -85,7 +86,8 @@ function useDebouncedValue(value: string, delay = 300) {
 }
 
 function EmployeesPage() {
-  usePageTitle("Employees");
+  const { term } = useBusinessTerms();
+  usePageTitle(term('employee', true));
   const employeeActor=useAccountAdminStore(state=>state.user);
   const employeeGrant=employeeActor?.access?.grants.hrms;
   const canEditEmployee=!!employeeActor?.is_superuser || !employeeActor?.access?.managed || !!employeeGrant?.enabled&&employeeGrant.actions.includes("edit")&&employeeGrant.permissions.includes("employee_update");
@@ -269,20 +271,20 @@ function EmployeesPage() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="page-title">Employees</h1>
+          <h1 className="page-title">{term("employee", true)}</h1>
           <p className="page-description">
-            {data?.total ?? 0} {activeCount || search ? "matching" : "total"} employees
+            {data?.total ?? 0} {activeCount || search ? "matching" : "total"} {term("employee", true).toLowerCase()}
           </p>
         </div>
         <CompactActions primaryId="quick-add-employee" className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <ImportWizard title="Import employees" fields={employeeImportFields} onImport={async ({file}) => { const form = new FormData(); form.append("file", file); const response = await employeeApi.importCsv(form); qc.invalidateQueries({queryKey:["employees"]}); return {...response.data, errors: response.data.errors?.map((e: {row:number;errors:string[]})=>({...e,row:e.row-1}))}; }}/>
+          <ImportWizard title={`Import ${term('employee', true).toLowerCase()}`} fields={employeeImportFields} onImport={async ({file}) => { const form = new FormData(); form.append("file", file); const response = await employeeApi.importCsv(form); qc.invalidateQueries({queryKey:["employees"]}); return {...response.data, errors: response.data.errors?.map((e: {row:number;errors:string[]})=>({...e,row:e.row-1}))}; }}/>
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create employee</Button>
+          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create {term("employee").toLowerCase()}</Button>
         </CompactActions>
       </div>
 

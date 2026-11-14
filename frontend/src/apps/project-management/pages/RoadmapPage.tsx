@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -36,6 +37,7 @@ const zoomConfig: Record<ZoomLevel, { columnWidth: number; daysPerColumn: number
 };
 
 export default function RoadmapPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const navigate = useNavigate();
   const [data, setData] = useState<PMSRoadmapResponse | null>(null);
   const [filters, setFilters] = useState<RoadmapFilters>(defaultFilters);
@@ -115,8 +117,8 @@ export default function RoadmapPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Roadmap filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <SelectField label="Project" value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
-            <option value="">All projects</option>
+          <SelectField label={businessTerm('project')} value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
+            <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
             {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
           </SelectField>
           <SelectField label="Owner" value={filters.ownerId} onChange={(value) => setFilter("ownerId", value)}>

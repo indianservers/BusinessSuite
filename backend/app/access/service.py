@@ -49,7 +49,7 @@ def schema_ready(db):
     return db.info["suite_access_schema_ready"]
 
 
-def legacy_grants(db, user, company=None):
+def legacy_grants(db, user, company=None, *, administrative_read=True):
     names = {p.name for p in (user.role.permissions if user.role else [])}
     by_module = {}
     for module in catalog(db):
@@ -84,7 +84,7 @@ def legacy_grants(db, user, company=None):
             )
     from app.access.entitlements import apply
 
-    if getattr(user, '_suite_admin_read', False):
+    if administrative_read and getattr(user, '_suite_admin_read', False):
         from app.access.admin_reads import grants as company_read_grants
         return company_read_grants(db, user, by_module)
     return apply(
@@ -411,7 +411,14 @@ def bind_authorization(db, user, request):
         module = None  # Branch discovery/admin has its own explicit authority checks.
     from app.access.entitlements import enforce
 
-    if not user._suite_admin_read:
+    if user._suite_admin_read:
+        # Preserve administrative inspection of locally disabled modules while
+        # keeping subscription restrictions authoritative on every request.
+        from app.enterprise.controls import disabled_modules
+        if module and module in disabled_modules(db, company):
+            reset_authorization(user)
+            raise HTTPException(403, f"Module disabled by company subscription: {module}")
+    else:
         enforce(db, company, module)
     from app.enterprise.controls import governance_module_check
     governance_module_check(db,user,company,module,action_for(request))

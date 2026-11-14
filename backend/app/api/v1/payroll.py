@@ -303,11 +303,22 @@ def _pdf_escape(value: object) -> str:
 
 
 def _write_basic_pdf(file_path: str, lines: List[str]) -> None:
-    """Small PDF fallback for environments where reportlab is not installed."""
+    """Render built-in payroll letters with wrapping and pagination."""
+    try:
+        from xml.sax.saxutils import escape
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    except ModuleNotFoundError:
+        pass
+    else:
+        styles = getSampleStyleSheet()
+        story = [Paragraph(escape(str(line)), styles["BodyText"]) if line else Spacer(1, 12) for line in lines]
+        SimpleDocTemplate(file_path, leftMargin=50, rightMargin=50, topMargin=40, bottomMargin=50).build(story)
+        return
     y = 800
     content_lines = ["BT", "/F1 11 Tf"]
     for line in lines:
-        content_lines.append(f"50 {y} Td ({_pdf_escape(line)}) Tj")
+        content_lines.append(f"1 0 0 1 50 {y} Tm ({_pdf_escape(line)}) Tj")
         content_lines.append("0 -18 Td")
         y -= 18
     content_lines.append("ET")
@@ -3150,6 +3161,8 @@ def _generate_payslip_pdf(db: Session, record: PayrollRecord, current_user: User
     file_name = f"payslip_{record.employee_id}_{run.year}_{run.month}_run_{run.id}.pdf"
     file_path = os.path.join(pdf_dir, file_name)
     payload = crud_payroll.build_payslip_payload(db, record)
+    from app.shared.business_profile import employee_profile
+    business_terms = employee_profile(db, record.employee, run.company_id)["terms"]
     employee_name = f"{record.employee.first_name} {record.employee.last_name}" if record.employee else str(record.employee_id)
     employee_code = record.employee.employee_id if record.employee else str(record.employee_id)
     sections = [
@@ -3163,9 +3176,9 @@ def _generate_payslip_pdf(db: Session, record: PayrollRecord, current_user: User
         company = record.employee.branch.company if record.employee and record.employee.branch else None
         from app.services.payroll_delivery import profile_for, template_for
         profile = profile_for(db, company.id if company else run.company_id)
-        render_payslip(file_path, payload, company.name if company else "", template_for(profile), profile.branding if profile else {})
+        render_payslip(file_path, payload, company.name if company else "", template_for(profile), profile.branding if profile else {}, business_terms=business_terms)
     except ModuleNotFoundError:
-        lines = ["Payslip", f"Employee: {employee_code} - {employee_name}", f"Period: {run.month}/{run.year}", ""]
+        lines = ["Payslip", f"{business_terms['employee'][0]}: {employee_code} - {employee_name}", f"Period: {run.month}/{run.year}", ""]
         for title, rows in sections:
             lines.append(title)
             lines.extend(f"{row['component_name']}: {row['amount']}" for row in rows)

@@ -3,7 +3,7 @@ from decimal import Decimal
 from xml.sax.saxutils import escape
 
 
-def render_payslip(path: str, payload: dict, company_name: str = "", template: dict | None = None, branding: dict | None = None) -> None:
+def render_payslip(path: str, payload: dict, company_name: str = "", template: dict | None = None, branding: dict | None = None, *, business_terms: dict | None = None) -> None:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
@@ -16,6 +16,9 @@ def render_payslip(path: str, payload: dict, company_name: str = "", template: d
     template = {**DEFAULT_TEMPLATE, **(template or {})}
     if template["layout"] == "compact":
         styles["BodyText"].fontSize, styles["BodyText"].leading = 9, 11
+    employee_label = (business_terms or {}).get("employee", ["Employee", "Employees"])[0]
+    if template["footer"] == DEFAULT_TEMPLATE["footer"]:
+        template["footer"] = f"Confidential - {employee_label.lower()} payslip"
     currency = payload.get("currency") or "INR"
 
     def money(value):
@@ -50,12 +53,12 @@ def render_payslip(path: str, payload: dict, company_name: str = "", template: d
     title = "Full & Final Settlement Statement" if payload.get("document_kind") == "settlement" else "Payslip"
     story.extend([para(company_name, "Heading2"), para(title, "Title")])
     if payload.get("preview"):
-        story.append(para("SAMPLE PREVIEW - not an employee payment statement", "Heading3"))
+        story.append(para(f"SAMPLE PREVIEW - not {'an' if employee_label.lower() == 'employee' else 'a'} {employee_label.lower()} payment statement", "Heading3"))
     story.append(para(f"Period: {payload['month']:02d}/{payload['year']}"))
     if payload.get("last_working_date"):
         story.append(para(f"Last working date: {payload['last_working_date']}"))
     code = f"{employee.get('employee_id', '')} - " if template["show_employee_code"] else ""
-    story.append(para(f"Employee: {code}{employee.get('first_name', '')} {employee.get('last_name', '')}"))
+    story.append(para(f"{employee_label}: {code}{employee.get('first_name', '')} {employee.get('last_name', '')}"))
     if template["show_department"] and payload.get("department"):
         story.append(para(f"Department: {payload['department']}"))
     if template["show_working_days"] and payload.get("document_kind") != "settlement":

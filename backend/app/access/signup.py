@@ -88,7 +88,7 @@ class ReviewInput(BaseModel):
 
 
 def serialize(row):
-    return {c.name: getattr(row, c.name) for c in row.__table__.columns}
+    return {**{c.name: getattr(row, c.name) for c in row.__table__.columns}, "organization_id": row.organization_id}
 
 
 @router.get("/signup/options")
@@ -173,7 +173,7 @@ def signup_requests(status: Literal["pending", "approved", "rejected", "all"] = 
     if status != "all":
         query = query.filter(SignupRequest.status == status)
     if search:
-        query = query.filter(or_(*[column.icontains(search, autoescape=True) for column in (SignupRequest.name, SignupRequest.company_name, SignupRequest.email)]))
+        query = query.filter(or_(*[column.icontains(search, autoescape=True) for column in (SignupRequest.name, SignupRequest.company_name, SignupRequest.email, SignupRequest.organization_id)]))
     total = query.count()
     rows = query.order_by(SignupRequest.id.desc()).offset((page-1)*40).limit(40).all()
     return {"items": [serialize(row) for row in rows], "total": total, "page": page, "modules": available_modules()}
@@ -316,8 +316,8 @@ def provision_signup(row, data, db, company_id=None):
         "company_signup": row.applicant_type == "company", **({"sample_data_requested": True} if (row.workflow or {}).get("sample_data_requested") else {})})
     db.add(plan)
     db.flush()
-    db.add(TenantSubscription(company_id=company.id, plan_id=plan.id, status="trial", admin_override=False, config_json={"enforce": True, "modules": selected, "seats": data.seats, "storage_mib": data.storage_mib, "expiry_policy": "restrict", "renewal_at": ends.isoformat(), "grace_until": ends.isoformat(),
-        "trial_start":data.trial_start,"trial_days":data.trial_days,"pending_activation":first_login,"activation_deadline":ends.isoformat() if first_login else None}))
+    db.add(TenantSubscription(company_id=company.id, plan_id=plan.id, status="trial", admin_override=False, config_json={"organization_id": row.organization_id, "enforce": True, "modules": selected, "seats": data.seats, "storage_mib": data.storage_mib, "expiry_policy": "restrict", "renewal_at": ends.isoformat(), "grace_until": ends.isoformat(),
+        "trial_start":data.trial_start,"trial_days":data.trial_days,"pending_activation":first_login,"activation_deadline":ends.isoformat() if first_login else None,"business_profile_required":True}))
     from app.api.v1.auth import _hash_reset_token
     raw = secrets.token_urlsafe(40)
     user.password_reset_token = _hash_reset_token(raw)

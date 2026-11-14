@@ -240,6 +240,7 @@ export default function PMSProfileMenu({
               <span className="pms-profile-avatar">{initials}</span>
               <div>
                 <strong>{name}</strong>
+                {user?.access?.organizationId && <small>Organization ID: <code>{user.access.organizationId}</code></small>}
                 <small>
                   {activeStatus || "Signed in"}
                   {muted ? " · Muted" : ""}

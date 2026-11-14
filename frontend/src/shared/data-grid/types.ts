@@ -111,6 +111,8 @@ export type GridDataSource<T> = {
 export type GridColumn<T> = {
   id: string;
   title: string;
+    /** Stable built-in caption for identity inference when presentation terms change. */
+    sourceTitle?: string;
   header?: ReactNode;
   type?:
     | "text"

@@ -136,7 +136,10 @@ def template_preview(kind: Literal["regular", "settlement"] = "regular", db: Ses
         "department": "Sample department", "working_days": 22, "paid_days": 22, "earnings": [{"component_name": "Basic", "amount": 40000}, {"component_name": "Allowance", "amount": 10000}],
         "deductions": [{"component_name": "Sample deduction", "amount": 2000}], "gross_salary": 50000, "total_deductions": 2000, "net_salary": 48000,
         "ytd": {"gross_salary": 100000, "total_deductions": 4000, "net_salary": 96000}, "ytd_period_label": "Financial year (sample)", "document_kind": kind, "preview": True}
-    render_payslip(str(path), payload, company.name, template_for(profile, kind), profile.branding if profile else {})
+    from app.shared.business_profile import effective
+    branch_id = getattr(user, "_suite_branch_id", None)
+    terms = effective(db, company_id, branch_id if isinstance(branch_id, int) else None)["terms"]
+    render_payslip(str(path), payload, company.name, template_for(profile, kind), profile.branding if profile else {}, business_terms=terms)
     persist_file(str(path))
     return FileResponse(str(path), media_type="application/pdf", filename=f"{kind}-payslip-preview.pdf", headers={"Cache-Control": "private, no-store"})
 

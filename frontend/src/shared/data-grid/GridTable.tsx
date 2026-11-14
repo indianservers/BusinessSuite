@@ -2,7 +2,9 @@ import { useSyncedTable } from "@/shared/record-sync/useSyncedTable";
 import { cellPriority } from "@/shared/priority/priority-cell";
 import NativeTableTools from "./NativeTableTools";
 import { columnValue } from "./column-presentation";
-import { useId, useMemo, type HTMLAttributes, type ReactElement, type ReactNode, type TableHTMLAttributes } from "react";
+import { Children, cloneElement, isValidElement, useId, useMemo, type HTMLAttributes, type ReactElement, type ReactNode, type TableHTMLAttributes } from "react";
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { businessFieldLabel, type ResolvedProfile } from '@/lib/business-profile';
 import { elements, gridCellText, gridHeaderText, hasRecordStatusIcon, hasRecordOpenControl } from "./cell-content";
 export { gridCellText } from "./cell-content";
 import { RecordStatusIcon } from "./GroupLabel";
@@ -20,9 +22,22 @@ function contains(node: ReactNode, predicate: (element: Element) => boolean): bo
 const checkbox = (element: Element) => element.type === "input" && element.props.type === "checkbox";
 const editor = (element: Element) => element.type === "input" && element.props.type !== "checkbox" || element.type === "textarea" || typeof element.type !== "string" && /Input|Editor|Composer/.test((element.type as { displayName?: string; name?: string }).displayName || (element.type as { name?: string }).name || "");
 
+function businessHeaders(children: ReactNode, profile: ResolvedProfile, inside = false): ReactNode {
+  return Children.map(children, child => {
+    if (!isValidElement<Record<string, any>>(child)) return child;
+    if (child.type === 'th' && inside && child.props['data-business-field'] && typeof child.props.children === 'string') {
+      return cloneElement(child, { 'data-business-default-label': child.props.children }, businessFieldLabel(profile, child.props['data-business-field'], child.props.children));
+    }
+    if (child.type === 'thead' || (inside && child.type === 'tr')) return cloneElement(child, {}, businessHeaders(child.props.children, profile, true));
+    return child;
+  });
+}
+
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
 export default function GridTable({ children, gridId, allowExport = false, pinActions = false, personalViews = true, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; personalViews?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
+  const { profile } = useBusinessTerms();
   children = useSyncedTable(children, gridId);
+  children = businessHeaders(children, profile);
   const location = useLocation(), instance = useId();
   const sections = elements(children);
   const heads = elements(sections.find(e => e.type === "thead")?.props.children);
@@ -43,7 +58,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
   const rowMap = new Map(rows.map((row, i) => [String(row.key ?? i), row]));
   const records: RecordRow[] = rows.map((row, i) => ({ id: String(row.key ?? i), values: elements(row.props.children).map((cell,index) => /\bpriority\b/i.test(gridHeaderText(headers[index]?.props.children).trim()) ? cellPriority(cell) || gridCellText(cell).trim() : gridCellText(cell).trim()) }));
   const hasSelection = headers.some(h => contains(h.props.children, checkbox)) || rows.some(row => contains(row.props.children, checkbox));
-  const titles = headers.map(header => gridHeaderText(header.props.children));
+  const titles = headers.map(header => header.props['data-business-default-label'] || gridHeaderText(header.props.children));
   const statusIndex = titles.findIndex(title => /^(status|stage|approval status|billing status|employment status)$/i.test(title));
   const identityMatch = titles.findIndex(title => /^(sales order|billing plan|engagement|name|title|task|project|employee|lead|contact|company|customer|account|record|document|file|item|product|invoice|order|contract|campaign)(\s*\/.*)?$/i.test(title));
   const identityIndex = identityMatch >= 0 ? identityMatch : hasSelection ? 1 : 0;
@@ -53,7 +68,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
     const isAction = /^(actions?|quick actions|select)$/i.test(title) || isFavorite;
     const hasControl = contains(header.props.children, e => e.type === "button" || checkbox(e) || typeof e.type !== "string");
     return {
-      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isFavorite ? 60 : isAction ? 130 : index === identityIndex ? 320 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
+      id: `column-${index}`, title, sourceTitle: header.props['data-business-default-label'] || title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isFavorite ? 60 : isAction ? 130 : index === identityIndex ? 320 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
       minWidth: /^select$/i.test(title) ? 32 : isFavorite ? 48 : /score|progress|quantity/i.test(title) ? 60 : undefined,
       header: isFavorite ? <span className="sr-only">{title}</span> : hasControl ? header.props.children : undefined,
       sortable: !isAction && !hasControl, filterable: !isAction, groupable: !isAction,

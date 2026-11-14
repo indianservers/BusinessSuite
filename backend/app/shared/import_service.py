@@ -39,6 +39,10 @@ def authorize(db, user, spec, request):
         raise HTTPException(404, "Application is not enabled")
     RequirePermission(*spec.permissions)(user)
     company = tenant(user)
+    from app.access.entitlements import states
+    module = 'project_management' if spec.module == 'pms' else spec.module
+    if states(db, company).get(module) is False:
+        raise HTTPException(403, 'Application is disabled for this company')
     ctx = context(db, user, company, request.headers.get("X-Suite-Branch"))
     if ctx.branch_id is None or ctx.branch_id not in ctx.writable:
         raise HTTPException(403, "Choose a writable branch before importing")

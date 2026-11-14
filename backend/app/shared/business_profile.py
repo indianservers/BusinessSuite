@@ -78,3 +78,29 @@ def effective(db, company_id, branch_id=None, *, skip_scope=None, workspace_modu
 
 def term(db, company_id, key, *, plural=False, branch_id=None):
     return effective(db, company_id, branch_id)['terms'][key][int(plural)]
+
+
+def field_label(profile, field, fallback):
+    """Built-in presentation labels only; IDs and custom captions remain unchanged."""
+    key = CATALOG['field_terms'].get(field)
+    if not key:
+        return fallback
+    singular, plural = CATALOG['terms'][key]
+    if fallback == singular:
+        return profile['terms'][key][0]
+    if fallback == plural:
+        return profile['terms'][key][1]
+    for suffix in (' ID', ' Name', ' name', ' Code', ' code', ' Reference', ' reference', ' Date', ' date', ' Time', ' time'):
+        if fallback == singular + suffix:
+            return profile['terms'][key][0] + suffix
+    return fallback
+
+
+def employee_profile(db, employee, company_id=None):
+    """Use the document's workforce identity, independently of the viewer's branch."""
+    branch = employee.branch if employee is not None else None
+    company_id = company_id or (branch.company_id if branch else None)
+    if not company_id:
+        return resolve([])
+    branch_id = branch.id if branch and branch.company_id == company_id else None
+    return effective(db, company_id, branch_id)

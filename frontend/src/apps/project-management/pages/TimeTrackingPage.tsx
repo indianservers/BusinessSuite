@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useAuthStore} from "@/store/authStore";
 import {useId as useTimeFieldId,cloneElement as cloneTimeField,isValidElement as isTimeField} from "react";
@@ -42,6 +43,7 @@ const initialForm = (projectId = ""): TimeFormState => ({
 });
 
 export default function TimeTrackingPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const canCreate=useModuleAction("create"),canEdit=useModuleAction("edit"),canDelete=useModuleAction("delete");
   const actor=useAuthStore(state=>state.user);
   const [projectParams] = useSearchParams();
@@ -195,7 +197,7 @@ export default function TimeTrackingPage() {
           {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
           <CompactForm onSubmit={submit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Field label="Project">
+              <Field label={businessTerm('project')}>
                 <NativeSelect disabled={saving || !!editingId} value={form.projectId} onChange={(event) => updateForm({ projectId: event.target.value, taskId: "" })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">Select project</option>
                   {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}

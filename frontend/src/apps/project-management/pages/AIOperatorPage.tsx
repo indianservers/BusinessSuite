@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +22,7 @@ type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkit
 const errorText = (e: any) => e?.message === "LOCAL_ROUTING_REQUIRED" ? "This command needs LLM reasoning. Edit it to a supported local command or select automatic routing. No LLM request was sent." : e?.message === "PROVIDER_REQUIRED" ? "This command needs LLM reasoning. Configure a provider or use a supported local command. No LLM request was sent." : typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "Request failed. Check access, provider settings and connection.";
 
 export default function AIOperatorPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const uid=useAuthStore(s=>s.user?.id);
   const brain=useRef<LocalBrainHandle>(null);
   const [params] = useSearchParams();
@@ -179,7 +181,7 @@ export default function AIOperatorPage() {
       onSetup={next=>{setLocalSetup(next);setLocalDialogue(null);}} />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     <fieldset disabled={busy || recording || followUp || !!localDialogue} className="flex flex-wrap gap-4">
-      <label>Project<NativeSelect aria-label="Operator project" className="ml-2 rounded border bg-background p-2" value={projectId} onChange={e => { setProjectId(Number(e.target.value)); requestRef.current = null; }}><option value={0}>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></label>
+      <label>{businessTerm('project')}<NativeSelect aria-label="Operator project" className="ml-2 rounded border bg-background p-2" value={projectId} onChange={e => { setProjectId(Number(e.target.value)); requestRef.current = null; }}><option value={0}>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></label>
       <label>Model provider<NativeSelect aria-label="Operator provider" className="ml-2 rounded border bg-background p-2" value={provider} onChange={e => setProvider(e.target.value as OperatorProviderName)}>{([['openai','OpenAI / ChatGPT'],['gemini','Google Gemini'],['claude','Anthropic Claude']] as const).map(([p,l]) => <option key={p} value={p} disabled={!available.includes(p)}>{l}{available.includes(p) ? "" : " · not enabled"}</option>)}</NativeSelect></label>
       <label>Execution<NativeSelect aria-label="Execution mode" className="ml-2 rounded border bg-background p-2" value={executionMode} onChange={e => setExecutionMode(e.target.value as "atomic" | "checkpointed")}><option value="atomic">All-or-nothing</option><option value="checkpointed">Checkpointed · keep completed steps</option></NativeSelect></label>
     </fieldset>

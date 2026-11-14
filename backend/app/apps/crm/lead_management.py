@@ -1964,10 +1964,13 @@ def booking_context(db, org, ident, token):
 
 @router.get("/booking/{org}/{ident}/{token}")
 def booking_form(org: int, ident: int, token: str, db: Session = Depends(get_db)):
-    booking_context(db, org, ident, token)
+    lead, _, _ = booking_context(db, org, ident, token)
+    from app.shared.business_profile import term
+    booking_label = term(db, org, 'appointment', branch_id=lead.branch_id)
+    label = html.escape(booking_label)
     return public_page(
-        "Book a conversation",
-        '<p>Choose a time for a 30-minute meeting. Your booking is confirmed only if the time is available.</p><form method="post"><label>Meeting date and time<input name="start_time" type="datetime-local" required></label><label>Time zone<select name="offset"><option value="+05:30">India (UTC +05:30)</option><option value="+00:00">UTC</option><option value="+04:00">UAE (UTC +04:00)</option><option value="+08:00">Singapore (UTC +08:00)</option></select></label><button>Confirm meeting</button></form>',
+        f"Book {booking_label.lower()}",
+        f'<p>Choose a time for your 30-minute {label.lower()}. Your booking is confirmed only if the time is available.</p><form method="post"><label>{label} date and time<input name="start_time" type="datetime-local" required></label><label>Time zone<select name="offset"><option value="+05:30">India (UTC +05:30)</option><option value="+00:00">UTC</option><option value="+04:00">UAE (UTC +04:00)</option><option value="+08:00">Singapore (UTC +08:00)</option></select></label><button>Confirm {label.lower()}</button></form>',
     )
 
 
@@ -2010,12 +2013,14 @@ def book_meeting(
         )
         response.status_code = 409
         return response
+    from app.shared.business_profile import term
+    booking_label = term(db, org, 'appointment', branch_id=lead.branch_id)
     db.add(
         CRMMeeting(
             organization_id=org,
             owner_user_id=owner.id,
             lead_id=lead.id,
-            title=f"Conversation with {lead.full_name}"[:180],
+            title=f"{booking_label} with {lead.full_name}"[:180],
             start_time=start,
             end_time=end,
             status="Scheduled",
@@ -2043,7 +2048,7 @@ def book_meeting(
             company_id=org,
             user_id=owner.id,
             module="crm",
-            title="Lead booked a meeting",
+            title=f"New {booking_label.lower()} booking"[:180],
             message=f"{lead.full_name} booked {start_time} (UTC {offset})",
             event_type="lead_booking",
             action_url=f"/crm/leads?lead={lead.id}",
@@ -2051,8 +2056,8 @@ def book_meeting(
     )
     db.commit()
     return public_page(
-        "Meeting confirmed",
-        "<p>Your 30-minute meeting is booked for "
+        f"{booking_label} confirmed",
+        f"<p>Your 30-minute {html.escape(booking_label.lower())} is booked for "
         + html.escape(start_time.replace("T", " ") + " (UTC " + offset + ")")
         + ".</p>",
     )

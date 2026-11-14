@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {expandedChartContent} from "@/components/mobile/expanded-chart-content";
 import {useMobile} from "@/components/mobile/useMobile";
 import {MobileChartZoom} from "@/components/mobile/MobileChartZoom";
@@ -46,6 +47,7 @@ type Tab = typeof tabs[number];
 const reportNames: Record<Tab, string> = { Distribution: "task-distribution", Burndown: "burndown", Velocity: "velocity", Flow: "cumulative-flow", "Cycle Time": "cycle-time", "Time in Status": "time-in-status", Health: "project-health", Team: "team-performance" };
 
 export default function ReportsPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const { projectId } = useParams<{ projectId: string }>();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [sprints, setSprints] = useState<PMSSprint[]>([]);
@@ -174,7 +176,7 @@ export default function ReportsPage() {
       <MobileFilters chips={[selectedProjectId&&`Project ${selectedProjectId}`,from&&`From ${from}`,to&&`To ${to}`].filter(Boolean)} label="Report filters">
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
-          <Select label="Project" value={selectedProjectId} onChange={value => { setSelectedProjectId(value); setSelectedSprintId(""); setAssigneeId(""); }}>
+          <Select label={businessTerm('project')} value={selectedProjectId} onChange={value => { setSelectedProjectId(value); setSelectedSprintId(""); setAssigneeId(""); }}>
             <option value="">All accessible projects</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
           </Select>

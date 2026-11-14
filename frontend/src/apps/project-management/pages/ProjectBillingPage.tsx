@@ -1,3 +1,5 @@
+import BusinessTerm from "@/components/BusinessTerm";
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { FileText, Wallet, Globe2 } from "lucide-react";
 import { defaultText } from "@/lib/form-defaults";
@@ -20,8 +22,9 @@ const errorText = (error: any) =>
   error?.response?.data?.detail || error?.message || "Please try again";
 
 export function SharedCustomerSelect({value,onChange}:{value:string;onChange:(value:string)=>void}) {
+  const { term } = useBusinessTerms();
   const { pathname } = useLocation();
-  return <SharedCompanySelect value={value} onChange={onChange} source={pathname.startsWith("/srm")?"srm":"project_management"} label="Shared customer" createRoles={["Customer"]} createRecordLabel="customer" placeholder="Select a shared customer"/>;
+  return <SharedCompanySelect value={value} onChange={onChange} source={pathname.startsWith("/srm")?"srm":"project_management"} entityKind="all" label={`Shared ${term('customer').toLowerCase()}`} createRoles={["Customer"]} createRecordLabel={term('customer').toLowerCase()} placeholder={`Select a shared ${term('customer').toLowerCase()}`}/>;
 }
 
 export function CommercialIdentityForm({
@@ -91,7 +94,7 @@ export function CommercialIdentityForm({
       }}
     >
       <div>
-        <Label>Customer</Label>
+        <Label><BusinessTerm name="customer"/></Label>
         <SharedCustomerSelect
           value={String(form.customer_id || "")}
           onChange={(v) => setForm({ ...form, customer_id: v, contact_id: "" })}
@@ -122,7 +125,7 @@ export function CommercialIdentityForm({
           value={form.contact_id || ""}
           onChange={(e) => setForm({ ...form, contact_id: e.target.value })}
         >
-          <option value="">Customer billing email</option>
+          <option value=""><BusinessTerm name="customer"/> billing email</option>
           {(contacts.data || []).map((r: Row) => (
             <option key={r.id} value={r.id}>
               {r.full_name} — {r.email}
@@ -312,13 +315,13 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
   return (
     <div className="space-y-6">
       <div>
-        <Link to={`/pms/projects/${projectId}`}>← Project</Link>
-        <h1 className="page-title">Project billing</h1>
+        <Link to={`/pms/projects/${projectId}`}>← <BusinessTerm name="project"/></Link>
+        <h1 className="page-title"><BusinessTerm name="project"/> billing</h1>
         <p className="text-muted-foreground">
           Invoices, payments and customers shared with Sales.
         </p>
       </div>
-      <div className="pd-finance-metrics" aria-label="Invoice overview"><div><FileText /><span><strong>{data.invoices.length}</strong><small>Project invoices</small></span></div><div><Wallet /><span><strong>{data.invoices.filter((invoice: Row) => Number(invoice.balance_amount) > 0).length}</strong><small>With outstanding balance</small></span></div><div><Globe2 /><span><strong>{new Set(data.invoices.map((invoice: Row) => invoice.currency).filter(Boolean)).size}</strong><small>Invoice currencies</small></span></div></div>
+      <div className="pd-finance-metrics" aria-label="Invoice overview"><div><FileText /><span><strong>{data.invoices.length}</strong><small><BusinessTerm name="project"/> invoices</small></span></div><div><Wallet /><span><strong>{data.invoices.filter((invoice: Row) => Number(invoice.balance_amount) > 0).length}</strong><small>With outstanding balance</small></span></div><div><Globe2 /><span><strong>{new Set(data.invoices.map((invoice: Row) => invoice.currency).filter(Boolean)).size}</strong><small>Invoice currencies</small></span></div></div>
       <details className="pd-commercial-panel">
         <summary>Commercial identity & billing settings</summary>
         <div>
@@ -620,7 +623,7 @@ export function InvoiceList({
             <span>Outstanding: {row.balance_amount}</span>
             {row.project_id && (
               <Link to={`/pms/projects/${row.project_id}/billing`}>
-                Project billing ↗
+                <BusinessTerm name="project"/> billing ↗
               </Link>
             )}
             {actions?.(row)}

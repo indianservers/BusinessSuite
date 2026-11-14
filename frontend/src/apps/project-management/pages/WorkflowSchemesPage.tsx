@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export default function WorkflowSchemesPage() {
  return <WorkflowContents key={scope}/>;
 }
 function WorkflowContents() {
+  const { term: businessTerm } = useBusinessTerms();
  const phone=useMobile(480);
  const saving=useRef(false),mounted=useRef(true),ownerScope=useRef(syncScope());
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
@@ -86,7 +88,7 @@ function WorkflowContents() {
   {phone&&typesError&&<div><p role="alert">{typesError}</p><Button variant="outline" disabled={typesLoading||busy} onClick={()=>setTypesReload(n=>n+1)}>Retry work types</Button></div>}
   {phone&&schemeLoading&&<p role="status">Loading project workflow…</p>}
   {phone&&schemeError&&<div><p role="alert">{schemeError}</p><Button variant="outline" disabled={schemeLoading||busy} onClick={()=>setReload(n=>n+1)}>Retry project workflow</Button></div>}
-  <label className="block space-y-2">Project<NativeSelect aria-label="Project" loading={phone&&homeLoading} error={phone&&!!homeError} value={project} disabled={busy||dirty||phone&&homeLoading} onChange={e=>setProject(e.target.value)}><option value="">Choose a project</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></label>
+  <label className="block space-y-2">{businessTerm('project')}<NativeSelect aria-label={businessTerm('project')} loading={phone&&homeLoading} error={phone&&!!homeError} value={project} disabled={busy||dirty||phone&&homeLoading} onChange={e=>setProject(e.target.value)}><option value="">{`Choose a ${businessTerm('project').toLowerCase()}`}</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></label>
   {!projects.length&&(!phone||!homeLoading&&!homeError)&&<p>You need project editing access to a project in a workspace to configure workflows.</p>}
   {scheme&&<fieldset disabled={busy} className="space-y-4">
    <label className="flex items-center gap-2"><input type="checkbox" checked={scheme.enabled} onChange={e=>change({...scheme,enabled:e.target.checked})}/>Enforce allowed transitions</label>

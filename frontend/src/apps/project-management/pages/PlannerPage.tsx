@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -123,6 +124,7 @@ function saved<T>(key: string, fallback: T): T {
 }
 
 export default function PlannerPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const userId = useAuthStore((s) => s.user?.id || 0);
   const [params, setParams] = useSearchParams();
   const client = useQueryClient();
@@ -1113,13 +1115,13 @@ export default function PlannerPage() {
         {filtersOpen && (
           <div className="planner-filters">
             <label>
-              Project
+              {businessTerm('project')}
               <NativeSelect loading={result.isFetching} error={result.isError}
                 aria-label="Planner project"
                 value={project}
                 onChange={(e) => change("project", e.target.value)}
               >
-                <option value="">All projects</option>
+                <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
                 {data?.projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}

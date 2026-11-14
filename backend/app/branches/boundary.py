@@ -150,7 +150,7 @@ def install(db, user, ctx, *, identity_administration=False):
     selected = {ctx.branch_id} if ctx.branch_id else set(ctx.allowed)
     with _read_guard_lock:
         criteria, options = _read_guards(tuple(sorted(models.items())), user.id, ctx.company_id,
-            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration, ctx.company_admin)
+            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration, getattr(ctx, 'company_admin', False))
     protected = set(models) - SHARED
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(n) for n in protected) + r")\b", re.I)
     pending = []

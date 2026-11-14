@@ -38,6 +38,10 @@ def recovery_plan(db,user,data,parent=None):
     project_reply=re.fullmatch(r'(?i)(?:project\s*(?:=|#)?\s*)?(\d+)',text) if prior and prior.get('kind')=='latest' and not prior.get('project_id') else None
     if not match and not latest and not project_reply:return None,None
     if data.module not in (None,'PMS') and not re.search(r'(?i)\bPMS\b',data.text):return None,None
+    # An unqualified conversational undo belongs to that conversation's confirmed
+    # suite receipts. Native PMS execution IDs require an explicit PMS request.
+    if data.conversation_id and not re.search(r'(?i)\bPMS\b', data.text) and not prior:
+        return None,None
     from app.ai_operator.models import OperatorRun
     from app.ai_agents.models import AiActionApproval
     from app.ai_operator.suite import Plan

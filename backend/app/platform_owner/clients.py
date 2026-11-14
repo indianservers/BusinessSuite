@@ -71,7 +71,7 @@ def directory(db, actor, search="", status="", attention="", module="", priority
     items = [account_view(r, databases.get(r.signup_id)) for r in tenants]
     if search:
         term = search.casefold()
-        items = [r for r in items if term in " ".join([r["name"], r["admin_email"], str(r["id"]),
+        items = [r for r in items if term in " ".join([r["name"], r["admin_email"], str(r["id"]), r["organization_id"],
             r["database"]["workspace"] if r["database"] else "", " ".join(r["profile"].get("tags", []))]).casefold()]
     if module: items = [r for r in items if module in r["config"].get("modules", [])]
     if priority: items = [r for r in items if r["profile"].get("priority", "normal") == priority]
@@ -115,9 +115,9 @@ def client_export(search: str = Query("", max_length=150), status: str = "", att
                   priority: str = "", actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     rows = directory(db, actor, search, status, attention, module, priority)
     stream = io.StringIO(); writer = csv.writer(stream)
-    writer.writerow(["Client ID", "Business", "Admin email", "Status", "Workspace", "Priority", "Tags", "Used seats", "Licensed seats", "Active users 30d", "Last login", "Usage synced", "Attention"])
+    writer.writerow(["Client ID", "Organization ID", "Business", "Admin email", "Status", "Workspace", "Priority", "Tags", "Used seats", "Licensed seats", "Active users 30d", "Last login", "Usage synced", "Attention"])
     for r in rows:
-        writer.writerow([s.safe_csv(v) for v in [r["id"], r["name"], r["admin_email"], r["status"],
+        writer.writerow([s.safe_csv(v) for v in [r["id"], r["organization_id"], r["name"], r["admin_email"], r["status"],
             r["database"]["workspace"] if r["database"] else "shared", r["profile"].get("priority", "normal"),
             ", ".join(r["profile"].get("tags", [])), r["usage"].get("seats"), r["config"].get("seats"),
             r["usage"].get("active_30d"), r["usage"].get("last_login_at"), r["usage"].get("recorded_at"), ", ".join(r["flags"])]])

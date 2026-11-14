@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import SalaryAdvanceReviewButtons from "./SalaryAdvanceReviewButtons";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -1285,7 +1286,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 rounded-md bg-muted/30 p-4 text-sm sm:grid-cols-3">
-                  <div><p className="text-muted-foreground">Employee</p><p className="font-medium">{selectedPayslipRecord.employee?.employee_id}</p></div>
+                  <div><p className="text-muted-foreground"><BusinessTerm name="employee"/></p><p className="font-medium">{selectedPayslipRecord.employee?.employee_id}</p></div>
                   <div><p className="text-muted-foreground">Gross</p><p className="font-medium">{formatCurrency(selectedPayslipRecord.gross_salary)}</p></div>
                   <div><p className="text-muted-foreground">Net Pay</p><p className="font-medium text-green-600">{formatCurrency(selectedPayslipRecord.net_salary)}</p></div>
                 </div>
@@ -1402,7 +1403,7 @@ export default function PayrollPage() {
                 {payslip.employee && (
                   <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg text-sm">
                     <div>
-                      <p className="text-muted-foreground">Employee</p>
+                      <p className="text-muted-foreground"><BusinessTerm name="employee"/></p>
                       <p className="font-medium">{payslip.employee.first_name} {payslip.employee.last_name}</p>
                     </div>
                     <div>
@@ -2010,7 +2011,7 @@ export default function PayrollPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div className="rounded-md border p-2">
-                      <p className="text-xs text-muted-foreground">Employees</p>
+                      <p className="text-xs text-muted-foreground"><BusinessTerm name="employee" plural/></p>
                       <p className="font-semibold">{bankAdvicePreview?.total_employees ?? bankAdvicePreview?.totalEmployees ?? 0}</p>
                     </div>
                     <div className="col-span-2 rounded-md border p-2">

@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -13,6 +14,7 @@ import { syncScope } from "@/shared/record-sync/store";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
 const templates = { blank: "", review: "Review criteria:\n- Scope\n- Quality\n- Acceptance\n", bug: "Steps to reproduce:\n\nExpected result:\n\nActual result:\n", delivery: "Deliverable:\n\nAcceptance criteria:\n\nDependencies:\n" };
 export default function QuickTaskCapture({ close, subtask = false }: { close: () => void; subtask?: boolean }) {
+  const { term: businessTerm } = useBusinessTerms();
   const location = useLocation(), navigate = useNavigate(), user = useAuthStore(s => s.user);
   const params = new URLSearchParams(location.search), ownerScope = useRef(syncScope()), lock = useRef(false);
   const projectId = location.pathname.match(/^\/pms\/projects\/(\d+)/)?.[1] || params.get("projectId") || params.get("project") || "";
@@ -44,7 +46,7 @@ export default function QuickTaskCapture({ close, subtask = false }: { close: ()
     finally { lock.current = false; if (owns()) setBusy(false); }
   }
   return <Dialog open onOpenChange={open => { if (!open && !busy) close(); }}><DialogContent ref={contentRef}><DialogTitle>{subtask ? "Create subtask" : "Create quick task"}</DialogTitle><form className="space-y-3" onSubmit={save} aria-busy={busy}><fieldset disabled={busy || loading} className="space-y-3">
-    <label className="block text-sm">Project<NativeSelect aria-label="Quick task project" required value={form.projectId} onChange={event => { setForm(current => ({ ...current, projectId: event.target.value, parentId: "", sprint: "", owner: "" })); setError(""); }}><option value="">Choose project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></label>
+    <label className="block text-sm">{businessTerm('project')}<NativeSelect aria-label="Quick task project" required value={form.projectId} onChange={event => { setForm(current => ({ ...current, projectId: event.target.value, parentId: "", sprint: "", owner: "" })); setError(""); }}><option value="">Choose project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></label>
     {subtask && <label className="block text-sm">Parent task<NativeSelect aria-label="Parent task" required value={form.parentId} onChange={event => update("parentId", event.target.value)}><option value="">Choose parent task</option>{parents.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</NativeSelect></label>}
     <label className="block text-sm">Title<Input autoFocus required maxLength={220} value={form.title} onChange={event => update("title", event.target.value)}/></label>
     <div className="grid grid-cols-2 gap-3"><label className="text-sm">Assignee<NativeSelect aria-label="Quick task assignee" value={form.owner} onChange={event => update("owner", event.target.value)}><option value="">Unassigned</option>{people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</NativeSelect></label><label className="text-sm">Due date<Input type="date" value={form.due} onChange={event => update("due", event.target.value)}/></label></div>

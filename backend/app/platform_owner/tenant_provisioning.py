@@ -49,55 +49,100 @@ def pg_env(url):
     return env
 
 
+def template_stamp():
+    """Invalidate pristine templates when migrations or system role definitions change."""
+    import hashlib
+    import json
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    from app.db.init_db import SYSTEM_PERMISSIONS, SYSTEM_ROLES
+    from app.apps.power_apps.registry import PERMISSIONS
+    config = Config(str(Path(__file__).resolve().parents[2] / 'alembic.ini'))
+    heads = sorted(ScriptDirectory.from_config(config).get_heads())
+    definitions = json.dumps([SYSTEM_PERMISSIONS, SYSTEM_ROLES, sorted(PERMISSIONS)], sort_keys=True)
+    return 'suite_pristine_template_v2:' + ','.join(heads) + ':' + hashlib.sha256(definitions.encode()).hexdigest()[:16]
+
+
 def prepare_template(server):
-    """Copy schema ONLY. Never clone the populated legacy business database."""
-    url=admin_url(server)
-    from app.db.base import Base  # Register all enabled relationship targets.
+    """Keep a schema-only, migrated template. Never clone customer records."""
+    from alembic import command
+    from alembic.config import Config
+    from app.db.base import Base
+    from app.db.init_db import SYSTEM_PERMISSIONS, SYSTEM_ROLES
+    from app.apps.power_apps.registry import PERMISSIONS
+    from app.models.user import Permission, Role, User
+    from app.models.company import Company
+    url = admin_url(server)
+    stamp = template_stamp()
     with pg_connection(url) as connection:
         connection.execute("SELECT pg_advisory_lock(1092348981)")
-        existing=connection.execute("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=%s",(server.template_database,)).fetchone()
-        if existing and existing[0]=="suite_pristine_template_v1":return
-        if existing:connection.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS true").format(sql.Identifier(server.template_database)))
-        with tempfile.TemporaryDirectory(prefix="suite-empty-schema-") as folder:
-            archive=Path(folder)/"schema.dump"
-            source=make_url(settings.TENANT_PROVISIONING_URL).set(database=make_url(settings.SQLALCHEMY_DATABASE_URI).database)
-            target=url.set(database=server.template_database)
+        existing = connection.execute("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=%s", (server.template_database,)).fetchone()
+        if existing and existing[0] == stamp:
+            return
+        if existing and existing[0] and existing[0] != 'suite_pristine_template_v1' and not existing[0].startswith('suite_pristine_template_v2:'):
+            raise RuntimeError('Unrecognized template database; inspect before changing it')
+        if existing:
+            connection.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS true").format(sql.Identifier(server.template_database)))
+        target = url.set(database=server.template_database)
+        engine = None
+        try:
             if not existing:
-                subprocess.run([pg_tool("pg_dump"),"--schema-only","--no-owner","--no-acl","-Fc","-f",str(archive)],
-                    env=pg_env(source),capture_output=True,check=True,timeout=300)
-                connection.execute(sql.SQL("CREATE DATABASE {} TEMPLATE template0").format(sql.Identifier(server.template_database)))
-                connection.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(server.template_database)))
-                subprocess.run([pg_tool("pg_restore"),"--no-owner","--no-acl","--exit-on-error","-d",server.template_database,str(archive)],
-                    env=pg_env(target),capture_output=True,check=True,timeout=300)
-            engine=create_engine(target,poolclass=NullPool)
-            with engine.begin() as db:
-                db.execute(text("CREATE TABLE IF NOT EXISTS suite_tenant_identity (singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton), tenant_uuid varchar(36) NOT NULL, company_id integer NOT NULL)"))
-            # Only application permission/role definitions are seeded. No users,
-            # contacts, transactions, signup queues or bootstrap admin are copied.
-            from app.db.init_db import SYSTEM_PERMISSIONS,SYSTEM_ROLES
-            from app.apps.power_apps.registry import PERMISSIONS
-            from app.models.user import Permission,Role
+                with tempfile.TemporaryDirectory(prefix='suite-empty-schema-') as folder:
+                    archive = Path(folder) / 'schema.dump'
+                    source = make_url(settings.TENANT_PROVISIONING_URL).set(database=make_url(settings.SQLALCHEMY_DATABASE_URI).database)
+                    subprocess.run([pg_tool('pg_dump'), '--schema-only', '--no-owner', '--no-acl', '-Fc', '-f', str(archive)], env=pg_env(source), capture_output=True, check=True, timeout=300)
+                    connection.execute(sql.SQL("CREATE DATABASE {} TEMPLATE template0").format(sql.Identifier(server.template_database)))
+                    connection.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(server.template_database)))
+                    subprocess.run([pg_tool('pg_restore'), '--no-owner', '--no-acl', '--exit-on-error', '-d', server.template_database, str(archive)], env=pg_env(target), capture_output=True, check=True, timeout=300)
+            engine = create_engine(target, poolclass=NullPool)
             with Session(engine) as db:
-                from app.models.user import User
-                from app.models.company import Company
-                if db.query(User).count() or db.query(Company).count():raise RuntimeError("Template contains customer data")
-                permissions={}
-                for name,description,module in SYSTEM_PERMISSIONS:
-                    if name in permissions:continue
-                    item=Permission(name=name,description=description,module=module);db.add(item);permissions[name]=item
-                for name in PERMISSIONS:
-                    if name not in permissions:db.add(Permission(name=name,description=name,module="power_apps"))
-                for definition in SYSTEM_ROLES:
-                    db.add(Role(name=definition["name"],description=definition["description"],is_system=True,
-                        permissions=[permissions[n] for n in dict.fromkeys(definition["permissions"]) if n in permissions]))
-                db.commit()
-            # Preserve the schema migration receipt, not any other source data.
-            with create_engine(source,poolclass=NullPool).connect() as db:versions=db.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+                if db.query(User).count() or db.query(Company).count():
+                    raise RuntimeError('Template contains customer data')
+            if not existing:
+                # A schema-only dump has an empty migration table. Preserve its
+                # source receipt before applying every outstanding migration.
+                source = make_url(settings.TENANT_PROVISIONING_URL).set(database=make_url(settings.SQLALCHEMY_DATABASE_URI).database)
+                source_engine = create_engine(source, poolclass=NullPool)
+                try:
+                    with source_engine.connect() as db:
+                        versions = db.execute(text('SELECT version_num FROM alembic_version')).scalars().all()
+                finally:
+                    source_engine.dispose()
+                with engine.begin() as db:
+                    for version in versions:
+                        db.execute(text('INSERT INTO alembic_version(version_num) VALUES (:v) ON CONFLICT DO NOTHING'), {'v': version})
+            config = Config(str(Path(__file__).resolve().parents[2] / 'alembic.ini'))
+            with engine.connect() as db:
+                config.attributes['connection'] = db
+                command.upgrade(config, 'head')
             with engine.begin() as db:
-                for version in versions:db.execute(text("INSERT INTO alembic_version(version_num) VALUES (:v) ON CONFLICT DO NOTHING"),{"v":version})
-            engine.dispose()
-            connection.execute(sql.SQL("COMMENT ON DATABASE {} IS 'suite_pristine_template_v1'").format(sql.Identifier(server.template_database)))
-            connection.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS false").format(sql.Identifier(server.template_database)))
+                db.execute(text('CREATE TABLE IF NOT EXISTS suite_tenant_identity (singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton), tenant_uuid varchar(36) NOT NULL, company_id integer NOT NULL)'))
+            # Only system definitions are refreshed. An empty template has no
+            # customer-owned role edits, users, contacts or transactions.
+            with Session(engine) as db:
+                permissions = {item.name: item for item in db.query(Permission)}
+                for name, description, module in SYSTEM_PERMISSIONS:
+                    if name not in permissions:
+                        permissions[name] = Permission(name=name, description=description, module=module)
+                        db.add(permissions[name])
+                for name in PERMISSIONS:
+                    if name not in permissions:
+                        permissions[name] = Permission(name=name, description=name, module='power_apps')
+                        db.add(permissions[name])
+                roles = {item.name: item for item in db.query(Role)}
+                for definition in SYSTEM_ROLES:
+                    role = roles.get(definition['name'])
+                    if role is None:
+                        role = Role(name=definition['name'], description=definition['description'], is_system=True)
+                        db.add(role)
+                    role.permissions = [permissions[name] for name in dict.fromkeys(definition['permissions']) if name in permissions]
+                db.commit()
+            connection.execute(sql.SQL('COMMENT ON DATABASE {} IS {}').format(sql.Identifier(server.template_database), sql.Literal(stamp)))
+        finally:
+            if engine is not None:
+                engine.dispose()
+            if connection.execute('SELECT 1 FROM pg_database WHERE datname=%s', (server.template_database,)).fetchone():
+                connection.execute(sql.SQL('ALTER DATABASE {} ALLOW_CONNECTIONS false').format(sql.Identifier(server.template_database)))
 
 
 def ensure_database(signup_id):

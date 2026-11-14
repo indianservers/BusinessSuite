@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import MoveBoard from "@/components/interaction/MoveBoard";
@@ -56,6 +57,7 @@ function linkedFilters(params: URLSearchParams): WorkloadFilters {
 }
 
 export default function WorkloadPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<WorkloadFilters>(() => linkedFilters(searchParams));
@@ -115,9 +117,9 @@ export default function WorkloadPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <Field label="Project">
+          <Field label={businessTerm('project')}>
             <NativeSelect className="input" value={filters.projectId} onChange={(event) => setFilter("projectId", event.target.value)}>
-              <option value="">All projects</option>
+              <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
               {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
             </NativeSelect>
           </Field>

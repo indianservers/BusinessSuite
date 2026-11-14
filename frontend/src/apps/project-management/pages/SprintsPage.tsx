@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -19,6 +20,7 @@ import { projectsAPI, reportsAPI, sprintsAPI, tasksAPI } from "../services/api";
 import type { PMSProject, PMSSprint, PMSSprintActionItem, PMSTaskListItem, ProjectVelocity, SprintBurndown, WorkloadResponse } from "../types";
 
 export default function SprintsPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [projectId, setProjectId] = useState("");
   const [sprints, setSprints] = useState<PMSSprint[]>([]);
@@ -213,7 +215,7 @@ export default function SprintsPage() {
         <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
         <CardContent>
           <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
-            <Field label="Project"><NativeSelect value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></Field>
+            <Field label={businessTerm('project')}><NativeSelect value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></Field>
             <Field label="Sprint name"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="Goal"><Input value={goal} onChange={(event) => setGoal(event.target.value)} /></Field>
             <Field label="Capacity"><Input type="number" value={capacityHours} onChange={(event) => setCapacityHours(event.target.value)} /></Field>

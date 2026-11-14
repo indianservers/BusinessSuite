@@ -203,7 +203,9 @@ def save(data: Policy, db: Session = Depends(get_db), user: User = Depends(get_c
 
 @router.get("/files")
 def files(module: str = "", search: str = Query("", max_length=160), page: int = Query(1, ge=1), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    company = admin(db, user)
+    # Inspecting the company's register does not configure storage credentials.
+    from app.access.admin_reads import allowed
+    company = user.organization_id if allowed(user) else admin(db, user)
     query = db.query(StorageObject).filter_by(organization_id=company)
     if module: query = query.filter_by(module=module)
     if search: query = query.filter(StorageObject.filename.icontains(search, autoescape=True))

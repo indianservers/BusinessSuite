@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -70,6 +71,7 @@ const statusDotColor: Record<string, string> = {
 };
 
 export default function AttendancePage() {
+  const { term } = useBusinessTerms();
   usePageTitle("Attendance");
   const qc = useQueryClient();
   const { user } = useAuthStore();
@@ -392,7 +394,7 @@ export default function AttendancePage() {
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
               <NativeSelect aria-label="Filter attendance status" value={registerStatus} onChange={e=>setRegisterStatus(e.target.value)} className="rounded border bg-background px-3 py-2 text-sm"><option value="">All attendance statuses</option>{[...REGISTER_STATUSES,"Not marked","On Leave"].map(status=><option key={status}>{status}</option>)}</NativeSelect>
               <Input type="date" value={registerDate} onChange={(event) => setRegisterDate(event.target.value)} />
-              <Input value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder="Search employee" />
+              <Input value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder={`Search ${term('employee').toLowerCase()}`} />
               <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["attendance-register"] })}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh

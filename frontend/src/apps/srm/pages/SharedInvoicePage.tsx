@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {useModuleAction} from "@/hooks/use-module-action";
 import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import MobilePdfActions from "@/components/mobile/MobilePdfActions";
@@ -22,6 +23,7 @@ export default function SharedInvoicePage() {
 }
 
 function InvoiceWorkspace({ id }: { id?: string }) {
+  const { term } = useBusinessTerms();
   const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowApprove=useModuleAction("approve"),allowExport=useModuleAction("export");
   const uid = useAuthStore((state) => state.user?.id);
   const [notice, setNotice] = useState("");
@@ -103,7 +105,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
       {r.document_status === "draft" && r.can_edit && allowEdit && (
         <Card>
           <CardHeader>
-            <CardTitle>Customer and seller</CardTitle>
+            <CardTitle>{term('customer')} and seller</CardTitle>
           </CardHeader>
           <CardContent>
             <CommercialIdentityForm

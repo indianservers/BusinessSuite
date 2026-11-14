@@ -593,6 +593,28 @@ def test_booking_links_single_use_and_calendar_conflicts(client, db, superuser_h
     assert db.query(CRMMeeting).count() == 1
 
 
+def test_public_booking_uses_business_terms_and_escapes_labels(client, db, superuser_headers):
+    from app.apps.crm.models import CRMMeeting
+    from app.models.notification import Notification
+    config = '/api/v1/access/settings/business-profile/configuration'
+    initial = client.get(config, headers=superuser_headers)
+    assert initial.status_code == 200, initial.text
+    saved = client.put(config, headers=superuser_headers, json={'version': initial.json()['version'], 'values': {'business_type': 'hospital', 'terms': {'appointment': ['Review & assessment', 'Reviews & assessments']}}})
+    assert saved.status_code == 200, saved.text
+    lead = create(client, superuser_headers)
+    path = client.post(ROOT + f"/leads/{lead['id']}/booking-link", headers=superuser_headers).json()['path']
+    page = client.get(path)
+    assert page.status_code == 200, page.text
+    assert 'Review &amp; assessment date and time' in page.text
+    assert '&amp;amp;' not in page.text
+    start = (datetime.now(timezone.utc) + timedelta(days=1)).replace(second=0, microsecond=0)
+    booked = client.post(path, data={'start_time': start.strftime('%Y-%m-%dT%H:%M'), 'offset': '+00:00'})
+    assert booked.status_code == 200, booked.text
+    assert 'Review &amp; assessment confirmed' in booked.text
+    assert db.query(CRMMeeting).filter_by(lead_id=lead['id']).one().title.startswith('Review & assessment with ')
+    assert db.query(Notification).filter_by(event_type='lead_booking').one().title == 'New review & assessment booking'
+
+
 def test_analytics_uses_recorded_first_response_and_visible_stage_history(
     client, superuser_headers
 ):

@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ function stored<T>(key: string, fallback: T): T {
   }
 }
 export default function WhatsAppTasksPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -220,7 +222,7 @@ export default function WhatsAppTasksPage() {
           </Link>
         </nav>
         <div className="wa-project-heading">
-          Projects
+          {businessTerm('project', true)}
           <Link to="/pms/projects" aria-label="All projects">
             <Plus size={17} />
           </Link>
@@ -233,7 +235,7 @@ export default function WhatsAppTasksPage() {
           }}
         >
           <Folder size={17} />
-          All projects
+          {`All ${businessTerm('project', true).toLowerCase()}`}
         </button>
         <div className="wa-projects">
           {query.data?.filters.projects.map((p) => (
@@ -447,6 +449,7 @@ function Conversation({
   onStar: () => void;
   onBack: () => void;
 }) {
+  const { term: businessTerm } = useBusinessTerms();
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
   const [details, setDetails] = useState(() => window.innerWidth > 1400);
@@ -1114,7 +1117,7 @@ function Conversation({
                     Due date<span>{date(task.due_date)}</span>
                   </label>
                   <label>
-                    Project<span>{data.project.name}</span>
+                    {businessTerm('project')}<span>{data.project.name}</span>
                   </label>
                 </div>
                 <label>

@@ -1,3 +1,5 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import BusinessTerm from "@/components/BusinessTerm";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CalendarTaskChip from "../components/CalendarTaskChip";
@@ -43,6 +45,7 @@ export default function WorkspaceCalendar({
   onUpdate,
   onRefresh,
 }: Props) {
+  const { term: businessTerm } = useBusinessTerms();
   const [anchor, setAnchor] = useState(dateKey(new Date()));
   const [mode, setMode] = useState("month");
   const [project, setProject] = useState("");
@@ -345,7 +348,7 @@ export default function WorkspaceCalendar({
           value={project}
           onChange={(e) => setProject(e.target.value)}
         >
-          <option value="">All projects</option>
+          <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -428,7 +431,7 @@ export default function WorkspaceCalendar({
               value={prefs.color}
               onChange={(e) => preference("color", e.target.value)}
             >
-              <option value="project">Project</option>
+              <option value="project"><BusinessTerm name="project"/></option>
               <option value="status">Status</option>
               <option value="priority">Priority</option>
             </NativeSelect>

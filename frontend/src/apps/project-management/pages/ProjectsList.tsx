@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { LoadingState } from "@/components/ui/state";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
@@ -192,6 +193,8 @@ const tabs = [
 ];
 
 function ProjectsList() {
+  const { term: businessTerm } = useBusinessTerms();
+  const { term } = useBusinessTerms();
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
   const workspaceScope = urlParams.get("workspace") || "all";
@@ -990,7 +993,7 @@ function ProjectsList() {
             <FolderKanban size={25} />
           </span>
           <div>
-            <h1>Projects</h1>
+            <h1>{term("project", true)}</h1>
             <p>
               Manage projects, teams, deadlines, milestones, and delivery risk.
             </p>
@@ -1018,9 +1021,9 @@ function ProjectsList() {
               Trash
             </Link>
           </Button>
-          <Button aria-label="New Project" disabled={!canCreateProject} onClick={() => {setCreateStatus("Active");setCreating(true);}}>
+          <Button aria-label={`New ${term('project')}`} disabled={!canCreateProject} onClick={() => {setCreateStatus("Active");setCreating(true);}}>
             <Plus size={16} />
-            <span className="portfolio-new-desktop">New Project</span>
+            <span className="portfolio-new-desktop">New {term("project")}</span>
             <span className="portfolio-new-mobile" aria-hidden="true">
               New
             </span>
@@ -1128,7 +1131,7 @@ function ProjectsList() {
                 onClick={() => filter("tab", tab)}
               >
                 {(() => { const Icon = ({"All Projects":FolderKanban,"My Projects":UserRound,"In Progress":Clock3,"Completed":CheckCircle2,"On Hold":PauseCircle,"Overdue":AlertCircle,"Starred":Star,"Archived":Archive} as Record<string,typeof Star>)[tab]; return <Icon size={17} aria-hidden="true"/>; })()}
-                {tab}
+                {tab === 'All Projects' ? `All ${term('project', true)}` : tab === 'My Projects' ? `My ${term('project', true)}` : tab}
                 <span>{projects.filter((p) => matches(p, tab)).length}</span>
               </button>
             ))}
@@ -1141,8 +1144,8 @@ function ProjectsList() {
           <label className="portfolio-search">
             <Search size={17} />
             <Input
-              aria-label="Search projects"
-              placeholder="Search projects, codes, clients, people…"
+              aria-label={`Search ${term('project', true).toLowerCase()}`}
+              placeholder={`Search ${term('project', true).toLowerCase()}, codes, clients, people…`}
               value={search}
               onChange={(e) => {
                 markPreferenceChange();
@@ -1235,7 +1238,7 @@ function ProjectsList() {
           </NativeSelect>
           <details className="portfolio-view-options"><summary><SlidersHorizontal size={14}/>… View options</summary><div className="portfolio-shortcuts flex flex-wrap items-center gap-2 py-2">
           <label>Focus <NativeSelect aria-label="Project focus" value={filters.focus} onChange={e => filter("focus", e.target.value)}>
-            <option value="">All projects</option><option value="attention">Needs attention ({projects.filter(attention).length})</option><option value="week">Due this week</option><option value="recent">Recently viewed ({recentProjects.length})</option><option value="edited">Updated by me in this browser ({editedProjects.length})</option>
+            <option value="">{`All ${term('project', true).toLowerCase()}`}</option><option value="attention">Needs attention ({projects.filter(attention).length})</option><option value="week">Due this week</option><option value="recent">Recently viewed ({recentProjects.length})</option><option value="edited">Updated by me in this browser ({editedProjects.length})</option>
           </NativeSelect></label>
           <details><summary>Quick action buttons</summary><div className="flex flex-wrap gap-3 p-2">{["open","task","board","copy","duplicate"].map(action => <label key={action}><input type="checkbox" checked={actionChoices.includes(action)} onChange={e => setActionChoices(current => e.target.checked ? [...current,action] : current.filter(a => a !== action))}/> {action}</label>)}</div></details>
           {!!saved.length && <div role="group" aria-label="Saved view shortcuts">{saved.slice(0,5).map(view => <button type="button" key={view.id} className="rounded border px-2 py-1" onClick={() => {const f=restoreFilters(view.preferences.module_filters.portfolio);setFilters(f);setSearch(f.query);setPage(0);setSelected([]);}}>{view.name}</button>)}</div>}
@@ -1622,7 +1625,7 @@ function ProjectsList() {
                         }
                       />
                     </th>
-                    <th>Project</th>
+                    <th data-business-field="project">Project</th>
                     <th>Client</th>
                     <th>Owner / Team</th>
                     <th>Progress</th>

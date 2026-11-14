@@ -1,4 +1,6 @@
 import { isLocationField, locationLast } from "./record-location";
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { businessFieldLabel } from '@/lib/business-profile';
 import { useRecordSync, rowSync } from "@/shared/record-sync/store";
 import { withEditNavigation } from "@/lib/edit-navigation";
 import { SyncRing } from "@/shared/record-sync/RecordSyncItems";
@@ -464,10 +466,15 @@ function validateGridResult<T>(result: GridResult<T>): GridResult<T> {
 
 export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const user=useAuthStore(state=>state.user);
+  const { profile } = useBusinessTerms();
+  const columns = useMemo(() => props.columns.map(column => {
+    const title = businessFieldLabel(profile, column.id, column.title);
+    return title === column.title ? column : { ...column, title, sourceTitle: column.sourceTitle || column.title };
+  }), [props.columns, profile]);
   // Reset synchronously at the identity boundary. A passive reset can render the
   // previous account's saved names/preview once, and persist them under the new key.
   const scope=JSON.stringify([user?.id,user?.access?.companyId,user?.role,user?.primary_role,user?.is_superuser,user?.access?.grants,props.userId,props.organizationId,props.workspaceId,props.gridId,props.personalScope]);
-  return <ScopedDataGrid key={scope} {...props}/>;
+  return <ScopedDataGrid key={scope} {...props} columns={columns}/>;
 }
 
 function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
@@ -523,7 +530,7 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
       return {...result,rows,groups:[],total:rows.length,pageTotal:rows.length};
     },facets:base.facets?((field:string,search:string,query:GridQuery,signal?:AbortSignal)=>base.facets!(field,search,adapt(query),signal)):undefined,export:base.export&&base.personalIdentity?((request:GridExportRequest)=>base.export!({...request,query:adapt(request.query)})):undefined};
   },[props.dataSource,personalSignature,enabled]);
-  const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|sales order|billing plan|engagement|task|project|employee|lead|deal|contact|company|customer|account|record|document|file|item|product|invoice|order|contract|campaign)( name)?$/i.test(column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
+  const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|sales order|billing plan|engagement|task|project|employee|lead|deal|contact|company|customer|account|record|document|file|item|product|invoice|order|contract|campaign)( name)?$/i.test(column.sourceTitle || column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
   const titleFor = (row:T) => identity ? String(identity.exportValue?.(row) ?? identity.accessor?.(row) ?? (row as Record<string,unknown>)[identity.id] ?? "Record") : "Record";
   const track = (row:T) => {if(enabled)personal.use(props.getRowId(row));};
   const favoriteColumn:GridColumn<T>={id:"__suite_favorite",title:"Favorite",header:<span className="sr-only">Favorite</span>,width:47,minWidth:40,sortable:false,filterable:false,groupable:false,render:row=><button type="button" className="suite-record-star" data-record-personal aria-label={`${personal.favorites.includes(props.getRowId(row))?"Unfavorite":"Favorite"} ${titleFor(row)}`} title="Toggle favorite" aria-pressed={personal.favorites.includes(props.getRowId(row))} onClick={event=>{event.stopPropagation();personal.toggle(props.getRowId(row));}}><Star size={15} fill={personal.favorites.includes(props.getRowId(row))?"currentColor":"none"}/></button>};
@@ -1312,7 +1319,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     if (mobile) quick.sort((a, b) => Number(/preview|open|view/i.test(a.id)) - Number(/preview|open|view/i.test(b.id)));
     const fields = columns.filter(column => column.id !== "__suite_favorite" && layout.visibility[column.id] !== false && !/^(select|actions?|quick actions)$/i.test(column.title));
     if (mobile) fields.sort((a, b) => {
-      const rank = (column: GridColumn<T>) => /^(name|title|full_name|fullName|subject)$/i.test(column.id) || /^(name|title|full name|subject|customer|employee|project|deal|lead|contact|company|sales order|invoice|contract|record|item|product)$/i.test(column.title) ? 0 : column.type === "status" ? 1 : /due|next.*(date|action|follow)/i.test(column.title) ? 2 : column.type === "owner" ? 3 : 4;
+      const rank = (column: GridColumn<T>) => /^(name|title|full_name|fullName|subject)$/i.test(column.id) || /^(name|title|full name|subject|customer|employee|project|deal|lead|contact|company|sales order|invoice|contract|record|item|product)$/i.test(column.sourceTitle || column.title) ? 0 : column.type === "status" ? 1 : /due|next.*(date|action|follow)/i.test(column.title) ? 2 : column.type === "owner" ? 3 : 4;
       return rank(a) - rank(b);
     });
     const more = expandedCards.includes(getRowId(record));

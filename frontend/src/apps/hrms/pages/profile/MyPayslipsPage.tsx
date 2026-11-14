@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
 import { useAuthStore } from "@/store/authStore";
 import { selectedBranch } from "@/lib/branch-context";
@@ -228,7 +229,7 @@ function PayslipsContent({ phone, scope }: { phone: boolean; scope: string }) {
             {payslip.employee ? (
               <div className="hrms-payslip-employee grid gap-3 rounded-lg bg-muted/30 p-4 text-sm md:grid-cols-4">
                 <div>
-                  <p className="text-muted-foreground">Employee</p>
+                  <p className="text-muted-foreground"><BusinessTerm name="employee"/></p>
                   <p className="font-medium">{payslip.employee.first_name} {payslip.employee.last_name}</p>
                 </div>
                 <div>

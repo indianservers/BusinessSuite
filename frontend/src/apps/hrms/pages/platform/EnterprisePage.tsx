@@ -161,7 +161,7 @@ function PrivacyOps() {
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
             <GridTable gridId="apps/hrms/pages/platform/EnterprisePage:table-1" className="w-full min-w-[760px] text-sm">
-              <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">ID</th><th className="px-3 py-2 text-left">Employee</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Result</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
+              <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">ID</th><th data-business-field="employee" className="px-3 py-2 text-left">Employee</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Result</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
               <tbody>{(requests.data || []).map((row) => <tr {...recordPreviewProps(row)} key={row.id} className="border-t"><td className="px-3 py-2">{row.id}</td><td className="px-3 py-2">{row.employee_id || "-"}</td><td className="px-3 py-2">{row.request_type}</td><td className="px-3 py-2"><Badge variant={row.status === "Blocked" ? "destructive" : "secondary"}>{row.status}</Badge></td><td className="max-w-[320px] truncate px-3 py-2 text-muted-foreground">{row.resolution_notes || JSON.stringify(row.processing_result_json || {})}</td><td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" onClick={() => process.mutate(row.id)}>Process</Button></td></tr>)}</tbody>
             </GridTable>
           </div>

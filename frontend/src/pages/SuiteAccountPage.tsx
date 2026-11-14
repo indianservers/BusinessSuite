@@ -52,6 +52,8 @@ export default function SuiteAccountPage() {
           <dd>{user?.email}</dd>
           <dt>Organization</dt>
           <dd>{user?.access?.companyName || "Your workspace"}</dd>
+          <dt>Organization ID</dt>
+          <dd><code>{user?.access?.organizationId || "Loading…"}</code></dd>
         </dl>
         <div className="suite-inline-actions">
           {profiles.map((m) => (

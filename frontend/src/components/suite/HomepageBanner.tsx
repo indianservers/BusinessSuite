@@ -1,4 +1,4 @@
-import { type CSSProperties } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Layers3 } from "lucide-react";
 import { api } from "@/services/api";
@@ -23,7 +23,7 @@ export function useHomepageBanner() {
   return useQuery({ queryKey: ["homepage-banner", isAuthenticated ? user?.id : "public", company],
     queryFn: () => api.get<BannerAppearance>(isAuthenticated ? "/access/homepage-banner" : "/auth/homepage-banner", { progress: false }).then(r => r.data), staleTime: 60_000 });
 }
-export default function HomepageBanner({ appearance, company, preview = false, onImageError }: { appearance?: BannerAppearance; company?: string; preview?: boolean; onImageError?: () => void }) {
+export default function HomepageBanner({ appearance, company, preview = false, onImageError, headline, description }: { headline?: ReactNode; description?: string; appearance?: BannerAppearance; company?: string; preview?: boolean; onImageError?: () => void }) {
   const settings = useHomepageBanner();
   const value = appearance || settings.data || defaultBanner;
   const image = bannerImageUrl(value.image);
@@ -39,8 +39,8 @@ export default function HomepageBanner({ appearance, company, preview = false, o
     <div className="launcher-hero-wash" />
     <div className="launcher-hero-content">
       <p className="launcher-pill"><Layers3 size={19} />{company || "One account. Six connected applications."}</p>
-      <h1>Your work <span>starts here.</span></h1>
-      <p>{company ? "Choose an application to get started. Move between your roles with one Business Suite account." : "Explore your applications, then sign in with your Business Suite account. Your organization determines which applications you can access."}</p>
+      <h1>{headline ?? <>Your work <span>starts here.</span></>}</h1>
+      <p>{description || (company ? "Choose an application to get started. Move between your roles with one Business Suite account." : "Explore your applications, then sign in with your Business Suite account. Your organization determines which applications you can access.")}</p>
     </div>
   </section>;
 }

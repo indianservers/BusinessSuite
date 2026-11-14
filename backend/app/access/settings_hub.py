@@ -96,8 +96,9 @@ def context(db, actor):
 
 def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
-    if ctx.get("admin_read") and ctx["admin"]:
-        return True
+    # Company-wide read authority never promotes a company admin to platform scope.
+    if key in GLOBAL_ONLY:
+        return ctx["super"]
     if key in {"internships", "task-packs"} and not ctx.get("intern_admin", False):
         return False
     if key in {"business-defaults", "business-profile"}:
@@ -106,8 +107,6 @@ def allows(option, ctx):
         return can_view_company(ctx)
     if key == "branches":
         return ctx.get("branch_manager", False)
-    if key in GLOBAL_ONLY:
-        return ctx["super"]
     if key in ADMIN_ONLY:
         return ctx["admin"]
     if not required:
@@ -117,7 +116,7 @@ def allows(option, ctx):
     grant = ctx["grants"].get(module, {})
     if not grant.get("enabled") or not set(required).intersection(grant.get("permissions", [])):
         return False
-    if ctx["managed"]:
+    if ctx["managed"] or ctx.get("admin_read"):
         if not set(grant.get("actions", [])).intersection({"configure", "edit", "assign"}):
             return False
         if org and grant.get("scope") not in {"organization", "all"}:
@@ -393,6 +392,20 @@ def business_profile_configuration(branch_id: int | None = None, workspace_modul
             'version': row.version if row else 0, 'overrides': row.values_json if row else {},
             'inherited': profile.effective(db, ctx['company'], branch_id, skip_scope=key, workspace_module=workspace_module, workspace_id=workspace_id),
             'effective': profile.effective(db, ctx['company'], branch_id, workspace_module=workspace_module, workspace_id=workspace_id)}
+
+
+@router.get('/business-profile/onboarding')
+def business_profile_onboarding(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.apps.saas.models import TenantSubscription
+    from app.shared.business_profile import KIND, scope_key
+    from app.shared.models import ServicePolicy
+    ctx = context(db, actor)
+    editable = bool(can_edit_company(ctx))
+    subscription = db.query(TenantSubscription).filter_by(company_id=ctx['company']).first()
+    requested = bool(subscription and (subscription.config_json or {}).get('business_profile_required'))
+    policy = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=KIND, scope_key=scope_key(ctx['company'])).first()
+    selected = bool(policy and (policy.values_json or {}).get('business_type'))
+    return {'companyId': ctx['company'], 'required': editable and requested and not selected, 'editable': editable}
 
 
 @router.put("/business-profile/configuration")

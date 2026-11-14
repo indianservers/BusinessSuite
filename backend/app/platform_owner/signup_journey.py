@@ -46,7 +46,7 @@ def receipt(db, signup):
     from app.access.applicant_login import status_link
     url = status_link(db, signup)
     mail(db, signup, "Your BestERP trial request was received",
-         f"Application BS-{signup.id:06d}\nApplications: {', '.join(signup.requested_modules)}\n"
+         f"Application BS-{signup.id:06d}\nOrganization ID: {signup.organization_id}\nApplications: {', '.join(signup.requested_modules)}\n"
          f"We will review your request before granting business access.\nPrivate status link (24 hours):\n{url}\n"
          "You do not need a password while waiting. After approval use the same Google identity or set a password using the invitation email.",
          f"receipt:{signup.id}")

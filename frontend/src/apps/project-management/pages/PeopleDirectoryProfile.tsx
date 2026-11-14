@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { Button } from "@/components/ui/button";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -311,7 +312,7 @@ export default function PeopleDirectoryProfile() {
                     <div><dt>Visibility</dt><dd>{group.visibility}</dd></div>
                   </dl> : <dl className="mt-2 grid gap-2 sm:grid-cols-2">
                     {[["Batch code", group.code], ["Program", group.program], ["Status", group.status], ["Start date", group.start_date], ["End date", group.end_date], ["Department", group.department], ["Manager", group.manager_name], ["Mentor", group.mentor_name], ["Coordinator", group.coordinator_name]].filter(([,value]) => value).map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-                    {group.project_name && <div><dt>Project</dt><dd><Link to={`/pms/projects/${group.project_id}`}>{group.project_name}</Link></dd></div>}
+                    {group.project_name && <div><dt><BusinessTerm name="project"/></dt><dd><Link to={`/pms/projects/${group.project_id}`}>{group.project_name}</Link></dd></div>}
                   </dl>}
                 </article>)}
                 {!data.items?.length && (

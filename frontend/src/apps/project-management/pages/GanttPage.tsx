@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -49,6 +50,7 @@ const dependencyTypes = ["Finish To Start", "Start To Start", "Finish To Finish"
 const defaultFilters: FilterState = { projectId: "", sprintId: "", assigneeId: "", epicId: "", status: "" };
 
 export default function GanttPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams] = useSearchParams();
   const queryProject = searchParams.get("project") || searchParams.get("projectId") || "";
@@ -222,8 +224,8 @@ export default function GanttPage() {
       <Card>
         <CardContent className="space-y-4 p-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <SelectFilter disabled={!!projectId} label="Project" value={filters.projectId} onChange={(value) => setFilters((current) => ({ ...current, projectId: value, sprintId: "", epicId: "" }))}>
-              <option value="">All projects</option>
+            <SelectFilter disabled={!!projectId} label={businessTerm('project')} value={filters.projectId} onChange={(value) => setFilters((current) => ({ ...current, projectId: value, sprintId: "", epicId: "" }))}>
+              <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
               {data?.filters.projects.map((item) => <option key={item.id} value={item.id}>{item.project_key || item.name}</option>)}
             </SelectFilter>
             <SelectFilter label="Sprint" value={filters.sprintId} onChange={(value) => setFilters((current) => ({ ...current, sprintId: value }))}>

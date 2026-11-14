@@ -35,6 +35,11 @@ def states(db, company, *, organization=None):
 
 
 def enforce(db, company, module):
+    # Administrative read access may inspect locally disabled modules, but it
+    # cannot grant an unlicensed module or revive an expired/suspended contract.
+    from app.enterprise.controls import disabled_modules
+    if module and module in disabled_modules(db, company):
+        raise HTTPException(403, f"Module disabled by company subscription: {module}")
     if db.info.get('admin_read_company') == company and db.info.get('security_write_request') is False:
         return
     from app.models.company import Company

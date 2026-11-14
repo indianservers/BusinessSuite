@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {useMobileContext} from "@/components/mobile/useMobileContext";
 import {useMobileDraftGuard} from "@/components/mobile/useMobileDraftGuard";
 import {syncScope} from "@/shared/record-sync/store";
@@ -33,6 +34,7 @@ export default function FilesPage() {
 }
 
 function FilesContent({protectedContext}:{protectedContext:boolean}) {
+  const { term: businessTerm } = useBusinessTerms();
   const phone=useMobile(480),mutationLock=useRef(false);
   const ownerScope=useRef(syncScope()),projectEpoch=useRef(0),folderBaseline=useRef("");
   const [savedRevision,setSavedRevision]=useState(0),[completedRevision,setCompletedRevision]=useState(0);
@@ -314,7 +316,7 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
       </div>
       <div className="pms-files-selectors flex flex-wrap items-center gap-3">
         <label>
-          Project{" "}
+          {businessTerm('project')}{" "}
           <NativeSelect
             className="input"
             aria-label="File project"

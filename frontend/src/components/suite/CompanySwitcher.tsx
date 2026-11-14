@@ -14,6 +14,7 @@ export default function CompanySwitcher() {
     access.organizations ||
     access.memberships.map((id) => ({
       id,
+      organizationId: id === access.companyId ? access.organizationId : undefined,
       name:
         id === access.companyId
           ? access.companyName || "Current workspace"
@@ -23,6 +24,7 @@ export default function CompanySwitcher() {
     <label className="suite-company">
       <Building2 size={17} />
       <span className="sr-only">Current company</span>
+      <span className="suite-company-identity">
       <NativeSelect loading={busy}
         aria-label="Current company"
         disabled={busy || organizations.length < 2}
@@ -45,11 +47,13 @@ export default function CompanySwitcher() {
       >
         {organizations.map((org) => (
           <option key={org.id} value={org.id}>
-            {org.name}
+            {org.name}{org.organizationId ? ` · ${org.organizationId}` : ""}
             {org.id === access.companyId ? " (active)" : ""}
           </option>
         ))}
       </NativeSelect>
+      {access.organizationId && <small>Org ID: <code>{access.organizationId}</code></small>}
+      </span>
       {busy && <span role="status">Switching…</span>}
     </label>
   );

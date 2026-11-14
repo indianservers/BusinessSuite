@@ -197,7 +197,7 @@ def list_signups(status: str = "active", search: str = Query("", max_length=180)
     if end: query = query.filter(Signup.created_at <= end)
     if module: query = query.filter(cast(Signup.requested_modules, String).contains('"'+module+'"'))
     if search:
-        query = query.filter(or_(*[col.icontains(search, autoescape=True) for col in [Signup.name, Signup.company_name, Signup.email, Signup.phone, Signup.campaign]]))
+        query = query.filter(or_(*[col.icontains(search, autoescape=True) for col in [Signup.name, Signup.company_name, Signup.email, Signup.phone, Signup.campaign, Signup.organization_id]]))
     if priority: query = query.filter(cast(Signup.workflow, String).contains('"'+priority+'"'))
     total = query.count()
     rows = query.order_by(Signup.id.desc()).offset((page-1)*page_size).limit(page_size).all()
@@ -383,7 +383,7 @@ def export_signups(actor=Depends(current_platform_admin), db: Session = Depends(
     s.require(actor, "signup.export")
     rows = s.scoped(db.query(Signup).filter(Signup.deleted_at.is_(None)), actor, Signup).order_by(Signup.id).limit(10000)
     output = io.StringIO(); writer = csv.writer(output)
-    fields = ["id", "applicant_type", "name", "company_name", "email", "phone", "status", "source", "campaign", "created_at"]
+    fields = ["id", "organization_id", "applicant_type", "name", "company_name", "email", "phone", "status", "source", "campaign", "created_at"]
     writer.writerow(fields)
     count = 0
     for row in rows:
@@ -605,11 +605,11 @@ def login_history(actor=Depends(current_platform_admin), db: Session = Depends(g
 def global_search(q: str = Query(min_length=2, max_length=100), actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     result = {"signups": [], "customers": []}
     if "signup.read" in s.permissions(actor):
-        result["signups"] = [{"id": r.id, "name": r.company_name or r.name, "status": r.status} for r in
-            s.scoped(db.query(Signup).filter(Signup.deleted_at.is_(None), or_(Signup.name.icontains(q, autoescape=True), Signup.email.icontains(q, autoescape=True), Signup.company_name.icontains(q, autoescape=True))), actor, Signup).limit(15)]
+        result["signups"] = [{"id": r.id, "name": r.company_name or r.name, "status": r.status, "organization_id": r.organization_id} for r in
+            s.scoped(db.query(Signup).filter(Signup.deleted_at.is_(None), or_(Signup.name.icontains(q, autoescape=True), Signup.email.icontains(q, autoescape=True), Signup.company_name.icontains(q, autoescape=True), Signup.organization_id.icontains(q, autoescape=True))), actor, Signup).limit(15)]
     if "tenant.read" in s.permissions(actor):
-        result["customers"] = [{"id": r.id, "name": r.name, "status": r.status} for r in
-            s.scoped(db.query(PlatformTenant).filter(PlatformTenant.name.icontains(q, autoescape=True)), actor, PlatformTenant).limit(15)]
+        result["customers"] = [{"id": r.id, "name": r.name, "status": r.status, "organization_id": r.organization_id} for r in
+            s.scoped(db.query(PlatformTenant).filter(or_(PlatformTenant.name.icontains(q, autoescape=True), PlatformTenant.organization_id.icontains(q, autoescape=True))), actor, PlatformTenant).limit(15)]
     return result
 
 
@@ -688,7 +688,7 @@ def plan_edit(ident: int, data: PlanInput, actor=Depends(current_platform_admin)
 def customers(search: str = "", status: str = "", actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     s.require(actor, "tenant.read")
     query = s.scoped(db.query(PlatformTenant).filter(PlatformTenant.status != "removed"), actor, PlatformTenant)
-    if search: query = query.filter(or_(PlatformTenant.name.icontains(search[:150], autoescape=True), PlatformTenant.admin_email.icontains(search[:150], autoescape=True)))
+    if search: query = query.filter(or_(PlatformTenant.name.icontains(search[:150], autoescape=True), PlatformTenant.admin_email.icontains(search[:150], autoescape=True), PlatformTenant.organization_id.icontains(search[:150], autoescape=True)))
     if status: query = query.filter_by(status=status)
     return [s.encode(r) for r in query.order_by(PlatformTenant.id.desc()).limit(1000)]
 

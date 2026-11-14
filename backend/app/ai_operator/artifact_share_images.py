@@ -40,7 +40,15 @@ def stage(db,user,row,definition,edition):
     lock_key=int.from_bytes(hashlib.sha256(f'artifact-publication-images:{row.organization_id}:{user.id}:{definition["workspace_id"]}'.encode()).digest()[:8],'big')&((1<<63)-1)
     # A separate transaction lock avoids reversing private artifact/user row
     # lock order while serializing quota checks across independent shares.
-    db.execute(text('SELECT pg_advisory_xact_lock(:key)'),{'key':lock_key})
+    if db.get_bind().dialect.name == 'postgresql':
+        db.execute(text('SELECT pg_advisory_xact_lock(:key)'),{'key':lock_key})
+    else:
+        # SQLite test databases serialize writers; take that write lock before
+        # checking quota on an existing share as well as a newly flushed one.
+        from app.shared.models import ServicePolicy
+        policies = ServicePolicy.__table__
+        db.connection().execute(update(policies).where(policies.c.id == row.id,
+            policies.c.organization_id == row.organization_id).values(version=policies.c.version))
     messages=AssistantMessage.__table__;conversations=AssistantConversation.__table__
     used=db.connection().execute(select(func.coalesce(func.sum(messages.c.arguments['size'].as_integer()),0)).select_from(
         messages.join(conversations,messages.c.conversation_id==conversations.c.id)).where(

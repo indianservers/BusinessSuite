@@ -127,6 +127,10 @@ def batch_for(db, module, identity, user, request, version=None):
 
 @router.get("/{module}/catalog")
 def catalog(module: str, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.access.entitlements import states
+    from app.apps.srm.services.commercial import tenant
+    if states(db, tenant(user)).get('project_management' if module == 'pms' else module) is False:
+        raise HTTPException(403, 'Application is disabled for this company')
     result = []
     for spec in SPECS:
         if spec.module != module:

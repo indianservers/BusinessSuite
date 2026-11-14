@@ -37,8 +37,11 @@ def digest(value):
 
 
 def encode(row, exclude=()):
-    return {c.name: (getattr(row, c.name).isoformat() if isinstance(getattr(row, c.name), datetime) else getattr(row, c.name))
+    result = {c.name: (getattr(row, c.name).isoformat() if isinstance(getattr(row, c.name), datetime) else getattr(row, c.name))
             for c in row.__table__.columns if c.name not in set(exclude) | {"hashed_password", "token_hash", "encrypted_password"}}
+    if isinstance(row, (PlatformSignupRequest, PlatformTenant)) and "organization_id" not in exclude:
+        result["organization_id"] = row.organization_id
+    return result
 
 
 def permissions(actor):

@@ -94,6 +94,40 @@ def test_cancellation_releases_slot_and_denies_naive_times(client, business):
     post(client, h, '/appointments', {**data, 'request_id': str(uuid4()), 'starts_at': '2026-11-16T10:00:00'}, 422)
 
 
+def test_no_show_is_a_visit_status_and_cannot_be_recorded_early(client, business):
+    from datetime import datetime, timedelta, timezone
+    h, buyer, _, service = business
+    resource = stylist(client, h)
+    future = (datetime.now(timezone.utc) + timedelta(days=7)).replace(hour=5, minute=0, second=0, microsecond=0)
+    data = booking(client, h, buyer, service, resource)
+    row = post(client, h, '/appointments', {**data, 'starts_at': future.isoformat()})
+    post(client, h, f'/records/{row["id"]}/transition', {'expected_revision': row['revision'], 'status': 'no_show', 'reason': 'Not arrived'}, 409)
+    past = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
+    missed = post(client, h, '/appointments', {**data, 'request_id': str(uuid4()), 'starts_at': past.isoformat()})
+    changed = state(client, h, missed, 'no_show', reason='Patient did not arrive')
+    assert changed['status'] == 'no_show' and changed['invoice_id'] is None
+
+
+def test_basic_appointments_do_not_require_crm_or_project_module(client, business, monkeypatch):
+    h, buyer, project, service = business
+    from app import module_registry
+    installed = module_registry.is_app_enabled
+    monkeypatch.setattr(module_registry, 'is_app_enabled', lambda key: key not in {'crm', 'project_management'} and installed(key))
+    caps = client.get(ROOT + '/capabilities', headers=h)
+    assert caps.status_code == 200, caps.text
+    assert caps.json()['projects_enabled'] is False and caps.json()['crm_enabled'] is False
+    resource = stylist(client, h)
+    data = booking(client, h, buyer, service, resource)
+    row = post(client, h, '/appointments', data)
+    listing = client.get(ROOT + '/records', params={'kind': 'appointment'}, headers=h)
+    assert listing.status_code == 200, listing.text
+    assert row['id'] in {item['id'] for item in listing.json()['items']}
+    for status in ['checked_in', 'in_service', 'completed']:
+        row = state(client, h, row, status)
+    post(client, h, '/appointments', {**data, 'request_id': str(uuid4()), 'project_id': project.id, 'create_pms_task': True}, 409)
+    post(client, h, '/appointments', {**data, 'request_id': str(uuid4()), 'deal_id': 999}, 409)
+
+
 @pytest.mark.parametrize('provider_type', ['provider', 'doctor', 'consultant', 'technician', 'employee'])
 def test_common_appointments_support_non_salon_providers(client, db, business, provider_type):
     h, buyer, project, service = business
@@ -108,6 +142,60 @@ def test_common_appointments_support_non_salon_providers(client, db, business, p
     post(client, h, '/appointments', {**data, 'request_id': str(uuid4())}, 409)
     moved = client.put(ROOT + f'/appointments/{booked["id"]}/schedule', headers=h, json={'expected_revision': 1, 'starts_at': '2026-11-16T11:00:00+05:30', 'duration_minutes': 30, 'resource_ids': [resource['id']]})
     assert moved.status_code == 200, moved.text
+
+
+def test_provider_staff_picker_and_aliases_share_one_calendar(client, db, business):
+    h, buyer, project, service = business
+    response = client.get(ROOT + '/staff-options', headers=h)
+    assert response.status_code == 200, response.text
+    staff_id = project.manager_user_id
+    assert staff_id in {row['id'] for row in response.json()['items']}
+    first = post(client, h, '/resources', payload(title='Consulting hours', resource_type='consultant', user_id=staff_id, weekdays=list(range(7))))
+    second = post(client, h, '/resources', payload(title='Clinical hours', resource_type='doctor', user_id=staff_id, weekdays=list(range(7))))
+    post(client, h, '/appointments', booking(client, h, buyer, service, first))
+    post(client, h, '/appointments', booking(client, h, buyer, service, second), 409)
+    # The fixture's project manager is also the original caller. Use another
+    # authorized scheduler when checking that deactivated staff disappear.
+    from tests.test_settings_hub import actor
+    from test_identity_utils import attach_workflow_branch
+    h, scheduler = actor(db, 'appointment-alternate-admin', superuser=True)
+    branch = attach_workflow_branch(db, scheduler); db.commit()
+    h = {**h, 'X-Suite-Branch': str(branch.id)}
+    from app.models.user import User
+    staff = db.get(User, staff_id); staff.is_active = False; db.commit()
+    choices = client.get(ROOT + '/staff-options', headers=h)
+    assert choices.status_code == 200, choices.text
+    assert staff_id not in {row['id'] for row in choices.json()['items']}
+    post(client, h, '/resources', payload(title='Inactive provider', resource_type='doctor', user_id=staff_id), 422)
+
+
+def test_hrms_doctor_without_login_is_schedulable_and_leave_blocks_booking(client, db, business):
+    from datetime import date
+    from app.models.employee import Employee
+    from app.models.company import Branch
+    from app.models.leave import LeaveType, LeaveRequest
+    h, buyer, _, service = business
+    branch = db.query(Branch).filter_by(company_id=1).first()
+    doctor = Employee(employee_id='APPT-DOCTOR', first_name='Doctor', last_name='Example', branch_id=branch.id, status='Active', date_of_joining=date(2026, 1, 1))
+    db.add(doctor); db.commit()
+    choices = client.get(ROOT + '/employee-options', headers=h)
+    assert choices.status_code == 200, choices.text
+    assert {'id': doctor.id, 'name': 'Doctor Example', 'code': 'APPT-DOCTOR'} in choices.json()['items']
+    assert 'salary' not in str(choices.json()) and 'hashed_password' not in str(choices.json())
+    first = post(client, h, '/resources', payload(title='Dr Example consultations', resource_type='provider', employee_id=doctor.id, weekdays=list(range(7))))
+    assert first['data']['employee_id'] == doctor.id and first['data']['user_id'] is None
+    second = post(client, h, '/resources', payload(title='Dr Example follow-ups', resource_type='provider', employee_id=doctor.id, weekdays=list(range(7))))
+    post(client, h, '/appointments', booking(client, h, buyer, service, first))
+    post(client, h, '/appointments', booking(client, h, buyer, service, second), 409)
+    leave_type = LeaveType(name='Provider leave', code='APPT-LEAVE', days_allowed=10)
+    db.add(leave_type); db.flush()
+    db.add(LeaveRequest(company_id=1, employee_id=doctor.id, leave_type_id=leave_type.id, from_date=date(2026, 11, 17), to_date=date(2026, 11, 17), days_count=1, status='Approved'))
+    db.commit()
+    data = booking(client, h, buyer, service, first)
+    post(client, h, '/appointments', {**data, 'starts_at': '2026-11-17T10:00:00+05:30'}, 409)
+    doctor.status = 'Terminated'; db.commit()
+    assert doctor.id not in {r['id'] for r in client.get(ROOT + '/employee-options', headers=h).json()['items']}
+    post(client, h, '/appointments', {**data, 'starts_at': '2026-11-18T10:00:00+05:30'}, 422)
 
 
 def test_construction_certification_variation_and_shared_invoice(client, db, business):

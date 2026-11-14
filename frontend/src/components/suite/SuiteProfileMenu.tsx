@@ -34,6 +34,8 @@ export default function SuiteProfileMenu() {
         <DropdownMenu.Content className="suite-menu" align="end" sideOffset={8}>
           <DropdownMenu.Label className="suite-menu-label">
             {user?.email}
+            <small style={{ display: "block" }}>{user?.access?.companyName || "Business workspace"}</small>
+            {user?.access?.organizationId && <small style={{ display: "block" }}>Organization ID: <code>{user.access.organizationId}</code></small>}
           </DropdownMenu.Label>
           <DropdownMenu.Item asChild>
             <Link to="/account">

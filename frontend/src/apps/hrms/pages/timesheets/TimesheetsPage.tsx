@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import "./timesheets-mobile.css";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
@@ -274,7 +275,7 @@ export default function TimesheetsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Project</Label>
+                  <Label><BusinessTerm name="project"/></Label>
                   <NativeSelect
                     loading={phone && projectQuery.isFetching} error={phone && projectQuery.isError} aria-label="Timesheet project" value={sheetForm.project_id}
                     onChange={(e) => setSheetForm({ ...sheetForm, project_id: e.target.value })}

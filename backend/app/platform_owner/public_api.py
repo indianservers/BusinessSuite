@@ -39,6 +39,7 @@ def preview(token: str, request: Request, db: Session = Depends(get_platform_db)
             raise HTTPException(404,"This link is no longer valid. Request a fresh link using your current application email.")
         result["status"] = signup.status
         result["applicant"] = signup.company_name or signup.name
+        result["organization_id"] = signup.organization_id
         result.update({"reference":f"BS-{signup.id:06d}","email":signup.email,"modules":signup.requested_modules,
             "submitted_at":signup.created_at,"last_checked_at":s.now(),"support_url":"/help",
             "review_target_hours":s.settings_for(db)["sla_hours"],

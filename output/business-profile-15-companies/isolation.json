@@ -1,0 +1,95 @@
+{
+  "checks": [
+    {
+      "industry": "salon",
+      "target_industry": "hospital",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "hospital",
+      "target_industry": "construction",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "construction",
+      "target_industry": "retail",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "retail",
+      "target_industry": "pharma",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "pharma",
+      "target_industry": "education",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "education",
+      "target_industry": "consulting",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "consulting",
+      "target_industry": "repairs",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "repairs",
+      "target_industry": "restaurant",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "restaurant",
+      "target_industry": "manufacturing",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "manufacturing",
+      "target_industry": "logistics",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "logistics",
+      "target_industry": "real_estate",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "real_estate",
+      "target_industry": "hospitality",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "hospitality",
+      "target_industry": "fitness",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "fitness",
+      "target_industry": "legal",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "industry": "legal",
+      "target_industry": "salon",
+      "status": 403,
+      "passed": true
+    }
+  ],
+  "status": "passed"
+}

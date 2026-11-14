@@ -1,5 +1,7 @@
 """Establish routing before audit, limits, uploads or business middleware run."""
 import json
+import re
+from uuid import UUID
 from urllib.parse import parse_qs
 import jwt
 from fastapi import HTTPException
@@ -47,6 +49,16 @@ class TenantDatabaseMiddleware:
         tenant=payload.get("tenant") if payload else None
         marker=None
         try:
+            booking = re.fullmatch(r'/api/v1/public/appointments/([^/]+)/[^/]+(?:/book)?', path)
+            if booking and booking.group(1) != 'shared':
+                locator = booking.group(1)
+                try:
+                    UUID(locator)
+                except ValueError:
+                    raise HTTPException(404, 'This booking link is unavailable or has expired') from None
+                if workspace and workspace != locator:
+                    raise HTTPException(403, 'Booking and company workspace do not match')
+                workspace = locator
             if raw and workspace and not tenant:
                 raise HTTPException(403,"This session is not bound to a company database")
             if tenant or workspace:

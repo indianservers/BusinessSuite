@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import "./statutory-form16-mobile.css";
 import "./statutory-history-mobile.css";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
@@ -499,7 +500,7 @@ function Form16Tab() {
           <MobileDisclosure maxWidth={480} title={`Employees · ${selectedEmployeeIds.length ? `${selectedEmployeeIds.length} selected` : "All eligible"}`}>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Employees</Label>
+              <Label><BusinessTerm name="employee" plural/></Label>
               <Button type="button" variant="ghost" size="sm" disabled={phoneBusy} onClick={() => setSelectedEmployeeIds([])}>All</Button>
             </div>
             <Input disabled={phoneBusy} aria-label="Search Form 16 employees" placeholder="Search employees" value={employeeSearch} onChange={event => { setEmployeeSearch(event.target.value); setEmployeePage(1); }} />
@@ -550,7 +551,7 @@ function Form16Tab() {
               <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-2" className="w-full min-w-[960px] text-sm">
                 <thead className="bg-muted/60">
                   <tr>
-                    <th className="px-3 py-2 text-left">Employee</th>
+                    <th data-business-field="employee" className="px-3 py-2 text-left">Employee</th>
                     <th className="px-3 py-2 text-left">PAN</th>
                     <th className="px-3 py-2 text-left">Taxable Income</th>
                     <th className="px-3 py-2 text-left">TDS</th>
@@ -714,7 +715,7 @@ function CompliancePreviewCard({
             <p className="font-medium">{preview?.rule || "-"}</p>
           </div>
           <div className="rounded-md border p-2">
-            <p className="text-xs text-muted-foreground">Employees</p>
+            <p className="text-xs text-muted-foreground"><BusinessTerm name="employee" plural/></p>
             <p className="font-medium">{phone && !preview ? "—" : preview?.total_employees || 0}</p>
           </div>
           <div className="rounded-md border p-2">

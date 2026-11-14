@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -38,6 +39,7 @@ const sortOptions = [
 ];
 
 export default function BacklogPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [projectId, setProjectId] = useState("");
   const [data, setData] = useState<PMSBacklogResponse | null>(null);
@@ -160,7 +162,7 @@ export default function BacklogPage() {
 
       <Card>
         <CardContent className="grid gap-3 p-4 lg:grid-cols-[16rem_1fr_12rem_auto] lg:items-end">
-          <Field label="Project">
+          <Field label={businessTerm('project')}>
             <NativeSelect value={projectId} onChange={(event) => setProjectId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </NativeSelect>

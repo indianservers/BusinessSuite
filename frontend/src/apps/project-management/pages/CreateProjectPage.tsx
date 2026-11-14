@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
 import {recordDraftKey,useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { useAuthStore } from "@/store/authStore";
@@ -21,6 +22,7 @@ import { projectsAPI } from "../services/api";
 import type { PMSProject, ProjectPriority, ProjectStatus } from "../types";
 
 export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?: (project: PMSProject, keepOpen?: boolean) => void; onCancel?: () => void } = {}) {
+  const { term } = useBusinessTerms();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const editing = Boolean(projectId);
@@ -76,7 +78,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
     event?.preventDefault();
     if (loading || !canEdit || submitting || writing.current) return false;
     if (!editing && (workspaceLoading || !workspaces.some(workspace => workspace.id === workspaceId))) { setError("Choose an accessible workspace before creating the project."); return false; }
-    if (!name.trim()) {setError("Project name is required.");return false;}
+    if (!name.trim()) {setError(`${term('project')} name is required.`);return false;}
     if (!editing && !/^[A-Z0-9]{2,10}$/.test(projectKey)) {setError("Project key must be uppercase and 2-10 characters.");return false;}
     if (startDate && dueDate && startDate > dueDate) {setError("Start date cannot be after due date.");return false;}
     if (Number(budget || 0) < 0) {setError("Budget cannot be negative.");return false;}
@@ -136,7 +138,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle>{editing ? "Edit project" : "Create project"}</CardTitle>
+          <CardTitle>{`${editing ? "Edit" : "Create"} ${term("project").toLowerCase()}`}</CardTitle>
         </CardHeader>
         <CardContent>
           <CompactForm className="space-y-5" onSubmit={submit}>
@@ -145,7 +147,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
             <fieldset disabled={loading || !canEdit || submitting} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">
               {!editing && <label className="space-y-2">Workspace<NativeSelect aria-label="Project workspace" value={workspaceId || ""} loading={workspaceLoading} onChange={event => setWorkspaceId(Number(event.target.value) || undefined)} required><option value="">Choose workspace</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</NativeSelect></label>}
               <div className="space-y-2">
-                <Label htmlFor="project-name">Project name</Label>
+                <Label htmlFor="project-name">{term("project")} name</Label>
                 <Input id="project-name" value={name} onChange={(event) => setName(event.target.value)} />
               </div>
               <div className="space-y-2">
@@ -195,7 +197,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
             <div className="flex justify-end gap-2">
                 {!editing && <label className="mr-auto flex items-center gap-2 text-sm"><input type="checkbox" checked={createAnother} onChange={event => setCreateAnother(event.target.checked)}/>Create another after saving</label>}
                 <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : navigate("/pms/projects")}>Cancel</Button>
-              <span role="status">{editing?auto.message:"Draft saved automatically"}</span><Button type="submit" data-save-action disabled={submitting||auto.saving}>{submitting ? "Saving…" : editing ? "Save changes" : "Create project"}</Button>
+              <span role="status">{editing?auto.message:"Draft saved automatically"}</span><Button type="submit" data-save-action disabled={submitting||auto.saving}>{submitting ? "Saving…" : editing ? "Save changes" : `Create ${term('project').toLowerCase()}`}</Button>
             </div>
           </fieldset></CompactForm>
         </CardContent>

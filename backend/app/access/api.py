@@ -214,6 +214,8 @@ def my_access(
     if not actor.is_superuser:
         company_query = company_query.where(Company.id.in_(memberships))
     organizations = db.connection().execute(company_query.order_by(Company.name)).all()
+    from app.access.organization_identity import organization_references
+    references = organization_references(db, [org.id for org in organizations])
     if actor.is_superuser:
         memberships = sorted(org.id for org in organizations)
     return {
@@ -242,7 +244,8 @@ def my_access(
         "modules": catalog(db),
         "memberships": memberships,
         "companyName": next((org.name for org in organizations if org.id == company), None),
-        "organizations": [{"id": org.id, "name": org.name} for org in organizations],
+        "organizationId": references.get(company),
+        "organizations": [{"id": org.id, "name": org.name, "organizationId": references[org.id]} for org in organizations],
     }
 
 

@@ -111,7 +111,7 @@ def enforce_actor(request, user):
     if not enabled(request):
         return lambda: None
     specifications = [
-        (f"user:{user.id}", settings.RATE_LIMIT_PER_MINUTE, 60),
+        (f"user:{user.organization_id}:{user.id}", settings.RATE_LIMIT_PER_MINUTE, 60),
         (f"company:{user.organization_id}", settings.RATE_LIMIT_PER_MINUTE * 20, 60),
     ]
     leases = []
@@ -121,7 +121,7 @@ def enforce_actor(request, user):
             retry = consume(db, specifications)
             if not retry and expensive(request.url.path):
                 for name in (
-                    f"work-user:{user.id}",
+                    f"work-user:{user.organization_id}:{user.id}",
                     f"work-company:{user.organization_id}",
                 ):
                     lease = acquire(

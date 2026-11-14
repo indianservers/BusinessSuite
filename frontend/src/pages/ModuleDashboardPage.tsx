@@ -1,3 +1,6 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { businessProfileCatalog } from '@/lib/business-profile';
+import BusinessWorkspace from '@/components/suite/BusinessWorkspace';
 import { useFavoriteSync } from "@/hooks/use-favorite-sync";
 import { accessQueryOptions } from "@/features/access/access-query";
 import PremiumLauncher from "@/components/suite/PremiumLauncher";
@@ -22,6 +25,10 @@ import {
 import "./module-dashboard.css";
 
 export default function ModuleDashboardPage() {
+  const { profile, term } = useBusinessTerms();
+  const selectedBusiness = businessProfileCatalog.profiles.find(item => item.id === profile.business_type);
+  const businessTitle = selectedBusiness && !['general', 'custom'].includes(profile.business_type) ? selectedBusiness.name.split(' / ')[0] : undefined;
+  const businessDescription = businessTitle ? `Manage ${term('customer', true).toLowerCase()}, ${term('provider', true).toLowerCase()}, ${term('appointment', true).toLowerCase()} and payments in one connected workspace.` : undefined;
   const { user, isAuthenticated, isHydrated, setUser } = useAuthStore();
   const location = useLocation();
   const access = useQuery({
@@ -65,7 +72,7 @@ export default function ModuleDashboardPage() {
       safeSuiteDestination(path) &&
       canAccessRoute(path, user?.role, user?.is_superuser),
   );
-  return <PremiumLauncher applications={ready ? allowed : []} authenticated
+  return <PremiumLauncher businessHeadline={businessTitle ? <>{businessTitle} <span>management.</span></> : undefined} businessDescription={businessDescription} applications={ready ? allowed : []} authenticated
     company={user?.access?.companyName || branding.data?.company_name || "Your workspace"}
     favorites={preferences.favorites} unread={notifications.byModule}
     loading={!ready && !access.isError}
@@ -87,5 +94,6 @@ export default function ModuleDashboardPage() {
       <button onClick={() => updatePreferences(scope, { recent: [], recentVisitedAt: {} })}>Clear recent pages</button>
     </div></section>}
   <CompanySampleData/>
+    {ready && <BusinessWorkspace/>}
   </PremiumLauncher>;
 }

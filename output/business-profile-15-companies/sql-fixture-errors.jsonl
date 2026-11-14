@@ -1,0 +1,1 @@
+{"type": "OperationalError", "message": "no such function: pg_advisory_xact_lock"}

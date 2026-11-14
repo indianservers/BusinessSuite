@@ -39,6 +39,7 @@ class BaseInput(Strict):
 class ResourceInput(BaseInput):
     resource_type: Literal["provider", "doctor", "stylist", "consultant", "technician", "employee", "chair", "room", "equipment", "location"]
     user_id: int | None = Field(None, gt=0)
+    employee_id: int | None = Field(None, gt=0)
     timezone: str = "Asia/Kolkata"
     weekdays: list[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4, 5], min_length=1, max_length=7)
     opens: time = time(9)
@@ -147,13 +148,13 @@ class MaterialInput(BaseInput):
     notes: str = Field(default='', max_length=4000)
 
 
-def context(db, user, write=False, finance=False):
+def context(db, user, write=False, finance=False, appointments=False):
     names = ('srm_invoice_create', 'srm_admin') if finance else (('srm_manage', 'srm_admin') if write else ('srm_view', 'srm_manage', 'srm_admin', 'srm_invoice_view', 'srm_invoice_create'))
     require(user, *names)
     from app.module_registry import is_app_enabled
     from app.apps.business_os.services.module_service import assert_module_enabled
-    if not all(is_app_enabled(k) for k in ("crm", "srm", "project_management")):
-        fail("Enable CRM, PMS and Sales for industry operations", 409)
+    if not all(is_app_enabled(k) for k in (("srm",) if appointments else ("crm", "srm", "project_management"))):
+        fail("Enable Sales for appointments" if appointments else "Enable CRM, PMS and Sales for industry operations", 409)
     assert_module_enabled(db, 'srm', company_id=tenant(user))
     ctx = db.info.get("branch_context")
     branch_id = getattr(ctx, "branch_id", None)
@@ -169,23 +170,25 @@ def context(db, user, write=False, finance=False):
 
 @router.get('/capabilities')
 def capabilities(project_id: int | None = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.module_registry import is_app_enabled
     from app.apps.srm.access import has_any_permission
     from app.apps.project_management.access import can_access_project
-    context(db, user)
+    context(db, user, appointments=not project_id)
     manage = has_any_permission(user, {'srm_manage', 'srm_admin'})
     approve = False
     if project_id:
         p = get_project_for_action(db, project_id, user)
         approve = manage and can_access_project(db, p, user, 'approve')
-    return {'manage': manage, 'approve': approve, 'self_approve': bool(user.is_superuser), 'invoice': has_any_permission(user, {'srm_invoice_create', 'srm_admin'})}
+    return {'manage': manage, 'approve': approve, 'self_approve': bool(user.is_superuser), 'invoice': has_any_permission(user, {'srm_invoice_create', 'srm_admin'}), 'projects_enabled': is_app_enabled('project_management'), 'crm_enabled': is_app_enabled('crm'), 'billing': has_any_permission(user, {'srm_collection_view', 'srm_collection_create', 'srm_invoice_view', 'srm_invoice_create', 'srm_admin'}), 'collect': has_any_permission(user, {'srm_collection_create', 'srm_admin'}), 'approve_invoice': has_any_permission(user, {'srm_invoice_approve', 'srm_admin'})}
 
 
 def query(db, user, branch_id):
     return db.query(Record).filter_by(organization_id=tenant(user), branch_id=branch_id)
 
 
-def get(db, user, branch_id, ident, kind=None):
-    row = query(db, user, branch_id).filter_by(id=ident).with_for_update().first()
+def get(db, user, branch_id, ident, kind=None, *, lock=True):
+    scoped = query(db, user, branch_id).filter_by(id=ident)
+    row = (scoped.with_for_update() if lock else scoped).first()
     if not row or (kind and row.kind != kind):
         fail("Industry record not found", 404)
     if row.project_id:
@@ -215,7 +218,11 @@ def existing(db, user, branch_id, payload, kind):
 
 
 def digest(payload):
-    return hashlib.sha256(json.dumps(payload.model_dump(mode='json'), sort_keys=True).encode()).hexdigest()
+    values = payload.model_dump(mode='json')
+    # Preserve retry identities for resources created before HRMS linking existed.
+    if isinstance(payload, ResourceInput) and values.get('employee_id') is None:
+        values.pop('employee_id', None)
+    return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 
 def create(db, user, branch, kind, payload, **links):
@@ -294,13 +301,17 @@ def project_currency(db, user, project_id):
 
 @router.get("/records")
 def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db: Session = Depends(get_db), user=Depends(get_current_user)):
-    branch = context(db, user)
+    branch = context(db, user, appointments=kind in {'appointment', 'resource'})
     if kind not in KINDS:
         fail("Unknown operation", 404)
     q = query(db, user, branch).filter_by(kind=kind)
     from app.apps.project_management.access import accessible_project_query
     from app.apps.project_management.models import PMSProject
-    q = q.filter((Record.project_id.is_(None)) | Record.project_id.in_(accessible_project_query(db, user).with_entities(PMSProject.id)))
+    from app.module_registry import is_app_enabled
+    if is_app_enabled('project_management'):
+        q = q.filter((Record.project_id.is_(None)) | Record.project_id.in_(accessible_project_query(db, user).with_entities(PMSProject.id)))
+    else:
+        q = q.filter(Record.project_id.is_(None))
     if kind in CONSTRUCTION:
         if not project_id:
             fail("Select a project for construction operations")
@@ -328,18 +339,27 @@ def project_options(search: str = Query('', max_length=180), offset: int = Query
 
 @router.post("/resources", status_code=201)
 def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    branch = context(db, user, True)
+    branch = context(db, user, True, appointments=True)
     prior = existing(db, user, branch, data, 'resource')
     if prior:
         return out(prior)
     if query(db, user, branch).filter_by(kind='resource', title=data.title).first():
         fail("A resource with this name already exists in this branch", 409)
+    employee = None
+    if data.employee_id:
+        if data.resource_type not in PROVIDER_TYPES:
+            fail('Only providers can be linked to HRMS employees')
+        employee = provider_employee(db, user, branch, data.employee_id)
+        if data.user_id and employee.user_id != data.user_id:
+            fail('The staff account must match the selected HRMS employee')
     if data.user_id:
         from app.shared.form_defaults import reference_queries
         staff, _ = reference_queries(db, tenant(user))['users']
         if not staff.filter(User.id == data.user_id).first():
             fail("Choose an active staff member from this company")
     row = create(db, user, branch, 'resource', data)
+    if employee:
+        row.data = {**row.data, 'user_id': employee.user_id}
     row.status = 'active'
     db.commit()
     return out(row)
@@ -347,7 +367,7 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
 
 @router.get('/staff-options')
 def staff_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
-    context(db, user)
+    context(db, user, appointments=True)
     require(user, 'srm_manage', 'srm_admin')
     from app.shared.form_defaults import reference_queries
     staff, _ = reference_queries(db, tenant(user))['users']
@@ -360,16 +380,54 @@ def staff_options(search: str = Query('', max_length=180), offset: int = Query(0
 PROVIDER_TYPES = {'provider', 'doctor', 'stylist', 'consultant', 'technician', 'employee'}
 
 
-def available(db, user, branch, starts, minutes, resource_ids, ignore=None):
+def employee_query(db, user, branch):
+    from app.models.employee import Employee
+    return db.query(Employee).join(Branch, Employee.branch_id == Branch.id).filter(
+        Branch.company_id == tenant(user), Branch.id == branch,
+        Employee.deleted_at.is_(None), Employee.status.in_(['Active', 'Probation', 'On Leave']))
+
+
+def provider_employee(db, user, branch, employee_id):
+    from app.models.employee import Employee
+    employee = employee_query(db, user, branch).filter(Employee.id == employee_id).first()
+    if not employee:
+        fail('Choose an active HRMS employee from this branch')
+    return employee
+
+
+@router.get('/employee-options')
+def employee_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from sqlalchemy import or_
+    from app.models.employee import Employee
+    context_branch = context(db, user, appointments=True)
+    require(user, 'srm_manage', 'srm_admin')
+    q = employee_query(db, user, context_branch)
+    if search.strip():
+        match = '%' + search.strip().replace('%', r'\%').replace('_', r'\_') + '%'
+        q = q.filter(or_(Employee.first_name.ilike(match, escape='\\'), Employee.last_name.ilike(match, escape='\\'), Employee.employee_id.ilike(match, escape='\\')))
+    rows = q.with_entities(Employee.id, Employee.first_name, Employee.last_name, Employee.employee_id).order_by(Employee.first_name, Employee.last_name, Employee.id).offset(offset).limit(51).all()
+    return {'items': [{'id': row.id, 'name': f'{row.first_name} {row.last_name}'.strip(), 'code': row.employee_id} for row in rows[:50]], 'has_more': len(rows) > 50}
+
+
+def available(db, user, branch, starts, minutes, resource_ids, ignore=None, *, lock=True):
     if len(set(resource_ids)) != len(resource_ids):
         fail("Select each resource once")
     end = starts + timedelta(minutes=minutes)
-    resources = [get(db, user, branch, i, 'resource') for i in resource_ids]
+    resources = [get(db, user, branch, i, 'resource', lock=lock) for i in resource_ids]
     if not any(r.data['resource_type'] in PROVIDER_TYPES for r in resources):
         from app.shared.business_profile import term
         fail(f"Choose a {term(db, tenant(user), 'provider', branch_id=branch).lower()}")
     for r in resources:
         local, local_end = starts.astimezone(ZoneInfo(r.data['timezone'])), end.astimezone(ZoneInfo(r.data['timezone']))
+        if r.data.get('employee_id'):
+            employee = provider_employee(db, user, branch, r.data['employee_id'])
+            if employee.date_of_exit and employee.date_of_exit <= local.date():
+                fail(f'{r.title} is no longer available', 409)
+            from app.models.leave import LeaveRequest
+            if db.query(LeaveRequest.id).filter(LeaveRequest.company_id == tenant(user), LeaveRequest.employee_id == employee.id,
+                    LeaveRequest.status == 'Approved', LeaveRequest.deleted_at.is_(None),
+                    LeaveRequest.from_date <= local_end.date(), LeaveRequest.to_date >= local.date()).first():
+                fail(f'{r.title} has approved leave at that time', 409)
         if r.status != 'active' or local.weekday() not in r.data['weekdays'] or local.date() != local_end.date() or local.time().replace(tzinfo=None) < time.fromisoformat(r.data['opens']) or local_end.time().replace(tzinfo=None) > time.fromisoformat(r.data['closes']):
             fail(f"{r.title} is outside opening hours", 409)
     # Tenant writer lock serializes conflict check + insert, including distinct resources
@@ -381,25 +439,35 @@ def available(db, user, branch, starts, minutes, resource_ids, ignore=None):
         old_start = datetime.fromisoformat(booked.data['starts_at'])
         old_end = old_start + timedelta(minutes=booked.data['duration_minutes'])
         if starts < old_end and old_start < end:
-            old_resources = [get(db, user, branch, i, 'resource') for i in booked.data['resource_ids']]
-            if set(resource_ids).intersection(booked.data['resource_ids']) or staff_ids.intersection({r.data.get('user_id') for r in old_resources}):
+            old_resources = [get(db, user, branch, i, 'resource', lock=lock) for i in booked.data['resource_ids']]
+            employee_ids = {r.data.get('employee_id') for r in resources} - {None}
+            if set(resource_ids).intersection(booked.data['resource_ids']) or staff_ids.intersection({r.data.get('user_id') for r in old_resources}) or employee_ids.intersection({r.data.get('employee_id') for r in old_resources}):
                 fail("Provider or resource is already booked at that time", 409)
 
 
 @router.post("/appointments", status_code=201)
 def appointment(data: AppointmentInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return appointment_operation(data, db, user)
+
+
+def appointment_operation(data, db, user, *, commit=True):
     from app.apps.srm.models import SRMProduct
-    branch = context(db, user, True)
+    branch = context(db, user, True, appointments=True)
     prior = existing(db, user, branch, data, 'appointment')
     if prior:
         return out(prior)
-    customer(db, data.customer_id, user)
+    buyer = customer(db, data.customer_id, user)
     service = record(db, SRMProduct, data.service_id, user)
     if not service.active or service.product_type.lower() not in {'service', 'services'}:
         fail("Choose an active service from the shared catalog")
     if data.project_id:
+        context(db, user)
         get_project_for_action(db, data.project_id, user, 'manage_tasks')
     if data.deal_id:
+        from app.module_registry import is_app_enabled
+        from app.apps.business_os.services.module_service import assert_module_enabled
+        if not is_app_enabled('crm'): fail('Enable CRM to link an opportunity', 409)
+        assert_module_enabled(db, 'crm', company_id=tenant(user))
         from app.apps.crm.api.router import _assert_record_visible, _get_resource
         from app.apps.crm.models import CRMDeal
         _assert_record_visible(db, _get_resource('deals'), data.deal_id, tenant(user), user)
@@ -409,7 +477,7 @@ def appointment(data: AppointmentInput, db: Session = Depends(get_db), user=Depe
     available(db, user, branch, data.starts_at, data.duration_minutes, data.resource_ids)
     row = create(db, user, branch, 'appointment', data, customer_id=data.customer_id, project_id=data.project_id)
     row.starts_at, row.ends_at = data.starts_at, data.starts_at + timedelta(minutes=data.duration_minutes)
-    row.data = {**row.data, 'service_name': service.item_name, 'unit_price': str(service.sales_rate), 'tax_rate': str(service.gst_rate), 'currency': service.currency}
+    row.data = {**row.data, 'customer_name': buyer.name, 'service_name': service.item_name, 'unit_price': str(service.sales_rate), 'tax_rate': str(service.gst_rate), 'currency': service.currency}
     row.status = 'booked'
     if data.create_pms_task:
         from app.apps.project_management.api.router import create_task_operation
@@ -421,13 +489,16 @@ def appointment(data: AppointmentInput, db: Session = Depends(get_db), user=Depe
         prefix = 'SALON' if provider.data['resource_type'] == 'stylist' else 'APPT'
         task = create_task_operation(data.project_id, PMSTaskCreate(task_key=f'{prefix}-{row.id}', title=data.title, description=f'{label} #{row.id}. Service: {service.item_name}. Manage booking, service and billing in /srm/appointments.', start_date=day, due_date=day, estimated_hours=Decimal(data.duration_minutes)/60), db, user, commit=False)
         row.data = {**row.data, 'pms_task_id': task.id}
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return out(row)
 
 
 @router.put("/appointments/{ident}/schedule")
 def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    branch = context(db, user, True)
+    branch = context(db, user, True, appointments=True)
     row = get(db, user, branch, ident, 'appointment')
     revision(row, data.expected_revision)
     if row.status != 'booked':
@@ -436,6 +507,7 @@ def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user
     row.data = {**row.data, **data.model_dump(mode='json', exclude={'expected_revision'})}
     row.starts_at, row.ends_at = data.starts_at, data.starts_at + timedelta(minutes=data.duration_minutes)
     if row.data.get('pms_task_id'):
+        context(db, user)
         from app.apps.project_management.api.router import update_task_operation
         from app.apps.project_management.schemas import PMSTaskUpdate
         local = data.starts_at.astimezone(ZoneInfo(get(db, user, branch, data.resource_ids[0], 'resource').data['timezone'])).date()
@@ -545,13 +617,16 @@ def material_issue(data: MaterialInput, db: Session = Depends(get_db), user=Depe
 
 @router.post("/records/{ident}/transition")
 def transition(ident: int, data: Transition, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    branch = context(db, user, True)
+    branch = context(db, user, True, appointments=True)
     row = get(db, user, branch, ident)
+    if row.kind != 'appointment': context(db, user)
     revision(row, data.expected_revision)
     if row.kind == 'appointment':
         allowed = {'booked': {'checked_in', 'cancelled', 'no_show'}, 'checked_in': {'in_service', 'cancelled'}, 'in_service': {'completed'}}
         if data.status not in allowed.get(row.status, set()):
             fail("Invalid appointment transition", 409)
+        if data.status == 'no_show' and datetime.fromisoformat(row.data['starts_at']) > datetime.now(timezone.utc):
+            fail('A no-show can only be recorded after the appointment starts', 409)
     elif row.kind in {'boq', 'variation', 'measurement', 'subcontract'}:
         get_project_for_action(db, row.project_id, user, 'approve')
         if row.status != 'draft' or data.status not in {'approved', 'rejected'}:
@@ -581,8 +656,9 @@ def invoice(ident: int, data: InvoiceInput, db: Session = Depends(get_db), user=
     from app.apps.srm.api.router import _create_invoice_from_lines, _invoice_payload
     from app.apps.srm.commercial_models import InvoiceContext, ProjectCommercial
     require(user, 'srm_invoice_create', 'srm_admin')
-    branch = context(db, user, True, finance=True)
+    branch = context(db, user, True, finance=True, appointments=True)
     row = get(db, user, branch, ident)
+    if row.kind != 'appointment': context(db, user)
     if row.invoice_id:
         return _invoice_payload(invoice_for(db, row.invoice_id, user), db)
     revision(row, data.expected_revision)
@@ -643,3 +719,7 @@ def summary(project_id: int, db: Session = Depends(get_db), user=Depends(get_cur
             'actual_material_cost': money(material_cost),
             'currency': ctx.currency if ctx else base_currency, 'material_cost_currency': base_currency,
             'currency_source': 'PMS Project Billing', 'amount_basis': 'Before tax; retention is tracked within the full invoice receivable, not a discount or payment'}
+
+
+from app.apps.srm.appointment_billing import router as appointment_billing_router
+router.include_router(appointment_billing_router)

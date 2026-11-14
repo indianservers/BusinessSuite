@@ -1188,7 +1188,9 @@ def generate_salary_certificate(data: SalaryCertificateCreate, db: Session = Dep
     os.makedirs(cert_dir, exist_ok=True)
     file_name = f"salary_certificate_{employee_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.pdf"
     file_path = os.path.join(cert_dir, file_name)
-    _write_basic_pdf(file_path, ["Salary Certificate", f"Employee: {employee.employee_id} - {employee.first_name} {employee.last_name}", f"Purpose: {data.purpose}", f"Annual CTC: {annual_ctc}", f"Monthly Gross: {monthly_gross}"])
+    from app.shared.business_profile import employee_profile
+    employee_label = employee_profile(db, employee)["terms"]["employee"][0]
+    _write_basic_pdf(file_path, ["Salary Certificate", f"{employee_label}: {employee.employee_id} - {employee.first_name} {employee.last_name}", f"Purpose: {data.purpose}", f"Annual CTC: {annual_ctc}", f"Monthly Gross: {monthly_gross}"])
     item = SalaryCertificate(employee_id=employee_id, purpose=data.purpose, period_from=data.period_from, period_to=data.period_to, annual_ctc=annual_ctc, monthly_gross=monthly_gross, file_url=_file_url_from_upload_path(file_path), generated_by=current_user.id)
     db.add(item)
     db.commit()

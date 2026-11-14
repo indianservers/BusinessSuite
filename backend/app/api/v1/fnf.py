@@ -542,6 +542,8 @@ def download_fnf_statement(
     company_id = settlement.organization_id or (employee.branch.company_id if employee and employee.branch else None)
     company = db.get(Company, company_id) if company_id else None
     profile = profile_for(db, company_id)
+    from app.shared.business_profile import employee_profile
+    business_terms = employee_profile(db, employee, company_id)["terms"]
     on_date = settlement.settlement_date or date.today()
     earnings = [{"component_name": item["name"], "amount": item["amount"]} for item in data["components"] if item["component_type"] == "earning"]
     deductions = [{"component_name": item["name"], "amount": item["amount"]} for item in data["components"] if item["component_type"] == "deduction"]
@@ -549,7 +551,7 @@ def download_fnf_statement(
         "employee": {"employee_id": data["employeeCode"], "first_name": data["employeeName"]}, "last_working_date": data["lastWorkingDate"],
         "earnings": earnings, "deductions": deductions, "gross_salary": sum(item["amount"] for item in earnings),
         "total_deductions": sum(item["amount"] for item in deductions), "net_salary": data["netPayable"]},
-        company.name if company else "", template_for(profile, "settlement"), profile.branding if profile else {})
+        company.name if company else "", template_for(profile, "settlement"), profile.branding if profile else {}, business_terms=business_terms)
 
     persist_file(file_path)
     return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))

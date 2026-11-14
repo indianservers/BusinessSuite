@@ -146,6 +146,15 @@
   background: transparent;
   appearance: none;
 }
+.suite-company-identity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.suite-company-identity > small {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
 .suite-notification-bell {
   display: grid;
   place-items: center;

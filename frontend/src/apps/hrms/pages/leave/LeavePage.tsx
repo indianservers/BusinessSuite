@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { useRecordDraft } from "@/hooks/use-record-autosave";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
@@ -639,7 +640,7 @@ export default function LeavePage() {
           <CardContent className="space-y-4">
             <SmartCreateSection title="Create employee account wizard" size="standard" mobileSheet={phone} completionRevision={phone ? accountCompletion : 0} onClose={() => { if(phone) { setAccountEmployeeId("");setAccountUserId("");setAccountEmail("");setAccountPassword("");linkEmployeeUserMutation.reset();createAndLinkUserMutation.reset(); } }}><div className="leave-account-create space-y-4">{phone && <div className="leave-account-sources">{(linkEmployeeUserMutation.isError || createAndLinkUserMutation.isError) && <p role="alert">{String(((linkEmployeeUserMutation.error || createAndLinkUserMutation.error) as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Could not save this account action. Your entries are retained; please retry.")}</p>}{accountBusy && <p role="status">Saving employee account…</p>}<LeaveSourceNotice label="account employees" source={accountEmployeeSource} hasData={employeeOptions !== undefined}/><LeaveSourceNotice label="account users" source={accountUserSource} hasData={userOptions !== undefined}/><LeaveSourceNotice label="account roles" source={accountRolesSource} hasData={roles !== undefined}/></div>}<div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               {phone && <Label htmlFor={`${applyFieldId}-accountEmployeeSearch`}> Search employees</Label>}<Input disabled={phone && accountBusy} id={phone ? `${applyFieldId}-accountEmployeeSearch` : undefined} value={accountEmployeeSearch} onChange={(event) => setAccountEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
-              {phone && <Label htmlFor={`${applyFieldId}-accountEmployeeId`}> Employee</Label>}<NativeSelect disabled={phone && accountBusy} id={phone ? `${applyFieldId}-accountEmployeeId` : undefined} value={accountEmployeeId} onChange={(event) => {
+              {phone && <Label htmlFor={`${applyFieldId}-accountEmployeeId`}><BusinessTerm name="employee"/></Label>}<NativeSelect disabled={phone && accountBusy} id={phone ? `${applyFieldId}-accountEmployeeId` : undefined} value={accountEmployeeId} onChange={(event) => {
                 const employeeId = event.target.value;
                 setAccountEmployeeId(employeeId);
                 const employee = employees.find((item) => String(item.id) === employeeId);

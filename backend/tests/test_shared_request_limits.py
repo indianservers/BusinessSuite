@@ -70,6 +70,27 @@ def test_expired_work_lease_cannot_be_released_by_old_request(shared_store):
         assert db.query(SecurityWorkLease).one().token == second[2]
 
 
+def test_same_local_user_id_in_different_companies_has_independent_limits(shared_store, monkeypatch):
+    from fastapi import HTTPException
+    from app.core import request_limits
+    monkeypatch.setattr(request_limits, 'enabled', lambda request: True)
+    monkeypatch.setattr(settings, 'RATE_LIMIT_PER_MINUTE', 1)
+    monkeypatch.setattr(settings, 'SECURITY_EXPENSIVE_CONCURRENCY', 1)
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(security_session_factory=shared_store)),
+                              url=SimpleNamespace(path='/api/v1/reports'))
+    first = SimpleNamespace(id=1, organization_id=101)
+    second = SimpleNamespace(id=1, organization_id=202)
+    release_first = request_limits.enforce_actor(request, first)
+    try:
+        with pytest.raises(HTTPException) as error:
+            request_limits.enforce_actor(request, first)
+        assert error.value.status_code == 429
+        release_second = request_limits.enforce_actor(request, second)
+        release_second()
+    finally:
+        release_first()
+
+
 def test_expired_counter_cleanup_is_bounded_and_uses_one_delete(shared_store):
     from sqlalchemy import event
     with shared_store() as db:

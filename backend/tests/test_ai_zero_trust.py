@@ -734,9 +734,13 @@ def test_compromised_model_cannot_execute_or_claim_forbidden_write(
 
 
 def test_handoff_notes_are_private_company_bound_and_revocable(
-    client, db, secured, superuser_headers
+    client, db, secured
 ):
     headers, user, *_ = secured
+    from ai_test_utils import auth_headers
+    # An ordinary colleague cannot inspect another user's private handoff.
+    # Company-wide administrator inspection is covered separately.
+    colleague_headers, _ = auth_headers(client, db, email='handoff-colleague@example.com', permissions=['ai_assistant', 'crm_view'])
     body = {"module": "CRM", "summary": "Private lead handoff"}
     response = client.post(
         "/api/v1/ai-agents/handoff-notes", headers=headers, json=body
@@ -748,12 +752,12 @@ def test_handoff_notes_are_private_company_bound_and_revocable(
         for r in client.get("/api/v1/ai-agents/handoff-notes", headers=headers).json()
     )
     assert (
-        client.get("/api/v1/ai-agents/handoff-notes", headers=superuser_headers).json()
+        client.get("/api/v1/ai-agents/handoff-notes", headers=colleague_headers).json()
         == []
     )
     response = client.patch(
         f"/api/v1/ai-agents/handoff-notes/{ident}/status",
-        headers=superuser_headers,
+        headers=colleague_headers,
         json={"status": "resolved"},
     )
     assert response.status_code == 404, response.text

@@ -1,0 +1,2136 @@
+{
+  "companies": {
+    "hospital": {
+      "workspace": "company-42",
+      "routes": [
+        {
+          "path": "/dashboard",
+          "reads": [
+            {
+              "path": "/api/v1/access/settings/business-profile/effective",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/business-os/modules",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/business-os/modules",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/auth/branding",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/notifications/summary",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/homepage-banner",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/setup",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/branches/context",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/sample-data/availability",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/me",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/sample-data/status",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/launcher-preferences",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/launcher-preferences",
+              "method": "PUT",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/me",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/notifications/summary",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/setup",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "status": "rendered"
+        },
+        {
+          "pattern": "/hrms/workspaces",
+          "allowed": true,
+          "path": "/hrms/workspaces",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/access/enterprise/branding?companyId=1000000042",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/access/settings/defaults/effective",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/employees/workbench/home?scope=mine",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/employees/workbench/home?scope=organization",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/hrms/workspace-directory",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/employees/workbench/home?scope=organization",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/hrms/workspace-directory/activity",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/workspaces",
+          "headings": [
+            "People Workspaces",
+            "Your next space starts here",
+            "Quick actions",
+            "Recent activity"
+          ],
+          "text": "Team workspace\nPage actions\nHome\n/\nWorkspaces\nPeople Workspaces\n\nBring people, attendance and approvals together for a well-organized team.\n\n[Local QA] Carewell Hospital\nMain\nYour authorized spaces\nTotal workspaces\n0\nFavorites\n0\nEmployees in scope\n40\nPending approvals\n0\nOpen punches today\n0\n\nBusiness figures cover your authorized records in the current company and branch.\n\nAll (0)\nFavorites (0)\nAll statuses\nActive (0)\nArchived (0)\nAll workspaces\nMy workspaces\nShared with me\nName A–Z\nRecently updated\nMost activity\nCreate Workspace\n\n0 workspaces shown\n\nYour next space starts here\n\nWorkspaces available to your account will appear here.\n\nCreate Workspace\nQuick actions\n\nKeep work moving\n\nAdd employee\nReview approvals\nView attendance\nOrganization chart\nRecent activity\n\nWorkspace changes will appear here as your team works.\n\nPeople & organization\nAttendance & scheduling\nLeave\nApprovals\nEmployee documents\nRecruitment\nProjects\nCRM\nPeople\nSales\nFinance"
+        },
+        {
+          "pattern": "/hrms/import-data",
+          "allowed": true,
+          "path": "/hrms/import-data",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/imports/sample-data/availability",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/hrms/catalog",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/hrms/catalog",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/sample-data/status",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/hrms/lookups/employees",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/imports/hrms/history",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/import-data",
+          "headings": [
+            "Company sample data",
+            "Import into HRMS",
+            "What would you like to import?",
+            "Import from a spreadsheet"
+          ],
+          "text": "AI HRMS\nImport data\nTeam workspace\nPage actions\nCompany sample data\n\n1765 fictional records imported in branch 1.\n\nIncluded records\nDelete sample data\nImport into HRMS\n\nBring your data across. Match columns, review every change, then import.\n\nExcel template\nNew import\nImport history\n1\nChoose source\n2\nMap columns\n3\nPreview & clean\n4\nFinish\nWhat would you like to import?\nEmployee master data\n7 fields · 4 required\nSalary & payroll inputs\n5 fields · 3 required\nAttendance\n5 fields · 3 required\nImport from a spreadsheet\n\nDrop an Excel or CSV file here. Up to 5,000 rows and 3 MB per import.\n\nChoose spreadsheet\nDownload sample Excel\n\nEmployee records only; no login accounts or invitations are created."
+        },
+        {
+          "pattern": "/hrms/birthdays",
+          "allowed": true,
+          "path": "/hrms/birthdays",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/master-data/birthdays/upcoming?source=hrms&days=30&page=1",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/birthdays",
+          "headings": [
+            "Employee birthdays"
+          ],
+          "text": "AI HRMS\nEmployee birthdays\nTeam workspace\nPage actions\nEmployee birthdays\n\nUpcoming birthdays, consent preferences and reviewed greeting drafts.\n\nNext 7 days\nNext 30 days\nNext 90 days\nNext 366 days\n\n0 upcoming · Leap-day policy: March 1 in non-leap years\n\nLoaded records\n0\nTable\nCards\nList\nGroup\nNone\n0 loaded\n\nNo birthdays in this period. Add a day and month from an authorized profile.\n\nPrevious\nPage 1\nNext"
+        },
+        {
+          "pattern": "/hrms/messages",
+          "allowed": true,
+          "path": "/hrms/messages",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/collaboration/events",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/collaboration/events",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/collaboration/workspaces",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/collaboration/workspaces/1/members",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/messages",
+          "headings": [
+            "Messages",
+            "Messages",
+            "Workspace chat",
+            "Channels",
+            "Direct messages",
+            "Groups",
+            "Your team, in one place."
+          ],
+          "text": "AI writing\nPage actions\nMessages\n\nHRMS · BusinessSuite Communication Engine\n\nSample delivery workspace\nWorkspace ↗\nSearch\nThis conversation\nAny author\nindustryqa15.hospital@example.com\nAttachments\nMessages\nAll\nUnread\nPinned\nDrafts\nArchived\n+ New conversationMark all read\nWorkspace chat\n# general\nTeam conversation\nChannels\nDirect messages\nGroups\nYour team, in one place.\n\nChoose a channel or start a direct conversation to discuss work, share files and keep follow-ups connected."
+        },
+        {
+          "pattern": "/hrms/leave/gantt",
+          "allowed": true,
+          "path": "/hrms/leave/gantt",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/leave/requests?per_page=500",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/scheduling/hrms/leave?ids=",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/leave/gantt",
+          "headings": [
+            "HR Gantt",
+            "Dependencies"
+          ],
+          "text": "AI HRMS\nLeave\nLeave Gantt\nTeam workspace\nPage actions\nHR Gantt\n\nDrag bars to move dates; drag edges to resize. Use Edit dates for keyboard scheduling. Locked records are read-only.\n\nSchedule\nLeave requests\nFrom\nTo\nZoom\nday\nweek\nmonth\nStatus\nAll statuses\nNo data found\nSearch\nRefresh\nFit dates\nToday\n\n0 schedules in range - 0 without valid dates. Dates are inclusive.\n\nNo schedules match this range and filters. Adjust dates or use Fit dates.\nDependencies\n\nSaved links between these records. Amber arrows flag unmet constraints. Linked records are not automatically rescheduled.\n\nNo dependencies yet."
+        },
+        {
+          "pattern": "/hrms",
+          "allowed": true,
+          "path": "/hrms",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/recruitment/candidates?page=1&per_page=100",
+              "method": "GET",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/recruitment/jobs?page=1&per_page=100",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms",
+          "headings": [
+            "HR daily work",
+            "Hiring pipeline",
+            "Joiners to prepare",
+            "Exits requiring coordination"
+          ],
+          "text": "AI HRMS\nTeam workspace\nAI writing\nPage actions\nHR daily work\n\nPeople, exceptions, approvals and employee lifecycle in one workspace.\n\nQuick Add Employee\nGuided payroll\nBulk employee changes\nAttendance\nApply Leave\nApprovals\nEmployee search\nMy Work\nMy Team\nOrganization (permitted scope)\n\nOrganization #1000000042 and current permission restrictions apply. My Team means direct reports. Counts cover complete source queries; joiner and exit previews show up to 50 records. Current view: organization. Updated 14/11/2026, 17:29:59. Employment actions affect one employee at a time; every change is audited.\n\nDaily overview\nPeople & lifecycle\nAttendance exceptions\nApproval inbox (0)\nPending approvals\n0\nOpen punches today\n0\nUpcoming / recent joiners\n0\nOpen exits\n0\nHiring pipeline\nView all\nBranch\nAll branches\nMain\nTeam\nAll teams\nNo team assigned\nOwner\nAll owners\nUnassigned\nApplied from\nTo\nClear filters\n\n0 of 0 loaded records · Urgent items first. Owners are job hiring managers; teams are hiring departments. Hiring and employee conversion remain separate.\n\nApplied\n0\n0 active\n\nNo matching records\n\nView all\nScreening\n0\n0 active\n\nNo matching records\n\nView all\nInterview\n0\n0 active\n\nNo matching records\n\nView all\nAssessment\n0\n0 active\n\nNo matching records\n\nView all\nOffer\n0\n0 active\n\nNo matching records\n\nView all\nHired\n0\n0 active\n\nNo matching records\n\nView all\nRejected\n0\n0 active\n\nNo matching records\n\nView all\nWithdrawn\n0\n0 active\n\nNo matching records\n\nView all\n\nBranch uses your suite access scope. Team and owner filters use recorded assignments; records without assignments remain unassigned. Date filters exclude undated records. Open a record to review its workflow rules.\n\nJoiners to prepare\n\nNo joiners in the coming 30 days or previous 7 days within scope.\n\nExits requiring coordination\n\nNo open exits within your permitted scope."
+        },
+        {
+          "pattern": "/hrms/daily-work",
+          "allowed": true,
+          "path": "/hrms/daily-work",
+          "status": "rendered",
+          "reads": [],
+          "errors": [],
+          "url": "/hrms/daily-work",
+          "headings": [
+            "HR daily work",
+            "Hiring pipeline",
+            "Joiners to prepare",
+            "Exits requiring coordination"
+          ],
+          "text": "AI HRMS\nDaily Work\nTeam workspace\nAI writing\nPage actions\nHR daily work\n\nPeople, exceptions, approvals and employee lifecycle in one workspace.\n\nQuick Add Employee\nGuided payroll\nBulk employee changes\nAttendance\nApply Leave\nApprovals\nEmployee search\nMy Work\nMy Team\nOrganization (permitted scope)\n\nOrganization #1000000042 and current permission restrictions apply. My Team means direct reports. Counts cover complete source queries; joiner and exit previews show up to 50 records. Current view: organization. Updated 14/11/2026, 17:29:59. Employment actions affect one employee at a time; every change is audited.\n\nDaily overview\nPeople & lifecycle\nAttendance exceptions\nApproval inbox (0)\nPending approvals\n0\nOpen punches today\n0\nUpcoming / recent joiners\n0\nOpen exits\n0\nHiring pipeline\nView all\nBranch\nAll branches\nMain\nTeam\nAll teams\nNo team assigned\nOwner\nAll owners\nUnassigned\nApplied from\nTo\nClear filters\n\n0 of 0 loaded records · Urgent items first. Owners are job hiring managers; teams are hiring departments. Hiring and employee conversion remain separate.\n\nApplied\n0\n0 active\n\nNo matching records\n\nView all\nScreening\n0\n0 active\n\nNo matching records\n\nView all\nInterview\n0\n0 active\n\nNo matching records\n\nView all\nAssessment\n0\n0 active\n\nNo matching records\n\nView all\nOffer\n0\n0 active\n\nNo matching records\n\nView all\nHired\n0\n0 active\n\nNo matching records\n\nView all\nRejected\n0\n0 active\n\nNo matching records\n\nView all\nWithdrawn\n0\n0 active\n\nNo matching records\n\nView all\n\nBranch uses your suite access scope. Team and owner filters use recorded assignments; records without assignments remain unassigned. Date filters exclude undated records. Open a record to review its workflow rules.\n\nJoiners to prepare\n\nNo joiners in the coming 30 days or previous 7 days within scope.\n\nExits requiring coordination\n\nNo open exits within your permitted scope."
+        },
+        {
+          "pattern": "/hrms/my-assignments",
+          "allowed": true,
+          "path": "/hrms/my-assignments",
+          "status": "rendered",
+          "reads": [
+            {
+              "path": "/api/v1/project-management/work/assignments?page=1",
+              "method": "GET",
+              "status": 200
+            }
+          ],
+          "errors": [],
+          "url": "/hrms/my-assignments",
+          "headings": [
+            "My PMS Assignments",
+            "No records match"
+          ],
+          "text": "AI HRMS\nMy Assignments\nTeam workspace\nAI writing\nPage actions\nMy PMS Assignments\n\nInterns and employees use the same PMS execution and review records.\n\nBatch Management →\nTable\nCards\nList\nBy Status\nFrequent\nFavorites\nLoaded records\n0\nFilters\nColumns 6/6\nSaved views\nGroup · Drag columns here\nStatus\n+ Add group\nTask\nDeadline\nProgress\nTask\nFavorite\nStatus\nDeadline\nProgress\nAction\nNo records match\n\nTry a different search or clear your filters.\n\n0 matching records\nLoaded records only\nLoaded rows per page\n10\n25\n50\n100\n200\nAll\nGroup page 1 of 1\nPrevious\nNext\nPrevious\nPage 1 · 0 assignments\nNext"
+        }
+      ],
+      "home": "passed",
+      "inventory": [
+        {
+          "pattern": "/hrms/workspaces",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/import-data",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/birthdays",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/messages",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/leave/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/daily-work",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/my-assignments",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/dashboard",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/role-home",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/admin-home",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/hr-home",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/executive-home",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/manager-dashboard",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/ess",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/employee-directory",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/applications",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/list",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/operations",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/people-work",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/interns-hub/applications",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/interns-hub",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/interns",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/dashboard",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/batches",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/tasks",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/reviews",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/interns/performance",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/users",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/employees",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/employees/new",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/employees/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/probation",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/attendance",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/my-attendance",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/attendance/shift-roster",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/my-roster",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/timesheets",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/approval-os",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/workflow",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/workflow-designer",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/notifications",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/leave",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/payroll",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/my-payslips",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/fnf-settlements",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/investment-declaration",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/recruitment",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/performance",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/benefits",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/lms",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/statutory-compliance",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/background-verification",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/whatsapp-ess",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/custom-fields",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/enterprise",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/engagement",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/helpdesk",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/advanced-analytics",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/logs",
+          "allowed": false
+        },
+        {
+          "pattern": "/hrms/company",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/org-chart",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/settings/:section?",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/assets",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/expenses",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/onboarding",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/documents",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/letters-certificates",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/exit",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/ai-assistant",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/profile",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/profile/security",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/profile-management",
+          "allowed": true
+        },
+        {
+          "pattern": "/hrms/interns/profiles",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/workspaces",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/whatsapp-communication",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/import-data",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/customers/:id/360",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/payment-requests",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/birthdays",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/company-directory",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/records",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/record-metadata",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/product-customers",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/customer-follow-ups",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/greetings",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/follow-ups/directory",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/follow-ups/calendar",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/follow-ups/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/products-services",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/statistics/:kind",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/messages",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/sales-home",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/follow-ups",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/dashboard",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/profile",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/potential-clients",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/leads",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/leads/classic",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/leads/workbench",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/leads/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/contacts",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/contacts/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/accounts",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/accounts/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/companies",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/customers",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/vendors",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/companies/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/deals",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/deals/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/pipeline",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/pipeline-templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/inventory-templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/mail-merge-templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/pipeline-settings",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/pipelines",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/pipelines/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/activities",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/meetings",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/calls",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/tasks",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/tasks/legacy",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/calendar",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/calendar-integrations",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/webhooks",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/send-reminders",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/communication-hub",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/email-templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/emails",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/webforms",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/webforms/:id",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/campaigns",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/campaigns/:id",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/consents",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp/inbox",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp/sent",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp/templates",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp/profile",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/whatsapp/settings",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/auto-responses",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/delivery-logs",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/communication-timeline",
+          "allowed": false
+        },
+        {
+          "pattern": "/crm/products",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/products/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/services",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/services/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/price-books",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/price-books/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quotes",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quotes/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quotes/:id/builder",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quote-approvals",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/cpq",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/guided-selling",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quotations",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/quotations/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/approval-settings",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/my-approvals",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/duplicates",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/territories",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/tickets",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/files",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/automation",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/lead-to-cash",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/forecasting",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/forecasts",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/targets",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/sales-performance",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/funnel",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/lost-analysis",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/customer-360",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/import-export",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/settings",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/lead-scoring",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/feature-checklist",
+          "allowed": true
+        },
+        {
+          "pattern": "/crm/admin",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/import-data",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks-follow-ups",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/customers/:id/360",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/follow-ups",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/follow-ups/directory",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/follow-ups/calendar",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/follow-ups/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/products-services",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/products",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/management",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/workflow-schemes",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/transition-approvals",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/admin/configuration",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/my-work",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/members",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/members",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/people",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/people/:personId",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/directory",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/people-work",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/my-notices",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/batches",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/batch-tasks",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/my-assignments",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/assignment-controls",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/reviews",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/admin/workspaces",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/recovery",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/audit-logs",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/analytics/team",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/analytics/projects",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/analytics",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/operator",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/assistant",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/settings/ai/:provider",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/workspaces",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/overview",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/profile",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/command-center",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/workspace-tools",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/enterprise-engine",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/product-launch",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/portfolio",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/dependency-management",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/resource-planning",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/agile-execution",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/project-financials",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/risk-register",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/risks",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/classic",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/new",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/edit",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/billing",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/communication",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/board",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/timeline",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/milestones",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/files",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/risks",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks/advanced",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks/new",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks/:taskId",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks/:taskId/edit",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tasks/:taskId/classic",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/tasks/:taskId",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/work-hub",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/impact",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/ai-planner",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/timeline-plus",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/dependency-timeline",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/automation-ai",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/software",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/live",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/teams-live",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/backlog",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/issues",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/roadmap",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/workload",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/capacity",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/releases",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/automation",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/goals",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/forms",
+          "allowed": false
+        },
+        {
+          "pattern": "/pms/messages",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/team-communication",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/custom-fields",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/teams",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/org-chart",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/trash",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/templates",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/components",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/workflows",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/security",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/dependencies",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/navigator",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/apps",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/dashboards",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/docs",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/notes",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/projects/:projectId/notes",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/task-types",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/tags",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/plans",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/issue-navigator-pro",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/backlog-grooming",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/sprint-lifecycle",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/blueprints",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/resource-utilization",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/calendar",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/planner",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/sprints",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/files",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/time-tracking",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/timesheets",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/clients",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/client-portal",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/settings",
+          "allowed": true
+        },
+        {
+          "pattern": "/pms/admin",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/appointments",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/salon",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/construction",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/workspaces",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/whatsapp-communication",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/import-data",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/customers/:id/360",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/payment-requests",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/customers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/vendors",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/suppliers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/companies",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/quotes",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/quotes/:id/builder",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/follow-ups/directory",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/follow-ups/calendar",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/follow-ups/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/follow-ups",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/messages",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/gantt",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/dashboard",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/profile",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-orders",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-orders/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/contracts",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/contracts/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/engagements",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/engagements/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/billing-plans",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/billing-plans/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/invoice-drafts",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/invoices",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/invoices/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/collections",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/revenue-recognition",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/profitability",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/customer-360",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/products-services",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/products",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/services",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/products",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/terminal",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/sessions",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/cashier-closing",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/returns",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/dashboard",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/items",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/items/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/items/:id/ledger-mapping",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/products",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/products/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/products/import",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/products/export",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/products/barcodes",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/price-lists",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-groups",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/units",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/warehouses",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/opening-stock",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-in",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-out",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-transfers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-adjustments",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/purchase-receipts",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/delivery-notes",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-summary",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/item-ledger/:id",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/warehouse-stock",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-aging",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reorder-report",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/dead-stock",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/fast-slow-moving",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/valuation",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/gross-margin",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/cogs",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reconciliation",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reconciliation/gl",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reconciliation/grni",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reconciliation/cogs",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reconciliation/gst",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/cogs",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/gross-margin",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/hsn-summary",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/complete",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/batches",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/serial-numbers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/purchase-orders",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/purchase-orders/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/grn",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/manufacturing",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/manufacturing/bom",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/manufacturing/bom/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/manufacturing/orders",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/manufacturing/orders/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/audit",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reorder-alerts",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/ai",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/source",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/source",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/held-bills",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/pos/registers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/invoices",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/invoices/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/orders",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/orders/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/delivery-bills",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/picklists",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/packages",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/returns",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/quotations",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/proforma",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/challans",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/sales-inventory/refunds",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/branches",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/stock-transfers/create",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/composite-items",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/repacking",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/stock",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/low-stock",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/reorder",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/valuation",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/expiry",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/inventory-ledger",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/abc-analysis",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/dead-stock-source",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/stock-health",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/sales-velocity",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/stock-summary-source",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/stock-movement",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/inventory/reports/serial-numbers",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/reports",
+          "allowed": true
+        },
+        {
+          "pattern": "/srm/settings",
+          "allowed": true
+        }
+      ]
+    }
+  },
+  "started_at": "2026-11-14T11:59:38.531Z",
+  "finished_at": "2026-11-14T12:00:15.329Z"
+}

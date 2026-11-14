@@ -1,3 +1,5 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import BusinessTerm from "@/components/BusinessTerm";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -35,6 +37,7 @@ const emptyRow = (days: string[], projectId = ""): TimesheetRow => ({
 });
 
 export default function TimesheetsPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, PMSTask[]>>({});
@@ -204,7 +207,7 @@ export default function TimesheetsPage() {
               <GridTable gridId="apps/project-management/pages/TimesheetsPage:table-1" className="min-w-[980px] w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-left">
-                    <Th>Project</Th>
+                    <th data-business-field="project" className="p-2 align-middle font-medium">Project</th>
                     <Th>Task</Th>
                     <Th>Billable</Th>
                     {days.map((day) => <Th key={day}>{shortDay(day)}<br /><span className="font-normal text-muted-foreground">{day.slice(5)}</span></Th>)}
@@ -217,7 +220,7 @@ export default function TimesheetsPage() {
                     <tr {...recordPreviewProps(row)} key={row.key} className="border-b">
                       <Td>
                         <NativeSelect value={row.projectId} disabled={!editable} onChange={(event) => { updateRow(row.key, { projectId: event.target.value, taskId: "" }); if (event.target.value) loadTasks(Number(event.target.value)); }} className="h-9 w-44 rounded-md border bg-background px-2">
-                          <option value="">Project</option>
+                          <option value=""><BusinessTerm name="project"/></option>
                           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                         </NativeSelect>
                       </Td>

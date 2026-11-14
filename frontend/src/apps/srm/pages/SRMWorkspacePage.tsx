@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import POSReturnForm from "../components/POSReturnForm";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
 import Customer360Workspace from "@/shared/records/Customer360Page";
@@ -1797,7 +1798,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
             <>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-2 text-sm"><span className="font-medium">Title</span><Input required maxLength={220} value={salesOrder.title} onChange={event => setSalesOrder(current => ({ ...current, title: event.target.value }))}/></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Customer</span><SharedCustomerSelect value={salesOrder.customer_id} onChange={customer_id => setSalesOrder(current => ({ ...current, customer_id }))}/></label>
+                <label className="space-y-2 text-sm"><span className="font-medium"><BusinessTerm name="customer"/></span><SharedCustomerSelect value={salesOrder.customer_id} onChange={customer_id => setSalesOrder(current => ({ ...current, customer_id }))}/></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={salesOrder.currency} onChange={currency => setSalesOrder(current => ({ ...current, currency }))}/></label>
               </div>
               <section data-form-section-label="Products and services"><CatalogLinesEditor source="srm" showTax value={orderLines} onChange={setOrderLines} currency={salesOrder.currency} disabled={mutation.isPending}/></section>
@@ -1953,7 +1954,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                   <tr>
                     <th className="px-4 py-3">{entityLabel}</th>
                     <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Customer</th>
+                    <th data-business-field="customer" className="px-4 py-3">Customer</th>
                     <th className="px-4 py-3">Amount</th>
                     <th className="px-4 py-3">Updated</th>
                     {hasSchedule && <><th className="px-4 py-3">Start date</th><th className="px-4 py-3">End date</th></>}

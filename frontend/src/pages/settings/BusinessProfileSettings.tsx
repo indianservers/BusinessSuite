@@ -11,14 +11,14 @@ const workspaceApis: Record<string, string> = { crm: 'crm', srm: 'srm', fam: 'fa
 type Configuration = { overrides: ProfileValues; inherited: ResolvedProfile & { custom_terms: ProfileValues['terms'] }; version: number; branches: { id: number; name: string }[] };
 const errorText = (error: any) => typeof error?.response?.data?.detail === 'string' ? error.response.data.detail : 'Could not save business profile. Please try again.';
 
-export default function BusinessProfileSettings() {
+export default function BusinessProfileSettings({ initialSetup = false, onSaved }: { initialSetup?: boolean; onSaved?: () => unknown | Promise<unknown> } = {}) {
   const [branch, setBranch] = useState('');
   const [module, setModule] = useState('');
   const [workspace, setWorkspace] = useState('');
-  return <ProfileEditor key={`${defaultsScope()}:${branch}:${module}:${workspace}`} branch={branch} module={module} workspace={workspace} changeScope={(b, m, w) => { setBranch(b); setModule(m); setWorkspace(w); }}/>;
+  return <ProfileEditor key={`${defaultsScope()}:${branch}:${module}:${workspace}`} branch={branch} module={module} workspace={workspace} initialSetup={initialSetup} onSaved={onSaved} changeScope={(b, m, w) => { setBranch(b); setModule(m); setWorkspace(w); }}/>;
 }
 
-function ProfileEditor({ branch, module, workspace, changeScope }: { branch: string; module: string; workspace: string; changeScope: (branch: string, module: string, workspace: string) => void }) {
+function ProfileEditor({ branch, module, workspace, changeScope, initialSetup, onSaved }: { branch: string; module: string; workspace: string; initialSetup: boolean; onSaved?: () => unknown | Promise<unknown>; changeScope: (branch: string, module: string, workspace: string) => void }) {
   const cache = useQueryClient();
   const [draft, setDraft] = useState<ProfileValues>({});
   const [saved, setSaved] = useState<ProfileValues>({});
@@ -57,11 +57,12 @@ function ProfileEditor({ branch, module, workspace, changeScope }: { branch: str
       setVersion(result.data.version); setSaved(draft);
       await Promise.all([cache.invalidateQueries({ queryKey: ['business-profile'] }), cache.invalidateQueries({ queryKey: ['shared-settings'] })]);
       setMessage('Business profile saved. Existing records and pipelines are unchanged.');
+      await onSaved?.();
     } catch (error) { setError(errorText(error)); } finally { setBusy(false); }
   }
   return <section className="settings-panel grid gap-5">
     <div><h2>Business Profile & Terminology</h2><p>Choose the terms used in your business. Appointments remain shared, and pipelines are configured separately.</p></div>
-    <label>Scope<select className="w-full rounded border bg-background p-2" aria-label="Business profile scope" value={branch} disabled={busy} onChange={event => { if (!dirty || window.confirm('Discard unsaved business profile changes?')) changeScope(event.target.value, '', ''); }}><option value="">Company default</option>{query.data.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
+    {!initialSetup && <label>Scope<select className="w-full rounded border bg-background p-2" aria-label="Business profile scope" value={branch} disabled={busy} onChange={event => { if (!dirty || window.confirm('Discard unsaved business profile changes?')) changeScope(event.target.value, '', ''); }}><option value="">Company default</option>{query.data.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
     {branch && <label>Workspace application<select className="w-full rounded border bg-background p-2" aria-label="Workspace application" value={module} disabled={busy} onChange={event => { if (!dirty || window.confirm('Discard unsaved business profile changes?')) changeScope(branch, event.target.value, ''); }}><option value="">Entire branch</option>{Object.keys(workspaceApis).map(key => <option key={key} value={key}>{key.toUpperCase()}</option>)}</select></label>}
     {branch && module && <label>Workspace<select className="w-full rounded border bg-background p-2" aria-label="Business profile workspace" value={workspace} disabled={busy || workspaces.isFetching} onChange={event => { if (!dirty || window.confirm('Discard unsaved business profile changes?')) changeScope(branch, module, event.target.value); }}><option value="">Entire branch</option>{workspaces.data?.items.filter(w => w.status !== 'Archived').map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</select></label>}
     {workspaces.isError && <p role="alert">Workspaces could not load for this application. <Button variant="outline" onClick={() => void workspaces.refetch()}>Retry workspaces</Button></p>}
@@ -69,7 +70,7 @@ function ProfileEditor({ branch, module, workspace, changeScope }: { branch: str
     <p className="text-sm text-muted-foreground">Custom labels are preserved when switching business types. Reset to the selected template to use its suggested terms. Employee labels apply to the workforce; provider labels apply to appointment staff.</p>
     <fieldset className="grid gap-4" disabled={busy}><legend>Terminology</legend>{(Object.keys(catalog.terms) as TermKey[]).map(key => <div key={key} className="grid gap-2 rounded border p-3 sm:grid-cols-3"><strong>{catalog.terms[key][1]}</strong>{[0, 1].map(index => <label key={index}>{index ? 'Plural' : 'Singular'}<input className="w-full rounded border bg-background p-2" aria-label={`${key} ${index ? 'plural' : 'singular'}`} maxLength={60} value={draft.terms?.[key]?.[index] ?? ''} placeholder={preview.terms[key][index]} onChange={event => { const pair = [...(draft.terms?.[key] ?? preview.terms[key])] as TermPair; pair[index] = event.target.value; update({ ...draft, terms: { ...draft.terms, [key]: pair } }); }}/></label>)}{draft.terms?.[key] && <Button variant="outline" onClick={() => { const terms = { ...draft.terms }; delete terms[key]; update({ ...draft, terms }); }}>Use suggested terms</Button>}</div>)}</fieldset>
     <section className="rounded border p-4" aria-label="Business terminology preview"><h3>Preview</h3><p>{preview.terms.customer[1]} · {preview.terms.provider[1]} · {preview.terms.appointment[1]}</p><p>New {preview.terms.appointment[0].toLocaleLowerCase()} → {preview.terms.customer[0]} → {preview.terms.service[0]} → {preview.terms.provider[0]} → {preview.terms.resource[0]}</p></section>
-    <div className="flex flex-wrap gap-3"><Button variant="outline" disabled={busy} onClick={() => update({ ...(draft.business_type ? { business_type: draft.business_type } : {}) })}>Reset to selected template</Button>{branch && <Button variant="outline" disabled={busy} onClick={() => update({})}>Use company profile</Button>}<Button variant="outline" disabled={busy || !dirty} onClick={() => { setDraft(saved); setError(''); }}>Discard changes</Button><Button disabled={busy || !dirty || Object.values(draft.terms ?? {}).some(pair => pair?.some(label => !label.trim()))} onClick={() => void save()}>{busy ? 'Saving…' : 'Save business profile'}</Button></div>
+    <div className="flex flex-wrap gap-3"><Button variant="outline" disabled={busy} onClick={() => update({ ...(draft.business_type ? { business_type: draft.business_type } : {}) })}>Reset to selected template</Button>{branch && <Button variant="outline" disabled={busy} onClick={() => update({})}>{workspace ? 'Use branch profile' : 'Use company profile'}</Button>}<Button variant="outline" disabled={busy || !dirty} onClick={() => { setDraft(saved); setError(''); }}>Discard changes</Button><Button disabled={busy || !dirty || (initialSetup && !draft.business_type) || Object.values(draft.terms ?? {}).some(pair => pair?.some(label => !label.trim()))} onClick={() => void save()}>{busy ? 'Saving…' : 'Save business profile'}</Button></div>
     {message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}
   </section>;
 }

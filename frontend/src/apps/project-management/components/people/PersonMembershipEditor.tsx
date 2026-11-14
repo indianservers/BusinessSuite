@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export default function PersonMembershipEditor({ person, busy, mutate, remove }: Props) {
+  const { term: businessTerm } = useBusinessTerms();
   const options = useMembershipOptions();
   const [kind, setKind] = useState<"workspace" | "project">("workspace");
   const [destination, setDestination] = useState("");
@@ -31,7 +33,7 @@ export default function PersonMembershipEditor({ person, busy, mutate, remove }:
     {canAdd && <section aria-label="Add membership" className="space-y-3 rounded-xl border bg-muted/30 p-3">
       <div className="flex gap-2" role="group" aria-label="Assignment destination type">
         <Button size="sm" variant={kind === "workspace" ? "default" : "outline"} disabled={busy} onClick={() => { setKind("workspace"); setDestination(""); setRole("Member"); setSearch(""); }}>Workspace</Button>
-        <Button size="sm" variant={kind === "project" ? "default" : "outline"} disabled={busy} onClick={() => { setKind("project"); setDestination(""); setRole("Member"); setSearch(""); }}>Project</Button>
+        <Button size="sm" variant={kind === "project" ? "default" : "outline"} disabled={busy} onClick={() => { setKind("project"); setDestination(""); setRole("Member"); setSearch(""); }}>{businessTerm('project')}</Button>
       </div>
       {options.isError ? <p role="alert" className="text-sm">Could not load available destinations. <Button type="submit" variant="outline" className="underline" onClick={() => void options.refetch()}>Retry</Button></p> : <>
         <Input aria-label="Search assignment destinations" placeholder={`Find a ${kind}…`} value={search} disabled={busy} onChange={e => { setSearch(e.target.value); setDestination(""); }} />

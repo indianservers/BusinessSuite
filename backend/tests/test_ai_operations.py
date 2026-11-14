@@ -190,7 +190,9 @@ def test_measured_routing_requires_reviews_freezes_choice_and_reuses_request(cli
     assert len(calls) == 4
     assert client.post('/api/v1/ai-operator/suite/commands',headers=h,json=body).json()['id'] == response.json()['id']
     assert len(calls) == 4
-    config.enabled=False;db.commit()
+    # Provider resolution returns a credential snapshot; disable the persisted
+    # configuration to exercise revocation on the next routing decision.
+    db.get(OperatorProvider, config.id).enabled=False;db.commit()
     with pytest.raises(HTTPException): select(db,user,workspace,project)
 
 

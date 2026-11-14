@@ -3946,14 +3946,21 @@ def invoice_pdf(invoice_id: int, db: Session = Depends(get_db), current_user: Us
 
 @router.post("/receipts", status_code=201)
 def create_receipt(data: SRMReceiptCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
+    return create_receipt_operation(data, db, current_user)
+
+
+def create_receipt_operation(data, db, current_user, *, commit=True):
     lock_tenant(db, current_user)
     org_id = _org(current_user)
     item = SRMReceipt(organization_id=org_id, receipt_number=data.receipt_number or _next_number(db, SRMReceipt, "RCT", "receipt_number", org_id), created_by=current_user.id, unallocated_amount=data.amount, **data.model_dump(exclude={"receipt_number"}))
     db.add(item)
     db.flush()
     _audit(db, current_user, "receipt", item.id, "created", after=_serialize(item))
-    db.commit()
-    db.refresh(item)
+    if commit:
+        db.commit()
+        db.refresh(item)
+    else:
+        db.flush()
     return _serialize(item)
 
 
@@ -3973,6 +3980,10 @@ def get_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: Us
 
 @router.post("/receipts/{receipt_id}/confirm")
 def confirm_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
+    return confirm_receipt_operation(receipt_id, db, current_user)
+
+
+def confirm_receipt_operation(receipt_id, db, current_user, *, commit=True):
     receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id, scoped(SRMReceipt.organization_id, current_user)).with_for_update().first()
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
@@ -3980,13 +3991,20 @@ def confirm_receipt(receipt_id: int, db: Session = Depends(get_db), current_user
     before = receipt.status
     receipt.status = "confirmed"
     _audit(db, current_user, "receipt", receipt.id, "confirmed", before={"status": before}, after={"status": receipt.status})
-    db.commit()
-    db.refresh(receipt)
+    if commit:
+        db.commit()
+        db.refresh(receipt)
+    else:
+        db.flush()
     return _serialize(receipt)
 
 
 @router.post("/receipts/{receipt_id}/allocate")
 def allocate_receipt(receipt_id: int, data: SRMReceiptAllocationRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
+    return allocate_receipt_operation(receipt_id, data, db, current_user)
+
+
+def allocate_receipt_operation(receipt_id, data, db, current_user, *, commit=True):
     lock_tenant(db, current_user)
     receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id).with_for_update().populate_existing().first()
     invoice = invoice_for(db, data.invoice_id, current_user, lock=True)
@@ -4028,7 +4046,10 @@ def allocate_receipt(receipt_id: int, data: SRMReceiptAllocationRequest, db: Ses
     if engagement:
         _create_profitability_snapshot(db, engagement, current_user)
     _audit(db, current_user, "receipt", receipt.id, "allocated", after={"invoice_id": invoice.id, "amount": float(data.amount)})
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return {"receipt": _serialize(receipt), "invoice": _serialize(invoice), "allocation": _serialize(allocation)}
 
 

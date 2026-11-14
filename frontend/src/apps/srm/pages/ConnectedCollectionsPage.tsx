@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {useModuleAction} from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -20,6 +21,7 @@ export function InvoicePaymentForm({
   invoice: Row;
   onSaved?: () => unknown;
 }) {
+  const { term } = useBusinessTerms();
   const canCreate=useModuleAction("approve");
   const [method,setMethod]=useState("bank_transfer"),[receiptDate,setReceiptDate]=useState(()=>new Date().toISOString().slice(0,10));
   const queryClient = useQueryClient();
@@ -57,7 +59,7 @@ export function InvoicePaymentForm({
     <details className="w-full">
       <summary>Payment and collection actions</summary>
       <p className="my-2 text-sm text-muted-foreground">
-        Customer #{invoice.customer_id} · {invoice.currency} · Outstanding{" "}
+        {term('customer')} #{invoice.customer_id} · {invoice.currency} · Outstanding{" "}
         {invoice.balance_amount}. The receipt uses this invoice's seller and
         currency.
       </p>
@@ -150,6 +152,7 @@ function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () =
 }
 
 export default function ConnectedCollectionsPage() {
+  const { term } = useBusinessTerms();
   const canCreate=useModuleAction("approve"),canEdit=useModuleAction("edit");
   const uid = useAuthStore((state) => state.user?.id);
   const query = useQuery({
@@ -173,8 +176,8 @@ export default function ConnectedCollectionsPage() {
     <div className="space-y-5">
       <h1 className="page-title">Collections</h1>
       <p className="text-muted-foreground">
-        Record actual customer payments against issued invoices. Project billing
-        and customer history use these same receipt records.
+        Record actual {term('customer').toLowerCase()} payments against issued invoices. {term('project')} billing
+        and {term('customer').toLowerCase()} history use these same receipt records.
       </p>
       <Card>
         <CardHeader>

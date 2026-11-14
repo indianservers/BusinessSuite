@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -162,7 +163,7 @@ export default function PortfolioPage() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+            <CardHeader><CardTitle><BusinessTerm name="project" plural/></CardTitle></CardHeader>
             <CardContent className="overflow-x-auto p-0">
               <GridTable gridId="apps/project-management/pages/PortfolioPage:table-1" className="min-w-[1120px] w-full text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">

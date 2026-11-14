@@ -1,3 +1,4 @@
+import BusinessProfileSettings from "./settings/BusinessProfileSettings";
 import TrialWelcome from "./auth/TrialWelcome";
 import "./auth/suite-signup.css";
 import { useEffect, useState } from "react";
@@ -25,6 +26,13 @@ export default function PostLoginPage() {
         .then((r) => r.data),
     enabled: isHydrated && isAuthenticated && !!user,
     retry: 1,
+  });
+  const companyChosen = !!access.data && ((access.data.organizations?.length || 0) <= 1 || selectedCompany !== null);
+  const businessProfile = useQuery({
+    queryKey: ['business-profile-onboarding', user?.id, access.data?.companyId],
+    enabled: isHydrated && isAuthenticated && ready && companyChosen,
+    retry: 1,
+    queryFn: async () => (await api.get<{ required: boolean; companyId: number }>('/access/settings/business-profile/onboarding', { progress: false })).data,
   });
   useEffect(() => {
     const current = useAuthStore.getState().user;
@@ -72,11 +80,9 @@ export default function PostLoginPage() {
   if (!ready)
     return (
       <main className="suite-page" role="status">
-        Preparing your authorized workspace…
+        Preparing your authorized workspaceâ€¦
       </main>
     );
-  if(onboarding.isLoading)return <main className="suite-page" role="status">Preparing your welcome checklist�</main>;
-  if(onboarding.data?.available&&!onboarding.data.done)return <TrialWelcome data={onboarding.data} refresh={()=>void onboarding.refetch()}/>;
   const organizations = access.data?.organizations || [];
   if (organizations.length > 1 && selectedCompany === null)
     return (
@@ -92,9 +98,14 @@ export default function PostLoginPage() {
             </button>
           ))}
         </div>
-        {selecting && <p role="status">Opening company�</p>}
+        {selecting && <p role="status">Opening company…</p>}
       </main>
     );
+  if (businessProfile.isPending) return <main className="suite-page" role="status">Preparing your business profile…</main>;
+  if (businessProfile.isError) return <main className="suite-page"><h1>We couldn't load your business setup</h1><button className="suite-primary" onClick={() => void businessProfile.refetch()}>Try again</button></main>;
+  if (businessProfile.data?.required) return <main className="suite-page"><h1>Choose your business type</h1><p>Select your business, preview its terms, and apply them to your company. You can customize them later in Settings. Your pipelines remain separate.</p><BusinessProfileSettings key={String(businessProfile.data.companyId)} initialSetup onSaved={() => businessProfile.refetch()}/></main>;
+  if(onboarding.isLoading)return <main className="suite-page" role="status">Preparing your welcome checklist…</main>;
+  if(onboarding.data?.available&&!onboarding.data.done)return <TrialWelcome data={onboarding.data} refresh={()=>void onboarding.refetch()}/>;
   const allowed = canAccessRoute(
     destination.split(/[?#]/)[0],
     user?.role,

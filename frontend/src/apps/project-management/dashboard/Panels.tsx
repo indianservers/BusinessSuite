@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -199,6 +200,7 @@ export function FilterFields({
   onChange: (next: DashboardFilters) => void;
   scope?: Scope;
 }) {
+  const { term: businessTerm } = useBusinessTerms();
   const set = (key: keyof DashboardFilters, next: any) =>
     onChange({ ...value, [key]: next });
   return (
@@ -264,7 +266,7 @@ export function FilterFields({
         ].map((zone) => ({ value: String(zone), label: String(zone) }))}
       />
       <MultiChoice
-        label="Projects"
+        label={businessTerm('project', true)}
         values={value.project_ids}
         onChange={(v) => set("project_ids", v)}
         options={(scope?.projects || []).map((p) => ({

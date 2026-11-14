@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, func, cast, literal
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import declarative_base
 
 PlatformBase = declarative_base()
@@ -23,6 +24,15 @@ class PlatformAdmin(PlatformBase):
 class PlatformSignupRequest(PlatformBase):
     __tablename__ = "platform_signup_requests"
     id = Column(Integer, primary_key=True)
+
+    @hybrid_property
+    def organization_id(self):
+        """Permanent public reference, available before workspace provisioning."""
+        return f"ORG-{100000000 + self.id}" if self.id is not None else None
+
+    @organization_id.expression
+    def organization_id(cls):
+        return literal("ORG-") + cast(cls.id + 100000000, String)
     applicant_type = Column(String(20), nullable=False)
     name = Column(String(180), nullable=False)
     company_name = Column(String(180))
@@ -92,6 +102,14 @@ class PlatformTenant(PlatformBase):
     __tablename__ = "platform_tenants"
     id = Column(Integer, primary_key=True)
     signup_id = Column(Integer, ForeignKey("platform_signup_requests.id"), unique=True, nullable=False)
+
+    @hybrid_property
+    def organization_id(self):
+        return f"ORG-{100000000 + self.signup_id}" if self.signup_id is not None else None
+
+    @organization_id.expression
+    def organization_id(cls):
+        return literal("ORG-") + cast(cls.signup_id + 100000000, String)
     company_id = Column(Integer, unique=True, nullable=False)
     name = Column(String(180), nullable=False)
     admin_email = Column(String(150), nullable=False)

@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,7 @@ function TaskAssignees({ task }: { task: PMSTaskListItem }) {
 }
 
 function TasksReferencePage() {
+  const { term: businessTerm } = useBusinessTerms();
   const { user } = useAuthStore();
   const canEditTask=useModuleAction("edit");
   const taskGrant=user?.access?.grants.project_management;
@@ -749,7 +751,7 @@ function TasksReferencePage() {
                     />
                   </label>
                   <NativeSelect
-                    aria-label="Project"
+                    aria-label={businessTerm('project')}
                     value={params.get("projectId") || ""}
                     onChange={(e) => change("projectId", e.target.value)}
                   >

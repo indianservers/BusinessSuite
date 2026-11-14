@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
 import { useRecordDraft } from "@/hooks/use-record-autosave";
@@ -119,6 +120,7 @@ const stepFields: Array<Array<keyof FormData>> = [
 ];
 
 export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: { id: number }) => void } = {}) {
+  const { term } = useBusinessTerms();
   const submitting=useRef(false);
   const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
   const customFieldForm=useCrmFieldForm("employees","create");
@@ -292,8 +294,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
           Back
         </Button>
         <div>
-          <h1 className="page-title">Add New Employee</h1>
-          <p className="page-description">Create a new employee record. Empty branch or designation lists can be managed from Settings.</p>
+          <h1 className="page-title">Add New {term("employee")}</h1>
+          <p className="page-description">Create a new {term("employee").toLowerCase()} record. Empty branch or designation lists can be managed from Settings.</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate("/hrms/settings")} className="ml-auto">
           <Settings className="mr-2 h-4 w-4" />

@@ -17,6 +17,8 @@ def test_approved_signup_includes_starter_sales_setup(client, db, platform_heade
     row = submit(client, db, email="starter-signup@example.com")
     approved = approve(client, db, platform_headers, row)
     company_id = db._platform_db.get(SignupRequest, row.id).company_id
+    from app.apps.saas.models import TenantSubscription
+    assert db.query(TenantSubscription).filter_by(company_id=company_id).one().config_json['business_profile_required'] is True
     pipeline = db.query(CRMPipeline).filter_by(organization_id=company_id).one()
     assert pipeline.active and pipeline.is_default
     stages = db.query(CRMPipelineStage).filter_by(pipeline_id=pipeline.id).order_by(CRMPipelineStage.position).all()
@@ -270,6 +272,33 @@ def test_trial_workspace_isolation_and_expiry(client, db, platform_headers):
     sub.config_json = {**sub.config_json, "grace_until": (datetime.now(timezone.utc)-timedelta(seconds=1)).isoformat()}
     db.commit()
     assert client.get("/api/v1/crm/lead-management/leads", headers=ha).status_code == 403
+
+
+@pytest.mark.parametrize("restriction", ["module_removed", "expired", "suspended"])
+def test_company_admin_reads_obey_subscription_changes(client, db, platform_headers, restriction):
+    row = submit(client, db, email="licensed-admin@example.com")
+    activate(client, approve(client, db, platform_headers, row))
+    headers = login(client, row.email)
+    path = "/api/v1/crm/lead-management/leads"
+    assert client.get(path, headers=headers).status_code == 200
+    sub = db.query(TenantSubscription).filter_by(company_id=row.company_id).one()
+    before = dict(sub.config_json)
+    if restriction == "module_removed":
+        sub.config_json = {**before, "modules": []}
+    elif restriction == "expired":
+        sub.config_json = {**before, "grace_until": (datetime.now(timezone.utc)-timedelta(seconds=1)).isoformat()}
+    else:
+        sub.status = "suspended"
+    db.commit()
+    assert client.get(path, headers=headers).status_code == 403
+    access = client.get("/api/v1/access/me", headers=headers)
+    assert access.status_code == 200, access.text
+    assert access.json()["grants"]["crm"]["enabled"] is False
+    assert access.json()["grants"]["crm"]["actions"] == []
+    sub.status = "trial"
+    sub.config_json = before
+    db.commit()
+    assert client.get(path, headers=headers).status_code == 200
 
 
 def test_rejection_never_creates_workspace(client, db, platform_headers):

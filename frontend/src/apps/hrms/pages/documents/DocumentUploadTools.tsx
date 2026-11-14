@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import "./documents-mobile.css";
@@ -283,7 +284,7 @@ export default function DocumentUploadTools({
 
   const employeeChooser = (
     <div className="space-y-2">
-      <Label>Employee</Label>
+      <Label><BusinessTerm name="employee"/></Label>
       <div className="space-y-3 rounded-lg border p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
@@ -222,7 +223,7 @@ export default function FnFSettlementPage() {
             </CardHeader>
             <CardContent className="hrms-fnf-create space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="fnf-employee">Employee</Label>
+                <Label htmlFor="fnf-employee"><BusinessTerm name="employee"/></Label>
                 <NativeSelect id="fnf-employee" disabled={phoneBusy} loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {employees.data?.map((employee: any) => (

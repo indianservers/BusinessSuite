@@ -334,6 +334,13 @@ def billing_customer_snapshot(db, buyer):
     return snapshot
 
 
+def invoice_business_terms(db, invoice):
+    from app.branches.models import BranchOwnership
+    from app.shared.business_profile import effective
+    owner = db.query(BranchOwnership).filter_by(company_id=invoice.organization_id or 1, resource_table=invoice.__tablename__, resource_key=str(invoice.id)).first()
+    return effective(db, invoice.organization_id or 1, owner.branch_id if owner else None)['terms']
+
+
 def issue_snapshot(db, invoice, user):
     ctx = context(db, invoice, user)
     if ctx.issued_at:
@@ -343,6 +350,7 @@ def issue_snapshot(db, invoice, user):
     buyer = customer(db, invoice.customer_id, user)
     entity = seller(db, ctx.seller_id, user)
     ctx.customer_snapshot = billing_customer_snapshot(db, buyer)
+    ctx.customer_snapshot = {**ctx.customer_snapshot, '_business_terms': invoice_business_terms(db, invoice)}
     ctx.seller_snapshot = {
         key: getattr(entity, key)
         for key in ("id", "name", "legal_name", "address", "gstin", "email", "phone")
@@ -411,7 +419,11 @@ def invoice_document(db, invoice):
     row(entity.get("address") or "")
     if entity.get("gstin"):
         row(f"Seller GSTIN: {entity['gstin']}")
-    row(f"Customer: {buyer.get('name', invoice.customer_id or 'Not linked')}")
+    terms = buyer.get('_business_terms', {})
+    if invoice.status in {'draft', 'pending_approval'} and not invoice.approved_at:
+        terms = invoice_business_terms(db, invoice)
+    customer_label = terms.get('customer', ['Customer', 'Customers'])[0]
+    row(f"{customer_label}: {buyer.get('name', invoice.customer_id or 'Not linked')}")
     row(buyer.get("address") or "")
     row(f"Date: {document_date(invoice.issue_date, defaults)}    Due: {document_date(invoice.due_date, defaults)}")
     if defaults.get("subject"): row(defaults["subject"])

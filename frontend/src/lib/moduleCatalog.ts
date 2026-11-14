@@ -32,6 +32,16 @@ export type ModuleIndexItem = {
 };
 export const modules: ModuleIndexItem[] = [
   {
+    key: "appointments",
+    name: "Appointments",
+    label: "Bookings for every business",
+    description: "Schedule providers, customers, services and resources using your business terminology.",
+    icon: CalendarDays,
+    homePath: "/srm/appointments",
+    loginPath: "/login",
+    productKey: "srm",
+  },
+  {
     key: "power_apps",
     name: "Power Apps",
     label: "Build, automate & connect",

@@ -146,6 +146,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               <div className="px-3 py-2">
                 <p className="truncate text-sm font-medium">{user?.email}</p>
                 <p className="text-xs text-muted-foreground">{roleLabel}</p>
+                {user?.access?.organizationId && <p className="text-xs text-muted-foreground">Organization ID: <code>{user.access.organizationId}</code></p>}
               </div>
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
               <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent" onSelect={() => navigate(profilePath)}>

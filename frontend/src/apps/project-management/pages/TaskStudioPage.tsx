@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { Button } from "@/components/ui/button";
 import { MobileActionBar } from "@/components/mobile/MobileActionBar";
@@ -367,6 +368,7 @@ function PeoplePicker({
   );
 }
 export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask,keepOpen?:boolean)=>Promise<void>;onClose?:()=>void}={}) {
+  const { term: businessTerm } = useBusinessTerms();
   const { taskId } = useParams();
   const id = embedded?0:Number(taskId) || 0;
   const navigate = useNavigate();
@@ -1195,7 +1197,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                         <span>Project *</span>
                         <NativeSelect
                           required
-                          aria-label="Project"
+                          aria-label={businessTerm('project')}
                           value={draft.projectId || ""}
                           disabled={!!id || !!created.current}
                           onChange={(e) => {
@@ -1211,7 +1213,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                             );
                           }}
                         >
-                          <option value="">Choose a project</option>
+                          <option value="">{`Choose a ${businessTerm('project').toLowerCase()}`}</option>
                           {projects
                             .filter((p) => !p.is_task_collection)
                             .map((p) => (

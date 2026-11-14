@@ -156,7 +156,9 @@ def archive(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_u
 
 @router.get('/{ident}/activity')
 def activity(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    owned(db,user,ident)
+    agent=owned(db,user,ident)
+    if agent.user_id != user.id:
+        raise HTTPException(404,'Agent not found')
     from app.ai_operator.suite_models import SuiteRun
     from app.ai_operator.suite import owned as run_owned,public as run_public
     rows=db.query(SuiteRun).filter_by(user_id=user.id).filter(SuiteRun.result['request']['agent_id'].as_integer()==ident).order_by(SuiteRun.id.desc()).limit(50)

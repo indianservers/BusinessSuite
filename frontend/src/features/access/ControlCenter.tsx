@@ -522,7 +522,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                         <tr>
                           <th>Department</th>
                           <th>Head</th>
-                          <th>Employees</th>
+                          <th data-business-field="employee">Employees</th>
                           <th>Status</th>
                           <th>Action</th>
                         </tr>

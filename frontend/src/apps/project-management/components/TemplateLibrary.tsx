@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
@@ -24,6 +25,7 @@ export default function TemplateLibrary<T extends Template>({ templates, project
   onPreview: (template: T) => void;
   onSelectBlueprint: (blueprint: Blueprint) => void;
 }) {
+  const { term: businessTerm } = useBusinessTerms();
   const [source, setSource] = useState("catalog");
   const [search, setSearch] = useState("");
   const [project, setProject] = useState("");
@@ -47,7 +49,7 @@ export default function TemplateLibrary<T extends Template>({ templates, project
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]">
       <div className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Search templates" placeholder="Search names, descriptions or tasks…" value={search} onChange={event => setSearch(event.target.value)} className="h-11 pl-9" /></div>
-      <NativeSelect aria-label="Filter templates by project" className={selectClass} value={project} onChange={event => setProject(event.target.value)}><option value="">All projects</option>{projects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect>
+      <NativeSelect aria-label="Filter templates by project" className={selectClass} value={project} onChange={event => setProject(event.target.value)}><option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>{projects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect>
       <NativeSelect aria-label="Filter templates by task count" className={selectClass} value={size} onChange={event => setSize(event.target.value)}><option value="">Any task count</option><option value="small">Up to 5 tasks</option><option value="large">6 or more tasks</option></NativeSelect>
       <NativeSelect aria-label="Template availability" className={selectClass} value={availability} onChange={event => setAvailability(event.target.value)}><option value="active">Active templates</option><option value="all">Include paused</option></NativeSelect>
     </div>

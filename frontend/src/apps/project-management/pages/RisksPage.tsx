@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import {useAuthStore} from "@/store/authStore";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -54,6 +55,7 @@ const emptyForm: CreateRiskInput = {
 };
 
 export default function RisksPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const { projectId } = useParams<{ projectId: string }>();
   const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.project_management;
   const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
@@ -190,7 +192,7 @@ export default function RisksPage() {
 
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
-          <Filter disabled={!!projectId} label="Project" value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
+          <Filter disabled={!!projectId} label={businessTerm('project')} value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
             <option value="">All accessible projects</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
           </Filter>
@@ -230,7 +232,7 @@ export default function RisksPage() {
           <CardContent>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
-              <Field label="Project">
+              <Field label={businessTerm('project')}>
                 <NativeSelect disabled={!!projectId} className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
                   <option value="">Select project</option>
                   {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}

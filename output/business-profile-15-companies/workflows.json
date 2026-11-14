@@ -1,0 +1,2615 @@
+{
+  "marker": "INDUSTRY-QA15-20261114",
+  "companies": {
+    "salon": {
+      "industry": "salon",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 92,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 43,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/92",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/43",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "hospital": {
+      "industry": "hospital",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "construction": {
+      "industry": "construction",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "retail": {
+      "industry": "retail",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "pharma": {
+      "industry": "pharma",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "education": {
+      "industry": "education",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "consulting": {
+      "industry": "consulting",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "repairs": {
+      "industry": "repairs",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "restaurant": {
+      "industry": "restaurant",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "manufacturing": {
+      "industry": "manufacturing",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "logistics": {
+      "industry": "logistics",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "real_estate": {
+      "industry": "real_estate",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "hospitality": {
+      "industry": "hospitality",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "fitness": {
+      "industry": "fitness",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    },
+    "legal": {
+      "industry": "legal",
+      "records": {
+        "lead_id": 41,
+        "project_id": 11,
+        "employee_id": 52,
+        "workspace_id": 1,
+        "task_id": 161,
+        "customer_id": 42,
+        "provider_id": 1,
+        "appointment_id": 2
+      },
+      "checks": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/access/settings/business-profile/effective",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/imports/sample-data/import",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/employees/52",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/crm/leads/41",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/workspaces",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/projects/11",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/project-management/projects/11/tasks",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/project-management/tasks/161",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/master-data/companies",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/master-data/companies/42",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/catalog/items",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/resources",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/records",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        },
+        {
+          "method": "POST",
+          "path": "/srm/industry/appointments/2/payments",
+          "status": 201,
+          "passed": true
+        },
+        {
+          "method": "GET",
+          "path": "/srm/industry/appointments/2/billing",
+          "status": 200,
+          "passed": true
+        }
+      ],
+      "status": "passed",
+      "sample_counts": {
+        "employees": 40,
+        "employee_salaries": 40,
+        "expense_claims": 40,
+        "attendances": 240,
+        "crm_pipelines": 1,
+        "crm_pipeline_stages": 5,
+        "crm_companies": 40,
+        "crm_contacts": 40,
+        "crm_leads": 40,
+        "crm_deals": 40,
+        "crm_activities": 160,
+        "pms_workspaces": 1,
+        "pms_workspace_members": 1,
+        "pms_projects": 10,
+        "pms_project_members": 10,
+        "pms_tasks": 160,
+        "pms_time_logs": 160,
+        "srm_warehouses": 1,
+        "srm_products": 40,
+        "srm_inventory_balances": 30,
+        "srm_inventory_movements": 30,
+        "srm_sales_orders": 40,
+        "srm_sales_order_lines": 40,
+        "srm_invoices": 40,
+        "srm_invoice_lines": 40,
+        "srm_engagements": 120,
+        "fam_ledger_groups": 4,
+        "fam_ledgers": 40,
+        "fam_bank_accounts": 1,
+        "fam_bank_statements": 1,
+        "fam_bank_statement_lines": 30,
+        "fam_parties": 40,
+        "fam_cost_centers": 40,
+        "fam_bill_references": 200
+      },
+      "starts_at": "2026-11-15T04:30:00+00:00",
+      "payment_verified": true
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { Button } from "@/components/ui/button";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -217,7 +218,7 @@ const ProjectManagementHomePage: React.FC = () => {
 
         </details>
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-foreground">Projects</h2>
+          <h2 className="text-lg font-bold text-foreground"><BusinessTerm name="project" plural/></h2>
           {canAccessRoute("/pms/projects", user?.role, user?.is_superuser) && (
             <Link to="/pms/projects" className="text-sm font-medium text-primary hover:underline">View all projects</Link>
           )}

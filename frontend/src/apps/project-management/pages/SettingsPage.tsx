@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { workspaceError } from "./workspaceTypes";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -128,7 +129,7 @@ export default function SettingsPage() {
               </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
-              <span className="font-medium text-muted-foreground">Project</span>
+              <span className="font-medium text-muted-foreground"><BusinessTerm name="project"/></span>
               <NativeSelect aria-label="Repository project" disabled={loading || saving} className="input" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
                 {projects.map((project) => <option key={project.id} value={project.id}>{project.project_key} - {project.name}</option>)}
               </NativeSelect>

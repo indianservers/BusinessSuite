@@ -1,3 +1,4 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import LocalRecordGrid from "@/shared/data-grid/LocalRecordGrid";
@@ -175,6 +176,7 @@ function TaskBadges({ task }: { task: PMSTaskListItem }) {
 }
 
 export default function TaskListPage() {
+  const { term: businessTerm } = useBusinessTerms();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PMSTaskListResponse | null>(null);
@@ -621,8 +623,8 @@ export default function TaskListPage() {
             <Input value={filters.search} onChange={(event) => setFilter("search", event.target.value)} placeholder="Search by task key, title, project, epic, component, or release" className="border-0 shadow-none focus-visible:ring-0" />
           </div>
           <div hidden={!filtersOpen} className={cn("gap-3 md:grid-cols-2 xl:grid-cols-4", filtersOpen && "grid")}>
-            <SelectField label="Project" value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
-              <option value="">All projects</option>
+            <SelectField label={businessTerm('project')} value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
+              <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
               {data?.filters.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
             </SelectField>
             <SelectField label="Sprint" value={filters.sprintId} onChange={(value) => setFilter("sprintId", value)}>

@@ -22,6 +22,19 @@ export function profileTerm(profile: ResolvedProfile, key: TermKey, plural = fal
   return profile.terms[key][plural ? 1 : 0];
 }
 
+/** Translate built-in metadata by semantic field ID, preserving customized captions. */
+export function businessFieldLabel(profile: ResolvedProfile, field: string, fallback: string): string {
+  const key = (catalog.field_terms as Record<string, TermKey>)[field];
+  if (!key) return fallback;
+  const [singular, plural] = catalog.terms[key];
+  if (fallback === singular) return profile.terms[key][0];
+  if (fallback === plural) return profile.terms[key][1];
+  for (const suffix of [' ID', ' Name', ' name', ' Code', ' code', ' Reference', ' reference', ' Date', ' date', ' Time', ' time']) {
+    if (fallback === singular + suffix) return profile.terms[key][0] + suffix;
+  }
+  return fallback;
+}
+
 /** Only known application routes receive labels; record names and custom menus stay intact. */
 export function businessRouteLabel(profile: ResolvedProfile, path: string, fallback: string): string {
   const terms: Record<string, TermKey> = {
@@ -31,5 +44,9 @@ export function businessRouteLabel(profile: ResolvedProfile, path: string, fallb
     '/pms/projects': 'project', '/srm/appointments': 'appointment',
   };
   const key = terms[path.split(/[?#]/)[0].replace(/\/$/, '')];
-  return key ? profileTerm(profile, key, true) : fallback;
+  if (!key) return fallback;
+  const [singular, plural] = catalog.terms[key];
+  if (fallback === singular || fallback === plural) return profileTerm(profile, key, fallback === plural);
+  if (key === 'employee' && /^Employee [Dd]irectory$/.test(fallback)) return profileTerm(profile, key) + fallback.slice(singular.length);
+  return fallback;
 }

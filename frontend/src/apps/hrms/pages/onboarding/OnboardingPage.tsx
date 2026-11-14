@@ -1,3 +1,4 @@
+import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import "./onboarding-mobile.css";
@@ -98,7 +99,7 @@ export default function OnboardingPage() {
               {phone && employees.isError && <p role="alert">Employee choices could not load. <Button disabled={employees.isFetching} variant="outline" onClick={() => void employees.refetch()}>Retry onboarding employees</Button></p>}
               {phone && templates.isError && <p role="alert">Template choices could not load. <Button disabled={templates.isFetching} variant="outline" onClick={() => void templates.refetch()}>Retry onboarding templates</Button></p>}
               <div className="space-y-2">
-                <Label>Employee</Label>
+                <Label><BusinessTerm name="employee"/></Label>
                 <NativeSelect aria-label={phone?"Onboarding employee":undefined} disabled={phone && start.isPending} loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {employees.data?.map((e: any) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}

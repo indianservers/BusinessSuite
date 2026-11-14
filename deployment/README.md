@@ -103,6 +103,38 @@ required. Backend rollback source is retained under
 `shared/row-workspace-20261110`; previous frontend targets are recorded in each
 release's `shared/row-workspace-20261110-v2/frontend-deployed.json`.
 
+## Organization ID and subscription access update — 14 November 2026
+
+BestERP at `https://besterp.app` now uses frontend build
+`suite-builds/organization-id-20261114-091004`, based on production revision
+`8a970457f46f71adac35138fe51b06c0c9a74441` plus the Organization ID changes.
+The primary API has the matching platform metadata changes and subscription
+access fix. Administrative reads can inspect locally disabled modules while
+subscription exclusions, expiry and suspension remain authoritative.
+
+This scoped deployment requires no schema migration. Source backups, activation
+state and verification reports are in `shared/organization-id-20261114-091004`.
+The former frontend is retained as
+`frontend/dist.before-organization-id-20261114-091004` in the active release, and
+previous hashed assets remain available. Public health and assets, authenticated
+Organization ID searches and customer details, and verification session revocation
+passed. A rolled-back live database probe also confirmed that unlicensed Finance,
+expired CRM and suspended CRM reads are denied, with no test records persisted.
+Validation included 116 backend tests and an isolated production frontend
+type check and build. This deployment changed the primary BestERP site; the legacy
+Apache frontend and Interns Hub retain their previous builds.
+
+The profile and organization-switcher follow-up is deployed as
+`suite-builds/organization-profile-20261114-092702`. The account profile, suite/module account menus
+and company switcher now show the selected organization reference. The access API
+returns a reference for each authorized organization; approved signup IDs are
+recovered from existing receipts, and non-signup companies use `ORG-C-<company ID>`.
+New signup subscriptions retain the reference in metadata. Source rollback files
+and authenticated verification reports are under `shared/organization-profile-20261114-092702`.
+The prior Organization ID build is retained. Validation passed 58 backend tests,
+frontend type checking/build, desktop/mobile browser checks and live access/API
+checks. The temporary verification session was revoked; no migration was required.
+
 ## Previous shared Apache deployment
 
 The migration to `164.92.119.35` uses the existing Apache server on Ubuntu 22.04,
