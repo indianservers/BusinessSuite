@@ -70,6 +70,12 @@ COMMON_ROUTER_MODULES = (
 
 COMMON_MODEL_MODULES = (
     "app.business_packs.models",
+    "app.business_packs.retail.models",
+    "app.business_packs.pharma.models",
+    "app.business_packs.pharma.recall_models",
+    "app.business_packs.pharma.return_models",
+    "app.business_packs.restaurant.models",
+    "app.business_packs.accounting_firm.models",
     "app.shared.import_models",
     "app.shared.accounting_sync.models",
     "app.shared.payment_models",
