@@ -309,6 +309,8 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
             if scope:
                 from app.business_packs.catalog_predicate import _assert_pos_product
                 _assert_pos_product(db,user,scope,product)
+            from app.business_packs.pharma.quantity import validate as validate_sale_quantity
+            validate_sale_quantity(db, product.id, line.quantity)
             service=product.product_type.lower() in {'service','services'}
             if not service and (product.batch_tracking or product.serial_tracking):
                 from app.business_packs.pharma.fefo import supported

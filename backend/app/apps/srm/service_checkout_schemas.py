@@ -33,7 +33,8 @@ class CheckoutLineInput(Strict):
     client_line_key: UUID
     line_kind: Literal['product','unscheduled_service','booked_service']
     product_id: ID
-    quantity: Decimal = Field(default=Decimal(1),gt=0,le=1000000000,decimal_places=2,allow_inf_nan=False)
+    quantity: Decimal = Field(default=Decimal(1),gt=0,le=1000000000,decimal_places=3,allow_inf_nan=False,
+                              description='Up to three decimals only for authorized Pharma batch-and-expiry medicines; all other checkout quantities retain two decimals.')
     unit_price: Decimal | None = Field(default=None,ge=0,max_digits=14,decimal_places=2,allow_inf_nan=False)
     discount_amount: Decimal = Field(default=Decimal(0),ge=0,max_digits=14,decimal_places=2,allow_inf_nan=False)
     note: str = Field(default="",max_length=10000)

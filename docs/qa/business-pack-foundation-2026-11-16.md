@@ -18,3 +18,11 @@ The isolation batch checks ORM queries and cached identities, relationships, ali
 ## Remaining release gates
 
 These results do not certify all seven packs. Pack-specific functional, native PostgreSQL, concurrency and desktop/mobile evidence must be reconciled with the final consolidated source. Runtime activation remains disabled pending those gates. No production migration, deployment, or UI change was performed by this verification.
+
+## Pharma backend integration
+
+The subsequent backend integration adds migration 118, exact three-decimal dispensing for authorized Pharma batch-and-expiry medicines, and paginated affected-sales recall tracing. Other sale quantities retain two decimals; the historical ten-digit update range remains supported. The migration expands PostgreSQL quantity capacity without narrowing existing wider storage or rounding issued history.
+
+The integrated source passed **32 tests**, 191.68 seconds: `test_pharma_dispensing_precision.py`, `test_pharma_precision_accounting.py`, `test_pharma_trace.py`, and `test_service_checkout.py::test_pack_foreign_provider_cannot_be_adopted_as_specialist`. JUnit: `.local/pharma-precision-main-verification.xml`. These SQLite checks cover actual canonical sale/refund postings, unsupported precision, cross-pack denial, rollback/retry and recall visibility. Eight protected refund/accounting/authorization files were unchanged; donor Python AST parity was verified for all owned sources, preserving the additive Restaurant router extraction. Proof: `.local/pharma-precision-main-source-proof.json`.
+
+The isolated donor PostgreSQL gate recorded 145 passes and one migration-fixture failure before the migration was invoked. After correcting the missing historical order number, the finite migration gate passed all four cases. That evidence is source-specific and is not represented as a consolidated full PostgreSQL rerun. Pharma POS preview/browser follow-up is separate; this backend integration changes no UI.

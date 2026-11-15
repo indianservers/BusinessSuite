@@ -13,7 +13,8 @@ class SRMSalesOrderLineInput(BaseModel):
     item_code: str | None = None
     description: str | None = None
     service_type: str = "service"
-    quantity: Decimal = Field(default=1, gt=0, le=1000000000, decimal_places=2)
+    quantity: Decimal = Field(default=1, gt=0, le=1000000000, decimal_places=3, allow_inf_nan=False,
+                              description='Up to three decimals only for authorized Pharma batch-and-expiry medicines; all other sale quantities retain two decimals.')
     unit_price: Decimal = Field(default=0, ge=0, le=99999999999)
     discount_amount: Decimal = Field(default=0, ge=0, le=99999999999)
     tax_amount: Decimal = Field(default=0, ge=0, le=99999999999)
@@ -435,7 +436,8 @@ class SRMSalesOrderLineUpdate(BaseModel):
     item_code: str | None = None
     description: str | None = None
     service_type: str | None = None
-    quantity: Decimal | None = None
+    quantity: Decimal | None = Field(default=None, gt=0, le=Decimal('9999999999.999'), decimal_places=3, allow_inf_nan=False,
+                                     description='Retains the native ten-digit integer range; a third decimal requires an authorized Pharma batch-and-expiry medicine. Other sale quantities retain two decimals.')
     unit_price: Decimal | None = None
     discount_amount: Decimal | None = None
     tax_amount: Decimal | None = None

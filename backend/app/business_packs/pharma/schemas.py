@@ -25,6 +25,7 @@ class ReceiptInput(BaseModel):
 
     @model_validator(mode='after')
     def dates(self):
+        if self.manufacture_date and self.manufacture_date>self.received_date:raise ValueError('Manufacture date follows receipt date')
         if self.manufacture_date and self.expiry_date<self.manufacture_date:raise ValueError('Expiry precedes manufacture date')
         if self.expiry_date<=self.received_date:raise ValueError('Receipt requires an unexpired lot')
         if (self.quantity*self.unit_cost).quantize(Decimal('.01'))>=Decimal('1000000000000'):

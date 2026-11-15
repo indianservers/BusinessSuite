@@ -22,6 +22,11 @@ def fail(message,code=403):raise HTTPException(code,message)
 
 
 def authority(db,actor,capability='batches.receive',*,write=True):
+    # Reject an unrelated selected pack before probing Pharma/native schemas.
+    # The native authority check below still independently verifies permissions.
+    installed=db.info.get('business_pack_scope')
+    if installed is None or installed.pack_key!='pharma' or 'pharma.'+capability not in installed.capabilities:
+        fail('Select an authorized Pharma context for this operation')
     if not write:
         from app.apps.srm.services.commercial import require
         require(actor,'srm_view','srm_manage','srm_admin')

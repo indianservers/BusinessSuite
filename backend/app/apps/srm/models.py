@@ -49,7 +49,7 @@ class SRMSalesOrderLine(Base):
     item_code = Column(String(80), nullable=True, index=True)
     description = Column(Text)
     service_type = Column(String(80), default="service", index=True)
-    quantity = Column(Numeric(12, 2), default=1)
+    quantity = Column(Numeric(14, 3), default=1)
     unit_price = Column(Numeric(14, 2), default=0)
     discount_amount = Column(Numeric(14, 2), default=0)
     tax_amount = Column(Numeric(14, 2), default=0)

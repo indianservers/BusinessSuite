@@ -282,7 +282,7 @@ def test_pack_foreign_provider_cannot_be_adopted_as_specialist(db,scenario):
     other=PackActivation(company_id=1,pack_key='restaurant',pack_version=1,state='active');db.add(other);db.flush()
     foreign=PackContext(company_id=1,branch_id=branch,activation_id=other.id,pack_key='restaurant',pack_version=1,state='active');db.add(foreign);db.flush()
     db.add(PackRecordOwnership(company_id=1,branch_id=branch,context_id=foreign.id,resource_table='srm_industry_records',resource_key=str(provider.id),source='created'));db.commit()
-    with native_writer(db,user,branch):
+    with audited_pack_writer(db,user,branch,context):
         policy=save_policy(PolicyInput(service_product_id=catalog[2][1],default_duration_minutes=30,min_duration_minutes=5,max_duration_minutes=120),db,user)
         with pytest.raises(HTTPException) as error:
             save_eligibility(EligibilityInput(policy_id=policy['id'],expected_policy_revision=policy['revision'],provider_resource_id=provider.id,employee_id=provider.data['employee_id']),db,user)

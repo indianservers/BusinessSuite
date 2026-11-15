@@ -2635,6 +2635,9 @@ def create_sales_order_operation(data: SRMSalesOrderCreate, db: Session, current
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db, current_user)
     deferred_tab = False
+    from app.business_packs.pharma.quantity import validate as validate_sale_quantity
+    for selected_line in data.lines:
+        validate_sale_quantity(db, selected_line.product_id, selected_line.quantity)
     if getattr(db.info.get('business_pack_scope'), 'pack_key', None) == 'restaurant':
         from app.business_packs.restaurant.tabs import native_creation
         deferred_tab = native_creation(db, current_user, data)
@@ -2785,6 +2788,8 @@ def add_sales_order_line(sales_order_id: int, data: SRMSalesOrderLineInput, db: 
     if data.product_id:
         from app.shared.catalog_branches import assert_available
         assert_available(_product_or_404(db, _org(current_user), data.product_id), current_user)
+    from app.business_packs.pharma.quantity import validate as validate_sale_quantity
+    validate_sale_quantity(db, data.product_id, data.quantity)
     line_total = data.line_total if data.line_total is not None else (_decimal(data.quantity) * _decimal(data.unit_price) - _decimal(data.discount_amount) + _decimal(data.tax_amount))
     line = SRMSalesOrderLine(sales_order_id=order.id, line_total=line_total, **data.model_dump(exclude={"line_total"}))
     db.add(line)
@@ -2803,6 +2808,10 @@ def update_sales_order_line(sales_order_id: int, line_id: int, data: SRMSalesOrd
     line = db.query(SRMSalesOrderLine).filter(SRMSalesOrderLine.id == line_id, SRMSalesOrderLine.sales_order_id == order.id).first()
     if not line:
         raise HTTPException(status_code=404, detail="Sales order line not found")
+    from app.business_packs.pharma.quantity import validate as validate_sale_quantity
+    if data.quantity is not None or (data.product_id is not None and data.product_id != line.product_id):
+        validate_sale_quantity(db, data.product_id or line.product_id, data.quantity if data.quantity is not None else line.quantity,
+                               maximum=Decimal('9999999999.999'))
     before = _serialize(line)
     if data.product_id and data.product_id != line.product_id:
         from app.shared.catalog_branches import assert_available

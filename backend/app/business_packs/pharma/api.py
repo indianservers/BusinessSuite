@@ -56,6 +56,10 @@ def recalls(after:int=Query(0,ge=0),limit:int=Query(30,ge=1,le=100),db=Depends(g
 
 
 @router.get('/recalls/{recall_id}')
-def recall_detail(recall_id:int,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+def recall_detail(recall_id:int,include_affected_sales:bool=False,after:int=Query(0,ge=0),limit:int=Query(30,ge=1,le=100),db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
     from .recalls import detail
-    return detail(recall_id,db,actor)
+    result=detail(recall_id,db,actor)
+    if include_affected_sales:
+        from .trace import affected_sales
+        result['affected_sales']=affected_sales(recall_id,db,actor,after=after,limit=limit)
+    return result
