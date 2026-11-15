@@ -266,7 +266,7 @@ def graph(db, scope, order, *, require_complete=False):
             if (issued['organization_id'], issued['branch_id'], issued['pack_context_id']) != (scope.company_id, scope.branch_id, scope.context_id):
                 service.fail('Restaurant split issuance ownership changed', 409)
             invoice_id = issued['invoice_id']
-        invoice = _row(db, SRMInvoice, invoice_id, ('id','organization_id','sales_order_id','customer_id','currency','engagement_id',
+        invoice = _row(db, SRMInvoice, invoice_id, ('id','invoice_number','organization_id','sales_order_id','customer_id','currency','engagement_id',
             'deleted_at','status','created_by','subtotal','discount_amount','tax_amount','total_amount','paid_amount','balance_amount'))
         _private(db, scope, SRMInvoice, invoice_id)
         if invoice is None or (invoice['organization_id'], invoice['sales_order_id'], invoice['customer_id'], invoice['currency'], invoice['engagement_id']) != (
@@ -342,7 +342,7 @@ def graph(db, scope, order, *, require_complete=False):
                 service.fail('Restaurant split has no exact immutable command', 409)
             _private(db, scope, RestaurantCommand, commands[0]['id'])
         invoices.add(invoice_id)
-        bills.append({'bill_id': issued['id'] if issued else None, 'invoice_id': invoice_id, 'total': str(total),
+        bills.append({'bill_id': issued['id'] if issued else None, 'invoice_id': invoice_id, 'number': invoice['invoice_number'], 'total': str(total),
             'paid': str(paid), 'balance': str(total-paid), 'currency': native['currency'],
             'items': [{'sales_order_line_id': _row(db, Snapshot, row['snapshot_id'])['original_sales_order_line_id'],
                 'quantity': str(row['quantity']), 'total': str(row['line_total'])} for row in rows]})

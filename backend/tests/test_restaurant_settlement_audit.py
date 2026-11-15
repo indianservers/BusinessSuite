@@ -13,6 +13,8 @@ from tests.test_restaurant_tabs import BASE
 
 def test_restaurant_shift_close_counts_actual_cash_only_and_retries_once(client, db, settlement):
     case = settlement
+    caps = client.get(BASE+'/capabilities', headers=case['headers'])
+    assert caps.status_code == 200 and caps.json()['sessions_close'] is True, caps.text
     path = f"/tabs/{case['order']['id']}"
     billed = post(client, case['headers'], path + '/bill', bill_input(case))
     for method, amount in [('cash', '50'), ('card', '68')]:
@@ -37,6 +39,8 @@ def test_restaurant_specialist_cannot_inherit_other_pack_shift_close(client, db,
     own = db.query(PackUserGrant).filter_by(context_id=case['context'], user_id=case['manager'].id).one()
     own.role = role
     db.commit()
+    caps = client.get(BASE+'/capabilities', headers=case['headers'])
+    assert caps.status_code == 200 and caps.json()['sessions_close'] is False, caps.text
     response = client.post('/api/v1/srm/pos/cashier-closing', headers=case['headers'],
         json={'session_id': case['register'], 'counted_cash': '0'})
     assert response.status_code == 403, response.text

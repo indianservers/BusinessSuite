@@ -97,6 +97,7 @@ def capabilities(db, actor):
     result['anonymous_settle'] = anonymous
     result['reports_view'] = 'restaurant.reports.view' in scope.capabilities
     result['reservations_schedule'] = can_write and 'restaurant.reservations.schedule' in scope.capabilities
+    result['sessions_close'] = can_write and 'restaurant.sessions.close' in scope.capabilities
     result['orders_remove'] = can_write and 'restaurant.orders.create' in scope.capabilities
     if result['orders_remove']:
         try:
