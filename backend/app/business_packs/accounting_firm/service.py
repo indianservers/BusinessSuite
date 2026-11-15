@@ -1,4 +1,4 @@
-"""Private client-service periods. No client books, files or financial writes."""
+"""Private service periods and review; canonical sources own delivery and billing."""
 from hashlib import sha256
 import json
 from fastapi import HTTPException
@@ -18,7 +18,10 @@ def fail(message, code=403):
 
 
 def authority(db, actor, action='engagements.view', *, write=False):
-    require(actor, *('srm_manage','srm_admin') if write else ('srm_view','srm_manage','srm_admin'))
+    native = {'billing.prepare': ('srm_invoice_create','srm_admin'),
+        'billing.view': ('srm_invoice_view','srm_invoice_create','srm_invoice_approve','srm_admin'),
+        'payments.record': ('srm_collection_create','srm_admin')}
+    require(actor, *native.get(action, ('srm_manage','srm_admin') if write else ('srm_view','srm_manage','srm_admin')))
     _, _, fresh = _authority(db, actor, order=False, write=write)
     scope = db.info.get('business_pack_scope')
     state = inspect(actor, raiseerr=False)
@@ -34,6 +37,22 @@ def authority(db, actor, action='engagements.view', *, write=False):
     return scope
 
 
+def read_authority(db, actor, actions=('engagements.view','billing.view','billing.prepare','payments.record')):
+    scope = db.info.get('business_pack_scope')
+    denied = None
+    for action in actions:
+        if scope is not None and 'accounting_firm.' + action in scope.capabilities:
+            try:
+                return authority(db, actor, action)
+            except HTTPException as exc:
+                if exc.status_code != 403:
+                    raise
+                denied = exc
+    if denied is not None:
+        raise denied
+    fail('Native Accounts period visibility is required')
+
+
 def scoped(db, model, scope):
     return db.query(model).filter_by(organization_id=scope.company_id,branch_id=scope.branch_id,pack_context_id=scope.context_id)
 
@@ -44,17 +63,20 @@ def fields(scope,actor):
 
 def source(db,actor,scope,engagement_id,client_id,*,require_open=False):
     # Native own/team/org scope and private context criteria remain installed.
-    row = engagement_query(db,actor).with_entities(SRMEngagement.id,SRMEngagement.customer_id,SRMEngagement.status).filter(SRMEngagement.id==engagement_id).first()
+    row = engagement_query(db,actor).with_entities(SRMEngagement.id,SRMEngagement.customer_id,SRMEngagement.status,SRMEngagement.pms_project_id).filter(SRMEngagement.id==engagement_id).first()
     if row is None or row.customer_id != client_id:
         fail('Client engagement is unavailable',404)
     if require_open:
         from app.apps.srm.api.router import _require_open_engagement
         _require_open_engagement(row)
     _source_scope(db,scope,scope.company_id,scope.branch_id,SRMEngagement,engagement_id)
-    client = db.query(CRMCompany.id).filter(CRMCompany.id==client_id,CRMCompany.organization_id==scope.company_id,CRMCompany.deleted_at.is_(None)).first()
-    if client is None:
-        fail('Client is unavailable',404)
-    _source_scope(db,scope,scope.company_id,scope.branch_id,CRMCompany,client_id,master=True)
+    from .engagements import _client
+    _client(db,actor,scope,client_id)
+    if row.pms_project_id is not None:
+        from .pms_sources import project_for_action
+        project = project_for_action(db, actor, row.pms_project_id)
+        from .project_links import require_commercial
+        require_commercial(db, scope, engagement_id, client_id, row.pms_project_id, project_source=project)
     from .engagements import validate_created_source
     validate_created_source(db,actor,scope,engagement_id)
 
@@ -99,11 +121,15 @@ def record(db,actor,scope,ident):
     return row
 
 
-def result(row):
-    return {name:getattr(row,name) for name in ('id','engagement_id','client_id','title','preparer_employee_id',
+def result(row, db=None):
+    dto = {name:getattr(row,name) for name in ('id','engagement_id','client_id','title','preparer_employee_id',
         'reviewer_employee_id','state','revision','work_revision','work_summary','review_reason','prepared_by_user_id',
         'submitted_work_revision','approved_work_revision')} | {
         name:getattr(row,name).isoformat() for name in ('starts_on','ends_on','due_on')}
+    if db is not None:
+        engagement = db.get(SRMEngagement, row.engagement_id)
+        dto.update(project_id=engagement.pms_project_id, engagement_status=engagement.status)
+    return dto
 
 
 def fingerprint(action,ident,data):
@@ -121,7 +147,7 @@ def replay(db,actor,scope,action,ident,data):
 
 
 def save(db,actor,scope,row,action,ident,data):
-    dto=result(row)
+    dto=result(row,db)
     db.add(Command(**fields(scope,actor),period_id=row.id,request_key=str(data.request_key),
         request_sha256=fingerprint(action,ident,data),action=action,reason=getattr(data,'reason',''),result=dto))
     db.flush()
@@ -129,6 +155,9 @@ def save(db,actor,scope,row,action,ident,data):
 
 
 def create(data,db,actor,*,commit=True):
+    if data.occurrences > 1:
+        from .recurrence import create_series
+        return create_series(data,db,actor,commit=commit)
     scope=authority(db,actor,'engagements.manage',write=True)
     lock_tenant(db,actor)
     authority(db,actor,'engagements.manage',write=True)
@@ -140,7 +169,7 @@ def create(data,db,actor,*,commit=True):
     source(db,actor,scope,data.engagement_id,data.client_id,require_open=True)
     try:
         with db.begin_nested():
-            row=Period(**fields(scope,actor),**data.model_dump(exclude={'request_key'}),state='draft',revision=1,work_revision=0,work_summary='')
+            row=Period(**fields(scope,actor),**data.model_dump(exclude={'request_key','occurrences','interval_months'}),state='draft',revision=1,work_revision=0,work_summary='')
             db.add(row)
             db.flush()
             dto=save(db,actor,scope,row,'create',None,data)
@@ -152,44 +181,85 @@ def create(data,db,actor,*,commit=True):
 
 
 def get(ident,db,actor):
-    scope=authority(db,actor)
-    return result(record(db,actor,scope,ident))
+    scope=read_authority(db,actor)
+    return result(record(db,actor,scope,ident),db)
 
 
 def listing(db,actor,*,after=0,limit=50):
-    scope=authority(db,actor)
+    scope=read_authority(db,actor)
     # SQL-filter by native engagement visibility before pagination, not in-memory.
     visible=engagement_query(db,actor).with_entities(SRMEngagement.id)
-    rows=scoped(db,Period,scope).filter(Period.id>after,Period.engagement_id.in_(visible)).order_by(Period.id).limit(limit+1).all()
+    from .engagements import _client_query
+    clients=_client_query(db,actor,scope).with_entities(CRMCompany.id)
+    rows=scoped(db,Period,scope).filter(Period.id>after,Period.engagement_id.in_(visible),Period.client_id.in_(clients)).order_by(Period.id).limit(501).all()
     items=[]
-    for row in rows[:limit]:
-        source(db,actor,scope,row.engagement_id,row.client_id)
-        items.append(result(row))
-    return {'items':items,'next':rows[limit-1].id if len(rows)>limit else None}
+    for row in rows[:500]:
+        try:
+            source(db,actor,scope,row.engagement_id,row.client_id)
+        except HTTPException as exc:
+            if exc.status_code not in {403,404}:
+                raise
+            continue
+        items.append(result(row,db))
+        if len(items) > limit:
+            return {'items':items[:limit],'next':items[limit-1]['id']}
+    if len(rows) > 500:
+        fail('Too many unavailable delivery sources; narrow the Accounts period selection',503)
+    return {'items':items,'next':None}
 
 
 def capabilities(db,actor):
-    scope=authority(db,actor)
+    scope=read_authority(db,actor)
     from app.access.service import check_background_access
     writable=scope.branch_id in db.info['branch_context'].writable
+    def allowed(capability, permissions, action='create'):
+        if not writable or 'accounting_firm.' + capability not in scope.capabilities:
+            return False
+        try:
+            require(actor,*permissions)
+            check_background_access(db,actor,'srm',action,administrative_read=False,stamp=False)
+            return True
+        except HTTPException as exc:
+            if exc.status_code != 403:
+                raise
+            return False
+    management=('srm_manage','srm_admin')
+    financial=('srm_invoice_view','srm_invoice_create','srm_invoice_approve','srm_admin')
+    flags={name.replace('.','_'):allowed(name,management,'approve' if name in {'work.review','work.return'} else 'create')
+        for name in ('engagements.manage','work.prepare','work.review','work.return','documents.request','time.record')}
+    flags['documents_view']=False
     try:
-        require(actor,'srm_manage','srm_admin')
-        check_background_access(db,actor,'srm','create',administrative_read=False,stamp=False)
+        read_authority(db,actor,('documents.view','documents.request'))
+        flags['documents_view']=True
     except HTTPException as exc:
-        if exc.status_code!=403:
+        if exc.status_code != 403:
             raise
-        writable=False
-    employee_id=db.query(Employee.id).filter(Employee.user_id==actor.id,Employee.branch_id==scope.branch_id,
-        Employee.deleted_at.is_(None),Employee.status.in_(('Active','Probation','On Leave'))).scalar()
-    can_assign=writable and 'accounting_firm.engagements.manage' in scope.capabilities
+    flags['billing_prepare']=allowed('billing.prepare',('srm_invoice_create','srm_admin'))
+    flags['billing_view']=False
     try:
-        check_background_access(db,actor,'srm','assign',administrative_read=False,stamp=False)
+        read_authority(db,actor,('billing.view','billing.prepare','payments.record'))
+        require(actor,*financial)
+        flags['billing_view']=True
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+    flags['payments_record']=False
+    if writable and 'accounting_firm.payments.record' in scope.capabilities:
+        from app.apps.srm.payments import can_record
+        flags['payments_record']=can_record(db,actor)
+    employee_id=None
+    if any(flags.get(name) for name in ('engagements_manage','work_prepare','work_review','work_return','documents_view','time_record')):
+        employee_id=db.query(Employee.id).filter(Employee.user_id==actor.id,Employee.branch_id==scope.branch_id,
+            Employee.deleted_at.is_(None),Employee.status.in_(('Active','Probation','On Leave'))).scalar()
+    can_assign=flags['engagements_manage']
+    try:
+        if can_assign:
+            check_background_access(db,actor,'srm','assign',administrative_read=False,stamp=False)
     except HTTPException as exc:
         if exc.status_code!=403:
             raise
         can_assign=False
-    return {'employee_id':employee_id,'assignments_manage':can_assign,**{name.replace('.','_'):writable and 'accounting_firm.'+name in scope.capabilities
-        for name in ('engagements.manage','work.prepare','work.review','work.return')}}
+    return {'employee_id':employee_id,'assignments_manage':can_assign,**flags}
 
 
 def options(db,actor,*,engagement_after=0,preparer_after=0,reviewer_after=0,limit=100):
@@ -200,10 +270,27 @@ def options(db,actor,*,engagement_after=0,preparer_after=0,reviewer_after=0,limi
     from app.business_packs.models import PackUserGrant
     from app.business_packs.registry import get_role,PackRegistryError
     from app.models.user import User
+    from .engagements import _client_query
+    clients=_client_query(db,actor,scope).with_entities(CRMCompany.id)
     engagements=engagement_query(db,actor).join(CRMCompany,CRMCompany.id==SRMEngagement.customer_id).with_entities(
         SRMEngagement.id,SRMEngagement.name,SRMEngagement.customer_id,CRMCompany.name.label('client_name')).filter(
-        CRMCompany.organization_id==scope.company_id,CRMCompany.deleted_at.is_(None),
-        SRMEngagement.id>engagement_after).order_by(SRMEngagement.id).limit(limit+1).all()
+        CRMCompany.organization_id==scope.company_id,CRMCompany.deleted_at.is_(None),CRMCompany.id.in_(clients),
+        SRMEngagement.id>engagement_after).order_by(SRMEngagement.id).limit(501).all()
+    candidates=engagements
+    engagements=[]
+    for candidate in candidates[:500]:
+        try:
+            source(db,actor,scope,candidate.id,candidate.customer_id)
+        except HTTPException as exc:
+            if exc.status_code not in {403,404}:
+                raise
+            continue
+        engagements.append(candidate)
+        if len(engagements)>limit:
+            break
+    else:
+        if len(candidates)>500:
+            fail('Too many unavailable engagements; narrow the selection',503)
     employees=db.query(Employee.id,Employee.first_name,Employee.last_name,Employee.user_id).filter(
         Employee.branch_id==scope.branch_id,Employee.deleted_at.is_(None),Employee.status.in_(('Active','Probation','On Leave')),
         Employee.user_id.is_not(None))
@@ -255,6 +342,10 @@ def change(ident,action,data,db,actor,*,commit=True):
     source(db,actor,scope,row.engagement_id,row.client_id,require_open=True)
     if row.revision!=data.expected_revision:
         fail('Period changed; reload its current revision',409)
+    if action in {'submit','approve'}:
+        from .documents import listing as document_checklist
+        if any(item['status'] != 'uploaded' for item in document_checklist(ident,db,actor)['items']):
+            fail('Supply the requested documents before submitting or approving work',409)
     with db.begin_nested():
         if action=='assign':
             staff(db,scope,data.preparer_employee_id,data.reviewer_employee_id)

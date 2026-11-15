@@ -30,7 +30,11 @@ def reserved_billing(db,actor,*,sales_order=None,engagement=None,project_id=None
                 exists().where(owner.c.resource_table==table.name,owner.c.resource_key==str(row.id),owner.c.company_id==scope.company_id,owner.c.branch_id==scope.branch_id)))):deny()
         links.append(getattr(ProjectCommercial.__table__.c,column)==row.id)
         if model is SRMEngagement and row.pms_project_id:
-            raise HTTPException(503,'Linked project engagement billing requires a reviewed native project adapter')
+            if scope.pack_key == 'accounting_firm':
+                from .accounting_firm.billing import linked_engagement_authorized
+                linked_engagement_authorized(db,actor,row)
+            else:
+                raise HTTPException(503,'Linked project engagement billing requires a reviewed native project adapter')
     if not links:return False
     commercial=ProjectCommercial.__table__;project=PMSProject.__table__;record=IndustryRecord.__table__
     linked=or_(*links)
@@ -53,6 +57,9 @@ def selected_order_source_reserved(db,source_type,source_id):
     from app.branches.models import BranchOwnership
     from app.business_packs.boundary import _current
     scope=db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key=='accounting_firm' and source_type=='accounts_period':
+        from .accounting_firm.billing import source_reserved
+        return source_reserved(db,source_id)
     if scope is not None and scope.pack_key=='construction' and source_type=='industry_measurement':
         from .construction_billing import source_reserved
         return source_reserved(db,source_id)

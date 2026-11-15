@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
@@ -12,6 +13,8 @@ class Input(BaseModel):
 
 
 class PeriodCreate(Input):
+    occurrences: Annotated[StrictInt, Field(ge=1, le=36)] = 1
+    interval_months: Annotated[StrictInt, Field(ge=1, le=12)] = 1
     engagement_id: ID
     client_id: ID
     starts_on: date
@@ -40,6 +43,43 @@ class PeriodCreate(Input):
 
 class RevisionInput(Input):
     expected_revision: ID
+
+
+class BillingInput(RevisionInput):
+    expected_work_revision: ID
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+
+
+class ActualTimeInput(RevisionInput):
+    log_date: date
+    duration_minutes: Annotated[StrictInt, Field(ge=1, le=1440)]
+    description: str = Field(min_length=1, max_length=4000)
+
+
+class DocumentRequestInput(RevisionInput):
+    title: str = Field(min_length=1, max_length=200)
+    due_on: date
+
+
+class DocumentAttachInput(RevisionInput):
+    expected_document_revision: ID
+    file_id: ID
+
+
+class DocumentUploadInput(RevisionInput):
+    expected_document_revision: ID
+    task_id: ID
+
+
+class DocumentBinaryInput(DocumentUploadInput):
+    filename: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+
+
+class ProjectLinkInput(RevisionInput):
+    project_id: ID
 
 
 class WorkUpdate(RevisionInput):

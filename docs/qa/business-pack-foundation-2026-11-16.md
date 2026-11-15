@@ -74,3 +74,10 @@ The frozen candidate passed one actual native-API browser test at desktop 1440 a
 Explicit closed commands such as `Show me lead records containing "Cedar"` now preserve the exact quoted text as the native CRM lead search payload without neural inference. Empty, unterminated, overlong or compound commands ask for clarification instead of returning an unfiltered list. Other explicitly selected modules remain separate. The conservative parser limit is 200 characters; this is not claimed as the native endpoint limit. Native tool authorization and validation remain unchanged.
 
 Current main-source verification passed all **55 tests** in 1.01 seconds across quoted searches, the common action catalog and the existing safe read grammar. Evidence: `.local/quoted-crm-main-verification.xml`. No application UI files changed.
+
+
+## Accounts delivery integration
+
+Integrated the focused 38-file Accounts candidate without merging donor ancestry. All 38 sources match the reviewed candidate after line-ending normalization. The independently documented native evidence covers 179 distinct PostgreSQL cases, including 11 concurrency cases; see `accounts-delivery-final-2026-11-16.md` for source-specific results and provider limits.
+
+On the integrated main working tree, all **14 focused tests passed**, zero skips, in 113.15 seconds across native project selectors, immutable project links and the default/transaction-owned PMS attachment operation. Full frontend TypeScript checking exited zero. Evidence: `.local/accounts-main-source-proof.json` and `.local/accounts-main-focused.xml`. Existing desktop/mobile styles, shared layouts and menus are unchanged; Accounts-specific controls reuse existing components. Runtime support remains unpublished pending foundation and activation gates.

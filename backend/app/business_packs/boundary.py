@@ -435,7 +435,9 @@ def install(db, scope: PackScope | None, *, policy: PackBoundaryPolicy | None = 
                         continue
                 if scope.pack_key == 'accounting_firm':
                     from .accounting_firm.references import historical_preparer
-                    if historical_preparer(db, scope, item, parent, pairs):
+                    from .accounting_firm.project_links import reference as accounts_project_reference
+                    if (historical_preparer(db, scope, item, parent, pairs)
+                            or accounts_project_reference(db, scope, item, parent, pairs)):
                         continue
                 # A composite FK is one exact tuple, never independent sets of
                 # parent keys that could form a cross-context product.

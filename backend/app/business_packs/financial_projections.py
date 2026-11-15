@@ -84,6 +84,10 @@ def assert_common_invoice(db,invoice):
     from app.apps.srm.models import SRMSalesOrder
     from app.apps.srm.commercial_models import InvoiceContext
     _source(db,invoice,'invoice')
+    if db.info['business_pack_scope'].pack_key=='accounting_firm':
+        from .accounting_firm.billing import assert_invoice_source
+        if assert_invoice_source(db,invoice):
+            return
     if db.info['business_pack_scope'].pack_key=='construction':
         from .construction_billing import assert_invoice_source
         if assert_invoice_source(db,invoice):

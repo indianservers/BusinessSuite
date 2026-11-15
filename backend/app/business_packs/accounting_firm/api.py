@@ -1,10 +1,101 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Form, File, UploadFile, HTTPException
+from uuid import UUID
 from app.core.deps import get_db,get_current_user
 from app.apps.srm.service_checkout_api import pack_selection
-from .schemas import PeriodCreate,RevisionInput,WorkUpdate,ReviewInput,AssignmentInput,EngagementCreate
+from .schemas import PeriodCreate,RevisionInput,WorkUpdate,ReviewInput,AssignmentInput,EngagementCreate,BillingInput,ActualTimeInput
 from . import service
+from .schemas import DocumentRequestInput,DocumentAttachInput
+from .schemas import ProjectLinkInput
+from .schemas import DocumentUploadInput
+from app.apps.srm.payments import PaymentInput
 
 router=APIRouter(prefix='/srm/accounts',tags=['Accounts service delivery'])
+
+
+@router.get('/periods/{ident}/delivery')
+def delivery(ident:int,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .selectors import delivery
+    return delivery(ident,db,actor)
+
+
+@router.get('/periods/{ident}/project-options')
+def project_options(ident:int,after:int=Query(0,ge=0),limit:int=Query(50,ge=1,le=100),search:str=Query('',max_length=100),
+        db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .selectors import projects
+    return projects(ident,db,actor,after=after,limit=limit,search=search)
+
+
+@router.get('/periods/{ident}/task-options')
+def task_options(ident:int,after:int=Query(0,ge=0),limit:int=Query(50,ge=1,le=100),search:str=Query('',max_length=100),
+        db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .selectors import tasks
+    return tasks(ident,db,actor,after=after,limit=limit,search=search)
+
+
+@router.post('/periods/{ident}/documents/{key}/upload',status_code=201)
+def document_upload(ident:int,key:UUID,data:str=Form(...),file:UploadFile=File(...),
+        db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from pydantic import ValidationError
+    from .uploads import upload
+    try:
+        metadata = DocumentUploadInput.model_validate_json(data)
+    except ValidationError:
+        raise HTTPException(422,'Enter valid document upload metadata') from None
+    return upload(ident,key,metadata,file,db,actor)
+
+
+@router.post('/periods/{ident}/payments',status_code=201)
+def collection(ident:int,data:PaymentInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .billing import collect
+    return collect(ident,data,db,actor)
+
+
+@router.post('/periods/{ident}/project')
+def delivery_project(ident:int,data:ProjectLinkInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .project_links import link
+    return link(ident,data,db,actor)
+
+
+@router.get('/periods/{ident}/documents')
+def document_list(ident:int,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .documents import listing
+    return listing(ident,db,actor)
+
+
+@router.post('/periods/{ident}/documents',status_code=201)
+def document_request(ident:int,data:DocumentRequestInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .documents import request
+    return request(ident,data,db,actor)
+
+
+@router.put('/periods/{ident}/documents/{key}')
+def document_attach(ident:int,key:UUID,data:DocumentAttachInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .documents import attach
+    return attach(ident,key,data,db,actor)
+
+
+@router.get('/periods/{ident}/documents/{key}/download')
+def document_download(ident:int,key:UUID,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .documents import download
+    return download(ident,key,db,actor)
+
+
+@router.post('/periods/{ident}/time',status_code=201)
+def actual_time(ident:int,data:ActualTimeInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .actual_time import record
+    return record(ident,data,db,actor)
+
+
+@router.post('/periods/{ident}/invoice',status_code=201)
+def invoice(ident:int,data:BillingInput,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .billing import draft
+    return draft(ident,data,db,actor)
+
+
+@router.get('/periods/{ident}/billing')
+def billing(ident:int,db=Depends(get_db),actor=Depends(get_current_user),scope=Depends(pack_selection)):
+    from .billing import outstanding
+    return outstanding(ident,db,actor)
 
 
 @router.get('/capabilities')

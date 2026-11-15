@@ -107,7 +107,9 @@ def _proof(db,actor,scope,command):
     actual=_snapshot(db,native.id)
     original=command.source_snapshot
     from app.apps.srm.api.router import ENGAGEMENT_STATUSES
-    immutable=lambda value:{key:item for key,item in value.items() if key not in {'status','updated_at'}}
+    from .project_links import validate_birth_project
+    validate_birth_project(db,actor,scope,command,actual)
+    immutable=lambda value:{key:item for key,item in value.items() if key not in {'status','updated_at','pms_project_id'}}
     if (command.action!='engagement.create' or actual is None or immutable(actual)!=immutable(original) or
             actual['status'] not in ENGAGEMENT_STATUSES or _digest(original)!=command.source_sha256 or actual['organization_id']!=scope.company_id or
             actual['customer_id']!=command.client_id or actual['created_by']!=command.created_by):

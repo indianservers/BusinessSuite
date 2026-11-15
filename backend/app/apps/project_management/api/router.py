@@ -4381,6 +4381,10 @@ def upload_task_attachment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return upload_task_attachment_operation(task_id, file, db, current_user)
+
+
+def upload_task_attachment_operation(task_id, file, db, current_user, *, commit=True):
     """Upload a binary file and attach it to a task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "upload")
     from app.services.file_storage import require_project_drive
@@ -4439,6 +4443,12 @@ def upload_task_attachment(
         task_id=task.id,
         metadata={"file_id": file_asset.id, "file_name": file_asset.original_name, "size_bytes": size_bytes},
     )
+    if not commit:
+        # Keep native storage routing, verified-cloud staging and failure
+        # recovery intact. The caller owns the outer transaction and must not
+        # release a private Session savepoint as a substitute for its commit.
+        db.flush()
+        return file_asset
     db.commit()
     db.refresh(file_asset)
     _broadcast_realtime(
