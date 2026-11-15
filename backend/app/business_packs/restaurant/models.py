@@ -225,6 +225,8 @@ def kitchen_movement_source(mapper, connection, row):
         raise ValueError('Kitchen movement must match its actual persisted private item')
 
 
+from .split_models import MODELS as SPLIT_MODELS
+
 MODELS = (RestaurantTable, RestaurantServiceOrder, RestaurantKitchenTicket, RestaurantKitchenLine, RestaurantCommand,
-          RestaurantTabLine, RestaurantKitchenIssue)
+          RestaurantTabLine, RestaurantKitchenIssue, *SPLIT_MODELS)
 RECORD_TABLES = frozenset(model.__tablename__ for model in MODELS)

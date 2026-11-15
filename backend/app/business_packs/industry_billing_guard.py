@@ -57,6 +57,9 @@ def selected_order_source_reserved(db,source_type,source_id):
     from app.branches.models import BranchOwnership
     from app.business_packs.boundary import _current
     scope=db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key=='restaurant' and source_type in {'restaurant_bill','restaurant_bill_line'}:
+        from .restaurant.split_bills import source_reserved
+        return source_reserved(db,source_type,source_id)
     if scope is not None and scope.pack_key=='accounting_firm' and source_type=='accounts_period':
         from .accounting_firm.billing import source_reserved
         return source_reserved(db,source_id)
@@ -99,6 +102,10 @@ def selected_order_source_reserved(db,source_type,source_id):
     if connection.scalar(select(exists().where(plan.c.engagement_id.in_(engagements),or_(plan.c.organization_id.is_(None),plan.c.organization_id!=scope.company_id)))):
         return True
     milestones=select(milestone.c.id).where(milestone.c.billing_plan_id.in_(plans))
+    if scope.pack_key=='restaurant':
+        from .restaurant.split_bills import reserves_order
+        if reserves_order(db,row.id):
+            return True
     guard=or_(and_(invoice_line.c.source_type=='sales_order',invoice_line.c.source_id==row.id),
         and_(invoice_line.c.source_type=='sales_order_line',invoice_line.c.source_id.in_(order_lines)),
         and_(invoice_line.c.source_type=='engagement',invoice_line.c.source_id.in_(engagements)),

@@ -4779,5 +4779,57 @@
     "request_currency",
     "request_key",
     "request_sha256"
+  ],
+  "business_restaurant_bill_groups": [
+    "branch_id",
+    "created_at",
+    "created_by",
+    "id",
+    "organization_id",
+    "pack_context_id",
+    "request_key",
+    "request_sha256",
+    "service_order_id"
+  ],
+  "business_restaurant_bill_lines": [
+    "branch_id",
+    "created_at",
+    "created_by",
+    "group_id",
+    "id",
+    "line_total",
+    "organization_id",
+    "pack_context_id",
+    "quantity",
+    "snapshot_id",
+    "tax_amount",
+    "unit_price"
+  ],
+  "business_restaurant_bill_issues": [
+    "branch_id",
+    "created_at",
+    "created_by",
+    "group_id",
+    "id",
+    "invoice_id",
+    "organization_id",
+    "pack_context_id"
+  ],
+  "business_restaurant_bill_receipts": [
+    "allocation_id",
+    "branch_id",
+    "collection_cashier_id",
+    "collection_currency",
+    "collection_session_id",
+    "created_at",
+    "created_by",
+    "id",
+    "issue_id",
+    "organization_id",
+    "pack_context_id",
+    "payment_key",
+    "receipt_id",
+    "request_key",
+    "request_sha256"
   ]
 }

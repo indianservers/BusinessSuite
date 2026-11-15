@@ -99,3 +99,10 @@ A non-waiting exclusive Web Lock covers the whole Save operation, including pend
 Current integrated source passed **48 portable callback/store/form scenarios** and an actual two-worker Web Locks concurrency model with one UUID, one POST and one deferred worker. The model is explicitly not a real-browser or live-provider test. All **8 PostgreSQL absence/replay/Retail tests passed**, zero skips, in 26.78 seconds using guarded owned-database cleanup. All seven integrated sources match the final candidate SHA manifest. Evidence: `.local/cash-recovery-main-source-proof.json`, `.local/cash-recovery-main-postgres.xml`, and `.local/parallel-cash-locks/d069-final/final-manifest.json`.
 
 The integrated full frontend TypeScript project also completed successfully with zero diagnostics.
+
+
+## Restaurant immutable split bills
+
+Integrated migration 120 and the focused Restaurant split-billing backend on current main. Immutable allocations reuse the original tab/charge snapshots and native invoices, receipts, allocations and register totals. Partial collection, exact replay and original-source reservation prevent overcollection and duplicate whole-tab billing. Chef and other business contexts retain their existing permission boundaries. Shared additions preserve Accounts billing hooks, cash intent protections and every existing schema-extension entry; migration 119 is unchanged. No frontend source changed in this backend integration.
+
+Current integrated-source checks passed **56 functional tests** (304.10 seconds), **6 PostgreSQL migration/concurrency tests** (113.06 seconds), **8 adjacent cash/Retail PostgreSQL tests** (27.14 seconds), and **1 independent PostgreSQL raw-commit test covering five late mutations** (54.43 seconds). All cohorts had zero failures or skips. The raw proof confirms actual SQL guards rather than relying on the ORM listener. Guarded owned-database cleanup completed. Source qualification, evidence and remaining UI/activation/full-suite gates are recorded in `restaurant-split-billing-2026-11-16.md`. Runtime support remains unpublished.

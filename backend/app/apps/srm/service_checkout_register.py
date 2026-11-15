@@ -22,10 +22,17 @@ def group_register_cash(db, session, authorized_orders, *, include_currency=Fals
     They never contribute an inferred cash amount to any register.
     """
     result = {'group_order_ids': set(), 'cash_received': Decimal('0'), 'unattributed_cash_count': 0}
+    from app.business_packs.restaurant.split_bills import register_cash
+    restaurant = register_cash(db, session)
+    result['cash_received'] = restaurant['cash_received']
+    if restaurant['collection_count']:
+        result['split_collection_count'] = restaurant['collection_count']
     if include_currency:
-        result['cash_by_currency'] = {}
+        result['cash_by_currency'] = dict(restaurant['cash_by_currency'])
         result['invalid_currency_count'] = 0
-    currencies = {}
+    elif len(restaurant['cash_by_currency']) > 1:
+        raise HTTPException(409, 'Register contains cash in multiple currencies; reconcile before continuing')
+    currencies = dict(restaurant['cash_by_currency'])
     invalid_currency_count = 0
     connection = db.connection()
     inspector = inspect(connection)
@@ -93,7 +100,7 @@ def group_register_cash(db, session, authorized_orders, *, include_currency=Fals
     session_companies = {current: company}
     roots = connection.execute(select(root.c.id, root.c.organization_id, root.c.branch_id, root.c.pack_context_id,
         root.c.pos_session_id, root.c.sales_order_id, root.c.customer_id, root.c.currency).where(relevant)).mappings().all()
-    seen_receipts = set()
+    seen_receipts = set(restaurant['receipt_ids'])
     for source in roots:
         if (source['organization_id'], source['branch_id'], source['pack_context_id']) != (company, branch, scope.context_id if scope else None):
             _fail()

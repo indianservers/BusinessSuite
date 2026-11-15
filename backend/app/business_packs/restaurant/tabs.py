@@ -288,7 +288,8 @@ def add(ident, data, db, actor, *, commit=True):
         return replay
     if order.source_kind != 'unpaid_tab' or order.state != 'open' or order.revision != data.expected_revision:
         _fail('Only the current unpaid open tab can receive additional items', 409)
-    if db.connection().scalar(select(POSServiceCheckout.id).where(POSServiceCheckout.sales_order_id == order.sales_order_id).limit(1)):
+    from .split_bills import reserves_order
+    if reserves_order(db, order.sales_order_id) or db.connection().scalar(select(POSServiceCheckout.id).where(POSServiceCheckout.sales_order_id == order.sales_order_id).limit(1)):
         _fail('An issued tab cannot receive further items', 409)
     from app.apps.srm.access import get_sales_order_for_user
     native = get_sales_order_for_user(db, order.sales_order_id, actor)
@@ -342,7 +343,11 @@ def source(db, actor, scope, order):
     billed_checkout = db.connection().scalar(select(POSServiceCheckout.id).where(POSServiceCheckout.sales_order_id == order.sales_order_id).limit(1))
     billed_invoice = db.connection().scalar(select(SRMInvoice.id).where(SRMInvoice.sales_order_id == order.sales_order_id).limit(1))
     billing = None
-    if billed_checkout or billed_invoice:
+    from .split_bills import tab_billing
+    split = tab_billing(db, scope, order)
+    if split is not None:
+        billing = {'billing': split}
+    elif billed_checkout or billed_invoice:
         if not billed_checkout or not billed_invoice:
             _fail('This Restaurant order entered billing without its exact checkout source', 409)
         from .sources import paid_source

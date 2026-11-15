@@ -29,11 +29,19 @@ def authority(db, actor, *actions, write=False):
     from app.business_packs.native_policy import native_srm_policy
     if db.info.get('business_pack_policy') != native_srm_policy('restaurant').policy:
         fail('Audited Restaurant isolation adapter is not installed', 503)
+    ensure_schema(db)
+    return scope
+
+
+def ensure_schema(db):
     if not all(inspect(db.connection()).has_table(model.__tablename__) for model in MODELS):
         fail('Install the Restaurant fulfillment extension first', 503)
+    from .split_models import MODELS as split_models
+    inspector = inspect(db.connection())
+    if any(not set(model.__table__.c.keys()) <= {column['name'] for column in inspector.get_columns(model.__tablename__)} for model in split_models):
+        fail('Install the Restaurant split billing provenance extension first', 503)
     if 'original_sales_order_line_id' not in {column['name'] for column in inspect(db.connection()).get_columns('business_restaurant_tab_lines')}:
         fail('Install the Restaurant cancellation provenance extension first', 503)
-    return scope
 
 
 def scoped(db, model, scope):

@@ -46,6 +46,8 @@ def authority(db, actor, *, billing=False, payments=False, write=True):
     if (scope is None or scope.pack_key != 'restaurant' or db.info.get('business_pack_scope') != scope
             or not ({'restaurant.'+needed} | ({'restaurant.payments.record'} if not write else set())) & scope.capabilities):
         fail('An authorized Restaurant billing context is required')
+    from .service import ensure_schema
+    ensure_schema(db)
     return scope
 
 
@@ -66,6 +68,8 @@ def result(db, scope, order, root):
 
 def close_if_settled(db, scope, order, source):
     if order.state != 'open' or not source.get('billing') or Decimal(source['billing']['balance']) != 0:
+        return
+    if source['billing'].get('kind') == 'split' and not source['billing']['fully_allocated']:
         return
     outstanding = scoped(db, Ticket, scope).filter(Ticket.service_order_id == order.id, Ticket.state != 'served').first()
     sent = sent_quantities(db, scope, order)

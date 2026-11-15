@@ -16,12 +16,14 @@ def transfer(ident, data, db, actor, *, commit=True):
         service.fail('Restaurant tab is unavailable',404)
     from .sources import private
     private(db,scope,Order,order.id)
-    service.order_source(db, actor, scope, order)
+    proof = service.order_source(db, actor, scope, order)
     replay = service.prior(db, actor, scope, 'tab.transfer', ident, data)
     if replay is not None:
         return replay
     if order.source_kind != 'unpaid_tab' or order.state != 'open' or order.revision != data.expected_revision:
         service.fail('Only the current open unpaid tab can move tables',409)
+    if proof.get('billing', {}).get('kind') == 'split':
+        service.fail('A tab with allocated split bills cannot move tables',409)
     if order.table_id is None or order.table_id == data.destination_table_id:
         service.fail('Choose a different destination for an existing seated tab',409)
     try:

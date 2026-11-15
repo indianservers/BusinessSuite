@@ -51,7 +51,7 @@ def evidence(db, session, orders=None):
         totals_ambiguous = True
     ambiguous = totals_ambiguous or bool(grouped['unattributed_cash_count'])
     currency = bound or (next(iter(amounts)) if len(amounts) == 1 and not ambiguous else None)
-    empty = not bound and not ambiguous and Decimal(row.opening_cash or 0) == 0 and not movements and not orders and not amounts
+    empty = not bound and not ambiguous and Decimal(row.opening_cash or 0) == 0 and not movements and not orders and not amounts and not grouped.get('split_collection_count', 0)
     if empty:
         from app.apps.srm.service_checkout_models import POSCheckoutPayment, POSServiceCheckout
         if inspect(db.connection()).has_table(POSCheckoutPayment.__tablename__):

@@ -8,6 +8,36 @@ from . import service
 
 router = APIRouter(prefix='/srm/restaurant', tags=['Restaurant fulfillment'])
 
+from .split_schemas import SplitBill, SplitPayment
+
+
+@router.get('/tabs/{order_id}/bills')
+def split_bills(order_id: int, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .split_bills import listing
+    return listing(order_id, db, actor)
+
+
+@router.post('/tabs/{order_id}/bills', status_code=201)
+def split_bill(order_id: int, data: SplitBill, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .split_bills import issue
+    return issue(order_id, data, db, actor)
+
+
+@router.get('/tabs/{order_id}/bills/{bill_id}')
+def split_bill_detail(order_id: int, bill_id: int, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .split_bills import listing
+    result = listing(order_id, db, actor)
+    bill = next((row for row in result['bills'] if row['bill_id'] == bill_id), None)
+    if bill is None:
+        service.fail('Restaurant split bill is unavailable', 404)
+    return {**result, 'bills': [bill]}
+
+
+@router.post('/tabs/{order_id}/bills/{bill_id}/payments', status_code=201)
+def split_payment(order_id: int, bill_id: int, data: SplitPayment, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .split_bills import pay
+    return pay(order_id, bill_id, data, db, actor)
+
 
 @router.get('/capabilities')
 def capabilities(db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):

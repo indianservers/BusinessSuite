@@ -202,7 +202,7 @@ _MANIFESTS = (
     ), (
         _workflow('checkout', 'Native POS and billing services', _EXISTS, 'pos'),
         _workflow('billing', 'Native invoices and payments', _EXISTS, 'billing'),
-        _workflow('reservations', 'Common appointment scheduling for reservations', _EXISTS, 'appointments'),
+        _workflow('reservations', 'Restaurant table reservations', _PARTIAL),
         _workflow('table_orders', 'Tables, menu modifiers and service orders'),
         _workflow('kitchen', 'Kitchen tickets and preparation workflow'),
         _workflow('settlement', 'Split bills, table transfer and shift close'),
