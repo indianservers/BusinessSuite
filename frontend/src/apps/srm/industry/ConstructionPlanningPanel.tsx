@@ -1,3 +1,4 @@
+import ConstructionCustomerSelect from './ConstructionCustomerSelect';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -9,7 +10,7 @@ import AdvancedSchedulingPanel from '@/apps/project-management/components/Advanc
 import { api } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useRecordScope } from '@/lib/record-scope';
-import CompanySelect, { masterScope } from '@/shared/master-data/CompanySelect';
+import { masterScope } from '@/shared/master-data/CompanySelect';
 import { dealError } from '@/apps/crm/deals/deal-utils';
 import { decodeDownloadError } from '@/lib/decode-download-error';
 
@@ -18,7 +19,7 @@ const control = 'w-full rounded-md border bg-background px-3 py-2 text-sm';
 type Row = { id: number; title: string; kind: string; status: string; revision: number; created_by: number; invoice_id?: number; parent_id?: number; data: Record<string, unknown> };
 type Task = { id: number; title: string; task_key?: string; parent_task_id?: number | null; start_date?: string; due_date?: string; status?: string; actual_hours?: string | null; updated_at?: string | null; progress_revision?: number; progress_mode?: string; progress_percent?: number };
 type File = { id: number; original_name: string };
-type Caps = { commercial_manage?: boolean; cost_budget_manage?: boolean; sites_create?: boolean; wbs_define?: boolean; actuals_task_manage?: boolean; actuals_cost_manage?: boolean; planning_manage?: boolean; planning_approve?: boolean; handover_prepare?: boolean; certificate_prepare?: boolean; delivery_approve?: boolean; reports?: boolean; measurements_certify?: boolean };
+type Caps = { workspace_ready?: boolean; workspace_setup_manage?: boolean; commercial_manage?: boolean; cost_budget_manage?: boolean; sites_create?: boolean; wbs_define?: boolean; actuals_task_manage?: boolean; actuals_cost_manage?: boolean; planning_manage?: boolean; planning_approve?: boolean; handover_prepare?: boolean; certificate_prepare?: boolean; delivery_approve?: boolean; reports?: boolean; measurements_certify?: boolean };
 type Intent = { scope: string; project: number; path: string; method: 'post' | 'put'; body: Record<string, unknown> };
 type Baseline = { id: string; name: string };
 type Checklist = { label: string; complete: boolean };
@@ -49,7 +50,7 @@ function loadIntent(key: string, scope: string, project: number): Intent | null 
   try {
     const value = JSON.parse(sessionStorage.getItem(key) || 'null') as Intent | null;
     return value && value.scope === scope && value.project === project && ['post', 'put'].includes(value.method)
-      && /^\/srm\/industry\/(site-projects|projects\/\d+\/(?:commercial-source|wbs-tasks|cost-budget|cost-actuals|task-actuals\/\d+)|work-packages(?:\/\d+)?|planning-baselines(?:\/\d+\/review)?|payment-certificates|measurements\/\d+\/work-package|handovers(?:\/\d+)?|delivery\/\d+\/review)$/.test(value.path)
+      && /^\/srm\/industry\/(workspace-definitions|site-projects|projects\/\d+\/(?:commercial-source|wbs-tasks|cost-budget|cost-actuals|task-actuals\/\d+)|work-packages(?:\/\d+)?|planning-baselines(?:\/\d+\/review)?|payment-certificates|measurements\/\d+\/work-package|handovers(?:\/\d+)?|delivery\/\d+\/review)$/.test(value.path)
       && value.body && typeof value.body === 'object' ? value : null;
   } catch { return null; }
 }
@@ -59,22 +60,23 @@ export default function ConstructionPlanningPanel({ projectId, onSaved }: { proj
   return <PlanningWorkspace key={`${generation}:${projectId}`} projectId={projectId} scope={masterScope()} onSaved={onSaved} />;
 }
 
-export function ConstructionSiteCreate({ onCreated }: { onCreated?: (projectId: number) => void }) {
+export function ConstructionSiteCreate({ onCreated }: { onCreated?: (project: { id: number; name: string }) => void }) {
   const generation = useRecordScope();
   return <SiteDefinition key={generation} scope={masterScope()} onCreated={onCreated} />;
 }
 
-function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (projectId: number) => void }) {
+function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (project: { id: number; name: string }) => void }) {
   const cache = useQueryClient(), alive = useRef(true), writing = useRef(false);
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const initial = { workspace_id: '', name: '', project_key: '', description: '', start_date: '', due_date: '', estimated_cost: '', estimated_hours: '' };
+  const [workspaceName, setWorkspaceName] = useState('');
   const [form, setForm] = useState(initial), key = `construction-site-intent:${scope}`;
   const [intent, setIntent] = useState<Intent | null>(() => loadIntent(key, scope, 0)), pending = useRef(intent);
   const owns = () => alive.current && scope === masterScope();
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const caps = useQuery({ queryKey: ['construction-site-definition', scope, 'capabilities'], enabled: open, retry: false,
     queryFn: async ({ signal }) => (await api.get<Caps>(ROOT + '/capabilities', { signal })).data });
-  const workspaces = useQuery({ queryKey: ['construction-site-definition', scope, 'workspaces'], enabled: open && !!caps.data?.sites_create, retry: false,
+  const workspaces = useQuery({ queryKey: ['construction-site-definition', scope, 'workspaces'], enabled: open && !!(caps.data?.sites_create || caps.data?.workspace_setup_manage), retry: false,
     queryFn: async ({ signal }) => (await api.get<{ items: { id: number; name: string }[] }>(ROOT + '/definition-workspaces', { signal })).data.items });
   function retain(value: Intent | null) {
     pending.current = value; setIntent(value);
@@ -82,13 +84,22 @@ function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (proj
   }
   async function send(saved: Intent) {
     if (!owns() || writing.current) return;
+    if (![ROOT + '/site-projects', ROOT + '/workspace-definitions'].includes(saved.path) || saved.method !== 'post') { retain(null); setError('This stored setup request is unsupported. Reload the current setup form.'); return; }
     writing.current = true; setBusy(true); setError(''); setNotice('');
     try {
-      const result = await api.post<{ id: number }>(ROOT + '/site-projects', saved.body);
+      const result = await api.post<{ id: number; name: string; role?: 'Owner' }>(saved.path, saved.body);
       if (!owns()) return;
-      retain(null); setForm(initial); setNotice('Canonical PMS site created.');
-      await cache.invalidateQueries({ queryKey: ['industry-projects', scope] });
-      if (owns()) onCreated?.(result.data.id);
+      const workspace = saved.path === ROOT + '/workspace-definitions';
+      if (!Number.isSafeInteger(result.data.id) || result.data.id < 1 || !result.data.name?.trim() || (workspace && result.data.role !== 'Owner')) throw new Error('The native setup receipt could not be verified. Retry this same request.');
+      retain(null);
+      if (workspace) {
+        setWorkspaceName(''); setForm(current => ({ ...current, workspace_id: String(result.data.id) })); setNotice('Canonical PMS workspace created.');
+        await cache.invalidateQueries({ queryKey: ['construction-site-definition', scope, 'workspaces'] });
+      } else {
+        setForm(initial); setNotice('Canonical PMS site created.');
+        await cache.invalidateQueries({ queryKey: ['industry-projects', scope] });
+        if (owns()) onCreated?.({ id: result.data.id, name: result.data.name });
+      }
     } catch (failure) {
       if (!owns()) return;
       setError(dealError(failure));
@@ -99,8 +110,9 @@ function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (proj
   return <details className="rounded-lg border p-4" onToggle={event => setOpen(event.currentTarget.open)}><summary className="cursor-pointer font-semibold">Define a Construction site</summary>{open && <div className="mt-3 grid gap-3">
     {caps.isFetching && <p role="status">Checking native site creation access…</p>}{[caps, workspaces].filter(query => query.isError).map((query, index) => <div key={index} role="alert" className="text-sm text-destructive">{dealError(query.error)} <Button variant="outline" onClick={() => void query.refetch()}>Retry source</Button></div>)}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}
-    {intent && <div className="grid gap-2 rounded-md border p-3 text-sm"><p>This site request has not been confirmed. Retry the same request before creating another site.</p><Button variant="outline" disabled={busy} onClick={() => void send(intent)}>Retry site request</Button></div>}
+    {intent && <div className="grid gap-2 rounded-md border p-3 text-sm"><p>This setup request has not been confirmed. Retry the same request before creating another workspace or site.</p><Button variant="outline" disabled={busy} onClick={() => void send(intent)}>Retry setup request</Button></div>}
     {caps.data && !caps.data.sites_create && <p className="text-sm text-muted-foreground">Site creation requires native project creation and Construction workspace administration access.</p>}
+    {caps.data?.workspace_setup_manage && <details className="rounded-md border p-3"><summary className="cursor-pointer font-medium">Create a native Construction workspace</summary><form className="mt-3 grid gap-3" aria-label="Create canonical Construction workspace" onSubmit={event => { event.preventDefault(); if (!owns() || pending.current || writing.current) return; const saved: Intent = { scope, project: 0, method: 'post', path: ROOT + '/workspace-definitions', body: { request_id: crypto.randomUUID(), name: workspaceName.trim() } }; retain(saved); void send(saved); }}><p className="text-sm text-muted-foreground">Create a canonical PMS workspace for this assignment. The native owner membership and Construction scope are recorded together.</p><fieldset disabled={busy || !!intent} className="grid gap-3"><Field label="Workspace name"><Input aria-label="Construction workspace name" required maxLength={180} value={workspaceName} onChange={event => setWorkspaceName(event.target.value)} /></Field></fieldset><Button disabled={busy || !!intent || !workspaceName.trim()}>Create native PMS workspace</Button></form></details>}
     {caps.data?.sites_create && <form className="grid gap-3" aria-label="Define canonical Construction site" onSubmit={event => { event.preventDefault(); if (!owns() || pending.current || writing.current) return; const saved: Intent = { scope, project: 0, method: 'post', path: ROOT + '/site-projects', body: { ...form, workspace_id: Number(form.workspace_id), request_id: crypto.randomUUID() } }; retain(saved); void send(saved); }}><p className="text-sm text-muted-foreground">Create the site in an existing owned PMS workspace. The project and its budget remain canonical PMS records.</p><fieldset disabled={busy || !!intent} className="grid gap-3 md:grid-cols-2">
       <Field label="Owned PMS workspace"><NativeSelect aria-label="Site PMS workspace" className={control} required value={form.workspace_id} onChange={event => setForm({ ...form, workspace_id: event.target.value })}><option value="">Choose native workspace</option>{workspaces.data?.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</NativeSelect></Field>
       <Field label="Site / project name"><Input aria-label="Site project name" required maxLength={180} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} /></Field>
@@ -110,7 +122,7 @@ function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (proj
       <Field label="Estimated cost budget"><Input aria-label="Site estimated cost" type="number" min="0.01" step="0.01" required value={form.estimated_cost} onChange={event => setForm({ ...form, estimated_cost: event.target.value })} /></Field>
       <Field label="Estimated work hours"><Input aria-label="Site estimated hours" type="number" min="0.01" step="0.01" required value={form.estimated_hours} onChange={event => setForm({ ...form, estimated_hours: event.target.value })} /></Field>
       <Field label="Project description"><textarea aria-label="Site project description" className={control} maxLength={10000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></Field>
-    </fieldset><Button disabled={busy || !!intent || !workspaces.data?.length}>Create native PMS site</Button>{workspaces.data?.length === 0 && <p className="text-sm text-muted-foreground">No owned workspace is available for this assignment. Use the native workspace administration process first.</p>}</form>}
+    </fieldset><Button disabled={busy || !!intent || !workspaces.data?.length}>Create native PMS site</Button>{workspaces.data?.length === 0 && <p className="text-sm text-muted-foreground">No owned workspace is available for this assignment. Create one with the authorized workspace setup above, or ask your Construction administrator to complete setup.</p>}</form>}
   </div>}</details>;
 }
 
@@ -245,7 +257,8 @@ function PlanningWorkspace({ projectId, scope, onSaved }: { projectId: number; s
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm">{notice}</p>}
       {intent && <div className="grid gap-2 rounded-md border p-3 text-sm"><p>{busy ? 'Saving this request…' : 'This request has not been confirmed. Retry the same request before starting another change.'}</p><Button variant="outline" disabled={busy} onClick={() => void send(intent)}>Retry this request</Button></div>}
       {ready && <>
-        {caps.data?.commercial_manage && <details className="rounded-md border p-3"><summary className="cursor-pointer font-medium">Native project customer &amp; billing currency</summary><div className="mt-3 grid gap-3"><p className="text-sm text-muted-foreground">Set the existing customer before preparing BOQ quantities. The seller is this assignment’s company. Customer, seller and currency become fixed once project pricing begins.</p>{commercial.data?.customer_id && <p className="text-sm">Customer #{commercial.data.customer_id} · Seller #{commercial.data.seller_id} · {commercial.data.currency}</p>}{commercial.data?.identity_locked || commercial.data?.has_advanced_links ? <p className="text-sm text-muted-foreground">The existing native commercial identity is preserved. Changes require its reviewed reconciliation workflow.</p> : <form className="grid gap-3" aria-label="Configure Construction commercial identity" onSubmit={event => { event.preventDefault(); write(`/projects/${projectId}/commercial-source`, { customer_id: Number(customerId), currency: commercialCurrency }); }}><fieldset disabled={frozen || commercial.isPending} className="grid gap-3 md:grid-cols-2"><CompanySelect source="srm" label="Existing customer" value={customerId} onChange={setCustomerId} onCreate={() => setError('Select an existing customer for this project.')} /><Field label="Billing currency"><Input aria-label="Construction billing currency" required pattern="[A-Z]{3}" maxLength={3} placeholder={commercial.data?.currency || 'Currency code'} value={commercialCurrency} onChange={event => setCommercialCurrency(event.target.value.toUpperCase())} /></Field></fieldset><Button disabled={frozen || commercial.isPending || !customerId || !/^[A-Z]{3}$/.test(commercialCurrency)}>Save native commercial identity</Button></form>}</div></details>}
+        {caps.data?.workspace_ready === false && <p role="status" className="text-sm text-muted-foreground">This project’s native workspace needs reviewed Construction setup before planning or cost changes. An administrator must complete that setup.</p>}
+        {caps.data?.commercial_manage && <details className="rounded-md border p-3"><summary className="cursor-pointer font-medium">Native project customer &amp; billing currency</summary><div className="mt-3 grid gap-3"><p className="text-sm text-muted-foreground">Set the existing customer before preparing BOQ quantities. The seller is this assignment’s company. Customer, seller and currency become fixed once project pricing begins.</p>{commercial.data?.customer_id && <p className="text-sm">Customer #{commercial.data.customer_id} · Seller #{commercial.data.seller_id} · {commercial.data.currency}</p>}{commercial.data?.identity_locked || commercial.data?.has_advanced_links ? <p className="text-sm text-muted-foreground">The existing native commercial identity is preserved. Changes require its reviewed reconciliation workflow.</p> : <form className="grid gap-3" aria-label="Configure Construction commercial identity" onSubmit={event => { event.preventDefault(); write(`/projects/${projectId}/commercial-source`, { customer_id: Number(customerId), currency: commercialCurrency }); }}><fieldset disabled={frozen || commercial.isPending} className="grid gap-3 md:grid-cols-2"><ConstructionCustomerSelect value={customerId} onChange={setCustomerId} /><Field label="Billing currency"><Input aria-label="Construction billing currency" required pattern="[A-Z]{3}" maxLength={3} placeholder={commercial.data?.currency || 'Currency code'} value={commercialCurrency} onChange={event => setCommercialCurrency(event.target.value.toUpperCase())} /></Field></fieldset><Button disabled={frozen || commercial.isPending || !customerId || !/^[A-Z]{3}$/.test(commercialCurrency)}>Save native commercial identity</Button></form>}</div></details>}
         {caps.data?.cost_budget_manage && <details className="rounded-md border p-3"><summary className="cursor-pointer font-medium">Canonical project cost budget</summary><form className="mt-3 grid gap-3" aria-label="Revise Construction cost budget" onSubmit={event => { event.preventDefault(); if (!costSource.data) return; write(`/projects/${projectId}/cost-budget`, { expected_estimated_cost: costSource.data.estimated_cost, estimated_cost: budgetCost, reason: budgetReason }); }}><p className="text-sm text-muted-foreground">Current PMS estimate: {costSource.data?.estimated_cost ?? 'Unset'} {costSource.data?.currency}. Existing approved baselines remain historical snapshots.</p><fieldset disabled={frozen || !costSource.data} className="grid gap-3 md:grid-cols-2"><Field label="Revised estimated cost"><Input aria-label="Construction estimated cost budget" type="number" required min="0.01" step="0.01" value={budgetCost} onChange={event => setBudgetCost(event.target.value)} /></Field><Field label="Budget revision reason"><Input aria-label="Construction budget revision reason" required maxLength={4000} value={budgetReason} onChange={event => setBudgetReason(event.target.value)} /></Field></fieldset><Button disabled={frozen || !costSource.data}>Revise native PMS budget</Button></form></details>}
         <details className="rounded-md border p-3"><summary className="cursor-pointer font-medium">Native schedule, dependencies &amp; resources</summary><div className="mt-3"><AdvancedSchedulingPanel projectId={projectId} showDeliverySchedule={false} canManage={!!caps.data?.planning_manage} onApplied={() => { void refresh(); }} /></div></details>
         <ConstructionDependenciesPanel projectId={projectId} scope={scope} canDefine={!!caps.data?.wbs_define} onChanged={() => { void refresh(); }} />

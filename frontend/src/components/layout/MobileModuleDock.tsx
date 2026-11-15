@@ -1,3 +1,5 @@
+import { selectedConstruction } from '@/lib/selected-construction';
+import { useRecordScope } from '@/lib/record-scope';
 import { useEffect, useLayoutEffect, useState } from "react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -99,6 +101,7 @@ export default function MobileModuleDock() {
   useLayoutEffect(() => setSelected(null), [location.key]);
   useLayoutEffect(() => { if (!mobile) setSelected(null); }, [mobile]);
 
+  const recordScope=useRecordScope(),construction=selectedConstruction(user);
   const module = location.pathname.split("/")[1];
 
   const menus = mobileModuleMenus[module];
@@ -112,13 +115,13 @@ export default function MobileModuleDock() {
 
   const badges = useQuery<Record<string, number>>({
 
-    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals],
+    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals, recordScope, construction],
 
     queryFn: async (): Promise<Record<string, number>> => {
 
       if ((module === "crm" || module === "srm") && allowed(`/${module}/follow-ups`)) { const r = await api.get("/follow-ups/statistics", { progress: false }); return { "Follow-ups": Number(r.data.Overdue || 0) }; }
 
-      if (module === "pms" && allowed("/pms/my-work")) { const r = await api.get("/project-management/tasks", { params: { workView: "mine", pageSize: 1 }, progress: false }); return { "My Work": Number(r.data.summary?.overdue || 0), Tasks: Number(r.data.summary?.in_review || 0) }; }
+      if (module === "pms" && !construction && allowed("/pms/my-work")) { const r = await api.get("/project-management/tasks", { params: { workView: "mine", pageSize: 1 }, progress: false }); return { "My Work": Number(r.data.summary?.overdue || 0), Tasks: Number(r.data.summary?.in_review || 0) }; }
 
       if (module === "hrms" && canReadLeaveApprovals) { const r = await api.get("/leave/requests", { params: { status: "Pending" }, progress: false, recordCache: false }); const rows = Array.isArray(r.data) ? r.data : r.data.items; return { Leave: Array.isArray(rows) ? rows.length : 0 }; }
 
