@@ -253,6 +253,10 @@ def test_payroll_variance_explains_actual_lines_and_currency(client,db,superuser
     row=response.json()[0]
     assert "Basic-pay earnings" in row["reason"] and "Unpaid leave" in row["reason"] and "Overtime" in row["reason"]
     assert row["previous_currency"]==row["current_currency"]=="INR"
+    assert 'derived_read_parents' not in db.info
+    from app.branches.models import BranchOwnership
+    owner = db.query(BranchOwnership).filter_by(resource_table='payroll_variance_items', resource_key=str(row['id']), company_id=1).one()
+    assert owner.branch_id == person.branch_id
 
 
 def test_account_link_candidates_exclude_foreign_and_revoked_company_memberships(client, db, superuser_headers):

@@ -43,8 +43,8 @@ def test_logo_validation(client, db, access_account, superuser_headers, tmp_path
     from app.core.storage import normalize_upload_references as normalize_reference
     from app.models.user import User
     actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
-    def normalize_upload_references(value):
-        return normalize_reference(value, db=db, actor_id=actor_id, company_id=1)
+    def normalize_upload_references(value, branch_id=None):
+        return normalize_reference(value, db=db, actor_id=actor_id, company_id=1, branch_id=branch_id)
     assert normalize_upload_references(result.json())["url"].startswith("/uploads/branding/")
 
     saved=client.put("/api/v1/access/enterprise/policies",headers=secure(client,superuser_headers),json={"companyId":1,"kind":"branding","key":"theme","version":0,"reason":"Configure workspace identity","values":{"appName":"Indian Servers Pvt Limited","logoPath":result.json()["url"]}})
@@ -52,7 +52,7 @@ def test_logo_validation(client, db, access_account, superuser_headers, tmp_path
     branding=client.get("/api/v1/access/enterprise/branding?companyId=1",headers=superuser_headers)
     assert branding.status_code==200
     assert branding.json()["values"]["appName"]=="Indian Servers Pvt Limited"
-    assert normalize_upload_references(branding.json())["values"]["logoPath"].startswith("/uploads/branding/")
+    assert normalize_upload_references(branding.json(), branch_id='all')["values"]["logoPath"].startswith("/uploads/branding/")
 
 
 from tests.test_intern_signup_settings import firebase_identity

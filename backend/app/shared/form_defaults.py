@@ -57,8 +57,12 @@ def choices(db, company_id):
     return result
 
 
-def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None):
+def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None, reference_keys=None):
     scope_key(company_id, module, branch_id)
+    if reference_keys is not None:
+        reference_keys=frozenset(reference_keys)
+        if reference_keys-set(DEFINITIONS):
+            raise ValueError('Unknown projected form defaults')
     result = dict(BASE)
     org = db.get(Company, company_id)
     if org:
@@ -82,6 +86,7 @@ def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None):
     # A configured ID can be retired later. Never preselect unavailable masters.
     refs = None
     for field in FIELDS:
+        if reference_keys is not None and field['key'] not in reference_keys: continue
         if field["type"] != "reference" or not result.get(field["key"]): continue
         if refs is None: refs = reference_queries(db, company_id)
         query, _ = refs[field["reference"]]
@@ -90,14 +95,14 @@ def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None):
             found = db.connection().execute(select(Branch.id).where(Branch.id == result[field["key"]], Branch.company_id == company_id, Branch.is_active.is_(True))).first()
         else: found = query.filter(model.id == result[field["key"]]).first()
         if not found: result[field["key"]] = None
-    if result.get("stage_id"):
+    if result.get("stage_id") and (reference_keys is None or 'stage_id' in reference_keys):
         from app.apps.crm.models import CRMPipelineStage
         stage = db.get(CRMPipelineStage, result["stage_id"])
         if not stage or stage.pipeline_id != result.get("pipeline_id"): result["stage_id"] = None
-    if result.get("department_id") and result.get("branch_id"):
+    if result.get("department_id") and result.get("branch_id") and (reference_keys is None or 'department_id' in reference_keys):
         department = db.get(Department, result["department_id"])
         if not department or department.branch_id != result["branch_id"]: result["department_id"] = None
-    if result.get("payment_mode_id"):
+    if result.get("payment_mode_id") and (reference_keys is None or 'payment_mode_id' in reference_keys):
         from app.apps.fam.models import FAMPaymentMode
         mode = db.get(FAMPaymentMode, result["payment_mode_id"])
         result["payment_mode_name"] = mode.name

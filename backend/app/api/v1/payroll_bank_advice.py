@@ -412,10 +412,12 @@ def download_bank_export(
     if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Bank export file missing on disk")
 
-    export.downloaded_at = datetime.now(timezone.utc)
-    export.download_count = (export.download_count or 0) + 1
-    _audit(db, export.payroll_run_id, "bank_advice_downloaded", current_user.id, f"export_id={export.id}")
-    db.commit()
+    from app.branches.derived import payroll_read_derivatives
+    with payroll_read_derivatives(db, export.payroll_run_id, download=True):
+        export.downloaded_at = datetime.now(timezone.utc)
+        export.download_count = (export.download_count or 0) + 1
+        _audit(db, export.payroll_run_id, "bank_advice_downloaded", current_user.id, f"export_id={export.id}")
+        db.commit()
 
     media_types = {
         "pdf": "application/pdf",

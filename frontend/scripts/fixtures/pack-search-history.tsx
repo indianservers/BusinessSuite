@@ -1,0 +1,18 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import GlobalSearch from '@/components/app/GlobalSearch';
+import { useAuthStore } from '@/store/authStore';
+import { recordScope } from '@/lib/record-scope';
+import { setPackContext } from '@/lib/pack-context';
+import { getProductForContext } from '@/lib/products';
+import '@/index.css';
+sessionStorage.setItem('suite-tenant', 'one'); sessionStorage.setItem('suite-organization', '1'); sessionStorage.setItem('suite-branch', '1');
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,email:'qa@example.invalid',role:'admin',is_superuser:true,access:{companyId:1,grants:{},modules:[],memberships:[1],managed:false,isAccessAdmin:true,isGlobalAdmin:true}} as never});
+const key = () => `suite-search-history-v2:${recordScope(useAuthStore.getState().user)}:${getProductForContext('/srm/pos', 'admin', true).key}`;
+const seed = (text: string) => sessionStorage.setItem(key(), JSON.stringify({queries:[text],records:[]}));
+sessionStorage.setItem('suite-search-history:1:1:1:srm', JSON.stringify({queries:['Unproved legacy secret'],records:[]}));
+setPackContext('11'); seed('Hospital private search'); setPackContext('22'); seed('Restaurant private search'); setPackContext('11');
+Object.assign(window, {switchHistoryPack: setPackContext, historyKey: key});
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/srm/pos']}><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><main><GlobalSearch/></main></QueryClientProvider></MemoryRouter>);

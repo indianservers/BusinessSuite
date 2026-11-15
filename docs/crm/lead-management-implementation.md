@@ -86,3 +86,45 @@ Updated 25 October 2026. This document describes the repository implementation, 
 ## Remaining gaps
 
 See [competitor benchmark and prioritized gaps](lead-management-competitive-gaps.md). The integration and scale gaps there remain open; the presence of a UI or scheduled task is not proof that a third-party service is connected.
+
+
+## General sales conversion process (15 November 2026)
+
+CRM → Leads now includes consultation/demo metrics for Scheduled, Confirmed, Attended,
+No-show and Rescheduled. These are current occurrence counts across all permitted leads
+matching search, stage and owner, excluding potential clients. They are not cumulative
+funnel counts. Rescheduling retains the old occurrence and creates a new scheduled one.
+The example 40/30/18/12/8 is used only in a disposable browser fixture.
+
+Expand **Sales process & automation** to select the sales manager and assignment pool,
+then enable the process. Provisioning is idempotent and preserves existing pipelines;
+it creates a general **Sales Conversion** pipeline. Its stages can be edited through the
+existing pipeline tools. No industry or school-specific behavior is introduced.
+
+The default process is New → Contacted → Qualified in Leads. Conversion creates an
+opportunity in Consultation Scheduled → Demo Completed → Proposal Sent → Negotiation
+→ Won / Lost. Conversion retains prospect/opportunity classification; Won promotes linked
+company/contact records to Customer. Existing customers retain their classification.
+
+The lead drawer provides consultation/demo booking, confirmation, attendance, no-show,
+rescheduling and cancellation. Attendance on a product demo creates a next-day follow-up
+task and advances an earlier linked deal to Demo Completed. Entering Demo Completed from
+the deal pipeline also creates a follow-up task. Consultations do not count as completed demos.
+
+Enabled automation uses the existing assignment engine (round-robin), 24-hour first-contact
+SLA, real CRM calendar events, next-day demo tasks, a two-day proposal task/reminder,
+seven-day no-response alerts to the configured sales manager, mandatory loss reasons,
+and a 30-day nurture reminder only with explicit recorded permission. A new response
+resets the no-response clock and cancels the pending proposal reminder. Permission records
+include evidence, actor and time; withdrawal prevents nurture reminders. The nurture clock
+starts at the later of the last recorded response and recorded permission. These are internal
+notifications/tasks, not outbound email or messaging.
+
+Timed evaluation uses the protected cron and, for configured processes, the existing
+once-per-minute local follow-up worker. It skips archived records, closed proposals,
+and recipients who no longer have access. Repeat evaluation does not duplicate reminders.
+External calendar synchronization still requires the existing provider connection.
+
+Implementation checks use disposable databases and a browser fixture; fixture writes never
+reach the developer's CRM database. Local configuration must be enabled for the intended
+company with an appropriate manager and assignment pool.

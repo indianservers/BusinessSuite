@@ -69,13 +69,6 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
-    "app.business_packs.models",
-    "app.business_packs.retail.models",
-    "app.business_packs.pharma.models",
-    "app.business_packs.pharma.recall_models",
-    "app.business_packs.pharma.return_models",
-    "app.business_packs.restaurant.models",
-    "app.business_packs.accounting_firm.models",
     "app.shared.import_models",
     "app.shared.accounting_sync.models",
     "app.shared.payment_models",
@@ -89,6 +82,13 @@ COMMON_MODEL_MODULES = (
     "app.apps.power_apps.approvals.models",
     "app.models.security_boundary",
     "app.access.models",
+    "app.business_packs.models",
+    "app.business_packs.retail.models",
+    "app.business_packs.pharma.models",
+    "app.business_packs.pharma.recall_models",
+    "app.business_packs.pharma.return_models",
+    "app.business_packs.restaurant.models",
+    "app.business_packs.accounting_firm.models",
     "app.shared.models",
     "app.models.file_storage",
     "app.models.platform",
@@ -207,8 +207,16 @@ APP_MODULES: dict[str, AppModule] = {
     "srm": AppModule(
         key="srm",
         label="Sales & Inventory Management",
-        router_modules=("app.apps.srm.api.router", "app.apps.srm.industry_api", "app.apps.srm.appointment_booking"),
-        model_modules=("app.apps.srm.models", "app.apps.srm.industry_models", "app.apps.srm.service_checkout_models", "app.apps.srm.anonymous_cash_models"),
+        router_modules=(
+            "app.business_packs.retail.api",
+            "app.business_packs.pharma.api",
+            "app.business_packs.pharma.return_api",
+            "app.business_packs.restaurant.api",
+            "app.business_packs.accounting_firm.api",
+            "app.apps.srm.api.router", "app.apps.srm.industry_api", "app.apps.srm.appointment_booking",
+            "app.apps.srm.service_checkout_options_api", "app.apps.srm.service_checkout_api", "app.apps.srm.anonymous_cash_api", "app.apps.srm.pos_surface_api",
+        ),
+        model_modules=("app.apps.srm.models", "app.apps.srm.industry_models", "app.apps.srm.service_checkout_models", "app.apps.srm.anonymous_cash_models", "app.business_packs.pharma.recall_models", "app.business_packs.restaurant.models", "app.business_packs.accounting_firm.models"),
     ),
     "fam": AppModule(
         key="fam",

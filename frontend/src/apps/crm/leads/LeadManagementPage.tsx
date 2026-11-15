@@ -1,3 +1,4 @@
+import { SalesProcessPanel, LeadMeetingOutcomes } from "./SalesProcessPanel";
 import { updateLeadSummary } from "./lead-summary";
 import CRMRowQuickActions from "../CRMRowQuickActions";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
@@ -480,6 +481,7 @@ function LeadWorkbench() {
         <Link to="/crm/calendar">Calendar & scheduling</Link>
         <Link to="/crm/duplicates?entity=lead">Duplicate review & merge</Link>
       </nav>
+      {!potential && bootstrap && <SalesProcessPanel bootstrap={bootstrap} search={search} stage={stage} owner={owner} revision={revision} changed={refresh}/>}
       <section className="lm-metrics" aria-label="Lead health">
         {[
           ["active", "Active leads"],
@@ -1473,6 +1475,7 @@ export function LeadDrawer({
         <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
         {bootstrap.canManage && canEdit && lead && !lead.is_converted && <div className="lm-lead-save-toolbar"><span role="status">{busy ? "Saving…" : (dirty ? auto.message || "Unsaved changes" : "All changes saved")}</span><Button type="button" variant="outline" onClick={() => { if (editingSection.current) { editingSection.current.open = true; editingSection.current.scrollIntoView({block:"start",behavior:"smooth"}); } }}>Edit lead</Button><Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button></div>}
         {lead && error && <ErrorNotice message={error}/> }
+        {lead && <LeadMeetingOutcomes key={id} id={id} canManage={canEdit && bootstrap.canManage} disabled={dirty || busy} changed={()=>{changed();setReload(v=>v+1);}}/>}
         <Record360Workspace key={id} kind="lead" id={id} actions={<Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button>}/>
         <details ref={editingSection}><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
         <div className="wfp-body wf-space">

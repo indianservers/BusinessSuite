@@ -1,7 +1,6 @@
 from datetime import date
 from decimal import Decimal
 import calendar
-from sqlalchemy import cast, String
 
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, EmployeeStatutoryProfile, PayrollPayGroup, PayrollPeriod
@@ -80,6 +79,7 @@ def init_payroll_test_db(db, **kwargs):
     from app.models.company import Company, Branch
     from app.models.payroll import SalaryComponent
     from app.branches.models import BranchOwnership
+    from app.models.security_boundary import SecurityResourceOwnership
     from app.branches.migration import backfill
 
     init_db(db, **kwargs)
@@ -97,15 +97,20 @@ def init_payroll_test_db(db, **kwargs):
         branch = db.query(Branch).filter_by(company_id=company.id, is_active=True).order_by(Branch.id).first()
         if branch is None:
             continue
-        owned = db.query(SalaryComponent).join(BranchOwnership,
-            (BranchOwnership.resource_table == SalaryComponent.__tablename__) &
-            (BranchOwnership.resource_key == cast(SalaryComponent.id, String))
-        ).filter(BranchOwnership.company_id == company.id, SalaryComponent.is_active.is_(True)).first()
+        owned = db.query(SalaryComponent).join(SecurityResourceOwnership,
+            (SecurityResourceOwnership.resource_table == SalaryComponent.__tablename__) &
+            (SecurityResourceOwnership.resource_id == SalaryComponent.id)
+        ).filter(SecurityResourceOwnership.company_id == company.id, SalaryComponent.is_active.is_(True)).first()
         if owned is None:
             component = SalaryComponent(name="Payroll setup allowance", code=f"SETUP-{company.id}",
                                         component_type="Earning", amount=0, is_active=True)
             db.add(component)
             db.flush()
+            claim = db.query(SecurityResourceOwnership).filter_by(resource_table=SalaryComponent.__tablename__, resource_id=component.id).first()
+            if claim is None:
+                db.add(SecurityResourceOwnership(resource_table=SalaryComponent.__tablename__, resource_id=component.id, company_id=company.id))
+            else:
+                assert claim.company_id == company.id
             db.add(BranchOwnership(resource_table=SalaryComponent.__tablename__, resource_key=str(component.id),
                                    company_id=company.id, branch_id=branch.id, source="payroll-test-setup"))
     commit_payroll_fixture(db)
@@ -171,4 +176,30 @@ def commit_payroll_fixture(db):
         if deferred and len(deferred) == len(pending):
             raise last_error
         pending = deferred
+    # Direct synthetic roots whose only FK is an installation catalogue (for
+    # example TaxSlab -> TaxRegime) need BOTH native boundaries. With two fixture
+    # companies the tenant hook correctly refuses to guess an owner. Only rows
+    # recorded while actually new above may receive this explicit fixture claim.
+    from app.core.tenant_boundary import legacy_root
+    from app.models.security_boundary import SecurityResourceOwnership
+    tenant_owner = SecurityResourceOwnership.__table__
+    for item in candidates:
+        state = inspect(item)
+        if state.deleted or item in db.deleted or not state.persistent or not legacy_root(type(item)):
+            continue
+        table = state.mapper.local_table
+        if table.name in SHARED:
+            continue  # These definitions intentionally have no branch owner proof.
+        key = resource_key(table, {c.name: getattr(item, c.name) for c in table.primary_key})
+        proof = db.connection().execute(select(owner.c.company_id, owner.c.branch_id).where(
+            owner.c.resource_table == table.name, owner.c.resource_key == key)).first()
+        assert proof is not None, "Synthetic tenant root requires verified native branch ownership"
+        actual_branch = db.get(Branch, proof.branch_id)
+        assert actual_branch is not None and actual_branch.company_id == proof.company_id, "Synthetic root branch must belong to its claimed company"
+        existing = db.connection().execute(select(tenant_owner.c.company_id).where(
+            tenant_owner.c.resource_table == table.name, tenant_owner.c.resource_id == item.id)).scalar_one_or_none()
+        if existing is None:
+            db.connection().execute(tenant_owner.insert().values(resource_table=table.name,resource_id=item.id,company_id=proof.company_id))
+        else:
+            assert existing == proof.company_id, "Synthetic root tenant ownership must never be overwritten"
     db.commit()

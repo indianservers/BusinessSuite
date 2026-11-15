@@ -20,14 +20,15 @@ try{
    return route.fulfill({json:[]});
   });
   await page.goto(base+'/hrms-dashboard-qa.html');await expect(page.getByRole('heading',{name:'HRMS dashboard',exact:true})).toBeVisible();
-  await expect(page.locator('.hrd-section')).toHaveCount(8);await expect(page.getByText('Missing bank details: IFSC',{exact:true})).toBeVisible();
+  await expect(page.locator('.hrd-section')).toHaveCount(1);await page.getByRole('button',{name:'Payroll',exact:true}).click();await expect(page.getByText('Missing bank details: IFSC',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Overview',exact:true}).click();
   await expect(page.locator('.hrd-metrics')).toContainText('$900');await expect(page.locator('.hrd-metrics')).not.toContainText('INR');
   await page.getByLabel('Department',{exact:true}).selectOption('1');await page.getByLabel('Employment type',{exact:true}).selectOption('Full-time');
   await page.getByRole('button',{name:'Apply filters',exact:true}).click();await expect.poll(()=>requests.filter(u=>u.pathname.includes('/hrms-dashboard/')&&!u.pathname.endsWith('/context')&&u.searchParams.get('department_id')==='1').length).toBeGreaterThanOrEqual(8);
   await page.locator('.hrd-metrics').getByRole('link',{name:'7',exact:true}).click();await expect(page.locator('#hrd-details')).toContainText('Alex Rao');
   assert.ok(requests.some(u=>u.searchParams.get('record_status')==='Present'&&u.searchParams.get('record_date')==='2026-11-08'));
+  await page.getByRole('button',{name:'Attendance & leave',exact:true}).click();
   failAttendance=true;await page.getByRole('button',{name:'Refresh dashboard',exact:true}).click();await expect(page.locator('.hrd-section').filter({has:page.getByRole('heading',{name:'Attendance',exact:true})})).toContainText('Previous values are stale');
-  await expect(page.getByRole('heading',{name:'Workforce',exact:true})).toBeVisible();failAttendance=false;
+  await expect(page.getByRole('heading',{name:'Leave approvals & availability',exact:true})).toBeVisible();failAttendance=false;
   await page.locator('.hrd-section').filter({has:page.getByRole('heading',{name:'Attendance',exact:true})}).getByRole('button',{name:'Retry section'}).click();
   await expect(page.locator('.hrd-section').filter({has:page.getByRole('heading',{name:'Attendance',exact:true})})).not.toContainText('Previous values are stale');
   await page.getByRole('button',{name:'Reset filters'}).click();await expect(page.getByLabel('Department',{exact:true})).toHaveValue('');

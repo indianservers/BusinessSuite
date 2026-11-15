@@ -217,6 +217,7 @@ def test_communication_events_require_permission_and_tenant_scope(db):
     from app.models.company import Company
     user,_,company,*_=seeded(db)
     db.add(Company(id=2,name='Other tenant'))
+    db.flush()
     db.add_all([CommunicationTimelineEvent(organization_id=1,record_type='account',record_id=company.id,channel='email',event_type='sent',subject='Visible mail'),CommunicationTimelineEvent(organization_id=2,record_type='account',record_id=company.id,channel='email',event_type='sent',subject='Private mail')])
     permission=db.query(Permission).filter_by(name='crm_view').first() or Permission(name='crm_view',module='crm')
     role=Role(name='record360_communications',permissions=[permission]);db.add(role);user.role=role;user.is_superuser=False;db.commit()

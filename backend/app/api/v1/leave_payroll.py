@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -34,7 +34,7 @@ router = APIRouter(tags=["HRMS Leave Payroll"])
 class LeaveEncashmentRequestPayload(BaseModel):
     employeeId: int | None = None
     leaveTypeId: int
-    daysToEncash: Decimal = Field(..., gt=0)
+    daysToEncash: Decimal = Field(..., gt=0, max_digits=5, decimal_places=1)
     remarks: str | None = None
 
 
@@ -57,6 +57,19 @@ def _days(value: Any) -> Decimal:
     return Decimal(str(value or "0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def _assert_encashment_source(request, *, payout: bool = False) -> None:
+    from decimal import InvalidOperation
+    try:
+        values = [Decimal(str(value)) for value in (request.days_to_encash, request.encashment_rate, request.amount)]
+    except (InvalidOperation, TypeError, ValueError):
+        raise HTTPException(409, "Native encashment source requires reconciliation") from None
+    if any(not value.is_finite() for value in values) or values[0] <= 0 or min(values[1:]) < 0:
+        raise HTTPException(409, "Native encashment source requires reconciliation")
+    if payout and (values[0] > Decimal("9999.9") or values[0] != values[0].quantize(Decimal("0.1"))
+            or values[2] != _money(values[0] * values[1])):
+        raise HTTPException(409, "Native encashment source requires reconciliation")
+
+
 def _org_id(user: User) -> int | None:
     return getattr(user, "organization_id", None) or getattr(user, "company_id", None)
 
@@ -72,6 +85,17 @@ def _can_manage_leave_payroll(user: User) -> bool:
 
 
 def _employee_for_user(user: User) -> Employee:
+    # This closed purpose resolves canonical employment afresh; an old cached
+    # User.employee relationship must not adopt a private or retired profile.
+    from sqlalchemy import inspect
+    from app.business_packs.common_core import CommonCoreScope
+    session = inspect(user).session
+    scope = session.info.get('business_common_core_scope') if session is not None else None
+    if isinstance(scope, CommonCoreScope) and scope.operation.purpose == 'hrms.leave_encashment':
+        employee = session.query(Employee).filter(Employee.user_id == user.id, Employee.deleted_at.is_(None)).first()
+        if employee is None:
+            raise HTTPException(status_code=400, detail="No employee profile is linked to this account")
+        return employee
     if not user.employee:
         raise HTTPException(status_code=400, detail="No employee profile is linked to this account")
     return user.employee
@@ -103,7 +127,14 @@ def _period_for_month(db: Session, month: str, create: bool = True) -> PayrollPe
         return period
     pay_group = db.query(PayrollPayGroup).filter(PayrollPayGroup.is_active == True).order_by(PayrollPayGroup.is_default.desc(), PayrollPayGroup.id).first()
     if not pay_group:
-        pay_group = PayrollPayGroup(name="Default Payroll Group", code="DEFAULT", is_default=True, is_active=True)
+        # Code/name uniqueness is native and global within the tenant schema.
+        # Never adopt an invisible foreign/other-branch default or invent a code.
+        if db.connection().execute(select(PayrollPayGroup.id).where(
+                (PayrollPayGroup.code == "DEFAULT") | (PayrollPayGroup.name == "Default Payroll Group")).limit(1)).first():
+            raise HTTPException(409, "Configure an authorized payroll group for the selected branch")
+        destination = db.info.get("branch_context")
+        pay_group = PayrollPayGroup(name="Default Payroll Group", code="DEFAULT", is_default=True, is_active=True,
+            branch_id=destination.branch_id if destination is not None else None)
         db.add(pay_group)
         db.flush()
     period = PayrollPeriod(
@@ -125,10 +156,12 @@ def _leave_balance(db: Session, employee_id: int, leave_type_id: int, year: int)
     balance = (
         db.query(LeaveBalance)
         .filter(LeaveBalance.employee_id == employee_id, LeaveBalance.leave_type_id == leave_type_id, LeaveBalance.year == year)
-        .first()
+        .populate_existing().with_for_update(of=LeaveBalance).first()
     )
     if not balance:
         raise HTTPException(status_code=400, detail="No leave balance is available for this leave type")
+    from app.business_packs.leave_encashment_core import note_balance
+    note_balance(db, balance)
     return balance
 
 
@@ -146,11 +179,15 @@ def _active_policy(db: Session, leave_type_id: int, when: date) -> LeaveEncashme
             (LeaveEncashmentPolicy.effective_to.is_(None)) | (LeaveEncashmentPolicy.effective_to >= when),
         )
         .order_by(LeaveEncashmentPolicy.effective_from.desc(), LeaveEncashmentPolicy.id.desc())
-        .first()
+        .populate_existing().first()
     )
 
 
 def _encashment_rate(db: Session, employee_id: int) -> Decimal:
+    from app.business_packs.leave_encashment_core import daily_rate
+    projected = daily_rate(db, employee_id)
+    if projected is not None:
+        return projected
     salary = (
         db.query(EmployeeSalary)
         .filter(EmployeeSalary.employee_id == employee_id, EmployeeSalary.is_active == True)
@@ -230,43 +267,45 @@ def create_leave_encashment_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    employee_id = data.employeeId
-    if employee_id is not None and not _can_manage_leave_payroll(current_user):
-        raise HTTPException(status_code=403, detail="Only HR/payroll can request encashment for another employee")
-    employee_id = employee_id or _employee_for_user(current_user).id
-    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    leave_type = db.query(LeaveType).filter(LeaveType.id == data.leaveTypeId, LeaveType.is_active == True).first()
-    if not leave_type:
-        raise HTTPException(status_code=404, detail="Leave type not found")
-    if not leave_type.encashable:
-        raise HTTPException(status_code=400, detail="This leave type is not encashable")
+    from app.business_packs.leave_encashment_core import command
+    with command(db, current_user, data=data):
+        employee_id = data.employeeId
+        if employee_id is not None and not _can_manage_leave_payroll(current_user):
+            raise HTTPException(status_code=403, detail="Only HR/payroll can request encashment for another employee")
+        employee_id = employee_id or _employee_for_user(current_user).id
+        employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+        if not employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        leave_type = db.query(LeaveType).filter(LeaveType.id == data.leaveTypeId, LeaveType.is_active == True).first()
+        if not leave_type:
+            raise HTTPException(status_code=404, detail="Leave type not found")
+        if not leave_type.encashable:
+            raise HTTPException(status_code=400, detail="This leave type is not encashable")
 
-    today = date.today()
-    balance = _leave_balance(db, employee_id, data.leaveTypeId, today.year)
-    available = _available_days(balance)
-    if data.daysToEncash > available:
-        raise HTTPException(status_code=400, detail=f"Only {available} day(s) are available for encashment")
-    policy = _active_policy(db, data.leaveTypeId, today)
-    if policy and policy.max_days is not None and data.daysToEncash > _days(policy.max_days):
-        raise HTTPException(status_code=400, detail=f"Policy allows maximum {policy.max_days} day(s) per request")
-    rate = _encashment_rate(db, employee_id)
-    amount = _money(rate * data.daysToEncash)
-    request = LeaveEncashmentRequest(
-        organization_id=_org_id(current_user),
-        employee_id=employee_id,
-        leave_type_id=data.leaveTypeId,
-        days_to_encash=data.daysToEncash,
-        encashment_rate=rate,
-        amount=amount,
-        status="submitted",
-        remarks=data.remarks,
-    )
-    db.add(request)
-    db.commit()
-    db.refresh(request)
-    return _serialize_encashment(request)
+        today = date.today()
+        balance = _leave_balance(db, employee_id, data.leaveTypeId, today.year)
+        available = _available_days(balance)
+        if data.daysToEncash > available:
+            raise HTTPException(status_code=400, detail=f"Only {available} day(s) are available for encashment")
+        policy = _active_policy(db, data.leaveTypeId, today)
+        if policy and policy.max_days is not None and data.daysToEncash > _days(policy.max_days):
+            raise HTTPException(status_code=400, detail=f"Policy allows maximum {policy.max_days} day(s) per request")
+        rate = _encashment_rate(db, employee_id)
+        amount = _money(rate * data.daysToEncash)
+        request = LeaveEncashmentRequest(
+            organization_id=_org_id(current_user),
+            employee_id=employee_id,
+            leave_type_id=data.leaveTypeId,
+            days_to_encash=data.daysToEncash,
+            encashment_rate=rate,
+            amount=amount,
+            status="submitted",
+            remarks=data.remarks,
+        )
+        db.add(request)
+        db.commit()
+        db.refresh(request)
+        return _serialize_encashment(request)
 
 
 @router.get("/hrms/leave-encashment")
@@ -296,55 +335,68 @@ def approve_leave_encashment_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    request = _load_encashment_request(db, request_id, current_user)
-    if request.status not in {"submitted", "draft"}:
-        raise HTTPException(status_code=400, detail="Only draft/submitted requests can be approved")
-    today = date.today()
-    balance = _leave_balance(db, request.employee_id, request.leave_type_id, today.year)
-    if request.days_to_encash > _available_days(balance):
-        raise HTTPException(status_code=400, detail="Leave balance is no longer sufficient")
-    month = f"{today.year:04d}-{today.month:02d}"
-    period = _period_for_month(db, month, create=True)
-    policy = _active_policy(db, request.leave_type_id, today)
-    line = LeaveEncashmentLine(
-        period_id=period.id,
-        employee_id=request.employee_id,
-        policy_id=policy.id if policy else None,
-        leave_type_id=request.leave_type_id,
-        days=request.days_to_encash,
-        rate_per_day=request.encashment_rate,
-        amount=request.amount,
-        tax_treatment=policy.tax_treatment if policy else "Taxable",
-        status="Approved",
-        approved_by=current_user.id,
-        approved_at=datetime.now(timezone.utc),
-    )
-    db.add(line)
-    db.flush()
-    balance.used = _days(balance.used) + _days(request.days_to_encash)
-    balance_after = _available_days(balance)
-    db.add(
-        LeaveBalanceLedger(
+    from app.business_packs.leave_encashment_core import command
+    with command(db, current_user, data=data, request_id=request_id):
+        request = _load_encashment_request(db, request_id, current_user)
+        if request.status not in {"submitted", "draft"}:
+            raise HTTPException(status_code=400, detail="Only draft/submitted requests can be approved")
+        _assert_encashment_source(request, payout=True)
+        today = date.today()
+        balance = _leave_balance(db, request.employee_id, request.leave_type_id, today.year)
+        if request.days_to_encash > _available_days(balance):
+            raise HTTPException(status_code=400, detail="Leave balance is no longer sufficient")
+        from app.business_packs.leave_encashment_core import assert_mutable
+        if not assert_mutable(db, current_user, request):
+            from app.api.v1.payroll import _locked_period
+            if _locked_period(db, today.month, today.year):
+                raise HTTPException(409, "Payroll is locked for this period; use a payroll adjustment")
+        month = f"{today.year:04d}-{today.month:02d}"
+        period = _period_for_month(db, month, create=True)
+        period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period.id).populate_existing().with_for_update(of=PayrollPeriod).first()
+        if period is None:
+            raise HTTPException(409, "Native payroll period is unavailable")
+        if str(period.status).lower() in {"locked", "closed"} or period.locked_at is not None:
+            raise HTTPException(409, "Payroll period is locked; use a payroll adjustment")
+        policy = _active_policy(db, request.leave_type_id, today)
+        line = LeaveEncashmentLine(
+            period_id=period.id,
             employee_id=request.employee_id,
+            policy_id=policy.id if policy else None,
             leave_type_id=request.leave_type_id,
-            leave_balance_id=balance.id,
-            year=today.year,
-            transaction_type="encashment",
-            amount=-_days(request.days_to_encash),
-            balance_after=balance_after,
-            reason=data.remarks or "Leave encashment approved",
-            created_by=current_user.id,
+            days=request.days_to_encash,
+            rate_per_day=request.encashment_rate,
+            amount=request.amount,
+            tax_treatment=policy.tax_treatment if policy else "Taxable",
+            status="Approved",
+            approved_by=current_user.id,
+            approved_at=datetime.now(timezone.utc),
         )
-    )
-    request.status = "approved"
-    request.approved_by = current_user.id
-    request.approved_at = datetime.now(timezone.utc)
-    request.leave_encashment_line_id = line.id
-    if data.remarks:
-        request.remarks = data.remarks
-    db.commit()
-    db.refresh(request)
-    return _serialize_encashment(request)
+        db.add(line)
+        db.flush()
+        balance.used = _days(balance.used) + _days(request.days_to_encash)
+        balance_after = _available_days(balance)
+        db.add(
+            LeaveBalanceLedger(
+                employee_id=request.employee_id,
+                leave_type_id=request.leave_type_id,
+                leave_balance_id=balance.id,
+                year=today.year,
+                transaction_type="encashment",
+                amount=-_days(request.days_to_encash),
+                balance_after=balance_after,
+                reason=data.remarks or "Leave encashment approved",
+                created_by=current_user.id,
+            )
+        )
+        request.status = "approved"
+        request.approved_by = current_user.id
+        request.approved_at = datetime.now(timezone.utc)
+        request.leave_encashment_line_id = line.id
+        if data.remarks:
+            request.remarks = data.remarks
+        db.commit()
+        db.refresh(request)
+        return _serialize_encashment(request)
 
 
 @router.post("/hrms/leave-encashment/{request_id}/reject", dependencies=[Depends(RequirePermission("payroll_run", "leave_approve"))])
@@ -354,16 +406,18 @@ def reject_leave_encashment_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    request = _load_encashment_request(db, request_id, current_user)
-    if request.status in {"paid", "approved"}:
-        raise HTTPException(status_code=400, detail="Approved or paid requests cannot be rejected")
-    request.status = "rejected"
-    request.approved_by = current_user.id
-    request.approved_at = datetime.now(timezone.utc)
-    request.remarks = data.remarks or request.remarks
-    db.commit()
-    db.refresh(request)
-    return _serialize_encashment(request)
+    from app.business_packs.leave_encashment_core import command
+    with command(db, current_user, data=data, request_id=request_id):
+        request = _load_encashment_request(db, request_id, current_user)
+        if request.status in {"paid", "approved"}:
+            raise HTTPException(status_code=400, detail="Approved or paid requests cannot be rejected")
+        request.status = "rejected"
+        request.approved_by = current_user.id
+        request.approved_at = datetime.now(timezone.utc)
+        request.remarks = data.remarks or request.remarks
+        db.commit()
+        db.refresh(request)
+        return _serialize_encashment(request)
 
 
 def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None = None, include_attendance: bool = True, include_zero: bool = False) -> list[dict[str, Any]]:

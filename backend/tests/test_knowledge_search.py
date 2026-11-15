@@ -48,10 +48,13 @@ def test_search_reauthorizes_conversation_and_module_before_embedding(client,db,
 
 def test_search_project_must_match_conversation_workspace(client,db):
     from app.apps.project_management.models import PMSProject,PMSWorkspace,PMSWorkspaceMember
-    h,user,project,_=setup_suite(client,db);conversation=chat(client,h)
+    h,user,project,_=setup_suite(client,db)
     workspace=PMSWorkspace(name='Knowledge project scope');db.add(workspace);db.flush()
     db.add(PMSWorkspaceMember(workspace_id=workspace.id,user_id=user.id,role='Owner'))
     db.get(PMSProject,project).workspace_id=workspace.id;db.commit()
+    # Capture current authority after the project move; otherwise the move
+    # correctly revokes the old conversation before the workspace check runs.
+    conversation=chat(client,h)
     r=client.post(ROOT+'/workspace/search',headers=h,json={'conversation_id':conversation,'query':'Review','tools':['pms.tasks'],'project_id':project,'mode':'lexical'})
     assert r.status_code==422,r.text
     workspace=db.get(PMSProject,project).workspace_id

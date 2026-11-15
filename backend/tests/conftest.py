@@ -183,6 +183,7 @@ def superuser_token(client, db):
         "email": "testadmin@test.com",
         "password": "Admin@123456"
     })
+    assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
 

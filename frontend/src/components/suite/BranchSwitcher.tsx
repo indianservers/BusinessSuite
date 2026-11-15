@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { switchSuiteContext } from "@/lib/switch-suite-context";
 import "./app-bar.css";
+import BusinessPackSwitcher from './BusinessPackSwitcher';
 
 type Branch = { id: number; name: string; code: string; can_write: boolean; is_active?: boolean; company_id?: number; company_name?: string; company_active?: boolean; is_deleted?: boolean };
 type Context = { company_id: number; selected: number | null; all_branches: boolean; manage_access: boolean; branches: Branch[]; platform_branches?: Branch[] };
@@ -19,6 +20,7 @@ export default function BranchSwitcher() {
   const user = useAuthStore(s => s.user);
   const qc = useQueryClient();
   const [error, setError] = useState("");
+  const [packVisible, setPackVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
   const current = useQuery<Context>({ queryKey: ["suite-branch-context", user?.id, user?.access?.companyId], enabled: !!user, queryFn: async () => {
@@ -46,7 +48,8 @@ export default function BranchSwitcher() {
     finally { setBusy(false); }
   }
   if (!user) return null;
-  return <div className="suite-branch-control">
+  return <div className="suite-branch-control" style={packVisible ? {flexWrap:"wrap"} : undefined}>
+    <BusinessPackSwitcher onVisibility={setPackVisible}/>
     <label className="suite-branch-field">
       <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>

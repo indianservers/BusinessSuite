@@ -2158,7 +2158,8 @@ def list_payroll_runs(
     company_id = None if current_user.is_superuser else _current_company_id(current_user)
     if company_id:
         query = query.filter(PayrollRun.company_id == company_id)
-    return query.order_by(PayrollRun.year.desc(), PayrollRun.month.desc()).all()
+    from app.business_packs.payroll_register import run_output
+    return [run_output(db,row) for row in query.order_by(PayrollRun.year.desc(), PayrollRun.month.desc()).all()]
 
 
 @router.get("/last-run", response_model=PayrollRunSchema | None)
@@ -2170,7 +2171,8 @@ def get_last_payroll_run(
     company_id = None if current_user.is_superuser else _current_company_id(current_user)
     if company_id:
         query = query.filter(PayrollRun.company_id == company_id)
-    return query.order_by(PayrollRun.year.desc(), PayrollRun.month.desc(), PayrollRun.id.desc()).first()
+    from app.business_packs.payroll_register import run_output
+    return run_output(db,query.order_by(PayrollRun.year.desc(), PayrollRun.month.desc(), PayrollRun.id.desc()).first())
 
 
 @router.post("/run", response_model=PayrollRunSchema, status_code=201)
@@ -2225,7 +2227,8 @@ def get_payroll_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_view")),
 ):
-    return _get_payroll_run_or_404(db, run_id)
+    from app.business_packs.payroll_register import run_output
+    return run_output(db,_get_payroll_run_or_404(db, run_id))
 
 
 @router.put("/runs/{run_id}/approve")
@@ -2291,7 +2294,14 @@ def get_payroll_variance(
     current_user: User = Depends(RequirePermission("payroll_view")),
 ):
     try:
-        return crud_payroll.calculate_payroll_variance(db, run_id)
+        from app.business_packs.payroll_variance import project, serialize_legacy
+        projected = project(db, current_user, run_id)
+        if projected is not None:
+            return projected
+        serialize_legacy(db, current_user, run_id)
+        from app.branches.derived import payroll_read_derivatives
+        with payroll_read_derivatives(db, run_id, variance=True):
+            return crud_payroll.calculate_payroll_variance(db, run_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -3122,6 +3132,14 @@ def get_payslip(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.business_packs.payroll_payslip import project
+    projected = project(db, current_user, month, year, employee_id)
+    if projected is not None:
+        return projected
+    return native_payslip(month, year, employee_id, db, current_user)
+
+
+def native_payslip(month, year, employee_id, db, current_user):
     emp_id = employee_id
     if not emp_id:
         if not current_user.employee:

@@ -42,3 +42,6 @@
 @media print {
   .srm-pos-mobile-tabs,.srm-pos-configuration-toggle { display:none!important; }
 }
+@media(max-width:767px){
+.srm-pos-stock-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.srm-pos-stock-summary>div{padding:10px;border-radius:12px}.srm-pos-stock-summary strong{font-size:20px}.srm-pos-stock-summary>div>div>span{display:none}.srm-pos-mode-summary{display:none}.srm-pos-mobile-tabs{position:sticky;top:0;z-index:10;padding:8px 12px;box-shadow:0 2px 8px #0f172a08}.srm-pos-catalog [aria-label="Catalogue filters"]{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}.srm-pos-catalog [aria-label="Catalogue filters"]>*{flex-shrink:0;white-space:nowrap}.srm-pos-dialog{max-height:calc(100dvh - 24px);width:calc(100% - 24px);border-radius:16px}.srm-pos .srm-pos-checkout{border-top:1px solid #dbe1ef;box-shadow:0 -4px 20px #0f172a12}
+}

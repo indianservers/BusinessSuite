@@ -1,4 +1,5 @@
 import CompactForm from "@/components/forms/CompactForm";
+import { recordScope, useRecordScope } from '@/lib/record-scope';
 import {
   FormEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -55,13 +56,15 @@ export default function GlobalSearch({ compact = false, shortcuts = true }: { co
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const historyKey = `suite-search-history:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch")}:${product.key}`;
+  const historyScope = useRecordScope();
+  const historyKey = `suite-search-history-v2:${recordScope(user)}:${product.key}`;
   const readHistory = (): { queries: string[]; records: Result[] } => {
     try { const value = JSON.parse(sessionStorage.getItem(historyKey) || "{}"); return { queries: Array.isArray(value.queries) ? value.queries.filter((q: unknown): q is string => typeof q === "string").slice(0, 5) : [], records: Array.isArray(value.records) ? value.records.filter((r: Result) => typeof r?.url === "string" && r.url.startsWith("/") && !r.url.startsWith("//") && canAccessRoute(r.url.split("?")[0], user?.role, user?.is_superuser)).slice(0, 5) : [] }; } catch { return { queries: [], records: [] }; }
   };
   const [historyRevision, setHistoryRevision] = useState(0);
   void historyRevision;
   const history = readHistory();
+  useEffect(() => { setQuery(''); setDebouncedQuery(''); setFocusedIndex(-1); setOpen(false); setHistoryRevision(value => value + 1); }, [historyScope]);
   function chooseResult(item: Result) {
     try { sessionStorage.setItem(historyKey, JSON.stringify({ queries: query.trim() ? [query.trim(), ...history.queries.filter(q => q !== query.trim())].slice(0, 5) : history.queries, records: [item, ...history.records.filter(r => r.url !== item.url)].slice(0, 5) })); } catch { /* Search remains available without history. */ }
     navigate(item.url); setOpen(false);
@@ -73,6 +76,7 @@ export default function GlobalSearch({ compact = false, shortcuts = true }: { co
   const { data } = useQuery({
     queryKey: [
       "global-search",
+      recordScope(user),
       user?.id,
       user?.access?.companyId,
       debouncedQuery,
@@ -462,6 +466,7 @@ export default function GlobalSearch({ compact = false, shortcuts = true }: { co
   const recordSearch = useQuery({
     queryKey: [
       "command-pms",
+      recordScope(user),
       product.key,
       user?.id,
       user?.access?.companyId,

@@ -5,7 +5,7 @@ import json
 import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import and_, func, or_, select, text
@@ -395,7 +395,7 @@ def filter_entity_kind(q, entity_kind):
 
 
 @router.get("/companies")
-def list_companies(source: Source = "crm", search: str = Query("", max_length=180), role: str = Query("", max_length=30), page: int = Query(1, ge=1), per_page: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), actor: User = Depends(get_current_user), entity_kind: Literal["all", "companies", "individuals"] = "all", exact_name: str = Query("", max_length=255)):
+def list_companies(source: Source = "crm", search: str = Query("", max_length=180), role: str = Query("", max_length=30), page: int = Query(1, ge=1), per_page: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), actor: User = Depends(get_current_user), entity_kind: Literal["all", "companies", "individuals"] = "all", exact_name: Annotated[str, Query(max_length=255)] = ""):
     q = filter_entity_kind(companies(db, actor, source), entity_kind)
     if exact_name.strip():
         q = q.filter(func.lower(func.trim(CRMCompany.name)) == exact_name.strip().lower())
@@ -513,6 +513,8 @@ def save_roles(db, actor, row, kind, roles):
 
 
 def write_company(db, actor, source, data, row=None):
+    from app.business_packs.anonymous_definitions import assert_company_birth_input
+    assert_company_birth_input(db, actor, source, data, row)
     authorize(actor, source, True, action="edit" if row else "create")
     from app.apps.crm.custom_field_config import validate_values
     validate_values(db,"companies",crm()._organization_id(db,actor),data.customFields,row.id if row else None)
@@ -695,10 +697,13 @@ def company_custom_fields(source: Source = "crm", entity: Literal["companies","c
 
 @router.post("/companies", status_code=201)
 def create_company(data: CompanyInput, source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    row = write_company(db, actor, source, data)
-    save_profile_availability(db, actor, row, data.branch_availability, source, "create")
-    db.commit()
-    return company_output(db, row)
+    from app.business_packs.company_master_core import creation,finish
+    with creation(db,actor,data,source) as plan:
+        row = write_company(db, actor, source, data)
+        save_profile_availability(db, actor, row, data.branch_availability, source, "create")
+        finish(db,actor,plan,row)
+        db.commit()
+        return company_output(db, row)
 
 
 @router.patch("/companies/{ident}")
@@ -740,17 +745,19 @@ def company_profile(ident: int, source: Source = "crm", db: Session = Depends(ge
     grant = (getattr(actor, "_suite_grants", None) or {}).get("fam", {})
     accounting_access = actor.is_superuser or (grant.get("enabled") and "view" in grant.get("actions", []) and grant.get("scope") in {"organization", "all"})
     if accounting_access and is_app_enabled("fam") and is_app_enabled("srm"):
-        from app.apps.srm.commercial_models import CustomerLink
-        from app.apps.fam.models import FAMParty, FAMPurchaseBill, FAMBillReference, FAMSRMMapping
-        account_ids = select(CustomerLink.source_id).where(CustomerLink.organization_id == actor.organization_id, CustomerLink.customer_id == ident, CustomerLink.source_type == "crm_account")
-        mapped_parties = select(FAMSRMMapping.fam_record_id).where(FAMSRMMapping.company_id == actor.organization_id, FAMSRMMapping.srm_record_type == "customer", FAMSRMMapping.srm_record_id == ident, FAMSRMMapping.fam_record_type == "party", FAMSRMMapping.mapping_status == "active")
-        party_ids = select(FAMParty.id).where(FAMParty.company_id == actor.organization_id, or_(FAMParty.crm_account_id.in_(account_ids), FAMParty.id.in_(mapped_parties)))
-        if db.query(FAMParty.id).filter(FAMParty.id.in_(party_ids)).first():
-            result["financialNote"] = "Verified accounting records in your authorized branch."
-            if actor.is_superuser or permissions.intersection({"fam_admin", "fam_purchase_view", "fam_purchase_manage"}):
-                result["purchases"] = [{"id": x.id, "number": x.bill_number, "date": x.bill_date, "total": x.grand_total, "status": x.status} for x in db.query(FAMPurchaseBill).filter(FAMPurchaseBill.company_id == actor.organization_id, FAMPurchaseBill.vendor_id.in_(party_ids)).order_by(FAMPurchaseBill.bill_date.desc(), FAMPurchaseBill.id.desc()).limit(50)]
-            if actor.is_superuser or permissions.intersection({"fam_admin", "fam_ap_view", "fam_ap_manage"}):
-                result["payables"] = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == actor.organization_id, FAMBillReference.party_id.in_(party_ids), FAMBillReference.bill_type.in_(["bill", "credit_note", "opening"]), FAMBillReference.outstanding_amount > 0).scalar()
+        from app.business_packs.company_master_core import profile_financial_read
+        with profile_financial_read(db,actor,row,ident):
+            from app.apps.srm.commercial_models import CustomerLink
+            from app.apps.fam.models import FAMParty, FAMPurchaseBill, FAMBillReference, FAMSRMMapping
+            account_ids = select(CustomerLink.source_id).where(CustomerLink.organization_id == actor.organization_id, CustomerLink.customer_id == ident, CustomerLink.source_type == "crm_account")
+            mapped_parties = select(FAMSRMMapping.fam_record_id).where(FAMSRMMapping.company_id == actor.organization_id, FAMSRMMapping.srm_record_type == "customer", FAMSRMMapping.srm_record_id == ident, FAMSRMMapping.fam_record_type == "party", FAMSRMMapping.mapping_status == "active")
+            party_ids = select(FAMParty.id).where(FAMParty.company_id == actor.organization_id, or_(FAMParty.crm_account_id.in_(account_ids), FAMParty.id.in_(mapped_parties)))
+            if db.query(FAMParty.id).filter(FAMParty.id.in_(party_ids)).first():
+                result["financialNote"] = "Verified accounting records in your authorized branch."
+                if actor.is_superuser or permissions.intersection({"fam_admin", "fam_purchase_view", "fam_purchase_manage"}):
+                    result["purchases"] = [{"id": x.id, "number": x.bill_number, "date": x.bill_date, "total": x.grand_total, "status": x.status} for x in db.query(FAMPurchaseBill.id,FAMPurchaseBill.bill_number,FAMPurchaseBill.bill_date,FAMPurchaseBill.grand_total,FAMPurchaseBill.status).filter(FAMPurchaseBill.company_id == actor.organization_id, FAMPurchaseBill.vendor_id.in_(party_ids)).order_by(FAMPurchaseBill.bill_date.desc(), FAMPurchaseBill.id.desc()).limit(50)]
+                if actor.is_superuser or permissions.intersection({"fam_admin", "fam_ap_view", "fam_ap_manage"}):
+                    result["payables"] = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == actor.organization_id, FAMBillReference.party_id.in_(party_ids), FAMBillReference.bill_type.in_(["bill", "credit_note", "opening"]), FAMBillReference.outstanding_amount > 0).scalar()
     try:
         authorize(actor, source, True, action="edit")
         result["canEdit"] = True

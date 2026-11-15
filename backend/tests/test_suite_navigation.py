@@ -7,7 +7,7 @@ from app.core.security import create_access_token
 from tests.rich_text_test_utils import organization_context
 
 
-def test_access_returns_names_only_for_member_companies(client, db, superuser_headers):
+def test_platform_admin_access_returns_company_discovery_names(client, db, superuser_headers):
     actor = db.query(User).filter_by(email="testadmin@test.com").one()
     if not db.get(Company, 1): db.add(Company(id=1, name="Primary", is_active=True))
     db.add_all([Company(id=20, name="Member company", is_active=True), Company(id=21, name="Private company", is_active=True)])
@@ -16,7 +16,7 @@ def test_access_returns_names_only_for_member_companies(client, db, superuser_he
     db.commit()
     result = client.get("/api/v1/access/me", headers=superuser_headers)
     assert result.status_code == 200, result.text
-    assert {org["id"] for org in result.json()["organizations"]} == {1, 20}
+    assert {org["id"] for org in result.json()["organizations"]} == {1, 20, 21}
     assert {org["name"] for org in result.json()["organizations"]} >= {"Member company"}
 
 

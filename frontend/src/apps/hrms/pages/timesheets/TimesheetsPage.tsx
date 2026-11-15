@@ -1,4 +1,7 @@
+import { recordScope, useRecordScope } from "@/lib/record-scope";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import BusinessTerm from "@/components/BusinessTerm";
+import { EmployeePlannedServicesBrowser } from "../employees/EmployeePlannedServices";
 import "./timesheets-mobile.css";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
@@ -15,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { timesheetsApi } from "@/services/api";
+import { api, timesheetsApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { getRoleKey } from "@/lib/roles";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -40,6 +43,7 @@ type TimesheetEntry = {
 
 type Timesheet = {
   id: number;
+  employee_id: number;
   project_id: number;
   period_start: string;
   period_end: string;
@@ -67,7 +71,25 @@ function statusTone(status: string) {
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
+function mutationError(error:unknown,fallback:string) {
+  const detail=(error as {response?:{data?:{detail?:unknown}}})?.response?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
+
 export default function TimesheetsPage() {
+  useRecordScope();
+  const authorityScope = recordScope(useAuthStore.getState().user);
+  return <ScopedTimesheetsPage key={authorityScope} authorityScope={authorityScope}/>;
+}
+
+function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
+  const owns = useRecordScopeOwner();
+  // A remount must authorize via native GET, including when a prior stamp returns.
+  const [readGeneration] = useState(() => crypto.randomUUID());
+  function fromOwner<T>(request:()=>Promise<T>):Promise<T> {
+    if (!owns()) return Promise.reject(new Error("Timesheet context changed. Reload before saving."));
+    return request();
+  }
   usePageTitle("Timesheets");
   const phone = useMobile(480), entryFields = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
@@ -78,7 +100,10 @@ export default function TimesheetsPage() {
   const canManageProjects=managed?granted("timesheet_manage","create"):roleKey==="admin"||roleKey==="hr";
   const canApprove=managed?granted("timesheet_approve","approve"):roleKey==="admin"||roleKey==="hr"||roleKey==="manager";
   const canCreateSheet=!!user?.employee_id&&(!managed||granted("timesheet_view","create"));
+  const canBrowseSchedules=managed?granted("employee_view","view"):roleKey==="admin"||roleKey==="hr"||roleKey==="manager";
+  const [completion, setCompletion] = useState({project:0,sheet:0,entry:0});
   const [selectedSheetId, setSelectedSheetId] = useState<number | null>(null);
+  const [showPlanned, setShowPlanned] = useState(false);
   const [projectForm, setProjectForm] = useState({ code: "", name: "", client_name: "" });
   const [sheetForm, setSheetForm] = useState({
     project_id: "",
@@ -93,17 +118,19 @@ export default function TimesheetsPage() {
   });
 
   const projectQuery = useQuery({
-    queryKey: ["timesheet-projects"],
-    queryFn: () => timesheetsApi.projects({ status: "Active" }).then((r) => r.data as Project[]),
+    queryKey: ["timesheet-projects", authorityScope, readGeneration],
+    queryFn: ({signal}) => api.get<Project[]>("/timesheets/projects",{signal,params:{status:"Active"},recordCache:false}).then((r) => r.data),
+    placeholderData:undefined, staleTime:0, refetchOnMount:"always", gcTime:0,
   });
 
   const sheetQuery = useQuery({
-    queryKey: ["timesheets"],
-    queryFn: () => timesheetsApi.list().then((r) => r.data as Timesheet[]),
+    queryKey: ["timesheets", authorityScope, readGeneration],
+    queryFn: ({signal}) => api.get<Timesheet[]>("/timesheets/",{signal,recordCache:false}).then((r) => r.data),
+    placeholderData:undefined, staleTime:0, refetchOnMount:"always", gcTime:0,
   });
 
-  const projects = projectQuery.data || [];
-  const sheets = sheetQuery.data || [];
+  const projects = !projectQuery.isError ? projectQuery.data || [] : [];
+  const sheets = !sheetQuery.isError ? sheetQuery.data || [] : [];
 
   const projectById = useMemo(
     () => new Map((projects as Project[]).map((project) => [project.id, project])),
@@ -115,75 +142,86 @@ export default function TimesheetsPage() {
   );
 
   const createProject = useMutation({
-    mutationFn: () => timesheetsApi.createProject({
+    mutationFn: () => fromOwner(() => timesheetsApi.createProject({
       ...projectForm,
       code: projectForm.code.trim(),
       name: projectForm.name.trim(),
       client_name: projectForm.client_name.trim() || undefined,
-    }),
+    })),
     onSuccess: () => {
+      if (!owns()) return;
+      setCompletion(current=>({...current,project:current.project+1}));
       toast({ title: "Project created" });
       setProjectForm({ code: "", name: "", client_name: "" });
       qc.invalidateQueries({ queryKey: ["timesheet-projects"] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Project save failed";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
   const createSheet = useMutation({
-    mutationFn: () => timesheetsApi.create({
+    mutationFn: () => fromOwner(() => timesheetsApi.create({
       project_id: Number(sheetForm.project_id),
       period_start: sheetForm.period_start,
       period_end: sheetForm.period_end,
-    }),
+    })),
     onSuccess: (response) => {
+      if (!owns()) return;
+      setCompletion(current=>({...current,sheet:current.sheet+1}));
       toast({ title: "Timesheet created" });
       setSelectedSheetId(response.data.id);
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Timesheet save failed";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
   const addEntry = useMutation({
-    mutationFn: () => timesheetsApi.addEntry(selectedSheet!.id, {
+    mutationFn: () => fromOwner(() => timesheetsApi.addEntry(selectedSheet!.id, {
       work_date: entryForm.work_date,
       hours: entryForm.hours,
       is_billable: entryForm.is_billable,
       task_name: entryForm.task_name.trim() || undefined,
-    }),
+    })),
     onSuccess: () => {
+      if (!owns()) return;
+      setCompletion(current=>({...current,entry:current.entry+1}));
       toast({ title: "Entry added" });
       setEntryForm((current) => ({ ...current, task_name: "" }));
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Entry save failed";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
   const submitSheet = useMutation({
-    mutationFn: (id: number) => timesheetsApi.submit(id),
+    mutationFn: (id: number) => fromOwner(() => timesheetsApi.submit(id)),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Timesheet submitted" });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
-    onError:()=>toast({title:"Could not submit timesheet",description:"Your entries are retained. Check the status and try again.",variant:"destructive"}),
+    onError:()=>{if(owns())toast({title:"Could not submit timesheet",description:"Your entries are retained. Check the status and try again.",variant:"destructive"});},
   });
 
   const reviewSheet = useMutation({
     mutationFn: ({ id, status }: { id: number; status: "Approved" | "Rejected" }) =>
-      timesheetsApi.review(id, { status }),
+      fromOwner(() => timesheetsApi.review(id, { status })),
     onSuccess: (_, variables) => {
+      if (!owns()) return;
       toast({ title: `Timesheet ${variables.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
-    onError:()=>toast({title:"Could not review timesheet",description:"The previous status is retained. Refresh and retry.",variant:"destructive"}),
+    onError:()=>{if(owns())toast({title:"Could not review timesheet",description:"The previous status is retained. Refresh and retry.",variant:"destructive"});},
   });
 
   const totals = useMemo(() => {
@@ -202,7 +240,10 @@ export default function TimesheetsPage() {
           <h1 className="page-title">Timesheets</h1>
           <p className="page-description">Project time capture, approval, and billable utilization for services teams.</p>
         </div>
+        <Button variant="outline" aria-expanded={showPlanned} onClick={() => setShowPlanned(value => !value)}>{showPlanned ? 'Hide planned services' : 'Planned services'}</Button>
       </div>
+
+      {showPlanned && <EmployeePlannedServicesBrowser defaultEmployeeId={selectedSheet?.employee_id || user?.employee_id || undefined} canBrowse={canBrowseSchedules}/>}
 
       {phone && projectQuery.isError && <p role="alert">Projects could not load. <Button variant="outline" onClick={() => projectQuery.refetch()}>Retry projects</Button></p>}
       {phone && sheetQuery.isPending && <p role="status">Loading timesheets…</p>}
@@ -239,7 +280,7 @@ export default function TimesheetsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SmartCreateSection title="Create timesheet project" size="standard" mobileSheet={phone}><div className="hrms-timesheet-project-form space-y-4"><div className="grid grid-cols-2 gap-3">
+                <SmartCreateSection closeOnRecordSaved={false} completionRevision={completion.project} title="Create timesheet project" size="standard" mobileSheet={phone}><div className="hrms-timesheet-project-form space-y-4"><div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Code</Label>
                     <Input aria-label="Timesheet project code" value={projectForm.code} onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })} />
@@ -260,13 +301,13 @@ export default function TimesheetsPage() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Project
-                </Button></div></SmartCreateSection><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
+                </Button>{createProject.isError && owns() && <p role="alert" className="text-sm text-destructive">{mutationError(createProject.error,"Project save failed")}</p>}</div></SmartCreateSection><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
               </CardContent>
             </Card></MobileDisclosure>
           )}
 
           {canCreateSheet && (
-            <SmartCreateSection title="Create timesheet" size="standard" mobileSheet={phone}><Card className="hrms-timesheet-create-card">
+            <SmartCreateSection closeOnRecordSaved={false} completionRevision={completion.sheet} title="Create timesheet" size="standard" mobileSheet={phone}><Card className="hrms-timesheet-create-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Clock3 className="h-4 w-4" />
@@ -304,7 +345,7 @@ export default function TimesheetsPage() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Timesheet
-                </Button>
+                </Button>{createSheet.isError && owns() && <p role="alert" className="text-sm text-destructive">{mutationError(createSheet.error,"Timesheet save failed")}</p>}
               </CardContent>
             </Card></SmartCreateSection>
           )}
@@ -382,7 +423,7 @@ export default function TimesheetsPage() {
           </Card>}
 
           {selectedSheet && selectedSheet.status === "Draft" && canCreateSheet && (
-            <SmartCreateSection title={<>Add Work Entry</>} size="standard" mobileSheet={phone}><Card className="hrms-timesheet-entry-card">
+            <SmartCreateSection closeOnRecordSaved={false} completionRevision={completion.entry} title={<>Add Work Entry</>} size="standard" mobileSheet={phone}><Card className="hrms-timesheet-entry-card">
               <CardHeader>
                 <CardTitle className="text-base">Add Work Entry</CardTitle>
               </CardHeader>
@@ -407,7 +448,7 @@ export default function TimesheetsPage() {
                 <Button onClick={() => { if (phone && !entryFields.current?.querySelector<HTMLInputElement>('input[type="number"]')?.reportValidity()) return; addEntry.mutate(); }} disabled={!selectedSheet || addEntry.isPending}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add
-                </Button>
+                </Button>{addEntry.isError && owns() && <p role="alert" className="text-sm text-destructive">{mutationError(addEntry.error,"Entry save failed")}</p>}
               </CardContent>
             </Card></SmartCreateSection>
           )}

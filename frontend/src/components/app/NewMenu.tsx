@@ -1,3 +1,4 @@
+import { moduleContextPath } from "@/lib/common-routes";
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Plus, Search, type LucideIcon } from "lucide-react";
@@ -15,7 +16,7 @@ export default function NewMenu({ actions, disabled, floating = false }: { actio
   const searchInput = useRef<HTMLInputElement>(null);
   useEffect(() => { if (!open) return; const frame = requestAnimationFrame(() => searchInput.current?.focus()); return () => cancelAnimationFrame(frame); }, [open]);
   const location = useLocation(), user = useAuthStore(s => s.user);
-  const module = location.pathname.split("/")[1];
+  const module = moduleContextPath(location.pathname, location.search).split("/")[1];
   const prepared = actions.map(action => ({ ...action, group: action.group || createGroup(action.label, module), description: module === "crm" ? createDescriptions[action.label] || action.description : action.description })).sort((a, b) => createPriority(a.label, module, user?.role === "employee") - createPriority(b.label, module, user?.role === "employee"));
   const filtered = prepared.filter(action => `${action.label} ${action.description} ${action.group} ${action.keywords || ""}`.toLowerCase().includes(query.trim().toLowerCase()));
   const groups = [...new Set(filtered.map(action => action.group))];

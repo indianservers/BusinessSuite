@@ -1,3 +1,4 @@
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { defaultText } from "@/lib/form-defaults";
@@ -27,12 +28,20 @@ function readDraft(key: string): TaskCreationDraft | null {
 }
 
 /** Presentation and browser drafts only. The host owns creation; no service calls. */
-export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, onCreate, onAutoSave, autoSaveVersion, onCancel, initialDraft, databaseBacked = false, additionalFields }: { onAutoSave?: (draft: TaskCreationDraft) => Promise<void>; autoSaveVersion?: string; additionalFields?:ReactNode; databaseBacked?: boolean; initialDraft?: TaskCreationDraft; draftKey: string; tasks: LocalTask[]; onCreate: (draft: TaskCreationDraft, createAnother: boolean) => void | Promise<void>; onCancel: () => void }) {
+export default function TaskCreationForm(props: Parameters<typeof ScopedTaskCreationForm>[0]) {
+  const scope = usePrivateDraftScope();
+  const source = useRef(scope);
+  if (props.initialDraft && source.current !== scope) return null;
+  return <ScopedTaskCreationForm key={scope} {...props}/>;
+}
+
+function ScopedTaskCreationForm({ draftKey: suppliedDraftKey, tasks, onCreate, onAutoSave, autoSaveVersion, onCancel, initialDraft, databaseBacked = false, additionalFields }: { onAutoSave?: (draft: TaskCreationDraft) => Promise<void>; autoSaveVersion?: string; additionalFields?:ReactNode; databaseBacked?: boolean; initialDraft?: TaskCreationDraft; draftKey: string; tasks: LocalTask[]; onCreate: (draft: TaskCreationDraft, createAnother: boolean) => void | Promise<void>; onCancel: () => void }) {
   const [saving, setSaving] = useState(false);
   const submitting = useRef(false);
   const [draft, setDraft] = useState(() => initialDraft || blank());
   const user = useAuthStore(s => s.user);
-  const draftKey = `${suppliedDraftKey}:user:${user?.id}:company:${sessionStorage.getItem("suite-organization") || user?.access?.companyId}:branch:${sessionStorage.getItem("suite-branch") || "default"}`;
+  const ownsDraft = usePrivateDraftOwner();
+  const draftKey = privateDraftKey("task-draft", suppliedDraftKey);
   const self = user?.email || user?.name;
   const [available, setAvailable] = useState(() => readDraft(draftKey));
   const [notice, setNotice] = useState("");
@@ -53,16 +62,18 @@ export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, on
     const snapshot = JSON.stringify([draft, autoSaveVersion]);
     if (snapshot === baseline.current) return;
     const timer = window.setTimeout(() => {
-      if (submitting.current) return;
+      if (!ownsDraft() || submitting.current) return;
       try { localStorage.setItem(draftKey, JSON.stringify(draft)); setNotice("Draft automatically saved in this browser."); }
       catch { setError("Automatic draft saving failed. Browser storage is unavailable or full."); }
       if (!latestAutoSave.current || !draft.title.trim() || !form.current?.checkValidity() || (draft.start && draft.due && draft.due < draft.start)) return;
       submitting.current = true; setSaving(true); setError("");
       void latestAutoSave.current({ ...draft, title: draft.title.trim() }).then(() => {
+        if (!ownsDraft()) return;
         baseline.current = snapshot;
         try { localStorage.removeItem(draftKey); setAvailable(null); } catch { /* Server save succeeded. */ }
         setNotice("All changes automatically saved to CRM.");
       }).catch((e: unknown) => {
+        if (!ownsDraft()) return;
         setError(e instanceof Error ? `Automatic save failed: ${e.message}. Your draft is kept in this browser; use Ctrl+S to retry.` : "Automatic save failed. Use Ctrl+S to retry.");
       }).finally(() => { submitting.current = false; setSaving(false); });
     }, 1200);
@@ -78,21 +89,23 @@ export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, on
     return () => window.removeEventListener("keydown", shortcut, true);
   });
   function set<K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) { setDraft(d => ({ ...d, [key]: value })); setError(""); }
-  function saveDraft() { try { localStorage.setItem(draftKey, JSON.stringify(draft)); setAvailable(draft); setNotice("Draft saved in this browser."); setError(""); } catch { setError("Could not save the draft. Browser storage is unavailable or full."); } }
-  function discardDraft() { try { localStorage.removeItem(draftKey); setAvailable(null); } catch { setError("Could not remove the saved draft. Please try again."); } }
+  function saveDraft() { if (!ownsDraft()) return; try { localStorage.setItem(draftKey, JSON.stringify(draft)); setAvailable(draft); setNotice("Draft saved in this browser."); setError(""); } catch { setError("Could not save the draft. Browser storage is unavailable or full."); } }
+  function discardDraft() { if (!ownsDraft()) return; try { localStorage.removeItem(draftKey); setAvailable(null); } catch { setError("Could not remove the saved draft. Please try again."); } }
   function addPerson() { const value = person.trim(); if (!value) return; set("assignees", [...new Set([...draft.assignees, value])]); setPerson(""); }
   function addSubtask() { if (!subtask.trim()) return; set("subtasks", [...draft.subtasks, subtask.trim()]); setSubtask(""); }
   async function submit() {
-    if (submitting.current) return;
+    if (!ownsDraft() || submitting.current) return;
     if (!form.current?.reportValidity()) return;
     if (!draft.title.trim()) { setError("Enter a task title."); return; }
     if (draft.start && draft.due && draft.due < draft.start) { setError("Due date must be on or after the start date."); return; }
     submitting.current = true; setSaving(true); setError("");
     try {
       await onCreate({ ...draft, title: draft.title.trim() }, !initialDraft && createAnother);
+      if (!ownsDraft()) return;
       discardDraft();
       if (createAnother && !initialDraft) { setDraft(blank()); setNotice(databaseBacked ? "Task saved to CRM. Ready for the next task." : "Task added to this browser. Ready for the next task."); }
     } catch (e) {
+      if (!ownsDraft()) return;
       const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
       setError(typeof detail === "string" ? detail : "Could not save the task. Your entries are still here. Please try again.");
     } finally { submitting.current = false; setSaving(false); }

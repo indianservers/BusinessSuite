@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import type { CreationDefinition } from "./registry";
 import "./smart-creation.css";
 import { CreationSurfaceContext } from "./CreationSurfaceContext";
+import { useOperationPanelActive } from "@/lib/operation-panel";
 
 export function SmartCreateModal({ definition, children, onClose, busy = false, savedRevision = 0, closeRequestRevision = 0, loading = false, mobileSheet = false, returnFocus, onCloseAutoFocus }: { definition: CreationDefinition; children: ReactNode; onClose: () => void; busy?: boolean; savedRevision?: number; closeRequestRevision?: number; loading?: boolean; mobileSheet?: boolean; returnFocus?: HTMLElement | null; onCloseAutoFocus?: (event: Event) => void }) {
+  const panelActive = useOperationPanelActive();
   const content = useRef<HTMLDivElement | null>(null);
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const attach = useCallback((node: HTMLDivElement | null) => { content.current = node; setElement(node); }, []);
   const syncItems = useRecordSync();
-  const background = syncItems.some(item => item.origin === element && item.phase === "pending");
-  useEffect(() => { if(background) requestAnimationFrame(() => { if(returnFocus?.isConnected) returnFocus.focus(); else document.getElementById("suite-main")?.focus(); }); }, [background,returnFocus]);
+  const background = !panelActive || syncItems.some(item => item.origin === element && item.phase === "pending");
+  useEffect(() => { if(background && panelActive) requestAnimationFrame(() => { if(returnFocus?.isConnected) returnFocus.focus(); else document.getElementById("suite-main")?.focus(); }); }, [background,panelActive,returnFocus]);
   const [dirty, setDirty] = useState(false), [confirm, setConfirm] = useState(false);
   const [action, setAction] = useState<{ label: string; disabled: boolean; previous?: { disabled: boolean } }>();
   const primary = useRef<HTMLButtonElement>();
@@ -82,5 +84,5 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
       </div></FocusScope>
     </Dialog.Content>
   </Dialog.Portal></Dialog.Root>
-  <Alert.Root open={confirm} onOpenChange={setConfirm}><Alert.Portal><Alert.Overlay className="smart-discard-overlay"/><Alert.Content className="smart-discard-window"><Alert.Title>Discard changes?</Alert.Title><Alert.Description>Your unsaved information will be lost. Drafts explicitly saved by the form remain available.</Alert.Description><div><Alert.Cancel asChild><Button variant="outline">Continue Editing</Button></Alert.Cancel>{draftButton && <Button variant="outline" onClick={() => { setConfirm(false); draftButton.click(); }}>Save Draft</Button>}<Alert.Action asChild><Button variant="destructive" onClick={onClose}>Discard Changes</Button></Alert.Action></div></Alert.Content></Alert.Portal></Alert.Root></>;
+  <Alert.Root open={confirm && panelActive} onOpenChange={setConfirm}><Alert.Portal><Alert.Overlay className="smart-discard-overlay"/><Alert.Content className="smart-discard-window"><Alert.Title>Discard changes?</Alert.Title><Alert.Description>Your unsaved information will be lost. Drafts explicitly saved by the form remain available.</Alert.Description><div><Alert.Cancel asChild><Button variant="outline">Continue Editing</Button></Alert.Cancel>{draftButton && <Button variant="outline" onClick={() => { setConfirm(false); draftButton.click(); }}>Save Draft</Button>}<Alert.Action asChild><Button variant="destructive" onClick={onClose}>Discard Changes</Button></Alert.Action></div></Alert.Content></Alert.Portal></Alert.Root></>;
 }

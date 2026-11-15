@@ -1,4 +1,6 @@
 import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { useRecordScope } from '@/lib/record-scope';
+import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 import {useModuleAction} from "@/hooks/use-module-action";
 import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import MobilePdfActions from "@/components/mobile/MobilePdfActions";
@@ -18,25 +20,33 @@ const RecordTemplatePicker=lazy(()=>import('@/shared/template-design/RecordTempl
 
 export default function SharedInvoicePage() {
   const { id } = useParams();
-  const uid = useAuthStore((state) => state.user?.id);
-  return <InvoiceWorkspace key={`${uid}-${id}`} id={id} />;
+  const scope = useRecordScope();
+  return <InvoiceWorkspace key={`${scope}-${id}`} id={id} scope={scope} />;
 }
 
-function InvoiceWorkspace({ id }: { id?: string }) {
+function InvoiceWorkspace({ id, scope }: { id?: string; scope: string }) {
+  const owns = useRecordScopeOwner();
   const { term } = useBusinessTerms();
   const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowApprove=useModuleAction("approve"),allowExport=useModuleAction("export");
+  const allowCollect = useModuleAction('create');
   const uid = useAuthStore((state) => state.user?.id);
   const [notice, setNotice] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const query = useQuery({
-    queryKey: ["shared-invoice", uid, id],
-    queryFn: async () => (await api.get(`/srm/business/invoices/${id}`)).data,
+    queryKey: ["shared-invoice", scope, uid, id],
+    queryFn: async ({ signal }) => {
+      if (!owns()) throw new Error('The invoice workspace changed.');
+      return (await api.get(`/srm/business/invoices/${id}`, { signal })).data;
+    },
     refetchInterval: 10000,
   });
   const action = useMutation({
-    mutationFn: async (name: string) =>
-      (await api.post(`/srm/invoices/${id}/${name}`)).data,
+    mutationFn: async (name: string) => {
+      if (!owns()) throw new Error('The invoice workspace changed.');
+      return (await api.post(`/srm/invoices/${id}/${name}`)).data;
+    },
     onSuccess: async (data) => {
+      if (!owns()) return;
       setNotice(
         data.delivery
           ? `Delivery: ${data.delivery.status}. ${data.delivery.error || ""}`
@@ -46,9 +56,12 @@ function InvoiceWorkspace({ id }: { id?: string }) {
     },
   });
   const pdf = useMutation({
-    mutationFn: async () =>
-      (await api.get(`/srm/invoices/${id}/pdf`, { responseType: "blob", progress:{title:"Generating Invoice",operationType:"generate",mode:"micro"} })).data,
+    mutationFn: async () => {
+      if (!owns()) throw new Error('The invoice workspace changed.');
+      return (await api.get(`/srm/invoices/${id}/pdf`, { responseType: "blob", progress:{title:"Generating Invoice",operationType:"generate",mode:"micro"} })).data;
+    },
     onSuccess: (blob) => {
+      if (!owns()) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -58,9 +71,12 @@ function InvoiceWorkspace({ id }: { id?: string }) {
     },
   });
   const cancel = useMutation({
-    mutationFn: () =>
-      api.post(`/srm/business/invoices/${id}/cancel`, { reason: cancelReason }),
+    mutationFn: () => {
+      if (!owns()) throw new Error('The invoice workspace changed.');
+      return api.post(`/srm/business/invoices/${id}/cancel`, { reason: cancelReason });
+    },
     onSuccess: async () => {
+      if (!owns()) return;
       setNotice(
         "Invoice cancelled. Source reservations remain held for finance review.",
       );
@@ -116,7 +132,9 @@ function InvoiceWorkspace({ id }: { id?: string }) {
                 currency: r.currency,
               }}
               onSave={async (value) => {
+                if (!owns()) return;
                 await api.put(`/srm/business/invoices/${id}/context`, value);
+                if (!owns()) return;
                 await query.refetch();
               }}
             />
@@ -149,7 +167,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
                     key={`${l.id}-${l.line_total}`}
                     invoiceId={Number(id)}
                     line={l}
-                    onSave={() => query.refetch()}
+                    onSave={() => owns() ? query.refetch() : undefined}
                   />
                 )}
             </div>
@@ -200,10 +218,10 @@ function InvoiceWorkspace({ id }: { id?: string }) {
         </CardContent>
       </Card>
       {r.can_record_payment && allowApprove && <PaymentRequestButton source="srm_invoice" sourceId={Number(id)}/>}
-      {r.can_record_payment && (allowApprove||allowEdit) &&
+      {r.can_record_payment && allowCollect &&
         r.document_status === "issued" &&
         Number(r.balance_amount) > 0 && (
-          <InvoicePaymentForm invoice={r} onSaved={() => query.refetch()} />
+          <InvoicePaymentForm invoice={r} onSaved={() => owns() ? query.refetch() : undefined} />
         )}
       <Card>
         <CardHeader>
@@ -286,10 +304,13 @@ function DraftLineEditor({
   line: any;
   onSave: () => unknown;
 }) {
+  const owns = useRecordScopeOwner();
   const save = useMutation({
-    mutationFn: (data: Record<string, FormDataEntryValue>) =>
-      api.patch(`/srm/business/invoices/${invoiceId}/lines/${line.id}`, data),
-    onSuccess: () => onSave(),
+    mutationFn: (data: Record<string, FormDataEntryValue>) => {
+      if (!owns()) throw new Error('The invoice workspace changed.');
+      return api.patch(`/srm/business/invoices/${invoiceId}/lines/${line.id}`, data);
+    },
+    onSuccess: () => { if (owns()) onSave(); },
   });
   return (
     <details className="mt-2">

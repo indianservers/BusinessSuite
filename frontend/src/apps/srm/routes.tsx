@@ -1,4 +1,7 @@
 import { lazyRoute } from "@/lib/lazy-route";
+import { getOperationWorkspace } from "@/lib/navigation-workspaces";
+import SRMRouteWorkspace from "./components/SRMRouteWorkspace";
+const PurchaseOrderDetailPage = lazyRoute(() => import("@/common/PurchaseOrderDetailPage"));
 const IndustryOperationsPage = lazyRoute(() => import("./industry/IndustryOperationsPage"));
 const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import React from "react";
@@ -23,6 +26,9 @@ const SRMWorkspacePage = lazyRoute(() => import("./pages/SRMWorkspacePage"));
 const SharedInvoicePage = lazyRoute(() => import("./pages/SharedInvoicePage"));
 const SRMCommercialDetailPage = lazyRoute(() => import("./pages/SRMCommercialDetailPage"));
 const SRMPOSPage = lazyRoute(() => import("./pages/SRMPOSPage"));
+const ScheduledServicesPage = lazyRoute(() => import("./pages/ScheduledServicesPage"));
+const RestaurantKitchenPage = lazyRoute(() => import("./pages/RestaurantKitchenPage"));
+const AccountsPeriodsPage = lazyRoute(() => import("./pages/AccountsPeriodsPage"));
 const FAMWorkspacePage = lazyRoute(() => import("@/apps/fam/FAMWorkspacePage"));
 const InventoryBridgePage = lazyRoute(() => import("@/apps/inventory/InventoryBridgePage"));
 const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
@@ -44,8 +50,11 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 });
 
 const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
-export const srmRoutes: FrontendRoute[] = [
+const nativeSrmRoutes: FrontendRoute[] = [
   { path: "srm/appointments", element: <IndustryOperationsPage mode="appointments" /> },
+  { path: "srm/scheduled-services", element: <ScheduledServicesPage /> },
+  { path: "srm/restaurant-kitchen", element: <RestaurantKitchenPage /> },
+  { path: "srm/accounts-periods", element: <AccountsPeriodsPage /> },
   { path: "srm/salon", element: <IndustryOperationsPage mode="salon" /> },
   { path: "srm/construction", element: <IndustryOperationsPage mode="construction" /> },
   { path: "srm/workspaces", element: <OperationalWorkspaceDirectory module="srm" /> },
@@ -133,6 +142,7 @@ export const srmRoutes: FrontendRoute[] = [
   inventoryRoute("srm/inventory/batches", "inventoryBatches"),
   inventoryRoute("srm/inventory/serial-numbers", "inventoryBatches"),
   inventoryRoute("srm/inventory/purchase-orders", "inventoryPurchaseOrders"),
+  { path: "srm/inventory/purchase-orders/:id", element: <PurchaseOrderDetailPage /> },
   inventoryRoute("srm/inventory/purchase-orders/create", "inventoryPurchaseOrders"),
   inventoryRoute("srm/inventory/grn", "inventoryPurchaseOrders"),
   inventoryRoute("srm/inventory/manufacturing", "inventoryManufacturing"),
@@ -146,7 +156,17 @@ export const srmRoutes: FrontendRoute[] = [
   inventoryRoute("srm/inventory/ai", "inventoryAI"),
   inventorySourceRoute("srm/inventory/source"),
   inventorySourceRoute("srm/sales-inventory/source"),
-  ...inventorySourceAppPaths.map((path) => inventorySourceRoute(path.replace(/^\//, ""))),
   route("srm/reports", "reports"),
   { path: "srm/settings", element: <CentralSettingsRedirect section="sales" /> },
 ];
+
+// Source catalog fallbacks must never register a second copy of a native page.
+const nativePaths = new Set(nativeSrmRoutes.map(route => route.path));
+const registeredSrmRoutes: FrontendRoute[] = [
+  ...nativeSrmRoutes,
+  ...inventorySourceAppPaths.map(path => path.replace(/^\//, ""))
+    .filter(path => !nativePaths.has(path)).map(inventorySourceRoute),
+];
+
+export const srmRoutes: FrontendRoute[] = registeredSrmRoutes.map(route => getOperationWorkspace(`/${route.path}`)
+  ? { ...route, element: <SRMRouteWorkspace route={route} routes={registeredSrmRoutes} /> } : route);

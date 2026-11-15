@@ -212,6 +212,13 @@ def ensure_room(db, wid, key, **values):
 
 def sync_legacy(db, wid, user):
     """Lazy, repeat-safe backfill, no notifications. Legacy records and IDs remain intact."""
+    workspace(db, wid, user)
+    from app.branches.derived import chat_read_derivatives
+    with chat_read_derivatives(db, wid) as allow_room:
+        return _sync_legacy(db, wid, user, allow_room)
+
+
+def _sync_legacy(db, wid, user, allow_room):
     from .models import PMSWorkspace
 
     db.query(PMSWorkspace).filter_by(id=wid).with_for_update().one()
@@ -238,6 +245,7 @@ def sync_legacy(db, wid, user):
         visibility="public",
         owner_id=owner.user_id if owner else user.id,
     )
+    allow_room(general.id)
     db.query(Room).filter_by(id=general.id).with_for_update().one()
     imported = 0
     for entry in (
@@ -282,6 +290,7 @@ def sync_legacy(db, wid, user):
             visibility="private",
             legacy_dm_id=old.id,
         )
+        allow_room(room.id)
         db.query(Room).filter_by(id=room.id).with_for_update().one()
         for uid in [old.first_user_id, old.second_user_id]:
             if not membership(db, room, uid):

@@ -779,7 +779,18 @@ def invoice_detail(
     invoice = invoice_for(db, invoice_id, user)
     ctx = db.get(InvoiceContext, invoice_id)
     names = {p.name for p in (permission_objects(user))}
-    return _invoice_payload(invoice, db) | {
+    selected = db.info.get('business_pack_scope')
+    if selected is not None:
+        from app.business_packs.financial_projections import delivery_records
+        deliveries = delivery_records(db, invoice)
+    else:
+        deliveries = [output(r) for r in db.query(InvoiceDelivery).filter_by(invoice_id=invoice_id)
+            .order_by(InvoiceDelivery.id.desc()).limit(100)]
+    payload = _invoice_payload(invoice, db)
+    if selected is not None and selected.pack_key == 'construction' and payload.get('source_type') == 'industry_measurement':
+        payload['construction_measurement_id'] = payload['source_id']
+    from app.apps.srm.payments import can_record
+    return payload | {
         "context": output(ctx) if ctx else None,
         "history": [
             output(r)
@@ -788,13 +799,7 @@ def invoice_detail(
             .order_by(SRMInvoiceHistory.id.desc())
             .limit(100)
         ],
-        "deliveries": [
-            output(r)
-            for r in db.query(InvoiceDelivery)
-            .filter_by(invoice_id=invoice_id)
-            .order_by(InvoiceDelivery.id.desc())
-            .limit(100)
-        ],
+        "deliveries": deliveries,
         "payments": [
             allocation_profile(db, r)
             for r in db.query(SRMReceiptAllocation)
@@ -803,7 +808,7 @@ def invoice_detail(
         ],
         "can_issue": user.is_superuser
         or bool(names.intersection({"srm_invoice_approve", "srm_admin"})),
-        "can_record_payment": user.is_superuser or bool(names.intersection({"srm_collection_create", "srm_admin"})),
+        "can_record_payment": can_record(db, user),
         "can_edit": user.is_superuser
         or bool(names.intersection({"srm_invoice_create", "srm_admin"})),
     }

@@ -1,5 +1,5 @@
 """Server-owned settings discovery. Role labels never confer configuration access."""
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 
 # id, label, group, description, destination, module, any required permission, org scope
 OPTIONS = [
+    ("business-packs", "Business Packs", "Business defaults", "Configure business workflows and staff access using the existing applications.", None, None, (), True),
     ("business-profile", "Business Profile & Terminology", "Business defaults", "Choose business type and company or branch terminology. Pipelines stay independent.", None, None, (), True),
     ("files-storage", "Files & Storage", "Company", "Google Drive, OneDrive, Box or Dropbox for attachments, module folders and the file register.", None, None, (), True),
     ("shared-companies", "Shared companies", "Company", "Business company records shared across Business Suite.", None, "crm", ("crm_view", "crm_manage", "crm_admin", "crm_companies_view", "crm_companies_manage"), False),
@@ -96,6 +97,8 @@ def context(db, actor):
 
 def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
+    if key == 'business-packs':
+        return ctx['admin'] and can_edit_company(ctx)
     # Company-wide read authority never promotes a company admin to platform scope.
     if key in GLOBAL_ONLY:
         return ctx["super"]
@@ -368,12 +371,10 @@ class BusinessProfileInput(BaseModel):
 
 
 @router.get("/business-profile/effective")
-def effective_business_profile(workspace_module: str | None = None, workspace_id: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    from app.shared.business_profile import effective, check_workspace
-    branch = getattr(actor, '_suite_branch_id', None)
-    branch = branch if isinstance(branch, int) else None
-    check_workspace(db, actor, branch, workspace_module, workspace_id)
-    return {**effective(db, actor.organization_id, branch, workspace_module=workspace_module, workspace_id=workspace_id), 'companyId': actor.organization_id, 'branchId': branch}
+def effective_business_profile(workspace_module: str | None = None, workspace_id: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user), selected: str | None = Header(default=None, alias='X-Suite-Pack-Context')):
+    from app.business_packs.presentation import effective_profile
+    return effective_profile(db, actor, db.info.get('branch_context'), selected,
+                             workspace_module=workspace_module, workspace_id=workspace_id)
 
 
 @router.get("/business-profile/configuration")

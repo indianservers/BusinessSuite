@@ -43,11 +43,11 @@ def require(user, *permissions):
         raise HTTPException(403, "Required permissions: " + ", ".join(permissions))
 
 
-def record(db, model, ident, user):
+def record(db, model, ident, user, *, include_removed=False):
     query = db.query(model).filter(
         model.id == ident, scoped(model.organization_id, user)
     )
-    if hasattr(model, "deleted_at"):
+    if hasattr(model, "deleted_at") and not include_removed:
         query = query.filter(model.deleted_at.is_(None))
     if db.info.get("security_write_request"):
         query = query.with_for_update(of=model)
@@ -58,6 +58,9 @@ def record(db, model, ident, user):
 
 
 def customer(db, ident, user):
+    if db.info.get('security_write_request'):
+        from app.apps.srm.anonymous_cash import guard_customer
+        guard_customer(db, ident)
     value = record(db, CRMCompany, ident, user)
     # Reuse CRM's record visibility for CRM-only users; financial staff use the
     # SRM customer directory scope, never a project role as a financial grant.
@@ -101,16 +104,33 @@ def seller(db, ident, user):
 
 def lock_tenant(db, user):
     """Serialize source reservation and invoice numbering in the existing transaction."""
-    if db.bind.dialect.name == "postgresql":
-        db.execute(
-            __import__("sqlalchemy").text("SELECT pg_advisory_xact_lock(:key)"),
-            {"key": 720000000 + tenant(user)},
-        )
-    else:
-        # SQLite acquires the writer lock before reading numbering/source state.
-        db.execute(
-            update(Company).where(Company.id == tenant(user)).values(name=Company.name)
-        )
+    company = tenant(user)
+    if type(company) is not int or company <= 0:
+        raise HTTPException(403, 'A verified company is required for the commercial writer lock')
+    bound_company = db.info.get('security_boundary')
+    bound_actor = db.info.get('shared_actor')
+    if ((bound_company is not None and bound_company != company)
+            or (bound_actor is not None and bound_actor != (user.id, company))):
+        raise HTTPException(403, 'Commercial writer lock does not match native authorization')
+    from app.core.company_writer import lock_company_writer
+    lock_company_writer(db, company)
+    # Re-read authority after waiting, including the genuine legacy None case.
+    # A concurrent activation/revocation cannot upgrade a bound request.
+    if 'business_pack_request_binding' in db.info:
+        from app.business_packs.access import resolve_context
+        from app.branches.service import context as branch_context
+        current = db.info['business_pack_request_binding']
+        previous_branch = db.info.get('branch_context')
+        fresh_branch = branch_context(db, user, company,
+                                     getattr(previous_branch, 'branch_id', None) or 'all')
+        if fresh_branch != previous_branch:
+            raise HTTPException(403, 'Native branch authorization changed while waiting for the writer lock')
+        resolve_context(db, user, fresh_branch,
+                        requested_context_id=getattr(current, 'context_id', None))
+    scope = db.info.get('business_pack_scope')
+    if scope is not None:
+        from app.business_packs.operations import capabilities
+        capabilities(db, user)  # Fresh actor, company, grant and lifecycle proof.
 
 
 def next_invoice_number(db, prefix):
@@ -247,14 +267,14 @@ def currency_code(code):
     return code
 
 
-def invoice_query(db, user):
+def invoice_query(db, user, *, include_removed=False):
     from app.apps.srm.access import can_view_all_srm
     from app.apps.srm.models import SRMSalesOrder, SRMEngagement
     from app.apps.project_management.access import accessible_project_query
 
-    query = db.query(SRMInvoice).filter(
-        SRMInvoice.deleted_at.is_(None), scoped(SRMInvoice.organization_id, user)
-    )
+    query = db.query(SRMInvoice).filter(scoped(SRMInvoice.organization_id, user))
+    if not include_removed:
+        query = query.filter(SRMInvoice.deleted_at.is_(None))
     allowed_sellers = [tenant(user)] + [
         r.seller_id
         for r in db.query(SellerGrant).filter_by(
@@ -268,6 +288,9 @@ def invoice_query(db, user):
     permissions = {p.name for p in (permission_objects(user))}
     if user.is_superuser or can_view_all_srm(user) or permissions.intersection({"fam_admin", "fam_srm_posting_manage", "fam_srm_integration_view", "fam_accounting_status_view", "srm_collection_view", "srm_collection_create"}):
         return query
+    if db.info.get('business_pack_scope') is not None:
+        from app.business_packs.financial_projections import own_invoice_query
+        return own_invoice_query(query,db,user)
     orders = db.query(SRMSalesOrder.id).filter(
         scoped(SRMSalesOrder.organization_id, user),
         SRMSalesOrder.assigned_user_id == user.id,
@@ -293,14 +316,17 @@ def invoice_query(db, user):
     )
 
 
-def invoice_for(db, ident, user, lock=False):
-    query = invoice_query(db, user).filter(SRMInvoice.id == ident)
+def invoice_for(db, ident, user, lock=False, *, include_removed=False):
+    query = invoice_query(db, user, include_removed=include_removed).filter(SRMInvoice.id == ident)
     if lock:
         lock_tenant(db, user)
         query = query.with_for_update().populate_existing()
     invoice = query.first()
     if not invoice:
         raise HTTPException(404, "Invoice not found")
+    if db.info.get('business_pack_scope') is not None:
+        from app.business_packs.financial_projections import assert_common_invoice
+        assert_common_invoice(db,invoice)
     return invoice
 
 
@@ -334,23 +360,147 @@ def billing_customer_snapshot(db, buyer):
     return snapshot
 
 
-def invoice_business_terms(db, invoice):
-    from app.branches.models import BranchOwnership
-    from app.shared.business_profile import effective
-    owner = db.query(BranchOwnership).filter_by(company_id=invoice.organization_id or 1, resource_table=invoice.__tablename__, resource_key=str(invoice.id)).first()
-    return effective(db, invoice.organization_id or 1, owner.branch_id if owner else None)['terms']
+def invoice_business_terms(db, invoice, actor=None, *, issuing=False):
+    """Freeze labels from verified document scope, never infer scope from a buyer.
+
+    Checkout issues before its invoice anchor is stamped. Only that in-progress
+    anchored checkout/order graph may supply the narrowly bounded exception.
+    Existing issued snapshots are consumed by callers without rewriting them.
+    """
+    with db.no_autoflush:
+        from types import SimpleNamespace
+        from sqlalchemy import inspect, select
+        from app.branches.models import BranchOwnership
+        from app.branches.service import context as branch_context
+        from app.business_packs.access import PackScope, resolve_context, _has_history, _installed
+        from app.business_packs.models import PackRecordOwnership
+        from app.business_packs.presentation import effective_profile
+        from app.shared.business_profile import effective
+
+        def denied():
+            raise HTTPException(403, 'Invoice terminology requires its verified Business Pack ownership')
+
+        company = invoice.organization_id or 1
+        connection = db.connection()
+        invoice_table = SRMInvoice.__table__
+        stored = connection.execute(select(invoice_table.c.organization_id, invoice_table.c.sales_order_id,
+            invoice_table.c.invoice_draft_id, invoice_table.c.customer_id, invoice_table.c.currency).where(invoice_table.c.id == invoice.id)).first()
+        if stored is None or (stored.organization_id or 1) != company or any(
+                getattr(stored, key) != getattr(invoice, key) for key in ('sales_order_id', 'invoice_draft_id', 'customer_id', 'currency')):
+            denied()
+        native = BranchOwnership.__table__
+        owner = connection.execute(select(native.c.company_id, native.c.branch_id).where(
+            native.c.resource_table == invoice.__tablename__, native.c.resource_key == str(invoice.id))).first()
+        if owner is not None and owner.company_id != company:
+            denied()
+        branch = owner.branch_id if owner is not None else None
+        supplied = db.info.get('business_pack_scope')
+        if supplied is not None and not isinstance(supplied, PackScope):
+            denied()
+        shared = db.info.get('shared_actor')
+        if actor is None and shared is not None:
+            if not isinstance(shared, tuple) or len(shared) != 2 or shared[1] != company:
+                denied()
+            actor = db.get(User, shared[0])
+        if actor is None and supplied is not None:
+            actor = db.get(User, supplied.user_id)
+        installed = _installed(db)
+        anchor = PackRecordOwnership.__table__
+        proof = connection.execute(select(anchor.c.company_id, anchor.c.branch_id, anchor.c.context_id).where(
+            anchor.c.resource_table == invoice.__tablename__, anchor.c.resource_key == str(invoice.id))).first() if inspect(connection).has_table(anchor.name) else None
+        if actor is None:
+            if supplied is not None or proof is not None or (installed and _has_history(db, company, branch)):
+                denied()
+            return effective(db, company, branch)['terms']
+        if tenant(actor) != company or (shared is not None and shared != (actor.id, company)):
+            denied()
+        # Do not mutate a mapped User merely to supply the selected company.
+        verified_actor = SimpleNamespace(id=actor.id, organization_id=company,
+            is_active=actor.is_active, is_superuser=actor.is_superuser, role_id=actor.role_id, role=actor.role)
+        bound = db.info.get('branch_context')
+        if bound is not None:
+            if bound.company_id != company or (bound.branch_id is not None and branch is not None and bound.branch_id != branch):
+                denied()
+            selected = str(bound.branch_id) if bound.branch_id is not None else 'all'
+        else:
+            selected = str(supplied.branch_id) if supplied is not None else getattr(actor, '_suite_branch_id', None)
+            selected = str(selected) if isinstance(selected, int) else selected
+        fresh = branch_context(db, verified_actor, company, selected)
+        scope = resolve_context(db, verified_actor, fresh, supplied.context_id if supplied is not None else None)
+        if supplied is not None and supplied != scope:
+            denied()
+        if scope is None:
+            if proof is not None:
+                denied()
+            return effective(db, company, branch)['terms']
+        if owner is None or (company, branch) != (scope.company_id, scope.branch_id):
+            denied()
+        identity = (company, branch, scope.context_id)
+        if proof is not None:
+            if tuple(proof) != identity:
+                denied()
+        else:
+            from app.apps.srm.models import SRMSalesOrder, SRMInvoiceDraft
+            from app.apps.srm.service_checkout_models import POSServiceCheckout
+            inv, order, root, draft = SRMInvoice.__table__, SRMSalesOrder.__table__, POSServiceCheckout.__table__, SRMInvoiceDraft.__table__
+            if not issuing or not inspect(connection).has_table(root.name):
+                denied()
+            # An old unowned invoice cannot adopt an owned order: the complete
+            # unpublished checkout source, native draft and current issuer must match.
+            current = connection.execute(select(inv.c.id).select_from(
+                inv.join(draft, draft.c.id == inv.c.invoice_draft_id)
+                   .join(order, order.c.id == inv.c.sales_order_id)
+                   .join(root, root.c.sales_order_id == order.c.id)
+            ).where(inv.c.id == invoice.id, inv.c.organization_id == company,
+                inv.c.created_by == actor.id, inv.c.approved_at.is_(None),
+                inv.c.status.in_(('draft', 'pending_approval', 'approved')),
+                draft.c.organization_id == company, draft.c.sales_order_id == order.c.id,
+                draft.c.customer_id == inv.c.customer_id, draft.c.currency == inv.c.currency,
+                draft.c.created_by == actor.id, draft.c.source_type == 'sales_order',
+                order.c.organization_id == company, order.c.customer_id == inv.c.customer_id,
+                order.c.currency == inv.c.currency, order.c.created_by == actor.id,
+                root.c.organization_id == company, root.c.branch_id == branch,
+                root.c.pack_context_id == scope.context_id, root.c.created_by == actor.id,
+                root.c.customer_id == inv.c.customer_id, root.c.currency == inv.c.currency,
+                root.c.state == 'draft', root.c.invoice_id.is_(None), root.c.committed_at.is_(None))).first()
+            if current is None:
+                denied()
+            for table, key in ((order.name, invoice.sales_order_id), (root.name, connection.execute(
+                    select(root.c.id).where(root.c.sales_order_id == invoice.sales_order_id)).scalar_one())):
+                own = connection.execute(select(anchor.c.company_id, anchor.c.branch_id, anchor.c.context_id).where(
+                    anchor.c.resource_table == table, anchor.c.resource_key == str(key))).first()
+                native_owner = connection.execute(select(native.c.company_id, native.c.branch_id).where(
+                    native.c.resource_table == table, native.c.resource_key == str(key))).first()
+                if own is None or tuple(own) != identity or native_owner is None or tuple(native_owner) != (company, branch):
+                    denied()
+            issued = connection.execute(select(InvoiceContext.issued_at).where(InvoiceContext.invoice_id == invoice.id)).scalar_one_or_none()
+            if issued is not None:
+                denied()
+        return effective_profile(db, verified_actor, fresh, str(scope.context_id))['terms']
 
 
 def issue_snapshot(db, invoice, user):
+    # A correction draft cannot become a second live invoice for the same work.
+    from app.apps.srm.models import SRMInvoiceLine
+    revision_lines = [line for line in invoice.lines if str(line.source_type or '').startswith('invoice_revision_line')]
+    for line in revision_lines:
+        original_line = db.get(SRMInvoiceLine, line.source_id)
+        if not original_line:
+            raise HTTPException(409, 'The original invoice line is unavailable')
+        original = invoice_for(db, original_line.invoice_id, user, include_removed=True)
+        if original.status not in {'cancelled','archived'}:
+            raise HTTPException(409, 'Cancel the original invoice through finance before issuing its revision')
     ctx = context(db, invoice, user)
     if ctx.issued_at:
         return ctx
     if not invoice.customer_id:
         raise HTTPException(422, "Link a shared customer before issuing the invoice")
+    from app.apps.srm.anonymous_cash import guard_customer
+    guard_customer(db, invoice.customer_id, financial=True)
     buyer = customer(db, invoice.customer_id, user)
     entity = seller(db, ctx.seller_id, user)
     ctx.customer_snapshot = billing_customer_snapshot(db, buyer)
-    ctx.customer_snapshot = {**ctx.customer_snapshot, '_business_terms': invoice_business_terms(db, invoice)}
+    ctx.customer_snapshot = {**ctx.customer_snapshot, '_business_terms': invoice_business_terms(db, invoice, user, issuing=True)}
     ctx.seller_snapshot = {
         key: getattr(entity, key)
         for key in ("id", "name", "legal_name", "address", "gstin", "email", "phone")

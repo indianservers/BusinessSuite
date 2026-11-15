@@ -5,7 +5,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { srmApi } from "../api";
 import type { SRMRecord } from "../types";
 import RecurringSchedule from "../components/RecurringSchedule";
 import { useAuthStore } from "@/store/authStore";
+import { useModuleAction } from "@/hooks/use-module-action";
 
 type DetailKind = "salesOrder" | "contract" | "engagement" | "billingPlan";
 
@@ -42,6 +43,11 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
   const mobile=useMobile();
   const { id } = useParams();
   const numericId = Number(id || 0);
+  const queryClient = useQueryClient();
+  const canCreateInvoice = useModuleAction("create");
+  const canEdit = useModuleAction("edit");
+  const lifecycle = useMutation({mutationFn:(action:string)=>api.post(`/srm/${kind === "contract" ? "contracts" : "sales-orders"}/${numericId}/${action}`),onSuccess:()=>Promise.all([queryClient.invalidateQueries({queryKey:["srm"]}),queryClient.invalidateQueries({queryKey:["document-record"]})])});
+  const invoiceDraft = useMutation({ mutationFn: () => srmApi.draftInvoiceFromSalesOrder(numericId), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["srm"] }) });
   const query = useQuery({
     queryKey: ["srm", kind, numericId],
     queryFn: () => loaders[kind](numericId),
@@ -57,7 +63,18 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
         <p className="text-sm text-muted-foreground">Linked commercial lifecycle record.</p>
       </div>
       {mobile && kind === "salesOrder" && query.data && <ol className="mobile-timeline" aria-label="Order progress">{[["Order",record.status],["Delivery",record.delivery_status],["Invoicing",record.invoice_status],["Payment",record.payment_status]].map(([label,status])=><li key={String(label)}><strong>{String(label)}</strong><small>{status ? formatValue(status) : "Status not provided"}</small></li>)}</ol>}
+      {canEdit && (kind === "salesOrder" || kind === "contract") && <div className="flex flex-wrap gap-2">
+        {kind === "salesOrder" && record.status === "draft" && <Button disabled={lifecycle.isPending} onClick={()=>lifecycle.mutate("submit")}>Submit order for approval</Button>}
+        {kind === "salesOrder" && record.status === "approved" && <Button disabled={lifecycle.isPending} onClick={()=>lifecycle.mutate("confirm")}>Confirm sales order</Button>}
+        {kind === "contract" && record.status === "draft" && <Button disabled={lifecycle.isPending} onClick={()=>lifecycle.mutate("activate")}>Activate contract</Button>}
+        {lifecycle.isError && <p role="alert">{actionError(lifecycle.error)}</p>}
+      </div>}
       {kind === "salesOrder" && query.data && <PaymentRequestButton source="srm_order" sourceId={numericId}/>}
+      {kind === "salesOrder" && canCreateInvoice && <div className="flex flex-wrap items-center gap-2">
+        <Button disabled={invoiceDraft.isPending || !!invoiceDraft.data} onClick={() => invoiceDraft.mutate()}>Create invoice draft</Button>
+        {!!invoiceDraft.data?.id && <Button asChild variant="outline"><Link to={`/srm/invoices/${invoiceDraft.data.id}`}>Open invoice</Link></Button>}
+        {invoiceDraft.isError && <p role="alert">{actionError(invoiceDraft.error)}</p>}
+      </div>}
       {!!record.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${record.customer_id}/360`}>Open customer 360</Link></Button>}
       {kind === "engagement" && <EngagementLifecycle record={record} onChanged={() => query.refetch()} />}
       {kind === "billingPlan" && <BillingMilestones record={record} onChanged={() => query.refetch()} />}

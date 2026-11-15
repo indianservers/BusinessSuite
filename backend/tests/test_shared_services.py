@@ -288,10 +288,13 @@ def test_approval_snapshot_self_approval_and_real_decision(client, db, shared_se
 
 
 def test_approval_detects_changed_source_and_tampered_reference(
-    client, db, shared_setup
+    client, db, shared_setup, superuser_headers
 ):
     headers, user, lead = shared_setup
-    reviewer = db.query(User).filter_by(is_superuser=True).one()
+    identity = client.get('/api/v1/auth/me', headers=superuser_headers)
+    assert identity.status_code == 200, identity.text
+    reviewer = db.get(User, identity.json()['id'])
+    assert reviewer is not None and reviewer.is_superuser
     event = runtime.request_approval(
         db,
         user,

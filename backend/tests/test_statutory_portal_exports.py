@@ -4,6 +4,9 @@ from decimal import Decimal
 
 from app.db.init_db import init_db
 from app.models.employee import Employee
+from app.models.company import Branch
+from app.models.user import User
+from app.common.models import CommonPerson
 from app.models.payroll import (
     EmployeeStatutoryProfile,
     PayrollRecord,
@@ -37,6 +40,11 @@ def _legal_entity(client, headers, **overrides):
 
 
 def _run_with_employee(db, *, pan="ABCDE1234F", uan="100200300400", tds=Decimal("2500.00")):
+    admin = db.query(User).filter(User.email == 'admin@aihrms.com').one()
+    company_id = db.query(CommonPerson.organization_id).filter(CommonPerson.user_id == admin.id).scalar()
+    branch = db.query(Branch).filter(Branch.company_id == company_id,
+        Branch.is_active.is_(True)).order_by(Branch.id).first()
+    assert company_id and branch is not None
     employee = Employee(
         employee_id=f"STAT-{pan or 'NOPAN'}-{uan or 'NOUAN'}",
         first_name="Stat",
@@ -45,6 +53,7 @@ def _run_with_employee(db, *, pan="ABCDE1234F", uan="100200300400", tds=Decimal(
         uan_number=uan,
         esic_number="ESIC12345",
         date_of_joining=date(2026, 4, 1),
+        branch_id=branch.id,
     )
     db.add(employee)
     db.flush()
@@ -60,7 +69,8 @@ def _run_with_employee(db, *, pan="ABCDE1234F", uan="100200300400", tds=Decimal(
             pt_state="Telangana",
         )
     )
-    run = PayrollRun(month=7, year=2026, status="locked", pay_period_start=date(2026, 7, 1), pay_period_end=date(2026, 7, 31))
+    run = PayrollRun(company_id=company_id, branch_id=branch.id, month=7, year=2026,
+        status="locked", pay_period_start=date(2026, 7, 1), pay_period_end=date(2026, 7, 31))
     db.add(run)
     db.flush()
     record = PayrollRecord(
@@ -124,7 +134,7 @@ def test_pf_ecr_reports_missing_uan_with_error_code(client, db):
     run, _employee = _run_with_employee(db, uan=None)
 
     response = client.post(f"/api/v1/statutory/generate/{run.id}/pf_ecr", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     body = response.json()
     assert body["validation_status"] == "invalid"
     assert body["filing_status"] == "generated_with_errors"
@@ -138,7 +148,7 @@ def test_tds_24q_reports_missing_pan_and_invalid_employer_tan(client, db):
     run, _employee = _run_with_employee(db, pan=None)
 
     response = client.post(f"/api/v1/statutory/generate/{run.id}/tds_24q?quarter=2&year=2026", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     codes = {error["code"] for error in response.json()["errors"]}
     assert "PAN_INVALID" in codes
     assert "EMPLOYER_TAN_INVALID" in codes
@@ -162,5 +172,5 @@ def test_tds_24q_reports_reconciliation_mismatch(client, db):
     db.commit()
 
     response = client.post(f"/api/v1/statutory/generate/{run.id}/tds_24q?quarter=2&year=2026", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert any(error["code"] == "TDS_RECON_MISMATCH" for error in response.json()["errors"])

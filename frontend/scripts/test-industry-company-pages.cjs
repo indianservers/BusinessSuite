@@ -37,7 +37,7 @@ const cleanUrl=value=>{const u=new URL(value);for(const key of [...u.searchParam
    try{
     active={path:'/dashboard',reads:[],errors:[]};result.routes.push(active);
     await page.goto(origin+'/dashboard',{waitUntil:'domcontentloaded'});
-    await expect(page.locator('[data-business-type="'+company.industry+'"]')).toBeVisible({timeout:90000});result.home='passed';
+    await expect(page.getByRole('heading',{name:'Your work starts here.',exact:true})).toBeVisible({timeout:90000});await expect(page.locator('.launcher-card').first()).toBeVisible({timeout:60000});const profile=await client.get('/api/v1/access/settings/business-profile/effective',{headers});if(!profile.ok()||(await profile.json()).business_type!==company.industry)throw Error('Business profile does not match this company');result.home='passed';
     await page.screenshot({path:path.join(out,company.industry+'-workspace.png'),fullPage:true});
     const inventory=await page.evaluate(async()=>{const modules=await Promise.all([import('/src/apps/hrms/routes.tsx'),import('/src/apps/crm/routes.tsx'),import('/src/apps/project-management/routes.tsx'),import('/src/apps/srm/routes.tsx')]);const{canAccessRoute}=await import('/src/lib/roles.ts');const{useAuthStore}=await import('/src/store/authStore.ts');const user=useAuthStore.getState().user;return modules.flatMap(m=>Object.values(m).filter(Array.isArray).flatMap(v=>v.map(r=>r.path))).filter(p=>/^(hrms|crm|pms|srm)(\/|$)/.test(p)).map(p=>({pattern:'/'+p,allowed:canAccessRoute('/'+p,user.role,user.is_superuser)}));});
     result.inventory=[...new Map(inventory.map(row=>[row.pattern,row])).values()];

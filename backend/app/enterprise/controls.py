@@ -9,9 +9,12 @@ from app.apps.business_os.models import BOSFeatureFlag
 
 
 def subscription(db, company):
-    if "company_id" not in {
-        c["name"] for c in inspect(db.connection()).get_columns("tenant_subscriptions")
-    }:
+    from app.db.schema_columns import table_columns
+    from sqlalchemy.exc import NoSuchTableError
+    columns = table_columns(db.connection(), ('tenant_subscriptions',))
+    if 'tenant_subscriptions' not in columns:
+        raise NoSuchTableError('tenant_subscriptions')
+    if "company_id" not in columns['tenant_subscriptions']:
         return None
     s, p = TenantSubscription.__table__, TenantSubscriptionPlan.__table__
     row = (

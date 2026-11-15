@@ -21,6 +21,32 @@ def deny(message="Record is outside the selected branch or writable scope"):
     raise HTTPException(403, message)
 
 
+def _parent_bindings(table, values, tables):
+    """Resolve each FK constraint as one reference, including composite keys."""
+    seen = set()
+    for column, parent, key in parents(table, tables):
+        links = [fk for fk in column.foreign_keys if fk.column is key]
+        if not links:
+            value = values.get(column.name)
+            if value is not None:
+                yield column.name, parent, (key == value,), ((key.name, value),)
+            continue
+        for fk in links:
+            constraint = fk.constraint
+            if id(constraint) in seen:
+                continue
+            seen.add(id(constraint))
+            elements = tuple(constraint.elements)
+            references = tuple((element.column, values.get(element.parent.name)) for element in elements)
+            if any(value is None for _, value in references):
+                if (constraint.match or 'SIMPLE').upper() == 'SIMPLE':
+                    continue
+                if all(value is None for _, value in references):
+                    continue
+                deny('Composite parent ownership is unresolved')
+            yield column.name, parent, tuple(key == value for key, value in references), tuple((key.name, value) for key, value in references)
+
+
 def branch_for_row(connection, table, values, company, tables, target_branch=None, historical=False, owner_cache=None):
     """Trusted direct ownership and parent evidence; actors never decide it."""
     branches = set()
@@ -44,34 +70,31 @@ def branch_for_row(connection, table, values, company, tables, target_branch=Non
             deny("Accounting branch has no verified suite-branch mapping")
         branches.add(mapped)
     ownership = BranchOwnership.__table__
-    for column, parent, key in parents(table, tables):
-        value = values.get(column.name)
-        if value is None:
-            continue
+    for source_name, parent, references, identity in _parent_bindings(table, values, tables):
         if historical and parent.name == "employees":
             # A present-day employment assignment cannot establish the branch
             # of old payroll, attendance, expenses, or other historical rows.
             continue
-        if parent.name == "fam_ledgers" and connection.execute(select(parent.c.id).where(key == value, parent.c.company_id == company, parent.c.system_ledger.is_(True))).first():
+        if parent.name == "fam_ledgers" and connection.execute(select(parent.c.id).where(*references, parent.c.company_id == company, parent.c.system_ledger.is_(True))).first():
             continue
-        cache_key = (parent.name, key.name, value, company)
+        cache_key = (parent.name, 'foreign', identity, company)
         if owner_cache is not None and cache_key in owner_cache:
             found = owner_cache[cache_key]
         else:
-            found = connection.execute(select(ownership.c.branch_id).select_from(parent.join(ownership, and_(ownership.c.resource_table == parent.name, ownership.c.resource_key == key_expression(parent), ownership.c.company_id == company))).where(key == value)).scalar()
+            found = connection.execute(select(ownership.c.branch_id).select_from(parent.join(ownership, and_(ownership.c.resource_table == parent.name, ownership.c.resource_key == key_expression(parent), ownership.c.company_id == company))).where(*references)).scalar()
             if owner_cache is not None:
                 owner_cache[cache_key] = found
         if found is not None:
             if target_branch is not None and parent.name in {"crm_companies", "crm_contacts"}:
                 shares = BranchRecordShare.__table__
-                shared = connection.execute(select(shares.c.branch_id).select_from(parent.join(shares, and_(shares.c.resource_table == parent.name, shares.c.resource_key == key_expression(parent), shares.c.company_id == company, shares.c.branch_id == target_branch))).where(key == value)).first()
+                shared = connection.execute(select(shares.c.branch_id).select_from(parent.join(shares, and_(shares.c.resource_table == parent.name, shares.c.resource_key == key_expression(parent), shares.c.company_id == company, shares.c.branch_id == target_branch))).where(*references)).first()
                 if shared:
                     found = target_branch
             branches.add(found)
         else:
             # A populated private parent cannot be ignored and replaced with the
             # user's current branch. Its migration must resolve first.
-            deny(f"Parent ownership is unresolved: {table.name}.{column.name}")
+            deny(f"Parent ownership is unresolved: {table.name}.{source_name}")
     for parent, key in polymorphic_parents(table, values, tables):
         cache_key = (parent.name, "polymorphic", key, company)
         if owner_cache is not None and cache_key in owner_cache:
@@ -226,6 +249,17 @@ def install(db, user, ctx, *, identity_administration=False):
                     setattr(item, name, ctx.company_id)
                 elif value is not None and value != ctx.company_id:
                     deny("Record belongs to another company")
+            # A company-wide administrative read may emit its own audit event
+            # without inventing a destination branch. Keep branch-scoped events
+            # on the normal ownership path and never exempt business writes.
+            audit_actor = {'audit_logs': 'user_id', 'srm_audit_logs': 'actor_user_id'}.get(table.name)
+            if (audit_actor is not None and item in session.new
+                    and ctx.branch_id is None
+                    and (ctx.superuser or getattr(ctx, 'company_admin', False))
+                    and session.info.get('security_write_request') is False
+                    and getattr(item, audit_actor) == user.id
+                    and item.organization_id == ctx.company_id):
+                continue
             if table.name == "fam_ledgers" and item.system_ledger:
                 changes = {c.name for c in table.c if state.attrs[c.name].history.has_changes()}
                 materialized = {"current_balance_dr", "current_balance_cr", "updated_at"}
@@ -243,6 +277,21 @@ def install(db, user, ctx, *, identity_administration=False):
                 if stamp is None or stamp not in ctx.writable or ctx.branch_id and stamp != ctx.branch_id:
                     deny()
             elif ctx.branch_id is None:
+                derived = session.info.get('derived_read_parents', {})
+                derived_parent = {'payroll_variance_items': 'payroll_run_id',
+                                  'payroll_run_audit_logs': 'payroll_run_id',
+                                  'pms_chat_conversations': 'workspace_id',
+                                  'pms_chat_members': 'conversation_id',
+                                  'pms_chat_messages': 'conversation_id',
+                                  'srm_profitability_snapshots': 'engagement_id'}.get(table.name)
+                if (session.info.get('security_write_request') is False
+                        and derived_parent is not None
+                        and getattr(item, derived_parent, None) in derived.get(table.name, ())):
+                    values = {c.name: getattr(item, c.name) for c in table.c}
+                    evidence = branch_for_row(session.connection(), table, values, ctx.company_id, tables)
+                    if len(evidence) == 1 and evidence <= ctx.writable:
+                        pending.append(item)
+                        continue
                 # Admin control-plane creation has its own guarded API. Business
                 # transactions always require a destination branch.
                 logging.getLogger("businesssuite.security").warning("branch_write_requires_destination table=%s", table.name)

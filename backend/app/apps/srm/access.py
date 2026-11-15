@@ -63,8 +63,10 @@ def can_view_all_srm(user: User) -> bool:
     }
 
 
-def sales_order_query(db: Session, user: User):
-    query = db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None, func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id_for(user))
+def sales_order_query(db: Session, user: User, *, include_removed=False):
+    query = db.query(SRMSalesOrder).filter(func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id_for(user))
+    if not include_removed:
+        query = query.filter(SRMSalesOrder.deleted_at.is_(None))
     if user.is_superuser:
         return query
     if can_view_all_srm(user):
@@ -81,8 +83,8 @@ def engagement_query(db: Session, user: User):
     return query.filter(func.coalesce(SRMEngagement.organization_id, 1) == organization_id_for(user), (SRMEngagement.assigned_user_id == user.id) | (SRMEngagement.project_manager_user_id == user.id))
 
 
-def get_sales_order_for_user(db: Session, sales_order_id: int, user: User) -> SRMSalesOrder:
-    item = sales_order_query(db, user).filter(SRMSalesOrder.id == sales_order_id).first()
+def get_sales_order_for_user(db: Session, sales_order_id: int, user: User, *, include_removed=False) -> SRMSalesOrder:
+    item = sales_order_query(db, user, include_removed=include_removed).filter(SRMSalesOrder.id == sales_order_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Sales order not found")
     return item

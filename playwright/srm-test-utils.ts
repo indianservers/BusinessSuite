@@ -1,4 +1,6 @@
 import { expect, type Page } from "../frontend/node_modules/playwright/test";
+import { getOperationWorkspace, navigationOperationPath } from "../frontend/src/lib/navigation-workspaces";
+import { resolveBusinessProfile } from "../frontend/src/lib/business-profile";
 
 export type SRMRole = "admin" | "srm_admin" | "srm_sales_manager" | "srm_finance_manager" | "srm_revenue_manager" | "srm_sales_executive" | "srm_collection_executive" | "srm_business_owner" | "srm_viewer" | "employee";
 
@@ -68,7 +70,29 @@ export async function installApiStubs(page: Page, user = users.srm_admin) {
     if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
     } else if (path.startsWith("/accounting-sync/")) {
-      body = {items:[],total:0,sources:[],basis:"QA accounting fixture",undated_records:0};
+      body = {items:[],total:0,sources:[],basis:"QA accounting fixture",undated_records:0,current_outstanding:[],balances:[],links:[],invoices:[],payments:[],payment_count:0,start_date:"2026-11-01",end_date:"2026-11-15",timezone:"Asia/Kolkata"};
+    } else if (path === "/profiles/me") {
+      body = {userId:user.id,displayName:"QA user",loginEmail:user.email,kind:"user",role:user.role,accountActive:true,values:{first_name:"QA",last_name:"User"},version:"1",completeness:100,missingFields:[],canEdit:true,canManage:false,requiresApprovalFields:[],documents:[],pendingRequests:[]};
+    } else if (path.startsWith("/scheduling/")) {
+      body = {revision:1,records:{},dependencies:[]};
+    } else if (path === "/follow-ups/options") {
+      body = {customers:[],employees:[],users:[],teams:[],services:[]};
+    } else if (path === "/follow-ups" || path === "/follow-ups/query") {
+      body = {items:[],rows:[],total:0,page:1,per_page:100};
+    } else if (/^\/follow-ups\/\d+$/.test(path)) {
+      body = {id:1,title:"QA follow-up",customer_id:1,customer_name:"QA customer",due_at:"2026-11-15T09:00:00Z",timezone:"Asia/Kolkata",status:"Pending",priority:"Normal",assigned_to:"QA user",assigned_user_id:1,configuration:{notes:"QA follow-up"},activities:[],links:{}};
+    } else if (/^\/record-360\/company\/\d+$/.test(path)) {
+      body = {id:1,kind:"company",name:"QA customer",fields:{email:"customer@example.test"},projects:[],relations:[],allowed_actions:[],sections:{}};
+    } else if (/^\/record-360\/company\/\d+\/(work|events)$/.test(path)) {
+      body = {items:[],total:0,page:1,per_page:25,sections:{}};
+    } else if (path === "/employees/planned-services") {
+      body = {company_id:1,pack_context_id:null,timezone:"Asia/Kolkata",from_at:"2026-11-15T00:00:00Z",until_at:"2026-11-22T00:00:00Z",items:[],next_cursor:null,filter_options:{employees:[],services:[],employees_complete:true,services_complete:true}};
+    } else if (path === "/catalog/items") {
+      body = {items:[],total:0,page:1,per_page:25,permissions:{product:true,service:true},facets:{categories:[],tags:[]},features:{}};
+    } else if (path === "/master-data/company-directory/query") {
+      body = {rows:[],total:0,context:{canCreate:true}};
+    } else if (path === "/access/settings/business-profile/effective") {
+      body = resolveBusinessProfile([]);
     } else if (path === "/master-data/companies") {
       body = {items:[],total:0,canCreate:true};
     } else if (path === "/access/settings/defaults/effective") {
@@ -118,7 +142,16 @@ function isForbiddenSrmMutation(role: string, method: string, path: string) {
 
 export async function expectHealthySrmRoute(page: Page, route: string) {
   await page.goto(route, { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route === "/srm/settings" ? "/settings/sales" : route)}$`));
+  const workspace = getOperationWorkspace(route);
+  if (workspace) {
+    await expect.poll(() => {
+      const url = new URL(page.url());
+      return navigationOperationPath(url.searchParams.get("operation") || url.pathname + url.search);
+    }).toBe(navigationOperationPath(route));
+    await expect(page.locator('[id^="operation-panel-"]:visible')).toHaveCount(1);
+  } else {
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+  }
   await expect(page.getByText("403 Access Denied", { exact: false })).toHaveCount(0);
   await expect(page.locator(".vite-error-overlay, #webpack-dev-server-client-overlay")).toHaveCount(0);
   await expect(page.locator("body")).toContainText(/SRM|Sales|Revenue|Invoice|Collection|Profitability|Engagement/i, { timeout: 20_000 });
@@ -130,6 +163,19 @@ export async function expectDenied(page: Page, route: string) {
 }
 
 function srmResponse(path: string, method: string) {
+  if (method === "GET" && /^\/srm\/inventory\/manufacturing\/(bom|orders)$/.test(path)) return {items:[],total:0,page:1,per_page:30,has_more:false};
+  if (method === "GET" && path === "/srm/procurement/purchase-orders") return {items:[],total:0,page:1,per_page:30,has_more:false};
+  if (method === "GET" && path === "/srm/pos/return-sales") return {items:[],has_more:false};
+  if (method === "GET" && path === "/srm/recurring-invoices/options") return {payment_modes:[],users:[]};
+  if (method === "GET" && path === "/srm/dashboard-workspace/context") return {
+    business_date:"2026-11-15", timezone:"Asia/Kolkata", organization_id:1,
+    sections:["summary","cash","collections","events","orders","quotations","targets"],
+    can_create:true,can_pos:true,can_plan:true,owners:[],customers:[],teams:[],branches:[],
+  };
+  if (method === "GET" && path.startsWith("/srm/dashboard-workspace/")) return {
+    section:path.split("/").pop(),context:{as_of:"2026-11-15T00:00:00Z",start_date:"2026-11-01",end_date:"2026-11-15",previous_start:null,previous_end:null},
+    metrics:{},series:[],rows:[],total_rows:0,notes:[],
+  };
   if (method !== "GET") {
     if (path.includes("/from-crm/deals/501/create-sales-order")) return handoffPayload(false);
     if (path === "/srm/sales-orders") return { id: 1, order_number: "SO-000001", customer_id: 10, status: "draft", total_amount: 250000 };

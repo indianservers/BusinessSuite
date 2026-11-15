@@ -186,17 +186,7 @@ const detailInlineEditConfig: Record<DetailKind, Record<string, DetailInlineConf
     territory_id: { type: "number", apiField: "territoryId" },
     tags_text: { type: "tags" },
   },
-  quotations: {
-    quote_number: { type: "text" },
-    status: { type: "select", options: ["Draft", "Sent", "Accepted", "Rejected", "Expired"] },
-    issue_date: { type: "date" },
-    expiry_date: { type: "date" },
-    subtotal: { type: "number" },
-    discount_amount: { type: "number" },
-    tax_amount: { type: "number" },
-    total_amount: { type: "number" },
-    owner_user_id: { type: "number", apiField: "ownerId" },
-  },
+  quotations: {}, // Commercial corrections use the shared reasoned revision controls.
 };
 
 export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
@@ -406,7 +396,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                 {id:"email",kind:"email",prominent:true,onSelect:()=>setAction("email"),disabled:!record.email || finalActionBlocked,disabledReason:!record.email ? "Add an email address to compose an email" : finalActionBlocked ? "Resolve the approval before sending email" : undefined},
                 ...(kind === "leads" ? [{id:"convert",kind:"convert" as const,prominent:true,primary:!leadConverted,label:leadConverted ? "Converted to Customer" : "Convert Lead to Customer",onSelect:convertLead,loading:leadConverting,disabled:leadConverted,disabledReason:leadConverted ? "This lead has already been converted to a customer" : undefined}] : []),
                 ...(kind !== "quotations" ? [{id:"quotation",kind:"quotation" as const,prominent:kind === "accounts" || kind === "contacts",primary:kind === "accounts",onSelect:()=>setAction("quotation")}] : []),
-                {id:"edit",kind:"edit",onSelect:()=>setEditOpen(true)},
+                {id:"edit",kind:"edit",available:kind !== "quotations",onSelect:()=>setEditOpen(true)},
                 {id:"call",kind:"call",onSelect:()=>setAction("call"),tooltip:"Log a call with this contact",disabled:!contactPhone,disabledReason:!contactPhone ? "Add a phone number before calling this contact" : undefined},
                 {id:"sms",kind:"sms",onSelect:()=>setMessageOpen("sms"),disabled:!contactPhone || finalActionBlocked,disabledReason:!contactPhone ? "Add a mobile number to send SMS" : finalActionBlocked ? "Resolve the approval before sending messages" : undefined},
                 {id:"followup",kind:"followup",onSelect:()=>setAction("task"),tooltip:"Create a task for the next follow-up"},
@@ -416,7 +406,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                 ...(kind === "leads" ? [{id:"score",kind:"score" as const,onSelect:recalculateScore,loading:saving}] : []),
                 ...(["deals","quotations"].includes(kind) ? [{id:"approval",kind:"approve" as const,label:"Submit for approval",onSelect:submitApproval,loading:approvalSubmitting,disabled:approvalStatus === "pending",disabledReason:approvalStatus === "pending" ? "Approval is already pending" : undefined}] : []),
                 ...(kind === "quotations" ? [{id:"pdf",kind:"view" as const,label:"Generate PDF",prominent:true,onSelect:()=>openQuotationPdf(false),loading:pdfGenerating},{id:"download",kind:"download" as const,label:"Download PDF",onSelect:()=>openQuotationPdf(true),loading:pdfGenerating}] : []),
-                {id:"delete",kind:"delete",danger:true,onSelect:deleteRecord,confirm:{title:`Move this ${config.singular.toLowerCase()} to Trash?`,description:"The record will be removed from active views. You can restore it from Relationship Hub.",label:"Move to Trash"}},
+                {id:"delete",kind:"delete",available:kind !== "quotations",danger:true,onSelect:deleteRecord,confirm:{title:`Move this ${config.singular.toLowerCase()} to Trash?`,description:"The record will be removed from active views. You can restore it from Relationship Hub.",label:"Move to Trash"}},
               ] : [];
 
   const fullDetails = record ? (<RecordSections key={`${kind}-${recordId}`} label="CRM record information" sections={[
@@ -479,7 +469,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             </div>
           </header>
 
-          {kind === "quotations" && <PaymentRequestButton source="crm_quotation" sourceId={recordId}/>}
+          {kind === "quotations" && <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to={`/crm/quotes/${recordId}/builder`}>Open quote builder</Link></Button><PaymentRequestButton source="crm_quotation" sourceId={recordId}/></div>}
           {kind === "quotations" ? fullDetails : <Record360Workspace key={`${kind}-${recordId}`} kind={kind === "accounts" ? "company" : kind === "leads" ? "lead" : kind === "contacts" ? "contact" : "deal"} id={recordId} onAction={setAction} details={fullDetails}/>}
 
           </>}

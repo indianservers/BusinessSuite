@@ -30,6 +30,7 @@ import { useThemeStore } from "@/store/themeStore";
 import "./settings-hub.css";
 
 import BranchSwitcher from "@/components/suite/BranchSwitcher";
+import { useRecordScope } from "@/lib/record-scope";
 
 
 
@@ -69,16 +70,17 @@ export default function SettingsHubPage({ sectionId, moduleHome, moduleLabel }: 
   const section = sectionId || params.section;
 
   const {user,isAuthenticated,isHydrated} = useAuthStore();
+  const scope = useRecordScope();
 
   const company = sessionStorage.getItem("suite-organization") || user?.access?.companyId;
 
-  const catalog = useQuery({queryKey:["shared-settings", user?.id, company],queryFn:()=>api.get<Catalog>(base).then(r=>r.data),enabled:isHydrated&&isAuthenticated,retry:1,staleTime:0});
+  const catalog = useQuery({queryKey:["shared-settings", user?.id, company, scope],queryFn:({signal})=>api.get<Catalog>(base,{signal}).then(r=>r.data),enabled:isHydrated&&isAuthenticated,retry:1,staleTime:0});
 
   const option = catalog.data?.options.find(o=>o.id===section);
 
   // Recheck the selected option on the server; stale client grants cannot open it.
 
-  const selected = useQuery({queryKey:["shared-setting",user?.id,company,section],queryFn:()=>api.get<Option>(`${base}/options/${section}`).then(r=>r.data),enabled:!!section&&!!option,retry:false,staleTime:0});
+  const selected = useQuery({queryKey:["shared-setting",user?.id,company,section,scope],queryFn:({signal})=>api.get<Option>(`${base}/options/${section}`,{signal}).then(r=>r.data),enabled:!!section&&!!option,retry:false,staleTime:0});
 
   useEffect(()=>{if(section){window.scrollTo(0,0);document.getElementById("settings-page-title")?.focus({preventScroll:true});}},[section]);
   useEffect(()=>{document.title=section ? `${option?.title || "Settings"} · Settings` : "Settings";},[section,option?.title]);

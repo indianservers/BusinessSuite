@@ -179,7 +179,9 @@ def test_database_backed_metrics_are_scoped_to_environment_and_owner(client, db,
     # These historical fixtures bypass HTTP writes; give them explicit ownership
     # instead of relying on the removed implicit creator/home-branch fallback.
     from app.branches.models import BranchOwnership
-    branch = db.query(Branch).filter_by(company_id=1).one()
+    source_owner = db.query(BranchOwnership).filter_by(
+        resource_table=PowerResource.__tablename__, resource_key=str(draft['id']), company_id=1).one()
+    branch = db.query(Branch).filter_by(id=source_owner.branch_id,company_id=1,is_active=True).one()
     for record in [*resources, execution]:
         db.add(BranchOwnership(resource_table=record.__tablename__, resource_key=str(record.id), company_id=1, branch_id=branch.id, source="test-fixture"))
     db.commit()

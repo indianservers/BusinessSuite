@@ -14,3 +14,33 @@ def test_tenant_company_settings_flags_subscription_and_usage(client, db):
     assert {item["code"] for item in plans.json()["items"]} >= {"starter", "professional", "enterprise", "ultimate"}
     usage = client.get("/api/v1/admin/usage", headers=headers)
     assert usage.status_code == 200
+
+
+def test_default_plan_bootstrap_is_guarded_idempotent_and_preserves_customization(client, db):
+    from app.apps.saas.models import TenantSubscription, TenantSubscriptionPlan
+    ordinary = auth_headers(client, db, email="ordinary-plan-admin@example.com", permissions=["tenant_view", "tenant_admin"])
+    denied = client.get("/api/v1/admin/subscription-plans", headers=ordinary)
+    assert denied.status_code == 403
+    assert db.query(TenantSubscriptionPlan).count() == 0
+    assert db.query(TenantSubscription).count() == 0
+
+    root = auth_headers(client, db, email="root-plan-admin@example.com", permissions=["tenant_view", "tenant_admin"], superuser=True)
+    for _ in range(2):
+        response = client.get("/api/v1/admin/subscription-plans", headers=root)
+        assert response.status_code == 200, response.text
+    assert db.query(TenantSubscriptionPlan).count() == 4
+    assert db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).count() == 1
+    assert db.query(TenantSubscription).filter(TenantSubscription.company_id.is_not(None)).count() == 0
+
+    customized = db.query(TenantSubscriptionPlan).filter_by(code="ultimate").one()
+    customized.name = "Installation custom edition"
+    customized.features_json = ["custom-feature"]
+    db.commit()
+    response = client.get("/api/v1/admin/subscription-plans", headers=root)
+    assert response.status_code == 200, response.text
+    returned = next(row for row in response.json()["items"] if row["code"] == "ultimate")
+    assert returned["name"] == "Installation custom edition"
+    assert returned["features_json"] == ["custom-feature"]
+    subscription = client.get("/api/v1/admin/subscription", headers=root)
+    assert subscription.status_code == 200, subscription.text
+    assert subscription.json()["company_id"] is None

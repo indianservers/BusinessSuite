@@ -27,12 +27,11 @@ def live(db_engine):
         pytest.skip("Requires independent PostgreSQL transactions")
     source = db_engine.url
     assert source.host in {"127.0.0.1", "localhost"} and source.database.endswith("_test")
-    db_engine.dispose()
     name = "business_suite_workflow_races_" + uuid4().hex[:10] + "_test"
     admin = create_engine(source.set(database="postgres"), isolation_level="AUTOCOMMIT")
     with admin.connect() as connection:
         quote = connection.dialect.identifier_preparer.quote_identifier
-        connection.exec_driver_sql(f"CREATE DATABASE {quote(name)} TEMPLATE {quote(source.database)}")
+        connection.exec_driver_sql(f"CREATE DATABASE {quote(name)}")
     engine = create_engine(source.set(database=name), connect_args={"options": "-c timezone=UTC -c lock_timeout=5000 -c statement_timeout=10000"})
     factory = sessionmaker(bind=engine, autoflush=False)
     previous_overrides = dict(app.dependency_overrides)
@@ -42,6 +41,20 @@ def live(db_engine):
     client = TestClient(app)
     seed = factory()
     try:
+        # Independent committed races must not require an exclusive snapshot of
+        # the suite database: legitimate request/audit pools may still use it.
+        # Exercise the deployed schema in a genuinely owned disposable database.
+        from pathlib import Path
+        from alembic import command
+        from alembic.config import Config
+        from app.models.company import Company
+        config=Config(str(Path(__file__).parents[1]/'alembic.ini'))
+        with engine.connect() as connection:
+            config.attributes['connection']=connection
+            command.upgrade(config,'head')
+            connection.execute(Company.__table__.insert().values(id=1,name='Workflow integration fixture'))
+            connection.execute(text("SELECT setval(pg_get_serial_sequence('companies','id'), 1, true)"))
+            connection.commit()
         def seed_db(): yield seed
         app.dependency_overrides[get_db] = seed_db
         app.state.business_os_session_factory = lambda: seed
@@ -261,17 +274,22 @@ def test_postgresql_browser_approval_route(live):
 
 
 def test_production_mode_runtime_workflow(live, tmp_path):
-    """Real production-configured process with startup enabled, on a cloned test DB."""
+    """Real production-configured process with startup enabled, on its owned test DB."""
     import socket
     import subprocess
     import sys
     from pathlib import Path
     import httpx
     from sqlalchemy import inspect
+    from secrets import token_hex
+    from psycopg import sql
     role = "workflow_runtime_" + uuid4().hex[:10]
+    password = token_hex(32)
     with live.engine.begin() as connection:
         quote = connection.dialect.identifier_preparer.quote_identifier
-        connection.exec_driver_sql(f"CREATE ROLE {quote(role)} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE")
+        with connection.connection.driver_connection.cursor() as cursor:
+            cursor.execute(sql.SQL("CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD {}").format(
+                sql.Identifier(role), sql.Literal(password)))
         live.runtime_roles.append(role)
         connection.exec_driver_sql(f"ALTER DATABASE {quote(live.engine.url.database)} OWNER TO {quote(role)}")
         connection.exec_driver_sql(f"ALTER SCHEMA public OWNER TO {quote(role)}")
@@ -279,7 +297,7 @@ def test_production_mode_runtime_workflow(live, tmp_path):
         for table in inspect(connection).get_table_names(schema="public"):
             connection.exec_driver_sql(f"ALTER TABLE public.{quote(table)} OWNER TO {quote(role)}")
         connection.exec_driver_sql(f"GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO {quote(role)}")
-    runtime_url = live.engine.url.set(username=role, password=None)
+    runtime_url = live.engine.url.set(username=role, password=password)
     runtime_engine = create_engine(runtime_url)
     with runtime_engine.connect() as connection:
         privileges = connection.execute(text("SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user")).one()

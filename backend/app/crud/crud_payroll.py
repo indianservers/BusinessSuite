@@ -356,7 +356,7 @@ def _scoped_employee_query(db: Session, base_query, scope: dict[str, Any]):
         branch_id = pay_group.branch_id if pay_group else None
 
     if scope.get("company_id"):
-        base_query = base_query.join(Employee.branch).filter(Branch.company_id == scope["company_id"])
+        base_query = base_query.join(Branch, Branch.id == Employee.branch_id).filter(Branch.company_id == scope["company_id"])
     if branch_id:
         base_query = base_query.filter(Employee.branch_id == branch_id)
     if scope.get("department_id"):
@@ -1274,6 +1274,71 @@ def run_payroll(
     return payroll_run
 
 
+def build_payroll_variance_item(payroll_run_id, record, previous_record):
+    """Native arithmetic only; callers authorize sources and own persistence."""
+    previous_gross = previous_record.gross_salary if previous_record else Decimal("0")
+    previous_net = previous_record.net_salary if previous_record else Decimal("0")
+    current_gross = record.gross_salary or Decimal("0")
+    current_net = record.net_salary or Decimal("0")
+    gross_delta = current_gross - previous_gross
+    net_delta = current_net - previous_net
+    gross_delta_percent = (gross_delta / previous_gross * Decimal("100")) if previous_gross else Decimal("0")
+    net_delta_percent = (net_delta / previous_net * Decimal("100")) if previous_net else Decimal("0")
+
+    reasons = []
+    severity = "Info"
+    if not previous_record:
+        reasons.append("No previous month payroll record")
+    else:
+        currency = record.salary_currency or "INR"
+        previous_currency = previous_record.salary_currency or "INR"
+        if previous_currency != currency:
+            reasons.append(f"Currency changed from {previous_currency} to {currency}; percentage comparisons are not exchange-rate adjusted")
+        for field, label in (("basic", "Basic-pay earnings"), ("hra", "Housing allowance"),
+                             ("other_allowances", "Other allowances"), ("other_deductions", "Other deductions / adjustments"),
+                             ("reimbursements", "Expense reimbursements"), ("tds", "Income tax deduction")):
+            before = getattr(previous_record, field) or Decimal("0")
+            after = getattr(record, field) or Decimal("0")
+            if before != after:
+                reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
+        if (previous_record.lop_days or 0) != (record.lop_days or 0):
+            reasons.append(f"Unpaid leave / loss-of-pay days: {previous_record.lop_days or 0} to {record.lop_days or 0}")
+        for label, predicate in (("Overtime", lambda c: "overtime" in str(c.source_type or c.component_name or "").lower()),
+                                 ("Manual adjustments", lambda c: c.is_manual)):
+            before = sum((c.amount or Decimal("0") for c in previous_record.components if predicate(c)), Decimal("0"))
+            after = sum((c.amount or Decimal("0") for c in record.components if predicate(c)), Decimal("0"))
+            if before != after:
+                reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
+    if current_net < 0:
+        severity = "Critical"
+        reasons.append("Net salary is negative")
+    elif abs(gross_delta_percent) >= Decimal("25") or abs(net_delta_percent) >= Decimal("25"):
+        severity = "High"
+        reasons.append("Payroll changed by 25% or more")
+    elif abs(gross_delta_percent) >= Decimal("10") or abs(net_delta_percent) >= Decimal("10"):
+        severity = "Medium"
+        reasons.append("Payroll changed by 10% or more")
+
+    item = PayrollVarianceItem(
+        payroll_run_id=payroll_run_id,
+        employee_id=record.employee_id,
+        previous_payroll_record_id=previous_record.id if previous_record else None,
+        current_gross=current_gross,
+        previous_gross=previous_gross,
+        gross_delta=gross_delta,
+        gross_delta_percent=gross_delta_percent,
+        current_net=current_net,
+        previous_net=previous_net,
+        net_delta=net_delta,
+        net_delta_percent=net_delta_percent,
+        severity=severity,
+        reason="; ".join(reasons) if reasons else "Within configured variance threshold",
+    )
+    item.previous_currency = (previous_record.salary_currency or "INR") if previous_record else (record.salary_currency or "INR")
+    item.current_currency = record.salary_currency or "INR"
+    return item
+
+
 def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[PayrollVarianceItem]:
     import calendar
 
@@ -1306,66 +1371,7 @@ def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[Payroll
                 PayrollRecord.employee_id == record.employee_id,
             ).first()
 
-        previous_gross = previous_record.gross_salary if previous_record else Decimal("0")
-        previous_net = previous_record.net_salary if previous_record else Decimal("0")
-        current_gross = record.gross_salary or Decimal("0")
-        current_net = record.net_salary or Decimal("0")
-        gross_delta = current_gross - previous_gross
-        net_delta = current_net - previous_net
-        gross_delta_percent = (gross_delta / previous_gross * Decimal("100")) if previous_gross else Decimal("0")
-        net_delta_percent = (net_delta / previous_net * Decimal("100")) if previous_net else Decimal("0")
-
-        reasons = []
-        severity = "Info"
-        if not previous_record:
-            reasons.append("No previous month payroll record")
-        else:
-            currency = record.salary_currency or "INR"
-            previous_currency = previous_record.salary_currency or "INR"
-            if previous_currency != currency:
-                reasons.append(f"Currency changed from {previous_currency} to {currency}; percentage comparisons are not exchange-rate adjusted")
-            for field, label in (("basic", "Basic-pay earnings"), ("hra", "Housing allowance"),
-                                 ("other_allowances", "Other allowances"), ("other_deductions", "Other deductions / adjustments"),
-                                 ("reimbursements", "Expense reimbursements"), ("tds", "Income tax deduction")):
-                before = getattr(previous_record, field) or Decimal("0")
-                after = getattr(record, field) or Decimal("0")
-                if before != after:
-                    reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
-            if (previous_record.lop_days or 0) != (record.lop_days or 0):
-                reasons.append(f"Unpaid leave / loss-of-pay days: {previous_record.lop_days or 0} to {record.lop_days or 0}")
-            for label, predicate in (("Overtime", lambda c: "overtime" in str(c.source_type or c.component_name or "").lower()),
-                                     ("Manual adjustments", lambda c: c.is_manual)):
-                before = sum((c.amount or Decimal("0") for c in previous_record.components if predicate(c)), Decimal("0"))
-                after = sum((c.amount or Decimal("0") for c in record.components if predicate(c)), Decimal("0"))
-                if before != after:
-                    reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
-        if current_net < 0:
-            severity = "Critical"
-            reasons.append("Net salary is negative")
-        elif abs(gross_delta_percent) >= Decimal("25") or abs(net_delta_percent) >= Decimal("25"):
-            severity = "High"
-            reasons.append("Payroll changed by 25% or more")
-        elif abs(gross_delta_percent) >= Decimal("10") or abs(net_delta_percent) >= Decimal("10"):
-            severity = "Medium"
-            reasons.append("Payroll changed by 10% or more")
-
-        item = PayrollVarianceItem(
-            payroll_run_id=payroll_run_id,
-            employee_id=record.employee_id,
-            previous_payroll_record_id=previous_record.id if previous_record else None,
-            current_gross=current_gross,
-            previous_gross=previous_gross,
-            gross_delta=gross_delta,
-            gross_delta_percent=gross_delta_percent,
-            current_net=current_net,
-            previous_net=previous_net,
-            net_delta=net_delta,
-            net_delta_percent=net_delta_percent,
-            severity=severity,
-            reason="; ".join(reasons) if reasons else "Within configured variance threshold",
-        )
-        item.previous_currency = (previous_record.salary_currency or "INR") if previous_record else (record.salary_currency or "INR")
-        item.current_currency = record.salary_currency or "INR"
+        item = build_payroll_variance_item(payroll_run_id, record, previous_record)
         db.add(item)
         items.append(item)
 

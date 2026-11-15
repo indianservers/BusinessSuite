@@ -434,6 +434,19 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
     from app.branches.migration import backfill
     backfill(db.connection(), 1, table_names={"employees", "intern_batch_memberships"})
     db.commit()
+    connection = db.connection()
+    if connection.dialect.name == "postgresql":
+        # This fixture inserts 20,000 rows inside the test's outer transaction;
+        # autovacuum cannot analyze those uncommitted rows for the native guards.
+        assert (connection.engine.url.database or "").endswith("_test")
+        for table in (
+            "users", "common_people", "common_profiles", "employees",
+            "suite_branch_ownership", "security_resource_ownership",
+            "suite_branch_grants", "suite_branch_policies",
+            "suite_access_memberships", "suite_access_policies",
+            "intern_batch_memberships", "branches", "roles",
+        ):
+            connection.exec_driver_sql(f'ANALYZE "{table}"')
     response = client.get(
         ROOT + "/people", headers=h, params={"page_size": 24, "page": 200, "q": "Scale"}
     )
@@ -495,7 +508,7 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
     assert edited.status_code == 200, edited.text
     assert db.query(PMSTaskAssignee).filter_by(task_id=job["task_id"]).count() == 601
     print(
-        f"Disposable SQLite scale fixture: 20,000 people and 601 assignments in {perf_counter()-started:.2f}s; not production timing"
+        f"Disposable {db.get_bind().dialect.name} scale fixture: 20,000 people and 601 assignments in {perf_counter()-started:.2f}s; not production timing"
     )
 
 

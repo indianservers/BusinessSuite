@@ -826,6 +826,8 @@ def test_product_routing_and_duplicate_numbers_with_different_calling_codes(
 def test_website_capture_keeps_configured_branch_after_admin_switch(client, db, superuser_headers):
     from app.branches.models import BranchOwnership
     user = db.query(User).filter_by(email="testadmin@test.com").one()
+    original_branch = client.get("/api/v1/branches/context", headers=superuser_headers).json()["default_branch_id"]
+    assert original_branch is not None
     made = client.post("/api/v1/branches", headers=superuser_headers,
         json={"name":"Website intake", "code":"WEB-INTAKE", "reason":"Route website enquiries to this branch"})
     assert made.status_code == 201, made.text
@@ -842,7 +844,10 @@ def test_website_capture_keeps_configured_branch_after_admin_switch(client, db, 
     lead = db.query(CRMLead).filter_by(email="branch-enquiry@example.com").one()
     assert lead.organization_id == 1
     assert db.query(BranchOwnership).filter_by(resource_table="crm_leads",resource_key=str(lead.id)).one().branch_id == branch_id
-    assert client.get(ROOT + f"/leads/{lead.id}", headers=superuser_headers).status_code == 404
+    # An implicit administrator read spans their company; explicitly choosing
+    # the original branch must still exclude the website-intake branch.
+    assert client.get(ROOT + f"/leads/{lead.id}", headers=superuser_headers).status_code == 200
+    assert client.get(ROOT + f"/leads/{lead.id}", headers={**superuser_headers, "X-Suite-Branch":str(original_branch)}).status_code == 404
     assert client.get(ROOT + f"/leads/{lead.id}", headers=destination).status_code == 200
 
 

@@ -15,6 +15,39 @@ from app.apps.srm.services.commercial import require, invoice_for, invoice_query
 router = APIRouter()
 
 
+def can_record(db, user):
+    names = {item.name for item in permission_objects(user)}
+    native = user.is_superuser or bool(names.intersection({'srm_collection_create', 'srm_admin'}))
+    scope = db.info.get('business_pack_scope')
+    if not native:
+        return False
+    if scope is None:
+        from app.access.service import check_background_access
+        try:
+            check_background_access(db, user, 'srm', 'approve', administrative_read=False, stamp=False)
+        except HTTPException as exc:
+            if exc.status_code != 403:
+                raise
+            return False
+        return True
+    from app.business_packs.common_core import _native_authority
+    from app.business_packs.native_checkout_authority import capture
+    _native_authority(db, user, scope.company_id)
+    if not scope.writable or scope.pack_key + '.payments.record' not in scope.capabilities:
+        return False
+    try:
+        capture(db, user, scope, order=False, billing=False, payments=True, write=True)
+        from app.business_packs.catalog_management import _module_grant
+        if not user.is_superuser and 'approve' not in _module_grant(db, user, scope, 'srm').get('actions', ()):
+            return False
+    except HTTPException as exc:
+        _native_authority(db, user, scope.company_id)
+        if exc.status_code != 403:
+            raise
+        return False
+    return True
+
+
 def summary(db, invoice, contexts=None):
     from app.apps.srm.services.collections import collection_on_hold
     ctx = db.get(InvoiceContext, invoice.id) if contexts is None else contexts.get(invoice.id)
@@ -39,6 +72,8 @@ class CollectionControlInput(BaseModel):
 def collection_control(invoice_id: int, data: CollectionControlInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     from app.apps.srm.api.router import _audit
     require(user, "srm_collection_create", "srm_admin")
+    from app.apps.srm.services.commercial import lock_tenant
+    lock_tenant(db, user)
     invoice = invoice_for(db, invoice_id, user, lock=True)
     if data.resume_at and (not data.hold or data.resume_at.tzinfo is None or data.resume_at <= datetime.now(timezone.utc)):
         raise HTTPException(422, "A scheduled resume requires a hold and a future timestamp with timezone")
@@ -59,10 +94,19 @@ def collection_control(invoice_id: int, data: CollectionControlInput, db: Sessio
 @router.get("/business/collection-invoices")
 def collection_invoices(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     require(user, "srm_collection_view", "srm_collection_create", "srm_admin")
-    names = {p.name for p in (permission_objects(user))}
     rows = invoice_query(db, user).order_by(SRMInvoice.id.desc()).limit(200).all()
+    selected = db.info.get('business_pack_scope')
+    measurement_ids = {}
+    if selected is not None:
+        from app.business_packs.financial_projections import assert_common_invoice
+        from app.business_packs.construction_billing import assert_invoice_source
+        from app.apps.srm.models import SRMInvoiceLine
+        for row in rows:
+            assert_common_invoice(db, row)
+            if selected.pack_key == 'construction' and assert_invoice_source(db, row):
+                measurement_ids[row.id] = db.query(SRMInvoiceLine.source_id).filter_by(invoice_id=row.id).scalar()
     contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_([r.id for r in rows])).all()} if rows else {}
-    return {"items": [summary(db, r, contexts) for r in rows], "can_record": user.is_superuser or bool(names.intersection({"srm_collection_create", "srm_admin"}))}
+    return {"items": [summary(db, r, contexts) | ({'construction_measurement_id': measurement_ids[r.id]} if r.id in measurement_ids else {}) for r in rows], "can_record": can_record(db, user)}
 
 
 class PaymentInput(BaseModel):
@@ -75,6 +119,10 @@ class PaymentInput(BaseModel):
 
 @router.post("/business/invoices/{invoice_id}/payments", status_code=201)
 def record_payment(invoice_id: int, data: PaymentInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return record_payment_operation(invoice_id, data, db, user)
+
+
+def record_payment_operation(invoice_id: int, data: PaymentInput, db: Session, user: User, *, commit=True):
     from app.apps.srm.api.router import _next_number, _audit
     require(user, "srm_collection_create", "srm_admin")
     invoice = invoice_for(db, invoice_id, user, lock=True)
@@ -90,7 +138,7 @@ def record_payment(invoice_id: int, data: PaymentInput, db: Session = Depends(ge
     ctx = db.get(InvoiceContext, invoice.id)
     seller_id = ctx.seller_id if ctx else (invoice.organization_id or 1)
     seller(db, seller_id, user)
-    receipt = SRMReceipt(organization_id=tenant(user), receipt_number=_next_number(db, SRMReceipt, "RCT", "receipt_number", tenant(user)), customer_id=invoice.customer_id,
+    receipt = SRMReceipt(organization_id=tenant(user), receipt_number=_next_number(db, SRMReceipt, "RCT", "receipt_number", tenant(user), actor=user), customer_id=invoice.customer_id,
         status="allocated", receipt_date=data.receipt_date or date.today(), payment_method=data.payment_method,
         reference_number=data.reference, currency=invoice.currency, amount=amount, unallocated_amount=0, created_by=user.id)
     db.add(receipt); db.flush()
@@ -102,7 +150,8 @@ def record_payment(invoice_id: int, data: PaymentInput, db: Session = Depends(ge
     db.add(SRMRevenueEvent(organization_id=invoice.organization_id, engagement_id=invoice.engagement_id, invoice_id=invoice.id, event_type="cash_collected", amount=amount, currency=invoice.currency, recognized_on=date.today()))
     db.add(SRMInvoiceHistory(invoice_id=invoice.id, to_status=invoice.status, actor_user_id=user.id, notes=f"Receipt {receipt.id} applied; correlation {data.request_id}"))
     _audit(db, user, "receipt", receipt.id, "payment_applied", after={"invoice_id": invoice.id, "correlation_id": str(data.request_id), "amount": str(amount)})
-    db.commit()
+    if commit:
+        db.commit()
     return {"receipt_id": receipt.id, "invoice": summary(db, invoice), "reversed": False}
 
 

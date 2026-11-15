@@ -69,6 +69,9 @@ def test_fam_opening_balance_rejects_both_debit_and_credit(client, db):
 def test_opening_posting_accumulates_company_totals_and_preserves_branch_views(client, db, superuser_headers):
     response = client.get("/api/v1/fam/module-info", headers=superuser_headers)
     assert response.status_code == 200, response.text
+    original_branch = client.get("/api/v1/branches/context", headers=superuser_headers).json()["default_branch_id"]
+    assert original_branch is not None
+    first = {**superuser_headers, "X-Suite-Branch":str(original_branch)}
     year = db.query(FAMFinancialYear).filter_by(name="FY 2026-27").one()
     cash = db.query(FAMLedger).filter_by(ledger_name="Cash").one()
     capital = db.query(FAMLedger).filter_by(ledger_name="Opening Balance Difference").one()
@@ -86,11 +89,15 @@ def test_opening_posting_accumulates_company_totals_and_preserves_branch_views(c
             assert response.status_code == 201, response.text
         response = client.post("/api/v1/fam/opening-balances/post",headers=headers)
         assert response.status_code == 200, response.text
-    post_opening(superuser_headers,100,year.id)
+    post_opening(first,100,year.id)
     post_opening(second,200,next_year.json()["id"])
     db.refresh(cash)
     assert cash.current_balance_dr == 300 and cash.opening_balance_dr == 300
-    for headers, amount in [(superuser_headers,100),(second,200)]:
+    company_ledgers = client.get("/api/v1/fam/ledgers", headers=superuser_headers)
+    assert company_ledgers.status_code == 200, company_ledgers.text
+    company_cash = next(row for row in company_ledgers.json()["items"] if row["id"] == cash.id)
+    assert company_cash["current_balance_dr"] == 300 and company_cash["opening_balance_dr"] == 300
+    for headers, amount in [(first,100),(second,200)]:
         response = client.get("/api/v1/fam/ledgers",headers=headers)
         assert response.status_code == 200, response.text
         row = next(row for row in response.json()["items"] if row["id"]==cash.id)

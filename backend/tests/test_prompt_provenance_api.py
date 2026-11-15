@@ -36,7 +36,11 @@ def test_success_and_failed_attempts_record_no_business_text_in_version_metadata
     selected=[r for r in usage.json()['logs'] if r['suite_run_id']==run['id']]
     assert len(selected)==2 and all(r['core_prompt']['version']==1 for r in selected)
     catalog=client.get(ROOT+'/prompt-versions',headers=h);assert catalog.status_code==200,catalog.text
-    assert len(catalog.json()['items'])==5
+    assert {(item['key'], item['version']) for item in catalog.json()['items']} == {
+        ('authorized-json', 1), ('agent-builder', 1), ('agent-coordinator', 1),
+        ('workflow-design', 1), ('workflow-action', 1), ('image-generation', 1),
+        ('audio-transcription', 1), ('writing-draft', 1),
+    }
     low,_=auth_headers(client,db,email='prompt-reader-'+uuid4().hex+'@example.com',permissions=['ai_assistant'])
     assert client.get(ROOT+'/prompt-versions',headers=low).status_code==403
     assert client.get(ROOT+f'/suite/runs/{run["id"]}',headers=low).status_code in (403,404)

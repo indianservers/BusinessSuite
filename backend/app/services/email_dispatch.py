@@ -14,17 +14,23 @@ from app.models.user import User
 
 
 def queue_email(db, *, recipient, subject, body, module, organization_id=None,
-                user_id=None, event_key=None, is_html=False):
+                user_id=None, event_key=None, is_html=False, source_record=None):
     """Never commits: notification and source operation must succeed together."""
     event_key = event_key or uuid4().hex
     if any(isinstance(item, EmailOutbox) and item.event_key == event_key for item in db.new):
         return None
     if not recipient or "@" not in recipient or any(c in recipient for c in "\r\n"):
         return None
-    if db.query(EmailOutbox.id).filter_by(event_key=event_key).first():
+    from app.business_packs.employee_email import prepare as prepare_employee_event,duplicate_exists as employee_duplicate
+    employee_event=prepare_employee_event(db,source_record,recipient=recipient,subject=subject,body=body,module=module,
+        organization_id=organization_id,user_id=user_id,event_key=event_key,is_html=is_html)
+    if (employee_duplicate(db,employee_event) if employee_event is not None else db.query(EmailOutbox.id).filter_by(event_key=event_key).first()):
         return None
+    if employee_event is not None:organization_id=employee_event.scope.company_id
     row = EmailOutbox(event_key=event_key, organization_id=organization_id, module=module,
         recipient_user_id=user_id, recipient=recipient, subject=subject[:240], body=body, is_html=is_html, status="queued")
+    if source_record is not None:row._suite_source_record=source_record
+    if employee_event is not None:row._suite_employee_email=employee_event
     db.add(row)
     return row
 

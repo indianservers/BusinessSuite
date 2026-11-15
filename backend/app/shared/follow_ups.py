@@ -163,7 +163,13 @@ def visible(db, user):
 def linked_product(db, user, ident):
     from app.apps.srm.models import SRMProduct
     from app.shared.catalog import restrict_workspaces
-    p = restrict_workspaces(db.query(SRMProduct).filter(SRMProduct.id == ident, SRMProduct.organization_id == tenant(user), SRMProduct.deleted_at.is_(None)), SRMProduct, db, user).first()
+    scope=db.info.get('business_pack_scope')
+    query=db.query(SRMProduct).filter(SRMProduct.id==ident,SRMProduct.organization_id==tenant(user),SRMProduct.deleted_at.is_(None))
+    if scope is not None:
+        from app.business_packs.catalog_predicate import _pos_workspace_predicate
+        p=query.filter(~_pos_workspace_predicate(db,scope)).first()
+    else:
+        p=restrict_workspaces(query,SRMProduct,db,user).first()
     if not p:
         raise HTTPException(404, 'Catalogue item unavailable')
     return p
@@ -479,6 +485,10 @@ def start_worker():
                 if is_app_enabled('crm'):
                     from app.apps.crm.growth import dispatch_relationship_reminders
                     dispatch_relationship_reminders(db)
+                    from app.apps.crm.lead_models import CRMLeadManagementConfig
+                    if db.query(CRMLeadManagementConfig.organization_id).filter(CRMLeadManagementConfig.settings_json["salesProcess"]["enabled"].as_boolean().is_(True)).first():
+                        from app.apps.crm.lead_management import scheduled_lead_alerts
+                        scheduled_lead_alerts(db)
         while not stop.is_set():
             try:
                 run_for_company_databases(tick)

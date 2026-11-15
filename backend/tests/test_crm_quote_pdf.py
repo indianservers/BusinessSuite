@@ -1,4 +1,5 @@
-def test_crm_quote_pdf_endpoint_generates_pdf(client, superuser_headers):
+def test_crm_quote_pdf_endpoint_generates_pdf(client, db, superuser_headers):
+    from app.apps.crm.models import CRMActivity
     quote = client.post("/api/v1/crm/quotes", headers=superuser_headers, json={
         "quoteNumber": "QT-PDF-001",
         "issueDate": "2026-06-01",
@@ -6,7 +7,9 @@ def test_crm_quote_pdf_endpoint_generates_pdf(client, superuser_headers):
         "terms": "Net 15",
     })
     quote_id = quote.json()["id"]
+    activity_count = db.query(CRMActivity).count()
     response = client.get(f"/api/v1/crm/quotes/{quote_id}/pdf", headers=superuser_headers)
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content.startswith(b"%PDF")
+    assert db.query(CRMActivity).count() == activity_count

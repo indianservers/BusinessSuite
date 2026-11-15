@@ -401,7 +401,12 @@ def bind_authorization(db, user, request):
     # Access discovery returns the selected branch's effective role. Control-plane
     # administration otherwise retains its company-level authority.
     if not control or request.url.path == "/api/v1/access/me":
-        user._suite_grants = effective_grants(db, user, company, request.headers.get("X-Suite-Branch"), user._suite_grants)
+        from app.branches.service import definition_target_branch
+        definition_branch = definition_target_branch(request)
+        selected_branch = definition_branch or request.headers.get("X-Suite-Branch")
+        user._suite_grants = (effective_grants(db, user, company, selected_branch, user._suite_grants,
+                                              definition_administration=True)
+                              if definition_branch else effective_grants(db, user, company, selected_branch, user._suite_grants))
     if user._suite_is_company_admin and user._suite_admin_read:
         from app.access.admin_reads import grants as company_read_grants
         user._suite_grants = company_read_grants(db, user, user._suite_grants)
@@ -449,7 +454,30 @@ def bind_authorization(db, user, request):
         return lambda: reset_authorization(user)
     from app.access.scope import install_scope
 
-    return install_scope(db, user, company, grants)
+    # Native predicates are compiled here, before the remaining request layers.
+    # Bind only a registered canonical Core purpose after native company/module
+    # authorization, so its narrow configuration predicates compile correctly.
+    from app.business_packs.common_binding import request_binding, bind_core_request
+    binding = request_binding(user, request)
+    if binding is None:
+        return install_scope(db, user, company, grants)
+    from contextlib import ExitStack
+    core_stack = ExitStack()
+    try:
+        core_stack.enter_context(bind_core_request(db, binding))
+        native_cleanup = install_scope(db, user, company, grants)
+    except BaseException:
+        core_stack.close()
+        reset_authorization(user)
+        raise
+
+    def cleanup():
+        try:
+            native_cleanup()
+        finally:
+            core_stack.close()
+
+    return cleanup
 
 
 def reset_authorization(user):
@@ -493,7 +521,7 @@ def effective_objects(db, grants, module=None):
     return result
 
 
-def check_background_access(db, user, module, action="view", *, branch_id=None):
+def check_background_access(db, user, module, action="view", *, branch_id=None, administrative_read=True, stamp=True):
     company = getattr(user, "organization_id", None) or primary_company(user)
     from app.access.entitlements import enforce
 
@@ -506,7 +534,10 @@ def check_background_access(db, user, module, action="view", *, branch_id=None):
     from app.branches.roles import effective_grants
     current = db.info.get('branch_context')
     selected = branch_id if branch_id is not None else (current.branch_id or 'all') if current else db.info.get('background_branch')
-    branch_grants = effective_grants(db, user, company, selected, resolved_grants(db, policy) if policy else None)
+    if administrative_read and stamp:
+        branch_grants = effective_grants(db, user, company, selected, resolved_grants(db, policy) if policy else None)
+    else:
+        branch_grants = effective_grants(db, user, company, selected, resolved_grants(db, policy) if policy else None, administrative_read=administrative_read, stamp=stamp)
     if branch_grants is not None:
         grant = branch_grants.get(module, {})
         if (policy and policy.status != 'active') or not grant.get('enabled') or action not in grant.get('actions', []):

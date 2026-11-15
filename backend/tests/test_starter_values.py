@@ -15,7 +15,9 @@ def owned(db, model, company):
 
 
 def test_starters_are_owned_repeatable_and_preserve_customization(db):
-    db.add_all([Company(id=1, name="First"), Company(id=2, name="Second")])
+    for ident, name in [(1, "First"), (2, "Second")]:
+        if db.get(Company, ident) is None:
+            db.add(Company(id=ident, name=name))
     db.flush()
     branches = [Branch(name="Main", company_id=company) for company in [1, 2]]
     db.add_all(branches); db.flush()
@@ -54,6 +56,45 @@ def test_starter_endpoint_permissions_and_enabled_modules(client, db):
     assert client.post(BASE + "/starter-values/apply", headers=admin, json={"modules": ["unknown"]}).status_code == 422
 
 
+def test_salary_component_definitions_span_owned_branches_but_not_companies(client, db):
+    admin, _ = actor(db, superuser=True, role="salary_master_admin")
+    primary = Branch(name="Primary owned", company_id=1)
+    db.add(primary)
+    db.add(Company(id=2, name="Separate salary company"))
+    second = Branch(name="Second owned", company_id=1)
+    foreign = Branch(name="Foreign", company_id=2)
+    db.add_all([second, foreign]); db.flush()
+    populate(db, 1, primary.id, {"hrms"})
+    populate(db, 2, foreign.id, {"hrms"})
+    db.commit()
+    expected = {row['id'] for row in owned(db, SalaryComponent, 1)}
+    excluded = {row['id'] for row in owned(db, SalaryComponent, 2)}
+    response = client.get('/api/v1/payroll/components', headers={**admin, 'X-Suite-Organization': '1', 'X-Suite-Branch': str(second.id)})
+    assert response.status_code == 200, response.text
+    returned = {row['id'] for row in response.json()}
+    assert expected <= returned
+    assert not returned.intersection(excluded)
+    rejected = client.get('/api/v1/payroll/components', headers={**admin, 'X-Suite-Organization': '1', 'X-Suite-Branch': str(foreign.id)})
+    assert rejected.status_code == 403
+
+
+def test_salary_component_company_master_still_rejects_foreign_category(client, db):
+    from app.models.payroll import SalaryComponentCategory
+    admin, _ = actor(db, role='salary_component_manager', permissions=['payroll_view', 'payroll_run'], admin=True)
+    db.add_all([Company(id=2, name='Foreign category company'), Branch(name='Component branch', company_id=1)])
+    db.flush()
+    connection = db.connection()
+    category = connection.execute(SalaryComponentCategory.__table__.insert().values(name='Foreign salary category', code='FOREIGN-SALARY', category_type='Earning').returning(SalaryComponentCategory.id)).scalar_one()
+    connection.execute(SecurityResourceOwnership.__table__.insert().values(resource_table='salary_component_categories', resource_id=category, company_id=2))
+    db.commit()
+    values = {'name': 'Optional-category allowance', 'code': 'LOCAL-COMPONENT', 'component_type': 'Earning', 'calculation_type': 'Fixed', 'amount': '0'}
+    denied = client.post('/api/v1/payroll/components', headers=admin, json={**values, 'category_id': category})
+    assert denied.status_code == 403, denied.text
+    created = client.post('/api/v1/payroll/components', headers=admin, json=values)
+    assert created.status_code == 201, created.text
+    assert {row['id'] for row in client.get('/api/v1/payroll/components', headers=admin).json()} == {created.json()['id']}
+
+
 def test_custom_lead_sources_feed_defaults_and_do_not_overwrite_workflows(client, db):
     admin, user = actor(db, superuser=True)
     from app.apps.crm.lead_models import CRMLeadManagementConfig
@@ -82,7 +123,9 @@ def test_custom_lead_sources_feed_defaults_and_do_not_overwrite_workflows(client
 
 
 def test_existing_sales_pipeline_is_preserved(db):
-    db.add(Company(id=1, name="Existing")); db.flush()
+    if db.get(Company, 1) is None:
+        db.add(Company(id=1, name="Existing"))
+    db.flush()
     branch = Branch(name="Main", company_id=1); db.add(branch); db.flush()
     db.add(CRMPipeline(organization_id=1, name="Custom disabled pipeline", active=False)); db.flush()
     populate(db, 1, branch.id, {"crm"})

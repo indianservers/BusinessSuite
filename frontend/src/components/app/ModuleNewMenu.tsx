@@ -1,3 +1,4 @@
+import { moduleContextPath, commonPagePath } from "@/lib/common-routes";
 import { sharedNotesPath, createSharedNotePath } from "@/lib/shared-notes";
 
 import {lazy,Suspense,useState,useEffect,type ReactNode} from "react";
@@ -12,7 +13,8 @@ import WorkspaceCreateMenu from "./WorkspaceCreateMenu";
 import { contextualDestination } from "@/shared/creation/registry";
 
 export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[], loading?: boolean) => ReactNode } = {}) {
-  const { pathname, search } = useLocation();
+  const { pathname: currentPathname, search } = useLocation();
+  const pathname = moduleContextPath(currentPathname, search);
   const [crmQuick,setCRMQuick]=useState("");
   useEffect(() => { setCRMQuick(""); }, [pathname]);
   const routerNavigate = useNavigate();
@@ -68,6 +70,8 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     add("Purchase bill", "Capture a vendor bill draft", FileText, "/fam/purchase-bills/new", manages);
     add("Expense claim", "Record an expense for review", Wallet, "/fam/expenses/new", manages);
   } else if (pathname.startsWith("/hrms")) {
+    const taskGrant = user?.access?.grants.project_management;
+    if (canAccessRoute("/pms/tasks/new", user?.role, user?.is_superuser) && (user?.is_superuser || !user?.access?.managed || taskGrant?.enabled && taskGrant.actions.includes("create"))) actions.push({ label: "Task", description: "Create a task in the shared Tasks workspace", icon: CheckCircle2, menuPaths: [commonPagePath("tasks", "hrms")], onSelect: () => routerNavigate("/pms/tasks/new?module=hrms") });
     if((user?.is_superuser || (moduleGrant ? moduleGrant.actions.includes("create") && moduleGrant.permissions.includes("employee_create") : ["admin","hr"].includes(hrRole)))&&canAccessRoute("/hrms/employees/new",user?.role,user?.is_superuser))actions.push({label:"Add Employee",description:"Create an employee with the complete guided form",icon:UserPlus,menuPaths:["/hrms/employees"],onSelect:()=>navigate("/hrms/employees/new")});
     add("Correct Attendance", "Review missing punches and incomplete shifts", CalendarDays, "/hrms/daily-work?view=attendance", ["admin","hr","manager"].includes(hrRole));
     add("Generate Letter", "Open employee letters and certificates", FileText, "/hrms/letters-certificates?new=letter", ["admin","hr"].includes(hrRole));
@@ -90,8 +94,10 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(role));
     add("Customer", "Create a customer", UserPlus, "/srm/customers?new=company", manages);
     add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
-    add("Catalog item", "Add a product or service", ShoppingBag, "/srm/inventory/products?new=item", manages);
-    const catalogAction = actions.find(action => action.label === "Catalog item");
+    add("Add product", "Create a product in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=product", manages);
+    add("Add service", "Create a service in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=service", manages);
+    add("POS", "Start a sale in the point of sale", Receipt, "/srm/pos/terminal", manages);
+    const catalogAction = actions.find(action => action.label === "Add product");
     if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
   }
   if (pathname.startsWith("/hrms")) add("Asset", "Register company equipment", ShoppingBag, "/hrms/assets#new-record", definitionCreate(["asset_manage", "hr_asset_manage"]));

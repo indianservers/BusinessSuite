@@ -52,12 +52,15 @@ def test_firebase_signup_prefills_without_creating_app_accounts(client,db,fireba
 
 
 @pytest.mark.parametrize('changes',[
-    {'aud':'other-project'}, {'iss':'https://attacker.invalid'}, {'exp':1}, {'iat':int(time.time())+3600},
-    {'auth_time':int(time.time())+3600}, {'sub':''}, {'sub':'x'*129}, {'email_verified':False},
+    {'aud':'other-project'}, {'iss':'https://attacker.invalid'}, {'exp':1},
+    pytest.param(lambda: {'iat':int(time.time())+3600}, id='future-issued-at'),
+    pytest.param(lambda: {'auth_time':int(time.time())+3600}, id='future-auth-time'),
+    {'sub':''}, {'sub':'x'*129}, {'email_verified':False},
     {'firebase':{'sign_in_provider':'password'}}, {'firebase':{'sign_in_provider':'microsoft.com'}},
     {'email':'not-an-email'},
 ])
 def test_firebase_signup_rejects_invalid_claims(client,firebase_identity,changes):
+    changes = changes() if callable(changes) else changes
     assert client.post('/api/v1/interns-hub/signup/firebase',json={'token':firebase_identity(**changes)}).status_code==401
 
 

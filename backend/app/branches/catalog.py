@@ -14,6 +14,9 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     # Tenant isolation still applies; no public account can read this queue.
     "suite_signup_requests",
     "companies", "suite_access_memberships", "suite_access_policies", "suite_access_roles",
+    # Company-admin pack setup is authorization configuration. Operational
+    # record ownership and master availability keep their branch guards.
+    "business_pack_activations", "business_pack_contexts", "business_pack_user_grants",
     "suite_access_templates", "suite_access_audit", "suite_branch_policies", "suite_branch_grants",
     "suite_accounting_branch_map", "suite_branch_ownership", "suite_branch_audit",
     "suite_branch_record_shares", "suite_branch_lifecycle",
@@ -46,6 +49,9 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     "feature_catalog", "bos_enabled_modules", "bos_integration_rules", "bos_posting_rules",
     "metric_definitions", "business_number_sequences", "tax_declaration_categories",
     "leave_types", "power_apps_environments",
+    # Reusable salary calculation definitions belong to the company. Payroll
+    # assignments, calculated records and money remain branch-owned activity.
+    "salary_components", "salary_component_formula_rules",
     # Company-wide singleton switches/plans, never branch business activity.
     # Their APIs retain AI-admin/global-configuration permission checks.
     "ai_security_settings", "tenant_subscriptions", "crm_lead_management_config",

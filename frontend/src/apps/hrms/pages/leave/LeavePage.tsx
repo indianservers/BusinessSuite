@@ -1,4 +1,6 @@
 import BusinessTerm from "@/components/BusinessTerm";
+import { useRecordScope } from "@/lib/record-scope";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { useRecordDraft } from "@/hooks/use-record-autosave";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
@@ -127,6 +129,12 @@ function LeaveSourceNotice({label,source,hasData}:{label:string;source:{isError:
 }
 
 export default function LeavePage() {
+  const scope = useRecordScope();
+  return <LeaveSurface key={scope} scope={scope}/>;
+}
+
+function LeaveSurface({ scope }: { scope: string }) {
+  const owns = useRecordScopeOwner();
   usePageTitle("Leave");
   const mobile=useMobile();
   const phone=useMobile(480);
@@ -164,21 +172,21 @@ export default function LeavePage() {
   const [accountPassword, setAccountPassword] = useState("");
 
   const balanceSource = useQuery({
-    queryKey: ["leave-balance"],
+    queryKey: ["leave-balance", scope],
     queryFn: () => leaveApi.balance().then((r) => r.data as LeaveBalance[]),
     enabled: hasEmployeeProfile,
   });
   const { data: balances, isLoading: loadingBalance } = balanceSource;
 
   const myRequestsSource = useQuery({
-    queryKey: ["my-leave-requests"],
+    queryKey: ["my-leave-requests", scope],
     queryFn: () => leaveApi.myRequests().then((r) => r.data as LeaveRequest[]),
     enabled: hasEmployeeProfile,
   });
   const { data: myRequests, isLoading: loadingRequests, refetch } = myRequestsSource;
 
   const approvalsSource = useQuery({
-    queryKey: ["all-leave-requests", "Pending"],
+    queryKey: ["all-leave-requests", scope, "Pending"],
     queryFn: () => leaveApi.allRequests({ status: "Pending" }).then((r) => r.data as LeaveRequest[]),
     enabled: canApproveLeave,
     retry: false,
@@ -186,40 +194,40 @@ export default function LeavePage() {
   const { data: allRequests, refetch: refetchAll } = approvalsSource;
 
   const leaveTypesSource = useQuery({
-    queryKey: ["leave-types"],
+    queryKey: ["leave-types", scope],
     queryFn: () => leaveApi.types().then((r) => r.data as LeaveType[]),
   });
   const { data: leaveTypes } = leaveTypesSource;
 
   const accountEmployeeSource = useQuery({
-    queryKey: ["leave-account-employees", accountEmployeeSearch],
+    queryKey: ["leave-account-employees", scope, accountEmployeeSearch],
     queryFn: () => employeeApi.list({ search: accountEmployeeSearch || undefined, limit: 50 }).then((r) => r.data),
     enabled: canManageAccounts,
   });
   const { data: employeeOptions } = accountEmployeeSource;
 
   const accountUserSource = useQuery({
-    queryKey: ["leave-account-user-options", accountUserSearch, accountEmployeeId],
+    queryKey: ["leave-account-user-options", scope, accountUserSearch, accountEmployeeId],
     queryFn: () => employeeApi.userOptions({ search: accountUserSearch || undefined, include_employee_id: accountEmployeeId || undefined }).then((r) => r.data as UserOption[]),
     enabled: canManageAccounts,
   });
   const { data: userOptions } = accountUserSource;
 
   const accountRolesSource = useQuery({
-    queryKey: ["leave-account-roles"],
+    queryKey: ["leave-account-roles", scope],
     queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string }>),
     enabled: canManageAccounts,
   });
   const { data: roles } = accountRolesSource;
 
   const encashmentSource = useQuery({
-    queryKey: ["leave-encashment-requests"],
+    queryKey: ["leave-encashment-requests", scope],
     queryFn: () => leavePayrollApi.encashmentRequests().then((r) => r.data as LeaveEncashmentRequest[]),
   });
   const { data: encashmentRequests } = encashmentSource;
 
   const encashmentApprovalsSource = useQuery({
-    queryKey: ["leave-encashment-requests", "submitted"],
+    queryKey: ["leave-encashment-requests", scope, "submitted"],
     queryFn: () => leavePayrollApi.encashmentRequests({ status: "submitted" }).then((r) => r.data as LeaveEncashmentRequest[]),
     enabled: canApproveLeave,
     retry: false,
@@ -237,7 +245,7 @@ export default function LeavePage() {
   const calendarEndText = toDateText(calendarEnd);
 
   const calendarSource = useQuery({
-    queryKey: ["leave-calendar", calendarStartText, calendarEndText, calendarScope],
+    queryKey: ["leave-calendar", scope, calendarStartText, calendarEndText, calendarScope],
     queryFn: () =>
       leaveApi.calendar({
         from_date: calendarStartText,
@@ -255,7 +263,7 @@ export default function LeavePage() {
   const [applyCloseRevision, setApplyCloseRevision] = useState(0);
   const requestedFrom=watch("from_date"),requestedTo=watch("to_date"),requestedType=watch("leave_type_id"),requestedMode=watch("leave_mode");
   const leaveDraft = useRecordDraft("hrms:leave:application", watch(), reset, hasEmployeeProfile);
-  const applicationCalendar = useQuery({ queryKey: ["leave-application-calendar", user?.id, requestedFrom, requestedTo], enabled: showApplyForm && !!requestedFrom && !!requestedTo && requestedTo >= requestedFrom && Date.parse(requestedTo) - Date.parse(requestedFrom) <= 366 * 86400000, queryFn: () => leaveApi.calendar({ from_date: requestedFrom, to_date: requestedTo, scope: "mine" }).then(response => response.data as { days: LeaveCalendarDay[] }) });
+  const applicationCalendar = useQuery({ queryKey: ["leave-application-calendar", scope, user?.id, requestedFrom, requestedTo], enabled: showApplyForm && !!requestedFrom && !!requestedTo && requestedTo >= requestedFrom && Date.parse(requestedTo) - Date.parse(requestedFrom) <= 366 * 86400000, queryFn: () => leaveApi.calendar({ from_date: requestedFrom, to_date: requestedTo, scope: "mine" }).then(response => response.data as { days: LeaveCalendarDay[] }) });
   const applicationHolidays = applicationCalendar.data?.days.flatMap(day => day.holidays) || [];
   const applicationOverlaps = [...new Map((applicationCalendar.data?.days.flatMap(day => day.employees_on_leave) || []).filter(request => ["Pending", "Approved"].includes(request.status)).map(request => [request.id, request])).values()];
   const requestedDays=requestedFrom&&requestedTo&&requestedTo>=requestedFrom?(requestedMode==="Half-day"?0.5:Math.round((Date.parse(requestedTo)-Date.parse(requestedFrom))/86400000)+1):0;
@@ -265,17 +273,19 @@ export default function LeavePage() {
     mutationFn: (data: ApplyForm) =>
       leaveApi.apply({ ...data, leave_type_id: Number(data.leave_type_id) }),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Leave application submitted" });
       leaveDraft();
       announceCreated({ title: "Leave application submitted", status: "Pending", href: "/hrms/leave", next: [{ label: "Track request", href: "/hrms/leave" }] });
       reset();
       setShowApplyForm(false);
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
-      qc.invalidateQueries({ queryKey: ["my-leave-requests"] });
-      qc.invalidateQueries({ queryKey: ["all-leave-requests"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
+      qc.invalidateQueries({ queryKey: ["my-leave-requests", scope] });
+      qc.invalidateQueries({ queryKey: ["all-leave-requests", scope] });
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to apply";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
@@ -287,15 +297,17 @@ export default function LeavePage() {
     mutationFn: ({ id, status, remarks }: { id: number; status: string; remarks: string }) =>
       leaveApi.approve(id, { status, review_remarks: remarks }),
     onSuccess: (_, { status }) => {
+      if (!owns()) return;
       toast({ title: `Leave ${status.toLowerCase()}` });
       void qc.invalidateQueries({queryKey:["mobile-action-badges"]});
       setReviewRemarks({});
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
-      qc.invalidateQueries({ queryKey: ["my-leave-requests"] });
-      qc.invalidateQueries({ queryKey: ["all-leave-requests"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
+      qc.invalidateQueries({ queryKey: ["my-leave-requests", scope] });
+      qc.invalidateQueries({ queryKey: ["all-leave-requests", scope] });
       qc.invalidateQueries({ queryKey: NOTIF_UNREAD_KEY });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Action failed";
       toast({ title: "Action failed", description: msg, variant: "destructive" });
     },
@@ -306,10 +318,11 @@ export default function LeavePage() {
     onSettled: () => { cancelSubmitting.current=false; },
     mutationFn: (id: number) => leaveApi.cancel(id),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Leave cancelled" });
       refetch();
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
-      qc.invalidateQueries({ queryKey: ["all-leave-requests"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
+      qc.invalidateQueries({ queryKey: ["all-leave-requests", scope] });
     },
   });
 
@@ -324,15 +337,17 @@ export default function LeavePage() {
         remarks: encashRemarks || undefined,
       }),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Leave encashment requested" });
       if(phone) setEncashCompletion(v => v + 1);
       setEncashLeaveTypeId("");
       setEncashDays("");
       setEncashRemarks("");
-      qc.invalidateQueries({ queryKey: ["leave-encashment-requests"] });
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+      qc.invalidateQueries({ queryKey: ["leave-encashment-requests", scope] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to request leave encashment";
       toast({ title: "Request failed", description: msg, variant: "destructive" });
     },
@@ -346,12 +361,14 @@ export default function LeavePage() {
       return action === "approve" ? leavePayrollApi.approveEncashment(id, payload) : leavePayrollApi.rejectEncashment(id, payload);
     },
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Encashment request updated" });
       setEncashReviewRemarks({});
-      qc.invalidateQueries({ queryKey: ["leave-encashment-requests"] });
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+      qc.invalidateQueries({ queryKey: ["leave-encashment-requests", scope] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to update encashment request";
       toast({ title: "Action failed", description: msg, variant: "destructive" });
     },
@@ -368,11 +385,13 @@ export default function LeavePage() {
     onSettled: () => { maintenanceSubmitting.current=false; },
     mutationFn: () => leaveApi.runAccruals(toDateText(new Date())),
     onSuccess: (response) => {
+      if (!owns()) return;
       const count = (response.data as { processed?: number })?.processed ?? 0;
       toast({ title: "Leave accruals processed", description: `${count} balance row${count === 1 ? "" : "s"} updated.` });
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to run leave accruals";
       toast({ title: "Accrual run failed", description: msg, variant: "destructive" });
     },
@@ -385,11 +404,13 @@ export default function LeavePage() {
       return leaveApi.runCarryForward(year - 1, year);
     },
     onSuccess: (response) => {
+      if (!owns()) return;
       const count = (response.data as { processed?: number })?.processed ?? 0;
       toast({ title: "Leave carry-forward processed", description: `${count} balance row${count === 1 ? "" : "s"} updated.` });
-      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to run carry-forward";
       toast({ title: "Carry-forward failed", description: msg, variant: "destructive" });
     },
@@ -408,12 +429,14 @@ export default function LeavePage() {
     onSettled: () => { accountSubmitting.current=false; },
     mutationFn: () => employeeApi.linkUser(Number(accountEmployeeId), accountUserId ? Number(accountUserId) : null),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Employee account linked" });
       if(phone) setAccountCompletion(v=>v+1);
-      qc.invalidateQueries({ queryKey: ["leave-account-employees"] });
-      qc.invalidateQueries({ queryKey: ["leave-account-user-options"] });
+      qc.invalidateQueries({ queryKey: ["leave-account-employees", scope] });
+      qc.invalidateQueries({ queryKey: ["leave-account-user-options", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not link employee account";
       toast({ title: "Account link failed", description: msg, variant: "destructive" });
     },
@@ -431,13 +454,15 @@ export default function LeavePage() {
       return linkedEmployee.data;
     },
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Employee login created", description: `${accountEmail} can now apply leave and view payslips.` });
       if(phone) setAccountCompletion(v=>v+1);
       setAccountUserId("");
-      qc.invalidateQueries({ queryKey: ["leave-account-employees"] });
-      qc.invalidateQueries({ queryKey: ["leave-account-user-options"] });
+      qc.invalidateQueries({ queryKey: ["leave-account-employees", scope] });
+      qc.invalidateQueries({ queryKey: ["leave-account-user-options", scope] });
     },
     onError: (e: unknown) => {
+      if (!owns()) return;
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not create employee login";
       toast({ title: "Account creation failed", description: msg, variant: "destructive" });
     },
@@ -653,7 +678,7 @@ export default function LeavePage() {
                   </option>
                 ))}
               </NativeSelect>
-              <Button disabled={phone && accountBusy} variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["leave-account-employees"] })}>
+              <Button disabled={phone && accountBusy} variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["leave-account-employees", scope] })}>
                 Refresh Employees
               </Button>
             </div>
@@ -922,7 +947,7 @@ export default function LeavePage() {
                   {canApproveLeave && <option value="team">Team leave</option>}
                   {["admin", "hr"].includes(roleKey) && <option value="all">All employees</option>}
                 </NativeSelect>
-                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={phone ? "Refresh leave calendar" : undefined} disabled={phone && (calendarSource.isFetching || calendarSource.fetchStatus==="paused")} onClick={() => qc.invalidateQueries({ queryKey: ["leave-calendar"] })}>
+                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={phone ? "Refresh leave calendar" : undefined} disabled={phone && (calendarSource.isFetching || calendarSource.fetchStatus==="paused")} onClick={() => qc.invalidateQueries({ queryKey: ["leave-calendar", scope] })}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>

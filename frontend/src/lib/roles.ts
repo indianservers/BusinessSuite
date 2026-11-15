@@ -1,8 +1,11 @@
-import { commonRouteContext, commonNavigationHref, commonModules, commonEntities, commonEntityModules, commonPagePath, moduleContextPath, type CommonModule, type CommonEntity } from "./common-routes";
+import { commonRouteContext, commonNavigationHref, commonModules, commonEntities, commonEntityModules, commonPagePath, moduleContextPath, commercialEntities, isCommercialEntity, type CommonModule, type CommonEntity } from "./common-routes";
 import { useAuthStore } from "@/store/authStore";
 import { canUseFeature } from "./feature-access";
 import { canExplorePeopleDirectory } from "./people-directory-access";
 import { categorizeNavigation } from "./navigation-categories";
+import { selectedPackContext } from './pack-context';
+import { showRestaurantKitchen, showAccountsPeriods, allowConstructionNavigation } from './business-pack-navigation';
+import type { BusinessPackDiscovery } from './business-pack-types';
 import {
   AlertTriangle,
   BarChart3,
@@ -79,7 +82,7 @@ export function effectiveModuleDisplayRole(pathname: string, user: NonNullable<R
   const module = centralModuleForPath(user.access, pathname);
   const grant = module ? user.access.grants[module.key] : undefined;
   if (!module || !grant?.enabled) return primary;
-  const role = grant.role.toLowerCase();
+  const role = (grant.role || "").toLowerCase();
   const level = ["viewer","contributor","editor","manager","admin"].includes(role) ? role : grant.actions.includes("configure") ? "admin" : grant.actions.includes("assign") ? "manager" : grant.actions.includes("edit") ? "editor" : "viewer";
   const aliases: Record<string,Record<string,string>> = {
     crm:{admin:"crm_org_admin",manager:"crm_sales_manager",editor:"crm_sales_executive",contributor:"crm_sales_executive",viewer:"crm_viewer"},
@@ -584,12 +587,26 @@ const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/reven
 const srmCollectionOnlyPaths = ["/srm/collections"];
 const srmSalesOnlyPaths = ["/srm/appointments", "/srm/salon", "/srm/construction", "/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
+function businessPackNavigation(show: typeof showRestaurantKitchen) {
+  try {
+    const access = useAuthStore.getState().user?.access as unknown as { businessPacks?: BusinessPackDiscovery } | undefined;
+    return show(access?.businessPacks, sessionStorage.getItem('suite-branch'), selectedPackContext());
+  } catch { return false; }
+}
+
+function restaurantKitchenNavigation() { return businessPackNavigation(showRestaurantKitchen); }
+function accountsPeriodsNavigation() { return businessPackNavigation(showAccountsPeriods); }
+function constructionNavigation() { return businessPackNavigation(allowConstructionNavigation); }
+
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
   if (/^\/srm\/forms(?:\/|$)/.test(pathname)) return true;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
+  if (normalizedPath === '/srm/construction' && !constructionNavigation()) return false;
+  if (normalizedPath === '/srm/restaurant-kitchen') return restaurantKitchenNavigation();
+  if (normalizedPath === '/srm/accounts-periods') return accountsPeriodsNavigation();
   const normalizedRole = normalizeRole(role);
-  if (["/srm/appointments", "/srm/salon", "/srm/construction"].includes(normalizedPath)) {
+  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction"].includes(normalizedPath)) {
     return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
   }
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
@@ -979,6 +996,9 @@ const srmNav: RoleNavItem[] = [
   { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
   { label: "Appointments", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
+  { label: "Scheduled Services", icon: CalendarDays, to: "/srm/scheduled-services", group: "Industry operations" },
+  { label: "Restaurant kitchen", icon: ClipboardCheck, to: "/srm/restaurant-kitchen", group: "Industry operations" },
+  { label: "Client service periods", icon: ClipboardCheck, to: "/srm/accounts-periods", group: "Industry operations" },
   { label: "Construction operations", icon: Briefcase, to: "/srm/construction", group: "Industry operations" },
   { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
   { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },
@@ -992,8 +1012,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Profitability", icon: BarChart3, to: "/srm/profitability", group: "Revenue" },
   { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
   { label: "Inventory Dashboard", icon: Package, to: "/srm/inventory/dashboard", group: "Sales & Inventory" },
-  { label: "Stock Items", icon: Package, to: "/srm/inventory/items", group: "Sales & Inventory" },
-  { label: "Products & Services", icon: Package, to: "/srm/inventory/products", group: "Sales & Inventory" },
+  { label: "Products & Services", icon: Package, to: "/srm/products-services", group: "Sales & Inventory" },
   { label: "Price Lists", icon: Receipt, to: "/srm/inventory/price-lists", group: "Sales & Inventory" },
   { label: "Warehouses", icon: Building2, to: "/srm/inventory/warehouses", group: "Sales & Inventory" },
   { label: "Stock Summary", icon: BookOpen, to: "/srm/inventory/stock-summary", group: "Sales & Inventory" },
@@ -1206,15 +1225,20 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   const categorized = categorizeNavigation(available, getActiveModule(pathname));
   if (!commonModules.includes(root as CommonModule)) return categorized;
   const module = root as CommonModule;
-  const shared = categorized.map(item => ({ ...item, to: commonNavigationHref(item.to, module) }));
-  const icons = { employees: Users, teams: Users, vendors: Building2, tasks: ListChecks, notes: FileText, contacts: Users, customers: Users, leads: Target, calendar: CalendarDays, "follow-ups": Clock, catalog: Package };
+  const shared = categorized.map(item => {
+    const to = commonNavigationHref(item.to, module);
+    const context = commonRouteContext(to);
+    return { ...item, to, ...(context && isCommercialEntity(context.entity) ? { label: context.definition.label, group: "Commercial documents" } : {}) };
+  });
+  const icons = { employees: Users, teams: Users, vendors: Building2, tasks: ListChecks, notes: FileText, contacts: Users, customers: Users, leads: Target, calendar: CalendarDays, "follow-ups": Clock, catalog: Package, quotations: FileText, contracts: FileCheck2, "purchase-orders": Receipt, "sales-orders": Receipt, invoices: DollarSign, "invoice-drafts": FileText, "billing-plans": CalendarDays, collections: DollarSign, engagements: FileCheck2, "payment-requests": DollarSign };
   for (const entity of Object.keys(commonEntities) as CommonEntity[]) {
     const to = commonPagePath(entity, module);
     if (commonEntityModules[entity].includes(module) && canAccessRoute(to, role, isSuperuser) && !shared.some(item => commonRouteContext(item.to)?.entity === entity)) {
-      shared.push({ to, label: commonEntities[entity].label, icon: icons[entity], group: "Shared workspace" });
+      shared.push({ to, label: commonEntities[entity].label, icon: icons[entity], group: isCommercialEntity(entity) ? "Commercial documents" : "Shared workspace" });
     }
   }
-  return shared;
+  const unique = shared.filter((item, index) => shared.findIndex(candidate => candidate.to === item.to) === index);
+  return [...unique.filter(item => item.group !== "Commercial documents"), ...commercialEntities.flatMap(entity => unique.filter(item => commonRouteContext(item.to)?.entity === entity))];
 }
 
 function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
@@ -1402,6 +1426,9 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
     return Boolean(context && canAccessRoute(context.contextPath, role, isSuperuser) && canAccessRoute(context.nativePath, role, isSuperuser));
   }
   pathname = pathname.split(/[?#]/)[0];
+  if (pathname.replace(/\/+$/, '') === '/srm/restaurant-kitchen' && !restaurantKitchenNavigation()) return false;
+  if (pathname.replace(/\/+$/, '') === '/srm/accounts-periods' && !accountsPeriodsNavigation()) return false;
+  if (pathname.replace(/\/+$/, '') === '/srm/construction' && !constructionNavigation()) return false;
   if (pathname === "/employee-directory") pathname = "/hrms/employee-directory";
   const directoryRoute = ["/hrms/employee-directory", "/employee-directory"].includes(pathname);
   const directoryIdentity = useAuthStore.getState().user;

@@ -123,22 +123,43 @@ def get_current_user(
                 db.info['admin_read_company'] = previous_admin_read
         stack.callback(restore_admin_read)
         from app.core.tenant_boundary import company_ids
-        own_account = request.url.path in {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/change-password", "/api/v1/auth/mfa/setup", "/api/v1/auth/mfa/confirm", "/api/v1/auth/mfa/disable"}
+        from app.business_packs.request_scope import RouteKind, classify_route, bind_request_scope, authorization_fingerprint
+        route_kind = classify_route(request.method, request.url.path)
+        own_account = route_kind is RouteKind.PERSONAL
         context = None
         if not own_account or company_ids(db, user):
-            company_read = bool(getattr(user, '_suite_admin_read', False)) and not request.url.path.startswith(('/api/v1/access/', '/api/v1/auth/', '/api/v1/branches'))
+            definition_administration = False
+            company_read = bool(getattr(user, '_suite_admin_read', False)) and not request.url.path.startswith(('/api/v1/access/', '/api/v1/auth/', '/api/v1/branches', '/api/v1/company/'))
             stack.callback(install_boundary(db, user, user.organization_id, enforce_superuser_company=company_read))
             from app.branches.service import context as branch_context
             from app.branches.boundary import install as install_branch_boundary
-            branch_discovery = request.url.path == "/api/v1/access/setup" or request.url.path.startswith(("/api/v1/access/settings", "/api/v1/branches"))
-            branch_selection = None if branch_discovery else request.headers.get("X-Suite-Branch")
+            branch_discovery = route_kind is not RouteKind.OPERATIONAL
+            branch_selection = request.headers.get("X-Suite-Branch") if request.url.path == '/api/v1/access/setup' else None if branch_discovery else request.headers.get("X-Suite-Branch")
+            if (route_kind is RouteKind.CONTROL
+                    and request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}
+                    and request.url.path.startswith('/api/v1/company/')):
+                # Definition writes retain their native destination branch;
+                # treating them as discovery hid newly created branches.
+                branch_selection = request.headers.get('X-Suite-Branch')
+                from app.branches.service import definition_target_branch
+                definition_branch = definition_target_branch(request)
+                definition_administration = definition_branch is not None
+                branch_selection = definition_branch or branch_selection
             if request.url.path.endswith(("/settings/defaults/effective", "/settings/business-profile/effective")):
                 branch_selection = request.headers.get("X-Suite-Branch")
             if request.url.path.endswith(("/settings/defaults/configuration", "/settings/business-profile/configuration")) and request.query_params.get("branch_id"):
                 branch_selection = request.query_params["branch_id"]
             if branch_selection is None and getattr(user, '_suite_admin_read', False):
                 branch_selection = 'all'
-            context = branch_context(db, user, user.organization_id, branch_selection)
+            try:
+                context = (branch_context(db, user, user.organization_id, branch_selection, definition_administration=True)
+                           if definition_administration else branch_context(db, user, user.organization_id, branch_selection))
+            except HTTPException as error:
+                if request.url.path != '/api/v1/access/setup' or error.status_code not in {403, 404}:
+                    raise
+                # The repair checklist remains reachable when a remembered
+                # branch was removed; it still resolves only this company.
+                context = branch_context(db, user, user.organization_id, None)
             stack.callback(install_branch_boundary(db, user, context, identity_administration=request.url.path.startswith(("/api/v1/access/", "/api/v1/auth/users", "/api/v1/employees/accounts"))))
             previous_branch = getattr(user, "_suite_branch_id", None)
             user._suite_branch_id = context.branch_id or ("all" if context.all_branches else None)
@@ -156,24 +177,51 @@ def get_current_user(
                 db.info["shared_actor"] = previous
         stack.callback(restore_actor)
         set_audit_actor(user)
+        # Resolve raw selectors only after native company/branch authority is
+        # bound. Identity and audited administration stay independently native.
+        from app.business_packs.common_binding import request_binding as core_request_binding, bind_core_request, authorization_fingerprint as core_fingerprint
+        core_binding = core_request_binding(user, request)
+        common_core = None
+        if core_binding is not None:
+            stack.enter_context(bind_core_request(db, core_binding))
+            pack_scope = None
+        else:
+            pack_scope = stack.enter_context(bind_request_scope(db, user, request, context))
         stack.callback(bind_http(db, user, request, payload))
-        # Capture effective grants while the authorization context is still bound.
-        # No token or personal information is included in this opaque fingerprint.
+        from app.access.setup import enforce_setup
+        enforce_setup(db, user, request)
+        from app.business_packs.legacy_boundary import protect_branch_ownership, install as install_legacy_exclusion
+        if (core_binding is None and route_kind is not RouteKind.PERSONAL
+                and not (route_kind is RouteKind.CONTROL and request.method in {'GET', 'HEAD', 'OPTIONS'})
+                and type(user.organization_id) is int and user.organization_id > 0):
+            stack.callback(protect_branch_ownership(db, user.organization_id))
+        if core_binding is not None:
+            from app.business_packs.common_core import resolve_request as resolve_common_core, install as install_common_core
+            common_core = resolve_common_core(db, user, request, context, core_binding)
+            if common_core is None:
+                raise HTTPException(403, 'The native Core purpose has no matching operation adapter')
+            stack.callback(install_common_core(db, user, common_core))
+        elif pack_scope is not None:
+            from app.business_packs.request_operations import authorize_request
+            from app.business_packs.native_policy import native_srm_policy
+            from app.business_packs.boundary import install as install_pack_boundary
+            authorize_request(db, user, request, pack_scope)
+            stack.callback(install_pack_boundary(db, pack_scope, policy=native_srm_policy(pack_scope.pack_key).policy))
+        elif route_kind is RouteKind.OPERATIONAL:
+            stack.callback(install_legacy_exclusion(db, user, user.organization_id))
+        # Capture the resolved realm and native authority, never a caller label.
         if request.headers.get("x-suite-sync") == "1":
             from app.core.middleware.record_sync import digest
+            realm = (core_fingerprint(core_binding), common_core.native_authority) if common_core is not None else authorization_fingerprint(pack_scope)
             request.state.record_sync_scope = digest([
                 db.info.get("tenant_uuid"),
                 user.id, user.organization_id, user.is_superuser, user.role_id, user.role.name if user.role else None,
-                getattr(user, "_suite_session_id", None),
-                getattr(user, "_suite_policy_version", None),
+                getattr(user, "_suite_session_id", None), getattr(user, "_suite_policy_version", None),
                 getattr(user, "_suite_grants", None),
                 sorted(p.name for p in (user.role.permissions if user.role else [])),
-                getattr(user, "_suite_branch_id", None),
-                sorted(context.allowed) if context else [],
-                sorted(context.writable) if context else [],
+                getattr(user, "_suite_branch_id", None), sorted(context.allowed) if context else [],
+                sorted(context.writable) if context else [], realm,
             ])
-        from app.access.setup import enforce_setup
-        enforce_setup(db, user, request)
         yield user
 
 
