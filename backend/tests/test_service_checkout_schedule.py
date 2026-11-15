@@ -161,7 +161,7 @@ def test_group_schedule_pack_scope_rechecked_for_each_action(db,scenario,case):
     from app.business_packs.models import PackActivation,PackContext,PackRecordOwnership
     user,branch,catalog,basket=scenario
     context,grant,result,ident=pack_group(db,scenario)
-    with native_writer(db,user,branch):current=grouped_schedule(ident,db,user)
+    with audited_pack_writer(db,user,branch,context):current=grouped_schedule(ident,db,user)
     if case=='revoked':grant.active=False;db.commit()
     elif case=='role':grant.role='cashier';db.commit()
     else:

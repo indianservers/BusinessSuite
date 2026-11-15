@@ -11,7 +11,7 @@ from hashlib import sha256
 import json
 from uuid import uuid5, NAMESPACE_URL
 from fastapi import HTTPException
-from sqlalchemy import inspect, select
+from sqlalchemy import event, inspect, select
 from app.apps.srm.service_checkout_models import (
     MODELS, ServiceBookingPolicy, ServiceSpecialistEligibility, POSServiceCheckout,
     POSCheckoutLine, POSServiceOccurrence, POSCheckoutPayment,
@@ -22,15 +22,38 @@ from app.apps.srm.services.commercial import tenant, require, record, customer, 
 
 def fail(message,code=422): raise HTTPException(code,message)
 
+
+def _track_quantity_rollback(db, product_ids):
+    """Expire Core-maintained stock caches when a checkout savepoint unwinds.
+
+    Native stock writes use set_committed_value, so SQLAlchemy does not mark
+    these product attributes dirty or expire them on a nested rollback. Keep
+    the hook for the request session, including a caller's later savepoint.
+    The canonical SQL balances and stock command remain unchanged.
+    """
+    from app.apps.srm.models import SRMProduct
+    key = 'service_checkout_quantity_cache_ids'
+    if key not in db.info:
+        tracked = db.info[key] = set()
+
+        def expire_quantities(session, transaction):
+            for ident in tracked:
+                cached = session.identity_map.get((SRMProduct, (ident,), None))
+                if cached is not None and inspect(cached).persistent:
+                    session.expire(cached, ['current_quantity'])
+
+        event.listen(db, 'after_soft_rollback', expire_quantities)
+    db.info[key].update(product_ids)
+
 def installation_ready(db):
-    inspector=inspect(db.connection())
+    from app.db.schema_columns import table_columns
     required={m.__tablename__:set(m.__table__.c.keys()) for m in MODELS}
     for model in MODELS:
         for foreign_key in model.__table__.foreign_keys:
             table,column=foreign_key.target_fullname.rsplit('.',1)
             required.setdefault(table,set()).add(column)
-    return all(inspector.has_table(table) and columns<={c['name'] for c in inspector.get_columns(table)}
-        for table,columns in required.items())
+    actual=table_columns(db.connection(),required)
+    return all(table in actual and columns<=actual[table] for table,columns in required.items())
 
 
 def _authority(db,user,*,billing=False,payments=False,bookings=False,configuration=False,order=True,write=True,pure_probe=False):
@@ -284,6 +307,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
     data=CheckoutInput.model_validate(data.model_dump())
     buyer_id=resolved_customer_id or data.customer_id
     company,branch,scope=_authority(db,user,billing=True,payments=bool(data.payments),bookings=any(x.booking for x in data.lines))
+    _track_quantity_rollback(db, (line.product_id for line in data.lines))
     from app.apps.srm.api import router as native
     from app.apps.srm.models import SRMProduct,SRMSalesOrder,SRMSalesOrderLine,SRMInvoiceLine
     from app.apps.srm.schemas import SRMSalesOrderCreate,SRMReceiptCreate,SRMReceiptAllocationRequest
