@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { recordScope } from "@/shared/records/Record360Workspace";
+import { recordScope } from "@/lib/record-scope";
 
 /** Keep asynchronous UI completions within the context that started them. */
 export function useRecordScopeOwner() {

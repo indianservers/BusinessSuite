@@ -1,9 +1,11 @@
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import BankResultsImport from "../../workbench/BankResultsImport";
-import {useHRSession} from "../../workbench/useHRSession";
-import { useState,useEffect } from "react";
+import BankResultsImport from "@/apps/hrms/workbench/BankResultsImport";
+import {useHRSession} from "@/apps/hrms/workbench/useHRSession";
+import { useState,useEffect,useSyncExternalStore } from "react";
+import { recordScope } from "@/lib/record-scope";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, payrollApi } from "@/services/api";
@@ -22,22 +24,36 @@ type Overview = { id: number; currency: string; status: string; reviewed: boolea
   batches: { id: number; status: string; total: string; file_url: string | null; lines: { employee_id: number; payroll_record_id: number; status: string; utr: string | null; failure_reason: string | null }[] }[] };
 const errorText = (error: unknown) => { const d = (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail; return typeof d === "string" ? d : "The operation could not finish. Refresh and retry."; };
 
-export default function GuidedPayroll({ onOpenTool }: { onOpenTool: (tab: "run" | "inputs" | "variance" | "wizard") => void }) {
+type GuidedProps = { onOpenTool: (tab: "run" | "inputs" | "variance" | "wizard") => void };
+const guidedScope = () => recordScope(useAuthStore.getState().user);
+const subscribeGuidedScope = (changed: () => void) => {
+  const stop = useAuthStore.subscribe(changed);
+  const events = ["suite:organization-changed", "suite:branch-changed", "suite:tenant-changed", "suite:pack-context-changed", "suite:record-access-changed"];
+  events.forEach(name => window.addEventListener(name, changed));
+  return () => { stop(); events.forEach(name => window.removeEventListener(name, changed)); };
+};
+export default function GuidedPayroll(props: GuidedProps) {
+  const scope = useSyncExternalStore(subscribeGuidedScope, guidedScope, guidedScope);
+  return <GuidedPayrollState key={scope} {...props} scope={scope} />;
+}
+function GuidedPayrollState({ onOpenTool, scope }: GuidedProps & { scope: string }) {
+  const owns = useRecordScopeOwner();
+  const [readGeneration] = useState(() => crypto.randomUUID());
   const userId = useAuthStore(s => s.user?.id);
   const qc = useQueryClient();
-  const [runId, setRunId] = useHRSession("payroll-guided-run","");
-  const [step, setStep] = useHRSession("payroll-guided-step",0);
-  const [remarks, setRemarks] = useHRSession("payroll-guided-notes","");
+  const [runId, setRunId] = useHRSession(`payroll-guided-run:${scope}`,"");
+  const [step, setStep] = useHRSession(`payroll-guided-step:${scope}`,0);
+  const [remarks, setRemarks] = useHRSession(`payroll-guided-notes:${scope}`,"");
   const [results, setResults] = useState<Record<number, { status: string; reference: string }>>({});
   const [confirmReview, setConfirmReview] = useState(false);
-  const runs = useQuery({ queryKey: ["payroll-runs"], queryFn: () => payrollApi.runs().then(r => r.data as Run[]) });
+  const runs = useQuery({ queryKey: ["payroll-runs", scope, readGeneration], queryFn: () => api.get<Run[]>("/payroll/runs", { recordCache: false }).then(r => r.data) });
   const selectedId = Number(runId || runs.data?.[0]?.id || 0);
-  useEffect(()=>{if(!runId&&selectedId)setRunId(String(selectedId));},[runId,selectedId]);
-  const overview = useQuery({ queryKey: ["guided-payroll", userId, selectedId], queryFn: () => api.get<Overview>(`/payroll/runs/${selectedId}/guided`).then(r => r.data), enabled: selectedId > 0 });
-  const variance = useQuery({ queryKey: ["run-variance", selectedId], queryFn: () => payrollApi.runVariance(selectedId).then(r => r.data as { id: number; employee_id: number; previous_net: number; current_net: number; net_delta_percent: number; severity: string; reason:string;previous_currency?:string;current_currency?:string }[]), enabled: selectedId > 0 && step === 1 });
-  const refresh = () => Promise.all(["guided-payroll", "payroll-runs", "payment-batches", "expense-statement", "employee-360"].map(key => qc.invalidateQueries({ queryKey: [key] })));
-  const advance = useMutation({ mutationFn: (action: string) => api.post(`/payroll/runs/${selectedId}/guided`, { action, remarks: remarks.trim() }), onSuccess: (_, action) => { refresh(); toast({ title: action === "pay" ? "Payment file prepared; no bank transfer has been sent" : "Payroll step saved" }); if (action === "review") setStep(2); if (action === "lock") setStep(3); if (action === "pay") setStep(4); }, onError: error => toast({ title: "Payroll step blocked", description: errorText(error), variant: "destructive" }) });
-  const importStatus = useMutation({ mutationFn: (batch: Overview["batches"][number]) => payrollApi.importPaymentStatus(batch.id, { lines: batch.lines.filter(l => results[l.payroll_record_id]?.reference.trim()).map(l => ({ payroll_record_id: l.payroll_record_id, payment_status: results[l.payroll_record_id].status, utr_number: results[l.payroll_record_id].status === "Paid" ? results[l.payroll_record_id].reference.trim() : undefined, failure_reason: results[l.payroll_record_id].status === "Failed" ? results[l.payroll_record_id].reference.trim() : undefined })) }), onSuccess: () => { setResults({}); refresh(); toast({ title: "Bank results recorded" }); }, onError: error => toast({ title: "Bank results not saved", description: errorText(error), variant: "destructive" }) });
+  useEffect(()=>{if(owns()&&!runId&&selectedId)setRunId(String(selectedId));},[runId,selectedId]);
+  const overview = useQuery({ queryKey: ["guided-payroll", userId, selectedId, scope, readGeneration], queryFn: () => api.get<Overview>(`/payroll/runs/${selectedId}/guided`, { recordCache: false }).then(r => r.data), enabled: selectedId > 0 });
+  const variance = useQuery({ queryKey: ["run-variance", selectedId, scope, readGeneration], queryFn: () => api.get(`/payroll/runs/${selectedId}/variance`, { recordCache: false }).then(r => r.data as { id: number; employee_id: number; previous_net: number; current_net: number; net_delta_percent: number; severity: string; reason:string;previous_currency?:string;current_currency?:string }[]), enabled: selectedId > 0 && step === 1 });
+  const refresh = () => { if (!owns()) return Promise.resolve([]); return Promise.all(["guided-payroll", "payroll-runs", "payment-batches", "expense-statement", "employee-360"].map(key => qc.invalidateQueries({ queryKey: [key] }))); };
+  const advance = useMutation({ mutationFn: (action: string) => { if (!owns()) throw new Error("Payroll authority changed; refresh before continuing."); return api.post(`/payroll/runs/${selectedId}/guided`, { action, remarks: remarks.trim() }); }, onSuccess: (_, action) => { if (!owns()) return; refresh(); toast({ title: action === "pay" ? "Payment file prepared; no bank transfer has been sent" : "Payroll step saved" }); if (action === "review") setStep(2); if (action === "lock") setStep(3); if (action === "pay") setStep(4); }, onError: error => owns() && toast({ title: "Payroll step blocked", description: errorText(error), variant: "destructive" }) });
+  const importStatus = useMutation({ mutationFn: (batch: Overview["batches"][number]) => { if (!owns()) throw new Error("Payroll authority changed; refresh before continuing."); return payrollApi.importPaymentStatus(batch.id, { lines: batch.lines.filter(l => results[l.payroll_record_id]?.reference.trim()).map(l => ({ payroll_record_id: l.payroll_record_id, payment_status: results[l.payroll_record_id].status, utr_number: results[l.payroll_record_id].status === "Paid" ? results[l.payroll_record_id].reference.trim() : undefined, failure_reason: results[l.payroll_record_id].status === "Failed" ? results[l.payroll_record_id].reference.trim() : undefined })) }); }, onSuccess: () => { if (!owns()) return; setResults({}); refresh(); toast({ title: "Bank results recorded" }); }, onError: error => owns() && toast({ title: "Bank results not saved", description: errorText(error), variant: "destructive" }) });
   const data = overview.data;
   const busy = advance.isPending || importStatus.isPending;
   const readyNote = remarks.trim().length >= 3;
