@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint, event, inspect, select
 from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.sql import func
 
@@ -90,6 +90,10 @@ class SRMPOSSession(Base):
 
 class SRMPOSCashMovement(Base):
     __tablename__ = "srm_pos_cash_movements"
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'request_key', name='uq_srm_cash_company_request'),
+        CheckConstraint("(request_key IS NULL AND request_sha256 IS NULL AND request_currency IS NULL AND request_branch_id IS NULL AND request_context_id IS NULL) OR (request_key IS NOT NULL AND length(request_key)=36 AND organization_id IS NOT NULL AND created_by IS NOT NULL AND request_sha256 IS NOT NULL AND length(request_sha256)=64 AND request_currency IS NOT NULL AND length(request_currency)=3 AND request_currency=upper(request_currency) AND request_branch_id IS NOT NULL AND request_branch_id>0 AND (request_context_id IS NULL OR request_context_id>0) AND movement_type IN ('cash_in','cash_out') AND amount IS NOT NULL AND amount>0 AND amount<1000000000000)", name='ck_srm_cash_request_source'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
@@ -100,7 +104,39 @@ class SRMPOSCashMovement(Base):
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
+    request_key = Column(String(36), nullable=True)
+    request_sha256 = Column(String(64), nullable=True)
+    request_currency = Column(String(3), nullable=True)
+    request_branch_id = Column(Integer, nullable=True)
+    request_context_id = Column(Integer, nullable=True)
+
     session = relationship("SRMPOSSession", back_populates="cash_movements")
+
+
+_CASH_INTENT_FIELDS = ('id', 'organization_id', 'session_id', 'movement_type', 'amount', 'reason',
+    'created_by', 'created_at', 'request_key', 'request_sha256', 'request_currency', 'request_branch_id', 'request_context_id')
+
+
+@event.listens_for(SRMPOSCashMovement, 'before_insert')
+def _cash_intent_birth(mapper, connection, target):
+    if target.request_key is not None:
+        from .cash_movement_intents import validate_birth
+        validate_birth(connection, target)
+
+
+@event.listens_for(SRMPOSCashMovement, 'before_update')
+def _cash_intent_immutable(mapper, connection, target):
+    original = connection.execute(select(target.__table__).where(target.__table__.c.id == inspect(target).identity[0])).mappings().one()
+    if original['request_key'] is not None or target.request_key is not None:
+        if any(getattr(target, name) != original[name] for name in _CASH_INTENT_FIELDS):
+            raise ValueError('Confirmed cash movement intent and source are immutable')
+
+
+@event.listens_for(SRMPOSCashMovement, 'before_delete')
+def _cash_intent_retained(mapper, connection, target):
+    original = connection.execute(select(target.__table__.c.request_key).where(target.__table__.c.id == inspect(target).identity[0])).scalar_one()
+    if original is not None:
+        raise ValueError('Confirmed cash movement history must be retained')
 
 
 class SRMPOSCashierClosing(Base):

@@ -682,6 +682,8 @@ def _get_pos_session(db: Session, session_id: int, user: User) -> SRMPOSSession:
 
 
 def _pos_session_summary(db: Session, session: SRMPOSSession) -> dict:
+    from app.apps.srm.cash_movement_intents import require_schema
+    require_schema(db)
     orders = db.query(SRMSalesOrder).filter(
         SRMSalesOrder.organization_id == session.organization_id,
         SRMSalesOrder.deleted_at == None,
@@ -704,6 +706,7 @@ def _pos_session_summary(db: Session, session: SRMPOSSession) -> dict:
     expected_cash = _decimal(session.opening_cash) + cash_sales + cash_in - cash_out
     return {
         "session": _serialize(session),
+        "cash_intent_version": 119,
         "sales_count": len(pos_orders),
         "cash_sales": None if currency_state["totals_ambiguous"] else float(cash_sales),
         "cash_in": float(cash_in),
@@ -2230,6 +2233,8 @@ def list_pos_sessions(db: Session = Depends(get_db), current_user: User = Depend
 
 @router.post("/pos/sessions", status_code=201)
 def open_pos_session(data: SRMPOSSessionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    from app.apps.srm.cash_movement_intents import require_schema
+    require_schema(db)
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db, current_user)
     from app.apps.srm.register_currency import KEY, valid_currency
@@ -2273,6 +2278,10 @@ def active_pos_session(db: Session = Depends(get_db), current_user: User = Depen
 
 @router.post("/pos/cash-movements", status_code=201)
 def create_pos_cash_movement(data: SRMPOSCashMovementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    from app.apps.srm.cash_movement_intents import require_schema, create_intent
+    require_schema(db)
+    if data.request_key is not None:
+        return create_intent(data, db, current_user)
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db, current_user)
     session = _get_pos_session(db, data.session_id, current_user)

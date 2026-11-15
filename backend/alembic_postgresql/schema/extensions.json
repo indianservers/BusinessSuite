@@ -4772,5 +4772,12 @@
     "result",
     "source_sha256",
     "source_snapshot"
+  ],
+  "srm_pos_cash_movements": [
+    "request_branch_id",
+    "request_context_id",
+    "request_currency",
+    "request_key",
+    "request_sha256"
   ]
 }

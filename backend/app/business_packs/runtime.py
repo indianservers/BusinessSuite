@@ -71,6 +71,11 @@ def activation_readiness(db, company_id, pack_key, branch_id=None):
         if branch is None:
             reasons.append('An active branch belonging to this company is required.')
     installed = schema_ready(db)
+    if manifest.key == 'restaurant':
+        from .restaurant.schema_readiness import installation_reasons
+        domain_reasons = installation_reasons(db.connection())
+        installed = installed and not domain_reasons
+        reasons.extend(domain_reasons)
     if not installed:
         reasons.append('Business Pack installation must finish before activation.')
     enabled = states(db, company_id)

@@ -1227,7 +1227,22 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         <Overlay title="Cash Drawer Movement" onClose={() => setActiveModal(null)}>
           <CashMovementForm onSave={async row => {
             if(!register?.id||!owns()||locked){toast({title:'Open an active POS register first',variant:'destructive'});return;}
-            try {await srmApi.createPosCashMovement({session_id:register.id,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount,reason:row.reason});if(owns()){await activeRegister.refetch();setActiveModal(null);toast({title:'Cash movement confirmed',description:`${row.type} ${currency(row.amount)}`});}}
+            try {
+              if(!Number.isFinite(row.amount)||row.amount<=0||row.amount>=1e12||Math.round(row.amount*100)/100!==row.amount)throw new Error('Enter a positive amount with at most two decimal places.');
+              const key=financialIntentKey('cash_movement',register.id);
+              type CashIntent={session_id:number;request_key:string;movement_type:string;amount:string;reason:string};
+              const stored=readFinancialIntent<CashIntent>(key);
+              const proposed={session_id:register.id,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount.toFixed(2),reason:row.reason};
+              const pending=stored.payload;
+              if(stored.pending&&(!pending||typeof pending.request_key!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pending.request_key)||Object.entries(proposed).some(([name,value])=>pending[name as keyof CashIntent]!==value)))throw new Error('A cash movement is awaiting confirmation. Retry its original register, amount, type and reason before entering another.');
+              const fresh=await api.get<{session?:{id?:number};cash_intent_version?:number}>('/srm/pos/sessions/active',{_recordSyncBypass:true,headers:{'Cache-Control':'no-cache, no-store'},params:{_cash_intent_probe:crypto.randomUUID()}});
+              if(!owns()||financialIntentKey('cash_movement',register.id)!==key||fresh.data.session?.id!==register.id||fresh.data.cash_intent_version!==119)throw new Error('Cash movement recovery is unavailable for this register. Reload after the server update before collecting cash.');
+              const payload=stored.pending?pending!:{...proposed,request_key:crypto.randomUUID()};
+              if(!stored.pending)saveFinancialIntent(key,payload);
+              const result=await srmApi.createPosCashMovement(payload);
+              if(!Number.isSafeInteger(result?.movement_id)||result.movement_id<=0||result.request_key!==payload.request_key)throw new Error('Cash movement outcome is awaiting confirmation. Retry the same details.');
+              if(owns()&&financialIntentKey('cash_movement',register.id)===key){clearFinancialIntent(key);await activeRegister.refetch().catch(()=>undefined);setActiveModal(null);toast({title:'Cash movement confirmed',description:`${row.type} ${currency(row.amount)}`});}
+            }
             catch(error){if(owns())toast({title:'Cash movement not confirmed',description:dealError(error),variant:'destructive'});}
           }} />
         </Overlay>

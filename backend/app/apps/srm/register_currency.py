@@ -11,6 +11,8 @@ def valid_currency(value):
     return isinstance(value, str) and len(value) == 3 and value.isascii() and value.isalpha() and value == value.upper()
 
 def evidence(db, session, orders=None):
+    from app.apps.srm.cash_movement_intents import require_schema
+    require_schema(db)
     # Raw source columns avoid adopting stale ORM/JSON caches after writer wait.
     row = db.connection().execute(select(SRMPOSSession.metadata_json, SRMPOSSession.opening_cash).where(
         SRMPOSSession.id == session.id, SRMPOSSession.organization_id == session.organization_id)).first()
@@ -38,9 +40,14 @@ def evidence(db, session, orders=None):
                 amounts[order.currency] = amounts.get(order.currency, Decimal(0)) + Decimal(order.total_amount or 0)
     movements = db.connection().execute(select(SRMPOSCashMovement.id).where(
         SRMPOSCashMovement.session_id == session.id).limit(1)).first() is not None
+    intent_currencies = set(db.connection().execute(select(SRMPOSCashMovement.request_currency).where(
+        SRMPOSCashMovement.session_id == session.id, SRMPOSCashMovement.request_key.is_not(None))).scalars())
+    malformed = malformed or any(not valid_currency(code) for code in intent_currencies)
     untyped = not bound and (Decimal(row.opening_cash or 0) != 0 or movements)
     totals_ambiguous = malformed or untyped or (not bound and legacy_cash) or len(amounts) > 1 or bool(grouped['invalid_currency_count'])
     if bound and any(currency != bound for currency in amounts):
+        totals_ambiguous = True
+    if len(intent_currencies) > 1 or bound and any(code != bound for code in intent_currencies):
         totals_ambiguous = True
     ambiguous = totals_ambiguous or bool(grouped['unattributed_cash_count'])
     currency = bound or (next(iter(amounts)) if len(amounts) == 1 and not ambiguous else None)

@@ -71,6 +71,17 @@ class SRMPOSCashMovementCreate(BaseModel):
     movement_type: str = "cash_in"
     amount: Decimal
     reason: str | None = None
+    request_key: UUID | None = None
+
+    @model_validator(mode='after')
+    def valid_cash_intent(self):
+        if self.request_key is not None:
+            if self.session_id <= 0 or self.movement_type not in {'cash_in', 'cash_out'}:
+                raise ValueError('A valid cash register and movement type are required')
+            if (not self.amount.is_finite() or self.amount <= 0 or self.amount >= Decimal('1000000000000')
+                    or self.amount != self.amount.quantize(Decimal('0.01'))):
+                raise ValueError('Cash amount must be positive, finite and fit the native two-decimal ledger')
+        return self
 
 
 class SRMPOSCashierClosingCreate(BaseModel):
