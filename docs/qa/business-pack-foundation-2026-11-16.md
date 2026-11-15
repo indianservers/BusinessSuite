@@ -67,3 +67,10 @@ All **60 tests passed**, 86.62 seconds, across the four affected employee-planni
 The existing browser harness now drains pending route callbacks before closing its context, then checks HTTP and page errors again. Nested cleanup always closes the context, browser and server. All eight original assertions, selectors, timeouts and route callbacks are preserved; application UI source is unchanged.
 
 The frozen candidate passed one actual native-API browser test at desktop 1440 and mobile 390 pixels in 29.45 seconds. Five focused teardown scenarios also verify that late HTTP failures, route failures and page errors still fail and cleanup runs. Main matches the tested script after line-ending normalization; `node --check` and `git diff --check` passed. Evidence: `.local/leave-routing-native-final-c315/result.json` and `.local/leave-routing-main-proof.json`.
+
+
+## Deterministic quoted CRM lead searches
+
+Explicit closed commands such as `Show me lead records containing "Cedar"` now preserve the exact quoted text as the native CRM lead search payload without neural inference. Empty, unterminated, overlong or compound commands ask for clarification instead of returning an unfiltered list. Other explicitly selected modules remain separate. The conservative parser limit is 200 characters; this is not claimed as the native endpoint limit. Native tool authorization and validation remain unchanged.
+
+Current main-source verification passed all **55 tests** in 1.01 seconds across quoted searches, the common action catalog and the existing safe read grammar. Evidence: `.local/quoted-crm-main-verification.xml`. No application UI files changed.

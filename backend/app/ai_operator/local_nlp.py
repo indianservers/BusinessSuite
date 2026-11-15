@@ -78,6 +78,18 @@ class Interpretation:
     neural: dict = field(default_factory=dict)
 
 
+def _quoted_lead_read(command, module):
+    """A complete explicit CRM read; quoted content never selects an operation."""
+    if module != 'CRM':return None
+    prefix=re.match(r'^(?:please\s+)?(?:show|list|find|get|display)\s+(?:me\s+)?(?:please\s+)?(?:crm\s+)?leads?(?:\s+records?)?\s+(?:named|matching|containing)(?:\s+|$)',command,re.I)
+    if prefix is None:return None
+    term=re.fullmatch(r'''(?:"([^"\r\n]*)"|“([^”\r\n]*)”|'([^'\r\n]*)'|‘([^’\r\n]*)’)[.!?]?''',command[prefix.end():])
+    literal=next((value for value in term.groups() if value is not None),None) if term else None
+    if literal is None or not literal.strip() or len(literal)>200:
+        return Interpretation('CRM','leads.search',1,question='What exact quoted lead search term should I use (1–200 characters)?')
+    return Interpretation('CRM','leads.search',1,{'search':literal})
+
+
 def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_scope=None, read_context=()):
     text=text.strip(); command=head(text)
     unquoted=re.sub(r'"[^"\n]*"|“[^”\n]*”', ' ',command)
@@ -88,6 +100,8 @@ def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_sco
     elif re.search(r'\b(invoice|invoices|inventory|stock|sales order|billing|sales)\b',unquoted,re.I):selected='Sales'
     elif re.search(r'\b(HRMS|HR|leave|employee|employees|payroll|attendance|helpdesk|staff|time off)\b',unquoted,re.I):selected='HRMS'
     elif re.search(r'\b(PMS|project|projects|milestone|playbook|dependencies|capacity)\b',unquoted,re.I):selected='PMS'
+    lead_read=_quoted_lead_read(command,selected)
+    if lead_read is not None:return lead_read
     from app.ai_operator.conversation_control import is_new_conversation
     if is_new_conversation(text):return Interpretation(selected,'conversation.reset',1)
     unsafe=re.search(r'\b(?:ignore|bypass|skip|disable)\s+(?:all\s+)?(?:permissions?|approvals?|consent|security|instructions)|without\s+(?:consent|approval)|system\s+prompt',unquoted,re.I)
