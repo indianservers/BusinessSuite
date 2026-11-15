@@ -1,5 +1,5 @@
 """Read-only Retail projections of native transactions, with currency separation."""
-from datetime import date, timezone
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from decimal import Decimal
 from sqlalchemy import select, exists, cast, String, or_
@@ -41,12 +41,23 @@ def stock(db, actor, *, after=0, limit=100):
         locations = [{'warehouse_id': ident, 'available_quantity': str(quantities.get(ident, Decimal(0)))} for ident in sorted(eligible)]
         available = next((row for row in locations if row['warehouse_id'] == product.default_warehouse_id), None)
         items.append({'product_id': product.id, 'sku': product.sku, 'name': product.item_name,
-                      'stock': available, 'warehouses': locations, 'branch_quantity': str(sum(quantities.values(), Decimal(0))), 'tracked': bool(product.batch_tracking or product.expiry_tracking or product.serial_tracking)})
-    return {'items': items, 'next_after': products[limit - 1].id if len(products) > limit else None,
+                      'currency': (product.metadata_json or {}).get('currency', 'INR'), 'stock': available, 'warehouses': locations, 'branch_quantity': str(sum(quantities.values(), Decimal(0))), 'tracked': bool(product.batch_tracking or product.expiry_tracking or product.serial_tracking)})
+    from app.apps.srm.services.commercial import require
+    from app.access.service import check_background_access
+    from fastapi import HTTPException
+    can_receive = scope.writable and 'retail.stock.receive' in scope.capabilities
+    if can_receive:
+        try:
+            require(actor, 'srm_manage', 'srm_admin')
+            check_background_access(db, actor, 'srm', 'create', stamp=False)
+        except HTTPException:
+            can_receive = False
+    return {'items': items, 'can_receive': can_receive, 'receipt_date': date.today().isoformat(),
+            'warehouses': [{'id': row.id, 'warehouse_name': row.warehouse_name} for row in warehouses if row.id in eligible], 'next_after': products[limit - 1].id if len(products) > limit else None,
             'basis': 'Canonical balances in explicitly eligible native branch warehouses; stock selects the product default warehouse'}
 
 
-def daily(db, actor, day: date):
+def daily(db, actor, day: date | None):
     company, branch, scope = authority(db, actor, 'reports.view')
     from app.models.company import Company
     from fastapi import HTTPException
@@ -55,6 +66,7 @@ def daily(db, actor, day: date):
         zone = ZoneInfo(name or 'Asia/Kolkata')
     except (ZoneInfoNotFoundError, ValueError):
         raise HTTPException(409, 'Configure a valid company timezone before viewing daily reports')
+    day = day or datetime.now(zone).date()
     from app.apps.srm.services.commercial import invoice_query, require
     require(actor, 'srm_invoice_view', 'srm_invoice_create', 'srm_collection_view', 'srm_collection_create', 'srm_admin')
     visible_invoices = {row.id for row in invoice_query(db, actor).all()}

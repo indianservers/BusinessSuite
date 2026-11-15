@@ -42,6 +42,12 @@ def stock_receipt(data: ReceiptInput, db=Depends(get_db), actor=Depends(get_curr
     return create(data, db, actor)
 
 
+@operations.get('/stock-receipts')
+def receipt_history(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .stock_receipts import list_receipts
+    return list_receipts(db, actor, after=after, limit=limit)
+
+
 @operations.get('/stock')
 def stock(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
     from .reports import stock
@@ -49,7 +55,7 @@ def stock(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db
 
 
 @operations.get('/reports/daily')
-def daily(day: date, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+def daily(day: date | None = None, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
     from .reports import daily
     return daily(db, actor, day)
 

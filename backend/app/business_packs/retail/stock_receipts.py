@@ -28,6 +28,8 @@ class ReceiptInput(BaseModel):
     unit_cost: Decimal = Field(ge=0, max_digits=14, decimal_places=2, allow_inf_nan=False)
     currency: str = Field(default='INR', pattern=r'^[A-Z]{3}$')
     received_date: date
+    reference_number: str = Field(default='', max_length=120)
+    notes: str = Field(default='', max_length=4000)
 
 
 def fail(message, status=403):
@@ -103,7 +105,10 @@ def create(data, db, actor):
     lock_tenant(db, actor)
     if authority(db, actor, 'stock.receive', write=True) != (company, branch, scope):
         fail('Retail receipt authorization changed while waiting')
-    fingerprint = sha256(json.dumps(data.model_dump(mode='json'), sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    payload = data.model_dump(mode='json', exclude={'reference_number', 'notes'})
+    # Keep pre-wiring request hashes stable when these optional native fields are absent.
+    payload.update({key: getattr(data, key) for key in ('reference_number', 'notes') if getattr(data, key)})
+    fingerprint = sha256(json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     number = 'RGRN-' + str(data.request_key)
     prior = db.query(SRMGoodsReceipt).filter_by(organization_id=company, grn_number=number).one_or_none()
     if prior is not None:
@@ -139,7 +144,8 @@ def create(data, db, actor):
             fail('Receipt exceeds native stock capacity or requires reconciliation', 409)
         row = SRMGoodsReceipt(organization_id=company, grn_number=number, status='posted', receipt_date=data.received_date,
             subtotal=data.quantity * data.unit_cost, tax_amount=0, total_amount=data.quantity * data.unit_cost,
-            metadata_json={'request_sha256': fingerprint, 'currency': data.currency}, created_by=actor.id)
+            metadata_json={'request_sha256': fingerprint, 'currency': data.currency}, created_by=actor.id,
+            reference_number=data.reference_number or None, notes=data.notes or None)
         planned = {}
         _ACTIVE[db] = (scope, planned)
         try:
@@ -174,3 +180,12 @@ def create(data, db, actor):
             _ACTIVE.pop(db, None)
     db.commit()
     return response
+
+
+def list_receipts(db, actor, *, after=0, limit=100):
+    company, branch, scope = authority(db, actor, 'stock.view')
+    rows = db.query(SRMGoodsReceipt).filter(SRMGoodsReceipt.organization_id == company,
+        SRMGoodsReceipt.id > after).order_by(SRMGoodsReceipt.id).limit(limit + 1).all()
+    items = [{**result(db, scope, row), 'receipt_date': row.receipt_date.isoformat(),
+              'currency': (row.metadata_json or {}).get('currency'), 'reference_number': row.reference_number} for row in rows[:limit]]
+    return {'items': items, 'next_after': rows[limit - 1].id if len(rows) > limit else None}
