@@ -346,9 +346,6 @@ def _native(plan):
             AccessPolicy.__table__.c.company_id == scope.company_id, AccessPolicy.__table__.c.user_id.in_(users))):
         role_ids.update(value['roleId'] for value in (policy or {}).values()
             if isinstance(value, dict) and type(value.get('roleId')) is int)
-    principal = SimpleNamespace(**{**actor.__dict__, '_suite_grants': grants, '_suite_current_module': 'project_management',
-        '_suite_permission_objects': [SimpleNamespace(name=name, module='project_management') for name in grants['project_management'].get('permissions', ())],
-        'employee': getattr(actor, 'employee', None)})
     project_id = bindparam('definition_project_id', callable_=lambda: plan.pid, unique=True)
     task_id = bindparam('definition_task_id', callable_=lambda: plan.tid, unique=True)
     boards = select(PMSBoard.id).where(PMSBoard.project_id == project_id)
@@ -385,7 +382,7 @@ def _native(plan):
     cleanup = None
     try:
         prior = tuple(native.dispatch.do_orm_execute)
-        cleanup = install_scope(native, principal, scope.company_id, grants)
+        cleanup = install_scope(native, actor, scope.company_id, grants)
         listeners = [listener for listener in native.dispatch.do_orm_execute if listener not in prior]
         if len(listeners) != 1:
             fail('Native definition scope has an unexpected reader graph', 403)
@@ -408,6 +405,20 @@ def _native(plan):
         event.listen(native, 'do_orm_execute', listeners[0])
         event.listen(native, 'before_flush', plan.validate)
         event.listen(native, 'after_flush_postexec', plan.stamp)
+        # The actual native operation receives a genuine User in this finite
+        # Session. Actor identity is not a permission-bearing DTO/namespace.
+        principal = native.get(User, actor.id)
+        if principal is None or inspect(principal).session is not native:
+            fail('Native definition requires its genuine authenticated User', 403)
+        principal.organization_id = scope.company_id
+        principal._suite_grants = grants
+        principal._suite_current_module = 'project_management'
+        principal._suite_admin_read = False
+        principal._suite_permission_objects = [SimpleNamespace(name=name, module='project_management')
+            for name in grants['project_management'].get('permissions', ())]
+        membership = AccessMembership.__table__
+        principal._suite_is_company_admin = bool(db.connection().scalar(select(membership.c.is_admin).where(
+            membership.c.company_id == scope.company_id, membership.c.user_id == actor.id, membership.c.active.is_(True))))
         resource_principals = [native.get(User, identity) for identity in users - {actor.id}]
         for resource in resource_principals:
             resource.organization_id = scope.company_id
