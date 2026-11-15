@@ -94,6 +94,7 @@ _RULES = {
     ('POST', '/api/v1/srm/pharma/recalls/{recall_id}/commands'): RequestOperation(('recalls.manage',)),
     ('GET', '/api/v1/srm/pharma/recalls'): RequestOperation(('recalls.manage',)),
     ('GET', '/api/v1/srm/pharma/recalls/{recall_id}'): RequestOperation(('recalls.manage',)),
+    ('GET', '/api/v1/srm/retail/stock-receipts'): RequestOperation(('stock.view',)),
     ('POST', '/api/v1/srm/retail/stock-receipts'): RequestOperation(('stock.receive',)),
     ('GET', '/api/v1/srm/retail/stock'): RequestOperation(('stock.view',)),
     ('GET', '/api/v1/srm/retail/reports/daily'): RequestOperation(('reports.view',)),
