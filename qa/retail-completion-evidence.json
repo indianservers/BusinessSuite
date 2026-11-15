@@ -1,0 +1,1470 @@
+{
+  "status": "Retail-owned updates integrated on latest main and verified; shared cash-movement retry fix remains pending.",
+  "source_commit": "43c0bb38dfdf5f8e71a9d74ab15e3c75ff70a3b9",
+  "snapshot_base": "73c1f96fa3b1bab9fd6b9d2f1d1f5dcc8c4c30b8",
+  "checkout": "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite",
+  "branch": "codex/retail-completion",
+  "changed_files": [
+    "backend/app/business_packs/request_operations.py",
+    "backend/app/business_packs/retail/api.py",
+    "backend/app/business_packs/retail/reports.py",
+    "backend/app/business_packs/retail/stock_receipts.py",
+    "backend/tests/test_retail_completion_browser.py",
+    "backend/tests/test_retail_screen_api.py",
+    "frontend/scripts/fixtures/retail-completion.tsx",
+    "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "frontend/src/apps/srm/components/RetailWorkspace.tsx",
+    "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "playwright/retail-completion.cjs"
+  ],
+  "patches": {
+    "shared": {
+      "path": "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-completion-shared.patch",
+      "sha256": "d73e3833bdf212478f6fe6c27689d712cc89d68c50e367bff70ac26906049601",
+      "files": [
+        "backend/app/business_packs/request_operations.py"
+      ],
+      "reverse_apply_check": "passed"
+    },
+    "backend": {
+      "path": "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-completion-backend.patch",
+      "sha256": "43603353afde722c031e566399d6009a40aa8b6291c5d76fd60f0c8e2fd5427e",
+      "files": [
+        "backend/app/business_packs/retail/api.py",
+        "backend/app/business_packs/retail/reports.py",
+        "backend/app/business_packs/retail/stock_receipts.py",
+        "backend/tests/test_retail_screen_api.py"
+      ],
+      "reverse_apply_check": "passed"
+    },
+    "ui": {
+      "path": "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-completion-ui.patch",
+      "sha256": "fd57478af01b7c81fd946df9aaf1c98673b44d431d982ae5383dc3c9802026f4",
+      "files": [
+        "frontend/src/apps/srm/components/RetailWorkspace.tsx",
+        "frontend/scripts/fixtures/retail-completion.tsx",
+        "backend/tests/test_retail_completion_browser.py",
+        "playwright/retail-completion.cjs"
+      ],
+      "reverse_apply_check": "passed"
+    },
+    "dispatch": {
+      "path": "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-completion-dispatch.patch",
+      "sha256": "5a8dc169413a5e928e493e660b33b4ee842cdc069b524f61ba1b5d374f90ecd1",
+      "files": [
+        "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+        "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx"
+      ],
+      "reverse_apply_check": "passed"
+    }
+  },
+  "regressions": [
+    {
+      "command": "FAST_TEST_PASSWORD_HASHES=1 python -u -m pytest tests/test_retail_workflows.py tests/test_retail_stock_receipts.py tests/test_retail_register_open.py tests/test_retail_register_close.py tests/test_retail_native_parent_scope.py tests/test_retail_screen_api.py tests/test_retail_return_http.py tests/test_retail_return_valuation.py tests/test_retail_return_migration.py -q --tb=short --junitxml=../.local/retail-completion-api.xml",
+      "result": "70 passed, 33 warnings in 622.79s",
+      "exit_code": 0,
+      "log": ".local/retail-completion-api.log",
+      "note": "Collected before the fourth default-company-day screen test was added; all four screen tests separately passed below."
+    },
+    {
+      "command": "pytest tests/test_retail_screen_api.py -q --tb=short",
+      "result": "4 passed, 2 warnings in 32.28s",
+      "exit_code": 0,
+      "log": ".local/retail-screen-api-final.log"
+    },
+    {
+      "command": "run_snapshot_owned_postgres.py --backend <isolated backend> --label retail_races -- tests/test_stock_resource_concurrency.py tests/test_retail_workflows_concurrency.py -q --tb=short",
+      "result": "4 passed, 27 warnings in 104.57s",
+      "exit_code": 0,
+      "log": ".local/retail-completion-postgres.log",
+      "note": "Coordinated native slot, disposable owned DB. Tested backend remains byte-equivalent in Git to c52704c0; subsequent changes only UI/harness."
+    },
+    {
+      "command": "FAST_TEST_PASSWORD_HASHES=1 RUN_RETAIL_COMPLETION_BROWSER=1 pytest tests/test_retail_completion_browser.py -q --tb=short",
+      "result": "3 passed, 6 warnings in 220.61s",
+      "exit_code": 0,
+      "log": ".local/retail-completion-browser-layout.log"
+    },
+    {
+      "command": "frontend/node_modules/.bin/tsc.cmd --noEmit -p frontend/tsconfig.json",
+      "result": "passed; no diagnostics",
+      "exit_code": 0,
+      "log": ".local/retail-completion-types-layout.log"
+    }
+  ],
+  "verified_cases": [
+    "Canonical product/warehouse branch availability; native inventory balances and GRN source documents",
+    "Server-priced tax and permitted manager discounts; cashier discount denial",
+    "Cash/card/split native invoice and receipt settlement",
+    "Concurrent last-stock sales: one201 and one409, one stock issue, finalstock0",
+    "Concurrent duplicate sale: identical201 responses and one canonical sale/stock issue",
+    "Concurrent duplicate GRN: identical201 responses and one header/line/movement",
+    "Second split-payment failure rolls invoice/receipt/order/stock graph back; identical independent-session retry and replay succeed",
+    "Closed register/insufficient stock leave no sale; opening/closing and daily cash/currency reconciliation",
+    "Same-user Doctor/Chef/Construction selections cannot gain Retail authority",
+    "Original-sale-linked return public API, native stock valuation, duplicate return and unposted-original safeguards",
+    "Receipt lost response after server commit; reload and already-open second tab reuse exact pending command",
+    "Actual original FAM/SRM/POS components at1440px and390px, explicit and sole implicit Retail selection; no generic blocked endpoints and no body overflow",
+    "All-branches native legacy profitability fallback without fetching Retail/industry APIs; industry remains403 for native role"
+  ],
+  "earlier_failed_browser_runs": [
+    {
+      "log": ".local/retail-completion-browser.log",
+      "result": "3 failed, 2 passed, 6 warnings in 288.45s",
+      "cause": "Hidden-option selector and invalid legacy all-branch fixture; original return browser cases both passed."
+    },
+    {
+      "log": ".local/retail-completion-browser-rerun.log",
+      "result": "3 failed, 4 warnings in 180.56s",
+      "cause": "Mobile existing card details not opened; legacy fixture still lacked native BranchPolicy."
+    },
+    {
+      "log": ".local/retail-completion-browser-final.log",
+      "result": "2 failed, 1 passed, 4 warnings in 190.19s",
+      "cause": "Harness expanded old history before refreshed new card appeared; legacy corrected and passed."
+    },
+    {
+      "log": ".local/retail-completion-browser-verified.log",
+      "result": "2 failed, 1 passed, 6 warnings in 193.29s",
+      "cause": "Real390px report preview overflow; fixed only Retail owned grid containment. Assertions and timeouts preserved."
+    }
+  ],
+  "screen_evidence": {
+    "explicit": {
+      "status": "passed",
+      "widths": [
+        1440,
+        390
+      ],
+      "implicit": false,
+      "receipt_posts": 4,
+      "lost_response_replayed_exactly": true,
+      "pre_mounted_tab_reused_pending_body": true,
+      "failures": [],
+      "errors": [],
+      "pictures": [
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-stock-explicit-1440.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-report-explicit-1440.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-stock-explicit-390.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-report-explicit-390.png"
+      ],
+      "trace": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/service-checkout",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/service-checkout/1",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/service-checkout",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/service-checkout/2",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ]
+    },
+    "implicit": {
+      "status": "passed",
+      "widths": [
+        1440,
+        390
+      ],
+      "implicit": true,
+      "receipt_posts": 4,
+      "lost_response_replayed_exactly": true,
+      "pre_mounted_tab_reused_pending_body": true,
+      "failures": [],
+      "errors": [],
+      "pictures": [
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-stock-implicit-1440.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-report-implicit-1440.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-stock-implicit-390.png",
+        "C:\\Users\\Sai Satish\\.codex\\worktrees\\retail-workflows\\BusinessSuite\\.local\\retail-report-implicit-390.png"
+      ],
+      "trace": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/service-checkout",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/service-checkout/1",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/stock-receipts",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/srm/service-checkout",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/service-checkout/2",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/customers",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/catalog",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/retail/reports/daily",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ]
+    }
+  },
+  "shared_changes": {
+    "approved_operation_rule": "Exact GET /api/v1/srm/retail/stock-receipts -> stock.view; separate shared patch",
+    "frontend_dispatch": "Two small FAM/SRM entry-point hunks; separate dispatch patch, apply selectively to preserve integrator cash fixes",
+    "unchanged": "No shared accounting/refund engine, shared authorization semantics, Payroll/Home, Company adapters, schema or activation/deploy changes"
+  },
+  "remaining_gaps": [
+    "Shared native cash-in/out retries still lack verified exactly-once behavior; duplicate movement defect reported to integrator, who assigned shared cash-intent migration119. Retail has not modified shared schema/engine or claimed that fix tested."
+  ],
+  "validation_policy": "No assertion weakening, timeout increase, activation or main push. Final browser source frozen during run. Existing return/accounting engine only tested through public API.",
+  "integration_check": {
+    "target": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite",
+    "root_commit_at_check": "ae4f0f2c6d21a9be134aa4eea5e1b7f927ad205e",
+    "mode": "Read-only git apply --check for all four patches, no patch applied",
+    "results": {
+      "shared": {
+        "exit_code": 0,
+        "detail": ""
+      },
+      "backend": {
+        "exit_code": 0,
+        "detail": ""
+      },
+      "ui": {
+        "exit_code": 0,
+        "detail": ""
+      },
+      "dispatch": {
+        "exit_code": 0,
+        "detail": ""
+      }
+    }
+  },
+  "main_integration": {
+    "base": "ae4f0f2c6d21a9be134aa4eea5e1b7f927ad205e",
+    "code_commit": "2ae101014bb59da6b2664513ade98c2da0939eb2",
+    "commits": [
+      "2ae101014bb59da6b2664513ade98c2da0939eb2 Wire existing inventory and report screens to verified Retail workflows",
+      "71d10fa2940631e5f2baec4e4cd11b35fe046c47 Complete Retail receipt recovery and transaction report screens",
+      "fcafb878c4ea3f6fc85151fc90d910d02cacb019 Expose canonical Retail receipt history and company-day screen projections",
+      "bf298fad2ef0bb76e89d31a267073f744e29f2e0 Authorize scoped Retail goods receipt history reads"
+    ],
+    "scope": "Four focused patches only; preserve latest integrator POS cash/null/closing changes. No snapshot parent merge.",
+    "api": {
+      "result": "4 passed, 2 warnings in 26.89s",
+      "exit_code": 0,
+      "log": ".local/retail-main-integration-api.log"
+    },
+    "typescript": {
+      "result": "passed; no diagnostics",
+      "exit_code": 0,
+      "log": ".local/retail-main-integration-types.log"
+    },
+    "diff_check": "passed with CR-at-EOL handling; no unexpected source paths"
+  }
+}
