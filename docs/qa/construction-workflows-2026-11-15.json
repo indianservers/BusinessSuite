@@ -1,0 +1,106 @@
+{
+  "source_snapshot": "f3ecf686a0a81ef5eec381b9bc563b44221d8901",
+  "branch": "codex/construction-workflows",
+  "backend_commit": "0d1905f46b90ad03b3bb37b7400f88dd449ae4c3",
+  "frontend_wiring_commit": "046a0cbe6de5863eb7305dbc6912f54d3c89ef9b",
+  "changed_files": [
+    "backend/app/apps/srm/industry_api.py",
+    "backend/app/business_packs/construction.py",
+    "backend/tests/test_business_pack_construction.py",
+    "backend/tests/test_construction_invoice_browser.py",
+    "backend/tests/test_construction_payment_concurrency.py",
+    "backend/tests/test_construction_site_browser.py",
+    "backend/tests/test_construction_site_workflows.py",
+    "frontend/src/apps/srm/industry/IndustryOperationsPage.tsx",
+    "playwright/construction-site-native.cjs",
+    "docs/qa/construction-workflows-2026-11-15.json"
+  ],
+  "workflow_evidence": {
+    "canonical_pms_sites": "Existing native project action checks, explicit company/branch/context ownership, primitive source projections; foreign company/branch/context and revoked native project membership denied.",
+    "boq_independent_approval": "Selected Construction author cannot approve or reject own BOQ, variation, measurement or subcontract, including superusers. Fixtures use distinct native project-authorized reviewers.",
+    "variations_and_measurements": "Approved parent required, certified cumulative quantity bounded by approved BOQ/variation, stale revision and unapproved billing denied.",
+    "site_diary_and_documents": "Canonical PMS file IDs and names only, owned project proof, deleted/foreign/private file rejection; original workforce/document UI saved on desktop and mobile.",
+    "subcontracts": "Existing native edit_project action and canonical CRM Vendor/Supplier roles reused. No new vendor masters. Independent review; draft excluded from approved commitments; unchanged retry returns same record, changed retry conflicts.",
+    "billing_retention_collections": "Existing certified measurement/native invoice and receipt APIs reused. Full taxed receivable retained, retention tracked separately in source metadata, partial and final native receipt allocations, duplicate billing/payment replay and late rollback tested.",
+    "integrator_material_api": "construction_materials.py and stock helpers unchanged. Public API late failure rollback, successful retry, changed retry conflict, overdraw denial, one canonical stock movement and project material cost 50.00 tested."
+  },
+  "final_tests": {
+    "postgres_workflows_and_races": {
+      "junit": ".local/construction-postgres.xml",
+      "sha256": "7ccd8c988da3b9dcb373f678ee9ecbd154fe2657fc8fb372cf783564f72011f8",
+      "tests": "52",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1",
+      "time": "679.862"
+    },
+    "postgres_foreign_projects": {
+      "junit": ".local/construction-foreign-postgres.xml",
+      "sha256": "5b9c76da55d52308fef3978a5439604c1380a79a0d8bdbcea46f71db97f72f84",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "31.162"
+    },
+    "real_http_desktop_mobile_browsers": {
+      "junit": ".local/construction-browser-final.xml",
+      "sha256": "c6029a57ae295807814e01d1107805d1dacd281e39596c157468be9ced0ff0c8",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "101.909"
+    },
+    "sqlite_regression": {
+      "junit": ".local/construction-sqlite.xml",
+      "sha256": "73ca9754c8178cab4b686137afad8401044c155b4b1ac794bc0f69bba7fb8c2e",
+      "tests": "48",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "7",
+      "time": "308.523"
+    },
+    "typescript": {
+      "command": "frontend/node_modules/.bin/tsc --noEmit -p frontend/tsconfig.json",
+      "exit_code": 0,
+      "log": ".local/construction-types-final.log"
+    },
+    "postgres_skip": "test_industry_real_browser: Explicit isolated browser integration. Two dedicated actual-App browser tests were run separately and passed."
+  },
+  "earlier_failures_resolved": [
+    "Baseline new tests reproduced unsupported edit_project and forbidden direct PMS file ORM read.",
+    "Ordinary native-member subcontract retry exposed missing parent authorization before native filtered ORM lookup; fixed with stored owned-source authorization.",
+    "Initial screen browser attempt hit unchanged 30-second navigation timeout during cold app startup; warm retry progressed. Test locator first matched module selector; corrected to named project input. Final combined browser run passed with no timeout changes.",
+    "Default 127.0.0.1:5432 PostgreSQL unavailable. Used isolated local disposable instance on port 53803, ran migrated tests and independent-session races, cleaned runner databases and stopped instance."
+  ],
+  "screenshots": [
+    ".local/construction-site-desktop.png",
+    ".local/construction-site-mobile.png",
+    ".local/construction-site-desktop-form.png",
+    ".local/construction-site-mobile-form.png",
+    ".local/construction-invoice-desktop.png",
+    ".local/construction-invoice-mobile.png"
+  ],
+  "browser_traces": [
+    ".local/construction-site-browser-proof.json",
+    ".local/construction-invoice-browser-proof.json"
+  ],
+  "remaining_gaps_and_limits": [
+    "Selected Construction page background GET /api/v1/follow-ups/statistics returns 503 because this shared integration is unreleased. No JavaScript errors; core site workflows and invoice collection work. Integrator must audit/register the shared route if this background widget is required.",
+    "Retention is tracked within the full native receivable. Separate withholding/release settlement accounting is not implemented by this patch.",
+    "Browser coverage verifies canonical project selection, all six tabs, diary workforce/document save, invoice and partial/final collections. Other workflow success/failure cases are real HTTP API tests; native PMS document upload/download was not browser-tested.",
+    "No deployment, real pack activation or main push performed. No new migrations, masters or ledgers."
+  ],
+  "shared_file_merge_notes": [
+    "backend/app/apps/srm/industry_api.py has Construction-only hooks for independent review, owned retry source, file choices and canonical vendor roles. Integrator should merge those hunks alongside concurrent Salon/Hospital work.",
+    "No changes to shared authorization, Payroll/Home, Company-master adapters, shared accounting helpers, construction_materials.py or shared stock helpers.",
+    "Frontend wiring is isolated in its own commit; existing components, markup, layouts, menus, colors and styles preserved."
+  ],
+  "test_commands": {
+    "postgres": "python scripts/run_postgres_tests.py tests/test_business_pack_construction.py tests/test_industry_operations.py tests/test_construction_site_workflows.py tests/test_construction_payment_concurrency.py -q --tb=short --junitxml=../.local/construction-postgres.xml",
+    "postgres_foreign": "python scripts/run_postgres_tests.py tests/test_construction_site_workflows.py -k context_ownership_cannot_override_native_foreign_project -q --tb=short --junitxml=../.local/construction-foreign-postgres.xml",
+    "browser": "RUN_CONTROL_BROWSER=1 python -m pytest tests/test_construction_site_browser.py tests/test_construction_invoice_browser.py -q --tb=short --junitxml=../.local/construction-browser-final.xml",
+    "test_environment": "FAST_TEST_PASSWORD_HASHES=1; PostgreSQL runner used unique disposable business_suite_*_test databases with POSTGRES_TEST_CLEANUP=1. Backend commands run from backend directory."
+  }
+}

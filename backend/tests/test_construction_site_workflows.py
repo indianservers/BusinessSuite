@@ -199,4 +199,3 @@ def test_context_ownership_cannot_override_native_foreign_project(client, db, co
     summary = client.get(ROOT + f'/projects/{project_id}/summary', headers=headers)
     assert summary.status_code == 404, summary.text
     post(client, headers, '/boq', payload(project_id=project_id, code='FOREIGN', unit='m3', quantity='1', unit_rate='1'), 404)
-
