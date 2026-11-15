@@ -145,6 +145,7 @@ _RULES = {
     ('POST', '/api/v1/srm/pos/cash-movements'): RequestOperation(('sessions.close',)),
     ('GET', '/api/v1/srm/industry/capabilities'): RequestOperation(mode='native_metadata'),
     ('GET', '/api/v1/srm/industry/records'): RequestOperation(mode='industry_kind'),
+    ('GET', '/api/v1/srm/industry/material-warehouse-options'): RequestOperation(('materials.request',)),
     ('GET', '/api/v1/srm/industry/project-options'): RequestOperation(('sites.view',)),
     ('GET', '/api/v1/srm/industry/staff-options'): RequestOperation((*SCHEDULE, *CONFIGURE)),
     ('GET', '/api/v1/srm/industry/employee-options'): RequestOperation((*SCHEDULE, *CONFIGURE)),
