@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import HTTPException
 from sqlalchemy import String, and_, cast, exists, false, func, literal, or_, select, true, union_all
 from . import service
-from .models import PackMasterAvailability
+from .models import PackMasterAvailability, PackRecordOwnership
 from .registry import get_role
 from app.models.employee import Employee
 from app.models.user import User
@@ -73,6 +73,14 @@ def _sources(kind, company, branch, *, eligible=True):
                 owner.c.resource_key == cast(model.id, String), owner.c.company_id == company, owner.c.branch_id == branch)))
             if eligible: statement = statement.where(model.status == 'Active', model.deleted_at.is_(None)) if kind == 'customers' else statement.where(model.active.is_(True))
         search = (name,)
+    # Availability never turns a private operational source into a canonical
+    # master, even for the same context or an administrator. Apply this to
+    # historical names too; old enrollment remains discoverable and revocable
+    # through the existing unavailable-master projection.
+    private = PackRecordOwnership.__table__
+    statement = statement.where(~exists(select(1).where(
+        private.c.resource_table == model.__tablename__,
+        private.c.resource_key == cast(model.id, String))).correlate(model.__table__))
     return model, module, statement, search
 
 
