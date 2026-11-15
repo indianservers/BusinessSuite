@@ -236,7 +236,7 @@ def test_anonymous_scope_never_falls_back_to_other_pack_or_unknown_role(db,scena
     user,branch,cat,basket=scenario
     context,grant,provider,register=enable_audited_pack(db,user,branch,cat)
     original=basket(False)
-    with native_writer(db,user,branch):
+    with audited_pack_writer(db,user,branch,context):
         account=configure(CashAccountSetup(action='create',label='Hospital counter ledger',jurisdiction_country='IN',reason='Explicit hospital counter ledger setup'),db,user)
         data=CheckoutInput.model_validate({'buyer_mode':'anonymous_cash','customer_id':0,'request_id':str(uuid4()),'pos_session_id':register.id,
             'lines':[original.lines[0].model_dump(mode='json')],'payments':[{'payment_key':str(uuid4()),'method':'cash','amount':'118'}]})
@@ -304,13 +304,13 @@ def test_doctor_chef_cannot_read_or_configure_cash_account_even_native_admin(db,
 
 @pytest.mark.parametrize('corruption',[None,'personal_contact','foreign_link'])
 def test_audited_anonymous_http_uses_only_canonical_counter_identity(db,client,scenario,corruption):
-    from tests.test_service_checkout import enable_audited_pack
+    from tests.test_service_checkout import enable_audited_pack,audited_pack_writer
     from app.apps.crm.contact_identity import ContactIdentityLink
     from app.business_packs.models import PackMasterAvailability
     user,branch,cat,basket=scenario
     original=basket(False)
     context,_,_,register=enable_audited_pack(db,user,branch,cat)
-    with native_writer(db,user,branch):
+    with audited_pack_writer(db,user,branch,context):
         account=configure(CashAccountSetup(action='create',label='Scoped canonical counter',jurisdiction_country='IN',reason='Explicit isolated cash setup'),db,user)
     enrollment=db.query(PackMasterAvailability).filter_by(context_id=context.id,resource_table='crm_companies',resource_key=str(account['customer_id'])).one()
     assert enrollment.active
@@ -343,13 +343,13 @@ def test_audited_anonymous_http_uses_only_canonical_counter_identity(db,client,s
 
 
 def test_counter_creation_enrollment_rolls_back_with_outer_transaction(db,scenario):
-    from tests.test_service_checkout import enable_audited_pack
+    from tests.test_service_checkout import enable_audited_pack,audited_pack_writer
     from app.business_packs.models import PackMasterAvailability
     from app.apps.srm.anonymous_cash_models import AnonymousCashAccount
     user,branch,cat,_=scenario
     context,_,_,_=enable_audited_pack(db,user,branch,cat)
     before=db.query(CRMCompany).count()
-    with native_writer(db,user,branch):
+    with audited_pack_writer(db,user,branch,context):
         transaction=db.begin_nested()
         result=configure(CashAccountSetup(action='create',label='Rollback counter',jurisdiction_country='IN',reason='Verify atomic canonical enrollment'),db,user,commit=False)
         key=str(result['customer_id'])

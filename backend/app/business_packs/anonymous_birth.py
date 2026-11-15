@@ -247,16 +247,27 @@ def enroll_born_account(db, actor, root):
     """Creation-only enrollment before the typed account's native FK flush."""
     scope = assert_born_account(db, actor, root)
     from app.business_packs.models import PackMasterAvailability
+    from app.branches.models import BranchOwnership
     table = PackMasterAvailability.__table__
+    owner = BranchOwnership.__table__
+    connection = db.connection()
     key = str(root.id)
-    match = (table.c.company_id == scope.company_id, table.c.branch_id == scope.branch_id,
-             table.c.context_id == scope.context_id, table.c.resource_table == root.__tablename__,
-             table.c.resource_key == key)
-    existing = db.connection().execute(select(table.c.id, table.c.active).where(*match)).first()
+    match = (table.c.context_id == scope.context_id,
+             table.c.resource_table == root.__tablename__, table.c.resource_key == key)
+    existing = connection.execute(select(table.c.id, table.c.active,
+        table.c.company_id, table.c.branch_id).where(*match)).first()
     if existing:
-        if not existing.active:
+        proof = connection.execute(select(owner.c.company_id, owner.c.branch_id).where(
+            owner.c.resource_table == table.name, owner.c.resource_key == str(existing.id))).first()
+        if (not existing.active or (existing.company_id, existing.branch_id) !=
+                (scope.company_id, scope.branch_id) or proof is None or
+                tuple(proof) != (scope.company_id, scope.branch_id)):
             _deny()
         return
-    db.connection().execute(table.insert().values(company_id=scope.company_id,
+    ident = connection.execute(table.insert().values(company_id=scope.company_id,
         branch_id=scope.branch_id, context_id=scope.context_id,
-        resource_table=root.__tablename__, resource_key=key, active=True, revision=1))
+        resource_table=root.__tablename__, resource_key=key, active=True, revision=1)
+        .returning(table.c.id)).scalar_one()
+    connection.execute(owner.insert().values(resource_table=table.name,
+        resource_key=str(ident), company_id=scope.company_id, branch_id=scope.branch_id,
+        source='anonymous-account-birth-enrollment'))
