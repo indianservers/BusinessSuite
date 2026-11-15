@@ -230,6 +230,12 @@ function shortCurrency(value: number) {
   return value.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 }
 
+function cashNumber(value: unknown) {
+  if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && !value.trim())) return NaN;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 function recordNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -521,7 +527,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const changeDue = Math.max(received - totals.grandTotal, 0);
   const explicitCredit = paymentRows.filter(row=>row.mode==="Credit").reduce((sum,row)=>sum+row.amount,0);
   const validSplitCredit = customerId>0 && paymentMode==="Split" && explicitCredit>0 && Math.abs(explicitCredit-balanceDue)<0.005;
-  const expectedCash = Number((activeRegister.data as {expected_cash?:number}|undefined)?.expected_cash ?? NaN);
+  const registerCash = activeRegister.data as {expected_cash?: number | string | null; cash_sales?: number | string | null; reconciliation_required?: boolean} | undefined;
+  const expectedCash = cashNumber(registerCash?.expected_cash);
+  const cashReceived = cashNumber(registerCash?.cash_sales);
+  const countedClosingCash = cashNumber(closingCash);
+  const canCloseSession = Boolean(register?.id) && !registerCash?.reconciliation_required && Number.isFinite(expectedCash) && Number.isFinite(countedClosingCash) && countedClosingCash >= 0;
   const lowStockCount = storeProducts.filter((product) => product.trackInventory && product.stock <= product.reorderLevel).length;
 
   function addProduct(product: Product) {
@@ -828,7 +838,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             <SessionPill label="Template" value={activeStoreProfile.name} />
             <SessionPill label="Cashier" value="Sales Manager" />
             <SessionPill label="Opening cash" value={shortCurrency(Number(register?.opening_cash||0))} />
-            <SessionPill label="Expected cash" value={shortCurrency(Number((activeRegister.data as {expected_cash?:number}|undefined)?.expected_cash||0))} />
+            <SessionPill label="Expected cash" value={Number.isFinite(expectedCash)?shortCurrency(expectedCash):"Unavailable"} />
           </div>
           <CompactActions className="flex flex-wrap gap-2">
             {!register && <><Input aria-label="POS opening cash" className="w-28 border-slate-200 bg-slate-50 text-slate-950" type="number" min="0" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/><Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={opening||activeRegister.isFetching} onClick={async()=>{if(locked||!owns())return;setOpening(true);try{await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});if(owns())await activeRegister.refetch();}catch(error){if(owns())toast({title:"Register not opened",description:dealError(error),variant:"destructive"});}finally{if(owns())setOpening(false);}}}>Open POS register</Button></>}
@@ -1230,12 +1240,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         <Overlay title="Close POS Session" onClose={() => setActiveModal(null)}>
           <div className="space-y-3">
             <SummaryLine label="Opening cash" value={register?currency(Number(register.opening_cash||0)):"No open register"} />
-            <SummaryLine label="Cash received" value={register?currency(Number((activeRegister.data as {cash_sales?:number}|undefined)?.cash_sales||0)):"Unavailable"} />
+            <SummaryLine label="Cash received" value={register&&Number.isFinite(cashReceived)?currency(cashReceived):"Unavailable"} />
             <SummaryLine label="Expected closing cash" value={Number.isFinite(expectedCash)?currency(expectedCash):"Unavailable"} />
             <label className="block text-sm text-slate-400">Actual counted cash<Input value={closingCash} onChange={(event) => setClosingCash(event.target.value)} type="number" className="mt-1 border-white/15 bg-slate-950 text-white" /></label>
-            {closingCash && Number.isFinite(expectedCash) ? <SummaryLine label="Cash variance" value={currency((Number(closingCash) || 0) - expectedCash)} /> : null}
-            <Button className="w-full" variant="destructive" disabled={!register?.id||!Number.isFinite(expectedCash)||!closingCash||!Number.isFinite(Number(closingCash))||Number(closingCash)<0||nativeBusy} onClick={async () => {
-              if(!register?.id||!owns()||locked)return;
+            {Number.isFinite(countedClosingCash) && countedClosingCash >= 0 && Number.isFinite(expectedCash) ? <SummaryLine label="Cash variance" value={currency(countedClosingCash - expectedCash)} /> : null}
+            <Button className="w-full" variant="destructive" disabled={!canCloseSession||nativeBusy} onClick={async () => {
+              if(!register?.id||!canCloseSession||!owns()||locked)return;
               setNativeBusy(true);
               try {await srmApi.closePosSession({session_id:register.id,counted_cash:closingCash});if(owns()){await activeRegister.refetch();setActiveModal(null);toast({title:'POS session closed',description:'The native cashier closing was confirmed.'});}}
               catch(error){if(owns())toast({title:'Session closing not confirmed',description:dealError(error),variant:'destructive'});}

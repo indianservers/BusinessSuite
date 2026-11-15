@@ -220,6 +220,17 @@ function formatValue(value: unknown) {
 
 function currencyMoney(value:unknown,currency:unknown){return value==null?"Not available":`${String(currency||"Unknown")} ${Number(value).toLocaleString(undefined,{maximumFractionDigits:2})}`}
 
+function cashNumber(value: unknown) {
+  if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && !value.trim())) return NaN;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function cashMoney(value: unknown) {
+  const amount = cashNumber(value);
+  return Number.isFinite(amount) ? money(amount) : "-";
+}
+
 function money(value: unknown) {
   const amount = Number(value || 0);
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0, style: "currency", currency: "INR" });
@@ -1485,8 +1496,8 @@ function POSSessionView() {
       <PageHeader meta={viewMeta.posSessions} isFetching={query.isFetching || active.isFetching} onRefresh={() => { query.refetch(); active.refetch(); }} />
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Active session" value={activeSession ? formatValue(activeSession.session_number) : "None"} />
-        <MetricCard label="Expected cash" value={money((active.data as SRMRecord | undefined)?.expected_cash)} />
-        <MetricCard label="Cash sales" value={money((active.data as SRMRecord | undefined)?.cash_sales)} />
+        <MetricCard label="Expected cash" value={cashMoney((active.data as SRMRecord | undefined)?.expected_cash)} />
+        <MetricCard label="Cash sales" value={cashMoney((active.data as SRMRecord | undefined)?.cash_sales)} />
         <MetricCard label="Sales count" value={formatValue((active.data as SRMRecord | undefined)?.sales_count || 0)} />
       </div>
       {canManage ? (
@@ -1532,8 +1543,8 @@ function POSSessionView() {
                         <td className="px-4 py-3">{formatValue(session.register_name)}</td>
                         <td className="px-4 py-3">{money(session.opening_cash)}</td>
                         <td className="px-4 py-3">{money(row.cash_sales)}</td>
-                        <td className="px-4 py-3">{money(row.expected_cash)}</td>
-                        <td className="px-4 py-3">{closing.variance !== undefined ? money(closing.variance) : "-"}</td>
+                        <td className="px-4 py-3">{cashMoney(row.expected_cash)}</td>
+                        <td className="px-4 py-3">{cashMoney(closing.variance)}</td>
                       </tr>
                     );
                   }) : <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No POS sessions found.</td></tr>}
@@ -1555,15 +1566,19 @@ function CashierClosingView() {
   const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
   const activeData = (active.data || {}) as SRMRecord;
   const session = (activeData.session || null) as SRMRecord | null;
+  const expected = cashNumber(activeData.expected_cash);
+  const counted = cashNumber(countedCash);
+  const canCloseSession = Boolean(session?.id) && !activeData.reconciliation_required && Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0;
   const close = useMutation({
-    mutationFn: () => srmApi.closePosSession({ session_id: session?.id, counted_cash: amountField(countedCash), notes }),
+    mutationFn: () => {
+      if (!canManage || !canCloseSession) throw new Error("Cash closing requires reconciled expected cash and a valid non-negative count");
+      return srmApi.closePosSession({ session_id: session?.id, counted_cash: counted, notes });
+    },
     onSuccess: () => {
       toast({ title: "Cashier closing posted" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
   });
-  const expected = Number(activeData.expected_cash || 0);
-  const counted = amountField(countedCash);
   return (
     <div className="space-y-5">
       <PageHeader meta={viewMeta.cashierClosing} isFetching={active.isFetching} onRefresh={() => active.refetch()} />
@@ -1571,23 +1586,23 @@ function CashierClosingView() {
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Session" value={session ? session.session_number : "No open session"} />
         <MetricCard label="Opening cash" value={money(session?.opening_cash)} />
-        <MetricCard label="Expected cash" value={money(expected)} />
-        <MetricCard label="Variance preview" value={money(counted - expected)} />
+        <MetricCard label="Expected cash" value={cashMoney(expected)} />
+        <MetricCard label="Variance preview" value={Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0 ? money(counted - expected) : "-"} />
       </div>
       <Card>
         <CardHeader><CardTitle className="text-base">Close active session</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
           <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
           <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
-          <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !session || !countedCash}>Close Session</Button>
+          <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !canCloseSession}>Close Session</Button>
         </CardContent>
       </Card>
       <Card>
         <CardHeader><CardTitle className="text-base">Closing evidence</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">
-          <MetricCard label="Cash sales" value={money(activeData.cash_sales)} />
-          <MetricCard label="Cash in" value={money(activeData.cash_in)} />
-          <MetricCard label="Cash out" value={money(activeData.cash_out)} />
+          <MetricCard label="Cash sales" value={cashMoney(activeData.cash_sales)} />
+          <MetricCard label="Cash in" value={cashMoney(activeData.cash_in)} />
+          <MetricCard label="Cash out" value={cashMoney(activeData.cash_out)} />
           <MetricCard label="Sales count" value={formatValue(activeData.sales_count || 0)} />
         </CardContent>
       </Card>
