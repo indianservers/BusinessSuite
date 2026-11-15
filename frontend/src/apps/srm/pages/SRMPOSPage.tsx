@@ -1,3 +1,4 @@
+import { pharmaCheckoutQuote } from '@/lib/pharma-checkout-money';
 import { effectiveOperationalSelection, type OperationalSelection } from '@/lib/effective-operational-selection';
 import { currentPOSOperationalPin, installPOSOperationalPin, operationalOwner } from '@/lib/pos-operational-context';
 import { selectedBranch } from '@/lib/branch-context';
@@ -285,7 +286,7 @@ function productFromRecord(item: SRMRecord): Product {
     batchTracking: Boolean(item.batch_tracking),
     serialTracking: Boolean(item.serial_tracking),
     lotAllocation: item.lot_allocation === "fefo" ? "fefo" : undefined,
-    decimalAllowed: String(item.unit_code || "").toUpperCase() !== "PCS",
+    decimalAllowed: item.lot_allocation === "fefo" || String(item.unit_code || "").toUpperCase() !== "PCS",
   };
 }
 
@@ -500,6 +501,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     const tax = taxableBeforeBill ? taxBeforeScale * (taxable / taxableBeforeBill) : 0;
     const unrounded = taxable + tax;
     const grandTotal = Math.max(Math.round((unrounded + Number.EPSILON) * 100) / 100, 0);
+    const nativeQuote = operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo")
+      ? pharmaCheckoutQuote(cart.map(line => ({quantity: String(line.qty), price: line.rate.toFixed(2),
+          discount: lineDiscount(line).toFixed(2), taxRate: String(line.taxRate)})),
+          (safeBillDiscount + couponDiscount).toFixed(2)) : null;
     return {
       subtotal,
       lineDiscount: lineDiscountTotal,
@@ -510,8 +515,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       roundOff: grandTotal - unrounded,
       grandTotal,
       qty: cart.reduce((sum, item) => sum + item.qty, 0),
+      ...(nativeQuote ? {...nativeQuote, qty: nativeQuote.quantity, roundOff: 0} : {}),
     };
-  }, [billDiscount, cart, couponDiscount]);
+  }, [billDiscount, cart, couponDiscount, operationalPackKey]);
 
   const filteredProducts = useMemo(() => {
     const text = query.trim().toLowerCase();
@@ -1066,7 +1072,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                   {isService(line) && (!selectedPOS||posFeatures?.appointments_schedule) && <div className="mt-3"><POSServiceScheduling productId={line.id} lineKey={line.lineId} value={line.booking} onChange={booking=>updateLine(line.lineId,{booking,...(booking?{qty:1}:{})})} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div>}
                   <div className="mt-2 flex items-center justify-between text-sm">
                     <span className="text-slate-400">Tax {line.taxRate}%</span>
-                    <strong>{currency(lineTotal(line))}</strong>
+                    <strong>{currency(operationalPackKey === "pharma" && line.lotAllocation === "fefo"
+                      ? pharmaCheckoutQuote([{quantity: String(line.qty), price: line.rate.toFixed(2),
+                          discount: lineDiscount(line).toFixed(2), taxRate: String(line.taxRate)}], "0.00")?.grandTotal ?? lineTotal(line)
+                      : lineTotal(line))}</strong>
                   </div>
                 </div>
               )) : (
@@ -1112,7 +1121,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       <footer className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
         <FooterMetric label="Items" value={String(cart.length)} />
         <FooterMetric label="Quantity" value={String(totals.qty)} />
-        <FooterMetric label="Payable" value={shortCurrency(totals.grandTotal)} />
+        <FooterMetric label="Payable" value={operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo") && !Number.isInteger(totals.grandTotal) ? currency(totals.grandTotal) : shortCurrency(totals.grandTotal)} />
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={() => setActiveModal("held")}><RotateCcw className="h-4 w-4" />Recall</Button>
         <Button variant="outline" className="border-slate-200 text-slate-700" onClick={() => window.print()}><Printer className="h-4 w-4" />Print Last</Button>
         <Button className="bg-[#3157d8] text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment</Button>

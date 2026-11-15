@@ -1,0 +1,751 @@
+[
+  {
+    "id": "legacy-integer",
+    "cart": [
+      {
+        "qty": 1,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "118.00",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "1",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "118.00",
+      "lines": [
+        {
+          "quantity": "1.0000000000",
+          "unit_price": "100.00",
+          "discount": "0.00",
+          "tax": "18.00",
+          "total": "118.00",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "legacy-integer-discount",
+    "cart": [
+      {
+        "qty": 2,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 10
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "212.40",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "2",
+          "unit_price": "100.00",
+          "discount_amount": "20.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "212.40",
+      "lines": [
+        {
+          "quantity": "2.0000000000",
+          "unit_price": "100.00",
+          "discount": "20.00",
+          "tax": "32.40",
+          "total": "212.40",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "fefo-tiny",
+    "cart": [
+      {
+        "qty": 0.001,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.12",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.001",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.12",
+      "lines": [
+        {
+          "quantity": "0.0010000000",
+          "unit_price": "100.00",
+          "discount": "0.00",
+          "tax": "0.02",
+          "total": "0.12",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "fefo-125-price109",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.16",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.17",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.00",
+          "tax": "0.03",
+          "total": "0.17",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "fefo-125-price1005",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1.005,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.15",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.15",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.00",
+          "discount": "0.00",
+          "tax": "0.02",
+          "total": "0.15",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "fefo-unit-price1005",
+    "cart": [
+      {
+        "qty": 1,
+        "rate": 1.005,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "1.19",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "1",
+          "unit_price": "1.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "1.18",
+      "lines": [
+        {
+          "quantity": "1.0000000000",
+          "unit_price": "1.00",
+          "discount": "0.00",
+          "tax": "0.18",
+          "total": "1.18",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "half-cent",
+    "cart": [
+      {
+        "qty": 0.005,
+        "rate": 1,
+        "taxRate": 0,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.01",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.005",
+          "unit_price": "1.00",
+          "discount_amount": "0.00",
+          "tax_rate": "0"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.01",
+      "lines": [
+        {
+          "quantity": "0.0050000000",
+          "unit_price": "1.00",
+          "discount": "0.00",
+          "tax": "0.00",
+          "total": "0.01",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "one-half-cent",
+    "cart": [
+      {
+        "qty": 0.015,
+        "rate": 1,
+        "taxRate": 0,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.02",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.015",
+          "unit_price": "1.00",
+          "discount_amount": "0.00",
+          "tax_rate": "0"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.02",
+      "lines": [
+        {
+          "quantity": "0.0150000000",
+          "unit_price": "1.00",
+          "discount": "0.00",
+          "tax": "0.00",
+          "total": "0.02",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "fefo-125-rate1",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.15",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.15",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.00",
+          "discount": "0.00",
+          "tax": "0.02",
+          "total": "0.15",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "fraction-discount",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 10,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.14",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.01",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.15",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.01",
+          "tax": "0.02",
+          "total": "0.15",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "tiny-full-discount",
+    "cart": [
+      {
+        "qty": 0.005,
+        "rate": 1,
+        "taxRate": 18,
+        "discount": 100,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.00",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.005",
+          "unit_price": "1.00",
+          "discount_amount": "0.01",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "status": 422,
+      "detail": "Use a valid description and a discount no greater than the line subtotal"
+    }
+  },
+  {
+    "id": "mixed-two-fraction",
+    "cart": [
+      {
+        "qty": 0.001,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      },
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.28",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.001",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        },
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.29",
+      "lines": [
+        {
+          "quantity": "0.0010000000",
+          "unit_price": "100.00",
+          "discount": "0.00",
+          "tax": "0.02",
+          "total": "0.12",
+          "inclusive": false
+        },
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.00",
+          "tax": "0.03",
+          "total": "0.17",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "mixed-integer-fraction",
+    "cart": [
+      {
+        "qty": 1,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0
+      },
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "118.16",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "1",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        },
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "118.17",
+      "lines": [
+        {
+          "quantity": "1.0000000000",
+          "unit_price": "100.00",
+          "discount": "0.00",
+          "tax": "18.00",
+          "total": "118.00",
+          "inclusive": false
+        },
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.00",
+          "tax": "0.03",
+          "total": "0.17",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "mixed-bill-discount",
+    "cart": [
+      {
+        "qty": 1,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0
+      },
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0.01,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "118.15",
+      "bill_discount_amount": "0.01",
+      "lines": [
+        {
+          "quantity": "1",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        },
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "118.16",
+      "lines": [
+        {
+          "quantity": "1.0000000000",
+          "unit_price": "100.00",
+          "discount": "0.01",
+          "tax": "18.00",
+          "total": "117.99",
+          "inclusive": false
+        },
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.00",
+          "tax": "0.03",
+          "total": "0.17",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "fraction-bill-discount",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0.01,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.15",
+      "bill_discount_amount": "0.01",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.15",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.01",
+          "tax": "0.02",
+          "total": "0.15",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  },
+  {
+    "id": "mixed-tax-rates",
+    "cart": [
+      {
+        "qty": 0.125,
+        "rate": 1.09,
+        "taxRate": 5,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      },
+      {
+        "qty": 0.001,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0,
+        "lotAllocation": "fefo"
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "",
+    "actual_payload": {
+      "expected_total": "0.26",
+      "bill_discount_amount": "0.00",
+      "lines": [
+        {
+          "quantity": "0.125",
+          "unit_price": "1.09",
+          "discount_amount": "0.00",
+          "tax_rate": "5"
+        },
+        {
+          "quantity": "0.001",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "0.27",
+      "lines": [
+        {
+          "quantity": "0.1250000000",
+          "unit_price": "1.09",
+          "discount": "0.00",
+          "tax": "0.01",
+          "total": "0.15",
+          "inclusive": false
+        },
+        {
+          "quantity": "0.0010000000",
+          "unit_price": "100.00",
+          "discount": "0.00",
+          "tax": "0.02",
+          "total": "0.12",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": false
+    }
+  },
+  {
+    "id": "legacy-coupon",
+    "cart": [
+      {
+        "qty": 2,
+        "rate": 100,
+        "taxRate": 18,
+        "discount": 0
+      }
+    ],
+    "bill_discount": 0,
+    "coupon": "WELCOME10",
+    "actual_payload": {
+      "expected_total": "212.40",
+      "bill_discount_amount": "20.00",
+      "lines": [
+        {
+          "quantity": "2",
+          "unit_price": "100.00",
+          "discount_amount": "0.00",
+          "tax_rate": "18"
+        }
+      ]
+    },
+    "native": {
+      "total": "212.40",
+      "lines": [
+        {
+          "quantity": "2.0000000000",
+          "unit_price": "100.00",
+          "discount": "20.00",
+          "tax": "32.40",
+          "total": "212.40",
+          "inclusive": false
+        }
+      ],
+      "matches_expected_total": true
+    }
+  }
+]
