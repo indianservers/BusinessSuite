@@ -39,6 +39,7 @@ class RequestOperation:
 
 # Exact server canonical templates, never caller paths, labels or prefixes.
 _RULES = {
+    ('POST', '/api/v1/srm/industry/workspace-definitions'): RequestOperation(('settings.manage',), mode='construction_planning'),
     ('POST', '/api/v1/srm/industry/projects/{project_id}/cost-budget'): RequestOperation(('boq.prepare',), mode='construction_planning'),
     ('GET', '/api/v1/srm/industry/projects/{project_id}/commercial-source'): RequestOperation(('billing.view', 'billing.prepare'), mode='construction_planning'),
     ('POST', '/api/v1/srm/industry/projects/{project_id}/commercial-source'): RequestOperation(('billing.prepare',), mode='construction_planning'),

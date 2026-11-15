@@ -18,7 +18,7 @@ from .common_queries import assert_mapped_sources
 _PROJECT_PROOFS = WeakKeyDictionary()
 _CONSTRUCTION_EVIDENCE = frozenset({'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
     'work_package', 'planning_baseline', 'payment_certificate', 'handover',
-    'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'})
+    'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition', 'workspace_definition'})
 
 
 def _project_epoch(db, scope, project_id):
@@ -331,6 +331,10 @@ def validate_industry_source(db, scope, item):
         return
     if item in db.deleted:
         _deny('Construction workflow evidence cannot be deleted', 403)
+    if item.kind == 'workspace_definition':
+        from .construction_workspaces import validate_record as validate_workspace
+        if validate_workspace(db, scope, item):
+            return
     from .construction_billing import validate_record
     validate_record(db, item)
     if item.kind in {'work_package', 'measurement'}:

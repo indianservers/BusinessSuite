@@ -195,6 +195,10 @@ def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depe
 
 @router.post("/workspaces", status_code=201)
 def create_workspace(data: WorkspaceInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return create_workspace_operation(data, db, user)
+
+
+def create_workspace_operation(data, db, user, *, commit=True):
     if not has_any_permission(user, PMS_GLOBAL_MANAGE_PROJECTS):
         raise HTTPException(403, "Project management permission required")
     if not data.name.strip():
@@ -203,8 +207,11 @@ def create_workspace(data: WorkspaceInput, db: Session = Depends(get_db), user: 
     db.add(workspace)
     db.flush()
     db.add(PMSWorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="Owner"))
-    db.commit()
-    return {"id": workspace.id, "name": workspace.name, "role": "Owner"}
+    if commit:
+        db.commit()
+        return {"id": workspace.id, "name": workspace.name, "role": "Owner"}
+    db.flush()
+    return workspace
 
 
 @router.get("/workspaces/{workspace_id}/members")

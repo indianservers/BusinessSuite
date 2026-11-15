@@ -242,19 +242,37 @@ def capabilities(project_id: int | None = None, db: Session = Depends(get_db), u
                 if exc.status_code != 403:
                     raise
                 return False
+        from app.business_packs.catalog_management import _module_grant
+        from app.apps.project_management.access import PMS_GLOBAL_MANAGE_PROJECTS
+        from app.business_packs.construction_definition import _workspace
+        from app.business_packs.construction import _source
+        native_pms = _module_grant(db, user, scope, 'project_management')
+        global_projects = bool(user.is_superuser or PMS_GLOBAL_MANAGE_PROJECTS.intersection(native_pms.get('permissions', ())))
+        workspace_ready = False
+        if project_id:
+            try:
+                _, workspace_id = _source(db, user, project_id)
+                if workspace_id is not None:
+                    _workspace(db, user, scope, workspace_id)
+                    workspace_ready = True
+            except HTTPException as exc:
+                if exc.status_code not in {403, 404}:
+                    raise
         native_write = ceiling('srm', 'create')
         task_write = project_action('manage_tasks')
         native_approve = project_action('approve')
         result.update(
-            planning_manage='boq.prepare' in allowed and task_write and native_write
+            workspace_ready=workspace_ready,
+            workspace_setup_manage='settings.manage' in allowed and scope.writable and manage and global_projects and native_write and ceiling('project_management', 'create'),
+            planning_manage=workspace_ready and 'boq.prepare' in allowed and task_write and native_write
                 and ceiling('project_management', 'create') and ceiling('project_management', 'edit'),
-            sites_create='settings.manage' in allowed and native_write and ceiling('project_management', 'create'),
-            wbs_define='boq.prepare' in allowed and task_write and native_write and ceiling('project_management', 'create'),
-            actuals_task_manage='diary.record' in allowed and task_write and native_write and ceiling('project_management', 'edit'),
-            actuals_cost_manage='billing.prepare' in allowed and result['invoice'] and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
-            cost_budget_manage='boq.prepare' in allowed and manage and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
+            sites_create='settings.manage' in allowed and scope.writable and manage and global_projects and native_write and ceiling('project_management', 'create'),
+            wbs_define=workspace_ready and 'boq.prepare' in allowed and task_write and native_write and ceiling('project_management', 'create'),
+            actuals_task_manage=workspace_ready and 'diary.record' in allowed and task_write and native_write and ceiling('project_management', 'edit'),
+            actuals_cost_manage=workspace_ready and 'billing.prepare' in allowed and result['invoice'] and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
+            cost_budget_manage=workspace_ready and 'boq.prepare' in allowed and manage and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
             commercial_manage='billing.prepare' in allowed and has_any_permission(user, {'pms_manage_projects', 'pms_admin', 'srm_manage', 'srm_admin'}) and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
-            planning_approve='boq.approve' in allowed and native_approve and native_write,
+            planning_approve=workspace_ready and 'boq.approve' in allowed and native_approve and native_write,
             handover_prepare='diary.record' in allowed and task_write and native_write,
             certificate_prepare='billing.prepare' in allowed and result['invoice'] and native_write,
             delivery_approve=bool(allowed & {'boq.approve', 'billing.prepare'}) and native_approve and native_write,
@@ -930,3 +948,6 @@ from app.business_packs.construction_commercial import router as construction_co
 from app.business_packs.construction_dependencies import router as construction_dependencies_router
 router.include_router(construction_commercial_router)
 router.include_router(construction_dependencies_router)
+
+from app.business_packs.construction_workspaces import router as construction_workspaces_router
+router.include_router(construction_workspaces_router)

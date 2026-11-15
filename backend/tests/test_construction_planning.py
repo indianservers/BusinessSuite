@@ -26,11 +26,16 @@ def own(db, case, row):
 
 
 @pytest.fixture
-def site_plan(db, construction):
+def site_plan(client, db, construction, catalog):
     actor, _, _, project_id = construction
-    workspace = PMSWorkspace(organization_id=1, name='Canonical construction plan')
-    db.add(workspace); db.flush()
-    db.add(PMSWorkspaceMember(workspace_id=workspace.id, user_id=actor.id, role='Owner'))
+    headers = {**catalog[0], 'X-Suite-Pack-Context': str(construction[2])}
+    created = client.post('/api/v1/srm/industry/workspace-definitions', headers=headers,
+        json={'request_id': str(uuid4()), 'name': 'Canonical construction plan ' + uuid4().hex[:8]})
+    assert created.status_code == 201, created.text
+    choices = client.get('/api/v1/srm/industry/definition-workspaces', headers=headers)
+    assert choices.status_code == 200, choices.text
+    assert created.json()['id'] in {row['id'] for row in choices.json()['items']}
+    workspace = db.get(PMSWorkspace, created.json()['id'])
     db.get(PMSProject, project_id).workspace_id = workspace.id
     tasks = []
     for index in range(2):
