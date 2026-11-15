@@ -69,6 +69,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.business_packs.models",
     "app.shared.import_models",
     "app.shared.accounting_sync.models",
     "app.shared.payment_models",
@@ -201,7 +202,7 @@ APP_MODULES: dict[str, AppModule] = {
         key="srm",
         label="Sales & Inventory Management",
         router_modules=("app.apps.srm.api.router", "app.apps.srm.industry_api", "app.apps.srm.appointment_booking"),
-        model_modules=("app.apps.srm.models", "app.apps.srm.industry_models"),
+        model_modules=("app.apps.srm.models", "app.apps.srm.industry_models", "app.apps.srm.service_checkout_models", "app.apps.srm.anonymous_cash_models"),
     ),
     "fam": AppModule(
         key="fam",
