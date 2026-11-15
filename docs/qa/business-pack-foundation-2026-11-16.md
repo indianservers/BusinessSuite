@@ -60,3 +60,10 @@ Current-source verification: **37 passed, one PostgreSQL-only row-lock test skip
 GitHub's PostgreSQL readiness run at `49e0375bd` failed collection because the shared planned-services module imported `jose`, absent from production dependencies. It now uses the same installed PyJWT API and exception base as the core security module. Cursor algorithms, audience, signing secret, expiry handling and validation logic are unchanged.
 
 All **60 tests passed**, 86.62 seconds, across the four affected employee-planning/scheduling modules. All 60 also collect successfully with imports of `jose` explicitly blocked. AST comparison confirms only imports changed. Evidence: `.local/planned-services-pyjwt-verification.xml` and `.local/planned-services-ci-import-proof.json`. The subsequent GitHub readiness run must be checked separately; local results are not represented as a successful CI run.
+
+
+## Leave routing browser teardown
+
+The existing browser harness now drains pending route callbacks before closing its context, then checks HTTP and page errors again. Nested cleanup always closes the context, browser and server. All eight original assertions, selectors, timeouts and route callbacks are preserved; application UI source is unchanged.
+
+The frozen candidate passed one actual native-API browser test at desktop 1440 and mobile 390 pixels in 29.45 seconds. Five focused teardown scenarios also verify that late HTTP failures, route failures and page errors still fail and cleanup runs. Main matches the tested script after line-ending normalization; `node --check` and `git diff --check` passed. Evidence: `.local/leave-routing-native-final-c315/result.json` and `.local/leave-routing-main-proof.json`.
