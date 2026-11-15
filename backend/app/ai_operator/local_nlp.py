@@ -19,9 +19,11 @@ SCOPES = {'Sales':'SRM','CRM':'CRM','PMS':'PMS','HRMS':'HRMS'}
 from app.ai_operator.local_features import features,fit,head
 
 
-def semantic_intent(command,module):
+def semantic_intent(command,module,read_context=()):
     """Conservative entity/filter grammar overrides ambiguous bag-of-word matches."""
     text=command.casefold()
+    if module=="PMS" and re.fullmatch(r"(?:please\s+)?(?:show|list|get|display)\s+(?:pms\s+)?projects[.!?]?",text):return "projects.list"
+    if module=="CRM" and tuple(read_context)==("crm.report",) and re.fullmatch(r"(?:please\s+)?summari[sz]e\s+(?:(?:the|this)\s+)?report[.!?]?",text):return "summary"
     read=bool(re.match(r'^(?:please\s+)?(?:show|list|find|get|display|which|what|how|who|can|could|bring|look|give|check|anything)',text))
     if re.search(r'\b(?:reminders?|remind me)\b',text) and 'today' in text and read:return 'reminders.today'
     if re.search(r'\b(?:jobs|priorities|on my plate)\b|what.*(?:should|need).*do|what.*work.*today',text) and 'today' in text:return 'jobs.today'
@@ -76,7 +78,7 @@ class Interpretation:
     neural: dict = field(default_factory=dict)
 
 
-def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_scope=None):
+def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_scope=None, read_context=()):
     text=text.strip(); command=head(text)
     unquoted=re.sub(r'"[^"\n]*"|“[^”\n]*”', ' ',command)
     explicit=re.match(r'^\s*(CRM|PMS|HRMS|HR|Sales|SRM)\s*:',text,re.I)
@@ -123,7 +125,7 @@ def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_sco
     neural=predict(command,selected,model_scope) or {}
     neural_accepted=bool(neural and neural['score']>=.80 and neural['margin']>=.20 and
         (scores.get(neural['intent'],0)>=.25 or neural.get('reviewed_training') and neural.get('feature_support',0)>=.5))
-    semantic=semantic_intent(unquoted,selected)
+    semantic=semantic_intent(unquoted,selected,read_context)
     # Exact normalized exemplars are deterministic; unseen phrases must be distinctive.
     exact={row['intent'] for row in rows if row['module']==selected and features(row['text'])==f}
     question=None

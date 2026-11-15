@@ -1052,7 +1052,7 @@ async def _command(data,request,db,user,scope):
         from app.ai_operator.local_tensorflow import runtime_scope
         from app.ai_operator.suite_conversations import resolve_task_reference
         parsed_text=resolve_task_reference(data.text,conversation_history,data.module) if data.conversation_id else data.text
-        local_intent = parse(parsed_text,data.module,timezone=data.timezone,model_scope=runtime_scope(db,user,data.workspace_id))
+        local_intent = parse(parsed_text,data.module,timezone=data.timezone,model_scope=runtime_scope(db,user,data.workspace_id),read_context=tuple(step.tool for step in data.context))
         if message_action_start:
             from app.ai_operator.local_nlp import Interpretation
             local_intent=Interpretation(message_action_target,'ticket.create' if message_action_target=='HRMS' else 'tasks.create',1,{'action_verb':'create'})
