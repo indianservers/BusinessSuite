@@ -154,6 +154,23 @@ def test_workspace_native_resource_cannot_query_existing_projects(db, constructi
         assert denied.value.status_code == 403
 
 
+def test_workspace_native_helper_receives_actual_authenticated_user_in_its_session(db, construction, monkeypatch):
+    from sqlalchemy import inspect
+    from app.models.user import User
+    from app.apps.project_management import workspaces as native
+    original, checked = native.create_workspace_operation, []
+    def actual_actor(data, reader, principal, **kwargs):
+        assert type(principal) is User and inspect(principal).session is reader
+        assert principal.id == construction[0].id
+        assert reader.query(User).filter(User.id != principal.id).count() == 0
+        checked.append(True)
+        return original(data, reader, principal, **kwargs)
+    with selected(db, construction) as actor, monkeypatch.context() as fault:
+        fault.setattr(native, 'create_workspace_operation', actual_actor)
+        setup.create(setup.WorkspaceInput(request_id=uuid4(), name='Actual native actor '+uuid4().hex[:8]), db, actor)
+    assert checked
+
+
 def test_workspace_provenance_cannot_be_forged_outside_native_birth_lease(db, construction):
     with selected(db, construction):
         row = IndustryRecord(organization_id=1, branch_id=construction[1], project_id=None,

@@ -179,15 +179,10 @@ def _native(plan):
         join_transaction_mode='create_savepoint')
     native._authority_reads = _PlanAuthority(db.connection(), scope.company_id, {actor.id})
     native.info.update(shared_actor=(actor.id, scope.company_id), security_write_request=True)
-    principal = SimpleNamespace(id=actor.id, email=actor.email, is_active=actor.is_active,
-        is_superuser=actor.is_superuser, role_id=actor.role_id, organization_id=scope.company_id,
-        _suite_grants=plan.grants, _suite_current_module='project_management', _suite_admin_read=False,
-        _suite_permission_objects=[SimpleNamespace(name=name, module='project_management')
-            for name in plan.grants['project_management'].get('permissions', ())])
     cleanup = None
     try:
         prior = tuple(native.dispatch.do_orm_execute)
-        cleanup = install_scope(native, principal, scope.company_id, plan.grants)
+        cleanup = install_scope(native, actor, scope.company_id, plan.grants)
         added = [listener for listener in native.dispatch.do_orm_execute if listener not in prior]
         if len(added) != 1:
             fail('Unexpected native workspace setup source graph')
@@ -202,6 +197,18 @@ def _native(plan):
         event.listen(native, 'do_orm_execute', added[0])
         event.listen(native, 'before_flush', plan.validate)
         event.listen(native, 'after_flush_postexec', plan.stamp)
+        principal = native.get(User, actor.id)
+        if principal is None or inspect(principal).session is not native:
+            fail('Native workspace setup requires its genuine authenticated User')
+        principal.organization_id = scope.company_id
+        principal._suite_grants = plan.grants
+        principal._suite_current_module = 'project_management'
+        principal._suite_admin_read = False
+        principal._suite_permission_objects = [SimpleNamespace(name=name, module='project_management')
+            for name in plan.grants['project_management'].get('permissions', ())]
+        membership = AccessMembership.__table__
+        principal._suite_is_company_admin = bool(db.connection().scalar(select(membership.c.is_admin).where(
+            membership.c.company_id == scope.company_id, membership.c.user_id == actor.id, membership.c.active.is_(True))))
         result = native_workspaces.create_workspace_operation(native_workspaces.WorkspaceInput(name=plan.data.name),
             native, principal, commit=False)
         while native.new or native.dirty:
