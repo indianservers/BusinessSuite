@@ -1,3 +1,4 @@
+import RetailWorkspace from "@/apps/srm/components/RetailWorkspace";
 import InventoryProductionOrderForm from "./InventoryProductionOrderForm";
 import InventoryBomForm from "./InventoryBomForm";
 import InventoryProductionPostingForm from "./InventoryProductionPostingForm";
@@ -1968,9 +1969,13 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "audit") content = <AuditView />;
   else content = <ListCreateView kind={kind} />;
 
+  const retailModes = {inventoryStockIn:"receipt",inventoryPurchaseReceipts:"receipt",inventoryPurchaseOrders:"receipt",inventoryStockSummary:"stock",inventoryWarehouseStock:"warehouse",inventoryReports:"daily",inventoryCompleteReports:"daily"} as const;
+  const retailMode = kind === "inventoryPurchaseOrders" && location.pathname !== "/srm/inventory/grn" ? undefined : retailModes[kind as keyof typeof retailModes];
+  if (isSrmInventoryContext && retailMode) content = <RetailWorkspace mode={retailMode} receiptTitle={kind === "inventoryStockIn" ? "Stock in" : "Purchase receipt"} fallback={content} renderTable={(rows,columns)=><DataTable gridId={`business-packs/retail:${kind}:${columns.join("-")}`} preview={false} rows={rows} columns={columns}/>}/>;
+
   return (
     <section className={`space-y-5${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}`}>
-      <PageHeader meta={meta} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["fam"] })} />
+      <PageHeader meta={meta} onRefresh={() => { void queryClient.invalidateQueries({ queryKey: ["fam"] }); if (isSrmInventoryContext && retailMode) void queryClient.invalidateQueries({ queryKey: ["srm", "retail"] }); }} />
       {content}
     </section>
   );

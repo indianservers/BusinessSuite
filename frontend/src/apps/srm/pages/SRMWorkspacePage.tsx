@@ -1,3 +1,4 @@
+import RetailWorkspace from "../components/RetailWorkspace";
 import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import BusinessTerm from "@/components/BusinessTerm";
 import POSReturnForm from "../components/POSReturnForm";
@@ -2056,7 +2057,7 @@ function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
   if (kind === "collections") return <CollectionsView />;
   if (kind === "profitability") return <ProfitabilityView />;
   if (kind === "revenueRecognition") return <RevenueEventsView />;
-  if (kind === "reports") return <ReportsView />;
+  if (kind === "reports") return <RetailWorkspace mode="daily" header={<PageHeader meta={viewMeta.reports} onRefresh={()=>void queryClient.invalidateQueries({queryKey:["srm","retail"]})}/>} fallback={<ReportsView />}/>;
   if (kind === "settings") return <SettingsView />;
   return <GenericRouteView kind={kind} meta={meta} />;
 }
