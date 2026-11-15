@@ -5,6 +5,7 @@ import json
 from app.apps.crm.models import CRMContact, CRMCompany
 from app.shared.master_data_models import ContactBirthday
 from tests.test_contact_directory import directory_identity
+from tests.test_pms_workflow_postgresql import live
 
 ROOT = "/api/v1/master-data"
 
@@ -200,45 +201,64 @@ def test_contact_form_channels_and_greeting_idempotence(client, db, superuser_he
     assert second.json()["alreadyPrepared"] and "mailto:" in second.json()["composeUrl"]
 
 
-def test_postgresql_concurrent_phone_review(db):
+def test_postgresql_concurrent_phone_review(db,live):
     import pytest
     if db.bind.dialect.name != "postgresql":
         pytest.skip("Requires disposable PostgreSQL test database")
     from concurrent.futures import ThreadPoolExecutor
     from threading import Barrier
-    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import select
+    from app.branches.models import BranchOwnership
+    from app.common.models import CommonPerson
     from fastapi import HTTPException
     from app.models.user import User
     from app.branches.boundary import install
     from app.branches.service import context
     from app.shared.master_data import write_company, CompanyInput
     from app.models.company import Branch
-    factory=sessionmaker(bind=db.get_bind().engine,autoflush=False)
-    with factory() as seed:
-        actor=User(email="concurrent-master@example.com",hashed_password="unused",is_active=True,is_superuser=True)
-        branch=Branch(company_id=1,name="Concurrent master capture",code="MCAP")
-        seed.add_all([actor,branch]);seed.commit()
-        branch_id=branch.id
-    gate=Barrier(2)
-    def capture(index):
-        session=factory()
-        actor=session.query(User).filter_by(email="concurrent-master@example.com").one()
-        actor.organization_id = 1  # Request middleware normally supplies this context.
-        cleanup=install(session,actor,context(session,actor,1,str(branch_id)))
-        session.info["security_write_request"]=True
-        try:
-            gate.wait(timeout=15)
-            write_company(session,actor,"crm",CompanyInput(name=f"Concurrent {index}",phone="9234567890",phone_country_code="+91"))
-            session.commit()
-            return 201
-        except HTTPException as exc:
-            session.rollback()
-            return exc.status_code
-        finally:
-            cleanup();session.close()
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results=list(pool.map(capture,[1,2]))
-    assert sorted(results)==[201,409]
+    # live owns a fully migrated UUID database and FORCE-drops it at teardown.
+    factory=live.factory
+    primary=db.get_bind().engine
+    tables=(User.__table__,CRMCompany.__table__,CRMContact.__table__,CommonPerson.__table__,Branch.__table__,BranchOwnership.__table__)
+    def committed_primary_keys():
+        with primary.connect() as connection:
+            return {table.name:set(connection.execute(select(*table.primary_key.columns)).tuples()) for table in tables}
+    before=committed_primary_keys()
+    try:
+        with factory() as seed:
+            actor=User(email="concurrent-master@example.com",hashed_password="unused",is_active=True,is_superuser=True)
+            branch=Branch(company_id=1,name="Concurrent master capture",code="MCAP")
+            seed.add_all([actor,branch]);seed.commit()
+            branch_id=branch.id
+        gate=Barrier(2)
+        def capture(index):
+            session=factory()
+            cleanup=None
+            try:
+                actor=session.query(User).filter_by(email="concurrent-master@example.com").one()
+                actor.organization_id = 1  # Request middleware normally supplies this context.
+                cleanup=install(session,actor,context(session,actor,1,str(branch_id)))
+                session.info["security_write_request"]=True
+                gate.wait(timeout=15)
+                write_company(session,actor,"crm",CompanyInput(name=f"Concurrent {index}",phone="9234567890",phone_country_code="+91"))
+                session.commit()
+                return 201
+            except HTTPException as exc:
+                session.rollback()
+                return exc.status_code
+            finally:
+                try:
+                    if cleanup is not None:cleanup()
+                finally:session.close()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(capture,[1,2]))
+        assert sorted(results)==[201,409]
+        with factory() as verify:
+            winner=verify.query(CRMCompany).one()
+            proof=verify.query(BranchOwnership).filter_by(resource_table='crm_companies',resource_key=str(winner.id)).one()
+            assert (proof.company_id,proof.branch_id)==(1,branch_id)
+    finally:
+        assert committed_primary_keys()==before
 
 
 def test_relationship_edits_reject_stale_version(client, db, superuser_headers, directory_identity):

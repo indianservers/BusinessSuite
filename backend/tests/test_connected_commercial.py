@@ -51,20 +51,19 @@ def setup_business(db):
     )
     db.add_all([contact, p])
     db.flush()
-    db.add(
-        CRMOwner(
-            organization_id=1,
-            user_id=owner.id,
-            team_id=team.id,
-            full_name="Owner",
-            email=owner.email,
-            status="Active",
-        )
+    member = CRMOwner(
+        organization_id=1,
+        user_id=owner.id,
+        team_id=team.id,
+        full_name="Owner",
+        email=owner.email,
+        status="Active",
     )
+    db.add(member)
     db.commit()
     from app.branches.migration import backfill
     from test_identity_utils import own_workflow_records
-    own_workflow_records(db,buyer,contact,p,team)
+    own_workflow_records(db,buyer,contact,p,team,member)
     backfill(db.connection(), 1); db.commit()
     return buyer, contact, p, team
 
