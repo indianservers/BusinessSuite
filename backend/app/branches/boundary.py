@@ -304,7 +304,12 @@ def install(db, user, ctx, *, identity_administration=False):
             if "branch_id" in table.c and item not in session.new and state.attrs.branch_id.history.has_changes():
                 deny("Use an authorized branch transfer to change ownership")
             if item in session.deleted:
-                session.connection().execute(delete(ownership).where(ownership.c.resource_table == table.name, ownership.c.resource_key == resource_key(table, {c.name: getattr(item, c.name) for c in table.primary_key})))
+                retained = False
+                if table.name == 'srm_sales_order_lines':
+                    from app.business_packs.restaurant.removals import retain_deleted_branch_source
+                    retained = retain_deleted_branch_source(session, item)
+                if not retained:
+                    session.connection().execute(delete(ownership).where(ownership.c.resource_table == table.name, ownership.c.resource_key == resource_key(table, {c.name: getattr(item, c.name) for c in table.primary_key})))
             else:
                 pending.append(item)
 
