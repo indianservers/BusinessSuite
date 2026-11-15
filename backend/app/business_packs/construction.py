@@ -16,6 +16,9 @@ from .common_core import _native_authority
 from .common_queries import assert_mapped_sources
 
 _PROJECT_PROOFS = WeakKeyDictionary()
+_CONSTRUCTION_EVIDENCE = frozenset({'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
+    'work_package', 'planning_baseline', 'payment_certificate', 'handover',
+    'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'})
 
 
 def _project_epoch(db, scope, project_id):
@@ -292,6 +295,22 @@ def subcontract_vendor_roles(db, actor, project_id, vendor):
     return relationships(db, vendor, 'company', links=[SimpleNamespace(role=role) for role in roles])
 
 
+def reject_evidence_delete(db, scope, item):
+    """Deny retained Construction evidence before native branch cleanup."""
+    from .access import PackScope
+    from app.apps.srm.industry_models import IndustryRecord
+    if (not isinstance(scope, PackScope) or scope.pack_key != 'construction'
+            or db.info.get('business_pack_scope') is not scope
+            or type(item) is not IndustryRecord or item not in db.deleted):
+        return
+    state = inspect(item)
+    stored_kind = db.connection().scalar(select(IndustryRecord.__table__.c.kind).where(
+        IndustryRecord.__table__.c.id == state.identity[0])) if state.identity else None
+    if item.kind in _CONSTRUCTION_EVIDENCE or stored_kind in _CONSTRUCTION_EVIDENCE:
+        _current(scope, db.connection())
+        _deny('Construction workflow evidence cannot be deleted', 403)
+
+
 def validate_industry_source(db, scope, item):
     """No private BOQ/project/parent link may cross its actual source boundary."""
     from .construction_materials import validate_item
@@ -300,9 +319,7 @@ def validate_industry_source(db, scope, item):
     from .models import PackRecordOwnership
     if type(item) is not IndustryRecord or scope.pack_key != 'construction':
         return
-    kinds = {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
-             'work_package', 'planning_baseline', 'payment_certificate', 'handover',
-             'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'}
+    kinds = _CONSTRUCTION_EVIDENCE
     state = inspect(item)
     if state.persistent and any(state.attrs[name].history.has_changes()
                                 for name in ('kind', 'project_id', 'parent_id')):

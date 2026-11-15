@@ -125,13 +125,20 @@ def test_native_project_failure_does_not_leave_masters_provenance_or_consume_ret
 
 def test_native_task_failure_rolls_back_task_board_history_email_and_retries(client, db, definition, monkeypatch):
     from app.apps.project_management.api import router as pms
+    from app.models.audit import AuditLog, AuditLogTask
+    from app.branches.catalog import resource_key
     case = definition
     project = post(client, case['headers'], '/site-projects', project_body(case))
+    # Production request auditing commits in its independent session. The
+    # shared TestClient audit session only flushes; retain the completed
+    # request before testing the next request's rollback boundary.
+    db.commit()
     body = task_body()
     models = (PMSTask, PMSBoard, PMSBoardColumn, RecoveryChange, EmailOutbox, IndustryRecord,
               PackRecordOwnership)
     counts = {model: db.query(model).count() for model in models}
     before_branch = {(row.resource_table, row.resource_key, row.source) for row in db.query(BranchOwnership)}
+    before_audits = {row.id for row in db.query(AuditLog)}
     original = pms.create_task_operation
     def fail_after_native(*args, **kwargs):
         value = original(*args, **kwargs)
@@ -144,10 +151,26 @@ def test_native_task_failure_rolls_back_task_board_history_email_and_retries(cli
     assert {model: db.query(model).count() for model in models} == counts
     after_branch = {(row.resource_table, row.resource_key, row.source) for row in db.query(BranchOwnership)}
     assert before_branch <= after_branch
-    # Request-level failed-task auditing intentionally survives the business
-    # savepoint; every actual task/business ownership birth must roll back.
-    assert {(table, source) for table, key, source in after_branch - before_branch} == {
-        ('audit_log_tasks', 'request-audit')}
+    # The sole new audit and its actual task links survive independently;
+    # every business/pack ownership birth must still roll back exactly.
+    failed_audits = db.query(AuditLog).filter(AuditLog.id.notin_(before_audits)).all()
+    assert before_audits <= {row.id for row in db.query(AuditLog)}
+    assert len(failed_audits) == 1
+    failed = failed_audits[0]
+    assert (failed.endpoint, failed.method, failed.status_code, failed.user_id,
+            failed.organization_id, failed.action, failed.error_type) == (
+        '/projects/{project_id}/wbs-tasks', 'POST', 500,
+        case['actor'].id, 1, 'ERROR', 'RuntimeError')
+    links = db.query(AuditLogTask).filter_by(audit_log_id=failed.id).all()
+    assert len(links) == 1 and failed.task_id == links[0].task_id
+    assert db.get(PMSTask, links[0].task_id) is None
+    expected_branch = {(AuditLog.__tablename__, str(failed.id), 'request-audit'),
+        (AuditLogTask.__tablename__, resource_key(AuditLogTask.__table__, {
+            'audit_log_id': failed.id, 'task_id': links[0].task_id}), 'request-audit')}
+    assert after_branch - before_branch == expected_branch
+    for table, key, _ in expected_branch:
+        anchor = db.get(BranchOwnership, (table, key))
+        assert (anchor.company_id, anchor.branch_id) == (1, case['branch'])
     created = post(client, case['headers'], f'/projects/{project["id"]}/wbs-tasks', body)
     assert post(client, case['headers'], f'/projects/{project["id"]}/wbs-tasks', body) == created
     assert db.query(PMSTask).count() == counts[PMSTask] + 1

@@ -262,21 +262,25 @@ def test_planning_cost_budget_does_not_require_invoice_money_permission(db, actu
 
 @pytest.mark.parametrize('revocation', ['workspace', 'completion_config'])
 def test_outer_release_rechecks_actual_workspace_and_completion_lease(db, actual_site, revocation):
-    from sqlalchemy import delete, event, update
+    from datetime import datetime, timezone
+    from sqlalchemy import event, update
     from app.branches.models import BranchOwnership
+    from app.apps.project_management.workspace_lifecycle import WorkspaceArchive
     case, ids = actual_site
     row = PMSChecklistItem(task_id=ids[0], title='Inspected checklist', is_completed=True)
     db.add(row); db.flush(); own(db, case, row); db.commit()
     checklist_id = row.id
     workspace_id = db.get(PMSProject, case[3]).workspace_id
+    workspace_ownership = ('pms_workspaces', str(workspace_id))
+    assert db.get(BranchOwnership, workspace_ownership) is not None
     data = task_input(db, ids[0], status='Done')
     connection, revoked = db.connection(), []
     def after_commit(session):
         if session is db and session.in_nested_transaction() and not revoked:
             revoked.append(True)
             if revocation == 'workspace':
-                table = BranchOwnership.__table__
-                connection.execute(delete(table).where(table.c.resource_table == 'pms_workspaces', table.c.resource_key == str(workspace_id)))
+                connection.execute(WorkspaceArchive.__table__.insert().values(workspace_id=workspace_id,
+                    deleted_at=datetime.now(timezone.utc).replace(tzinfo=None), deleted_by=case[0].id, batch_key=uuid4().hex))
             else:
                 table = PMSChecklistItem.__table__
                 connection.execute(update(table).where(table.c.id == checklist_id).values(is_completed=False))
@@ -284,8 +288,27 @@ def test_outer_release_rechecks_actual_workspace_and_completion_lease(db, actual
     try:
         with selected(db, case) as actor, pytest.raises(HTTPException) as denied:
             actuals.task_actual(case[3], ids[0], data, db, actor)
-        assert denied.value.status_code == (404 if revocation == 'workspace' else 409)
+        assert denied.value.status_code == (403 if revocation == 'workspace' else 409)
     finally:
         event.remove(db, 'after_commit', after_commit)
     assert revoked and db.get(PMSTask, ids[0]).status == 'To Do'
     assert db.query(IndustryRecord).filter_by(project_id=case[3], kind='task_actual').count() == 0
+    assert db.get(BranchOwnership, workspace_ownership) is not None
+    assert db.get(WorkspaceArchive, workspace_id) is None
+
+
+def test_postgresql_retains_pack_workspace_branch_ownership_history(db, actual_site):
+    from sqlalchemy import delete
+    from sqlalchemy.exc import IntegrityError
+    from app.branches.models import BranchOwnership
+    if db.get_bind().dialect.name != 'postgresql':
+        pytest.skip('Requires the migrated PostgreSQL ownership-retention trigger')
+    case, _ = actual_site
+    workspace_id = db.get(PMSProject, case[3]).workspace_id
+    with pytest.raises(IntegrityError) as retained:
+        with db.begin_nested():
+            table = BranchOwnership.__table__
+            db.connection().execute(delete(table).where(table.c.resource_table == 'pms_workspaces', table.c.resource_key == str(workspace_id)))
+    assert (getattr(retained.value.orig, 'sqlstate', None) or getattr(retained.value.orig, 'pgcode', None)) == '23514'
+    assert 'Pack-private branch ownership history must be retained' in str(retained.value.orig)
+    assert db.query(BranchOwnership).filter_by(resource_table='pms_workspaces', resource_key=str(workspace_id)).count() == 1

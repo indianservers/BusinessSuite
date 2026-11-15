@@ -304,6 +304,9 @@ def install(db, user, ctx, *, identity_administration=False):
             if "branch_id" in table.c and item not in session.new and state.attrs.branch_id.history.has_changes():
                 deny("Use an authorized branch transfer to change ownership")
             if item in session.deleted:
+                if table.name == 'srm_industry_records' and getattr(session.info.get('business_pack_scope'), 'pack_key', None) == 'construction':
+                    from app.business_packs.construction import reject_evidence_delete
+                    reject_evidence_delete(session, session.info['business_pack_scope'], item)
                 session.connection().execute(delete(ownership).where(ownership.c.resource_table == table.name, ownership.c.resource_key == resource_key(table, {c.name: getattr(item, c.name) for c in table.primary_key})))
             else:
                 pending.append(item)
