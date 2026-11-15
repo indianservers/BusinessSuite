@@ -276,6 +276,14 @@ def directory(search: str='', status: str='', assigned_user_id: int | None=None,
 
 @router.get('/statistics')
 def statistics(db=Depends(get_db), user=Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_followups import statistics as selected_statistics
+        return selected_statistics(db, user, _statistics_operation)
+    return _statistics_operation(db, user)
+
+
+def _statistics_operation(db, user):
     access(user, db=db)
     rows = visible(db, user).all()
     now = datetime.now(timezone.utc)

@@ -169,7 +169,7 @@ def project_for_action(db, actor, project_id, action='browse'):
     from app.shared.models import ServicePolicy
     from app.shared.settings import effective
 
-    if action not in {'browse', 'manage_tasks', 'approve', 'edit_project'}:
+    if action not in {'browse', 'manage_tasks', 'approve', 'edit_project', 'upload'}:
         _deny('Unreviewed Construction project action', 403)
     scope, workspace_id = _source(db, actor, project_id)
     authority = _native_authority(db, actor, scope.company_id)
@@ -300,15 +300,43 @@ def validate_industry_source(db, scope, item):
     from .models import PackRecordOwnership
     if type(item) is not IndustryRecord or scope.pack_key != 'construction':
         return
-    kinds = {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue'}
-    if item.kind not in kinds:
-        return
-    from .construction_billing import validate_record
-    validate_record(db, item)
+    kinds = {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
+             'work_package', 'planning_baseline', 'payment_certificate', 'handover',
+             'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'}
     state = inspect(item)
     if state.persistent and any(state.attrs[name].history.has_changes()
                                 for name in ('kind', 'project_id', 'parent_id')):
-        _deny('Construction source identity is immutable', 403)
+        stored_kind = db.connection().scalar(select(IndustryRecord.__table__.c.kind).where(
+            IndustryRecord.__table__.c.id == state.identity[0]))
+        if item.kind in kinds or stored_kind in kinds:
+            _deny('Construction source identity is immutable', 403)
+    if item.kind not in kinds:
+        return
+    if item in db.deleted:
+        _deny('Construction workflow evidence cannot be deleted', 403)
+    from .construction_billing import validate_record
+    validate_record(db, item)
+    if item.kind in {'work_package', 'measurement'}:
+        from .construction_workpackages import validate_work_package_source
+        validate_work_package_source(db, scope, item)
+    if item.kind in {'payment_certificate', 'handover'}:
+        from .construction_delivery import validate_record as validate_delivery
+        validate_delivery(db, scope, item)
+    if item.kind == 'planning_baseline':
+        from .construction_controls import validate_baseline_record
+        validate_baseline_record(db, scope, item)
+    if item.kind in {'project_definition', 'task_definition'}:
+        from .construction_definition import validate_record as validate_definition
+        validate_definition(db, scope, item)
+    if item.kind in {'task_actual', 'cost_actual', 'cost_budget'}:
+        from .construction_actuals import validate_record as validate_actuals
+        validate_actuals(db, scope, item)
+    if item.kind == 'commercial_link':
+        from .construction_commercial import validate_record as validate_commercial
+        validate_commercial(db, scope, item)
+    if item.kind == 'dependency_definition':
+        from .construction_dependencies import validate_record as validate_dependency
+        validate_dependency(db, scope, item)
     # Source validation uses the actual request actor, never the row's author.
     from app.models.user import User
     actor = db.get(User, scope.user_id)
@@ -324,7 +352,7 @@ def validate_industry_source(db, scope, item):
                 owner.c.context_id == scope.context_id))))
         if not valid:
             _deny('Construction parent is unavailable')
-    if item.kind in {'variation', 'measurement'} and item.parent_id is None:
+    if item.kind in {'variation', 'measurement', 'work_package'} and item.parent_id is None:
         _deny('Construction parent is required', 422)
 
 
@@ -356,7 +384,9 @@ def authorize_record_project(db, actor, record_id):
             owner.c.context_id == scope.context_id))).first()
     if actual is None:
         _deny('Industry record not found')
-    if actual.kind not in {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue'}:
+    if actual.kind not in {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
+                           'work_package', 'planning_baseline', 'payment_certificate', 'handover',
+                           'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'}:
         return
     if actual.project_id is None:
         _deny('Industry record not found')

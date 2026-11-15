@@ -39,6 +39,42 @@ class RequestOperation:
 
 # Exact server canonical templates, never caller paths, labels or prefixes.
 _RULES = {
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/cost-budget'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/commercial-source'): RequestOperation(('billing.view', 'billing.prepare'), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/commercial-source'): RequestOperation(('billing.prepare',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/resource-options'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/task-dependencies'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/definition-workspaces'): RequestOperation(('settings.manage',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/task-actuals/{task_id}'): RequestOperation(('diary.record',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/cost-actuals'): RequestOperation(('billing.prepare',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/cost-source'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/measurements/{ident}/work-package'): RequestOperation(('measurements.certify',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/site-projects'): RequestOperation(('settings.manage',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/projects/{project_id}/wbs-tasks'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/planning-tasks'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('GET', '/api/v1/project-management/projects/{project_id}/schedule-analysis'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('POST', '/api/v1/project-management/projects/{project_id}/schedule-preview'): RequestOperation(('boq.prepare', 'settings.manage'), mode='construction_planning'),
+    ('POST', '/api/v1/project-management/projects/{project_id}/schedule-apply'): RequestOperation(('boq.prepare', 'settings.manage'), mode='construction_planning'),
+    ('POST', '/api/v1/project-management/projects/{project_id}/schedule-baselines'): RequestOperation(('boq.prepare', 'settings.manage'), mode='construction_planning'),
+    ('GET', '/api/v1/project-management/projects/{project_id}/schedule-variance/export'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/planning-baselines'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/planning-baselines/{ident}/review'): RequestOperation(('boq.approve',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/planning-baselines'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/performance'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/projects/{project_id}/client-report'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/work-packages'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/work-packages'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('PUT', '/api/v1/srm/industry/work-packages/{ident}'): RequestOperation(('boq.prepare',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/payment-certificates'): RequestOperation(('billing.prepare',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/handovers'): RequestOperation(('diary.record',), mode='construction_planning'),
+    ('PUT', '/api/v1/srm/industry/handovers/{ident}'): RequestOperation(('diary.record',), mode='construction_planning'),
+    ('POST', '/api/v1/srm/industry/delivery/{ident}/review'): RequestOperation(('boq.approve', 'billing.prepare'), mode='construction_planning'),
+    ('GET', '/api/v1/srm/industry/delivery/{ident}/export'): RequestOperation(('sites.view',), mode='construction_planning'),
+    ('GET', '/api/v1/project-management/files'): RequestOperation(('sites.view',), mode='construction_documents'),
+    ('GET', '/api/v1/project-management/file-folders'): RequestOperation(('sites.view',), mode='construction_documents'),
+    ('POST', '/api/v1/project-management/projects/{project_id}/files/upload'): RequestOperation(('diary.record',), mode='construction_documents'),
+    ('GET', '/api/v1/project-management/attachments/{file_id}/download'): RequestOperation(('sites.view',), mode='construction_documents'),
+    ('GET', '/api/v1/follow-ups/statistics'): RequestOperation(('sites.view', 'reports.view'), mode='construction_statistics'),
     ('GET', '/api/v1/srm/accounts/capabilities'): RequestOperation(mode='native_metadata'),
     ('GET', '/api/v1/srm/accounts/options'): RequestOperation(('engagements.manage',)),
     ('GET', '/api/v1/srm/accounts/clients'): RequestOperation(('engagements.manage',)),
@@ -237,6 +273,9 @@ def authorize_request(db, actor, request, scope):
     rule = RULES.get((method, path))
     if rule is None:
         _unavailable(method, path, 'No audited selected-pack operation adapter is registered for this native route')
+    if rule.mode in {'construction_documents', 'construction_statistics', 'construction_planning'}:
+        if scope.pack_key != 'construction' or not allowed.intersection(rule.actions):
+            raise HTTPException(403, 'The selected Business Pack cannot perform this Construction operation')
     if rule.mode == 'industry_kind':
         for_record_read(db, actor, request.query_params.get('kind', ''))
     elif rule.mode in {'capability', 'invoice_document'} and not allowed.intersection(rule.actions):
