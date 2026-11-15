@@ -2805,6 +2805,14 @@ def update_sales_order_line(sales_order_id: int, line_id: int, data: SRMSalesOrd
 
 @router.delete("/sales-orders/{sales_order_id}/lines/{line_id}")
 def delete_sales_order_line(sales_order_id: int, line_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    return delete_sales_order_line_operation(sales_order_id, line_id, db, current_user)
+
+
+def delete_sales_order_line_operation(sales_order_id, line_id, db, current_user, *, commit=True):
+    from app.apps.srm.services.commercial import require
+    from app.access.service import check_background_access
+    require(current_user, 'srm_manage', 'srm_admin')
+    check_background_access(db, current_user, 'srm', 'delete', administrative_read=False, stamp=False)
     order = get_sales_order_for_user(db, sales_order_id, current_user)
     if order.status not in {"draft", "pending_approval"}:
         raise HTTPException(status_code=400, detail="Sales order lines can only be changed before confirmation")
@@ -2813,9 +2821,12 @@ def delete_sales_order_line(sales_order_id: int, line_id: int, db: Session = Dep
         raise HTTPException(status_code=404, detail="Sales order line not found")
     before = _serialize(line)
     db.delete(line)
-    _recalculate_sales_order(db, order)
+    from app.business_packs.restaurant.removals import reconcile_native_deletion
+    if not reconcile_native_deletion(db, current_user, order, line):
+        _recalculate_sales_order(db, order)
     _audit(db, current_user, "sales_order_line", line_id, "deleted", before=before)
-    db.commit()
+    if commit:
+        db.commit()
     return {"deleted": True, "id": line_id}
 
 
