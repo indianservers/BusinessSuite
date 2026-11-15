@@ -8,10 +8,12 @@ from tests.test_payslip_workflow import slips
 from tests.rich_text_test_utils import organization_context
 
 
-def configure(db, company_id, label, branch_id=None):
+def configure(db, company_id, label, branch_id=None, *, headers):
+    from app.core.security import verify_access_token
+    actor_id = int(verify_access_token(headers['Authorization'].split(' ', 1)[1])['sub'])
     db.add(ServicePolicy(organization_id=company_id, kind=KIND,
                          scope_key=scope_key(company_id, branch_id), module_key='*',
-                         values_json={'terms': {'employee': [label, label + 's']}}, version=1, updated_by=1))
+                         values_json={'terms': {'employee': [label, label + 's']}}, version=1, updated_by=actor_id))
     db.commit()
 
 
@@ -25,10 +27,10 @@ def pdf_text(content, password=None):
 def test_published_payslip_uses_employee_branch_and_keeps_published_content(client, db, slips):
     run, record, admin, employee = slips
     branch = record.employee.branch
-    configure(db, branch.company_id, 'Company colleague')
+    configure(db, branch.company_id, 'Company colleague', headers=admin)
     label = 'Team member receiving consolidated salary and benefit detail'
     assert len(label) == 60
-    configure(db, branch.company_id, label, branch.id)
+    configure(db, branch.company_id, label, branch.id, headers=admin)
     preview = client.get('/api/v1/payroll/delivery/template-preview', headers={**admin, 'X-Suite-Branch': str(branch.id)})
     assert preview.status_code == 200, preview.text
     assert label + ':' in pdf_text(preview.content)
@@ -65,7 +67,7 @@ def test_probation_letter_uses_employee_branch_terms(client, db, superuser_heade
     monkeypatch.setattr(probation.settings, 'UPLOAD_DIR', str(tmp_path))
     monkeypatch.setattr(probation, 'persist_file', lambda path: None)
     person = employee(db)
-    configure(db, person.branch.company_id, 'Team member', person.branch_id)
+    configure(db, person.branch.company_id, 'Team member', person.branch_id, headers=superuser_headers)
     result = client.post(f'/api/v1/hrms/probation/{person.id}/confirm', headers=superuser_headers,
                          json={'effectiveDate': '2026-06-30', 'remarks': 'Employee authored text remains.'})
     assert result.status_code == 200, result.text
@@ -79,7 +81,7 @@ def test_probation_letter_uses_employee_branch_terms(client, db, superuser_heade
 def test_salary_certificate_wraps_custom_labels_and_preserves_purpose(client, db, slips):
     _, record, admin, _ = slips
     label = 'Team member receiving consolidated salary and benefit detail'
-    configure(db, record.employee.branch.company_id, label, record.employee.branch_id)
+    configure(db, record.employee.branch.company_id, label, record.employee.branch_id, headers=admin)
     response = client.post('/api/v1/payroll/salary-certificates', headers=admin,
                            json={'employee_id': record.employee_id, 'purpose': 'Employee loan support'})
     assert response.status_code == 201, response.text

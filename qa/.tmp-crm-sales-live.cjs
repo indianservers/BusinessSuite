@@ -1,0 +1,20 @@
+const {chromium}=require('../frontend/node_modules/playwright');
+const fs=require('node:fs');
+(async()=>{
+ const auth=JSON.parse(fs.readFileSync('backend/.tmp-crm-local-auth.json','utf8'));
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(auth=>sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:auth.token,user:auth.user,isAuthenticated:true},version:0})),auth);
+ await page.goto('http://127.0.0.1:5173/crm/leads');
+ await page.getByRole('heading',{name:'Consultations & demos',exact:true}).waitFor({timeout:90000});
+ await page.getByLabel('Consultation and demo performance').getByText('18',{exact:true}).waitFor({timeout:30000});
+ fs.mkdirSync('output/crm-sales-process',{recursive:true});
+ await page.screenshot({path:'output/crm-sales-process/leads-desktop.png',fullPage:false});
+ await page.getByText('Sales process & automation',{exact:false}).click();
+ console.log(JSON.stringify({title:await page.title(),metrics:await page.getByLabel('Consultation and demo performance').innerText(),errors}));
+ await page.screenshot({path:'output/crm-sales-process/automation-desktop.png',fullPage:false});
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'output/crm-sales-process/leads-mobile.png',fullPage:false});
+ await browser.close();
+})().catch(e=>{console.error(e.message);process.exitCode=1;});

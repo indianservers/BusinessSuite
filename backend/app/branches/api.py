@@ -352,6 +352,8 @@ def assign_ownership(data: AssignmentInput, db: Session = Depends(get_db), user:
     from app.branches.catalog import resource_key
     for row in rows:
         key = resource_key(table, row)
+        from app.business_packs.legacy_boundary import assert_branch_ownership_change
+        assert_branch_ownership_change(db, table.name, key, company_id=user.organization_id, branch_id=data.branch_id)
         if connection.execute(select(BranchOwnership.branch_id).where(BranchOwnership.resource_table == table.name, BranchOwnership.resource_key == key)).first():
             raise HTTPException(409, "A record already has ownership; refresh the review list")
         evidence = branch_for_row(connection, table, row, user.organization_id, Base.metadata.tables, historical=True)
@@ -378,6 +380,9 @@ def share_profile(data: ShareInput, db: Session = Depends(get_db), user: User = 
         raise HTTPException(403, "CRM management permission is required")
     if data.table_name not in {"crm_companies", "crm_contacts"}:
         raise HTTPException(422, "Only customer and contact profiles can be shared; transactions remain private")
+    if data.shared:
+        from app.business_packs.legacy_boundary import assert_branch_ownership_change
+        assert_branch_ownership_change(db, data.table_name, data.resource_key, company_id=user.organization_id, branch_id=data.branch_id)
     connection = db.connection()
     stamp = connection.execute(select(BranchOwnership.branch_id).where(BranchOwnership.company_id == user.organization_id, BranchOwnership.resource_table == data.table_name, BranchOwnership.resource_key == data.resource_key).with_for_update()).scalar()
     allowed, writable, _, _ = access(db, user, user.organization_id)

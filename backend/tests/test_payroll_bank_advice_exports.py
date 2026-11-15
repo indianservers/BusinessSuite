@@ -42,7 +42,7 @@ def test_bank_advice_preview_generate_and_download(client, db):
     ensure_payroll_ready(db, 5, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
-    assert run_response.status_code == 201
+    assert run_response.status_code == 201, run_response.text
     run_id = run_response.json()["id"]
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
     run.status = "approved"

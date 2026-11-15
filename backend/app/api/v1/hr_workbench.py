@@ -90,6 +90,10 @@ def request_context(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.business_packs.request_context_core import project
+    projected=project(db,current_user,employee_id,kind)
+    if projected is not None:
+        return projected
     own = current_user.employee.id if current_user.employee else None
     if employee_id is None and own is None:
         raise HTTPException(400, "Link an employee profile before submitting a request")
@@ -134,7 +138,7 @@ def search(q: str = Query("", max_length=150), scope: Literal["mine", "team", "o
             "scope": scope, "limit": 50}
 
 
-def approval_counts(db,user,scope):
+def approval_counts(db,user,scope,*,ids_only=False):
     visible=employees(db,user,scope)
     own=user.employee.id if user.employee else None
     counts={}
@@ -147,7 +151,7 @@ def approval_counts(db,user,scope):
         elif not permit(user,view) and not permit(user,decide):permitted=permitted.filter(Employee.id==(own or -1))
         query=db.query(model).filter(model.employee_id.in_(permitted.with_entities(Employee.id)),model.status.in_(statuses))
         if kind=="leave":query=query.filter(LeaveRequest.deleted_at.is_(None))
-        counts[kind]=query.count()
+        counts[kind]=(query.with_entities(model.id) if ids_only else query).count()
     return counts
 
 
@@ -292,8 +296,15 @@ def decide(data: Decision, db: Session=Depends(get_db), user: User=Depends(get_c
 
 @router.get("/home")
 def home(scope: Literal["mine", "team", "organization"]="mine", db: Session=Depends(get_db), user: User=Depends(get_current_user)):
+    from app.business_packs.hrms_home_core import project
+    projected=project(db,user,scope)
+    if projected is not None:return projected
+    return native_home(scope,db,user)
+
+
+def native_home(scope,db,user):
     population=employees(db,user,scope);ids=population.with_entities(Employee.id)
-    total=population.count();counts=approval_counts(db,user,scope)
+    total=ids.count();counts=approval_counts(db,user,scope,ids_only=True)
     from app.services.metrics.queries import business_day,company_id
     today=business_day(db,user)
     joiner_query=population.filter(Employee.status.notin_(["Terminated","Exited","Resigned","Retired","Absconding"]),Employee.date_of_joining>=today-timedelta(days=7),Employee.date_of_joining<=today+timedelta(days=30))
@@ -301,10 +312,10 @@ def home(scope: Literal["mine", "team", "organization"]="mine", db: Session=Depe
     exit_query=db.query(ExitRecord).filter(ExitRecord.employee_id.in_(ids),ExitRecord.status.notin_(["Completed","Cancelled"]))
     exits=exit_query.order_by(ExitRecord.id).limit(50).all() if permit(user,"exit_view") else []
     exit_people={p.id:p for p in population.filter(Employee.id.in_([r.employee_id for r in exits])).all()} if exits else {}
-    tickets=db.query(HelpdeskTicket).filter(HelpdeskTicket.employee_id.in_(ids),HelpdeskTicket.status.in_(["Open","In Progress","Pending"])).count() if permit(user,"helpdesk_view") else None
+    tickets=db.query(HelpdeskTicket.id).filter(HelpdeskTicket.employee_id.in_(ids),HelpdeskTicket.status.in_(["Open","In Progress","Pending"])).count() if permit(user,"helpdesk_view") else None
     missing=db.query(Attendance.employee_id).filter(Attendance.employee_id.in_(ids),Attendance.attendance_date==today,or_((Attendance.check_in.isnot(None)) & (Attendance.check_out.is_(None)),(Attendance.check_in.is_(None)) & (Attendance.check_out.isnot(None)))).distinct().count() if permit(user,"attendance_view") or scope=="mine" else None
     return {"scope":scope,"refreshed_at":now(),"employee_count":total,"truncated":False,"can_manage":permit(user,"employee_update"),"can_create":permit(user,"employee_create"),
-        "pending_counts":{"approvals":sum(counts.values()),"leave":counts["leave"],"expenses":counts["expense"],"helpdesk":tickets},"joiner_count":joiner_query.count(),"exit_count":exit_query.count() if permit(user,"exit_view") else None,
+        "pending_counts":{"approvals":sum(counts.values()),"leave":counts["leave"],"expenses":counts["expense"],"helpdesk":tickets},"joiner_count":joiner_query.with_entities(Employee.id).count(),"exit_count":exit_query.with_entities(ExitRecord.id).count() if permit(user,"exit_view") else None,
         "joiners":joiners,"exits":[{"id":r.id,"employee_id":r.employee_id,"employee":summary(exit_people[r.employee_id],user),"status":r.status,"last_working_date":r.last_working_date} for r in exits],"missing_punches":missing,
         "scope_note":f"Organization #{company_id(user)} and current permission restrictions apply. My Team means direct reports. Counts cover complete source queries; joiner and exit previews show up to 50 records."}
 

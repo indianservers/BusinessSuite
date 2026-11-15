@@ -16,15 +16,15 @@ def test_core_concepts_foundations_work(client, db):
     init_db(db)
     admin = _login(client, "admin@aihrms.com", "Admin@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
-    company = db.query(Company).first()
-    branch = db.query(Branch).first()
-    department = db.query(Department).first()
-    designation = db.query(Designation).first()
+    branch = db.get(Branch, employee.branch_id)
+    company = db.get(Company, branch.company_id)
+    department = db.get(Department, employee.department_id)
+    designation = db.get(Designation, employee.designation_id)
 
     business_unit = client.post("/api/v1/company/business-units", json={
         "name": "Product Engineering", "code": "BU-ENG", "company_id": company.id,
     }, headers=admin)
-    assert business_unit.status_code == 201
+    assert business_unit.status_code == 201, business_unit.text
 
     cost_center = client.post("/api/v1/company/cost-centers", json={
         "name": "Platform Cost Center", "code": "CC-PLAT", "company_id": company.id,

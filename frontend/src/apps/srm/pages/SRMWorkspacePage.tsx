@@ -1,3 +1,4 @@
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import BusinessTerm from "@/components/BusinessTerm";
 import POSReturnForm from "../components/POSReturnForm";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
@@ -56,7 +57,6 @@ import {
   AlertTriangle,
   BarChart3,
   BriefcaseBusiness,
-  Boxes,
   CheckCircle2,
   CreditCard,
   FileCheck2,
@@ -84,7 +84,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
-import { inventoryEntryPoints, inventorySourceFeatureCount, mappedInventorySourceFeatureCount } from "@/apps/inventory/sourceCatalog";
+import { inventoryEntryPoints } from "@/apps/inventory/sourceCatalog";
 import { srmApi } from "../api";
 import { syncSrmNow, useSrmRealtimeInvalidation } from "../realtime";
 import type { SRMRecord, SRMViewKind } from "../types";
@@ -556,11 +556,11 @@ const coreLaunchpad = [
     action: "Open inventory",
   },
   {
-    title: "Source Map",
-    description: `${mappedInventorySourceFeatureCount}/${inventorySourceFeatureCount} cloned Vyapara ERP sales, POS, and inventory entry points are mapped into Sales & Inventory.`,
-    icon: Boxes,
-    to: "/srm/inventory/source",
-    action: "View mapped features",
+    title: "Invoices & payments",
+    description: "Prepare invoices, plan billing and collect customer payments in one place.",
+    icon: Receipt,
+    to: "/srm/invoices",
+    action: "Open billing",
   },
 ];
 
@@ -1637,11 +1637,16 @@ function POSReturnsView() {
   );
 }
 
-export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+export function CommercialCreateCard(props: Parameters<typeof ScopedCommercialCreateCard>[0]) {
+  const scope = usePrivateDraftScope();
+  return <ScopedCommercialCreateCard key={scope} {...props}/>;
+}
+
+function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
   const [creationParams] = useSearchParams();
   const contextId = (key: string) => /^\d+$/.test(creationParams.get(key) || "") ? creationParams.get(key)! : "";
-  const draftUser = useAuthStore(state => state.user);
-  const draftKey = `srm-order-draft:${draftUser?.id}:${sessionStorage.getItem("suite-organization") || draftUser?.access?.companyId || 1}:${sessionStorage.getItem("suite-branch") || "default"}${contextId("customer_id") ? `:customer:${contextId("customer_id")}` : ""}`;
+  const ownsDraft = usePrivateDraftOwner();
+  const draftKey = privateDraftKey("srm-order-draft", contextId("customer_id"));
   const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -1673,6 +1678,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
   });
   useEffect(() => {
     if (kind !== "salesOrders") return;
+    if (!ownsDraft()) return;
     try { sessionStorage.setItem(draftKey, JSON.stringify({ ...salesOrder, lines: orderLines })); } catch { /* Saving the record remains available without browser storage. */ }
   }, [draftKey, kind, salesOrder, orderLines]);
   const [contract, setContract] = useState({
@@ -1761,13 +1767,14 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
       throw new Error("Create form is not available for this SRM view.");
     },
     onSuccess: async (result) => {
+      if (!ownsDraft()) return;
       if (kind === "salesOrders") sessionStorage.removeItem(draftKey);
       const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
       setMessage(text);
       toast({ title: text });
       if (kind === "salesOrders") {
         onSaved?.();
-        void syncSrmNow(queryClient, { type: "sales_order_changed", source: "srm-salesOrders-create", ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined } }).catch(() => toast({ title: "Sales order saved", description: "The list could not be refreshed. Refresh to see the latest details." }));
+        void syncSrmNow(queryClient, { type: "sales_order_changed", source: "srm-salesOrders-create", ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined } }).catch(() => { if (ownsDraft()) toast({ title: "Sales order saved", description: "The list could not be refreshed. Refresh to see the latest details." }); });
         return;
       }
       await syncSrmNow(queryClient, {
@@ -1775,9 +1782,10 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
         source: `srm-${kind}-create`,
         ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
       });
-      onSaved?.();
+      if (ownsDraft()) onSaved?.();
     },
     onError: (err: unknown) => {
+      if (!ownsDraft()) return;
       const text = apiErrorMessage(err, "Create failed");
       setMessage(text);
       toast({ title: "SRM create failed", description: text, variant: "destructive" });
@@ -1793,7 +1801,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
       </CardHeader>
       <CardContent>
         {restoredDraft && <p role="status" className="mb-3 text-sm text-muted-foreground">Unsaved sales order restored for this company and branch. Review it before saving.</p>}
-        <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
+        <CompactForm compactTabs={kind !== "contracts"} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
           {kind === "salesOrders" ? (
             <>
               <div className="grid gap-3 md:grid-cols-2">
@@ -1819,9 +1827,9 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
               </div>
               <div className="grid gap-3 md:grid-cols-5">
                 <label className="space-y-2 text-sm"><span className="font-medium">Type</span><Input value={contract.contract_type} onChange={(event) => setContract((current) => ({ ...current, contract_type: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Effective</span><Input type="date" value={contract.effective_date} onChange={(event) => setContract((current) => ({ ...current, effective_date: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Expiry</span><Input type="date" value={contract.expiry_date} onChange={(event) => setContract((current) => ({ ...current, expiry_date: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Value</span><Input inputMode="decimal" value={contract.contract_value} onChange={(event) => setContract((current) => ({ ...current, contract_value: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Effective date</span><Input type="date" value={contract.effective_date} onChange={(event) => setContract((current) => ({ ...current, effective_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Expiry date</span><Input type="date" value={contract.expiry_date} onChange={(event) => setContract((current) => ({ ...current, expiry_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Contract amount</span><Input inputMode="decimal" value={contract.contract_value} onChange={(event) => setContract((current) => ({ ...current, contract_value: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={contract.currency} onChange={currency => setContract((current) => ({ ...current, currency }))} /></label>
               </div>
               <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={contract.terms} onChange={(event) => setContract((current) => ({ ...current, terms: event.target.value }))} /></label>
@@ -1984,7 +1992,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                         {hasSchedule && <><td className="px-4 py-3" data-grid-value={record[dateKeys[0]]}>{formatDate(record[dateKeys[0]])}</td><td className="px-4 py-3" data-grid-value={record[dateKeys[1]]}>{formatDate(record[dateKeys[1]])}</td></>}
                         {hasProgress && <td className="px-4 py-3">{record.progress_percent != null || record.completion_percentage != null ? columnValue("Progress",`${record.progress_percent ?? record.completion_percentage}%`) : "—"}</td>}
                         <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">{["salesOrders","contracts","engagements","billingPlans"].includes(kind)&&<RecordMaintenance record={record} name={String(name)} endpoint={`/srm/${({salesOrders:"sales-orders",contracts:"contracts",engagements:"engagements",billingPlans:"billing-plans"} as Record<string,string>)[kind]}/${id}`} method="patch" fields={[{key:["salesOrders","contracts"].includes(kind)?"title":"name",label:"Record name",required:true}]} queryKeys={["srm"]} canEdit={canManage} canDelete={canManage&&["draft","planned","created"].includes(status)}/>}
+                          <div className="flex justify-end gap-2">{["engagements","billingPlans"].includes(kind)&&<RecordMaintenance record={record} name={String(name)} endpoint={`/srm/${({salesOrders:"sales-orders",contracts:"contracts",engagements:"engagements",billingPlans:"billing-plans"} as Record<string,string>)[kind]}/${id}`} method="patch" fields={[{key:["salesOrders","contracts"].includes(kind)?"title":"name",label:"Record name",required:true}]} queryKeys={["srm"]} canEdit={canManage} canDelete={canManage&&["draft","planned","created"].includes(status)}/>}
                             {canCreate && kind === "salesOrders" && id ? (
                               <>
                                 {isPosSale ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">POS posted</span> : null}

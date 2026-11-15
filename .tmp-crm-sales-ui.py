@@ -1,0 +1,7 @@
+from pathlib import Path
+p=Path('frontend/src/apps/crm/leads/LeadManagementPage.tsx');s=p.read_text();s='import { SalesProcessPanel, LeadMeetingOutcomes } from "./SalesProcessPanel";\n'+s
+s=s.replace('      <section className="lm-metrics" aria-label="Lead health">','      {!potential && bootstrap && <SalesProcessPanel bootstrap={bootstrap} search={search} stage={stage} owner={owner} revision={revision} changed={refresh}/>}\n      <section className="lm-metrics" aria-label="Lead health">')
+s=s.replace('        <Record360Workspace key={id}', '        {lead && <LeadMeetingOutcomes key={id} id={id} canManage={canEdit && bootstrap.canManage} disabled={dirty || busy} changed={()=>{changed();setReload(v=>v+1);}}/>}\n        <Record360Workspace key={id}')
+s=s.replace('Convert Lead to Customer', 'Convert Lead to Opportunity')
+p.write_text(s)
+p=Path('frontend/src/apps/crm/leads/leads.css');s=p.read_text();s+='\n.lm-sales-process{border:1px solid hsl(var(--border));border-radius:10px;padding:16px;margin:12px 0;min-width:0}.lm-sales-process h2{font-size:16px;font-weight:600;margin-bottom:10px}.lm-meeting-metric{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid hsl(var(--border));border-radius:8px}.lm-meeting-metric strong{font-size:26px}.lm-sales-process summary{cursor:pointer;font-weight:600;margin-top:10px}.lm-sales-process input:not([type=checkbox]){display:block;max-width:100%;padding:8px;border:1px solid hsl(var(--border));border-radius:6px;background:transparent}.lm-sales-process p{margin:6px 0}\n';p.write_text(s)

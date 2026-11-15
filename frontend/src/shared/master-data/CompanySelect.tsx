@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, ExternalLink, Plus, Pencil, Search } from "lucide-react";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
+import { recordScope } from "@/lib/record-scope";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -23,7 +24,7 @@ import "./master-data.css";
 
 export type MasterSource = "crm" | "srm" | "project_management" | "hrms";
 export type Company = {services_offered?:string[];business_types?:string[];city?:string; state?:string; pincode?:string; country?:string; vendorClassification?:string; paymentTerms?:string; financialContactId?:number; gstNumber?:string; bankAccountCount?:number; upiCount?:number; id: number; name: string; entityKind?: "Individual" | "Company"; email?: string; phone?: string; phone_country_code?: string; website?: string; industry?: string; roles?: string[]; tags?: string[]; version?: string; status?: string; legalName?: string; tradeName?: string; businessType?: string; notes?: string; addresses?: Record<string,string>[]; taxRegistrations?: Record<string,string>[]; primaryContactId?: number; contacts?: {id:number;name:string;email?:string}[]; relationships?: Record<string,unknown>[]; purchases?: Record<string,unknown>[]; payables?: unknown; financialNote?: string;canEdit?:boolean };
-export function masterScope() { const user = useAuthStore.getState().user; return [user?.id,user?.access?.companyId,sessionStorage.getItem("suite-branch")].join(":"); }
+export function masterScope() { return recordScope(useAuthStore.getState().user); }
 export function useDebounced(value: string) { const [result,setResult]=useState(value); useEffect(()=>{const timer=setTimeout(()=>setResult(value.trim()),250);return()=>clearTimeout(timer);},[value]);return result; }
 type Match = {id:number;kind:string;name:string;phone?:string;email?:string;url?:string};
 

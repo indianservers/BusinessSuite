@@ -90,8 +90,10 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(role));
     add("Customer", "Create a customer", UserPlus, "/srm/customers?new=company", manages);
     add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
-    add("Catalog item", "Add a product or service", ShoppingBag, "/srm/inventory/products?new=item", manages);
-    const catalogAction = actions.find(action => action.label === "Catalog item");
+    add("Add product", "Create a product in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=product", manages);
+    add("Add service", "Create a service in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=service", manages);
+    add("POS", "Start a sale in the point of sale", Receipt, "/srm/pos/terminal", manages);
+    const catalogAction = actions.find(action => action.label === "Add product");
     if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
   }
   if (pathname.startsWith("/hrms")) add("Asset", "Register company equipment", ShoppingBag, "/hrms/assets#new-record", definitionCreate(["asset_manage", "hr_asset_manage"]));

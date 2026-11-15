@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import Customer360Workspace from "@/shared/records/Customer360Page";
 import BusinessProfileFields, {profileText} from "@/shared/master-data/BusinessProfileFields";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
@@ -92,7 +94,7 @@ import {
 import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
   Eye,
@@ -5186,7 +5188,13 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
   );
 }
 
-export function QuickDealDialog({placement="create",close, saved, dealId, initialStageId, initialPipelineId, initialValues, draftScope}: {initialValues?:CRMApiRecord;draftScope?:string;placement?:"create"|"quick_create";close: () => void; saved: () => void; dealId?: number; initialStageId?:number;initialPipelineId?:number}) {
+export function QuickDealDialog(props: Parameters<typeof ScopedQuickDealDialog>[0]) {
+  const scope = usePrivateDraftScope();
+  return <ScopedQuickDealDialog key={scope} {...props}/>;
+}
+
+function ScopedQuickDealDialog({placement="create",close, saved, dealId, initialStageId, initialPipelineId, initialValues, draftScope}: {initialValues?:CRMApiRecord;draftScope?:string;placement?:"create"|"quick_create";close: () => void; saved: () => void; dealId?: number; initialStageId?:number;initialPipelineId?:number}) {
+  const ownsDraft = usePrivateDraftOwner();
   const saveLock=useRef(false);
   const [lookups, setLookups] = useState<Record<string, CRMRecord[]>>();
   const [canManualProbability, setCanManualProbability] = useState(false);
@@ -5224,23 +5232,31 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
   }, [reload, dealId]);
   if (!lookups) return error ? <div role="alert" className="rounded-lg border p-4">{error}<Button onClick={()=>setReload(v=>v+1)}>Retry deal form</Button><Button variant="outline" onClick={close}>Close</Button></div> : null;
   return <DealFormModal autoSaveEnabled placement={placement} draftScope={draftScope} initialValues={!dealId?{...initialValues,...(initialStageId?{stageId:initialStageId}:{}),...(initialPipelineId?{pipelineId:initialPipelineId}:{})}:undefined} canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload, automatic=false) => {
-    if(saveLock.current)return;saveLock.current=true;
+    if(!ownsDraft() || saveLock.current)return;saveLock.current=true;
     setSaving(!automatic);setError(null);
     try {
       const response=dealId?await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version}):await crmApi.create("deals", payload);
+      if (!ownsDraft()) return;
       if(automatic&&record)setRecord({...record,...recordToDealRow(response.data,{companyNames:new Map(),contactNames:new Map(),ownerNames:new Map(),territoryNames:new Map(),stageNames:new Map(),pipelineNames:new Map(),stages:lookups["pipeline-stages"]})});
-      sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}${draftScope?":"+draftScope:""}`);
+      sessionStorage.removeItem(privateDraftKey("crm-deal-draft", dealId || "new", draftScope || ""));
       if(!automatic)toast({title: dealId ? "Deal updated" : "Deal created"});
       saved();if(!automatic)close();return response.data;
     } catch(err) {setError(dealError(err));} finally {saveLock.current=false;setSaving(false);}
   }}/>;
 }
 
-function DealFormModal({ autoSaveEnabled=false, placement="create", initialValues, draftScope, canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { autoSaveEnabled?:boolean;placement?:"create"|"quick_create";initialValues?:CRMApiRecord;draftScope?:string;canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
+function DealFormModal(props: Parameters<typeof ScopedDealFormModal>[0]) {
+  const scope = usePrivateDraftScope();
+  const source = useRef(scope);
+  if ((props.deal || props.initialValues) && source.current !== scope) return null;
+  return <ScopedDealFormModal key={scope} {...props}/>;
+}
+
+function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initialValues, draftScope, canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { autoSaveEnabled?:boolean;placement?:"create"|"quick_create";initialValues?:CRMApiRecord;draftScope?:string;canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
   const [initial,setInitial] = useState(() => ({...dealFormInitial(deal),...initialValues}));
   const [initialCustomValues,setInitialCustomValues] = useState(() => dealCustomFieldInitial(deal));
-  const user = useAuthStore(state => state.user);
-  const draftKey = `crm-deal-draft:${user?.access?.companyId}:${user?.id}:${deal?.id || "new"}${draftScope?":"+draftScope:""}`;
+  const ownsDraft = usePrivateDraftOwner();
+  const draftKey = privateDraftKey("crm-deal-draft", deal?.id || "new", draftScope || "");
   const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
   const [baseVersion,setBaseVersion]=useState<number|undefined>(restored?.baseVersion||deal?.version);
   const [draft, setDraft] = useState<CRMApiRecord>({...(restored?.draft||initial),...initialValues});
@@ -5298,7 +5314,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
   const [advancedTab, setAdvancedTab] = useState(0);
   const [duplicate, setDuplicate] = useState<CRMApiRecord[]>([]);
   const [draftNotice, setDraftNotice] = useState("");
-  useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));}, [draftKey, draft, customValues, lines,baseVersion]);
+  useEffect(() => {if (!ownsDraft()) return; sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));}, [draftKey, draft, customValues, lines,baseVersion]);
   useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit") && fieldInPipeline(field, draft.pipelineId)), [customFields, mode, placement, draft.pipelineId]);
@@ -5321,6 +5337,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
     setDraft((current) => ({ ...current, stageId, pipelineId: stage ? Number(stage.pipelineId || stage.pipeline_id || current.pipelineId || 0) : current.pipelineId, probability: stage ? Number(stage.probability || current.probability || 0) : current.probability, status: stage ? inferDealStatusFromStage(stage) : current.status }));
   };
   const submit = async (automatic=false) => {
+    if (!ownsDraft()) return false;
     const validation = { ...validateDealDraft(draft), ...validateDealCustomFields(visibleCustomFields, customValues) };
     setFieldErrors(validation);
     if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");setTimeout(()=>document.querySelector<HTMLElement>('[data-custom-field-error], [aria-invalid="true"]')?.focus(),0);return false;}
@@ -5334,6 +5351,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
     if (mode === "create" || JSON.stringify(lines) !== JSON.stringify(initialLines)) {fullPayload.catalog_items = catalogItems;dirtyPayload.catalog_items = catalogItems;}
     if (mode === "edit") dirtyPayload.expected_version = baseVersion ?? deal?.version ?? null;
     const response=await onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload,automatic);
+    if (!ownsDraft()) return false;
     if(automatic){if(!response?.id)return false;setInitial(draft);setInitialCustomValues(customValues);setInitialLines(lines);setBaseVersion(Number(response.version));}
     return !!response?.id;
 
@@ -5352,7 +5370,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
         {formTab === "advanced" && <nav aria-label="Advanced deal sections" className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2">{dealTabs.map((title, index) => <Button type="button" size="sm" variant={advancedTab === index ? "default" : "ghost"} key={title} onClick={() => setAdvancedTab(index)}>{title}</Button>)}</nav>}
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
           <div className="min-w-0 space-y-4 border-r border-border px-5 py-4">
-            {error ? <div role="alert" className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}{error.includes("changed") && <Button type="button" variant="outline" onClick={() => {if (window.confirm("Discard this saved draft and load the latest deal?")) {sessionStorage.removeItem(draftKey);window.location.reload();}}}>Discard draft and reload latest</Button>}</div> : null}
+            {error ? <div role="alert" className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}{error.includes("changed") && <Button type="button" variant="outline" onClick={() => {if (ownsDraft() && window.confirm("Discard this saved draft and load the latest deal?")) {sessionStorage.removeItem(draftKey);window.location.reload();}}}>Discard draft and reload latest</Button>}</div> : null}
             {Object.keys(fieldErrors).length > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{Object.values(fieldErrors).join(" ")}</p>}
             {duplicate.length > 0 && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">A deal with this name already exists in your permitted scope. {duplicate.map(item => <a key={String(item.id)} className="ml-2 underline" href={`/crm/deals/${item.id}`} target="_blank" rel="noreferrer">Review #{String(item.id)}</a>)}</p>}
             {((formTab === "simple" && quickSection === "details") || (formTab === "advanced" && advancedTab === 0)) && <LeadFormSection title="Opportunity">
@@ -5401,7 +5419,7 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
             <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-800 dark:text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
           </aside>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action loading={saving} loadingLabel={mode === "edit" ? "Saving Deal" : "Creating Deal"} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {if (!ownsDraft()) return; sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action loading={saving} loadingLabel={mode === "edit" ? "Saving Deal" : "Creating Deal"} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
       </div>
     </div>
     </DealDialog.Content>
@@ -5785,7 +5803,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
       ) : null}
       <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
         {kind === "tasks" && <MoveBoard label="CRM task priorities" reorder={false} groups={["Urgent","High","Medium","Low"].map(p=>({id:p,label:p}))} items={rows.map(row=>({id:Number(row.id),label:String(row.subject||row.title||row.name||"Task"),group:String(row.priority||"Medium"),content:<p className="text-xs text-muted-foreground">{String(row.owner||"Unassigned")} · {String(row.status||"")}</p>}))} onMove={async({item,group})=>{await crmApi.update("tasks",Number(item.id),{priority:group});setLocalRows(records.map(r=>Number(r.id)===Number(item.id)?{...r,priority:group}:r));}}/>}
-      <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={canEdit?saveInlineCell:undefined} onBulkDelete={apiEntity && canDelete ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
+      <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={canEdit && !["quotes","quotations"].includes(kind)?saveInlineCell:undefined} onBulkDelete={apiEntity && canDelete && !["quotes","quotations"].includes(kind) ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
           const selectedIds = new Set(selectedRows.map((row) => Number(row.id)));
           setLocalRows(records.filter((row) => !selectedIds.has(Number(row.id))));
           setSelectedRecord(null);
@@ -6082,16 +6100,12 @@ function PackageIcon({ large = false }: { large?: boolean }) {
   return <Package className={large ? "h-14 w-14" : "h-5 w-5"} />;
 }
 
-function quoteIdFromPath() {
-  const match = window.location.pathname.match(/\/(?:crm|srm)\/quotes\/(\d+)/);
-  return Number(match?.[1] || 1);
-}
-
 function QuoteBuilderPage() {
-  const quoteId = quoteIdFromPath();
+  const { id } = useParams();
+  const quoteId = Number(id || 0);
   const customFieldForm=useCrmFieldForm("quotations","edit",quoteId);
   const [quote, setQuote] = useState<CRMRecord | null>(null);
-  const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: defaultNumber("tax_rate", "crm"), estimated_cost: 25000, billing_type: "fixed" });
+  const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: defaultNumber("tax_rate", "crm"), estimated_cost: 0, billing_type: "fixed" });
   const [priceIncludesTax, setPriceIncludesTax] = useState(() => Boolean(formDefaults("crm").tax_inclusive));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -6103,7 +6117,9 @@ function QuoteBuilderPage() {
   const run = (label: string, action: () => Promise<{ data: CRMApiRecord }>) => {
     setSaving(true);
     setError(null);
-    action().then((response) => setQuote(response.data.quote && typeof response.data.quote === "object" ? response.data.quote as CRMRecord : response.data)).catch((err) => setError(err?.response?.data?.detail || `${label} failed.`)).finally(() => setSaving(false));
+    // Line mutations return a line plus totals, while lifecycle actions return
+    // different envelopes. Reload the quote so its lines and actions stay intact.
+    action().then(() => crmApi.get<CRMApiRecord>("quotes", quoteId)).then((response) => setQuote(response.data)).catch((err) => setError(err?.response?.data?.detail || `${label} failed.`)).finally(() => setSaving(false));
   };
   const addLine = () => run("Add line", () => crmApi.addQuoteLine(quoteId, { ...line, unit_price: priceIncludesTax ? Math.round(Number(line.unit_price || 0) / (1 + Number(line.tax_rate || 0) / 100) * 100) / 100 : line.unit_price }));
   const actor = useAuthStore(state => state.user);
@@ -6133,12 +6149,13 @@ function QuoteBuilderPage() {
             <CardHeader><CardTitle>Quote Lines</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <label className="flex items-center gap-2 text-sm">Price tax treatment<NativeSelect aria-label="Quote line tax treatment" className="h-9 rounded border bg-background px-2" value={priceIncludesTax ? "inclusive" : "exclusive"} onChange={event => setPriceIncludesTax(event.target.value === "inclusive")}><option value="exclusive">Tax exclusive</option><option value="inclusive">Tax inclusive</option></NativeSelect></label>
-              <div className="grid gap-2 md:grid-cols-6">
-                <Input value={String(line.name || "")} onChange={(event) => setLine((current) => ({ ...current, name: event.target.value }))} placeholder="Line item" />
+              <div className="grid gap-2 md:grid-cols-7">
+                <Input aria-label="Quote line description" value={String(line.name || "")} onChange={(event) => setLine((current) => ({ ...current, name: event.target.value }))} placeholder="Line item" />
                 <Input type="number" value={Number(line.quantity || 1)} onChange={(event) => setLine((current) => ({ ...current, quantity: Number(event.target.value) }))} />
                 <Input type="number" value={Number(line.unit_price || 0)} onChange={(event) => setLine((current) => ({ ...current, unit_price: Number(event.target.value) }))} />
                 <Input type="number" value={Number(line.discount_value || 0)} onChange={(event) => setLine((current) => ({ ...current, discount_value: Number(event.target.value) }))} />
                 <Input type="number" value={Number(line.tax_rate || 0)} onChange={(event) => setLine((current) => ({ ...current, tax_rate: Number(event.target.value) }))} />
+                <Input aria-label="Quote line estimated cost" type="number" min="0" value={Number(line.estimated_cost || 0)} onChange={event=>setLine(current=>({...current,estimated_cost:Number(event.target.value)}))}/>
                 <Button onClick={addLine} disabled={saving}><Plus className="h-4 w-4" />Add</Button>
               </div>
               <OrderedList<CRMRecord & {id:number}> label="Quote line order" items={lines.map(item => ({ ...item, id: Number(item.id) }))} title={item => String(item.name || item.description || `Line ${item.id}`)} disabled={saving || ["accepted", "declined", "rejected", "converted"].includes(String(quote?.status || "").toLowerCase())} render={item => <p className="text-xs text-muted-foreground">{String(item.quantity)} × {formatCurrency(Number(item.unitPrice || item.unit_price || 0))}</p>} onReorder={async ordered => { try { const response = await movementApi.post(`/crm/quotes/${quoteId}/lines/reorder`, { ids: ordered.map(i => i.id), previous_order: lines.map(i => Number(i.id)) }); setQuote(response.data); } catch (e) { load(); throw e; } }} />
@@ -6148,12 +6165,13 @@ function QuoteBuilderPage() {
         <Card>
           <CardHeader><CardTitle>Quote Actions</CardTitle></CardHeader>
           <CardContent className="space-y-2">
+            {!!quote?.converted_srm_sales_order_id && <Button asChild variant="outline"><Link to={`/srm/sales-orders/${quote.converted_srm_sales_order_id}`}>Open sales order</Link></Button>}
             <ActionToolbar label="Quote actions" actions={[
               {id:"submit", kind:"review", label:"Submit for approval", prominent:true, primary:true, available:!!quote && canManageQuote && ["draft","rejected"].includes(quoteStatus), loading:saving, onSelect:()=>run("Submit",()=>crmApi.submitQuote(quoteId))},
               {id:"approve", kind:"approve", label:"Approve", prominent:true, primary:true, available:!!quote && canApproveQuote && quoteStatus === "pending approval", loading:saving, onSelect:()=>run("Approve",()=>crmApi.approveQuote(quoteId)), confirm:{title:"Approve this quote?", description:"Review the quote lines, total and margin before approving it.", label:"Approve quote"}},
               {id:"send", kind:"email", label:"Send", prominent:true, primary:true, available:!!quote && canManageQuote && (quoteStatus === "approved" || quoteApproval === "not_required") && !["sent","accepted","declined","converted"].includes(quoteStatus), loading:saving, onSelect:()=>run("Send",()=>crmApi.sendQuote(quoteId))},
               {id:"accept", kind:"convert", label:"Accept and convert to SRM", prominent:true, available:!!quote && canManageQuote && ["sent","approved"].includes(quoteStatus), disabled:!quote?.deal_id && !quote?.dealId, disabledReason:!quote?.deal_id && !quote?.dealId ? "Link this quote to a CRM deal before conversion" : undefined, loading:saving, onSelect:()=>run("Accept",()=>crmApi.acceptQuote(quoteId)), confirm:{title:"Accept and convert this quote?", description:"This records customer acceptance and creates the linked SRM commercial records.", label:"Accept and convert"}},
-              {id:"version", kind:"copy", label:"Create new version", available:!!quote && canManageQuote, loading:saving, onSelect:()=>run("New version",()=>crmApi.newQuoteVersion(quoteId))},
+              {id:"version", kind:"copy", label:"Create new version", available:!!quote && canManageQuote && ["draft","rejected"].includes(quoteStatus), loading:saving, onSelect:()=>run("New version",()=>crmApi.newQuoteVersion(quoteId))},
               {id:"pdf", kind:"download", label:"Generate PDF", prominent:true, available:!!quote, onSelect:()=>{void crmApi.quotePdf(quoteId,true);}},
             ]}/>
 
@@ -7766,6 +7784,8 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
 
 function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, seedName, placement="create" }: { placement?:"create"|"quick_create";seedName?: string; kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
   const title = actionFor(kind) || "Create record";
+  const quotationScope = useRecordScope();
+  const quoteDeals = useQuery({queryKey:["crm","quotation-deal-options",quotationScope],staleTime:0,queryFn:async()=>(await crmApi.list("deals")).data.items||[],enabled:["quotes","quotations"].includes(kind)});
   const entity = apiEntityForKind[kind];
   const fieldEntity=entity==="quotes"?"quotations":entity==="accounts"?"companies":entity;
   const fieldForm = useCrmFieldForm(fieldEntity && customFieldEntities.some((item) => item.value === fieldEntity) ? fieldEntity : "", placement);
@@ -7784,7 +7804,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
     expiryDate: defaultDateAfter("quote_validity_days", "crm"),
     priority: defaultText("task_priority", "crm"),
     owner: defaultOwner("crm") || "",
-    status: kind === "tickets" ? "Open" : "New",
+    status: kind === "tickets" ? "Open" : ["quotes", "quotations"].includes(kind) ? "Draft" : "New",
     nextFollowUp: defaultDateAfter("follow_up_days", "crm"),
   }), [defaultName, kind, seedName]);
   const [draft, setDraft] = useState<CRMRecord>(initialDraft);
@@ -7806,6 +7826,8 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
         </CardHeader>
         <CardContent className="space-y-4">
           {header}
+          {["quotes", "quotations"].includes(kind) && <SharedCompanySelect source="crm" label="Customer" value={String(draft.companyId || "")} onChange={value => patchDraft("companyId", value)} createRoles={["Customer"]}/>}
+          {["quotes", "quotations"].includes(kind) && <label className="block space-y-2 text-sm">Linked deal<NativeSelect aria-label="Linked deal" value={String(draft.dealId || "")} onChange={event=>{const selected=quoteDeals.data?.find((deal:CRMRecord)=>String(deal.id)===event.target.value);setDraft(current=>({...current,dealId:event.target.value,...(selected?.company_id||selected?.companyId?{companyId:Number(selected.company_id||selected.companyId)}:{})}));}}><option value="">No linked deal</option>{quoteDeals.data?.map((deal:CRMRecord)=><option key={String(deal.id)} value={String(deal.id)}>{String(deal.name || deal.id)}</option>)}</NativeSelect></label>}
           {error ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
           <div className="grid gap-4 md:grid-cols-2">
             {formFields.map((field) => (
@@ -8584,7 +8606,7 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "products") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
   if (kind === "services") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
   if (kind === "priceBooks") return { name: record.name, currency: record.currency || defaultText("currency", "crm"), region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
-  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, issue_date: record.issueDate || new Date().toISOString().slice(0, 10), expiry_date: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: Number(record.total || 0) };
+  if (kind === "quotations" || kind === "quotes") return { deal_id: Number(record.dealId || record.deal_id) || undefined, company_id: Number(record.companyId || record.company_id) || undefined, currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, issue_date: record.issueDate || new Date().toISOString().slice(0, 10), expiry_date: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: Number(record.total || 0) };
   if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };
   if (kind === "guidedSelling") return { name: record.name || "Guided Selling Flow", questions: [], recommendations: [], active: true };
   if (kind === "campaigns") return { name: record.name, campaign_type: record.type || "Email", status: record.status || "Planned", start_date: record.startDate || new Date().toISOString().slice(0, 10), end_date: record.endDate || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), budget_amount: record.budget || 0, expected_revenue: record.expectedRevenue || 0, ownerId };

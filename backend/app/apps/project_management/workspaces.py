@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -22,6 +22,7 @@ from .workspace_lifecycle import is_archived, archived_ids
 
 router = APIRouter()
 Role = Literal["Admin", "Member", "Guest"]
+_task_version_json = TypeAdapter(datetime | None)
 
 
 @router.get("/workspaces/{workspace_id}/activity")
@@ -180,7 +181,7 @@ def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depe
         "projects": [{"id": p.id, "name": p.name, "project_key": p.project_key} for p in projects],
         "tasks": [{"id": t.id, "project_id": t.project_id, "task_key": t.task_key, "title": t.title, "description": t.description,
                    "status": t.status, "priority": t.priority,"work_type":t.work_type, "assignee_user_id": t.assignee_user_id, "assignee_user_ids": t.assignee_user_ids,
-                   "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "updated_at": t.updated_at, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
+                   "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "updated_at": _task_version_json.dump_python(t.updated_at, mode="json"), "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
     }
 
     if include_people:

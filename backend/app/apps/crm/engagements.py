@@ -90,7 +90,7 @@ def apply_engagement_view(query, model, view, timezone_name="UTC", now=None):
     if view == "upcoming":
         query = query.filter(field >= at)
         if model is CRMMeeting:
-            query = query.filter(~func.lower(func.coalesce(CRMMeeting.status, "")).in_(["cancelled", "canceled", "completed", "done"]))
+            query = query.filter(~func.lower(func.coalesce(CRMMeeting.status, "")).in_(["cancelled", "canceled", "completed", "done", "attended", "no-show", "rescheduled"]))
         return query
     return query.filter(field < at)
 
@@ -118,7 +118,7 @@ def availability(start: datetime, end: datetime, exclude_id: int | None = Query(
         raise HTTPException(422, "Choose an interval between zero and 31 days")
     resource = crm._get_resource("meetings")
     query = crm._apply_record_visibility(crm._base_query(db, resource, crm._organization_id(db, user)), resource, user, db)
-    query = query.filter(CRMMeeting.owner_user_id == user.id, CRMMeeting.start_time < end, CRMMeeting.end_time > start, ~func.lower(func.coalesce(CRMMeeting.status, "")).in_(["cancelled", "canceled", "completed", "done"]))
+    query = query.filter(CRMMeeting.owner_user_id == user.id, CRMMeeting.start_time < end, CRMMeeting.end_time > start, ~func.lower(func.coalesce(CRMMeeting.status, "")).in_(["cancelled", "canceled", "completed", "done", "attended", "no-show", "rescheduled"]))
     if exclude_id:
         query = query.filter(CRMMeeting.id != exclude_id)
     total = query.count()

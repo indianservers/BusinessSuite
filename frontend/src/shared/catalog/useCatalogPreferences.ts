@@ -1,3 +1,4 @@
+import { recordScope } from "@/lib/record-scope";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 
@@ -15,7 +16,8 @@ function read(key:string):Preferences {
 export const catalogItemKey=(item:{kind:string;id:number})=>`${item.kind}:${item.id}`;
 export default function useCatalogPreferences(){
   const user=useAuthStore(s=>s.user);
-  const key=`catalog-personal:v1:${user?.access?.companyId||sessionStorage.getItem("suite-organization")||1}:${user?.id||0}`;
+  // Old company/user-only keys lack tenant, branch and authority proof. Retain them without adoption.
+  const key=`catalog-personal:v2:${recordScope(user)}`;
   const [saved,setSaved]=useState(()=>({key,value:read(key)}));
   const value=saved.key===key?saved.value:read(key);
   useEffect(()=>{setSaved({key,value:read(key)});const sync=(event:StorageEvent)=>{if(event.key===key)setSaved({key,value:read(key)});};window.addEventListener("storage",sync);return()=>window.removeEventListener("storage",sync);},[key]);

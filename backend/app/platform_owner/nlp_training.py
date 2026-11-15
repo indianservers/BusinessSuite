@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+from app.core.managed_process import run as managed_run
 import sys
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -175,11 +176,11 @@ def dialogue_training_args(directory):
 
 def native_evaluation(directory):
     repo=Path(__file__).resolve().parents[3]
-    subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_action_release.py'),'--model-dir',str(directory/'model')],
+    managed_run([sys.executable,str(repo/'backend/scripts/evaluate_action_release.py'),'--model-dir',str(directory/'model')],
         cwd=repo/'backend',check=True,timeout=630,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     dialogue=json.loads((directory/'model/dialogue-evaluation.json').read_text(encoding='utf-8'))
     if dialogue.get('message_dialogue_version'):
-        subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_message_action_release.py'),'--model-dir',str(directory/'model')],
+        managed_run([sys.executable,str(repo/'backend/scripts/evaluate_message_action_release.py'),'--model-dir',str(directory/'model')],
             cwd=repo/'backend',check=True,timeout=1080,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 
@@ -204,19 +205,19 @@ def process(db,ident):
         python=Path(os.environ.get('LOCAL_NLP_TRAINING_PYTHON') or repo/'.local/tensorflow-venv'/('Scripts/python.exe' if os.name=='nt' else 'bin/python'))
         with (directory/'training.log').open('w',encoding='utf-8') as log:
             training_stage(db,job,'intent_training')
-            subprocess.run([str(python),str(repo/'backend/scripts/train_tensorflow_local_nlp.py'),'--output',str(directory/'model'),
+            managed_run([str(python),str(repo/'backend/scripts/train_tensorflow_local_nlp.py'),'--output',str(directory/'model'),
                 '--epochs',str(job.data['epochs']),'--reviewed-examples',str(directory/'reviewed.json'),
                 '--evaluation-examples',str(directory/'holdout.json')],cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=240)
             training_stage(db,job,'dialogue_training')
             dialogue_args,initial=dialogue_training_args(directory)
             job.data={**job.data,'dialogue_initial':initial};db.commit()
-            subprocess.run([str(python),str(repo/'backend/scripts/train_action_dialogue.py'),'--output',str(directory/'model'),*dialogue_args],
+            managed_run([str(python),str(repo/'backend/scripts/train_action_dialogue.py'),'--output',str(directory/'model'),*dialogue_args],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=240)
             training_stage(db,job,'planning_checks')
-            subprocess.run([sys.executable,str(repo/'backend/scripts/benchmark_action_dialogue.py'),'--model-dir',str(directory/'model')],
+            managed_run([sys.executable,str(repo/'backend/scripts/benchmark_action_dialogue.py'),'--model-dir',str(directory/'model')],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
             training_stage(db,job,'wording_checks')
-            subprocess.run([sys.executable,str(repo/'backend/scripts/benchmark_unseen_dialogue.py'),'--model-dir',str(directory/'model')],
+            managed_run([sys.executable,str(repo/'backend/scripts/benchmark_unseen_dialogue.py'),'--model-dir',str(directory/'model')],
                 cwd=repo/'backend',stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
         db.expire_all();job=db.get(PlatformRecord,ident);valid_source(db,job)
         if job.state!='training':return
@@ -313,7 +314,7 @@ def evaluate(db,ident):
         actor,dataset=valid_source(db,job);directory=root()/'platform/runs'/str(ident)
         repo=Path(__file__).resolve().parents[3]
         for script in ('benchmark_action_dialogue.py','benchmark_unseen_dialogue.py'):
-            subprocess.run([sys.executable,str(repo/'backend/scripts'/script),'--model-dir',str(directory/'model')],cwd=repo/'backend',check=True,timeout=120,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            managed_run([sys.executable,str(repo/'backend/scripts'/script),'--model-dir',str(directory/'model')],cwd=repo/'backend',check=True,timeout=120,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         native_evaluation(directory)
         release_lock(db)
         db.expire_all();job=record(db,ident,'nlp_training');actor,dataset=valid_source(db,job)

@@ -106,7 +106,7 @@ def test_media_migration_preserves_credentials_and_defaults_disabled(client,db):
     migration=runpy.run_path(str(Path(__file__).parents[1]/'alembic_postgresql/versions/pg_20261114_099_media_capabilities.py'))
     with Operations.context(MigrationContext.configure(connection)):
         migration['upgrade']();migration['upgrade']()
-    record=connection.execute(sa.text('SELECT id,model,encrypted_key,media_settings FROM ai_operator_providers WHERE id=:id'),{'id':old[0]}).one()
+    record=connection.execute(sa.text('SELECT id,model,encrypted_key,media_settings FROM ai_operator_providers WHERE id=:id').columns(id=sa.Integer, model=sa.String, encrypted_key=sa.Text, media_settings=sa.JSON),{'id':old[0]}).one()
     assert tuple(record[:3])==old and record[3]=={}
     db.expire_all()
     response=client.get(ROOT+'/providers',headers=headers)

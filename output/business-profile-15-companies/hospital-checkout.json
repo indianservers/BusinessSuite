@@ -1,12 +1,8 @@
 {
   "company": "[Local QA] Carewell Hospital",
   "checks": [
-    "Hospital-focused home",
+    "Preserved home launcher",
     "HRMS-linked doctor management",
-    "Native invoice drafted",
-    "Native invoice approved",
-    "Advance allocated",
-    "Final payment received",
     "Zero balance and preserved native receipts",
     "Phone checkout panel without horizontal overflow"
   ],

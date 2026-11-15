@@ -27,10 +27,22 @@ def domain_parent_fields(model):
         "app.models.timesheet": ("timesheet_id",),
         "app.models.recruitment": ("branch_id", "department_id", "job_id", "candidate_id", "interview_id", "offer_id"),
     }.get(model.__module__, ())
+    if model.__module__=='app.apps.srm.models' and model.__tablename__=='srm_pos_return_lines':
+        from app.apps.srm.models import SRMPOSReturnLine
+        if model is SRMPOSReturnLine:
+            parents=('return_id',)
+    if model.__module__=='app.apps.srm.models' and model.__tablename__=='srm_pos_cash_movements':
+        from app.apps.srm.models import SRMPOSCashMovement
+        if model is SRMPOSCashMovement:
+            parents=('session_id',)
     if model.__module__ == "app.apps.project_management.models" and model.__tablename__ in {
         "pms_private_notes", "pms_note_folders", "pms_private_note_revisions", "pms_note_shares", "pms_note_events", "pms_private_note_attachments", "pms_private_note_task_links"
     }:
         parents = ("note_id",)
+    if model.__module__=='app.models.onboarding':
+        parents={'onboarding_template_tasks':('template_id',),
+            'employee_onboardings':('template_id',),
+            'employee_onboarding_tasks':('employee_onboarding_id','template_task_id')}.get(model.__tablename__,())
     return tuple(name for name in parents if name in model.__table__.c and model.__table__.c[name].foreign_keys)
 
 
@@ -171,6 +183,19 @@ def install_scope(db, user, company, grants):
         return select(tasks.c.id).where(tasks.c.deleted_at.is_(None), or_(tasks.c.assignee_user_id.in_(ids), tasks.c.id.in_(select(assignments.c.task_id).where(assignments.c.user_id.in_(ids))), tasks.c.id.in_(group_tasks)))
 
     def predicate(model, stack=()):
+        from app.business_packs.employee_references import native_predicate as reference_predicate
+        reference_allowed=reference_predicate(db,user,company,model)
+        if reference_allowed is not None:return reference_allowed
+        from app.business_packs.leave_core import native_predicate as leave_predicate
+        leave_allowed=leave_predicate(db,user,company,model)
+        if leave_allowed is not None:return leave_allowed
+        from app.business_packs.leave_encashment_core import native_predicate as encashment_predicate
+        encashment_allowed=encashment_predicate(db,user,company,model)
+        if encashment_allowed is not None:return encashment_allowed
+        from app.business_packs.employee_core import native_predicate as employee_core_predicate
+        employee_allowed=employee_core_predicate(db,user,company,model,
+            lambda:predicate(Employee,(*stack,model)))
+        if employee_allowed is not None:return employee_allowed
         if model.__tablename__ in {'ai_suite_runs', 'ai_messages', 'pms_assistant_messages'} and getattr(user, '_suite_admin_read', False):
             from app.access.admin_reads import company_clause
             return company_clause(model, user)
@@ -348,6 +373,19 @@ def install_scope(db, user, company, grants):
                 owner.append(Employee.user_id.in_(ids))
                 if scope == "team" and employee:
                     owner.append(Employee.reporting_manager_id == employee.id)
+            if (model.__module__ == "app.models.timesheet" and model.__tablename__ == "projects"
+                    and scope in {"own", "assigned", "team"}):
+                # Native project assignment uses canonical employment identity;
+                # an HR creator does not own the assignee's ability to log time.
+                from app.models.company import Branch as TimesheetBranch
+                assigned_employee = Employee.user_id.in_(ids)
+                if scope == "team" and employee:
+                    assigned_employee = or_(assigned_employee, Employee.reporting_manager_id == employee.id)
+                owner.append(model.owner_employee_id.in_(select(Employee.id).where(
+                    assigned_employee,
+                    or_(Employee.branch_id.in_(select(TimesheetBranch.id).where(TimesheetBranch.company_id == company)),
+                        Employee.branch_id.is_(None) & (company == 1)),
+                )))
             if key == "project_management" and model.__tablename__ == "pms_tasks":
                 owner.append(model.id.in_(pms_assigned_tasks(ids)))
             if key == "crm" and scope == "team" and "assigned_team_id" in columns:
@@ -389,6 +427,12 @@ def install_scope(db, user, company, grants):
             if scope == "department" and department and "department_id" in columns:
                 owner.append(model.department_id == department)
         guards, parent_access = [], []
+        if model.__tablename__ == 'srm_industry_records':
+            from app.business_packs.industry_assignment import clauses
+            assigned, assignment_gate = clauses(db, user, company, model)
+            if scope in {'own', 'assigned'}:
+                owner.append(assigned)
+            guards.append(assignment_gate)
         pms_engine = model.__module__ == "app.models.workflow_engine" and getattr(user, "_suite_current_module", None) == "project_management"
         if pms_engine:
             if model.__tablename__ == "workflow_definitions":
@@ -417,6 +461,31 @@ def install_scope(db, user, company, grants):
         ):
             if field not in columns:
                 continue
+            if model.__module__=='app.models.onboarding' and (
+                    (model.__tablename__=='employee_onboardings' and field=='template_id')
+                    or (model.__tablename__=='employee_onboarding_tasks' and field=='template_task_id')):
+                # Actual onboarding belongs to its employee. Historical source
+                # configuration is only an integrity/company reference, not an
+                # alternate owner or a grant to read another HR creator's data.
+                from app.models.onboarding import OnboardingTemplate,OnboardingTemplateTask
+                template=OnboardingTemplate.__table__
+                template_company=or_(template.c.organization_id==company,template.c.organization_id.is_(None)&(company==1))
+                if field=='template_id':same_company=select(template.c.id).where(template_company)
+                else:
+                    task=OnboardingTemplateTask.__table__
+                    same_company=select(task.c.id).join(template,template.c.id==task.c.template_id).where(template_company)
+                guards.append(or_(getattr(model,field).is_(None),getattr(model,field).in_(same_company)))
+                continue
+            if (model.__module__ == "app.models.timesheet" and model.__tablename__ == "timesheets"
+                    and field == "project_id"):
+                # Actual time remains the employee's historical record after a
+                # project is reassigned. This proves only company membership;
+                # it grants no project detail or current project assignment.
+                from app.models.timesheet import Project as HistoricalTimeProject
+                project_table = HistoricalTimeProject.__table__
+                guards.append(model.project_id.in_(select(project_table.c.id).where(
+                    project_table.c.organization_id == company)))
+                continue
             for fk in columns[field].foreign_keys:
                 parent = all_models.get(fk.column.table.name)
                 if parent is None or parent in stack or parent is model:
@@ -424,6 +493,9 @@ def install_scope(db, user, company, grants):
                 allowed = predicate(parent, (*stack, model))
                 if allowed is not None:
                     access = getattr(model, field).in_(select(parent.id).where(allowed))
+                    if model.__tablename__ in {'srm_industry_records', 'business_invoice_contexts'} and field == 'project_id':
+                        from app.business_packs.construction import native_parent_access
+                        access = native_parent_access(db, user, company, model, access)
                     parent_access.append(access)
                     guards.append(
                         or_(getattr(model, field).is_(None), access)
@@ -480,6 +552,9 @@ def install_scope(db, user, company, grants):
             criteria.append(with_loader_criteria(model, allowed, include_aliases=True))
 
     def restrict(execution):
+        if execution.bind_mapper is not None and execution.bind_mapper.local_table.name == 'srm_industry_records':
+            from app.business_packs.industry_assignment import current_scope
+            current_scope(db, user, company, refresh=True)
         if not execution.is_orm_statement:
             sql = str(execution.statement).lower()
             protected = [
@@ -505,7 +580,24 @@ def install_scope(db, user, company, grants):
         # A flush can contain hundreds of children of the same authorized parent.
         # Reuse its decision only within this flush; later flushes recheck scope.
         parent_checks = {}
+        from app.models.timesheet import Timesheet as NativeTimesheet, TimesheetEntry as NativeTimeEntry, Project as NativeTimeProject
         for item in session.new | session.dirty | session.deleted:
+            if type(item) in {NativeTimesheet, NativeTimeEntry}:
+                # Historical read access is not permission to record or change
+                # hours against a project whose current native access was lost.
+                with session.no_autoflush:
+                    if type(item) is NativeTimesheet:
+                        time_project_id = item.project_id
+                    elif item.timesheet_id is not None:
+                        parent_time = session.query(NativeTimesheet.project_id).filter(
+                            NativeTimesheet.id == item.timesheet_id).first()
+                        time_project_id = parent_time[0] if parent_time else None
+                    else:
+                        parent_time = getattr(item, 'timesheet', None)
+                        time_project_id = parent_time.project_id if parent_time in session.new else None
+                    if time_project_id is None or not session.query(NativeTimeProject.id).filter(
+                            NativeTimeProject.id == time_project_id).first():
+                        raise HTTPException(403, "Current native project access is required to change actual time")
             if type(item).__module__ == "app.models.approval_os" and getattr(user, "_suite_current_module", None) == "hrms":
                 from app.services.asset_lifecycle import approval_domain_write as asset_approval_write
                 if asset_approval_write(session,item,user,company):continue
@@ -574,7 +666,9 @@ def install_scope(db, user, company, grants):
                 item.organization_id = company
             from app.core.tenant_boundary import legacy_root
             ledger_owned = legacy_root(type(item))
-            if not ledger_owned and grant.get("scope") == "organization" and not any(
+            from app.business_packs.employee_core import native_value_write
+            employee_value_owned=native_value_write(db,user,company,item)
+            if not ledger_owned and not employee_value_owned and grant.get("scope") == "organization" and not any(
                 key in columns
                 for key in (
                     "company_id",
@@ -599,7 +693,7 @@ def install_scope(db, user, company, grants):
             value = getattr(item, "organization_id", company)
             if value is not None and value != company:
                 raise HTTPException(403, "Cross-organization write blocked")
-            if not ledger_owned and not any(
+            if not ledger_owned and not employee_value_owned and not any(
                 field in columns for field in ("organization_id", "company_id")
             ) and not any(
                 field in columns and getattr(item, field, None) is not None
@@ -650,7 +744,7 @@ def install_scope(db, user, company, grants):
                         parent_key = (parent, value)
                         if parent_key not in parent_checks:
                             with session.no_autoflush:
-                                parent_checks[parent_key] = bool(session.query(parent.id).filter(parent.id == value, allowed).first())
+                                parent_checks[parent_key] = bool(session.query(parent.id).filter(parent.id == value).first())
                         if not parent_checks[parent_key]:
                             raise HTTPException(403, "Workflow parent is outside the assigned data scope")
             if grant.get("scope") != "organization":
@@ -677,12 +771,11 @@ def install_scope(db, user, company, grants):
                         and getattr(item, "id", None) is not None
                     ):
                         with session.no_autoflush:
-                            existing = (
-                                session.query(type(item).id)
-                                .filter(type(item).id == item.id, predicate(type(item)))
-                                .first()
-                                is not None
-                            )
+                            existing_query = session.query(type(item).id).filter(type(item).id == item.id)
+                            # The installed ORM listener applies the exact
+                            # native ownership predicate and every independent
+                            # boundary to this mapped identity query.
+                            existing = existing_query.first() is not None
                     if not assigned and not existing:
                         raise HTTPException(
                             403, "Record is outside the assigned data scope"
@@ -718,7 +811,7 @@ def install_scope(db, user, company, grants):
                             with session.no_autoflush:
                                 if (
                                     not session.query(parent.id)
-                                    .filter(parent.id == value, predicate(parent))
+                                    .filter(parent.id == value)
                                     .first()
                                 ):
                                     raise HTTPException(
@@ -745,10 +838,14 @@ def install_scope(db, user, company, grants):
         )
         if len(keys) != len(values):
             return False
+        # Mapped attributes keep this identity proof inside every installed
+        # native and operational loader criterion, including cached get/refresh.
+        mapper = inspect(model)
+        attributes = [getattr(model, mapper.get_property_by_column(key).key) for key in keys]
         with db.no_autoflush:
             return (
-                db.query(*keys)
-                .filter(allowed, *(key == value for key, value in zip(keys, values)))
+                db.query(*attributes)
+                .filter(*(key == value for key, value in zip(attributes, values)))
                 .first()
                 is not None
             )

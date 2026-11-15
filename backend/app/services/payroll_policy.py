@@ -129,9 +129,13 @@ def evaluate_days(db,employee,start,end,group,policy,attendance_input=None,inclu
 def calculation_signature(db,employee,run,checks):
     from app.models.payroll import PayrollManualInput
     manual=db.query(PayrollManualInput).filter_by(payroll_run_id=run.id,employee_id=employee.id,status='Approved').order_by(PayrollManualInput.id).all()
-    salaries=db.query(EmployeeSalary).filter(EmployeeSalary.employee_id==employee.id,EmployeeSalary.effective_from<=run.pay_period_end,(EmployeeSalary.effective_to.is_(None)) | (EmployeeSalary.effective_to>=run.pay_period_start)).order_by(EmployeeSalary.id).all()
+    from app.business_packs.payroll_review import salary_signature_rows
+    signature_rows=salary_signature_rows(db,employee,run)
+    if signature_rows is None:
+        salaries=db.query(EmployeeSalary).filter(EmployeeSalary.employee_id==employee.id,EmployeeSalary.effective_from<=run.pay_period_end,(EmployeeSalary.effective_to.is_(None)) | (EmployeeSalary.effective_to>=run.pay_period_start)).order_by(EmployeeSalary.id).all()
+        signature_rows=[(row.id,str(row.ctc),str(row.basic),str(row.hra),row.payroll_type,str(row.wage_rate),str(row.default_units),str(row.effective_from),str(row.effective_to)) for row in salaries]
     payload={'checks':checks,'manual':[(row.id,row.input_type,row.component_name,str(row.amount)) for row in manual],
-        'salaries':[(row.id,str(row.ctc),str(row.basic),str(row.hra),row.payroll_type,str(row.wage_rate),str(row.default_units),str(row.effective_from),str(row.effective_to)) for row in salaries]}
+        'salaries':signature_rows}
     return hashlib.sha256(json.dumps(payload,sort_keys=True,default=str).encode()).hexdigest()
 
 

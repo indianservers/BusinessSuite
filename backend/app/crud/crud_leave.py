@@ -309,7 +309,7 @@ def has_overlapping_leave(
     )
     if exclude_request_id:
         query = query.filter(LeaveRequest.id != exclude_request_id)
-    return db.query(query.exists()).scalar()
+    return query.with_entities(LeaveRequest.id).first() is not None
 
 
 def create_leave_request(db: Session, employee_id: int, data: dict) -> LeaveRequest:

@@ -1,7 +1,7 @@
 """Deterministic, repeatable backfill from existing branch/parent evidence only."""
 from collections import Counter
 from fastapi import HTTPException
-from sqlalchemy import select, exists, and_, or_
+from sqlalchemy import select, exists, and_, or_, inspect
 from app.db.base_class import Base
 from app.branches.catalog import SHARED, key_expression, resource_key
 from app.branches.models import BranchOwnership
@@ -11,6 +11,12 @@ from app.core.tenant_boundary import tenant_company_column
 
 def backfill(connection, company, max_passes=20, *, table_names=None):
     models = {m.local_table.name: m.class_ for m in Base.registry.mappers}
+    # Optional modules can register models before their deployment migration.
+    # Repair only physical tables, and discover them freshly on each invocation
+    # so a later native migration is picked up on the same connection. Existing
+    # partial tables still fail normally rather than receiving guessed owners.
+    installed = set(inspect(connection).get_table_names())
+    models = {name: model for name, model in models.items() if name in installed}
     if table_names is not None:
         models = {name: model for name, model in models.items() if name in table_names}
     owner = BranchOwnership.__table__

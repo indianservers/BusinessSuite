@@ -313,8 +313,13 @@ def enqueue_email_events(db, context):
             for address, user_id, org in recipients(db, obj, spec):
                 broadcast = obj.__tablename__ in {"announcements", "engagement_surveys"}
                 row = queue_email(db, recipient=address, user_id=user_id, organization_id=org,
-                    subject=subject, body=body, module=module,
+                    subject=subject, body=body, module=module,source_record=obj,
                     event_key=f"broadcast:{obj.__tablename__}:{obj.id}" if broadcast else f"event:{key}:{sha256(address.casefold().encode()).hexdigest()}")
+                if row is not None:
+                    # Private live provenance for the pack boundary's native
+                    # derivative validator. Never request input or a stored
+                    # source identifier inferred from an email body/key.
+                    row._suite_source_record = obj
                 if broadcast and row:
                     row.status = "broadcast"
     finally:

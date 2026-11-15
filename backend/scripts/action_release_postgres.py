@@ -28,12 +28,14 @@ def environment(folder,kind,database_uri=None):
 
 
 @contextmanager
-def isolated_environment(folder,kind):
+def isolated_environment(folder,kind,*,fast_disposable_evaluation=False):
     """Reuse the bundled QA PostgreSQL runtime without granting the app CREATEDB.
 
     Each evaluator owns its cluster, loopback port and retained diagnostic files.
     No application database or application database credential is used.
     """
+    if type(fast_disposable_evaluation) is not bool:
+        raise ValueError('Disposable evaluation mode must be explicit')
     folder=Path(folder).resolve()
     if kind not in {'action','message'}:raise ValueError('Unsupported release evaluation kind')
     binary=Path(__file__).resolve().parents[2]/'.local/postgresql/pgsql/bin'
@@ -53,6 +55,12 @@ def isolated_environment(folder,kind):
         listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
     with (data/'postgresql.conf').open('a',encoding='utf-8') as config:
         config.write(f"\nlisten_addresses = '127.0.0.1'\nport = {port}\nmax_locks_per_transaction = 512\n")
+        if fast_disposable_evaluation:
+            # This just-created UUID cluster is thrown away after functional
+            # action validation. It is not a crash/WAL/durability benchmark.
+            # Keep fsync/full_page_writes unchanged; avoid forcing a WAL sync
+            # for each baseline migration's disposable autocommit DDL batch.
+            config.write('synchronous_commit = off\n')
     # A failed start may still leave our child alive; stop only this exact data dir.
     try:
         run([str(pgctl),'-D',str(data),'-l',str(root/'server.log'),'-w','start'],'start.log')

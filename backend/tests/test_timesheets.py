@@ -1,4 +1,5 @@
 from app.db.init_db import init_db
+from app.models.employee import Employee
 
 
 def _login(client, email: str, password: str) -> dict[str, str]:
@@ -12,6 +13,7 @@ def test_employee_timesheet_submission_and_manager_approval(client, db):
     admin_headers = _login(client, "admin@aihrms.com", "Admin@123456")
     employee_headers = _login(client, "employee@aihrms.com", "Employee@123456")
     manager_headers = _login(client, "manager@aihrms.com", "Manager@123456")
+    employee = db.query(Employee).filter(Employee.employee_id == 'DEMO-EMP-001').one()
 
     project_response = client.post(
         "/api/v1/timesheets/projects",
@@ -20,6 +22,7 @@ def test_employee_timesheet_submission_and_manager_approval(client, db):
             "name": "Client ERP Implementation",
             "client_name": "Acme Services",
             "is_billable": True,
+            "owner_employee_id": employee.id,
         },
         headers=admin_headers,
     )
@@ -42,7 +45,7 @@ def test_employee_timesheet_submission_and_manager_approval(client, db):
         },
         headers=employee_headers,
     )
-    assert timesheet_response.status_code == 201
+    assert timesheet_response.status_code == 201, timesheet_response.text
     sheet_id = timesheet_response.json()["id"]
 
     billable_entry = client.post(
@@ -92,10 +95,11 @@ def test_timesheet_entry_validation_and_role_boundaries(client, db):
     admin_headers = _login(client, "admin@aihrms.com", "Admin@123456")
     employee_headers = _login(client, "employee@aihrms.com", "Employee@123456")
     hr_headers = _login(client, "hr@aihrms.com", "HR@123456")
+    employee = db.query(Employee).filter(Employee.employee_id == 'DEMO-EMP-001').one()
 
     project = client.post(
         "/api/v1/timesheets/projects",
-        json={"code": "TECH-002", "name": "Product Support"},
+        json={"code": "TECH-002", "name": "Product Support", "owner_employee_id": employee.id},
         headers=admin_headers,
     )
     assert project.status_code == 201
@@ -109,7 +113,7 @@ def test_timesheet_entry_validation_and_role_boundaries(client, db):
         },
         headers=employee_headers,
     )
-    assert sheet.status_code == 201
+    assert sheet.status_code == 201, sheet.text
     sheet_id = sheet.json()["id"]
 
     outside_period = client.post(

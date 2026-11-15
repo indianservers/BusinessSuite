@@ -1,3 +1,5 @@
+import { currentPOSOperationalPin, operationalOwner, isPOSOperationalRequest } from '@/lib/pos-operational-context';
+import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import { startRecordSync, finishRecordSync, confirmRecoveredSync } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
@@ -7,6 +9,7 @@ import { progress as operationProgress, operationId, type ProgressOperation } fr
 import { getProgressContext, operationTitle } from "@/lib/progress-context";
 import { trackPageRefreshRead } from "@/lib/page-refresh";
 import { selectedBranch } from "@/lib/branch-context";
+import { selectedPackContext, clearPackContext } from '@/lib/pack-context';
 import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
 
 declare module "axios" {
@@ -26,13 +29,17 @@ declare module "axios" {
     _finishProgress?: (success?: boolean, error?: string) => void;
     _finishPageRefresh?: (success?: boolean) => void;
     _recordMutationScope?: string;
+    _recordScopeWasCurrent?: boolean;
+    _posOperationalOwner?: string;
+    _posOperationalContext?: string | null;
+    _posOperationalRealm?: 'legacy' | 'pack';
   }
 }
 
 const BASE_URL = getApiBaseUrl();
 type RefreshResponse = { access_token: string; refresh_token: string };
 let refreshPromise: Promise<RefreshResponse> | null = null;
-const mutationScope = () => JSON.stringify([useAuthStore.getState().user?.id, useAuthStore.getState().user?.access?.companyId, sessionStorage.getItem("suite-tenant"), sessionStorage.getItem("suite-organization"), selectedBranch()]);
+const mutationScope = () => JSON.stringify([useAuthStore.getState().user?.id, useAuthStore.getState().user?.access?.companyId, sessionStorage.getItem("suite-tenant"), sessionStorage.getItem("suite-organization"), selectedBranch(), selectedPackContext(), securityAuthStamp(useAuthStore.getState().user)]);
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -45,21 +52,55 @@ export const api = axios.create({
 api.interceptors.request.use(async (config) => {
   const explicitWorkspace = config.headers.has("X-Suite-Tenant");
   const tenant = explicitWorkspace ? String(config.headers.get("X-Suite-Tenant") || "") : new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant");
-  if ((explicitWorkspace || new URLSearchParams(window.location.search).get("tenant")) && tenant !== sessionStorage.getItem("suite-tenant")) {
+  if (!config._recordSyncBackground && !explicitWorkspace && new URLSearchParams(window.location.search).get("tenant") && tenant !== sessionStorage.getItem("suite-tenant")) {
     if (tenant) sessionStorage.setItem("suite-tenant", tenant);
     else sessionStorage.removeItem("suite-tenant");
     sessionStorage.removeItem("suite-organization");
     sessionStorage.removeItem("suite-branch");
+    clearPackContext();
   }
   if (tenant) config.headers["X-Suite-Tenant"] = tenant;
   const organization = sessionStorage.getItem("suite-organization");
   if (!config._recordSyncBackground && (config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
     config._finishPageRefresh = trackPageRefreshRead();
   }
-  if (organization && !config.headers["X-Suite-Organization"]) config.headers["X-Suite-Organization"] = organization;
+  if (organization && !config.headers.has("X-Suite-Organization")) config.headers["X-Suite-Organization"] = organization;
   const branch = selectedBranch();
-  config._recordMutationScope ??= mutationScope();
-  if (branch && !config.headers["X-Suite-Branch"]) config.headers["X-Suite-Branch"] = branch;
+  if (branch && !config.headers.has("X-Suite-Branch")) config.headers["X-Suite-Branch"] = branch;
+  const sameSource = (!config.headers.has('X-Suite-Tenant') || String(config.headers.get('X-Suite-Tenant') || '') === (sessionStorage.getItem('suite-tenant') || ''))
+    && String(config.headers.get('X-Suite-Organization') || '') === (organization || '')
+    && String(config.headers.get('X-Suite-Branch') || '') === (branch || '');
+  const pin = currentPOSOperationalPin();
+  let pinnedCurrentSource = false;
+  if (config._posOperationalOwner) {
+    if (!sameSource || !isPOSOperationalRequest(config.url) || config._posOperationalOwner !== operationalOwner()) throw new axios.CanceledError('POS request context changed', config);
+    if (config.headers.has('X-Suite-Pack-Context') && (config._posOperationalContext === null
+      ? config.headers.get('X-Suite-Pack-Context') !== null && config.headers.get('X-Suite-Pack-Context') !== ''
+      : String(config.headers.get('X-Suite-Pack-Context')) !== config._posOperationalContext)) throw new axios.CanceledError('POS request context changed', config);
+    if (!config.headers.has('X-Suite-Pack-Context') && config._posOperationalContext != null) config.headers.set('X-Suite-Pack-Context',config._posOperationalContext);
+    if (config.headers.has('X-Suite-Expected-Pack-Realm') && config.headers.get('X-Suite-Expected-Pack-Realm') !== config._posOperationalRealm) throw new axios.CanceledError('POS request context changed',config);
+    if (config._posOperationalRealm && !config.headers.has('X-Suite-Expected-Pack-Realm')) config.headers.set('X-Suite-Expected-Pack-Realm',config._posOperationalRealm);
+  }
+  if (sameSource && isPOSOperationalRequest(config.url) && pin) {
+    if (pin.owner !== operationalOwner()) throw new axios.CanceledError('POS request context changed', config);
+    const explicit = config.headers.has('X-Suite-Pack-Context');
+    const matches = explicit && config.headers.get('X-Suite-Pack-Context') !== null && String(config.headers.get('X-Suite-Pack-Context')) === pin.contextId;
+    if (!explicit || matches) {
+      if (!explicit && pin.contextId !== null) config.headers.set('X-Suite-Pack-Context', pin.contextId);
+      if (!config.headers.has('X-Suite-Expected-Pack-Realm')) config.headers.set('X-Suite-Expected-Pack-Realm', pin.realm);
+      config._posOperationalOwner ??= pin.owner;
+      config._posOperationalContext ??= pin.contextId;
+      config._posOperationalRealm ??= pin.realm;
+      pinnedCurrentSource = true;
+    }
+  }
+  if (sameSource && !config.headers.has('X-Suite-Pack-Context')) {
+    const selected = selectedPackContext();
+    if (selected !== null) config.headers.set('X-Suite-Pack-Context', selected);
+  }
+  const samePack = pinnedCurrentSource || String(config.headers.get('X-Suite-Pack-Context') ?? '') === (selectedPackContext() ?? '');
+  config._recordScopeWasCurrent ??= sameSource && samePack;
+  config._recordMutationScope ??= sameSource && samePack ? mutationScope() : '!explicit-source:' + JSON.stringify([config.headers.get('X-Suite-Tenant'), config.headers.get('X-Suite-Organization'), config.headers.get('X-Suite-Branch'), config.headers.get('X-Suite-Pack-Context')]);
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
     const maxBytes = config.uploadLimitBytes ?? Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
@@ -101,6 +142,7 @@ api.interceptors.request.use(async (config) => {
 // Response interceptor: handle token refresh
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    if (response.config._recordScopeWasCurrent && response.config._recordMutationScope !== mutationScope()) throw new axios.CanceledError('Request context changed', response.config);
     if (response.config.url === "/branches/context" && response.data?.selected != null && !sessionStorage.getItem("suite-branch") && (!response.config.headers?.["X-Suite-Organization"] || String(response.config.headers["X-Suite-Organization"]) === (sessionStorage.getItem("suite-organization") || "1"))) {
       sessionStorage.setItem("suite-branch", String(response.data.selected));
     }
@@ -108,8 +150,8 @@ api.interceptors.response.use(
       sessionStorage.setItem('suite-branch', 'all');
     }
     const method=(response.config.method||"get").toLowerCase();
-    if(response.config.readOnlyPreview !== true && !["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
-    if (response.config.readOnlyPreview !== true && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
+    if(response.config._recordMutationScope === mutationScope() && response.config.readOnlyPreview !== true && !["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
+    if (response.config._recordMutationScope === mutationScope() && response.config.readOnlyPreview !== true && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
     if (response.config.readOnlyPreview !== true && response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: confirmedMutation(response.config.url||"",method,response.config.data,response.data) }));
     return response;
   },
@@ -119,7 +161,7 @@ api.interceptors.response.use(
       (error.response.data as {detail?:unknown} | undefined)?.detail === "This company workspace has been removed";
     // Never sign out a newer/different company session because an old request
     // finished after navigation. Logout also clears this identity's record cache.
-    if (companyRemoved && currentSession.accessToken && error.config?.headers?.Authorization === `Bearer ${currentSession.accessToken}`) {
+    if (companyRemoved && error.config?._recordMutationScope === mutationScope() && currentSession.accessToken && error.config?.headers?.Authorization === `Bearer ${currentSession.accessToken}`) {
       currentSession.logout();
       return Promise.reject(error);
     }
@@ -180,13 +222,13 @@ api.interceptors.response.use(
 // Run after the refresh interceptor: retries retain one operation until the
 // final response, and the idempotent finish handles nested interceptor chains.
 api.interceptors.response.use(response => {
-  if((response.config.method||"get").toLowerCase()==="get")confirmRecoveredSync(response.config.url||"",response.data);
+  if(response.config._recordMutationScope === mutationScope() && (response.config.method||"get").toLowerCase()==="get")confirmRecoveredSync(response.config.url||"",response.data);
   finishRecordSync(response.config._recordSyncId, response.data);
   response.config._finishPageRefresh?.();
   response.config._finishProgress?.();
   return response;
 }, (error: AxiosError<{ detail?: unknown }>) => {
-  if(error.response?.status===404&&(error.config?.method||"get").toLowerCase()==="get")confirmRecoveredSync(error.config?.url||"",undefined,404);
+  if(error.config?._recordMutationScope === mutationScope() && error.response?.status===404&&(error.config?.method||"get").toLowerCase()==="get")confirmRecoveredSync(error.config?.url||"",undefined,404);
   finishRecordSync(error.config?._recordSyncId, undefined, error);
   error.config?._finishPageRefresh?.(false);
   const detail = error.response?.data?.detail;

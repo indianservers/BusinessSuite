@@ -1,3 +1,5 @@
+import { commonRouteContext } from "./common-routes";
+
 type Link = { to: string; label: string; group?: string };
 export type WorkspaceNavigation<T> = T & { pages?: T[] };
 
@@ -17,11 +19,6 @@ export function workspacePageHref(to: string, search: string, workspaceId?: numb
 
 // Presentation only: callers supply links already filtered by route permissions.
 const menuSubcategories: [string, string[]][] = [
-  ["Sales & contracts", ["/srm/sales-orders", "/srm/contracts", "/srm/engagements"]],
-  ["Products & pricing", ["/srm/inventory/items", "/srm/inventory/products", "/srm/inventory/price-lists", "/srm/inventory/batches"]],
-  ["Stock & warehouses", ["/srm/inventory/dashboard", "/srm/inventory/warehouses", "/srm/inventory/stock-summary", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes", "/srm/inventory/stock-transfers", "/srm/inventory/reconciliation"]],
-  ["Purchasing & manufacturing", ["/srm/inventory/purchase-orders", "/srm/inventory/manufacturing", "/srm/inventory/reorder-alerts"]],
-  ["Invoices & collections", ["/srm/invoice-drafts", "/srm/invoices", "/srm/payment-requests", "/srm/billing-plans", "/srm/collections"]],
   ["Account setup", ["/fam/chart-of-accounts", "/fam/ledger-groups", "/fam/ledgers", "/fam/opening-balances"]],
   ["Transactions & books", ["/fam/vouchers", "/fam/journal", "/fam/day-book", "/fam/ledger-entries", "/fam/bill-references", "/fam/bill-allocations"]],
   ["Customers & receivables", ["/fam/customers", "/fam/parties", "/fam/ar"]],
@@ -33,7 +30,22 @@ const menuSubcategories: [string, string[]][] = [
   ["Project settings", ["/pms/settings", "/pms/custom-fields", "/pms/task-types", "/pms/tags", "/pms/workflow-schemes", "/pms/automation", "/pms/connectors", "/pms/import-data"]],
 ];
 
+// SRM uses the same definitions for the menu and the working page tabs.
+const srmWorkspaces: [string, string[]][] = [
+  ["POS sessions & returns", ["/srm/pos/sessions", "/srm/pos/cashier-closing", "/srm/pos/returns"]],
+  ["Customers & suppliers", ["/srm/customers", "/srm/vendors", "/srm/companies", "/srm/customer-360"]],
+  ["Sales orders & contracts", ["/srm/sales-orders", "/srm/contracts", "/srm/engagements"]],
+  ["Products & pricing", ["/srm/products-services", "/srm/inventory/price-lists", "/srm/inventory/batches", "/srm/inventory/stock-groups", "/srm/inventory/units"]],
+  ["Stock & warehouses", ["/srm/inventory", "/srm/inventory/stock-summary", "/srm/inventory/warehouses", "/srm/inventory/reorder-alerts"]],
+  ["Stock movements", ["/srm/inventory/stock-in", "/srm/inventory/stock-out", "/srm/inventory/stock-transfers", "/srm/inventory/stock-adjustments", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes"]],
+  ["Purchasing", ["/srm/inventory/purchase-orders", "/srm/inventory/purchase-receipts", "/srm/inventory/gantt"]],
+  ["Invoices & payments", ["/srm/invoices", "/srm/invoice-drafts", "/srm/billing-plans", "/srm/payment-requests", "/srm/collections"]],
+  ["Sales reports", ["/srm/reports", "/srm/profitability", "/srm/revenue-recognition"]],
+  ["Stock reports", ["/srm/inventory/reports/complete", "/srm/inventory/valuation", "/srm/inventory/gross-margin", "/srm/inventory/reconciliation", "/srm/inventory/audit"]],
+];
+
 const workspaces: [string, string[]][] = [
+  ...srmWorkspaces,
   ["Tasks", ["/pms/tasks", "/pms/navigator", "/pms/issue-navigator-pro"]],
   ["Software Delivery", ["/pms/software", "/pms/issues", "/pms/releases"]],
   ["Agile Planning", ["/pms/backlog", "/pms/backlog-grooming", "/pms/sprint-lifecycle", "/pms/sprints", "/pms/agile-execution"]],
@@ -66,7 +78,7 @@ const workspaces: [string, string[]][] = [
 ];
 
 export function getOperationWorkspace(pathname: string) {
-  const definition = workspaces.find(([, paths]) => paths.includes(pathname));
+  const definition = workspaces.find(([, paths]) => paths.includes(navigationOperationPath(pathname)));
   // Communication already renders its operations inside a single hub.
   if (!definition || definition[1].includes("/crm/communication-hub")) return undefined;
   return { label: definition[0], paths: definition[1] };
@@ -75,6 +87,16 @@ export function getOperationWorkspace(pathname: string) {
 // These aliases render exactly the same operation; retain their URLs without
 // presenting extra copies of the same form/table in the combined page.
 export const operationAliases: Record<string, string> = {
+  "/srm/suppliers": "/srm/vendors",
+  "/srm/sales-inventory/source": "/srm/inventory/source",
+  "/srm/pos": "/srm/pos/terminal",
+  "/srm/pos/products": "/srm/products-services",
+  "/srm/inventory/dashboard": "/srm/inventory",
+  "/srm/inventory/items": "/srm/products-services",
+  "/srm/inventory/products": "/srm/products-services",
+  "/srm/products": "/srm/products-services",
+  "/srm/services": "/srm/products-services",
+  "/srm/inventory/reports": "/srm/inventory/reports/complete",
   "/pms/navigator": "/pms/tasks", "/pms/issue-navigator-pro": "/pms/tasks",
   "/pms/issues": "/pms/software", "/pms/releases": "/pms/software",
   "/pms/backlog-grooming": "/pms/backlog", "/pms/sprint-lifecycle": "/pms/backlog",
@@ -88,25 +110,35 @@ export const operationAliases: Record<string, string> = {
   "/pms/ai-planner": "/pms/operator",
 };
 
+/** Resolve shared SRM pages before grouping, without changing their public URLs. */
+export function navigationOperationPath(href: string) {
+  const context = commonRouteContext(href);
+  const path = (context?.module === "srm" ? context.nativePath : href.split(/[?#]/)[0]).replace(/\/+$/, "");
+  return operationAliases[path] || path;
+}
+
 export function consolidateNavigation<T extends Link>(items: readonly T[]): WorkspaceNavigation<T>[] {
   const seen = new Set<string>();
   const result: WorkspaceNavigation<T>[] = [];
   for (const item of items) {
-    const workspace = [...menuSubcategories, ...workspaces].find(([, paths]) => paths.includes(item.to));
+    const workspace = [...menuSubcategories, ...workspaces].find(([, paths]) => paths.includes(navigationOperationPath(item.to)));
     if (!workspace) { result.push(item); continue; }
     const [label, paths] = workspace;
     const key = paths[0];
     if (seen.has(key)) continue;
     seen.add(key);
-    const pages = paths.flatMap(path => items.filter(candidate => candidate.to === path));
+    const pages = paths.flatMap(path => items.filter(candidate => navigationOperationPath(candidate.to) === path));
     const primary = pages[0];
     result.push({ ...primary, label, group: item.group, pages });
   }
   return result;
 }
 
-export function activeWorkspace<T extends Link>(items: readonly WorkspaceNavigation<T>[], pathname: string) {
-  const matches = (to: string) => { const path = to.split(/[?#]/)[0]; return pathname === path || pathname.startsWith(path + "/"); };
-  const rank = (item: WorkspaceNavigation<T>) => Math.max(...(item.pages || []).filter(page => matches(page.to)).map(page => page.to.split(/[?#]/)[0].length));
+export function activeWorkspace<T extends Link>(items: readonly WorkspaceNavigation<T>[], pathname: string, search = "") {
+  const workspace = getOperationWorkspace(pathname + search);
+  const requested = new URLSearchParams(search).get("operation");
+  const selected = requested && workspace?.paths.includes(requested) ? requested : navigationOperationPath(pathname + search);
+  const matches = (to: string) => { const path = navigationOperationPath(to); return selected === path || selected.startsWith(path + "/"); };
+  const rank = (item: WorkspaceNavigation<T>) => Math.max(...(item.pages || []).filter(page => matches(page.to)).map(page => navigationOperationPath(page.to).length));
   return items.filter(item => item.pages?.some(page => matches(page.to))).sort((a, b) => rank(b) - rank(a))[0];
 }

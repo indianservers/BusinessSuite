@@ -338,8 +338,9 @@ def normalize_upload_references(value, *, db=None, actor_id=None, company_id=Non
                     if claims.get("access_branch") is not None:
                         from app.branches.service import context as branch_context
                         actor = db.get(User, int(actor_id))
-                        target = branch_context(db, actor, expected_company, None if branch_id == "all" else branch_id)
-                        if str(claims["access_branch"]) != str(target.branch_id):
+                        target = branch_context(db, actor, expected_company, branch_id)
+                        target_branch = 'all' if target.all_branches and target.branch_id is None else target.branch_id
+                        if str(claims["access_branch"]) != str(target_branch):
                             raise HTTPException(403, "File reference belongs to another branch")
                 path = blob_token_path(tokens[0], db=db)
                 relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()

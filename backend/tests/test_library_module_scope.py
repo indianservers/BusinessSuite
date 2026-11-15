@@ -57,7 +57,7 @@ def test_organization_admin_membership_does_not_override_central_ai_configure_de
     assert response.status_code==403,response.text
 
 
-def test_centrally_authorized_organization_admin_can_publish_without_pms(client,db):
+def test_centrally_authorized_organization_admin_can_publish_without_pms_mutation(client,db):
     _,_,headers,user=managed(client,db)
     from app.access.models import AccessPolicy
     db.add(AccessMembership(user_id=user.id,company_id=1,active=True,is_admin=True))
@@ -71,4 +71,10 @@ def test_centrally_authorized_organization_admin_can_publish_without_pms(client,
     assert response.status_code==200,response.text
     assert response.json()['can_publish'] is True
     response=client.get('/api/v1/project-management/projects',headers=headers)
+    assert response.status_code==200,response.text
+    assert response.json() and all(row['organization_id']==1 for row in response.json())
+    # Administrative inspection does not grant project creation under an
+    # AI/HRMS-only policy, or make the shared definition a PMS-scoped agent.
+    response=client.post('/api/v1/project-management/projects',headers=headers,
+        json={'name':'Unauthorized project', 'project_key':'DENIED'})
     assert response.status_code==403,response.text

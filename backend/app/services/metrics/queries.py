@@ -83,7 +83,8 @@ def employee_records(db, user=None, *, include_archived=False):
         query = query.filter(or_(Employee.user_id == user.id, Employee.reporting_manager_id == (actor.id if actor else -1)))
     elif scope in {"department", "branch"}:
         query = query.filter(getattr(Employee, scope + "_id") == (getattr(actor, scope + "_id", None) or -1))
-    return query
+    from app.business_packs.hrms_home_core import certify_employee_query
+    return certify_employee_query(db,user,query)
 
 
 def employee_counts(db, user=None):

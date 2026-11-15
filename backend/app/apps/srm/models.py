@@ -185,7 +185,7 @@ class SRMPOSReturnLine(Base):
     warehouse_id = Column(Integer, ForeignKey("srm_warehouses.id", ondelete="SET NULL"), nullable=True, index=True)
     item_code = Column(String(80), nullable=True, index=True)
     description = Column(Text)
-    quantity = Column(Numeric(12, 2), default=1)
+    quantity = Column(Numeric(14, 3), default=1)
     unit_price = Column(Numeric(14, 2), default=0)
     tax_amount = Column(Numeric(14, 2), default=0)
     line_total = Column(Numeric(14, 2), default=0)

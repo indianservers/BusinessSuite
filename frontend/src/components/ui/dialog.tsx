@@ -6,10 +6,12 @@ import * as Primitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreationSurfaceContext } from "@/shared/creation/CreationSurfaceContext";
+import { useOperationPanelActive } from "@/lib/operation-panel";
 const DialogSyncContext=React.createContext<{open:boolean;background:boolean;modal:boolean;setElement:(node:HTMLElement|null)=>void}>({open:true,background:false,modal:true,setElement:()=>{}});
 export function Dialog({open,defaultOpen,onOpenChange,modal=true,children,...props}:React.ComponentPropsWithoutRef<typeof Primitive.Root>){
+ const panelActive=useOperationPanelActive();
  const [localOpen,setLocalOpen]=React.useState(defaultOpen||false),[element,setElement]=React.useState<HTMLElement|null>(null);
- const entries=useRecordSync(),foreground=open??localOpen,background=foreground&&entries.some(item=>item.origin===element&&item.phase==="pending");
+ const entries=useRecordSync(),foreground=(open??localOpen)&&panelActive,background=foreground&&entries.some(item=>item.origin===element&&item.phase==="pending");
  React.useEffect(()=>{if(background)requestAnimationFrame(()=>document.getElementById("suite-main")?.focus());},[background]);
  return <DialogSyncContext.Provider value={{open:foreground,background,modal,setElement}}><Primitive.Root {...props} modal={false} open={foreground&&!background} onOpenChange={value=>{if(background)return;setLocalOpen(value);onOpenChange?.(value);}}>{children}</Primitive.Root></DialogSyncContext.Provider>;
 }

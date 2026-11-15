@@ -55,7 +55,7 @@ def apply_employee_directory_filters(query, values):
         if values.get(key):
             education.append(column == values[key] if key == "passout_year" else func.lower(func.trim(column)) == values[key].strip().lower())
     if education:
-        query = query.filter(Employee.educations.any(and_(*education)))
+        query = query.filter(Employee.id.in_(select(EmployeeEducation.employee_id).where(and_(*education))))
     if values.get("joined_from"):
         query = query.filter(Employee.date_of_joining >= values["joined_from"])
     if values.get("joined_to"):
@@ -65,7 +65,7 @@ def apply_employee_directory_filters(query, values):
         query = query.filter(Employee.user_id.is_(None))
     elif account:
         from app.models.user import User
-        query = query.filter(Employee.user.has(User.is_active.is_(account == "active")))
+        query = query.filter(Employee.user_id.in_(select(User.id).where(User.is_active.is_(account == "active"))))
     return query
 
 

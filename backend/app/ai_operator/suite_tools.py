@@ -392,9 +392,18 @@ def validate_payload(tool, payload):
 
 
 def catalog():
-    return [{'name': name, 'module': t.module, 'description': t.description, 'approval_required': t.method != 'GET',
-             'record_id_required': '{record_id}' in t.path or (t.project_target and not t.optional_project), 'record_id_optional':t.optional_project,'fields': list(t.fields),
-             'payload_schema': payload_schema(t)} for name, t in TOOLS.items() if name in __import__('app.ai_agents.security_catalog',fromlist=['SUITE']).SUITE]
+    from app.ai_agents.security_catalog import SUITE
+    entries = []
+    for name, tool in TOOLS.items():
+        if name not in SUITE:
+            continue
+        schema = payload_schema(tool)
+        entries.append({'name': name, 'module': tool.module, 'description': tool.description,
+            'approval_required': tool.method != 'GET',
+            'record_id_required': '{record_id}' in tool.path or (tool.project_target and not tool.optional_project),
+            'record_id_optional': tool.optional_project, 'fields': list(schema['properties']),
+            'payload_schema': schema})
+    return entries
 
 
 def payload_schema(tool):

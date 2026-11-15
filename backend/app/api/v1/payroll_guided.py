@@ -72,6 +72,12 @@ def blockers(db, run, records):
 
 @router.get("/runs/{run_id}/guided")
 def overview(run_id: int, db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
+    from app.business_packs.payroll_review import compute
+    projected=compute(db,user,run_id)
+    return projected if projected is not None else native_overview(run_id,db,user)
+
+
+def native_overview(run_id,db,user):
     run, records, fingerprint, reviewed = context(db, run_id, user)
     issues, extra, blocked = blockers(db, run, records)
     batches = db.query(PayrollPaymentBatch).filter(PayrollPaymentBatch.payroll_run_id == run_id).order_by(PayrollPaymentBatch.id.desc()).all()

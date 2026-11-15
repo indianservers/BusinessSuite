@@ -3,7 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from uuid import UUID, uuid5, NAMESPACE_URL
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
@@ -11,6 +11,7 @@ from app.apps.srm.industry_api import Strict, context, get, fail, revision, save
 from app.apps.srm.services.commercial import require, tenant, money as validate_money, lock_tenant, invoice_for
 from app.apps.srm.models import SRMReceipt
 from app.apps.srm.schemas import SRMReceiptCreate, SRMReceiptAllocationRequest
+from app.business_packs.operations import require as require_pack_operation
 
 router = APIRouter(prefix='/appointments')
 ACTIVE_RECEIPTS = {'confirmed', 'partially_allocated', 'allocated'}
@@ -33,6 +34,8 @@ class ApplyInput(Strict):
 
 
 def appointment_for(db, user, ident, write=False):
+    require_pack_operation(db, user, *(('payments.record',) if write else (
+        'billing.view', 'billing.prepare', 'checkout.view', 'checkout.create', 'payments.record')))
     require(user, 'srm_collection_create', 'srm_admin') if write else require(user, 'srm_collection_view', 'srm_collection_create', 'srm_invoice_view', 'srm_invoice_create', 'srm_admin')
     branch = context(db, user, appointments=True)
     if write:
@@ -44,6 +47,7 @@ def appointment_for(db, user, ident, write=False):
 
 
 def billing_state(db, user, row):
+    require_pack_operation(db, user, 'billing.view', 'billing.prepare', 'checkout.view', 'checkout.create', 'payments.record')
     records = row.data.get('_payment_requests', {})
     ids = [entry['receipt_id'] for entry in records.values()]
     receipts = db.query(SRMReceipt).filter(SRMReceipt.organization_id == tenant(user), SRMReceipt.customer_id == row.customer_id, SRMReceipt.id.in_(ids)).order_by(SRMReceipt.id).all() if ids else []
@@ -64,11 +68,15 @@ def billing_state(db, user, row):
 
 
 @router.get('/{ident}/billing')
-def billing(ident: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    return billing_state(db, user, appointment_for(db, user, ident))
+def billing(ident: int, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.apps.srm.appointment_checkout import group_billing
+    row = appointment_for(db, user, ident)
+    grouped = group_billing(db, user, row, requested_context_id=request.headers.get('X-Suite-Pack-Context'))
+    return grouped if grouped is not None else billing_state(db, user, row)
 
 
 def apply_receipt(db, user, row, receipt, invoice):
+    require_pack_operation(db, user, 'payments.record')
     from app.apps.srm.api.router import allocate_receipt_operation
     amount = min(money(receipt.unallocated_amount), money(invoice.balance_amount))
     if amount <= 0:
@@ -82,6 +90,8 @@ def apply_receipt(db, user, row, receipt, invoice):
 def record_payment(ident: int, data: PaymentInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.apps.srm.api.router import create_receipt_operation, confirm_receipt_operation
     row = appointment_for(db, user, ident, True)
+    from app.apps.srm.appointment_checkout import require_standalone
+    require_standalone(db, row)
     requests = dict(row.data.get('_payment_requests', {}))
     key = str(data.request_id)
     details = {'amount': str(money(data.amount)), 'payment_method': data.payment_method, 'reference_number': data.reference_number}
@@ -120,6 +130,8 @@ def record_payment(ident: int, data: PaymentInput, db: Session = Depends(get_db)
 @router.post('/{ident}/apply-advances')
 def apply_advances(ident: int, data: ApplyInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     row = appointment_for(db, user, ident, True)
+    from app.apps.srm.appointment_checkout import require_standalone
+    require_standalone(db, row)
     revision(row, data.expected_revision)
     if not row.invoice_id:
         fail('Create and approve the invoice before applying advances', 409)

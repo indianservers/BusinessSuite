@@ -937,23 +937,30 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     )
     db.commit()
 
+    from app.apps.crm.models import CRMActivity
+    activities_before = db.query(CRMActivity).count()
     pdf = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/pdf", headers=superuser_headers)
     assert pdf.status_code == 200
     assert pdf.headers["content-type"].startswith("application/pdf")
     assert pdf.content.startswith(b"%PDF")
+    assert db.query(CRMActivity).count() == activities_before
 
     detail = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}", headers=superuser_headers)
     assert detail.status_code == 200
     assert detail.json()["pdfStatus"] == "generated"
     from app.core.storage import normalize_upload_references
     actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
-    def normalize_reference(url):
-        return normalize_upload_references(url, db=db, actor_id=actor_id, company_id=1)
+    def normalize_reference(url, branch_id="all"):
+        # These administrator GETs use the company-wide read context. Match
+        # that context explicitly instead of assuming the actor's home branch.
+        return normalize_upload_references(url, db=db, actor_id=actor_id, company_id=1, branch_id=branch_id)
     assert Path(normalize_reference(detail.json()["pdfUrl"])).name.startswith("PDF-001-" + str(quote.json()["id"]) + "-v1-")
 
     timeline = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/related", headers=superuser_headers)
-    assert any(item["record"].get("activityType") == "quotation_pdf" and item["title"] == "Quotation PDF generated" for item in timeline.json()["timeline"])
+    assert not any(item["record"].get("activityType") == "quotation_pdf" for item in timeline.json()["timeline"])
 
+    write_branch = client.get("/api/v1/branches/context", headers=superuser_headers).json()["default_branch_id"]
+    assert write_branch is not None
     emailed = client.post(
         f"/api/v1/crm/quotations/{quote.json()['id']}/send-pdf-email",
         headers=superuser_headers,
@@ -961,9 +968,11 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     )
     assert emailed.status_code == 201
     assert emailed.json()["status"] == "draft"
-    assert Path(normalize_reference(emailed.json()["pdfUrl"])).name.startswith("PDF-001-" + str(quote.json()["id"]) + "-v1-")
+    assert Path(normalize_reference(emailed.json()["pdfUrl"], write_branch)).name.startswith("PDF-001-" + str(quote.json()["id"]) + "-v1-")
     refreshed = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}", headers=superuser_headers)
-    assert normalize_reference(emailed.json()["pdfUrl"]) == normalize_reference(refreshed.json()["pdfUrl"])
+    assert normalize_reference(emailed.json()["pdfUrl"], write_branch) == normalize_reference(refreshed.json()["pdfUrl"])
+    sent_timeline = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/related", headers=superuser_headers)
+    assert any(item["record"].get("activityType") == "quotation_pdf" for item in sent_timeline.json()["timeline"])
 
 
 def test_crm_multiple_pipelines_stage_management_and_remap(client, superuser_headers):

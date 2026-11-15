@@ -1,6 +1,8 @@
+import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import { useSyncExternalStore } from "react";
 import type { AxiosRequestConfig as BaseAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { selectedPackContext } from '@/lib/pack-context';
 import { confirmedMutation, resourcePath, matchesRecordQuery, type RecordSaved } from "@/lib/record-changes";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
@@ -26,11 +28,11 @@ let client:QueryClient|undefined,applying=false;
 const secret=/password|token|secret|credential|authorization|cvv|card_number|bank.?account|account.?number|api.?key|private.?key|one.?time.?code|otp/i;
 const safeDraft=(data:unknown):unknown=>Array.isArray(data)?data.map(safeDraft):data&&typeof data==="object"?Object.fromEntries(Object.entries(data).filter(([key])=>!secret.test(key)).map(([key,value])=>[key,safeDraft(value)])):data;
 const safe=(data:unknown):Record<string,unknown>=>Object.fromEntries(Object.entries(data&&typeof data==="object"&&!Array.isArray(data)?data:{}).filter(([key,value])=>!secret.test(key)&&["string","number","boolean"].includes(typeof value)));
-export function syncScope(){const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,sessionStorage.getItem("suite-tenant"),sessionStorage.getItem("suite-organization"),sessionStorage.getItem("suite-branch")]);}
+export function syncScope(){const u=useAuthStore.getState().user;const scope=[u?.id,u?.access?.companyId,sessionStorage.getItem("suite-tenant"),sessionStorage.getItem("suite-organization"),sessionStorage.getItem("suite-branch")];const pack=selectedPackContext();return JSON.stringify([...scope,pack,securityAuthStamp(u)]);}
 const emit=()=>listeners.forEach(fn=>fn());
 const visible=()=>items;
 export const subscribeSync=(listener:()=>void)=>{listeners.add(listener);return()=>{listeners.delete(listener);};};
-export function useRecordSync(){useAuthStore(s=>s.user?.id);return useSyncExternalStore(subscribeSync,visible,visible).filter(item=>item.scope===syncScope());}
+export function useRecordSync(){useAuthStore(s=>JSON.stringify([s.user?.id,s.user?.access?.companyId,securityAuthStamp(s.user)]));return useSyncExternalStore(subscribeSync,visible,visible).filter(item=>item.scope===syncScope());}
 
 let database:Promise<IDBDatabase>|undefined;
 function db(){return database??=new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open("suite-pending-records-v1",1);r.onupgradeneeded=()=>r.result.createObjectStore("mutations",{keyPath:"id"});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -40,7 +42,7 @@ export async function recoverRecordSync(){try{const database=await db(),rows=awa
 export function describeSync(config:AxiosRequestConfig):Omit<SyncItem,"id"|"scope"|"phase"|"started"|"origin"|"durable">|undefined{
  const method=(config.method||"get").toLowerCase(),url=config.url||"";
  if(["get","head","options"].includes(method)||config.readOnlyPreview||config.recordSync===false||!/^(?:\/api\/v1)?\//.test(url))return;
- let path=resourcePath(url).replace(/^\/crm\/lead-management\/leads/,"/crm/leads").replace(/^\/crm\/contact-directory/,"/crm/contacts");
+ const path=resourcePath(url).replace(/^\/crm\/lead-management\/leads/,"/crm/leads").replace(/^\/crm\/contact-directory/,"/crm/contacts");
  if(/^\/(?:auth|platform|metrics|ai-operator)(?:\/|$)/.test(path)||/^\/project-management\/notes(?:\/|$)/.test(path)||/(?:\/|^)(?:query|search|preview|calculate|validate|render|export|suggestions|options|lookup|resolve|sync-check)(?:\/|$)/.test(path))return;
  if(/\/(?:preferences|layout|ui-state)$/.test(path)&&config.recordSync!==true)return;
  let input:unknown=config.data;if(typeof input==="string")try{input=JSON.parse(input);}catch{input={};}
@@ -76,6 +78,8 @@ export function useSyncedRecords<T>(rows:T[],resource:string){return projectSync
 function matching(key:readonly unknown[],item:SyncItem){return matchesRecordQuery(key,mutation(item));}
 function apply(item:SyncItem){if(!client||item.operation==="create")return;applying=true;try{let snapshots=before.get(item.id);if(!snapshots){snapshots=new Map();before.set(item.id,snapshots);}for(const query of client.getQueryCache().getAll()){if(!query.isActive()||!matching(query.queryKey,item))continue;const data=query.state.data;if(!snapshots.has(query.queryHash))snapshots.set(query.queryHash,{key:query.queryKey,data});const next=project(data,item);if(JSON.stringify(next)!==JSON.stringify(data))client.setQueryData(query.queryKey,next);}}finally{applying=false;}}
 export async function startRecordSync(config:AxiosRequestConfig,retry:()=>Promise<unknown>):Promise<string|undefined>{
+ const headers=config.headers as {get?:(name:string)=>unknown}|undefined;
+ if(headers?.get&&[['X-Suite-Tenant',sessionStorage.getItem('suite-tenant')],['X-Suite-Organization',sessionStorage.getItem('suite-organization')],['X-Suite-Branch',sessionStorage.getItem('suite-branch')],['X-Suite-Pack-Context',selectedPackContext()]].some(([name,value])=>String(headers.get!(name!)??'')!==String(value??'')))return;
  if(config._recordSyncId){const old=items.find(item=>item.id===config._recordSyncId);if(old&&old.scope===syncScope()){items=items.map(item=>item.id===old.id?{...item,phase:"pending",error:undefined}:item);apply({...old,phase:"pending"});emit();return old.id;}return;}
  const description=describeSync(config);if(!description||!useAuthStore.getState().user)return;
  const origin=saveIntent&&Date.now()-saveIntent.at<3000&&saveIntent.element?.isConnected?saveIntent.element:null;
@@ -119,5 +123,5 @@ export function confirmRecoveredSync(url:string,data:unknown,status=200){
 export function retryRecordSync(id:string){const item=items.find(row=>row.id===id);if(!item||item.scope!==syncScope())return;if(["put","patch","delete"].includes(item.method)&&requests.has(id))void requests.get(id)!().catch(()=>{});else reviewRecordSync(id);}
 export function reviewRecordSync(id:string){const item=items.find(row=>row.id===id);if(!item||item.scope!==syncScope())return;if(item.origin?.isConnected){item.origin.scrollIntoView({block:"center"});item.origin.querySelector<HTMLElement>('input,textarea,button')?.focus();}else {requestedReview=id;emit();const createPaths:Record<string,string>={"/employees":"/hrms/employees/new","/project-management/tasks":"/pms/tasks/new","/project-management/projects":"/pms/projects/new","/fam/vouchers":"/fam/vouchers/new","/fam/purchase-bills":"/fam/purchase-bills/new","/fam/expenses":"/fam/expenses/new","/power-apps/automations":"/power-apps/automations/new"};const href=item.operation==="create"?(createPaths[item.resource]||(/^\/crm\/(leads|contacts|companies|deals|tickets|campaigns|activities|quotations)$/.test(item.resource)?item.resource+"?new="+item.resource.split("/").pop():item.href)):item.href;window.dispatchEvent(new CustomEvent("suite:review-pending-record",{detail:{href,id}}));}}
 export function dismissRecordSync(id:string){const item=items.find(row=>row.id===id);if(!item||item.phase==="pending")return;void persist(item,true);items=items.filter(row=>row.id!==id);before.delete(id);requests.delete(id);emit();}
-export function installRecordSync(queryClient:QueryClient){client=queryClient;client.getQueryCache().subscribe(event=>{if(applying||event.type!=="updated")return;for(const item of items)if(item.scope===syncScope()&&["pending","saved"].includes(item.phase)&&matching(event.query.queryKey,item))apply(item);});let scope=syncScope();useAuthStore.subscribe(()=>{const next=syncScope();if(next!==scope){scope=next;items=[];before.clear();requests.clear();emit();void recoverRecordSync();}});for(const name of ["suite:organization-changed","suite:branch-changed"]){window.addEventListener(name,()=>{scope=syncScope();items=[];before.clear();requests.clear();emit();void recoverRecordSync();});}void recoverRecordSync();}
+export function installRecordSync(queryClient:QueryClient){client=queryClient;client.getQueryCache().subscribe(event=>{if(applying||event.type!=="updated")return;for(const item of items)if(item.scope===syncScope()&&["pending","saved"].includes(item.phase)&&matching(event.query.queryKey,item))apply(item);});let scope=syncScope();useAuthStore.subscribe(()=>{const next=syncScope();if(next!==scope){scope=next;items=[];before.clear();requests.clear();emit();void recoverRecordSync();}});for(const name of ["suite:organization-changed","suite:branch-changed","suite:tenant-changed","suite:pack-context-changed"]){window.addEventListener(name,()=>{scope=syncScope();items=[];before.clear();requests.clear();emit();void recoverRecordSync();});}void recoverRecordSync();}
 export function rowSync(items:SyncItem[],ids:(string|number)[],hint:string){const normalized=resourcePath(hint).replace(/\/(?:new|create|edit)$/,"");return items.filter(item=>(normalized===item.resource||normalized.startsWith(item.resource+"/"))&&item.ids.some(id=>ids.map(String).includes(String(id)))&&item.phase!=="saved");}

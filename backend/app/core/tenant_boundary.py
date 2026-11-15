@@ -214,6 +214,16 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
                 workspace = workspace_model.__table__
                 workspace_scopes = select(literal("workspace:") + cast(workspace.c.id, String)).where(predicate(workspace_model, (*stack, model)))
                 result = or_(result, table.c.scope_key.in_(workspace_scopes))
+        elif table.name == "salary_components":
+            # A component is a reusable company master even when its optional
+            # category is unset. A category must never be its only tenant proof.
+            # Foreign category links are still checked by validate_fields.
+            from app.models.security_boundary import SecurityResourceOwnership
+            ownership = SecurityResourceOwnership.__table__
+            result = table.c.id.in_(select(ownership.c.resource_id).where(
+                ownership.c.resource_table == table.name,
+                ownership.c.company_id == company,
+            ))
         elif table.name == "pms_running_timers":
             # One global owner-private cursor per login, not one per company or
             # project. Services independently authorize its active project/task
@@ -463,15 +473,34 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
         )
         if len(keys) != len(values):
             return False
+        # Use mapped identity attributes; the installed tenant/native/branch/
+        # pack listeners apply their independent criteria to this ORM query.
+        # Inlining a Core guard here would make trusted boundary SQL look like
+        # a caller-supplied raw-column query to the additive pack boundary.
+        mapper = inspect(model)
+        attributes = [getattr(model, mapper.get_property_by_column(key).key) for key in keys]
         with db.no_autoflush:
             return (
-                db.query(*keys)
-                .filter(guard, *(key == value for key, value in zip(keys, values)))
+                db.query(*attributes)
+                .filter(*(key == value for key, value in zip(attributes, values)))
                 .first()
                 is not None
             )
 
     def validate_fields(model, values, new=False):
+        core_scope = db.info.get('business_common_core_scope')
+        scoped_reference_proof = db.info.get('business_pack_policy') is not None or (
+            db.info.get('business_pack_legacy_company') == company
+            and db.info.get('shared_actor') == (user.id, company)
+        )
+        if core_scope is not None:
+            from app.business_packs.common_core import CommonCoreScope
+            scoped_reference_proof = scoped_reference_proof or (
+                isinstance(core_scope, CommonCoreScope)
+                and core_scope.user_id == user.id and core_scope.company_id == company
+                and core_scope.binding == db.info.get('business_pack_request_binding')
+                and db.info.get('business_pack_scope') is None
+            )
         table = model.__table__
         if table.name == 'pms_running_timers' and values.get('user_id',user.id) != user.id:
             denied('timer_owner_write',model)
@@ -510,26 +539,48 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
                 parent = models.get(inferred)
                 if parent is not None and criteria.get(parent) is not None:
                     with db.no_autoflush:
-                        if (
-                            not db.query(parent.id)
-                            .filter(parent.id == value, criteria[parent])
-                            .first()
-                        ):
+                        # A legacy scalar reference needs only this fixed
+                        # native company/identity proof. The pack layer still
+                        # independently validates its exact context reference;
+                        # this is not permission to read the parent record.
+                        if scoped_reference_proof:
+                            found = db.connection().execute(select(parent.id).where(
+                                parent.id == value, criteria[parent])).first()
+                        else:
+                            found = db.query(parent.id).filter(parent.id == value, criteria[parent]).first()
+                        if not found:
                             denied("legacy_foreign_key:" + name, model)
             for fk in column.foreign_keys:
+                components = tuple(fk.constraint.elements)
+                # MATCH SIMPLE skips a composite reference containing NULL;
+                # separate native company/branch FKs still run independently.
+                if len(components) > 1 and any(
+                    element.parent.key in values and values[element.parent.key] is None
+                    for element in components
+                ) and (fk.constraint.match or 'SIMPLE').upper() == 'SIMPLE':
+                    continue
                 parent = models.get(fk.column.table.name)
                 if parent is not None and criteria.get(parent) is not None:
                     with db.no_autoflush:
                         guard = criteria[parent]
+                        references = [fk.column == value]
+                        if len(components) > 1 and all(element.parent.key in values for element in components):
+                            references = [element.column == values[element.parent.key] for element in components]
                         if parent is User and (
                             name == "reviewer_user_id" or name in ACTOR_FIELDS
                         ):
                             guard = or_(guard, User.__table__.c.is_superuser.is_(True))
-                        if (
-                            not db.query(fk.column)
-                            .filter(fk.column == value, guard)
-                            .first()
-                        ):
+                        if scoped_reference_proof:
+                            # This is only the existing native company/FK
+                            # existence proof, with the identical guard. Pack
+                            # native_references independently checks context;
+                            # native ownership and branch validation remain.
+                            found = db.connection().execute(
+                                select(fk.column).where(*references, guard)
+                            ).first()
+                        else:
+                            found = db.query(fk.column).filter(*references, guard).first()
+                        if not found:
                             denied("foreign_key_write:" + name, model)
 
     def restrict(execution):
@@ -811,6 +862,8 @@ def bind_new_account_company(session, *args):
 
 def legacy_root(model):
     table = model.__table__
+    if table.name == "salary_components":
+        return True  # Optional category metadata does not own the company master.
     if (
         table.name in GLOBAL_CATALOGUES | INTERNAL_TABLES
         or "id" not in table.c

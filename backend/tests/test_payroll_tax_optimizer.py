@@ -94,7 +94,9 @@ def test_tax_optimizer_no_declarations_returns_section_recommendations(client, d
     assert response.status_code == 200
     body = response.json()
     sections = {item["section"]: item for item in body["recommendations"]}
-    assert body["recommended_regime"] == "NEW"
+    assert body["recommended_regime"] == "NEW", (body["old_regime_tax"], body["new_regime_tax"])
+    assert _money(body["old_regime_tax"]) == Decimal("157500.00")
+    assert _money(body["new_regime_tax"]) == Decimal("68750.00")
     assert _money(body["old_regime_tax"]) > _money(body["new_regime_tax"])
     assert sections["80C"]["suggested_amount"] == 150000
     assert sections["80D"]["max_allowed"] == 75000

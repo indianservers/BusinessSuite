@@ -17,6 +17,13 @@ def test_linked_note_save_keeps_branch_checks_and_optimistic_version(client, db)
     assert saved.json()["title"] == "After"
     assert client.put(BASE + f"/notes/{note['id']}", headers=headers, json=payload).status_code == 409
     _, outsider = account(db, "crud-note-outsider@example.test", True)
+    # Platform administrators may inspect their selected company. Explicitly
+    # select a different branch to exercise the branch isolation contract.
+    branch = client.post('/api/v1/branches', headers=outsider, json={
+        'name': 'Separate notes branch', 'code': 'NOTE-OTHER', 'reason': 'Verify branch isolation'})
+    assert branch.status_code == 201, branch.text
+    assert client.get(BASE + f"/notes/{note['id']}", headers=outsider).status_code == 200
+    outsider = {**outsider, 'X-Suite-Branch': str(branch.json()['id'])}
     assert client.get(BASE + f"/notes/{note['id']}", headers=outsider).status_code == 404
     assert client.put(BASE + f"/notes/{note['id']}", headers=outsider, json=payload).status_code == 404
 

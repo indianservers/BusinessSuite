@@ -1580,6 +1580,9 @@ def _crm_role_key(user: User) -> str:
 
 
 def _crm_user_scope(db: Session, user: User) -> dict[str, Any]:
+    from app.business_packs.company_master_core import native_scope_projection
+    projected=native_scope_projection(db,user)
+    if projected is not None:return projected
     employee = db.query(Employee).filter(Employee.user_id == user.id).first()
     team_ids = [
         row.team_id
@@ -2990,6 +2993,10 @@ def _extract_custom_field_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _custom_field_definitions(db: Session, entity: str, organization_id: int, *, include_hidden: bool = True) -> list[CRMCustomField]:
     canonical = _normalize_custom_field_entity(entity)
+    from app.business_packs.anonymous_definitions import definitions_for_birth
+    projected = definitions_for_birth(db, canonical, organization_id, include_hidden=include_hidden)
+    if projected is not None:
+        return list(projected)
     query = _base_query(db, _get_resource("custom-fields"), organization_id).filter(
         CRMCustomField.entity == canonical,
         CRMCustomField.is_active.is_(True),
@@ -3598,6 +3605,16 @@ def _quotation_pdf_file_path(quotation: CRMQuotation) -> tuple[str, str, str]:
 
 
 def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_id: int, user_id: int | None) -> tuple[str, str, str]:
+    # An issued copy is evidence: do not rebuild it from mutable customer data.
+    if quotation.sent_at and quotation.pdf_file_name:
+        name = os.path.basename(quotation.pdf_file_name)
+        if name != quotation.pdf_file_name:
+            raise HTTPException(409, 'The issued quotation PDF reference is invalid')
+        from app.core.storage import materialize_file
+        original = materialize_file(os.path.join(settings.UPLOAD_DIR, 'crm', 'quotations', str(quotation.organization_id or 'global'), name), db=db)
+        if os.path.isfile(original):
+            return original, name, quotation.pdf_url or ''
+        raise HTTPException(409, 'The original issued quotation PDF is unavailable. Restore the saved file before resending.')
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_RIGHT
     from reportlab.lib.pagesizes import A4
@@ -3758,6 +3775,16 @@ def _quote_lines(db: Session, quote_id: int) -> list[CRMQuotationItem]:
     return db.query(CRMQuotationItem).filter(
         (CRMQuotationItem.quotation_id == quote_id) | (CRMQuotationItem.quote_id == quote_id)
     ).order_by(CRMQuotationItem.sort_order, CRMQuotationItem.id).all()
+
+
+def _assert_quote_line_draft(db: Session, quote_id: int, user: User) -> None:
+    organization = _organization_id(db, user)
+    resource = _get_resource('quotations')
+    quote = _get_record(db, resource, quote_id, organization)
+    db.refresh(quote, with_for_update=True)
+    _assert_record_visible(db, resource, quote_id, organization, user)
+    if str(quote.status or '').lower() not in {'draft','rejected'}:
+        raise HTTPException(409, 'Issued quotation lines are retained. Create a revision draft with a reason.')
 
 
 def _decimal_value(value: Any) -> Decimal:
@@ -6354,7 +6381,7 @@ def reorder_quote_lines(quote_id: int, payload: OrderInput, db: Session = Depend
     _assert_entity_permission("quotations", current_user, "manage")
     quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
     db.query(CRMQuotation).filter_by(id=quote.id).with_for_update().one()
-    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+    if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(409, "Finalized quotes cannot be rearranged")
     apply_order(_quote_lines(db, quote.id), payload, "sort_order")
     _create_crm_audit_log(db, user_id=current_user.id, entity_type="quotes", entity_id=quote.id, action="UPDATE", new_values={"line_order": payload.ids}, description="Quote lines reordered")
@@ -6372,7 +6399,7 @@ def add_quote_line(
     _assert_entity_permission("quotations", current_user, "manage")
     organization_id = _organization_id(db, current_user)
     quote = _get_record(db, _get_resource("quotations"), quote_id, organization_id)
-    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+    if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     raw = payload.model_dump()
     raw["quote_id"] = quote.id
@@ -6404,7 +6431,7 @@ def update_quote_line(
     if not line:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
     quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
-    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+    if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     before = _serialize(line)
     data = _validate_and_build(_get_resource("quotation-items"), payload.model_dump(exclude_unset=True), partial=True)
@@ -6431,7 +6458,7 @@ def delete_quote_line(
     if not line:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
     quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
-    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+    if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     before = _serialize(line)
     db.delete(line)
@@ -6557,6 +6584,8 @@ def new_quote_version(
 ):
     _assert_entity_permission("quotations", current_user, "manage")
     quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.status or '').lower() not in {'draft','rejected'}:
+        raise HTTPException(409, 'Issued quotations are retained. Use Create revision draft with a reason.')
     # Keep each revision self-contained without recursively embedding every
     # earlier revision and its snapshots in the next one.
     snapshot = {key: value for key, value in _quote_payload(db, quote).items() if key != "versions"}
@@ -6613,7 +6642,7 @@ def generate_quote_pdf_alias(
 ):
     quotation = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
     file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, _organization_id(db, current_user), current_user.id)
-    _create_timeline_activity(db, organization_id=quotation.organization_id or _organization_id(db, current_user), entity_type="quotation", entity_id=quotation.id, activity_type="quotation_pdf", title="Quote PDF generated", body=file_name, user_id=current_user.id, metadata={"pdfUrl": file_url, "fileName": file_name})
+    # This alias has the same read-side behavior as /quotations/{id}/pdf.
     db.commit()
     return FileResponse(file_path, media_type="application/pdf", filename=file_name if download else None, headers={"Content-Disposition": f"{'attachment' if download else 'inline'}; filename={file_name}"})
 
@@ -6661,17 +6690,9 @@ def generate_quotation_pdf(
     organization_id = _organization_id(db, current_user)
     quotation = _get_record(db, _get_resource("quotations"), quotation_id, organization_id)
     file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, organization_id, current_user.id)
-    _create_timeline_activity(
-        db,
-        organization_id=organization_id,
-        entity_type="quotation",
-        entity_id=quotation.id,
-        activity_type="quotation_pdf",
-        title="Quotation PDF generated",
-        body=f"Generated PDF for quotation {quotation.quote_number}.",
-        user_id=current_user.id,
-        metadata={"pdfUrl": file_url, "fileName": file_name},
-    )
+    # Reading a PDF must not create a branch-owned business activity. The
+    # generated document metadata and native request/storage audit remain;
+    # explicit send actions record their own timeline events below.
     db.commit()
     disposition = "attachment" if download else "inline"
     return FileResponse(
@@ -8259,11 +8280,15 @@ def convert_lead(
     previous_company_type = company.account_type if company else None
     if contact:
         from app.apps.crm.contact_identity import add_tags, ContactIdentityLink
-        contact.lifecycle_stage = "Customer"
-        contact.customer_since = contact.customer_since or date.today()
+        from app.apps.crm.lead_management import config as lead_config
+        if contact.lifecycle_stage != "Customer":
+            contact.lifecycle_stage = "Opportunity" if lead_config(db, organization_id).get("salesProcess", {}).get("enabled") else "Customer"
+        if contact.lifecycle_stage == "Customer":
+            contact.customer_since = contact.customer_since or date.today()
         if company and not contact.company_id:
             contact.company_id = company.id
-        add_tags(contact, "Lead", "Customer")
+        from app.apps.crm.lead_management import config as lead_config
+        add_tags(contact, "Lead", "Opportunity" if lead_config(db, organization_id).get("salesProcess", {}).get("enabled") else "Customer")
         if inspect_connection(db.connection()).has_table(ContactIdentityLink.__tablename__):
             identity = db.query(ContactIdentityLink).filter(ContactIdentityLink.lead_id == lead.id).first()
             if identity:
@@ -8273,14 +8298,19 @@ def convert_lead(
             if created_customer:
                 db.add(ContactIdentityLink(organization_id=organization_id, contact=contact, account=company))
     if company:
-        company.account_type = "Customer"
+        from app.apps.crm.lead_management import config as lead_config
+        sales_process = lead_config(db, organization_id).get("salesProcess", {})
+        if company.account_type != "Customer":
+            company.account_type = "Prospect" if sales_process.get("enabled") else "Customer"
         if created_customer and individual_customer:
             from app.shared.master_data_models import CompanyMasterDetails
             db.add(CompanyMasterDetails(account_id=company.id, organization_id=organization_id, business_type="Individual"))
 
     deal = None
     if payload.createDeal:
-        pipeline_id = payload.pipelineId
+        from app.apps.crm.lead_management import config as lead_config
+        sales_process = lead_config(db, organization_id).get("salesProcess", {})
+        pipeline_id = payload.pipelineId or (sales_process.get("pipelineId") if sales_process.get("enabled") else None)
         stage_id = payload.stageId
         if not pipeline_id or not stage_id:
             default_pipeline = _base_query(db, _get_resource("pipelines"), organization_id).order_by(desc(CRMPipeline.is_default), CRMPipeline.id).first()
@@ -9076,6 +9106,8 @@ def create_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=False)
+    if resource.model is CRMQuotationItem:
+        _assert_quote_line_draft(db, int(data['quotation_id']), current_user)
     if resource.model in {CRMMeeting, CRMCallLog}:
         from ..engagements import validate_engagement
         validate_engagement(resource.model, data)
@@ -9222,6 +9254,14 @@ def update_record(
         return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=True), record_id)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
+    if resource.model is CRMQuotationItem:
+        _assert_quote_line_draft(db, record.quotation_id, current_user)
+        proposed = payload.model_dump(exclude_unset=True)
+        for key in ('quotation_id','quote_id','quotationId','quoteId'):
+            if proposed.get(key):
+                _assert_quote_line_draft(db, int(proposed[key]), current_user)
+    if resource.model is CRMQuotation and str(record.status or '').lower() not in {'draft','rejected'}:
+        raise HTTPException(409, 'Issued quotations are retained. Use Create revision draft with a reason.')
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
     if resource.model in {CRMProduct, CRMService}:
         from app.shared.catalog import metadata, workspace_access
@@ -9392,12 +9432,19 @@ def update_record(
             new_values={key: value["new"] for key, value in changed_audit.items()},
             description=f"CRM {action.lower().replace('_', ' ')}",
         )
+    if resource.model is CRMMeeting and record.status in {"Completed", "Attended"} and before.get("status") not in {"Completed", "Attended"} and record.lead_id:
+        from app.apps.crm.sales_process import completed_demo
+        linked_lead = db.query(CRMLead).filter_by(id=record.lead_id, organization_id=organization_id, deleted_at=None).first()
+        if linked_lead:
+            completed_demo(db, linked_lead, current_user, record)
     if resource.model is CRMDeal and changed_audit:
         from app.apps.crm.deal_workspace import notify_watchers
         notify_watchers(db, record, current_user)
     if resource.model is CRMDeal and before.get("stage_id") != record.stage_id:
         from app.shared.pipeline_workspace import stage_entry
         stage_entry(db, current_user, "crm", "deal", record.id, before.get("stage_id"), record.stage_id, record.owner_user_id, f"pipeline:{record.pipeline_id}")
+        from app.apps.crm.sales_process import deal_changed
+        deal_changed(db, record, current_user, before)
     for event_type in _event_types_for_update(canonical, before, record, data):
         _enqueue_webhook_event(db, organization_id, event_type, _serialize(record), current_user.id, {"changedFields": sorted(data)})
     db.commit()
@@ -9436,6 +9483,10 @@ def delete_record(
         archive("product" if resource.model is CRMProduct else "service", record_id, "crm", db, current_user)
         return {"success": True}
     record = _get_record(db, resource, record_id, _organization_id(db, current_user), include_deleted=True)
+    if resource.model is CRMQuotationItem:
+        _assert_quote_line_draft(db, record.quotation_id, current_user)
+    if resource.model is CRMQuotation and (str(record.status or '').lower() not in {'draft','rejected'} or record.sent_at or record.converted_srm_sales_order_id):
+        raise HTTPException(409, 'Issued quotations cannot be deleted. Keep the record and cancel or revise it.')
     organization_id = _organization_id(db, current_user)
     _assert_record_visible(db, resource, record_id, organization_id, current_user, include_deleted=True)
     if resource.model is CRMPipeline:

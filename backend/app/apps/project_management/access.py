@@ -96,14 +96,15 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
         return False
     if not same_organization(project, user):
         return False
+    if project.workspace_id:
+        from .workspace_lifecycle import is_archived
+        if is_archived(db, project.workspace_id):
+            return False
     if getattr(user, "_suite_admin_read", False) and action in {"browse", "browse_client"}:
         return True
     if getattr(project, "is_task_collection", False) and action in {"edit_project", "administer", "create_project"}:
         return False
     if project.workspace_id:
-        from .workspace_lifecycle import is_archived
-        if is_archived(db, project.workspace_id):
-            return False
         from .people_management import organization_admin
         if organization_admin(user) and project.organization_id == organization_id_for(user):
             return True
