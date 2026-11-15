@@ -88,7 +88,7 @@ function IndustryWorkspace({ mode, scope, userId }: { mode: 'salon' | 'appointme
   const [day, setDay] = useState('');
   const requestId = useRef(crypto.randomUUID());
   const update = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
-  const caps = useQuery({ queryKey: ['industry', scope, 'capabilities', project], retry: false, queryFn: async () => (await api.get<{ manage: boolean; approve: boolean; invoice: boolean; self_approve: boolean; projects_enabled?: boolean; crm_enabled?: boolean; billing?: boolean; collect?: boolean; approve_invoice?: boolean; appointment_actions?: string[] }>(ROOT + '/capabilities', { params: { project_id: project || undefined } })).data });
+  const caps = useQuery({ queryKey: ['industry', scope, 'capabilities', project], retry: false, queryFn: async () => (await api.get<{ manage: boolean; approve: boolean; invoice: boolean; self_approve: boolean; projects_enabled?: boolean; crm_enabled?: boolean; billing?: boolean; collect?: boolean; approve_invoice?: boolean; appointment_actions?: string[]; operational_scope?: { pack_key?: string } }>(ROOT + '/capabilities', { params: { project_id: project || undefined } })).data });
   const rows = useQuery({ queryKey: ['industry', scope, kind, project, offset, day], enabled: mode !== 'construction' || !!project, retry: false, queryFn: async () => {
     const from = day && kind === 'appointment' ? new Date(day + 'T00:00:00') : undefined;
     const until = from ? new Date(from) : undefined;
@@ -101,7 +101,12 @@ function IndustryWorkspace({ mode, scope, userId }: { mode: 'salon' | 'appointme
   };
   const resourceQuery = useQuery({ queryKey: ['industry', scope, 'resource'], enabled: mode !== 'construction' && !!caps.data?.manage, retry: false, queryFn: async () => (await api.get<{ items: Row[] }>(ROOT + '/records', { params: { kind: 'resource', limit: 200 } })).data.items });
   const warehouses = useQuery({ queryKey: ['industry', scope, 'warehouses'], enabled: kind === 'material_issue', retry: false, queryFn: async () => (await api.get<{ items: { id: number; warehouse_name: string }[] }>('/srm/inventory/warehouses')).data.items });
-  const projectFiles = useQuery({ queryKey: ['industry', scope, 'files', project, fileOffset], enabled: kind === 'site_diary' && !!project && creating, retry: false, queryFn: async () => (await api.get<{ id: number; original_name: string }[]>('/project-management/files', { params: { project_id: project, skip: fileOffset, limit: 50 } })).data });
+  const projectFiles = useQuery({ queryKey: ['industry', scope, 'files', project, fileOffset], enabled: kind === 'site_diary' && !!project && creating && !!caps.data, retry: false, queryFn: async () => {
+    if (caps.data?.operational_scope?.pack_key === 'construction') {
+      return (await api.get<{ project_files: { id: number; original_name: string }[] }>(ROOT + '/records', { params: { kind: 'site_diary', project_id: project, offset: fileOffset, limit: 50, include_files: true } })).data.project_files;
+    }
+    return (await api.get<{ id: number; original_name: string }[]>('/project-management/files', { params: { project_id: project, skip: fileOffset, limit: 50 } })).data;
+  } });
   const boqQuery = useQuery({ queryKey: ['industry', scope, 'approved-boq', project], enabled: mode === 'construction' && !!project, retry: false, queryFn: async () => {
     const result = await Promise.all(['boq', 'variation'].map(k => api.get<{ items: Row[] }>(ROOT + '/records', { params: { kind: k, project_id: project, limit: 200 } })));
     return result.flatMap(r => r.data.items).filter(r => r.status === 'approved');
