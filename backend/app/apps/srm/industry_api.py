@@ -468,6 +468,12 @@ def records(kind: str, project_id: int | None = None, from_at: datetime | None =
     return result
 
 
+@router.get('/material-warehouse-options')
+def material_warehouse_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0, le=100000), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.business_packs.construction_warehouse_options import options
+    return options(db, user, search, offset)
+
+
 @router.get('/project-options')
 def project_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), files_project_id: int | None = Query(None, gt=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
     require_pack_operation(db, user, 'sites.view')
