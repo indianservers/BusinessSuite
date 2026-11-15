@@ -219,6 +219,8 @@ def capabilities(project_id: int | None = None, db: Session = Depends(get_db), u
     from app.apps.srm.service_checkout import checkout_capabilities
     result.update(checkout_capabilities(db, user))
     scope=db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        result['self_approve'] = False
     result['operational_scope']={'realm':'pack' if scope is not None else 'legacy','user_id':user.id,'company_id':tenant(user),'branch_id':branch_id,
         **{key:getattr(scope,key,None) for key in ('context_id','pack_key','pack_version','context_revision','grant_revision','activation_revision')}}
     return result
@@ -257,6 +259,10 @@ def audit(db, user, row, action):
 
 
 def existing(db, user, branch_id, payload, kind):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction' and kind in CONSTRUCTION:
+        from app.business_packs.construction import authorize_retry_project
+        authorize_retry_project(db, user, payload.request_id)
     row = query(db, user, branch_id).filter_by(request_id=str(payload.request_id)).first()
     if row and (row.kind != kind or row.branch_id != branch_id):
         fail("Request ID already belongs to another operation", 409)
@@ -361,7 +367,7 @@ def project_currency(db, user, project_id):
 
 
 @router.get("/records")
-def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db: Session = Depends(get_db), user=Depends(get_current_user)):
+def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), include_files: bool = False, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, appointments=kind in {'appointment', 'resource'})
     for_record_read(db, user, kind)
     if kind not in KINDS:
@@ -393,7 +399,13 @@ def records(kind: str, project_id: int | None = None, from_at: datetime | None =
         q = q.filter(Record.ends_at > from_at)
     if until_at:
         q = q.filter(Record.starts_at < until_at)
-    return {"items": [out(r, db, user) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
+    result = {"items": [out(r, db, user) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
+    if include_files:
+        if not construction_scope or kind != 'site_diary':
+            fail('Project file choices require the selected Construction site diary', 403)
+        from app.business_packs.construction import project_files
+        result['project_files'] = project_files(db, user, project_id, offset=offset, limit=limit)
+    return result
 
 
 @router.get('/project-options')
@@ -639,12 +651,17 @@ def diary(data: DiaryInput, db: Session = Depends(get_db), user=Depends(get_curr
     if prior:
         return out(prior)
     get_project_for_action(db, data.project_id, user, 'manage_tasks')
-    for ident in data.file_ids:
-        asset = db.query(PMSFileAsset).filter_by(id=ident, project_id=data.project_id, deleted_at=None).first()
-        if not asset:
-            fail("Site photos must be uploaded to this project's Files first")
-        if asset.visibility == 'Work Evidence' and asset.uploaded_by_user_id != user.id:
-            fail('This project file is private to its uploader', 403)
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import project_files
+        project_files(db, user, data.project_id, file_ids=data.file_ids)
+    else:
+        for ident in data.file_ids:
+            asset = db.query(PMSFileAsset).filter_by(id=ident, project_id=data.project_id, deleted_at=None).first()
+            if not asset:
+                fail("Site photos must be uploaded to this project's Files first")
+            if asset.visibility == 'Work Evidence' and asset.uploaded_by_user_id != user.id:
+                fail('This project file is private to its uploader', 403)
     row = create(db, user, branch, 'site_diary', data, project_id=data.project_id)
     row.status = 'recorded'
     db.commit()
@@ -661,7 +678,13 @@ def subcontract(data: SubcontractInput, db: Session = Depends(get_db), user=Depe
     get_project_for_action(db, data.project_id, user, 'edit_project')
     vendor = customer(db, data.vendor_id, user)
     from app.shared.master_data import relationships
-    vendor_roles = {r.lower() for r in relationships(db, vendor, 'company')} | {(vendor.account_type or '').lower()}
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import subcontract_vendor_roles
+        roles = subcontract_vendor_roles(db, user, data.project_id, vendor)
+    else:
+        roles = relationships(db, vendor, 'company')
+    vendor_roles = {r.lower() for r in roles} | {(vendor.account_type or '').lower()}
     if not vendor_roles.intersection({'vendor', 'supplier'}):
         fail("Choose a vendor from the shared company directory")
     row = create(db, user, branch, 'subcontract', data, project_id=data.project_id)
@@ -717,7 +740,9 @@ def transition(ident: int, data: Transition, db: Session = Depends(get_db), user
         get_project_for_action(db, row.project_id, user, 'approve')
         if row.status != 'draft' or data.status not in {'approved', 'rejected'}:
             fail("Only draft records can be approved or rejected", 409)
-        if row.created_by == user.id and not user.is_superuser:
+        selected = db.info.get('business_pack_scope')
+        if row.created_by == user.id and (not user.is_superuser or
+                (selected is not None and selected.pack_key == 'construction')):
             fail("A different project approver must review this record", 403)
         if row.kind in {'boq', 'variation'} and data.status == 'approved':
             require_clean_billing_start(db, user, row.project_id)
