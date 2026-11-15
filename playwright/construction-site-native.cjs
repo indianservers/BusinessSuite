@@ -56,10 +56,28 @@ const expect=base.configure({timeout:120000});
     }
     assert.equal(trace.some(item=>item.path==='/api/v1/srm/industry/records'&&item.status===200),true);
     assert.equal(trace.filter(item=>item.method==='POST'&&item.path==='/api/v1/srm/industry/site-diaries'&&item.status===201).length,2);
-    assert.equal(trace.some(item=>item.path==='/api/v1/project-management/files'),false);
+    await page.getByRole('tab',{name:'Site diary',exact:true}).click();
+    await page.getByRole('button',{name:'New site diary',exact:true}).click();
+    await page.getByRole('link',{name:'Upload photos in PMS Files',exact:true}).click();
+    for(const [width,label] of [[1440,'desktop'],[390,'mobile']]){
+      stage=label+' native PMS upload/download';
+      await page.setViewportSize({width,height:1100});
+      const filename='Native evidence '+label+'.txt';
+      await expect(page.getByLabel('Upload project files',{exact:true})).toBeEnabled();
+      await page.getByLabel('Upload project files',{exact:true}).setInputFiles({name:filename,mimeType:'text/plain',buffer:Buffer.from('Construction native upload and download\n')});
+      await expect(page.getByRole('heading',{name:filename,exact:true})).toBeVisible();
+      const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download '+filename,exact:true}).click()]);
+      assert.equal(download.suggestedFilename(),filename);
+      assert.equal(fs.readFileSync(await download.path(),'utf8'),'Construction native upload and download\n');
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+      await page.screenshot({path:path.resolve(root,'../.local/construction-documents-'+label+'.png'),fullPage:true});
+    }
+    assert.equal(trace.some(item=>item.path==='/api/v1/project-management/files'&&item.status===200),true);
+    assert.equal(trace.some(item=>item.path==='/api/v1/follow-ups/statistics'&&item.status===200),true);
+    assert.deepEqual(trace.filter(item=>item.status>=400),[]);
     assert.deepEqual(errors,[]);
     fs.writeFileSync(path.resolve(root,'../.local/construction-site-browser-proof.json'),JSON.stringify({stage:'complete',native_http_trace:trace,js_errors:errors,mocked_responses:false,desktop_width:1440,mobile_width:390},null,2));
-    console.log('PASS existing Construction UI: canonical project selection, all six tabs, desktop/mobile diary creation with real PMS supporting document.');
+    console.log('PASS existing Construction UI: canonical project selection, six tabs, desktop/mobile diary, native PMS binary upload/download, scoped follow-up statistics.');
   }catch(error){if(page)console.error(JSON.stringify({stage,trace,errors,body:(await page.locator('body').innerText()).slice(0,5000)}));throw error;}
   finally{closing=true;if(context){await context.unrouteAll({behavior:'wait'});await context.close();}if(browser)await browser.close();await vite.close();}
 })().catch(error=>{console.error(error.stack||error.message);process.exitCode=1;});

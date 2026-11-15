@@ -6,10 +6,11 @@ from uuid import uuid4
 
 from app.apps.project_management.models import PMSFileAsset
 from app.apps.srm.industry_models import IndustryRecord
+from tests.test_construction_documents import documents
 from tests.test_business_pack_construction import construction, construction_approver, scenario, catalog, directory_identity
 
 
-def test_existing_construction_site_screen_desktop_mobile(client, db, construction, construction_approver, catalog, monkeypatch):
+def test_existing_construction_site_screen_desktop_mobile(client, db, construction, construction_approver, catalog, monkeypatch, documents):
     from tests.test_control_browser import test_control_center_real_browser
     actor, branch, context_id, project_id = construction
     headers = {**catalog[0], 'X-Suite-Pack-Context': str(context_id)}
@@ -39,3 +40,7 @@ def test_existing_construction_site_screen_desktop_mobile(client, db, constructi
     diaries = db.query(IndustryRecord).filter_by(project_id=project_id, kind='site_diary').all()
     assert len(diaries) == 2
     assert all(row.data['workforce'] == 12 and row.data['file_ids'] == [asset.id] for row in diaries)
+
+    uploaded = db.query(PMSFileAsset).filter(PMSFileAsset.project_id == project_id, PMSFileAsset.original_name.like('Native evidence %')).all()
+    assert len(uploaded) == 2
+    assert all(Path(row.storage_path).read_bytes() == b'Construction native upload and download\n' for row in uploaded)
