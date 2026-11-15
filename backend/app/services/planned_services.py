@@ -14,7 +14,8 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 from sqlalchemy import JSON, String, and_, case, cast, exists, func, inspect, literal, or_, select
 
 from app.core.config import settings
