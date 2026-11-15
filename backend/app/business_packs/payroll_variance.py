@@ -15,7 +15,7 @@ PATH='/api/v1/payroll/runs/{run_id}/variance'
 _LEASES=WeakKeyDictionary()
 
 
-def operations(operation):return MappingProxyType({})
+def operations(operation):return candidate_operations(operation)
 
 
 def candidate_operations(operation):

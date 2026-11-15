@@ -12,7 +12,7 @@ PATH='/api/v1/payroll/payslip'
 _PREFLIGHT=WeakKeyDictionary()
 
 
-def operations(operation):return MappingProxyType({})
+def operations(operation):return candidate_operations(operation)
 
 def candidate_operations(operation):return MappingProxyType({('GET',PATH):operation('view',None,purpose=PURPOSE)})
 

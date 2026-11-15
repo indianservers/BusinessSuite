@@ -20,10 +20,7 @@ _COMPUTATIONS=WeakKeyDictionary()
 _NATIVE_READS=WeakKeyDictionary()
 
 
-def operations(operation):
-    # Keep the real default-page/policy graph unpublished until its full native
-    # proof passes. Legacy requests retain their original native implementation.
-    return MappingProxyType({})
+def operations(operation):return candidate_operations(operation)
 
 
 def candidate_operations(operation):
