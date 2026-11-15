@@ -10,7 +10,7 @@ import time
 from fastapi import Request, APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import asc, desc, func, or_
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_db, get_current_user, get_current_active_superuser, RequirePermission
 from app.core.hr_audit import record_employee_field_changes
@@ -44,6 +44,8 @@ from app.api.v1.employee_accounts import router as accounts_router
 router.include_router(accounts_router)
 from app.api.v1.hr_workbench import router as workbench_router
 router.include_router(workbench_router)
+from app.api.v1.employee_planned_services import router as planned_services_router
+router.include_router(planned_services_router)
 _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
 
 
@@ -233,7 +235,7 @@ def _apply_directory_filters(
     if location_id:
         query = query.filter(Employee.location_id == location_id)
     if skills:
-        query = query.filter(or_(Employee.skills_tags.icontains(skills.strip(), autoescape=True), Employee.skills.any(EmployeeSkill.skill_name.icontains(skills.strip(), autoescape=True))))
+        query = query.filter(or_(Employee.skills_tags.icontains(skills.strip(), autoescape=True), Employee.id.in_(select(EmployeeSkill.employee_id).where(EmployeeSkill.skill_name.icontains(skills.strip(), autoescape=True)))))
     if work_location:
         query = query.filter(Employee.work_location == work_location)
     if employment_type:
@@ -880,7 +882,8 @@ def create_employee(
 ):
     from app.shared.form_defaults import effective as form_defaults
     branch = getattr(current_user, "_suite_branch_id", None)
-    values = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None)["values"]
+    values = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None,
+        reference_keys={'employment_type','branch_id','department_id','shift_id','cost_center_id','payroll_currency'})["values"]
     changes = {key: values[default] for key, default in {"employment_type": "employment_type", "branch_id": "branch_id", "department_id": "department_id", "shift_id": "shift_id", "cost_center_id": "cost_center_id", "salary_currency": "payroll_currency"}.items() if key not in data.model_fields_set and values[default] is not None}
     data = EmployeeCreate.model_validate({**data.model_dump(), **changes})
     validate_employee_links(db, current_user, data.model_dump())
@@ -893,8 +896,10 @@ def create_employee(
     from types import SimpleNamespace
     save_custom_fields(db,current_user,SimpleNamespace(id=None),data.custom_fields,validate_only=True)
     from sqlalchemy.exc import IntegrityError
+    from app.business_packs.employee_core import creation_plan
     try:
-        return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
+        with creation_plan(db,current_user,data):
+            return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "Employee code or login account already exists. Review existing records before trying again.") from None
@@ -1564,21 +1569,25 @@ def update_employee(
         if not emp.user:
             raise HTTPException(422, "Link a login account before changing its role")
     validate_employee_links(db, current_user, values, emp)
-    if role_id is not None and emp.user.role_id != role_id:
-        db.add(AuditLog(user_id=current_user.id, action="update", module="employees",
-                        method="PUT", entity_type="employee", entity_id=emp.id, description=f"Changed account role from {emp.user.role_id} to {role_id}"))
-        emp.user.role_id = role_id
-    record_employee_field_changes(db, emp, values, current_user.id)
-    changed_fields = sorted(key for key, value in values.items() if getattr(emp, key, None) != value)
-    if changed_fields:
-        db.add(AuditLog(user_id=current_user.id, actor_email=current_user.email, actor_authenticated=True,
-            method="PUT", endpoint=f"/employees/{emp.id}", entity_type="employee", entity_id=emp.id,
-            action="PROFILE_EDIT", description="Changed " + ", ".join(changed_fields),
-            new_values=json.dumps({"fields": changed_fields})))
-    save_custom_fields(db, current_user, emp, custom_values)
-    touch(emp)
-    updated = crud_employee.update(db, db_obj=emp, obj_in=values)
-    return mask_employee_detail(updated, current_user)
+    from app.business_packs.employee_core import update_plan,role_change_proof,profile_touch_proof
+    with update_plan(db,current_user,emp,values,role_id):
+        if role_id is not None and emp.user.role_id != role_id:
+            role_change_proof(db,current_user,emp,role_id)
+            db.add(AuditLog(user_id=current_user.id, action="update", module="employees",
+                            method="PUT", entity_type="employee", entity_id=emp.id, description=f"Changed account role from {emp.user.role_id} to {role_id}"))
+            emp.user.role_id = role_id
+        record_employee_field_changes(db, emp, values, current_user.id)
+        changed_fields = sorted(key for key, value in values.items() if getattr(emp, key, None) != value)
+        if changed_fields:
+            db.add(AuditLog(user_id=current_user.id, actor_email=current_user.email, actor_authenticated=True,
+                method="PUT", endpoint=f"/employees/{emp.id}", entity_type="employee", entity_id=emp.id,
+                action="PROFILE_EDIT", description="Changed " + ", ".join(changed_fields),
+                new_values=json.dumps({"fields": changed_fields})))
+        save_custom_fields(db, current_user, emp, custom_values)
+        touch(emp)
+        profile_touch_proof(db,current_user,emp)
+        updated = crud_employee.update(db, db_obj=emp, obj_in=values)
+        return mask_employee_detail(updated, current_user)
 
 
 @router.get("/{employee_id}/lifecycle", response_model=List[EmployeeLifecycleEventSchema])

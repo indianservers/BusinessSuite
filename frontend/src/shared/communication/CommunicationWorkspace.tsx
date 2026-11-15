@@ -1,3 +1,4 @@
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import {useCommunicationAction} from "./use-communication-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -69,9 +70,11 @@ const base = "/collaboration/workspaces";
 const instant = (value: string) =>
   new Date(/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`);
 function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: CommunicationWorkspaceProps) {
+  const ownsDraft = usePrivateDraftOwner();
+  const draftStorageKey = privateDraftKey("pms-chat-drafts", module, workspaceId);
   useCommunicationEvents();
   const canCreate=useCommunicationAction("create"),canEdit=useCommunicationAction("edit"),canDelete=useCommunicationAction("delete");
-  const scope=useCommunicationScope();
+  const scope=`${useCommunicationScope()}:${usePrivateDraftScope()}`;
   const { user } = useAuthStore(),
     qc = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -148,7 +151,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
   const [drafts, setDrafts] = useState<Record<string, string>>(() => {
       try {
         return JSON.parse(
-          sessionStorage.getItem(`pms-chat-drafts-${user?.id}`) || "{}",
+          sessionStorage.getItem(draftStorageKey) || "{}",
         );
       } catch {
         return {};
@@ -260,9 +263,10 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
     setProgress(null);
   }, [context]);
   useEffect(() => {
+    if (!ownsDraft()) return;
     try {
       sessionStorage.setItem(
-        `pms-chat-drafts-${user?.id}`,
+        draftStorageKey,
         JSON.stringify(
           Object.fromEntries(
             Object.entries(drafts).filter(([key]) =>
@@ -1362,5 +1366,6 @@ function ChatFile({
 }
 
 export default function CommunicationWorkspace(props:CommunicationWorkspaceProps) {
-  return props.context ? <ContextualChat {...props}/> : <WorkspaceCore {...props}/>;
+  const scope = usePrivateDraftScope();
+  return props.context ? <ContextualChat key={scope} {...props}/> : <WorkspaceCore key={scope} {...props}/>;
 }

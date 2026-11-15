@@ -29,6 +29,7 @@ def test_combined_filters_counts_sort_and_pagination(client, db, superuser_heade
     assert client.get("/api/v1/employees/", headers=superuser_headers, params=params).json()["items"][0]["employee_id"] == "A"
     params.update(passout_year=2026, college="Alpha College", degree="B.Tech", specialization="CSE", page=1)
     result = client.get("/api/v1/employees/", headers=superuser_headers, params=params)
+    assert result.status_code == 200, result.text
     assert result.json()["total"] == 1
     assert result.json()["items"][0]["employee_id"] == "A"
 

@@ -1,4 +1,6 @@
 import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { useRecordScope } from '@/lib/record-scope';
+import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 import {useModuleAction} from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -21,8 +23,14 @@ export function InvoicePaymentForm({
   invoice: Row;
   onSaved?: () => unknown;
 }) {
+  const scope = useRecordScope();
+  return <InvoicePaymentSurface key={`${scope}-${invoice.id}`} invoice={invoice} onSaved={onSaved} scope={scope} />;
+}
+
+function InvoicePaymentSurface({ invoice, onSaved, scope }: { invoice: Row; onSaved?: () => unknown; scope: string }) {
+  const owns = useRecordScopeOwner();
   const { term } = useBusinessTerms();
-  const canCreate=useModuleAction("approve");
+  const canCreate=useModuleAction("create") && invoice.can_record_payment !== false;
   const [method,setMethod]=useState("bank_transfer"),[receiptDate,setReceiptDate]=useState(()=>new Date().toISOString().slice(0,10));
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
@@ -30,15 +38,21 @@ export function InvoicePaymentForm({
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [receipt, setReceipt] = useState<number | null>(null);
   const save = useMutation({
-    mutationFn: () =>
-      api.post(`/srm/business/invoices/${invoice.id}/payments`, {
+    mutationFn: () => {
+      if (!owns()) throw new Error('The payment workspace changed. Reload this invoice.');
+      const measurement = invoice.construction_measurement_id;
+      const path = Number.isSafeInteger(measurement) && measurement > 0
+        ? `/srm/industry/records/${measurement}/payments` : `/srm/business/invoices/${invoice.id}/payments`;
+      return api.post(path, {
         request_id: requestId,
         amount,
         reference,
         payment_method: method,
         receipt_date: receiptDate,
-      }),
+      });
+    },
     onSuccess: (response) => {
+      if (!owns()) return;
       setReceipt(response.data.receipt_id);
       setAmount("");
       setReference("");
@@ -52,7 +66,7 @@ export function InvoicePaymentForm({
         "srm",
         "fam",
       ])
-        queryClient.invalidateQueries({ queryKey: [key] });
+        queryClient.invalidateQueries({ queryKey: ['collection-invoices', 'shared-invoice'].includes(key) ? [key, scope] : [key] });
     },
   });
   return (
@@ -121,17 +135,22 @@ export function InvoicePaymentForm({
 }
 
 function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () => unknown }) {
+  const owns = useRecordScopeOwner();
   const canEdit=useModuleAction("edit");
   const cache = useQueryClient();
   const [reason, setReason] = useState("");
   const [resumeAt, setResumeAt] = useState("");
   const control = useMutation({
-    mutationFn: () => api.put(`/srm/collections/${invoice.id}/control`, {
-      hold: !invoice.collection_hold,
-      reason: reason.trim(),
-      resume_at: !invoice.collection_hold && resumeAt ? new Date(resumeAt).toISOString() : null,
-    }),
+    mutationFn: () => {
+      if (!owns()) throw new Error('The collection workspace changed.');
+      return api.put(`/srm/collections/${invoice.id}/control`, {
+        hold: !invoice.collection_hold,
+        reason: reason.trim(),
+        resume_at: !invoice.collection_hold && resumeAt ? new Date(resumeAt).toISOString() : null,
+      });
+    },
     onSuccess: () => {
+      if (!owns()) return;
       setReason("");
       onSaved?.();
       for (const key of ["collection-invoices", "shared-invoice", "customer-commercial-history", "srm", "fam"])
@@ -152,13 +171,18 @@ function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () =
 }
 
 export default function ConnectedCollectionsPage() {
+  const scope = useRecordScope();
+  return <CollectionsWorkspace key={scope} scope={scope} />;
+}
+
+function CollectionsWorkspace({ scope }: { scope: string }) {
   const { term } = useBusinessTerms();
-  const canCreate=useModuleAction("approve"),canEdit=useModuleAction("edit");
+  const canCreate=useModuleAction("create"),canEdit=useModuleAction("edit");
   const uid = useAuthStore((state) => state.user?.id);
   const query = useQuery({
-    queryKey: ["collection-invoices", uid],
-    queryFn: async () => {
-      const {data} = await api.get<{items: Row[]; can_record: boolean}>("/srm/business/collection-invoices");
+    queryKey: ["collection-invoices", scope, uid],
+    queryFn: async ({ signal }) => {
+      const {data} = await api.get<{items: Row[]; can_record: boolean}>("/srm/business/collection-invoices", { signal });
       if (!data || !Array.isArray(data.items) || typeof data.can_record !== "boolean") throw new Error("Collection invoice choices are unavailable");
       return data;
     },
@@ -191,7 +215,7 @@ export default function ConnectedCollectionsPage() {
               row.document_status === "issued" &&
               Number(row.balance_amount) > 0 ? (
                 <>{canCreate&&<PaymentRequestButton source="srm_invoice" sourceId={Number(row.id)}/>}<InvoicePaymentForm
-                  key={`${uid}-${row.id}`}
+                  key={`${scope}-${row.id}`}
                   invoice={row}
                   onSaved={() => query.refetch()}
                 /></>

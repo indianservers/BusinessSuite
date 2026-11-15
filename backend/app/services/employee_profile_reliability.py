@@ -75,7 +75,7 @@ def check_duplicates(db, values, exclude_id=None, allow_contact_duplicate=False)
     if db.bind.dialect.name == 'postgresql':
         for key in sorted(set(filter(None, keys))):
             lock = int.from_bytes(hashlib.sha256(('employee-contact:' + key).encode()).digest()[:8], 'big', signed=True)
-            db.execute(text('SELECT pg_advisory_xact_lock(:key)'), {'key': lock})
+            db.connection().execute(text('SELECT pg_advisory_xact_lock(:key)'), {'key': lock})
     if values.get('employee_id'):
         table=Employee.__table__
         statement=select(table.c.id).where(func.lower(table.c.employee_id)==values['employee_id'].strip().lower())

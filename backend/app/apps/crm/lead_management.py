@@ -38,6 +38,7 @@ from app.apps.crm.models import (
     CRMActivity,
     CRMContact,
     CRMCompany,
+    CRMDeal,
     CRMMeeting,
     CRMTimelineEvent,
 )
@@ -291,7 +292,7 @@ def validate_transition(settings, lead, values, details, converting=False):
         )
         if value is None or value == "" or value is False:
             missing.append(field)
-    if target == "Lost" and not details.get("lossReason"):
+    if target == "Lost" and not str(details.get("lossReason") or "").strip():
         missing.append("lossReason")
     if missing:
         raise HTTPException(
@@ -910,6 +911,7 @@ def get_settings(
     settings.pop("productivityViews",None)
     settings.pop("dealStageGuidance",None)
     settings.pop("sources", None)
+    settings.pop("salesProcess", None)
     can_manage = bool(
         user.is_superuser or core()._crm_permission_names(user).intersection(WRITE)
     )
@@ -996,7 +998,7 @@ def save_settings(
         **{
             key: value
             for key, value in (row.settings_json or {}).items()
-            if key in {"capture", "assignmentCursor", "productivityViews", "dealStageGuidance", "sources"}
+            if key in {"capture", "assignmentCursor", "productivityViews", "dealStageGuidance", "sources", "salesProcess"}
         },
         **values,
     }
@@ -1743,6 +1745,7 @@ def add_team_note(
 
 
 class ActivityPayload(Strict):
+    purpose: Literal["consultation", "demo"] = "consultation"
     type: Literal["call", "email", "meeting", "note", "task"]
     outcome: str = Field(min_length=1, max_length=4000)
     nextFollowUp: datetime | None = None
@@ -1761,6 +1764,9 @@ def log_activity(
     row = state(db, lead)
     data = copy.deepcopy(row.data_json)
     data["lastActivityAt"] = now().isoformat()
+    if payload.responded:
+        data["lastResponseAt"] = now().isoformat()
+        data.pop("proposalReminder", None)
     if payload.type == "meeting" and payload.startAt:
         meeting_start = dt(payload.startAt)
         if meeting_start < now():
@@ -1774,7 +1780,7 @@ def log_activity(
                 CRMMeeting.organization_id == lead.organization_id,
                 CRMMeeting.owner_user_id == meeting_owner,
                 CRMMeeting.deleted_at.is_(None),
-                CRMMeeting.status != "Cancelled",
+                CRMMeeting.status.in_(["Scheduled", "Confirmed"]),
                 CRMMeeting.start_time < meeting_end,
                 CRMMeeting.end_time > meeting_start,
             )
@@ -1788,7 +1794,8 @@ def log_activity(
                 organization_id=lead.organization_id,
                 owner_user_id=meeting_owner,
                 lead_id=lead.id,
-                title=payload.outcome[:180],
+                title=(("Product demo: " if payload.purpose == "demo" else "Consultation: ") + payload.outcome)[:180],
+                description="Sales meeting: " + payload.purpose,
                 start_time=meeting_start,
                 end_time=meeting_end,
                 status="Scheduled",
@@ -2001,7 +2008,7 @@ def book_meeting(
             CRMMeeting.organization_id == org,
             CRMMeeting.owner_user_id == owner.id,
             CRMMeeting.deleted_at.is_(None),
-            CRMMeeting.status != "Cancelled",
+            CRMMeeting.status.in_(["Scheduled", "Confirmed"]),
             CRMMeeting.start_time < end,
             CRMMeeting.end_time > start,
         )
@@ -2029,6 +2036,7 @@ def book_meeting(
     )
     data = copy.deepcopy(row.data_json)
     data["booking"]["used"] = True
+    data["lastResponseAt"] = now().isoformat()
     data["enquiryPending"] = False
     stop_sequence(db, lead, data, "Meeting booked")
     row.data_json = data
@@ -2313,13 +2321,15 @@ def due_follow_up_reminders(db, org, limit):
     rows = (
         db.query(CRMActivity, CRMLead)
         .join(CRMLead, CRMLead.id == CRMActivity.lead_id)
+        .outerjoin(CRMDeal, and_(CRMDeal.id == CRMLead.converted_deal_id, CRMDeal.organization_id == org, CRMDeal.deleted_at.is_(None)))
         .filter(
             CRMActivity.organization_id == org,
             CRMLead.organization_id == org,
             CRMLead.deleted_at.is_(None),
-            CRMLead.is_converted.is_not(True),
-            CRMLead.status.notin_(["Lost", "Converted"]),
+            CRMLead.status != "Lost",
             CRMActivity.status == "Pending",
+            or_(CRMDeal.id.is_(None), func.lower(CRMDeal.status).notin_(["won", "lost"])),
+            func.coalesce(CRMActivity.metadata_json["salesAutomation"].as_string(), "") != "proposal",
             CRMActivity.due_date <= now(),
             CRMActivity.metadata_json["followUpReminderAt"].as_string().is_(None),
         )
@@ -2332,6 +2342,8 @@ def due_follow_up_reminders(db, org, limit):
     from app.apps.crm.lead_assignment import validate_assignee
 
     for item, lead in rows:
+        if (item.metadata_json or {}).get("salesAutomation") == "proposal":
+            continue
         data = state(db, lead, False)
         if data and data.data_json.get("archived"):
             continue
@@ -2381,6 +2393,8 @@ def scheduled_lead_alerts(db, per_tenant=200):
         follow_up_reminders += due_follow_up_reminders(db, org, per_tenant)
         from app.apps.crm.growth import scheduled_relationship_reminders
         follow_up_reminders += scheduled_relationship_reminders(db, org, per_tenant)
+        from app.apps.crm.sales_process import sales_reminders
+        follow_up_reminders += sales_reminders(db, org, per_tenant)
         settings = config(db, org)
         due = now() - timedelta(hours=settings["slaHours"])
         rows = (
@@ -2959,3 +2973,7 @@ def excel_export(
         )
         rows.append(item)
     return workbook_response(rows, "leads.xlsx")
+
+
+from app.apps.crm.sales_process import router as sales_process_router
+router.include_router(sales_process_router)

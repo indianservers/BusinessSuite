@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, StrictBool, field_validator
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -99,6 +99,14 @@ class BranchCreate(BranchBase):
 class BranchUpdate(BranchBase):
     name: Optional[str] = None
     company_id: Optional[int] = None
+    is_active: StrictBool | None = None
+
+    @field_validator('is_active')
+    @classmethod
+    def require_active_boolean(cls, value):
+        if value is None:
+            raise ValueError('Branch active status must be true or false')
+        return value
 
 
 class BranchSchema(BranchBase):

@@ -42,6 +42,9 @@ from app.shared.follow_ups import ScheduleTemplate
 
 from app.shared.branch_availability import BranchAvailability, resolve as resolve_availability
 
+from app.business_packs.restaurant.modifiers import ModifierCatalog
+
+
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     branch_availability: BranchAvailability | None = None
@@ -62,6 +65,9 @@ class ItemInput(BaseModel):
     mrp: Decimal | None = Field(default=None, ge=0, le=9999999999, decimal_places=2)
     reorder_level: Decimal | None = Field(default=None, ge=0, le=9999999999, decimal_places=3)
     track_inventory: bool | None = None
+    restaurant_modifiers: ModifierCatalog | None = None
+    pharma_lot_tracking: bool | None = Field(default=None,strict=True)
+    pharma_warehouse_id: int | None = Field(default=None,gt=0,strict=True)
     status: Literal["Active", "Archived"] = "Active"
     workspace_id: int | None = Field(default=None, gt=0)
     images: list[str] = Field(default_factory=list, max_length=20)
@@ -187,6 +193,10 @@ def output(row, kind, detail):
 
 
 def save_item(db, user, source, data, ident=None):
+    if 'restaurant_modifiers' in data.model_fields_set:
+        raise HTTPException(422,'Modifier configuration requires the selected Restaurant catalog workflow')
+    if data.pharma_lot_tracking is not None or data.pharma_warehouse_id is not None:
+        raise HTTPException(422,'Pharma lot configuration requires the selected Pharma catalog workflow')
     authorize(user, source, data.kind, True, db=db)
     workspace_access(db, user, data.workspace_id, True)
     targets = None
@@ -333,6 +343,9 @@ def commit(db):
 
 @router.get("/items")
 def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source: Source = "crm", kind: Kind | None = None, search: str = Query("", max_length=180), category: str = "", status: Literal["all", "Active", "Archived"] = "Active", workspace_id: int | None = None, sort: Literal["name", "price", "category", "code"] = "name", direction: Literal["asc", "desc"] = "asc", page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100), tag: Annotated[str, Query(max_length=40)] = "", item_keys: Annotated[str | None, Query(max_length=16000)] = None, key_order: bool = False, include_facets: bool = False, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if db.info.get("business_pack_scope") is not None:
+        from app.business_packs.catalog_management import list_items as selected_items
+        return selected_items(db,user,source,kind=kind,search=search,category=category,status=status,workspace_id=workspace_id,sort=sort,direction=direction,page=page,per_page=per_page,tag=tag,item_keys=item_keys,key_order=key_order,include_facets=include_facets,price_book_id=price_book_id)
     from app.apps.project_management.models import PMSWorkspaceMember, PMSWorkspace
     from app.apps.project_management.people_management import organization_admin
     if workspace_id:
@@ -518,7 +531,11 @@ def reuse_in_branches(data: BranchReuseInput, source: Source = "crm", db: Sessio
 @router.post("/items", status_code=201)
 def create_item(data: ItemInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
-        result = save_item(db, user, source, data)
+        if db.info.get("business_pack_scope") is not None:
+            from app.business_packs.catalog_management import save_item as selected_save
+            result = selected_save(db,user,source,data)
+        else:
+            result = save_item(db, user, source, data)
         commit(db)
         return result
     except IntegrityError:
@@ -528,6 +545,9 @@ def create_item(data: ItemInput, source: Source = "crm", db: Session = Depends(g
 
 @router.get("/items/{kind}/{ident}")
 def get_item(kind: Kind, ident: int, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if db.info.get("business_pack_scope") is not None:
+        from app.business_packs.catalog_management import get_item as selected_item
+        return selected_item(db,user,source,kind,ident)
     return output(*item_output_args(db, user, source, kind, ident))
 
 
@@ -541,7 +561,11 @@ def update_item(kind: Kind, ident: int, data: ItemInput, source: Source = "crm",
     if data.kind != kind:
         raise HTTPException(422, "An item's type cannot be changed")
     try:
-        result = save_item(db, user, source, data, ident)
+        if db.info.get("business_pack_scope") is not None:
+            from app.business_packs.catalog_management import save_item as selected_save
+            result = selected_save(db,user,source,data,ident)
+        else:
+            result = save_item(db, user, source, data, ident)
         commit(db)
         return result
     except IntegrityError:

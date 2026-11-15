@@ -1,3 +1,5 @@
+import { recordScope, useRecordScope } from "@/lib/record-scope";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import EmployeeCRMWorkspaceAccess from "./EmployeeCRMWorkspaceAccess";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
@@ -22,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { employeeApi, payrollApi, companyApi, authApi } from "@/services/api";
+import { api, employeeApi, payrollApi, companyApi, authApi } from "@/services/api";
 import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
 import { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
@@ -36,12 +38,14 @@ import SharedProfilePage from "@/features/profiles/ProfilePage";
 import EmployeeReliabilityPanel from "./EmployeeReliabilityPanel";
 import Employee360Panel from "./Employee360Panel";
 import EmployeeVerificationPanel from "../compliance/EmployeeVerificationPanel";
+import EmployeePlannedServices from "./EmployeePlannedServices";
 
 const TABS = [
   { id: "profile", label: "Complete Profile", icon: User },
   { id: "360", label: "Employee 360", icon: Activity },
   { id: "personal", label: "Personal", icon: User },
   { id: "job", label: "Job", icon: Briefcase },
+  { id: "schedule", label: "Schedule", icon: CalendarDays },
   { id: "history", label: "Profile checks & history", icon: Clock },
   { id: "education", label: "Education", icon: GraduationCap },
   { id: "experience", label: "Experience", icon: Briefcase },
@@ -125,7 +129,15 @@ interface EmployeeDetailPageProps {
   onClose?: () => void;
 }
 
-export default function EmployeeDetailPage({ employeeId, initialEditing = false, onClose }: EmployeeDetailPageProps = {}) {
+export default function EmployeeDetailPage(props: EmployeeDetailPageProps = {}) {
+  useRecordScope();
+  const {id} = useParams<{id:string}>();
+  const authorityScope = recordScope(useAuthStore.getState().user);
+  return <ScopedEmployeeDetailPage key={`${authorityScope}:${props.employeeId ?? id ?? ""}`} {...props} authorityScope={authorityScope}/>;
+}
+
+function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose, authorityScope }: EmployeeDetailPageProps & {authorityScope:string}) {
+  const owns = useRecordScopeOwner();
   const { id: routeId } = useParams<{ id: string }>();
   const id = employeeId == null ? routeId : String(employeeId);
   const customFieldForm=useCrmFieldForm("employees","edit",Number(id));
@@ -138,23 +150,24 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   };
   const closeDetails = () => onClose ? onClose() : navigate(params.get("returnTo")?.startsWith("/hrms/") ? params.get("returnTo")! : "/hrms/employees");
   const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState(params.get("tab") || (initialEditing || params.get("edit") === "true" ? "personal" : "360"));
+  const [scheduleActionsOpen, setScheduleActionsOpen] = useState(false);
   const canChangeRole = useAuthStore((state) => !!state.user?.is_superuser);
   const { data: accountRoles = [] } = useQuery({
-    queryKey: ["employee-account-roles"],
+    queryKey: ["employee-account-roles",authorityScope],
     queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string; branch_id?: number; department_id?: number }>),
-    enabled: canChangeRole,
+    enabled: canChangeRole && activeTab === "job",
   });
   const { data: jobOptions } = useQuery({
-    queryKey: ["employee-job-options"],
+    queryKey: ["employee-job-options",authorityScope],
     queryFn: async () => {
       const [branches, departments, designations, managers] = await Promise.all([
         companyApi.listBranches(), companyApi.listDepartments(), companyApi.listDesignations(), loadManagerOptions(),
       ]);
       return { employment_type: ["Full-time", "Part-time", "Contract", "Intern", "Visiting", "Deputation"].map((name) => ({ id: name, name })), branch_id: branches.data, department_id: departments.data, designation_id: designations.data, reporting_manager_id: managers } as Record<string, Array<{ id: number | string; name: string; branch_id?: number; department_id?: number }>>;
     },
-
+    enabled: activeTab === "job",
   });
-  const [activeTab, setActiveTab] = useState(params.get("tab") || (initialEditing || params.get("edit") === "true" ? "personal" : "360"));
   useEffect(()=>{const requested=params.get("tab");if(requested&&TABS.some(t=>t.id===requested))setActiveTab(requested);},[params.get("tab")]);
   const ownEmployeeId = useAuthStore(state => state.user?.employee_id);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
@@ -180,33 +193,34 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const requestedEditing = employeeId != null ? popupEditing : params.get("edit") === "true";
   usePageTitle("Employee Details");
 
-  const { data: emp, isLoading, error: employeeError } = useQuery({
-    queryKey: ["employee", id],
-    queryFn: () => employeeApi.get(Number(id)).then((r) => r.data),
-    enabled: !!id,
+  const { data: emp, isLoading, isFetching: employeeFetching, error: employeeError } = useQuery({
+    queryKey: ["employee", id,authorityScope],
+    queryFn: ({signal}) => api.get(`/employees/${Number(id)}`,{signal,recordCache:false}).then((r) => r.data),
+    enabled: !!id, placeholderData:undefined, staleTime:0, refetchOnMount:"always",
   });
 
   const canEditProfile = emp?.can_edit_profile ?? canChangeRole;
   const editing = requestedEditing && canEditProfile;
 
   const userOptions = useQuery({
-    queryKey: ["employee-user-options", id],
+    queryKey: ["employee-user-options", id,authorityScope],
     queryFn: () =>
       employeeApi
         .userOptions({ include_employee_id: Number(id) })
         .then((r) => r.data as Array<{ id: number; email: string; role?: string | null; role_id?: number | null; employee_id?: number | null; employee_code?: string | null; employee_name?: string | null }>),
-    enabled: !!id,
+    enabled: !!id && (activeTab === "account" || activeTab === "profile" || (editing && activeTab === "job")),
   });
 
   const salaryHistory = useQuery({
-    queryKey: ["employee-salary-history", id],
+    queryKey: ["employee-salary-history", id,authorityScope],
     queryFn: () => payrollApi.salaryHistory(Number(id)).then((r) => r.data as EmployeeSalaryRow[]),
-    enabled: !!id,
+    enabled: !!id && activeTab === "payroll",
   });
 
   const salaryStructures = useQuery({
-    queryKey: ["salary-structures"],
+    queryKey: ["salary-structures",authorityScope],
     queryFn: () => payrollApi.structures().then((r) => r.data as SalaryStructureOption[]),
+    enabled: activeTab === "payroll",
   });
 
   const changeEdit = (key:string,value:string) => {
@@ -221,6 +235,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), {...payload,custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}, editVersion),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Employee updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
       qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
@@ -249,6 +264,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       return employeeApi.uploadPhoto(Number(id), form);
     },
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Photo updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
     },
@@ -258,6 +274,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const educationMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => editingRecord?.section === "education" ? employeeApi.updateProfileRecord(Number(id), "education", editingRecord.id, payload, editingRecord.version) : employeeApi.addEducation(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: editingRecord?.section === "education" ? "Education updated" : "Education added" });
       setEditingRecord(null);
       setEducationForm({});
@@ -273,6 +290,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const experienceMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => editingRecord?.section === "experience" ? employeeApi.updateProfileRecord(Number(id), "experience", editingRecord.id, payload, editingRecord.version) : employeeApi.addExperience(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: editingRecord?.section === "experience" ? "Experience updated" : "Experience added" });
       setEditingRecord(null);
       setExperienceForm({});
@@ -288,6 +306,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const skillMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => editingRecord?.section === "skills" ? employeeApi.updateProfileRecord(Number(id), "skills", editingRecord.id, payload, editingRecord.version) : employeeApi.addSkill(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: editingRecord?.section === "skills" ? "Skill updated" : "Skill added" });
       setEditingRecord(null);
       setSkillForm({});
@@ -305,6 +324,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       ? employeeApi.updateProfileRecord(Number(id), "certifications", editingRecord.id, payload, editingRecord.version)
       : employeeApi.addCertification(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: editingRecord ? "Certification updated" : "Certification added" });
       setCertificationForm({}); setEditingRecord(null);
       qc.invalidateQueries({ queryKey: ["employee", id] });
@@ -314,6 +334,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const deleteRecordMutation = useMutation({
     mutationFn: ({section, recordId}: {section: string; recordId: number}) => employeeApi.deleteProfileRecord(Number(id), section, recordId, emp?.profile_version),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Record deleted" });
       setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
       qc.invalidateQueries({ queryKey: ["employee", id] });
@@ -339,6 +360,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const linkUserMutation = useMutation({
     mutationFn: (userId: number | null) => employeeApi.linkUser(Number(id), userId),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "User mapping updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
       qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
@@ -353,6 +375,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const createUserAccountMutation = useMutation({
     mutationFn: (payload: { email: string; password: string }) => employeeApi.createUserAccount(Number(id), payload),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Employee login account created" });
       setAccountForm({ email: "", password: "" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
@@ -368,6 +391,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const salaryMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => payrollApi.setEmployeeSalary(payload),
     onSuccess: () => {
+      if (!owns()) return;
       toast({ title: "Salary assigned" });
       setSalaryForm({ structure_id: "", ctc: "", basic: "", hra: "", effective_from: "" });
       qc.invalidateQueries({ queryKey: ["employee-salary-history", id] });
@@ -380,6 +404,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   useEffect(() => {
+    if (employeeFetching) return;
     if (!editing) { initializedEdit.current=""; return; }
     if (!emp || initializedEdit.current === String(id)) return;
     initializedEdit.current=String(id);
@@ -425,18 +450,18 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       family_information: emp.family_information || "",
       health_information: emp.health_information || "",
     });
-  }, [!!emp, editing, id]);
+  }, [!!emp, editing, id, employeeFetching]);
 
   useEffect(() => {
-    if (!emp) return;
+    if (employeeFetching || !emp) return;
     setSelectedUserId(emp.user_id ? String(emp.user_id) : "");
     setAccountForm((current) => ({
       ...current,
       email: current.email || emp.work_email || emp.personal_email || "",
     }));
-  }, [emp]);
+  }, [emp, employeeFetching]);
 
-  if (isLoading) {
+  if (isLoading || employeeFetching) {
     return (
       <div className="space-y-4">
         <div className="h-8 w-48 skeleton rounded" />
@@ -610,7 +635,9 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </Button>
       </div>
 
-      <EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/>
+      {activeTab !== "schedule" || scheduleActionsOpen ? <EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/> : (
+        <Card><CardContent className="p-4"><Button variant="outline" onClick={() => setScheduleActionsOpen(true)}>Employee actions</Button></CardContent></Card>
+      )}
       {/* Profile header */}
       <Card>
         <CardContent className="p-6">
@@ -654,7 +681,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 defaultAgentCode="hrms_letter_drafting"
                 defaultPrompt="Help me prepare HR action or summary for this employee."
               />
-              {canEditProfile && activeTab !== "profile" && activeTab !== "verification" && activeTab !== "history" && <Button variant="outline" size="sm" onClick={() => {
+              {canEditProfile && activeTab !== "profile" && activeTab !== "verification" && activeTab !== "history" && activeTab !== "schedule" && <Button variant="outline" size="sm" onClick={() => {
                 if (!editing && activeTab === "360") setActiveTab("personal");
                 setParams(editing ? {} : { edit: "true" });
               }}>
@@ -676,7 +703,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
         {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Personal", sections:TABS.filter(t=>["personal","family","health","bank"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
-        {label:"Work", sections:TABS.filter(t=>(t.id !== "history" || canEditProfile) && ["job","education","experience","skills","certifications","documents","verification","history"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Work", sections:TABS.filter(t=>(t.id !== "history" || canEditProfile) && ["job","schedule","education","experience","skills","certifications","documents","verification","history"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Pay & access", sections:TABS.filter(t=>["payroll","account"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
       ]}/>
 
@@ -713,7 +740,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>
-                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{editForm[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
+                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{emp[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
                       <NativeSelect id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? (key === "role_id" ? userOptions.data?.find((user) => user.id === emp.user_id)?.role_id : "") ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="">Unassigned</option>
                         {(key === "role_id" ? accountRoles : jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
@@ -836,6 +863,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       {/* Tab content */}
       {activeTab === "history" && <EmployeeReliabilityPanel employeeId={Number(id)}/>}
       {activeTab === "verification" && <EmployeeVerificationPanel key={id} employeeId={Number(id)}/>}
+      {activeTab === "schedule" && <EmployeePlannedServices employeeId={Number(id)}/>}
       {activeTab === "profile" && (emp.user_id ? <SharedProfilePage key={emp.user_id} employeeId={Number(id)} accountActions={loginAccountCard} /> : loginAccountCard)}
       {activeTab === "360" && <Employee360Panel key={id} employeeId={Number(id)} onOpenTab={setActiveTab} isOwnProfile={ownEmployeeId === Number(id)} />}
 

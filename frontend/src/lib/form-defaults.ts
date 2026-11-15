@@ -1,5 +1,7 @@
+import { securityAuthStamp } from "./security-auth-stamp";
 import definitions from "../../../backend/app/core/form_defaults.json";
 import { useAuthStore } from "@/store/authStore";
+import { selectedPackContext } from './pack-context';
 
 export type DefaultValue = string | number | boolean | number[] | null;
 export type DefaultValues = Record<string, DefaultValue>;
@@ -9,7 +11,7 @@ function storedContext(key: string): string | null { try { return sessionStorage
 let snapshot: { scope: string; payload: DefaultsPayload } | undefined;
 export function defaultsScope() {
   const user = useAuthStore.getState().user;
-  return `${user?.id}:${storedContext("suite-organization") || user?.access?.companyId}:${storedContext("suite-branch") || ""}`;
+  return JSON.stringify([user?.id, storedContext("suite-tenant"), storedContext("suite-organization") || user?.access?.companyId, storedContext("suite-branch") || "", selectedPackContext(), securityAuthStamp(user)]);
 }
 export function installFormDefaults(payload: DefaultsPayload) {
   if (payload.branchId && !storedContext("suite-branch")) { try { sessionStorage.setItem("suite-branch", String(payload.branchId)); } catch { /* Preferences still work without browser storage. */ } }

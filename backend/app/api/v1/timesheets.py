@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import exists, select
 from app.core.deps import RequirePermission, get_current_user, get_db
 from app.models.employee import Employee
 from app.models.timesheet import Project, Timesheet, TimesheetEntry
@@ -151,6 +152,10 @@ def submit_timesheet(
     if not sheet:
         raise HTTPException(status_code=404, detail="Timesheet not found")
     _ensure_timesheet_owner(sheet, current_user)
+    if sheet.status == "Submitted":
+        return sheet  # A retry must not rewrite the original submission time.
+    if sheet.status != "Draft":
+        raise HTTPException(status_code=409, detail="Only draft timesheets can be submitted")
     if not sheet.entries:
         raise HTTPException(status_code=400, detail="Cannot submit an empty timesheet")
     _recalculate_timesheet(sheet)
@@ -194,9 +199,12 @@ def edit_timesheet_project(identity:int,data:ProjectCreate,db:Session=Depends(ge
 @router.delete('/projects/{identity}',status_code=204)
 def delete_timesheet_project(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('timesheet_manage'))):
     from app.apps.srm.services.commercial import tenant
-    row=db.query(Project).filter_by(id=identity,organization_id=tenant(user)).first()
+    row=db.query(Project).filter_by(id=identity,organization_id=tenant(user)).with_for_update().first()
     if not row:raise HTTPException(404,'Timesheet project not found')
-    if db.query(Timesheet).filter_by(project_id=identity).first():raise HTTPException(409,'Projects with time entries must be retained; mark the project inactive instead')
+    # A native own/team view can hide another employee's historical hours.
+    # This fixed existence-only proof follows the authorized project lookup;
+    # it reveals no employee data and prevents DB cascades from erasing actuals.
+    if db.connection().scalar(select(exists().where(Timesheet.__table__.c.project_id==row.id))):raise HTTPException(409,'Projects with time entries must be retained; mark the project inactive instead')
     db.delete(row);db.commit()
 
 

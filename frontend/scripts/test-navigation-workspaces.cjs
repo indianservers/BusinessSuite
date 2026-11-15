@@ -3,7 +3,9 @@ const fs = require('node:fs');
 const ts = require('typescript');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../src/lib/navigation-workspaces.ts'), 'utf8');
 const mod = {exports:{}};
-new Function('exports', ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(mod.exports);
+const commonMod = {exports:{}};
+new Function('exports', ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../src/lib/common-routes.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(commonMod.exports);
+new Function('exports', 'require', ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(mod.exports, () => commonMod.exports);
 const {consolidateNavigation, activeWorkspace} = mod.exports;
 const paths = ['/pms/tasks','/pms/navigator','/pms/issue-navigator-pro','/pms/projects','/hrms/payroll','/hrms/my-payslips','/crm/communication-hub','/crm/emails'];
 const links = paths.map(to => ({to, label:to, group:to.split('/')[1]}));
@@ -30,9 +32,10 @@ assert.equal(workspacePageHref('/hrms/payroll', '?workspace=2'), '/hrms/payroll'
 console.log('Workspace context preservation passed.');
 const menuSource = fs.readFileSync(require('node:path').join(__dirname, '../src/lib/navigation-menu.ts'), 'utf8');
 const menuMod = {exports:{}};
-const commonMod = {exports:{}};
-new Function('exports', ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../src/lib/common-routes.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(commonMod.exports);
-new Function('exports', 'require', ts.transpileModule(menuSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(menuMod.exports, name => name === "./common-routes" ? commonMod.exports : mod.exports);
+const categoriesMod = {exports:{}};
+new Function('exports', ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname, '../src/lib/navigation-categories.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(categoriesMod.exports);
+
+new Function('exports', 'require', ts.transpileModule(menuSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(menuMod.exports, name => name === "./common-routes" ? commonMod.exports : name === "./navigation-categories" ? categoriesMod.exports : mod.exports);
 const {menuItems, menuLabel, menuMatches, menuPages} = menuMod.exports;
 const {moduleMenuNavigation} = menuMod.exports;
 for (const module of ['hrms', 'crm', 'pms', 'srm', 'fam']) {
@@ -89,3 +92,24 @@ console.log("CRM deal/form and PMS live-work consolidation checks passed.");
 
 assert.equal(workspacePageHref("/pms/workspaces", "?workspace=2&project=4", 2), "/pms/workspaces");
 assert.equal(workspacePageHref("/pms/workspaces?workspace=3", "?workspace=2", 2), "/pms/workspaces?workspace=3");
+
+const srmLinks = [
+  ['/srm/inventory/dashboard', 'Inventory & warehouses'],
+  ['/srm/inventory/stock-summary', 'Inventory & warehouses'],
+  ['/srm/inventory/warehouses', 'Inventory & warehouses'],
+  ['/srm/inventory/stock-transfers', 'Inventory & warehouses'],
+  ['/srm/inventory/opening-stock', 'Inventory & warehouses'],
+  ['/srm/inventory/purchase-orders', 'Purchasing & manufacturing'],
+  ['/srm/inventory/reorder-alerts', 'Purchasing & manufacturing'],
+  ['/srm/products-services', 'Products & pricing'],
+  ['/srm/inventory/products', 'Products & pricing'],
+  ['/srm/invoices', 'Billing & collections'],
+  ['/srm/collections', 'Billing & collections'],
+].map(([to, group]) => ({to, group, label:to}));
+const srmMenu = menuItems(moduleMenuNavigation(srmLinks, 'srm'));
+assert.equal(srmMenu.length, 5);
+assert(srmMenu.some(item => item.label === 'Stock & warehouses' && menuPages(item).length === 4));
+assert(srmMenu.some(item => item.label === 'Stock movements' && menuPages(item).length === 2));
+assert.equal(srmMenu.flatMap(menuPages).filter(item => item.to.includes('products')).length, 1);
+assert.equal(menuItems(moduleMenuNavigation(srmLinks.filter(item => item.to === '/srm/collections'), 'srm'))[0].to, '/srm/collections');
+console.log('SRM: fewer menu entries, grouped stock workflows, catalog deduplication and restricted navigation passed.');

@@ -113,7 +113,27 @@ def test_collection_control_requires_permission_and_scoped_invoice(client, db, s
     outsider = SimpleNamespace(is_superuser=True, organization_id=2, id=user.id, role=None)
     with pytest.raises(HTTPException) as error:
         collection_control(invoice['id'], data, db, outsider)
-    assert error.value.status_code == 404
+    assert error.value.status_code == 403  # A forged actor cannot acquire a company writer.
+    from uuid import uuid4
+    from app.models.user import Role, Permission
+    from app.core.security import create_access_token
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    permission = db.query(Permission).filter_by(name='srm_collection_create').first()
+    if permission is None:
+        permission = Permission(name='srm_collection_create', description='Collect invoices', module='srm')
+        db.add(permission)
+    role = Role(name='foreign_collector_'+uuid4().hex, permissions=[permission])
+    db.add(role); db.flush()
+    foreign = User(email=uuid4().hex+'@example.invalid', hashed_password='unusable-test-password',
+        is_active=True, is_superuser=False, role_id=role.id)
+    db.add(foreign)
+    attach_test_identity(db, foreign, company_id=2)
+    branch = attach_workflow_branch(db, foreign, company_id=2)
+    db.commit()
+    response = client.put(f"/api/v1/srm/collections/{invoice['id']}/control", json=data.model_dump(),
+        headers={'Authorization': 'Bearer '+create_access_token(foreign.id),
+                 'X-Suite-Organization': '2', 'X-Suite-Branch': str(branch.id)})
+    assert response.status_code == 404, response.text
 
 
 @pytest.mark.parametrize('status,balance,hold,offset,blocked', [

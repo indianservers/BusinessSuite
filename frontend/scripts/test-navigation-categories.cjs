@@ -12,6 +12,12 @@ function compile(source, resolveImport) {
 const categories = compile(fs.readFileSync(path.resolve(__dirname, "../src/lib/navigation-categories.ts"), "utf8"), require);
 const common = compile(fs.readFileSync(path.resolve(__dirname, "../src/lib/common-routes.ts"), "utf8"), require);
 let auth = {};
+const stored = new Map();
+global.sessionStorage = {
+  getItem: key => stored.get(key) ?? null,
+  setItem: (key, value) => stored.set(key, value),
+  removeItem: key => stored.delete(key),
+};
 const source = fs.readFileSync(path.resolve(__dirname, "../src/lib/roles.ts"), "utf8")
   .replace("function getAvailableRoleNav(", "export function getAvailableRoleNav(");
 const roles = compile(source, name => {
@@ -20,11 +26,12 @@ const roles = compile(source, name => {
   if (name === "@/store/authStore") return { useAuthStore: { getState: () => auth } };
   if (name === "@/appRegistry") return { getInstalledAppKeys: () => ["hrms", "crm", "project_management", "srm", "fam", "ai"], isFrontendModuleEnabled: () => true };
   if (name === "lucide-react") return new Proxy({}, { get: (_, key) => key });
+  if (["./feature-access", "./people-directory-access", "./pack-context", "./business-pack-navigation"].includes(name)) return compile(fs.readFileSync(path.resolve(__dirname, "../src/lib", name + ".ts"), "utf8"), require);
   throw new Error("Unexpected import: " + name);
 });
 
 let count = 0;
-const identity = items => items.map(({ group, ...item }) => JSON.stringify(item)).sort();
+const identity = items => items.map(({ group, ...item }) => { const context=common.commonRouteContext(item.to); return JSON.stringify({...item,...(context && common.isCommercialEntity(context.entity) ? {label:context.definition.label} : {})}); }).sort();
 // Grouping must neither grant links nor hide an existing role-authorized link.
 for (const role of ["admin", "hr", "hr_manager", "ceo", "manager", "employee", "crm_sales_executive", "crm_support_agent", "crm_viewer", "srm_sales_executive", "accountant", "fam_viewer"]) {
   for (const pathname of ["/hrms", "/crm", "/srm", "/fam", "/pms", "/ai-agents", "/ai/copilot"]) {
@@ -90,7 +97,7 @@ assert.equal(roles.getActiveModule("/analytics/collections"), "suite");
 assert(roles.getRoleNav("admin", true, "/analytics").some(item => item.to === "/analytics"));
 
 for (const managed of [false, true]) {
-  auth = managed ? { user: { access: { managed: true, modules: [{key:"crm",route:"/crm"},{key:"project_management",route:"/pms"}], grants: {crm:{enabled:true},project_management:{enabled:true}} } } } : {};
+  auth = managed ? { user: { access: { managed: true, modules: [{key:"crm",route:"/crm"},{key:"project_management",route:"/pms"}], grants: {crm:{enabled:true},project_management:{enabled:true},communication:{enabled:true,actions:["view"],permissions:["communication_view"]}} } } } : {};
   for (const [module, removed, retained] of [
     ["/crm", ["/analytics", "/ai-agents/config", "/crm/feature-checklist", "/crm/gantt", "/crm/tickets", "/crm/lead-to-cash"], ["/crm/campaigns", "/crm/quotations", "/crm/activities"]],
     ["/pms", ["/ai-agents", "/pms/org-chart", "/pms/people-work", "/pms/my-notices", "/pms/plans", "/pms/settings/ai/openai", "/pms/settings/ai/gemini", "/pms/settings/ai/claude"], ["/pms/tasks", "/pms/projects", "/pms/people", "/pms/settings", "/pms/operator"]],
@@ -101,3 +108,17 @@ for (const managed of [false, true]) {
   }
 }
 console.log("PMS and CRM menu scope checks passed for role-based and managed access.");
+stored.set('suite-branch', '1');
+const packChoice = {contextId:10,branchId:1,packKey:'restaurant',packVersion:1,role:'cashier',contextRevision:1,grantRevision:1,activationRevision:1};
+for (const managed of [false,true]) {
+  const access = {managed, modules:[{key:'srm',route:'/srm'}],grants:{srm:{enabled:true}},businessPacks:{state:'ready',contexts:[packChoice],hasMore:false,selectorRequired:true,selectionState:'none',selectedContextId:null}};
+  auth = {user:{access}};
+  assert.equal(roles.canAccessRoute('/srm/construction','srm_viewer',false),false);
+  assert(!roles.getRoleNav('srm_viewer',false,'/srm').some(item=>item.to==='/srm/construction'));
+  access.businessPacks.contexts=[{...packChoice,packKey:'construction',role:'site_engineer'}];
+  assert.equal(roles.canAccessRoute('/srm/construction','srm_viewer',false),true);
+  assert(roles.getRoleNav('srm_viewer',false,'/srm').some(item=>item.to==='/srm/construction'));
+  delete access.businessPacks;
+  assert.equal(roles.canAccessRoute('/srm/construction','srm_viewer',false),true);
+}
+console.log('Construction industry navigation follows selected pack for managed and legacy roles; unselected suite menu preserved.');

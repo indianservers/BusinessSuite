@@ -59,15 +59,16 @@ def test_control_center_real_browser(client, db, access_account, superuser_heade
     root = Path(__file__).resolve().parents[2]
     env = dict(os.environ, CONTROL_BRIDGE=f"http://127.0.0.1:{server.server_port}")
     try:
-        process = subprocess.run(
+        from app.core.managed_process import run as managed_run
+        process = managed_run(
             ["node", str(root / "playwright" / os.environ.get("CONTROL_BROWSER_SCRIPT", "control-live.cjs"))],
             cwd=root / "frontend",
             env=env,
-            capture_output=True,
-            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             timeout=240,
         )
-        assert process.returncode == 0, process.stdout + process.stderr
+        assert process.returncode == 0, (process.stdout + process.stderr).decode('utf-8', errors='replace')
         print(process.stdout)
     finally:
         server.shutdown()

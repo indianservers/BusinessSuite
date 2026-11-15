@@ -770,7 +770,7 @@ def branding(
         raise HTTPException(403, "Company membership required")
     row = (
         db.query(ServicePolicy)
-        .filter_by(scope_key=f"company:{companyId}:branding:theme", kind="branding")
+        .filter_by(organization_id=companyId, scope_key=f"company:{companyId}:branding:theme", kind="branding")
         .first()
     )
     return {

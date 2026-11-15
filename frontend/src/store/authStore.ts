@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { clearPackContext } from '@/lib/pack-context';
 import { createJSONStorage, persist } from "zustand/middleware";
 
 // Keep accounts independent across tabs, including after a reload. Move an
@@ -63,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
         sessionStorage.removeItem("suite-tenant");
         sessionStorage.removeItem("suite-organization");
         sessionStorage.removeItem("suite-branch");
+        clearPackContext();
         set({
           accessToken: null,
           refreshToken: null,

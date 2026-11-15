@@ -38,15 +38,16 @@ def _employee(db, code: str = "LP-001") -> Employee:
 def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_headers):
     employee = _employee(db)
     superuser_headers.update({"X-Suite-Organization": str(employee.branch.company_id), "X-Suite-Branch": str(employee.branch_id)})
-    leave_type = LeaveType(
-        name="Earned Leave Payroll",
-        code="EL-PAY",
-        days_allowed=Decimal("24"),
-        encashable=True,
-        is_active=True,
+    commit_payroll_fixture(db)
+    # Shared leave definitions need the same explicit company ownership as
+    # production setup; branch-only synthetic seeding cannot establish it.
+    created_type = client.post(
+        "/api/v1/leave/types", headers=superuser_headers,
+        json={"name": "Earned Leave Payroll", "code": "EL-PAY",
+              "days_allowed": "24", "encashable": True},
     )
-    db.add(leave_type)
-    db.flush()
+    assert created_type.status_code == 201, created_type.text
+    leave_type = db.get(LeaveType, created_type.json()["id"])
     db.add(
         LeaveBalance(
             employee_id=employee.id,

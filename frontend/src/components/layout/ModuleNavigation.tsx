@@ -10,7 +10,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
 import { canAccessRoute, getRoleNav, type RoleNavItem } from "@/lib/roles";
-import { activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
+import { activeWorkspace, getOperationWorkspace, navigationOperationPath, workspacePageHref } from "@/lib/navigation-workspaces";
 import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation, moduleMenuNavigation } from "@/lib/navigation-menu";
 import { useAuthStore } from "@/store/authStore";
 import { defaultSuitePreferences, suiteScope, useSuitePreferences } from "@/store/suitePreferences";
@@ -68,7 +68,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   if (!customItems && commonModules.includes(moduleKey as CommonModule)) available = available.map(item => ({...item, to: commonNavigationHref(item.to, moduleKey as CommonModule)}));
   const landing = moduleLandingNavigation(available, moduleKey);
   const consolidated = [...landing.direct, ...menuItems(landing.grouped)];
-  const current = activeWorkspace(consolidated, location.pathname) || available.filter(item =>
+  const current = activeWorkspace(consolidated, location.pathname, location.search) || available.filter(item =>
     location.pathname === item.to.split("?")[0] || location.pathname.startsWith(item.to.split("?")[0] + "/"))
     .sort((a, b) => b.to.length - a.to.length)[0];
   const activeGroup = current?.group;
@@ -96,6 +96,14 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const isCurrent = (to: string) => {
     const [path, search] = to.split("?");
     const currentParams = new URLSearchParams(location.search);
+    if (moduleKey === "srm") {
+      const workspace = getOperationWorkspace(location.pathname + location.search);
+      const operation = currentParams.get("operation");
+      const selected = navigationOperationPath(operation && workspace?.paths.includes(operation) ? operation : location.pathname + location.search);
+      const target = navigationOperationPath(to);
+      return (selected === target || selected.startsWith(target + "/"))
+        && [...new URLSearchParams(search)].every(([key, value]) => key === "module" ? value === "srm" : currentParams.get(key) === value);
+    }
     return (location.pathname === path || (path.split("/").length > 2 && location.pathname.startsWith(path + "/")))
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
@@ -139,7 +147,8 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
           <span className="module-menu-count">{children.length}</span><ChevronDown className="module-menu-chevron" size={14} />
         </button>}
         {expanded && <ul id={panel} className="module-menu-links">{children.map(item => {
-          const pages = menuPages(item), label = displayLabel(item), selected = isCurrent(item.to) || (!query.trim() && current?.to === item.to);
+          const pages = menuPages(item), label = displayLabel(item), selected = moduleKey === "srm" && !query.trim() && current
+            ? current.to === item.to : isCurrent(item.to) || (!query.trim() && current?.to === item.to);
           const submenuId = `${panel}-${encodeURIComponent(item.to)}`;
           const submenuOpen = submenus[item.to] ?? (selected || pages.some(page => isCurrent(page.to)));
           return <li key={item.to + item.label}>

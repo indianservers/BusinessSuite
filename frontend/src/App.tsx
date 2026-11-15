@@ -1,4 +1,5 @@
 import CommonEntityPage from "@/common/CommonEntityPage";
+import CommonCommercialEntry from "@/common/CommonCommercialEntry";
 import { useQueryClient } from "@tanstack/react-query";
 import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
 import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
@@ -167,7 +168,7 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
-    { path: "common/:entity", element: <CommonEntityPage routes={enabledRoutes} /> },
+    { path: "common/:entity/*", element: <CommonEntityPage routes={enabledRoutes} /> },
     { path: "connectors", element: <ConnectorCatalog /> },
     ...["crm", "pms", "hrms", "srm", "fam"].map(module => ({ path: `${module}/connectors`, element: <ConnectorCatalog /> })),
     { path: "power-apps", element: <PowerAppsPage /> },
@@ -293,7 +294,7 @@ export default function App() {
           >
             <Route path="setup-guide" element={<ProtectedRoute><></></ProtectedRoute>} />
             {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}>{getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element}</Suspense></ProtectedRoute>} caseSensitive={route.caseSensitive} />
+              <Route key={route.path} path={route.path} element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><CommonCommercialEntry>{getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element}</CommonCommercialEntry></Suspense></ProtectedRoute>} caseSensitive={route.caseSensitive} />
             ))}
             <Route path="*" element={<div role="alert" className="rounded-xl border p-6"><h1 className="text-lg font-semibold">Page not found</h1><p>This page is unavailable. Choose a page from the menu or <Link className="underline" to="/dashboard">open all applications</Link>.</p></div>} />
           </Route>

@@ -28,6 +28,9 @@ def _employee_display_name(employee: Employee) -> str:
 
 
 def _notify_user(db: Session, user_id: int, title: str, message: str, event_type: str, related_entity_id: int) -> None:
+    from app.business_packs.leave_core import notify
+    if notify(db, user_id, title, message, event_type, related_entity_id):
+        return
     create_notification(
         db,
         NotificationCreate(
@@ -68,7 +71,7 @@ def _department_id(value: str | None) -> int | None:
 
 
 def _current_company_id(user: User) -> Optional[int]:
-    if getattr(user, '_suite_admin_read', False):
+    if getattr(user, 'organization_id', None) is not None:
         from app.apps.srm.services.commercial import tenant
         return tenant(user)
     if user.employee and user.employee.branch:
@@ -454,7 +457,7 @@ def leave_calendar(
 
     from app.shared.form_defaults import effective as form_defaults
     branch = getattr(current_user, "_suite_branch_id", None)
-    defaults = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None)["values"]
+    defaults = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None, reference_keys=())["values"]
     if defaults["holiday_calendar"] == "branch":
         branch_id = branch if isinstance(branch, int) else getattr(current_user.employee, "branch_id", None)
         holidays = [holiday for holiday in holidays if not holiday.applicable_branches or branch_id in holiday.applicable_branches]

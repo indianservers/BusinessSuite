@@ -1,0 +1,17 @@
+import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
+export type POSCustomValue=string|number|boolean|null|string[]|{national_number:string;country_code:string};
+export type POSCustomField={id:number;label:string;type:string;required:boolean;editable:boolean;options:string[];unique:boolean;precision:number|null;scale:number|null};
+export type POSCustomerSchema={entity:'companies';schema_fingerprint:string;registration_available:boolean;unavailable_reason:string|null;fields:POSCustomField[]};
+export default function POSCustomerCustomFields({fields,values,onChange,disabled}:{fields:POSCustomField[];values:Record<string,POSCustomValue>;onChange:(key:string,value:POSCustomValue)=>void;disabled:boolean}) {
+ return <>{fields.map(field=>{const key=String(field.id),value=values[key],label=`POS field ${field.label}`,common={'aria-label':label,disabled:disabled||!field.editable,required:field.required};
+  return <label key={key} className="block space-y-1 text-sm">{field.label}{field.required?' *':''}
+   {field.type==='checkbox'?<NativeSelect {...common} value={typeof value==='boolean'?String(value):''} onChange={event=>onChange(key,event.target.value===''?null:event.target.value==='true')}><option value="">Select an answer</option><option value="true">Yes</option><option value="false">No</option></NativeSelect>:
+    field.type==='multi_select'?<select {...common} multiple className="min-h-24 w-full rounded border bg-background p-2" value={Array.isArray(value)?value:[]} onChange={event=>onChange(key,Array.from(event.target.selectedOptions,option=>option.value))}>{field.options.map(option=><option key={option}>{option}</option>)}</select>:
+    ['dropdown','radio','combobox'].includes(field.type)?<NativeSelect {...common} value={typeof value==='string'?value:''} onChange={event=>onChange(key,event.target.value||null)}><option value="">Select {field.label}</option>{field.options.map(option=><option key={option}>{option}</option>)}</NativeSelect>:
+    field.type==='long_text'?<textarea {...common} className="min-h-20 w-full rounded border bg-background p-2" maxLength={8000} value={typeof value==='string'?value:''} onChange={event=>onChange(key,event.target.value)}/>:
+    field.type==='phone'?<div className="flex gap-2"><Input aria-label={`${label} calling code`} required={field.required} disabled={common.disabled} placeholder="Calling code" value={value&&typeof value==='object'&&!Array.isArray(value)?value.country_code:''} onChange={event=>onChange(key,{national_number:value&&typeof value==='object'&&!Array.isArray(value)?value.national_number:'',country_code:event.target.value})}/><Input {...common} placeholder="National number" value={value&&typeof value==='object'&&!Array.isArray(value)?value.national_number:''} onChange={event=>onChange(key,{country_code:value&&typeof value==='object'&&!Array.isArray(value)?value.country_code:'',national_number:event.target.value})}/></div>:
+    <Input {...common} type={['number','currency'].includes(field.type)?'number':field.type==='datetime'?'datetime-local':['email','url','date'].includes(field.type)?field.type:'text'} step={['number','currency'].includes(field.type)?'0.0001':undefined} maxLength={8000} value={typeof value==='string'||typeof value==='number'?value:''} onChange={event=>onChange(key,event.target.value===''?null:event.target.value)}/>}
+  </label>;
+ })}</>;
+}

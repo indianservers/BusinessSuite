@@ -1,0 +1,58 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+
+module.exports = async function verifySalonSchedule({page, auth, root, expect}) {
+  await page.setViewportSize({width:1440,height:1100});
+  await page.evaluate(() => window.qaNavigate('/srm/scheduled-services'));
+  await expect(page.getByRole('heading',{name:'Scheduled Services',exact:true})).toBeVisible();
+  await page.getByRole('combobox',{name:'Time zone',exact:true}).selectOption('UTC');
+  const day = auth.specs[0].starts_at.slice(0,10);
+  const nextDay = new Date(Date.parse(day+'T12:00:00Z')+86400000).toISOString().slice(0,10);
+  await page.getByLabel('From',{exact:true}).fill(day+'T00:00');
+  await page.getByLabel('Until (exclusive)',{exact:true}).fill(nextDay+'T00:00');
+  const loaded = count => page.getByText(count+' bookings loaded',{exact:true});
+  await expect(loaded(3)).toBeVisible();
+  await expect(page.locator('tbody tr')).toHaveCount(3);
+  await page.getByRole('combobox',{name:'Employee',exact:true}).selectOption(String(auth.employee_id));
+  await expect(loaded(2)).toBeVisible();
+  await expect(page.locator('tbody tr')).toHaveCount(2);
+  await page.getByRole('combobox',{name:'Service',exact:true}).selectOption(String(auth.specs[0].product_id));
+  await expect(loaded(1)).toBeVisible();
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await expect(page.locator('tbody')).toContainText(auth.specs[0].service_name);
+  await page.getByRole('combobox',{name:'Employee',exact:true}).selectOption('');
+  await expect(loaded(2)).toBeVisible();
+
+  await page.getByRole('button',{name:'Calendar',exact:true}).click();
+  await page.getByLabel('Calendar day',{exact:true}).fill(day);
+  const calendar = page.getByLabel('Minute calendar, scroll to explore',{exact:true});
+  await expect(calendar.locator('button')).toHaveCount(2);
+  await expect.poll(()=>calendar.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+  await calendar.locator('button').first().click();
+  const detail = page.getByRole('dialog');
+  await expect(detail).toContainText('Scheduled service');
+  await expect(detail).toContainText(auth.specs[0].service_name);
+  await expect(detail).toContainText('Planned minutes');
+  await detail.getByRole('button',{name:'Close dialog',exact:true}).click();
+  await page.setViewportSize({width:390,height:1000});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await page.screenshot({path:path.resolve(root,'../.local/pack-salon-calendar-mobile.png'),fullPage:true});
+
+  await page.getByRole('button',{name:'Gantt',exact:true}).click();
+  const gantt = page.getByLabel('Minute Gantt timeline, scroll to explore',{exact:true});
+  await expect(gantt.locator('button')).toHaveCount(2);
+  await expect.poll(()=>gantt.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
+  const widths = await gantt.locator('button').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width).sort((a,b)=>a-b));
+  assert.ok(Math.abs(widths[1]/widths[0]-1.5)<0.03,'30/45 minute bookings must use proportional elapsed-time widths');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await page.screenshot({path:path.resolve(root,'../.local/pack-salon-gantt-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1100});
+  await page.screenshot({path:path.resolve(root,'../.local/pack-salon-gantt-desktop.png'),fullPage:true});
+  await page.getByRole('button',{name:'List',exact:true}).click();
+  await page.getByRole('combobox',{name:'Service',exact:true}).selectOption('');
+  await expect(loaded(3)).toBeVisible();
+  await page.getByRole('combobox',{name:'Status',exact:true}).selectOption('no_show');
+  await expect(page.getByText('No scheduled services match this range and your access.',{exact:true})).toBeVisible();
+  await page.getByRole('combobox',{name:'Status',exact:true}).selectOption('');
+  await expect(loaded(3)).toBeVisible();
+};

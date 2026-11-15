@@ -1,13 +1,15 @@
 import { LoadingState } from "@/components/ui/state";
 import { isSharedTaskWorkspace } from "@/lib/task-workspace";
-import { Suspense, useContext, useEffect, useState } from "react";
+import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
 import { getOperationWorkspace, operationAliases } from "@/lib/navigation-workspaces";
 import { menuLabel } from "@/lib/navigation-menu";
+import { commonNavigationHref, commonRouteContext } from "@/lib/common-routes";
 import { useAuthStore } from "@/store/authStore";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
+import { OperationContentContext, OperationPanelContext, OperationWorkspaceContext } from "@/lib/operation-panel";
 
 /** One page owns the related operations. Each panel renders the original working
  * component (including its API mutations), rather than linking to another page.
@@ -18,21 +20,27 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
   const pathname = `/${route.path}`;
-  const compactNavigation = /^\/(crm|pms)(\/|$)/.test(pathname);
+  const compactNavigation = /^\/(crm|pms|srm)(\/|$)/.test(pathname);
   const workspace = getOperationWorkspace(pathname);
   const nav = getRoleNav(user?.role, user?.is_superuser, pathname);
   const pages = (workspace?.paths || []).flatMap(path => {
     const entry = routes.find(item => `/${item.path}` === path);
     if (!entry || !canAccessRoute(path, user?.role, user?.is_superuser)) return [];
     if (operationAliases[path] && canAccessRoute(operationAliases[path], user?.role, user?.is_superuser)) return [];
-    const originalLabel = nav.find(item => item.to === path)?.label || path.split("/").pop()!.replace(/-/g, " ");
+    const originalLabel = nav.find(item => (commonRouteContext(item.to)?.nativePath || item.to) === path)?.label || path.split("/").pop()!.replace(/-/g, " ");
     const label = compactNavigation ? menuLabel({to:path,label:originalLabel}) : originalLabel;
     return [{ path, label, element: entry.element }];
   });
   const canonical = pages[0]?.path;
-  const requested = new URLSearchParams(location.search).get("operation");
+  const sharedContext = commonRouteContext(location.pathname, location.search);
+  const canonicalHref = canonical && sharedContext?.module === "srm" ? commonNavigationHref(canonical, "srm") : canonical;
+  const requestedPath = new URLSearchParams(location.search).get("operation");
+  const requested = requestedPath && (operationAliases[requestedPath] || requestedPath);
   const legacy = operationAliases[pathname] || pathname;
   const selected = pages.find(page => page.path === requested)?.path || pages.find(page => page.path === legacy)?.path || canonical;
+  // Retain drafts without broadcasting the active tab's create intent to hidden forms.
+  const panelLocations = useRef<Record<string, typeof location>>({});
+  if (selected) panelLocations.current[selected] = location;
   const [visited, setVisited] = useState<string[]>(selected ? [selected] : []);
   useEffect(() => { if (selected) setVisited(current => current.includes(selected) ? current : [...current, selected]); }, [selected]);
   const selectedLabel = pages.find(page => page.path === selected)?.label;
@@ -44,10 +52,11 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   const searchFor = (path: string) => {
     const params = new URLSearchParams(location.search);
     params.delete("operation");
+    if (pathname === "/srm/services") params.set("kind", "service");
     if (path !== canonical) params.set("operation", path);
     return params.size ? `?${params}` : "";
   };
-  if (pathname !== canonical) return <Navigate replace to={`${canonical}${searchFor(selected)}${location.hash}`} />;
+  if (pathname !== canonical) return <Navigate replace to={`${canonicalHref!.split("?")[0]}${searchFor(selected)}${location.hash}`} />;
   // The shared task workspace supplies the complete PMS shell itself.
   if (isSharedTaskWorkspace(selected, location.search)) return <ErrorBoundary><Suspense fallback={<LoadingState label="Loading tasks" />}>
     <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: selected } }}>
@@ -56,7 +65,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   </Suspense></ErrorBoundary>;
   const select = (path: string) => {
     setVisited(current => current.includes(path) ? current : [...current, path]);
-    navigate({ pathname: canonical, search: searchFor(path) });
+    navigate({ pathname: canonicalHref!.split("?")[0], search: searchFor(path) });
   };
   return <section aria-label={`${workspace.label} workspace`}>
     {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${compactNavigation ? "ws-operation-navigation" : ""}`}>
@@ -76,13 +85,17 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
         >{page.label}</button>)}
       </div>
     </div>}
-    {pages.filter(page => visited.includes(page.path) || page.path === selected).map(page => <div key={page.path}
+    {pages.filter(page => visited.includes(page.path) || page.path === selected).map(page => {
+      const panelLocation = panelLocations.current[page.path] || location;
+      const panelSearch = new URLSearchParams(panelLocation.search);
+      if (page.path !== selected) panelSearch.delete("new");
+      return <div key={page.path}
       role="tabpanel" hidden={selected !== page.path} id={`operation-panel-${page.path}`} aria-label={workspace.label === "Deals" ? page.label : undefined} aria-labelledby={workspace.label === "Deals" ? undefined : `operation-tab-${page.path}`}>
       <ErrorBoundary><Suspense fallback={<LoadingState label={`Loading ${page.label}`} />}>
-        <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: page.path } }}>
-          {page.element}
+        <LocationContext.Provider value={{ ...locationContext, location: { ...panelLocation, pathname: page.path, search: panelSearch.size ? `?${panelSearch}` : "", hash: page.path === selected ? location.hash : "" } }}>
+          <OperationContentContext.Provider value={true}><OperationWorkspaceContext.Provider value={true}><OperationPanelContext.Provider value={!pathname.startsWith("/srm/") || page.path === selected}>{page.element}</OperationPanelContext.Provider></OperationWorkspaceContext.Provider></OperationContentContext.Provider>
         </LocationContext.Provider>
       </Suspense></ErrorBoundary>
-    </div>)}
+    </div>; })}
   </section>;
 }

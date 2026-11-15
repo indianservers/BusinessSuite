@@ -19,6 +19,19 @@ from fastapi import HTTPException
 
 class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
 
+    def update(self, db: Session, *, db_obj: Employee, obj_in: EmployeeUpdate | dict) -> Employee:
+        # Native account/job editing can legitimately load User.employee and
+        # Employee.user together. Serialize neither relationship to apply a
+        # validated scalar patch: that graph contains cycles and private data.
+        values=obj_in if isinstance(obj_in,dict) else obj_in.model_dump(exclude_unset=True)
+        from sqlalchemy import inspect
+        for attribute in inspect(Employee).column_attrs:
+            if attribute.key in values:setattr(db_obj,attribute.key,values[attribute.key])
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
     def generate_employee_id(self, db: Session) -> str:
         # The identifier is globally unique, even when the current ORM session
         # can see only one branch. Read allocation metadata, never employee data.

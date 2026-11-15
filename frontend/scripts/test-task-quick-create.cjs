@@ -71,7 +71,10 @@ const {chromium}=require('playwright');
 
       else if(p==='/project-management/projects/1/board')data={id:Number(url.searchParams.get("board_id")||1),project_id:1,name:url.searchParams.get("board_id")==="2"?"QA named pipeline":"Delivery board",columns:[{id:1,board_id:1,name:"To Do",status_key:"TODO",position:0,tasks:taskStatus==='To Do'?[{id:11,title:"PMS adapter task",task_key:"DEL-1",status:taskStatus,priority:"High",column_id:1,position:0}]:[],task_count:taskStatus==='To Do'?1:0},{id:2,board_id:1,name:"Done",status_key:"DONE",position:1,tasks:taskStatus==='Done'?[{id:11,title:"PMS adapter task",task_key:"DEL-1",status:taskStatus,priority:"High",column_id:2,position:0}]:[],task_count:taskStatus==='Done'?1:0}]};
 
-      else if(p==='/project-management/task-studio/options')data={people:[{id:7,name:'Project member'}],can_edit:true};
+      else if(p==='/project-management/task-studio/projects')data=[{id:1,name:'Delivery',project_key:'DEL',workspace_id:1,can_manage_tasks:true}];
+      else if(p==='/project-management/task-studio/options')data={people:[{id:7,name:'Project member'}],teams:[],batches:[],reviewers:[],workspace_id:1,can_edit:true,can_add_existing:false,batch_reason:''};
+      else if(p==='/project-management/task-studio/people')data={items:[{id:7,name:'Project member'}],selected:[],pages:1,page:1,total:1};
+      else if(p==='/project-management/task-studio/projects/1/tasks'&&method==='POST'){const body=request.postDataJSON();data={task:{...body.task,id:21,project_id:1},assignment:body.assignment,version:'created-v1',can_edit:true,protected_ids:[]};}
       else if(p==='/project-management/task-studio/tasks/11')data={version:"qa-v1"};
 
       else if(p==='/project-management/my-work/tasks/11/arrange'){taskStatus=request.postDataJSON().status;data={id:11,version:"qa-v2"};}
@@ -99,19 +102,28 @@ const {chromium}=require('playwright');
     await page.getByLabel('Project pipeline',{exact:true}).selectOption('2');await page.getByLabel('Customize project pipeline',{exact:true}).click();await page.getByRole('dialog').getByLabel('Pipeline name',{exact:true}).waitFor();assert.equal(await page.getByRole('dialog').getByLabel('Pipeline name',{exact:true}).inputValue(),'QA named pipeline');assert.ok(calls.some(c=>c.path==='/project-management/projects/1/board'&&c.query.includes('board_id=2')));await page.getByRole('dialog').getByRole('button',{name:'Cancel',exact:true}).click();
     await page.getByRole('button',{name:'Task',exact:true}).click();
     const quick=page.getByRole('dialog');
-    await quick.getByLabel('Task title *',{exact:true}).fill('Complete quick task');
-    await quick.getByLabel('Description',{exact:true}).fill('Acceptance criteria');
+    await quick.getByLabel('Task Title',{exact:true}).waitFor({timeout:15000}).catch(async error=>{await fs.writeFile(path.join(root,'../.local/task-quick-create-current-dom.txt'),await page.locator('body').innerText());await fs.writeFile(path.join(root,'../.local/task-quick-create-current-requests.json'),JSON.stringify({calls,errors},null,2));throw error;});
+    await quick.getByLabel('Task Title',{exact:true}).fill('Complete quick task');
+    await fs.writeFile(path.join(root,'../.local/task-quick-create-current-dom.txt'),await quick.innerText());
+    await fs.writeFile(path.join(root,'../.local/task-quick-create-current-requests.json'),JSON.stringify(calls,null,2));
+    await quick.getByRole('textbox',{name:'Task description',exact:true}).fill('Acceptance criteria');
     await quick.getByLabel('Priority',{exact:true}).selectOption('High');
-    await quick.getByLabel('Assignee',{exact:true}).selectOption('7');
-    await quick.getByLabel('Task type',{exact:true}).selectOption('Bug');
-    await quick.getByLabel('Start date',{exact:true}).fill('2026-11-04');
+    await quick.getByLabel('Choose assignees',{exact:true}).click();
+    await quick.getByRole('checkbox',{name:/Project member/}).check();
+    await quick.getByLabel('Choose assignees',{exact:true}).click();
+    await quick.getByLabel('Work item type',{exact:true}).selectOption('Bug');
     await quick.getByLabel('Due date',{exact:true}).fill('2026-11-10');
+    await quick.getByRole('button',{name:'Planning & details',exact:true}).click();
+    await quick.locator('summary').filter({hasText:'Scheduling'}).click();
+    await quick.getByLabel('Start date',{exact:true}).fill('2026-11-04');
+
     await quick.getByLabel('Estimate (hours)',{exact:true}).fill('2.5');
     await quick.getByLabel('Story points',{exact:true}).fill('3');
-    await quick.getByRole('button',{name:'Create task',exact:true}).click();
+    await quick.getByRole('button',{name:'Create Task',exact:true}).first().click();
     await quick.waitFor({state:'detached'});
-    const created=calls.find(c=>c.path==='/project-management/projects/1/tasks'&&c.method==='POST');
-    assert.equal(created.body.title,'Complete quick task');assert.equal(created.body.assignee_user_id,7);assert.equal(created.body.priority,'High');assert.equal(created.body.work_type,'Bug');assert.equal(created.body.estimated_hours,2.5);assert.equal(created.body.story_points,3);assert.equal(created.body.due_date,'2026-11-10');
+    const created=calls.find(c=>c.path==='/project-management/task-studio/projects/1/tasks'&&c.method==='POST');
+    assert.equal(created.body.task.title,'Complete quick task');assert.deepEqual(created.body.assignment.people,[7]);assert.equal(created.body.task.priority,'High');assert.equal(created.body.task.work_type,'Bug');assert.equal(created.body.task.estimated_hours,2.5);assert.equal(created.body.task.story_points,3);assert.equal(created.body.task.due_date,'2026-11-10');assert.equal(created.body.task.start_date,'2026-11-04');assert.match(created.body.task.description,/Acceptance criteria/);assert.equal(created.body.task.status,'To Do');assert.equal(calls.filter(c=>c.path==='/project-management/task-studio/projects/1/tasks'&&c.method==='POST').length,1);assert.deepEqual(errors,[]);
+    await fs.writeFile(path.join(root,'../.local/task-quick-create-current-requests.json'),JSON.stringify(calls,null,2));
     await page.screenshot({path:path.join(output,'pms-integration.png'),fullPage:true});
 
     console.log('Quick create task fields and native payload passed');

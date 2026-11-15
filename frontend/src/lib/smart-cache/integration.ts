@@ -1,6 +1,8 @@
+import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import type { AxiosInstance } from 'axios';
 import type { QueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
+import { selectedPackContext } from '@/lib/pack-context';
 import { shareRecordReferences } from './structural-sharing';
 import { stable, splitView } from './model';
 import { RecordCacheManager, type Change } from './manager';
@@ -13,7 +15,7 @@ function identity(): string | null {
   try { const claims = JSON.parse(atob(accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); session = claims.sid || ''; tenant = claims.tenant || ''; } catch { return null; }
   // App changes the displayed module role during navigation. The authenticated
   // primary role and live grants remain the authorization identity.
-  return stable([2, tenant, user.id, session, user.primary_role ?? user.role, user.is_superuser, user.access, sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch')]);
+  return stable([3, tenant, sessionStorage.getItem('suite-tenant'), user.id, user.access?.companyId, session, securityAuthStamp(user), sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch'), selectedPackContext()]);
 }
 function replace(value: unknown, old: unknown, data: unknown): unknown {
   if (value === old) return data;
@@ -71,10 +73,7 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
     }
     window.dispatchEvent(new CustomEvent('suite:records-updated', { detail: change }));
   };
-  recordCache = new RecordCacheManager(api, {
-    identity, used, changed,
-    active: key => client.getQueryCache().getAll().some(q => q.isActive() && dependencies.get(q.queryHash)?.has(key)),
-    revoked: (revalidate = true) => {
+  const revoke = (revalidate = true) => {
       // Drop already-visible unauthorized records too; components retain their local UI state.
       void client.cancelQueries().then(() => {
         if (!useAuthStore.getState().isAuthenticated) { client.clear(); return; }
@@ -85,10 +84,16 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
         if (revalidate) return client.refetchQueries({ type: 'active' });
       });
       window.dispatchEvent(new CustomEvent('suite:record-access-changed', { detail: { revalidate } }));
-    },
+    };
+  recordCache = new RecordCacheManager(api, {
+    identity, used, changed,
+    active: key => client.getQueryCache().getAll().some(q => q.isActive() && dependencies.get(q.queryHash)?.has(key)),
+    revoked: revoke,
   });
-  useAuthStore.subscribe(() => recordCache.contextChanged());
-  for (const event of ['suite:organization-changed', 'suite:branch-changed']) window.addEventListener(event, () => recordCache.contextChanged());
+  let authorization = securityAuthStamp(useAuthStore.getState().user);
+  useAuthStore.subscribe(() => { const next = securityAuthStamp(useAuthStore.getState().user); const changed = next !== authorization; authorization = next; if (!recordCache.contextChanged() && changed) revoke(); });
+  for (const event of ['suite:organization-changed', 'suite:branch-changed', 'suite:tenant-changed']) window.addEventListener(event, () => recordCache.contextChanged());
+  window.addEventListener('suite:pack-context-changed', () => { if (!recordCache.contextChanged()) revoke(); });
   window.addEventListener('suite:record-push', event => { const module = (event as CustomEvent<{ module: string }>).detail?.module; void recordCache.syncModuleChanges(module, true); });
   window.addEventListener('suite:record-mutated', event => { void recordCache.afterMutation((event as CustomEvent<string>).detail); });
   return recordCache;

@@ -15,28 +15,30 @@ def writable_actions(ctx, grants, user=None):
     return masked
 
 
-def effective_grants(db, user, company, selected, base=None):
-    user._suite_branch_roles_fingerprint = None
-    if user.is_superuser or (getattr(user, '_suite_admin_read', False) and getattr(user, '_suite_is_company_admin', False)) or not inspect(db.connection()).has_table(BranchGrant.__tablename__):
+def effective_grants(db, user, company, selected, base=None, *, administrative_read=True, stamp=True, definition_administration=False):
+    if stamp:
+        user._suite_branch_roles_fingerprint = None
+    if user.is_superuser or (administrative_read and getattr(user, '_suite_admin_read', False) and getattr(user, '_suite_is_company_admin', False)) or not inspect(db.connection()).has_table(BranchGrant.__tablename__):
         return base
     from app.branches.service import context
     from app.access.service import legacy_grants, resolved_grants
-    ctx = context(db, user, company, selected)
+    ctx = (context(db, user, company, selected, definition_administration=True)
+           if definition_administration else context(db, user, company, selected))
     if not ctx.allowed:
-        ceiling = base if base is not None else legacy_grants(db, user, company)
+        ceiling = base if base is not None else legacy_grants(db, user, company, administrative_read=administrative_read)
         return {key: {**grant, 'enabled': False, 'permissions': [], 'actions': []} for key, grant in ceiling.items()}
     rows = db.connection().execute(select(BranchGrant.branch_id, BranchGrant.module_grants).where(
         BranchGrant.user_id == user.id, BranchGrant.company_id == company,
         BranchGrant.branch_id.in_(ctx.allowed))).all()
     restricted = {r.branch_id: r.module_grants for r in rows if r.module_grants is not None}
     if not restricted:
-        return writable_actions(ctx, base, user)
+        return writable_actions(ctx, base, user if stamp else None)
     if ctx.branch_id is None:
         # Different record scopes cannot safely be unioned under a single ORM scope.
         raise HTTPException(403, "Select a branch to use its assigned module roles")
     if ctx.branch_id not in restricted:
-        return writable_actions(ctx, base, user)
-    ceiling = base if base is not None else legacy_grants(db, user, company)
+        return writable_actions(ctx, base, user if stamp else None)
+    ceiling = base if base is not None else legacy_grants(db, user, company, administrative_read=administrative_read)
     branch = resolved_grants(db, SimpleNamespace(grants=restricted[ctx.branch_id], company_id=company))
     result = {}
     for module, limit in ceiling.items():
@@ -53,5 +55,6 @@ def effective_grants(db, user, company, selected, base=None):
                 grant['enabled'] = False  # Incomparable scopes cannot be widened.
         result[module] = grant
     import hashlib, json
-    user._suite_branch_roles_fingerprint = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
-    return writable_actions(ctx, result, user)
+    if stamp:
+        user._suite_branch_roles_fingerprint = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
+    return writable_actions(ctx, result, user if stamp else None)

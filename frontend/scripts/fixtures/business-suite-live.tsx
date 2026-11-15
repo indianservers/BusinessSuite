@@ -1,3 +1,4 @@
+import {Toaster} from "@/components/ui/toaster";
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {BrowserRouter,Routes,Route,useNavigate} from 'react-router-dom';
@@ -17,8 +18,15 @@ const harness = window as typeof window & {qaAuth:{token:string;user_id:number;b
 const auth=harness.qaAuth;
 sessionStorage.setItem('suite-organization','1');
 sessionStorage.setItem('suite-branch',auth.branch);
-useAuthStore.setState({isHydrated:true,isAuthenticated:true,accessToken:auth.token,user:{id:auth.user_id,email:'testadmin@test.com',role:'super_admin',is_superuser:true}});
+useAuthStore.setState({isHydrated:false,isAuthenticated:true,accessToken:auth.token,user:null});
 harness.qaApi=api;
 const routes=[...crmRoutes,...srmRoutes,...hrmsRoutes,...projectManagementRoutes,...famRoutes];
 function Harness(){harness.qaNavigate=useNavigate();return <Routes><Route path="common/:entity" element={<CommonEntityPage routes={routes}/>}/><Route path="srm/pos" element={srmRoutes.find(route=>route.path==='srm/pos')?.element}/><Route path="qa/analytics" element={<AnalyticsPage mode="team"/>}/></Routes>}
-createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><React.Suspense fallback={<p role="status">Loading native page...</p>}><Harness/></React.Suspense></BrowserRouter></QueryClientProvider>);
+async function mount(){
+ const [identity,access]=await Promise.all([api.get('/auth/me',{recordCache:false}),api.get('/access/me',{recordCache:false})]);
+ const role=typeof identity.data.role === "string" ? identity.data.role : identity.data.role?.name || null;
+ useAuthStore.setState({isHydrated:true,user:{...identity.data,role,primary_role:role,access:access.data}});
+ createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><React.Suspense fallback={<p role="status">Loading native page...</p>}><Harness/><Toaster/></React.Suspense></BrowserRouter></QueryClientProvider>);
+
+}
+void mount();

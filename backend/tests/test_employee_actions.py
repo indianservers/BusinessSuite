@@ -14,6 +14,32 @@ from app.models.employee import Employee
 from ai_test_utils import auth_headers
 
 
+@pytest.fixture(autouse=True)
+def canonical_employee_request_session(client,db):
+    """Internal ASGI calls have a distinct native session, as in production.
+
+    Sharing the outer AI request's bound Session would attempt to switch its
+    realm in place. Keep the same isolated fixture transaction and real auth.
+    """
+    from fastapi import Request
+    from sqlalchemy.orm import Session
+    from app.core.deps import get_db
+    previous=client.app.dependency_overrides[get_db]
+    def isolated(request:Request):
+        if request.url.hostname=='suite-internal' and request.url.path.startswith('/api/v1/employees/'):
+            with Session(bind=db.get_bind(),join_transaction_mode='create_savepoint') as session:
+                assert session is not db
+                try:yield session
+                finally:
+                    assert 'business_pack_request_binding' not in session.info
+                    assert 'business_common_core_scope' not in session.info
+        else:
+            yield from previous()
+    client.app.dependency_overrides[get_db]=isolated
+    try:yield
+    finally:client.app.dependency_overrides[get_db]=previous
+
+
 @pytest.mark.parametrize('field',['role_id','user_id','status','employment_type','branch_id','bank_name','account_number','salary_currency','aadhaar_number','allow_contact_duplicate','profile_completeness'])
 def test_protected_employee_fields_are_not_bot_actions(field):
     with pytest.raises(ValueError):EmployeeProfileUpdate.model_validate({field:1})

@@ -78,6 +78,7 @@ def test_payroll_database_backlog_foundations(client, db):
     admin_headers = _login(client, "admin@aihrms.com", "Admin@123456")
     employee_headers = _login(client, "employee@aihrms.com", "Employee@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
+    assert employee is not None and employee.branch is not None
 
     db.add(EmployeeSalary(
         employee_id=employee.id,
@@ -85,7 +86,8 @@ def test_payroll_database_backlog_foundations(client, db):
         effective_from=date(2026, 5, 1),
         is_active=True,
     ))
-    run = PayrollRun(month=5, year=2026, status="Locked", total_gross=0, total_deductions=0, total_net=0)
+    run = PayrollRun(company_id=employee.branch.company_id, branch_id=employee.branch_id,
+        month=5, year=2026, status="Locked", total_gross=0, total_deductions=0, total_net=0)
     db.add(run)
     db.flush()
     db.add(PayrollRecord(
@@ -126,7 +128,7 @@ def test_payroll_database_backlog_foundations(client, db):
         json={"reason": "Manual arrear missed"},
         headers=admin_headers,
     )
-    assert unlock.status_code == 201
+    assert unlock.status_code == 201, unlock.text
     reviewed_unlock = client.put(
         f"/api/v1/payroll/unlock-requests/{unlock.json()['id']}/review",
         json={"action": "approve", "remarks": "Allowed once"},

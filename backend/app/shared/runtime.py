@@ -1103,8 +1103,7 @@ def capture_changes(db, context):
             from app.ai_agents.security import seal
 
             ai_origin = seal(db, db.get(User, actor[0]), tenant=company)
-        db.add(
-            ServiceEvent(
+        captured = ServiceEvent(
                 organization_id=company,
                 module_key=module,
                 event_type=event_type,
@@ -1119,4 +1118,8 @@ def capture_changes(db, context):
                 },
                 status="depth_limited" if DEPTH.get() >= 6 else "pending",
             )
-        )
+        # Private runtime provenance. A selected pack validates the persisted
+        # native parent and its exact immutable anchor before this event is
+        # inserted; neither payload JSON nor an entity label grants authority.
+        captured._suite_source_record = item
+        db.add(captured)

@@ -1,3 +1,4 @@
+from tests.canonical_employee_request_utils import canonical_employee_request_session
 from uuid import uuid4
 from datetime import date,timedelta
 from fastapi import HTTPException

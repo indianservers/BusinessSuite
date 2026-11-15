@@ -3,6 +3,7 @@ import InventoryBomForm from "./InventoryBomForm";
 import InventoryProductionPostingForm from "./InventoryProductionPostingForm";
 import InventoryPriceListForm from "./InventoryPriceListForm";
 import InventoryTrackingForms from "./InventoryTrackingForms";
+import PharmaInventory from "./PharmaInventory";
 import InventoryLedgerMappingPage from "./InventoryLedgerMappingPage";
 import "./inventory-master.css";
 import InventoryItemCreateForm from "./InventoryItemCreateForm";
@@ -338,16 +339,16 @@ function SettingsView() {
   );
 }
 
-function DataTable({ rows, columns, renderActions }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode }) {
+function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspacePage:table-1", preview=true }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode; gridId?:string; preview?:boolean }) {
   const { pathname } = useLocation();
   const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
   const detailBase = /^\/(fam|srm)\/inventory\/items$/.test(pathname) ? pathname : detailRoutes[pathname];
   const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
   return (
     <div className="overflow-x-auto rounded-lg border">
-      <GridTable gridId="apps/fam/FAMWorkspacePage:table-1" className="w-full min-w-[780px] text-sm">
+      <GridTable gridId={gridId} className="w-full min-w-[780px] text-sm">
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}{definitionName&&<th className="px-3 py-2">Ledger actions</th>}</tr></thead>
-        <tbody>{rows.map((row) => <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}{renderActions&&<td>{renderActions(row)}</td>}{definitionName&&<td className="flex gap-2 px-3 py-2"><RecordDefinitionActions record={row} nameField={definitionName} endpoint={`${pathname}/${row.id}`} queryKeys={["fam"]} permissions={["fam_admin","fam_chart_manage"]}/></td>}</tr>)}</tbody>
+        <tbody>{rows.map((row) => <tr {...(preview?recordPreviewProps(row):{})} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}{renderActions&&<td>{renderActions(row)}</td>}{definitionName&&<td className="flex gap-2 px-3 py-2"><RecordDefinitionActions record={row} nameField={definitionName} endpoint={`${pathname}/${row.id}`} queryKeys={["fam"]} permissions={["fam_admin","fam_chart_manage"]}/></td>}</tr>)}</tbody>
       </GridTable>
     </div>
   );
@@ -1541,6 +1542,11 @@ function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {
 }
 
 function InventoryBatchesView() {
+  const location=useLocation();
+  return location.pathname.startsWith('/srm/inventory') ? <PharmaInventory fallback={<NativeInventoryBatchesView/>} renderTable={rows=><DataTable gridId="business-packs/pharma:batches" preview={false} rows={rows} columns={["batch_number","item_name","warehouse_name","expiry_date","quantity","available_quantity","status","fefo_eligible"]}/>}/> : <NativeInventoryBatchesView/>;
+}
+
+function NativeInventoryBatchesView() {
   const scope = useRecordScope();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");

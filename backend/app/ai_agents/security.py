@@ -107,24 +107,34 @@ def _fingerprint_state(db, user, tenant):
         or identity["role_id"] != user.role_id
     ):
         raise HTTPException(403, "AI actor identity changed")
-    if not user.is_superuser and tenant not in service.companies_for(db, user):
-        raise HTTPException(403, "AI company membership required")
-    policy = service.policy_for(db, user, tenant)
-    if policy and policy.status != "active":
-        raise HTTPException(403, "AI access revoked")
-    names = (
+    permission_rows = (
         db.connection()
         .execute(
-            select(Permission.__table__.c.name)
+            select(Permission.__table__.c.id, Permission.__table__.c.name,
+                   Permission.__table__.c.module, Permission.__table__.c.description)
             .join(
                 role_permissions,
                 role_permissions.c.permission_id == Permission.__table__.c.id,
             )
             .where(role_permissions.c.role_id == identity["role_id"])
         )
-        .scalars()
+        .mappings()
         .all()
     )
+    names = [row['name'] for row in permission_rows]
+    from .authority_snapshot import read_authority
+    with read_authority(db, user, tenant, identity, permission_rows) as (authority, actor, policy):
+        if not actor.is_superuser and tenant not in service.companies_for(authority, actor):
+            raise HTTPException(403, "AI company membership required")
+        if policy and policy.status != "active":
+            raise HTTPException(403, "AI access revoked")
+        authorization = {
+            "policyVersion": policy.version if policy else None,
+            "grants": service.resolved_grants(authority, policy) if policy else
+                service.legacy_grants(authority, actor, tenant, administrative_read=False),
+            "entitlements": entitlements.states(authority, tenant),
+            "aiPolicy": limits(authority, tenant)["version"],
+        }
     from app.ai_agents.models import (
         AiAgentPermission,
         AiAgentSetting,
@@ -222,15 +232,8 @@ def _fingerprint_state(db, user, tenant):
             "agent_state": agent_state,
             "actor": dict(identity),
             "company": tenant,
-            "policyVersion": policy.version if policy else None,
-            "grants": (
-                service.resolved_grants(db, policy)
-                if policy
-                else service.legacy_grants(db, user, tenant, administrative_read=False)
-            ),
+            **authorization,
             "nativePermissions": sorted(names),
-            "entitlements": entitlements.states(db, tenant),
-            "aiPolicy": limits(db, tenant)["version"],
     }
 
 
@@ -338,7 +341,8 @@ def verify_provenance(user, context, payload=None):
 
 
 def verify(db, user, context, payload=None, confirmation=False, history=False, *, control=False):
-    if getattr(user, '_suite_admin_read', False) and history and payload is None and not confirmation:
+    if (getattr(user, '_suite_admin_read', False) and history and payload is None and not confirmation
+            and isinstance(context, dict) and context.get('user_id') != user.id):
         if isinstance(context, dict) and context.get('company_id') not in (None, company(user)):
             raise HTTPException(403, 'Historical record belongs to another company')
         return {'company_id':company(user), 'read_only_administrator':True}
@@ -950,14 +954,6 @@ def isolate_history(execution):
     from sqlalchemy.orm import with_loader_criteria
     from sqlalchemy import and_, or_, select
 
-    if ctx.get('admin_read'):
-        filters = [with_loader_criteria(model, model.organization_id == ctx['company_id'], include_aliases=True)
-                   for model in (AiConversation, AssistantConversation)]
-        for model, parent in ((AiMessage,AiConversation),(AssistantMessage,AssistantConversation)):
-            filters.append(with_loader_criteria(model, model.conversation_id.in_(select(parent.__table__.c.id).where(parent.__table__.c.organization_id==ctx['company_id'])), include_aliases=True))
-        execution.statement = execution.statement.options(*filters)
-        return
-
     control = bool(execution.execution_options.get("ai_owner_control"))
     with db.no_autoflush:
         # Core identity read prevents recursion into this event.
@@ -992,10 +988,14 @@ def isolate_history(execution):
                         or_(normal,column["fingerprint"].as_string() == control_stamp)))
     filters = []
     for model in (AiConversation, AssistantConversation):
+        # Administrative inspection of another actor's company history is
+        # read-only. It must not resurrect the actor's own revoked context.
+        ownership = and_(model.user_id == user.id, proof(model.security_context))
+        if ctx.get('admin_read'):
+            ownership = or_(model.user_id != user.id, ownership)
         clause = and_(
-            model.user_id == user.id,
+            ownership,
             model.organization_id == ctx["company_id"],
-            proof(model.security_context),
         )
         filters.append(with_loader_criteria(model, clause, include_aliases=True))
     for model, parent in (
@@ -1003,10 +1003,12 @@ def isolate_history(execution):
         (AssistantMessage, AssistantConversation),
     ):
         table = parent.__table__
+        ownership = and_(table.c.user_id == user.id, proof(table.c.security_context))
+        if ctx.get('admin_read'):
+            ownership = or_(table.c.user_id != user.id, ownership)
         visible = select(table.c.id).where(
-            table.c.user_id == user.id,
+            ownership,
             table.c.organization_id == ctx["company_id"],
-            proof(table.c.security_context),
         )
         filters.append(
             with_loader_criteria(

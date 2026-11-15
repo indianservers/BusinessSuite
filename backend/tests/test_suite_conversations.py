@@ -1,4 +1,5 @@
 """Persistent conversations retain verified context without bypassing action review."""
+from tests.canonical_employee_request_utils import canonical_employee_request_session
 from uuid import uuid4
 from tests.rich_text_test_utils import organization_context
 from tests.test_ai_operator import isolate_generic_http_audit

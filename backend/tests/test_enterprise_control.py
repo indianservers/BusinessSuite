@@ -124,7 +124,10 @@ def test_licensing_reuses_plans_and_enforces_native_api(client, db, shared_setup
 
 def test_entitlement_checks_observe_module_and_company_changes_immediately(client, db, shared_setup):
     from app.apps.business_os.models import BOSEnabledModule
-    headers, _, _ = shared_setup
+    admin_headers, user, _ = shared_setup
+    # Exercise the licensed module user, rather than the platform recovery
+    # administrator whose read-only inspection intentionally survives disablement.
+    headers = {**login(client, user.email), 'X-Suite-Branch': admin_headers['X-Suite-Branch']}
     company = db.get(Company, 1)
     module = db.query(BOSEnabledModule).filter_by(company_id=1, module_key='crm').first()
     if module is None:

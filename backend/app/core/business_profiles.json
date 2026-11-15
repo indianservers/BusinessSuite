@@ -130,6 +130,16 @@
       }
     },
     {
+      "id": "accounting_firm",
+      "name": "Accounts Company",
+      "terms": {
+        "customer": ["Client", "Clients"],
+        "provider": ["Accountant", "Accountants"],
+        "appointment": ["Consultation", "Consultations"],
+        "project": ["Engagement", "Engagements"]
+      }
+    },
+    {
       "id": "consulting",
       "name": "Consulting",
       "terms": {

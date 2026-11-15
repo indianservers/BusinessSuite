@@ -15,12 +15,22 @@ from app.core.deps import get_db, get_current_user
 from app.models.user import User
 from app.models.company import Branch
 from app.apps.srm.industry_models import IndustryRecord as Record
+from app.apps.srm.payments import PaymentInput as MeasurementPaymentInput
 from app.apps.srm.services.commercial import tenant, require, customer, record, lock_tenant, money, invoice_for
-from app.apps.project_management.access import get_project_for_action
+from app.apps.project_management.access import get_project_for_action as _native_project_for_action
+from app.business_packs.operations import require as require_pack_operation, for_record_read, for_transition
 
 router = APIRouter(prefix="/srm/industry", tags=["Salon and construction operations"])
 KINDS = {"resource", "appointment", "boq", "measurement", "site_diary", "variation", "subcontract", "material_issue"}
 CONSTRUCTION = {"boq", "measurement", "site_diary", "variation", "subcontract", "material_issue"}
+
+
+def get_project_for_action(db, project_id, user, action='browse'):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import project_for_action
+        return project_for_action(db, user, project_id, action)
+    return _native_project_for_action(db, project_id, user, action)
 
 
 def fail(message, code=422):
@@ -173,13 +183,45 @@ def capabilities(project_id: int | None = None, db: Session = Depends(get_db), u
     from app.module_registry import is_app_enabled
     from app.apps.srm.access import has_any_permission
     from app.apps.project_management.access import can_access_project
-    context(db, user, appointments=not project_id)
+    branch_id=context(db, user, appointments=not project_id)
     manage = has_any_permission(user, {'srm_manage', 'srm_admin'})
     approve = False
     if project_id:
         p = get_project_for_action(db, project_id, user)
-        approve = manage and can_access_project(db, p, user, 'approve')
-    return {'manage': manage, 'approve': approve, 'self_approve': bool(user.is_superuser), 'invoice': has_any_permission(user, {'srm_invoice_create', 'srm_admin'}), 'projects_enabled': is_app_enabled('project_management'), 'crm_enabled': is_app_enabled('crm'), 'billing': has_any_permission(user, {'srm_collection_view', 'srm_collection_create', 'srm_invoice_view', 'srm_invoice_create', 'srm_admin'}), 'collect': has_any_permission(user, {'srm_collection_create', 'srm_admin'}), 'approve_invoice': has_any_permission(user, {'srm_invoice_approve', 'srm_admin'})}
+        selected = db.info.get('business_pack_scope')
+        if selected is not None and selected.pack_key == 'construction':
+            try:
+                get_project_for_action(db, project_id, user, 'approve')
+                approve = manage
+            except HTTPException as exc:
+                if exc.status_code != 403:
+                    raise
+        else:
+            approve = manage and can_access_project(db, p, user, 'approve')
+    result = {'manage': manage, 'approve': approve, 'self_approve': bool(user.is_superuser), 'invoice': has_any_permission(user, {'srm_invoice_create', 'srm_admin'}), 'projects_enabled': is_app_enabled('project_management'), 'crm_enabled': is_app_enabled('crm'), 'billing': has_any_permission(user, {'srm_collection_view', 'srm_collection_create', 'srm_invoice_view', 'srm_invoice_create', 'srm_admin'}), 'collect': has_any_permission(user, {'srm_collection_create', 'srm_admin'}), 'approve_invoice': has_any_permission(user, {'srm_invoice_approve', 'srm_admin'})}
+    from app.business_packs.operations import capabilities as pack_capabilities
+    allowed = pack_capabilities(db, user)
+    if allowed is not None:
+        prepares = bool(allowed & {'billing.prepare', 'checkout.create'})
+        reviews = bool(allowed & {'boq.approve', 'variations.approve', 'measurements.certify', 'subcontracts.manage'})
+        result.update(
+            manage=manage and bool(allowed & {'providers.manage', 'settings.manage', 'appointments.schedule', 'reservations.schedule', 'boq.prepare', 'variations.prepare', 'measurements.prepare', 'diary.record', 'subcontracts.manage', 'materials.request'}),
+            approve=approve and reviews, self_approve=bool(user.is_superuser) and reviews,
+            invoice=result['invoice'] and prepares,
+            billing=result['billing'] and bool(allowed & {'billing.view', 'billing.prepare', 'checkout.view', 'checkout.create', 'payments.record'}),
+            collect=result['collect'] and 'payments.record' in allowed,
+            approve_invoice=result['approve_invoice'] and prepares,
+        )
+        result['appointment_actions'] = [action for action, cap in (
+            ('schedule', 'appointments.schedule'), ('check_in', 'appointments.check_in'),
+            ('cancel', 'appointments.cancel'), ('no_show', 'appointments.no_show'),
+            ('start', 'visits.start'), ('complete', 'visits.complete')) if manage and cap in allowed]
+    from app.apps.srm.service_checkout import checkout_capabilities
+    result.update(checkout_capabilities(db, user))
+    scope=db.info.get('business_pack_scope')
+    result['operational_scope']={'realm':'pack' if scope is not None else 'legacy','user_id':user.id,'company_id':tenant(user),'branch_id':branch_id,
+        **{key:getattr(scope,key,None) for key in ('context_id','pack_key','pack_version','context_revision','grant_revision','activation_revision')}}
+    return result
 
 
 def query(db, user, branch_id):
@@ -187,6 +229,10 @@ def query(db, user, branch_id):
 
 
 def get(db, user, branch_id, ident, kind=None, *, lock=True):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import authorize_record_project
+        authorize_record_project(db, user, ident)
     scoped = query(db, user, branch_id).filter_by(id=ident)
     row = (scoped.with_for_update() if lock else scoped).first()
     if not row or (kind and row.kind != kind):
@@ -196,9 +242,12 @@ def get(db, user, branch_id, ident, kind=None, *, lock=True):
     return row
 
 
-def out(row):
+def out(row, db=None, actor=None):
     result = {k: getattr(row, k) for k in ("id", "kind", "title", "status", "revision", "customer_id", "project_id", "parent_id", "invoice_id", "stock_movement_id", "data", "created_at", "created_by", "approved_by")}
     result['data'] = {k: v for k, v in row.data.items() if not k.startswith('_')}
+    if db is not None and actor is not None:
+        from app.business_packs.industry_assignment import clinical_payload
+        return clinical_payload(db, actor, row, result)
     return result
 
 
@@ -239,7 +288,7 @@ def save(db, user, row, action):
     row.revision += 1
     audit(db, user, row, action)
     db.commit()
-    return out(row)
+    return out(row, db, user)
 
 
 def revision(row, expected):
@@ -254,6 +303,11 @@ def guard_billing_mode(db, user, source_type, *, project_id=None, sales_order=No
     Unrelated projects and manual invoices without project/order links are unaffected.
     """
     if source_type == 'industry_measurement':
+        return
+    if db.info.get('business_pack_scope') is not None:
+        from app.business_packs.industry_billing_guard import reserved_billing
+        if reserved_billing(db,user,sales_order=sales_order,engagement=engagement,project_id=project_id):
+            fail('This source has approved measurement billing reserved. Reconcile its billing before continuing.',409)
         return
     from sqlalchemy import inspect
     # A rolling deployment can run native billing before the additive migration.
@@ -277,6 +331,10 @@ def guard_billing_mode(db, user, source_type, *, project_id=None, sales_order=No
 
 
 def require_clean_billing_start(db, user, project_id):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import require_clean_billing_start as selected_check
+        return selected_check(db, user, project_id)
     from app.apps.srm.commercial_models import ProjectCommercial, InvoiceContext
     from app.apps.srm.models import SRMInvoice, SRMInvoiceDraft
     from sqlalchemy import or_, func
@@ -293,6 +351,9 @@ def require_clean_billing_start(db, user, project_id):
 
 
 def project_currency(db, user, project_id):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        return get_project_for_action(db, project_id, user).currency
     from app.apps.srm.commercial_models import ProjectCommercial
     from app.shared.settings import effective
     ctx = db.get(ProjectCommercial, project_id)
@@ -302,13 +363,23 @@ def project_currency(db, user, project_id):
 @router.get("/records")
 def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, appointments=kind in {'appointment', 'resource'})
+    for_record_read(db, user, kind)
     if kind not in KINDS:
         fail("Unknown operation", 404)
     q = query(db, user, branch).filter_by(kind=kind)
     from app.apps.project_management.access import accessible_project_query
     from app.apps.project_management.models import PMSProject
     from app.module_registry import is_app_enabled
-    if is_app_enabled('project_management'):
+    from app.business_packs.industry_assignment import current_scope, ASSIGNED_ROLES
+    selected = current_scope(db, user, tenant(user))
+    clinical = selected is not None and (selected.pack_key, selected.role) in ASSIGNED_ROLES
+    construction_scope = selected is not None and selected.pack_key == 'construction' and kind in CONSTRUCTION
+    if construction_scope:
+        if not project_id:
+            fail("Select a project for construction operations")
+        get_project_for_action(db, project_id, user)
+        q = q.filter(Record.project_id == project_id)
+    elif is_app_enabled('project_management') and not clinical:
         q = q.filter((Record.project_id.is_(None)) | Record.project_id.in_(accessible_project_query(db, user).with_entities(PMSProject.id)))
     else:
         q = q.filter(Record.project_id.is_(None))
@@ -322,11 +393,17 @@ def records(kind: str, project_id: int | None = None, from_at: datetime | None =
         q = q.filter(Record.ends_at > from_at)
     if until_at:
         q = q.filter(Record.starts_at < until_at)
-    return {"items": [out(r) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
+    return {"items": [out(r, db, user) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
 
 
 @router.get('/project-options')
 def project_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    require_pack_operation(db, user, 'sites.view')
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        context(db, user)
+        from app.business_packs.construction import project_options as selected_options
+        return selected_options(db, user, search, offset)
     from app.apps.project_management.access import accessible_project_query
     from app.apps.project_management.models import PMSProject
     context(db, user)
@@ -340,6 +417,7 @@ def project_options(search: str = Query('', max_length=180), offset: int = Query
 @router.post("/resources", status_code=201)
 def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True, appointments=True)
+    require_pack_operation(db, user, 'providers.manage', 'settings.manage')
     prior = existing(db, user, branch, data, 'resource')
     if prior:
         return out(prior)
@@ -367,6 +445,7 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
 
 @router.get('/staff-options')
 def staff_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    require_pack_operation(db, user, 'providers.manage', 'settings.manage', 'appointments.schedule', 'reservations.schedule')
     context(db, user, appointments=True)
     require(user, 'srm_manage', 'srm_admin')
     from app.shared.form_defaults import reference_queries
@@ -397,6 +476,7 @@ def provider_employee(db, user, branch, employee_id):
 
 @router.get('/employee-options')
 def employee_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    require_pack_operation(db, user, 'providers.manage', 'settings.manage', 'appointments.schedule', 'reservations.schedule')
     from sqlalchemy import or_
     from app.models.employee import Employee
     context_branch = context(db, user, appointments=True)
@@ -423,26 +503,16 @@ def available(db, user, branch, starts, minutes, resource_ids, ignore=None, *, l
             employee = provider_employee(db, user, branch, r.data['employee_id'])
             if employee.date_of_exit and employee.date_of_exit <= local.date():
                 fail(f'{r.title} is no longer available', 409)
-            from app.models.leave import LeaveRequest
-            if db.query(LeaveRequest.id).filter(LeaveRequest.company_id == tenant(user), LeaveRequest.employee_id == employee.id,
-                    LeaveRequest.status == 'Approved', LeaveRequest.deleted_at.is_(None),
-                    LeaveRequest.from_date <= local_end.date(), LeaveRequest.to_date >= local.date()).first():
+            from app.business_packs.availability import employee_leave_conflict
+            if employee_leave_conflict(db, tenant(user), employee.id, local.date(), local_end.date()):
                 fail(f'{r.title} has approved leave at that time', 409)
         if r.status != 'active' or local.weekday() not in r.data['weekdays'] or local.date() != local_end.date() or local.time().replace(tzinfo=None) < time.fromisoformat(r.data['opens']) or local_end.time().replace(tzinfo=None) > time.fromisoformat(r.data['closes']):
             fail(f"{r.title} is outside opening hours", 409)
     # Tenant writer lock serializes conflict check + insert, including distinct resources
     # that reference the same staff identity. Cancelled/no-show slots are released.
-    staff_ids = {r.data.get('user_id') for r in resources} - {None}
-    for booked in query(db, user, branch).filter(Record.kind == 'appointment', Record.status.in_(['booked', 'checked_in', 'in_service']), Record.starts_at < end, Record.ends_at > starts).all():
-        if booked.id == ignore:
-            continue
-        old_start = datetime.fromisoformat(booked.data['starts_at'])
-        old_end = old_start + timedelta(minutes=booked.data['duration_minutes'])
-        if starts < old_end and old_start < end:
-            old_resources = [get(db, user, branch, i, 'resource', lock=lock) for i in booked.data['resource_ids']]
-            employee_ids = {r.data.get('employee_id') for r in resources} - {None}
-            if set(resource_ids).intersection(booked.data['resource_ids']) or staff_ids.intersection({r.data.get('user_id') for r in old_resources}) or employee_ids.intersection({r.data.get('employee_id') for r in old_resources}):
-                fail("Provider or resource is already booked at that time", 409)
+    from app.business_packs.availability import appointment_conflict
+    if appointment_conflict(db, tenant(user), starts, end, resource_ids=resource_ids, ignore_appointment_id=ignore):
+        fail("Provider or resource is already booked at that time", 409)
 
 
 @router.post("/appointments", status_code=201)
@@ -453,6 +523,7 @@ def appointment(data: AppointmentInput, db: Session = Depends(get_db), user=Depe
 def appointment_operation(data, db, user, *, commit=True):
     from app.apps.srm.models import SRMProduct
     branch = context(db, user, True, appointments=True)
+    require_pack_operation(db, user, 'appointments.schedule', 'reservations.schedule')
     prior = existing(db, user, branch, data, 'appointment')
     if prior:
         return out(prior)
@@ -499,7 +570,12 @@ def appointment_operation(data, db, user, *, commit=True):
 @router.put("/appointments/{ident}/schedule")
 def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True, appointments=True)
+    require_pack_operation(db, user, 'appointments.schedule', 'reservations.schedule')
     row = get(db, user, branch, ident, 'appointment')
+    from app.apps.srm.appointment_checkout import checkout_link
+    if checkout_link(db, row) is not None:
+        fail({'code': 'grouped_service_schedule',
+              'message': 'Use the linked service schedule to keep its specialist and policy revisions together'}, 409)
     revision(row, data.expected_revision)
     if row.status != 'booked':
         fail("Only booked appointments can be rescheduled", 409)
@@ -519,6 +595,7 @@ def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user
 def boq(data: BOQInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True)
     kind = 'variation' if data.variation_of else 'boq'
+    require_pack_operation(db, user, 'variations.prepare' if data.variation_of else 'boq.prepare')
     prior = existing(db, user, branch, data, kind)
     if prior:
         return out(prior)
@@ -539,6 +616,7 @@ def boq(data: BOQInput, db: Session = Depends(get_db), user=Depends(get_current_
 @router.post("/measurements", status_code=201)
 def measurement(data: MeasurementInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True)
+    require_pack_operation(db, user, 'measurements.prepare')
     prior = existing(db, user, branch, data, 'measurement')
     if prior:
         return out(prior)
@@ -556,6 +634,7 @@ def measurement(data: MeasurementInput, db: Session = Depends(get_db), user=Depe
 def diary(data: DiaryInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     from app.apps.project_management.models import PMSFileAsset
     branch = context(db, user, True)
+    require_pack_operation(db, user, 'diary.record')
     prior = existing(db, user, branch, data, 'site_diary')
     if prior:
         return out(prior)
@@ -575,6 +654,7 @@ def diary(data: DiaryInput, db: Session = Depends(get_db), user=Depends(get_curr
 @router.post("/subcontracts", status_code=201)
 def subcontract(data: SubcontractInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True)
+    require_pack_operation(db, user, 'subcontracts.manage')
     prior = existing(db, user, branch, data, 'subcontract')
     if prior:
         return out(prior)
@@ -592,8 +672,13 @@ def subcontract(data: SubcontractInput, db: Session = Depends(get_db), user=Depe
 
 @router.post('/material-issues', status_code=201)
 def material_issue(data: MaterialInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction_materials import issue
+        return issue(data, db, user)
     from app.apps.srm.api.router import _product_or_404, _warehouse_or_404, _post_stock_movement, _balance_for_update
     branch = context(db, user, True)
+    require_pack_operation(db, user, 'materials.request')
     prior = existing(db, user, branch, data, 'material_issue')
     if prior:
         return out(prior)
@@ -619,6 +704,7 @@ def material_issue(data: MaterialInput, db: Session = Depends(get_db), user=Depe
 def transition(ident: int, data: Transition, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, True, appointments=True)
     row = get(db, user, branch, ident)
+    for_transition(db, user, row.kind, data.status)
     if row.kind != 'appointment': context(db, user)
     revision(row, data.expected_revision)
     if row.kind == 'appointment':
@@ -653,11 +739,14 @@ def transition(ident: int, data: Transition, db: Session = Depends(get_db), user
 
 @router.post("/records/{ident}/invoice", status_code=201)
 def invoice(ident: int, data: InvoiceInput, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    require_pack_operation(db, user, 'billing.prepare', 'checkout.create')
     from app.apps.srm.api.router import _create_invoice_from_lines, _invoice_payload
     from app.apps.srm.commercial_models import InvoiceContext, ProjectCommercial
     require(user, 'srm_invoice_create', 'srm_admin')
     branch = context(db, user, True, finance=True, appointments=True)
     row = get(db, user, branch, ident)
+    from app.apps.srm.appointment_checkout import require_standalone
+    require_standalone(db, row)
     if row.kind != 'appointment': context(db, user)
     if row.invoice_id:
         return _invoice_payload(invoice_for(db, row.invoice_id, user), db)
@@ -668,7 +757,12 @@ def invoice(ident: int, data: InvoiceInput, db: Session = Depends(get_db), user=
         buyer, seller_id, currency = row.customer_id, tenant(user), row.data['currency']
         qty, rate, tax = Decimal(1), Decimal(row.data['unit_price']), Decimal(row.data['tax_rate'])
     elif row.kind == 'measurement' and row.status == 'approved':
-        ctx = db.get(ProjectCommercial, row.project_id)
+        selected = db.info.get('business_pack_scope')
+        if selected is not None and selected.pack_key == 'construction':
+            from app.business_packs.construction_billing import draft
+            return draft(db, user, row, data)
+        else:
+            ctx = db.get(ProjectCommercial, row.project_id)
         if not ctx:
             fail("Link the shared customer and seller in PMS Project Billing first")
         buyer, seller_id, currency = ctx.customer_id, ctx.seller_id, ctx.currency
@@ -692,11 +786,17 @@ def invoice(ident: int, data: InvoiceInput, db: Session = Depends(get_db), user=
     return _invoice_payload(inv, db)
 
 
+@router.post("/records/{ident}/payments", status_code=201)
+def measurement_payment(ident: int, data: "MeasurementPaymentInput", db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.business_packs.construction_billing import payment
+    return payment(db, user, ident, data)
+
+
 @router.get("/projects/{project_id}/summary")
 def summary(project_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    require_pack_operation(db, user, 'sites.view')
     from app.apps.srm.models import SRMInventoryMovement
     from app.apps.srm.services.commercial import scoped
-    from app.apps.srm.commercial_models import ProjectCommercial
     from app.shared.settings import effective
     branch = context(db, user)
     get_project_for_action(db, project_id, user)
@@ -706,9 +806,8 @@ def summary(project_id: int, db: Session = Depends(get_db), user=Depends(get_cur
     value = lambda r: Decimal(r.data['quantity']) * Decimal(r.data['unit_rate'])
     movement_ids = [r.stock_movement_id for r in rows if r.stock_movement_id]
     material_cost = sum((m.value for m in db.query(SRMInventoryMovement).filter(SRMInventoryMovement.id.in_(movement_ids), scoped(SRMInventoryMovement.organization_id, user)).all()), Decimal(0)) if movement_ids else Decimal(0)
-    ctx = db.get(ProjectCommercial, project_id)
     base_currency = effective(db, tenant(user), 'srm')['values']['currency']
-    scope_currency = ctx.currency if ctx else base_currency
+    scope_currency = project_currency(db, user, project_id)
     if any(r.data.get('currency', scope_currency) != scope_currency for r in rows if r.kind in {'boq', 'variation', 'measurement', 'subcontract'}):
         fail('Project scope contains another currency. Reconcile commercial currency before combining totals.', 409)
     return {'approved_scope_value': money(sum((value(r) for r in approved), Decimal(0))),
@@ -717,7 +816,7 @@ def summary(project_id: int, db: Session = Depends(get_db), user=Depends(get_cur
             'committed_subcontracts': money(sum((Decimal(r.data['amount']) for r in rows if r.kind == 'subcontract' and r.status == 'approved'), Decimal(0))),
             'retention_tracked': money(sum((Decimal(r.data.get('retention_amount', '0')) for r in measured), Decimal(0))),
             'actual_material_cost': money(material_cost),
-            'currency': ctx.currency if ctx else base_currency, 'material_cost_currency': base_currency,
+            'currency': scope_currency, 'material_cost_currency': base_currency,
             'currency_source': 'PMS Project Billing', 'amount_basis': 'Before tax; retention is tracked within the full invoice receivable, not a discount or payment'}
 
 

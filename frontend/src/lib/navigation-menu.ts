@@ -1,5 +1,6 @@
-import { consolidateNavigation, operationAliases, type WorkspaceNavigation } from "./navigation-workspaces";
-import { commonRouteContext } from "./common-routes";
+import { consolidateNavigation, navigationOperationPath, type WorkspaceNavigation } from "./navigation-workspaces";
+import { commonRouteContext, isCommercialEntity } from "./common-routes";
+import { categorizeNavigation } from "./navigation-categories";
 
 type MenuItem = { to: string; label: string; group?: string };
 
@@ -15,6 +16,7 @@ export function moduleMenuNavigation<T extends MenuItem>(items: readonly T[], mo
     crm: {
       "Customers & leads": ["Dashboard", "Customer growth", "Customers & leads"],
       "Sales": ["Sales & pipeline"],
+      "Commercial documents": ["Commercial documents"],
       "Activities & communication": ["Activities & planning", "Communication", "Collaboration", "Support & files"],
       "Reports": ["Reports & forecasts"],
     },
@@ -25,7 +27,8 @@ export function moduleMenuNavigation<T extends MenuItem>(items: readonly T[], mo
       "Reports & finances": ["Reports & finances"],
     },
     srm: {
-      "Customers & sales": ["Overview", "Business relationships", "Sales & contracts", "Point of sale"],
+      "Sales": ["Overview", "Business relationships", "Sales & contracts", "Point of sale", "Commercial documents"],
+      "Daily operations": ["Industry operations"],
       "Products & inventory": ["Products & pricing", "Inventory & warehouses", "Purchasing & manufacturing"],
       "Billing & collections": ["Billing & collections"],
       "Reports": ["Reports & revenue"],
@@ -43,13 +46,19 @@ export function moduleMenuNavigation<T extends MenuItem>(items: readonly T[], mo
   const seen = new Set<string>();
   const result = items.flatMap(item => {
     const path = item.to.split(/[?#]/)[0].replace(/\/+$/, "");
-    const canonical = operationAliases[path] || path;
-    const identity = canonical + (item.to.includes("?") ? "?" + item.to.split("?")[1] : "");
+    const context = commonRouteContext(item.to);
+    const sourceGroup = module === "srm" && context
+      ? categorizeNavigation([{ ...item, to: context.nativePath }], "srm")[0].group : item.group;
+    const canonical = navigationOperationPath(item.to);
+    const query = new URLSearchParams(item.to.split("?")[1] || "");
+    if (commonRouteContext(item.to)?.module === "srm") query.delete("module");
+    query.sort();
+    const identity = canonical + (query.size ? "?" + query : "");
     if (seen.has(identity)) return [];
     seen.add(identity);
-    const configuration = /setting|administration|settings & tools|data management/i.test(item.group || "")
+    const configuration = /setting|administration|settings & tools|data management/i.test(sourceGroup || "")
       || /\/(settings|connectors|import-data|custom-fields|task-types|tags|workflow-designer|record-metadata|pipeline-settings|approval-settings|calendar-integrations|posting-rules|bank-rules|voucher-types|transaction-locking)(\/|$)/.test(path);
-    const group = configuration ? settings : Object.entries(flow[module]).find(([, groups]) => groups.includes(item.group || ""))?.[0] || item.group || "Other tools";
+    const group = configuration ? settings : Object.entries(flow[module]).find(([, groups]) => groups.includes(sourceGroup || ""))?.[0] || sourceGroup || "Other tools";
     return [{ ...item, group }];
   });
   const order = [...Object.keys(flow[module]), "AI tools", "Other tools", settings];
@@ -90,17 +99,25 @@ const labels: Record<string, string> = {
   "/pms/backlog": "Backlog & sprints", "/pms/notes": "Notes",
   "/crm/companies": "Companies", "/crm/accounts": "Companies", "/crm/contacts": "Contacts", "/crm/customer-360": "Customer overview",
   "/crm/lead-to-cash": "Sales to payment", "/crm/gantt": "Activity timeline",
-  "/crm/quotes": "Quote builder", "/crm/quotations": "Quotes", "/crm/duplicates": "Duplicate records",
+  "/crm/quotes": "Quote builder", "/crm/quotations": "Quotations", "/crm/duplicates": "Duplicate records",
   "/crm/settings": "CRM settings", "/crm/feature-checklist": "Feature availability",
   "/hrms/approval-os": "Approvals", "/hrms/workflow": "Request inbox",
   "/hrms/fnf-settlements": "Final settlements", "/hrms/lms": "Learning & courses",
   "/hrms/background-verification": "Background checks", "/hrms/ess": "My dashboard",
   "/hrms/letters-certificates": "Letters & certificates",
   "/hrms/settings": "HR settings", "/srm/settings": "Sales & inventory settings", "/fam/settings": "Finance settings",
+  "/srm/inventory": "Stock overview",
+  "/srm/customer-360": "Customer history",
+  "/srm/engagements": "Service delivery",
+  "/srm/collections": "Payments & collections",
+  "/srm/inventory/reports/complete": "Stock reports",
+  "/srm/inventory/source": "Technical source map",
   "/fam/ar": "Customer balances", "/fam/ap": "Supplier balances",
 };
 export const menuLabel = (item: MenuItem) => {
+  if ("pages" in item && Array.isArray(item.pages) && item.pages.length > 1) return item.label;
   const context = commonRouteContext(item.to);
+  if (context && isCommercialEntity(context.entity)) return context.definition.label;
   return (context && labels[context.nativePath]) || labels[item.to.split("?")[0]] || item.label;
 };
 
@@ -121,11 +138,12 @@ export function menuItems<T extends MenuItem>(items: readonly T[]): WorkspaceNav
 export function menuPages<T extends MenuItem>(item: WorkspaceNavigation<T>): T[] {
   const seen = new Set<string>();
   return (item.pages || [item]).filter(page => {
-    const canonical = operationAliases[page.to] || page.to;
+    const canonical = navigationOperationPath(page.to);
     if (seen.has(canonical)) return false;
     seen.add(canonical); return true;
   });
 }
 export function menuMatches(item: MenuItem, query: string) {
-  return `${item.label} ${menuLabel(item)} ${item.group || ""} ${item.to}`.toLowerCase().includes(query.trim().toLowerCase());
+  const aliases = item.to === "/crm/quotations" || commonRouteContext(item.to)?.entity === "quotations" ? "quotes quotation" : "";
+  return `${item.label} ${menuLabel(item)} ${item.group || ""} ${item.to} ${aliases}`.toLowerCase().includes(query.trim().toLowerCase());
 }

@@ -18,20 +18,25 @@ def test_payroll_pdf_exports_and_formula_preview(client, db):
     init_db(db)
     headers = _login(client, "admin@aihrms.com", "Admin@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
-    run = PayrollRun(month=5, year=2026, status="Completed", total_gross=Decimal("50000"), total_deductions=Decimal("5000"), total_net=Decimal("45000"))
+    assert employee is not None and employee.branch is not None
+    run = PayrollRun(company_id=employee.branch.company_id, branch_id=employee.branch_id,
+        month=5, year=2026, status="Completed", total_gross=Decimal("50000"), total_deductions=Decimal("5000"), total_net=Decimal("45000"))
     db.add(run)
     db.flush()
     record = PayrollRecord(payroll_run_id=run.id, employee_id=employee.id, gross_salary=Decimal("50000"), total_deductions=Decimal("5000"), net_salary=Decimal("45000"), basic=Decimal("20000"), hra=Decimal("10000"))
     db.add(record)
-    formula_component = SalaryComponent(name="Special Allowance", code="SPL_FORMULA", component_type="Earning", calculation_type="Formula", formula_expression="ctc_monthly * Decimal('0.10')")
-    structure = SalaryStructure(name="Formula Structure", version="1.0")
-    db.add_all([formula_component, structure])
-    db.flush()
-    db.add(SalaryStructureComponent(structure_id=structure.id, component_id=formula_component.id, order_sequence=1))
     db.commit()
+    component = client.post('/api/v1/payroll/components', headers=headers, json={
+        'name': 'Special Allowance', 'code': 'SPL_FORMULA', 'component_type': 'Earning',
+        'calculation_type': 'Formula', 'formula_expression': "ctc_monthly * Decimal('0.10')"})
+    assert component.status_code == 201, component.text
+    structure = client.post('/api/v1/payroll/structures', headers=headers, json={
+        'name': 'Formula Structure', 'version': '1.0',
+        'components': [{'component_id': component.json()['id'], 'order_sequence': 1}]})
+    assert structure.status_code == 201, structure.text
 
     pdf = client.post(f"/api/v1/payroll/payslip/{record.id}/pdf", headers=headers)
-    assert pdf.status_code == 200
+    assert pdf.status_code == 200, pdf.text
     from app.core.storage import normalize_upload_references as normalize_reference
     from app.models.user import User
     actor_id = db.query(User).filter_by(email="admin@aihrms.com").one().id
@@ -43,8 +48,8 @@ def test_payroll_pdf_exports_and_formula_preview(client, db):
     assert export.status_code == 201
     assert normalize_upload_references(export.json()["output_file_url"]).endswith("pay_register.csv")
 
-    preview = client.post(f"/api/v1/payroll/structures/{structure.id}/preview", json={"ctc": "1200000"}, headers=headers)
-    assert preview.status_code == 200
+    preview = client.post(f"/api/v1/payroll/structures/{structure.json()['id']}/preview", json={"ctc": "1200000"}, headers=headers)
+    assert preview.status_code == 200, preview.text
     assert Decimal(str(preview.json()["lines"][0]["monthly_amount"])) == Decimal("10000.00")
 
 
@@ -96,7 +101,8 @@ def test_attendance_workflow_recruitment_lms_engagement_and_utilization(client, 
     recognition = client.post("/api/v1/engagement/recognitions", json={"to_employee_id": employee.id, "title": "Great work"}, headers=employee_headers)
     assert recognition.status_code == 201
 
-    project = Project(code="UTIL", name="Utilization", client_name="Client")
+    project = Project(organization_id=employee.branch.company_id, owner_employee_id=employee.id,
+        code="UTIL", name="Utilization", client_name="Client")
     db.add(project)
     db.flush()
     db.add(Timesheet(employee_id=employee.id, project_id=project.id, period_start=date(2026, 5, 1), period_end=date(2026, 5, 7), status="Approved", total_hours=Decimal("40"), billable_hours=Decimal("32"), non_billable_hours=Decimal("8")))

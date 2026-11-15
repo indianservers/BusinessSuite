@@ -203,14 +203,25 @@ def _ensure_default_plans(db: Session) -> None:
         # Hold one transaction lock through the caller's commit, including the
         # singleton subscription creation, not just the individual plan inserts.
         db.execute(text("SELECT pg_advisory_xact_lock(211028002)"))
+    # This bootstrap accepts no caller-defined fields. Use exact Core writes
+    # for the installation's constant defaults rather than granting ordinary
+    # tenant ORM sessions global-catalogue mutation authority. Public callers
+    # remain guarded by global_configuration; user-defined plan writes still
+    # use their existing permission-checked mutation endpoint.
+    connection = db.connection()
+    plans = TenantSubscriptionPlan.__table__
+    subscription = TenantSubscription.__table__
+    if db.get_bind().dialect.name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert
+    else:
+        from sqlalchemy.dialects.sqlite import insert
     for code, features in EDITION_FEATURES.items():
-        if not db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == code).first():
-            db.add(TenantSubscriptionPlan(code=code, name=code.title(), features_json=sorted(features), active=True))
-    db.flush()
-    if not db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).first():
-        ultimate = db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == "ultimate").first()
-        db.add(TenantSubscription(plan_id=ultimate.id if ultimate else None, edition="ultimate", status="active", admin_override=True))
-        db.flush()
+        connection.execute(insert(plans).values(code=code, name=code.title(),
+            features_json=sorted(features), active=True).on_conflict_do_nothing(index_elements=[plans.c.code]))
+    if connection.execute(select(subscription.c.id).where(subscription.c.company_id.is_(None)).limit(1)).first() is None:
+        ultimate_id = connection.execute(select(plans.c.id).where(plans.c.code == "ultimate")).scalar_one()
+        connection.execute(subscription.insert().values(company_id=None, plan_id=ultimate_id,
+            edition="ultimate", status="active", admin_override=True))
 
 
 def _feature_allowed(db: Session, feature_key: str, current_user: User | None = None) -> dict[str, Any]:
@@ -638,7 +649,11 @@ def create_subscription_plan(data: SubscriptionPlanPayload, db: Session = Depend
 def get_subscription(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     _ensure_default_plans(db)
     db.commit()
-    return _serialize(db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).order_by(TenantSubscription.id.desc()).first())
+    # The guarded legacy screen reads the installation default explicitly;
+    # company-scoped subscription rows continue through their own APIs.
+    table = TenantSubscription.__table__
+    row = db.connection().execute(select(table).where(table.c.company_id.is_(None)).order_by(table.c.id.desc()).limit(1)).mappings().first()
+    return dict(row) if row else None
 
 
 @router.put("/admin/subscription", dependencies=[Depends(global_configuration)])

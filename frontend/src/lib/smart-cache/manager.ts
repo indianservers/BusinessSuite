@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosHeaders, type AxiosInstance, type AxiosResponse
 import { refreshInterval, resolveSyncPayload, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
 import * as disk from './storage';
 import { resourcePath } from '../record-changes';
+import { selectedPackContext } from '../pack-context';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -78,7 +79,8 @@ export class RecordCacheManager {
   dispose() { this.stopped = true; clearTimeout(this.timer); this.channel?.close(); window.removeEventListener('online', this.wake); window.removeEventListener('focus', this.wake); document.removeEventListener('visibilitychange', this.wake); }
   contextChanged() {
     const next = this.env.identity();
-    if (next !== this.lastIdentity) { this.lastIdentity = next; const hadScope = Boolean(this.activeScope); void this.clear(); if (hadScope) this.env.revoked(); }
+    if (next !== this.lastIdentity) { this.lastIdentity = next; const hadScope = Boolean(this.activeScope); void this.clear(); if (hadScope) this.env.revoked(); return hadScope; }
+    return false;
   }
   async clear(broadcast = true, module?: string) {
     const scope = this.activeScope;
@@ -100,7 +102,7 @@ export class RecordCacheManager {
   private rememberConfig(key: string, config: InternalAxiosRequestConfig) {
     // Never keep bearer tokens, cookies, request IDs, abort signals or progress closures in the cache.
     const headers = new AxiosHeaders();
-    for (const name of ['X-Suite-Organization', 'X-Suite-Branch']) if (config.headers.has(name)) headers.set(name, config.headers.get(name));
+    for (const name of ['X-Suite-Tenant', 'X-Suite-Organization', 'X-Suite-Branch', 'X-Suite-Pack-Context']) if (config.headers.has(name)) headers.set(name, config.headers.get(name));
     this.configs.set(key, { url: config.url, params: config.params, baseURL: config.baseURL, method: 'get', headers, timeout: config.timeout, responseType: 'json' } as InternalAxiosRequestConfig);
   }
   private async read(config: InternalAxiosRequestConfig, fallback: ReturnType<typeof axios.getAdapter>): Promise<AxiosResponse> {
@@ -117,7 +119,9 @@ export class RecordCacheManager {
     const key = `${scope}:${await hash(url)}`;
     const customOrg = String(config.headers.get('X-Suite-Organization') || '');
     const customBranch = String(config.headers.get('X-Suite-Branch') || '');
-    if (customOrg !== (sessionStorage.getItem('suite-organization') || '') || customBranch !== (sessionStorage.getItem('suite-branch') || '')) return fallback(config);
+    const customPack = String(config.headers.get('X-Suite-Pack-Context') ?? '');
+    const customTenant = String(config.headers.get('X-Suite-Tenant') ?? '');
+    if (customOrg !== (sessionStorage.getItem('suite-organization') || '') || customBranch !== (sessionStorage.getItem('suite-branch') || '') || customPack !== (selectedPackContext() ?? '') || customTenant !== (sessionStorage.getItem('suite-tenant') || '')) return fallback(config);
     let entry = this.memory.get(key);
     if (!entry) entry = await disk.getCachedRecords(key).catch(() => undefined);
     if (generation !== this.generation || identity !== this.env.identity()) throw new axios.CanceledError('Cache context changed');

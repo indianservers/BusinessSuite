@@ -9,7 +9,7 @@ const expect=base.configure({timeout:20000});
   const page=await browser.newPage({viewport:{width,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/v1/**',r=>{const p=new URL(r.request().url()).pathname;
    if(p.endsWith('/business/customers'))return r.fulfill({json:{items:[],next:null}});
-   if(p.endsWith('/inventory/items'))return r.fulfill({json:{items:[],total:0}});
+   if(p.endsWith('/inventory/items'))return r.fulfill({json:{items:[{id:51,item_name:'Audit product',product_type:'product',sku:'QA-51',barcode:'51',sales_rate:10,gst_rate:0,current_quantity:100,track_inventory:true,active:true}],total:1}});
    if(p.endsWith('/follow-ups/options'))return r.fulfill({json:{users:[],customers:[]}});
    if(p.endsWith('/realtime/config'))return r.fulfill({json:{transport:'database'}});
    if(p.endsWith('/realtime/events'))return r.fulfill({json:{cursor:1,events:[]}});
@@ -17,6 +17,7 @@ const expect=base.configure({timeout:20000});
   });
   await page.route('**/qa-pos-overlap',r=>r.fulfill({contentType:'text/html',body:`<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module">import R from'/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/.audit-pos-overlap.tsx');</script>`}));
   await page.goto(server.resolvedUrls.local[0]+'qa-pos-overlap');
+  await page.locator('.srm-pos-catalog article').filter({hasText:'Audit product'}).getByRole('button').first().click();
   const payment=page.locator('.srm-pos-checkout').getByRole('button',{name:'Payment',exact:true});await payment.scrollIntoViewIfNeeded();await expect(payment).toBeVisible();
   const targets=[page.locator('.srm-pos-checkout'),page.getByRole('button',{name:'Open action bot',exact:true}),...(width<768?[page.getByRole('button',{name:'Workspace tools',exact:true})]:[])];
   const boxes=[];for(const target of targets){await expect(target).toBeVisible();const b=await target.boundingBox();expect(b.x).toBeGreaterThanOrEqual(0);expect(b.x+b.width).toBeLessThanOrEqual(width+1);expect(b.y).toBeGreaterThanOrEqual(0);expect(b.y+b.height).toBeLessThanOrEqual(801);boxes.push(b);}
