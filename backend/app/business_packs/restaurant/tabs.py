@@ -213,7 +213,7 @@ def _birth(scope, native):
 
 def _snapshot(db, actor, scope, order, line):
     value = TabLine(organization_id=scope.company_id, branch_id=scope.branch_id, pack_context_id=scope.context_id,
-        created_by=actor.id, service_order_id=order.id, sales_order_line_id=line.id, product_id=line.product_id,
+        created_by=actor.id, service_order_id=order.id, sales_order_line_id=line.id, original_sales_order_line_id=line.id, product_id=line.product_id,
         warehouse_id=(line.metadata_json or {}).get('warehouse_id'), quantity=line.quantity,
         unit_price=line.unit_price, tax_amount=line.tax_amount, line_total=line.line_total, item=line.description[:500],
         catalog_tax_snapshot=(line.metadata_json or {}).get('tax_snapshot', {}))
@@ -350,6 +350,9 @@ def source(db, actor, scope, order):
     snapshots = db.connection().execute(select(snap).where(snap.c.service_order_id == order.id,
         snap.c.organization_id == scope.company_id, snap.c.branch_id == scope.branch_id, snap.c.pack_context_id == scope.context_id)).mappings().all()
     actual = db.connection().execute(select(line).where(line.c.sales_order_id == order.sales_order_id).order_by(line.c.id)).mappings().all()
+    from .removals import validate_cancellations
+    cancelled = validate_cancellations(db, actor, scope, order, snapshots)
+    snapshots = [row for row in snapshots if row['id'] not in cancelled]
     if {row['id'] for row in actual} != {row['sales_order_line_id'] for row in snapshots} or not snapshots:
         _fail('Restaurant charge provenance differs from its actual native lines', 409)
     lookup = {row['sales_order_line_id']: row for row in snapshots}

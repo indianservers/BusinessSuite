@@ -31,6 +31,8 @@ def authority(db, actor, *actions, write=False):
         fail('Audited Restaurant isolation adapter is not installed', 503)
     if not all(inspect(db.connection()).has_table(model.__tablename__) for model in MODELS):
         fail('Install the Restaurant fulfillment extension first', 503)
+    if 'original_sales_order_line_id' not in {column['name'] for column in inspect(db.connection()).get_columns('business_restaurant_tab_lines')}:
+        fail('Install the Restaurant cancellation provenance extension first', 503)
     return scope
 
 
@@ -85,6 +87,17 @@ def capabilities(db, actor):
                 raise
             anonymous = False
     result['anonymous_settle'] = anonymous
+    result['reports_view'] = 'restaurant.reports.view' in scope.capabilities
+    result['reservations_schedule'] = can_write and 'restaurant.reservations.schedule' in scope.capabilities
+    result['orders_remove'] = can_write and 'restaurant.orders.create' in scope.capabilities
+    if result['orders_remove']:
+        try:
+            require(actor, 'srm_manage', 'srm_admin')
+            check_background_access(db, actor, 'srm', 'delete', administrative_read=False, stamp=False)
+        except HTTPException as exc:
+            if exc.status_code != 403:
+                raise
+            result['orders_remove'] = False
     result['operational_scope'] = {'realm': 'pack', 'user_id': actor.id, 'company_id': scope.company_id, 'branch_id': scope.branch_id,
         **{key: getattr(scope, key) for key in ('context_id', 'pack_key', 'pack_version', 'context_revision', 'grant_revision', 'activation_revision')}}
     return result

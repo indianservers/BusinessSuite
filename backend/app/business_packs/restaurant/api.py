@@ -1,7 +1,9 @@
+from datetime import date
 from fastapi import APIRouter, Depends, Query
 from app.core.deps import get_db, get_current_user
 from app.apps.srm.service_checkout_api import pack_selection
 from .schemas import TableCreate, TableUpdate, PaidOrderOpen, KitchenSubmit, TicketTransition, TabCreate, TabAdd, TabBill, TabPayment, TabAssignCustomer, TabAnonymousSettle, TableTransfer
+from .schemas import TabRemove, ReservationCreate, ReservationReschedule, ReservationTransition
 from . import service
 
 router = APIRouter(prefix='/srm/restaurant', tags=['Restaurant fulfillment'])
@@ -155,3 +157,39 @@ def serve(ticket_id: int, data: TicketTransition, db=Depends(get_db), actor=Depe
 def transfer_tab(order_id: int, data: TableTransfer, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
     from .transfers import transfer
     return transfer(order_id, data, db, actor)
+
+
+@router.get('/daily-summary')
+def daily_summary(day: date, timezone_name: str = Query('Asia/Kolkata', max_length=100), db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .reports import daily
+    return daily(day, timezone_name, db, actor)
+
+
+@router.post('/tabs/{order_id}/remove-items')
+def remove_tab_items(order_id: int, data: TabRemove, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .removals import remove
+    return remove(order_id, data, db, actor)
+
+
+@router.get('/reservations')
+def reservations(after: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .reservations import listing
+    return listing(db, actor, after=after, limit=limit)
+
+
+@router.post('/reservations', status_code=201)
+def create_reservation(data: ReservationCreate, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .reservations import save
+    return save(data, db, actor)
+
+
+@router.put('/reservations/{ident}')
+def reschedule_reservation(ident: int, data: ReservationReschedule, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .reservations import save
+    return save(data, db, actor, ident=ident)
+
+
+@router.post('/reservations/{ident}/transition')
+def transition_reservation(ident: int, data: ReservationTransition, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+    from .reservations import transition
+    return transition(ident, data, db, actor)

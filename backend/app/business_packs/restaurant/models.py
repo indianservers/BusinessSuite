@@ -111,10 +111,12 @@ class RestaurantTabLine(Scope, Base):
     __table_args__ = (*constraints('tab_line'),
         parent('tab_line_order', ['service_order_id'], 'business_restaurant_service_orders'),
         UniqueConstraint('sales_order_line_id', name='uq_restaurant_tab_native_line'),
+        CheckConstraint('original_sales_order_line_id > 0 AND (sales_order_line_id IS NULL OR sales_order_line_id = original_sales_order_line_id)', name='ck_restaurant_tab_original_identity'),
         CheckConstraint('quantity > 0 AND unit_price >= 0 AND tax_amount >= 0 AND line_total >= 0', name='ck_restaurant_tab_charge'))
     id = Column(Integer, primary_key=True)
     service_order_id = Column(Integer, nullable=False)
-    sales_order_line_id = Column(Integer, ForeignKey('srm_sales_order_lines.id', ondelete='RESTRICT'), nullable=False)
+    original_sales_order_line_id = Column(Integer, nullable=False)
+    sales_order_line_id = Column(Integer, ForeignKey('srm_sales_order_lines.id', ondelete='SET NULL'), nullable=True)
     product_id = Column(Integer, ForeignKey('srm_products.id', ondelete='RESTRICT'), nullable=False)
     warehouse_id = Column(Integer, ForeignKey('srm_warehouses.id', ondelete='RESTRICT'))
     quantity = Column(Numeric(12, 2), nullable=False)
@@ -140,9 +142,19 @@ def immutable(mapper, connection, row):
     raise ValueError('Restaurant fulfillment provenance is immutable')
 
 
-for model in (RestaurantCommand, RestaurantKitchenLine, RestaurantTabLine, RestaurantKitchenIssue):
+for model in (RestaurantCommand, RestaurantKitchenLine, RestaurantKitchenIssue):
     event.listen(model, 'before_update', immutable)
     event.listen(model, 'before_delete', immutable)
+
+
+event.listen(RestaurantTabLine, 'before_delete', immutable)
+
+
+@event.listens_for(RestaurantTabLine, 'before_update')
+def cancel_snapshot_reference(mapper, connection, row):
+    from .removals import snapshot_transition
+    if not snapshot_transition(row):
+        immutable(mapper, connection, row)
 
 
 @event.listens_for(RestaurantServiceOrder, 'before_update')
@@ -182,7 +194,7 @@ def native_charge_snapshot(mapper, connection, row):
     root = connection.execute(select(order.c.sales_order_id, order.c.organization_id, order.c.branch_id,
         order.c.pack_context_id, order.c.source_kind).where(order.c.id == row.service_order_id)).first()
     actual = connection.execute(select(line).where(line.c.id == row.sales_order_line_id)).mappings().first()
-    if (root is None or actual is None or root.source_kind != 'unpaid_tab' or root.sales_order_id != actual['sales_order_id']
+    if (row.original_sales_order_line_id != row.sales_order_line_id or root is None or actual is None or root.source_kind != 'unpaid_tab' or root.sales_order_id != actual['sales_order_id']
             or (root.organization_id, root.branch_id, root.pack_context_id) != (row.organization_id, row.branch_id, row.pack_context_id)
             or (actual['product_id'], actual['description'], actual['quantity'], actual['unit_price'], actual['tax_amount'],
                 actual['line_total'], actual['discount_amount'], (actual['metadata_json'] or {}).get('warehouse_id'),

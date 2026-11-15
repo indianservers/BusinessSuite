@@ -127,6 +127,9 @@ def validate_source(db, actor, scope, order, lines):
         if owner is not actor or installed is not scope or ident != order.id or _native_epoch(db, actor, scope) != epoch:
             fail('Modifier source certificate changed')
         proofs += pending
+    from .removals import cancellation_sources
+    cancelled = cancellation_sources(db, actor, scope, order)
+    proofs = [entry for entry in proofs if not any(entry['line_id'] == proof['line_id'] and entry['modifier'] == proof['modifier'] for proof in cancelled)]
     by_id = {}
     for entry in proofs:
         if (not isinstance(entry, dict) or set(entry) != {'line_id', 'modifier'} or
