@@ -45,7 +45,10 @@ def test_new_construction_site_commercial_and_canonical_wbs_ui(client, db, comme
     assert db.query(PMSProject).count() == before_projects + 1
     assert db.query(CRMCompany).count() == before_customers
     assert db.query(SRMInventoryMovement).count() == before_movements
-    site = db.query(PMSProject).filter_by(project_key=site_key).one()
+    proof = json.loads((Path(__file__).resolve().parents[2] / '.local' / 'construction-definition-browser-proof.json').read_text(encoding='utf-8'))
+    assert proof['stage'] == 'complete'
+    site = db.get(PMSProject, proof['site_id'])
+    assert site.project_key == site_key.strip().upper()
     assert site.name == site_name
     assert db.query(PMSWorkspace).count() == before_workspaces + 1
     workspace = db.get(PMSWorkspace, site.workspace_id)
@@ -59,6 +62,7 @@ def test_new_construction_site_commercial_and_canonical_wbs_ui(client, db, comme
     assert (native.company_id, native.branch_id, pack.company_id, pack.branch_id, pack.context_id) == (1, branch, 1, branch, context_id)
     assert db.get(ProjectCommercial, site.id).customer_id == 101
     tasks = db.query(PMSTask).filter_by(project_id=site.id).order_by(PMSTask.id).all()
+    assert [task.id for task in tasks] == proof['task_ids']
     assert len(tasks) == 3 and tasks[2].parent_task_id == tasks[0].id
     assert db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id.in_([task.id for task in tasks])).count() == 3
     dependency = db.query(PMSTaskDependency).filter_by(task_id=tasks[1].id).one()

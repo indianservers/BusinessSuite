@@ -195,6 +195,10 @@ function PlanningWorkspace({ projectId, scope, onSaved }: { projectId: number; s
     if (!owns() || writing.current) return;
     writing.current = true; setBusy(true); setError(''); setNotice('');
     try {
+      if (saved.path === `${ROOT}/projects/${projectId}/cost-budget`) {
+        setPerformanceRequest(null);
+        await cache.cancelQueries({ queryKey: [...prefix, 'performance'] });
+      }
       await api[saved.method](saved.path, saved.body);
       if (!owns()) return;
       retain(null); setNotice('Saved successfully.');
