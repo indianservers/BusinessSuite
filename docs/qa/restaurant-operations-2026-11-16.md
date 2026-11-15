@@ -52,3 +52,9 @@ PostgreSQL has verified the deployed migration chain and actual pre-117 data con
 The assigned Restaurant workflow gates are complete on the isolated snapshot. Integration into the consolidated source and application of migration 117 remain integrator work; production activation/deployment was not performed. The frontend main TypeScript project was checked, not the separate full multi-project npm typecheck.
 
 Final review hygiene removed only an extra EOF blank line in the browser harness after the frozen gate; `node --check` and the full owned diff whitespace check pass. No application source or assertions changed after native verification.
+
+## Main integration verification
+
+At the user's explicit request, all nine owned Restaurant commits (excluding the in-progress snapshot commit) were cherry-picked cleanly onto `origin/main` at `fe4e437db5bbe79faf4ba7a93113e2863f414a78`. Existing POS currency, Pharma, Retail and consolidated desktop/mobile changes were preserved. Twenty owned file blobs, including Restaurant UI and browser harness, matched reviewed branch `3fc9480e1` exactly; only three shared files required additive automatic merges. The branch boundary retention hook also matched the reviewed source exactly.
+
+The actual integrated candidate passed **25 tests, 1 explicitly deselected, 21 warnings in 152.11 seconds**: `tests/test_restaurant_removals.py tests/test_restaurant_reservations.py tests/test_restaurant_reports.py -k "not test_postgres_removing_highest" -q --tb=short`. The deselected native-sequence case passed in the prior 20-case PostgreSQL gate. Frontend main `tsc --noEmit -p tsconfig.json` exited 0. Full owned diff whitespace check passed. No additional PostgreSQL/browser run or production migration/activation/deployment was performed for this main integration. Other agents' uncommitted files in the original checkout were left intact.
