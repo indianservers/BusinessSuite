@@ -114,4 +114,3 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(bridge || '')) throw Error('Disposable r
   }
   finally { closing = true; for (const context of contexts) { await Promise.all(context.pages().map(page => page.close())); await context.unrouteAll({ behavior: 'wait' }); await context.close(); } if (browser) await browser.close(); await server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
-
