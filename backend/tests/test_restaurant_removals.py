@@ -102,3 +102,60 @@ def test_cancellation_then_native_invoice_and_paid_restriction(client, db, settl
     billed = post(client, case['headers'], f"/tabs/{order['id']}/bill", {**bill_input(case), 'expected_revision': removed['revision']})
     assert Decimal(billed['checkout']['invoice']['total']) == 118
     post(client, case['headers'], f"/tabs/{order['id']}/remove-items", body({**removed, 'revision': billed['order_revision']}, [removed['items'][0]['sales_order_line_id']]), 409)
+
+
+from tests.test_restaurant_anonymous import anonymous, walkin, full
+
+
+def test_anonymous_settlement_after_removal_preserves_full_tender_rollback_and_retry(client, db, anonymous, monkeypatch):
+    from fastapi import HTTPException
+    from app.apps.srm.api import router as native
+    from app.apps.srm.models import SRMInvoice, SRMReceipt
+    from sqlalchemy.orm import sessionmaker
+    from app.main import app
+    from app.core.deps import get_db
+    factory = sessionmaker(bind=db.get_bind(), autoflush=False, join_transaction_mode='create_savepoint')
+    def request(path, payload, status=201):
+        # Production opens a new identity map for each HTTP request. Keep the
+        # fixture's outer transaction, not its reused ORM identity map.
+        with factory() as fresh, monkeypatch.context() as request_patch:
+            def dependency():
+                try:
+                    yield fresh
+                except BaseException:
+                    fresh.rollback()
+                    raise
+            request_patch.setitem(app.dependency_overrides, get_db, dependency)
+            request_patch.setattr(app.state, 'business_os_session_factory', lambda: fresh)
+            request_patch.setattr(app.state, 'business_os_close_session', False)
+            request_patch.setattr(app.state, 'audit_session_factory', lambda: fresh)
+            request_patch.setattr(app.state, 'audit_close_session', False)
+            request_patch.setattr(app.state, 'audit_commit', False)
+            return post(client, case['headers'], path, payload, status)
+    case = anonymous
+    enable_delete(db, case)
+    order = request(f"/tabs/{case['order']['id']}/items", {'request_key': str(uuid4()), 'expected_revision': case['order']['revision'], 'lines': data(case)['lines']})
+    removed = request(f"/tabs/{order['id']}/remove-items", body(order, [order['items'][-1]['sales_order_line_id']]), 200)
+    case = {**case, 'order': removed}
+    payload = full(case)
+    path = f"/tabs/{removed['id']}/anonymous-settlement"
+    short = {**payload, 'payments': payload['payments'][:1]}
+    request(path, short, 422)
+    original = native.allocate_receipt_operation
+    calls = []
+    def reject_second(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 2: raise HTTPException(409, 'Injected second allocation failure')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(native, 'allocate_receipt_operation', reject_second)
+    before = stock(db, case)
+    request(path, payload, 409)
+    assert db.query(SRMInvoice).count() == db.query(SRMReceipt).count() == 0
+    assert db.get(SRMSalesOrder, removed['sales_order_id']).customer_id is None
+    assert stock(db, case) == before
+    assert client.get(BASE + f"/orders/{removed['id']}", headers=case['headers']).status_code == 200
+    monkeypatch.setattr(native, 'allocate_receipt_operation', original)
+    result = request(path, payload)
+    assert Decimal(result['checkout']['invoice']['balance']) == 0
+    assert request(path, payload) == result
+    assert stock(db, case) == before and db.query(SRMSalesOrder).count() == 1
