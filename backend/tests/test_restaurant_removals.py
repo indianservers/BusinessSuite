@@ -1,4 +1,5 @@
 from decimal import Decimal
+import os
 from uuid import uuid4
 import pytest
 from app.access.models import AccessPolicy
@@ -30,9 +31,19 @@ def test_native_delete_retains_immutable_original_snapshot_and_exact_retry(clien
     assert db.get(SRMSalesOrderLine, request['sales_order_line_ids'][0]) is None
     frozen = db.query(RestaurantTabLine).filter_by(original_sales_order_line_id=request['sales_order_line_ids'][0]).one()
     assert frozen.sales_order_line_id is None and frozen.quantity == 1 and frozen.line_total == 118
+    from app.branches.models import BranchOwnership
+    from app.business_packs.models import PackRecordOwnership
+    for model in (BranchOwnership, PackRecordOwnership):
+        anchor = db.query(model).filter_by(resource_table='srm_sales_order_lines', resource_key=str(request['sales_order_line_ids'][0])).one()
+        assert anchor.company_id == 1 and anchor.branch_id == unpaid['branch']
     assert post(client, unpaid['headers'], f"/tabs/{order['id']}/remove-items", request, 200) == result
     send_items(client, unpaid, result)
     assert stock(db, unpaid) == before - 1
+    current = client.get(BASE + f"/orders/{order['id']}", headers=unpaid['headers']).json()
+    added = post(client, unpaid['headers'], f"/tabs/{order['id']}/items", {'request_key': str(uuid4()), 'expected_revision': current['revision'], 'lines': data(unpaid)['lines']})
+    assert len(added['items']) == 2 and Decimal(added['total']) == 236
+    assert request['sales_order_line_ids'][0] not in {item['sales_order_line_id'] for item in added['items']}
+
 
 
 @pytest.mark.parametrize('fault', ['stale', 'issued', 'all', 'unknown', 'chef', 'native_delete'])
@@ -159,3 +170,98 @@ def test_anonymous_settlement_after_removal_preserves_full_tender_rollback_and_r
     assert Decimal(result['checkout']['invoice']['balance']) == 0
     assert request(path, payload) == result
     assert stock(db, case) == before and db.query(SRMSalesOrder).count() == 1
+
+
+def test_retention_callback_cannot_use_flags_forged_dict_or_unissued_lease(db, unpaid, monkeypatch):
+    from fastapi import HTTPException
+    from app.business_packs.restaurant import removals
+    from app.apps.srm.models import SRMInvoice
+    line = SRMSalesOrderLine(id=999, sales_order_id=999)
+    db.info['restaurant_cancel_authorized'] = True
+    assert removals.retain_deleted_branch_source(db, line) is False
+    assert removals.retain_deleted_branch_source(db, SRMInvoice()) is False
+    with monkeypatch.context() as patch:
+        patch.setitem(removals._plans, db, {'authorized': True})
+        with pytest.raises(HTTPException) as error: removals.retain_deleted_branch_source(db, line)
+        assert error.value.status_code == 403
+    forged = removals._Cancellation(actor=unpaid['manager'], scope=object(), epoch='', order=object(), lines={}, sources=[], snapshots={}, native_values={})
+    with monkeypatch.context() as patch:
+        patch.setitem(removals._plans, db, forged)
+        with pytest.raises(HTTPException) as error: removals.retain_deleted_branch_source(db, line)
+        assert error.value.status_code == 403
+    db.info.pop('restaurant_cancel_authorized', None)
+
+
+def test_authentic_retention_refuses_wrong_line_and_cannot_adopt_deleted_native_identity(client, db, unpaid, monkeypatch):
+    from fastapi import HTTPException
+    from sqlalchemy import select
+    from app.apps.srm.api import router as native
+    from app.business_packs.restaurant import removals
+    from app.business_packs.access import resolve_context
+    from app.business_packs.boundary import install
+    from app.business_packs.native_policy import native_srm_policy
+    from tests.test_srm_native_transaction_operations import native_writer
+    enable_delete(db, unpaid)
+    order = post(client, unpaid['headers'], '/tabs', data(unpaid, lines=data(unpaid)['lines'] * 2))
+    selected, other = [item['sales_order_line_id'] for item in order['items']]
+    actual = native.delete_sales_order_line_operation
+    def observed(ident, line_id, session, actor, **kwargs):
+        wrong = session.get(SRMSalesOrderLine, other)
+        with pytest.raises(HTTPException) as error: removals.retain_deleted_branch_source(session, wrong)
+        assert error.value.status_code == 403
+        return actual(ident, line_id, session, actor, **kwargs)
+    monkeypatch.setattr(native, 'delete_sales_order_line_operation', observed)
+    post(client, unpaid['headers'], f"/tabs/{order['id']}/remove-items", body(order, [selected]), 200)
+    table = SRMSalesOrderLine.__table__
+    original = dict(db.connection().execute(select(table).where(table.c.id == other)).mappings().one())
+    original['id'] = selected
+    with native_writer(db, unpaid['manager'], unpaid['branch']):
+        scope = resolve_context(db, unpaid['manager'], db.info['branch_context'], unpaid['context'])
+        cleanup = install(db, scope, policy=native_srm_policy('restaurant').policy)
+        try:
+            with pytest.raises(HTTPException) as error, db.begin_nested():
+                db.add(SRMSalesOrderLine(**original))
+                db.flush()
+            assert error.value.status_code == 403
+        finally:
+            cleanup()
+    assert db.connection().scalar(select(table.c.id).where(table.c.id == selected)) is None
+    assert client.get(BASE + f"/orders/{order['id']}", headers=unpaid['headers']).status_code == 200
+
+
+def test_default_public_native_delete_still_cleans_unowned_legacy_branch_metadata(client, db, scenario):
+    from app.branches.models import BranchOwnership
+    from app.business_packs.models import PackRecordOwnership
+    headers = scenario[2][0]
+    created = client.post('/api/v1/srm/sales-orders', headers=headers, json={'title': 'Legacy draft deletion parity', 'customer_id': 101,
+        'lines': [{'description': 'Legacy draft charge', 'quantity': '1', 'unit_price': '100'}]})
+    assert created.status_code == 201, created.text
+    order = created.json()
+    line_id = order['lines'][0]['id']
+    key = {'resource_table': 'srm_sales_order_lines', 'resource_key': str(line_id)}
+    assert db.query(BranchOwnership).filter_by(**key).one()
+    assert db.query(PackRecordOwnership).filter_by(**key).count() == 0
+    deleted = client.delete(f"/api/v1/srm/sales-orders/{order['id']}/lines/{line_id}", headers=headers)
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json() == {'deleted': True, 'id': line_id}
+    assert db.query(SRMSalesOrderLine).filter_by(id=line_id).count() == 0
+    assert db.query(BranchOwnership).filter_by(**key).count() == 0
+
+
+@pytest.mark.skipif(not os.getenv('TEST_DATABASE_URL'), reason='Requires non-recycling PostgreSQL native sequence')
+def test_postgres_removing_highest_native_line_then_adding_uses_fresh_identity(client, db, unpaid):
+    from app.branches.models import BranchOwnership
+    from app.business_packs.models import PackRecordOwnership
+    assert db.bind.dialect.name == 'postgresql'
+    enable_delete(db, unpaid)
+    order = post(client, unpaid['headers'], '/tabs', data(unpaid, lines=data(unpaid)['lines'] * 2))
+    original_ids = {item['sales_order_line_id'] for item in order['items']}
+    removed_id = max(original_ids)
+    removed = post(client, unpaid['headers'], f"/tabs/{order['id']}/remove-items", body(order, [removed_id]), 200)
+    added = post(client, unpaid['headers'], f"/tabs/{order['id']}/items", {'request_key': str(uuid4()), 'expected_revision': removed['revision'], 'lines': data(unpaid)['lines']})
+    assert len(added['items']) == 2 and Decimal(added['total']) == 236
+    assert len({item['sales_order_line_id'] for item in added['items']} - original_ids) == 1
+    assert removed_id not in {item['sales_order_line_id'] for item in added['items']}
+    for model in (BranchOwnership, PackRecordOwnership):
+        row = db.query(model).filter_by(resource_table='srm_sales_order_lines', resource_key=str(removed_id)).one()
+        assert row.company_id == 1 and row.branch_id == unpaid['branch']
