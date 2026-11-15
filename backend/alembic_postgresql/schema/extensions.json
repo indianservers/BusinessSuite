@@ -4670,6 +4670,7 @@
     "item",
     "line_total",
     "organization_id",
+    "original_sales_order_line_id",
     "pack_context_id",
     "product_id",
     "quantity",

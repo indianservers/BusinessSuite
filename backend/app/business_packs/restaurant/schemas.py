@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+from typing import Literal
 """Kitchen inputs identify existing order lines, never financial instructions."""
 from decimal import Decimal
 from typing import Annotated
@@ -159,4 +161,51 @@ class TabAnonymousSettle(StrictInput):
             raise ValueError('Payment keys must be unique')
         if sum((payment.amount for payment in self.payments), Decimal(0)) != self.expected_total:
             raise ValueError('Anonymous settlement requires the entire bill in one transaction')
+        return self
+
+
+class TabRemove(TicketTransition):
+    sales_order_line_ids: list[ID] = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode='after')
+    def unique_lines(self):
+        if len(set(self.sales_order_line_ids)) != len(self.sales_order_line_ids) or not self.reason.strip():
+            raise ValueError('Choose each item once and give a removal reason')
+        return self
+
+
+class ReservationCreate(StrictInput):
+    request_key: UUID
+    table_id: ID
+    expected_table_revision: ID
+    customer_id: ID | None = None
+    party_size: StrictInt = Field(ge=1, le=1000)
+    starts_at: datetime
+    duration_minutes: StrictInt = Field(ge=5, le=720)
+    notes: str = Field(default='', max_length=2000)
+
+    @field_validator('starts_at')
+    @classmethod
+    def aware(cls, value):
+        if value.utcoffset() is None:
+            raise ValueError('Reservation time requires a timezone offset')
+        return value.astimezone(timezone.utc)
+
+
+class ReservationReschedule(ReservationCreate):
+    expected_revision: ID
+
+
+class ReservationTransition(TicketTransition):
+    status: Literal['cancelled', 'no_show', 'seated']
+    order_id: ID | None = None
+    reason: str = Field(default='', max_length=2000)
+
+    @model_validator(mode='after')
+    def details(self):
+        if (self.status == 'seated') != (self.order_id is not None):
+            raise ValueError('Seating requires an existing table tab')
+        if self.status == 'cancelled' and not self.reason.strip():
+            raise ValueError('Give a cancellation reason')
         return self
