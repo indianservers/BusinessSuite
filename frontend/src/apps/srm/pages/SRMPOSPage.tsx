@@ -4,7 +4,7 @@ import { currentPOSOperationalPin, installPOSOperationalPin, operationalOwner } 
 import { selectedBranch } from '@/lib/branch-context';
 import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import { logicalIntentScope } from "@/lib/logical-intent-scope";
-import { financialIntentKey, readFinancialIntent, saveFinancialIntent, clearFinancialIntent } from "@/lib/financial-intent";
+import { financialIntentKey, readFinancialIntent, saveFinancialIntent, clearFinancialIntent, findPendingCashIntent } from "@/lib/financial-intent";
 import { readPOSCheckoutIntent } from "@/lib/pos-checkout-intent";
 import { POSQuickAddCustomer, POSCustomerProfile, type POSFeatures } from '../components/POSBasicCustomer';
 import AnonymousCashSetup, { type AnonymousCashConfiguration } from '../industry/AnonymousCashSetup';
@@ -1226,22 +1226,41 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       {activeModal === "cash" ? (
         <Overlay title="Cash Drawer Movement" onClose={() => setActiveModal(null)}>
           <CashMovementForm onSave={async row => {
-            if(!register?.id||!owns()||locked){toast({title:'Open an active POS register first',variant:'destructive'});return;}
+            if(!owns()||locked){toast({title:'Cash movement unavailable',variant:'destructive'});return;}
             try {
-              if(!Number.isFinite(row.amount)||row.amount<=0||row.amount>=1e12||Math.round(row.amount*100)/100!==row.amount)throw new Error('Enter a positive amount with at most two decimal places.');
-              const key=financialIntentKey('cash_movement',register.id);
+              const coordinationKey=financialIntentKey('cash_movement');
+              if(!navigator.locks)throw new Error('Cash coordination is unavailable. Use a supported secure browser.');
+              await navigator.locks.request(coordinationKey,{mode:'exclusive',ifAvailable:true},async lock=>{
+              if(!owns()||financialIntentKey('cash_movement')!==coordinationKey)return;
+              if(!lock)throw new Error('Another cash request is in progress. Wait, then Save again.');
               type CashIntent={session_id:number;request_key:string;movement_type:string;amount:string;reason:string};
-              const stored=readFinancialIntent<CashIntent>(key);
-              const proposed={session_id:register.id,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount.toFixed(2),reason:row.reason};
-              const pending=stored.payload;
-              if(stored.pending&&(!pending||typeof pending.request_key!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pending.request_key)||Object.entries(proposed).some(([name,value])=>pending[name as keyof CashIntent]!==value)))throw new Error('A cash movement is awaiting confirmation. Retry its original register, amount, type and reason before entering another.');
-              const fresh=await api.get<{session?:{id?:number};cash_intent_version?:number}>('/srm/pos/sessions/active',{_recordSyncBypass:true,headers:{'Cache-Control':'no-cache, no-store'},params:{_cash_intent_probe:crypto.randomUUID()}});
-              if(!owns()||financialIntentKey('cash_movement',register.id)!==key||fresh.data.session?.id!==register.id||fresh.data.cash_intent_version!==119)throw new Error('Cash movement recovery is unavailable for this register. Reload after the server update before collecting cash.');
-              const payload=stored.pending?pending!:{...proposed,request_key:crypto.randomUUID()};
-              if(!stored.pending)saveFinancialIntent(key,payload);
-              const result=await srmApi.createPosCashMovement(payload);
-              if(!Number.isSafeInteger(result?.movement_id)||result.movement_id<=0||result.request_key!==payload.request_key)throw new Error('Cash movement outcome is awaiting confirmation. Retry the same details.');
-              if(owns()&&financialIntentKey('cash_movement',register.id)===key){clearFinancialIntent(key);await activeRegister.refetch().catch(()=>undefined);setActiveModal(null);toast({title:'Cash movement confirmed',description:`${row.type} ${currency(row.amount)}`});}
+              const recovery=findPendingCashIntent<CashIntent>();
+              const pending=recovery.payload;
+              if(recovery.pending&&(!recovery.key||!pending||recovery.recordId!==pending.session_id||!Number.isSafeInteger(pending.session_id)||pending.session_id<=0||typeof pending.request_key!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pending.request_key)||!['cash_in','cash_out'].includes(pending.movement_type)||typeof pending.reason!=='string'||typeof pending.amount!=='string'||!Number.isFinite(Number(pending.amount))||Number(pending.amount)<=0||Number(pending.amount)>=1e12||Number(pending.amount).toFixed(2)!==pending.amount||Object.keys(pending).sort().join(',')!=='amount,movement_type,reason,request_key,session_id'))throw new Error('A prior cash movement needs recovery. Its stored details cannot be verified; no new cash movement was submitted.');
+              if(!recovery.pending&&(!Number.isFinite(row.amount)||row.amount<=0||!row.reason.trim())){toast({title:'Amount and reason required'});return;}
+              if(!recovery.pending&&(!register?.id||!Number.isFinite(row.amount)||row.amount<=0||row.amount>=1e12||Math.round(row.amount*100)/100!==row.amount))throw new Error('Open an active register and enter a positive amount with at most two decimal places.');
+              const sessionId=recovery.pending?pending!.session_id:register!.id;
+              const key=recovery.pending?recovery.key!:financialIntentKey('cash_movement',sessionId);
+              if(financialIntentKey('cash_movement',sessionId)!==key)throw new Error('Cash recovery context changed. No cash movement was submitted.');
+              const fresh=await api.get<unknown>(recovery.pending?'/srm/pos/sessions':'/srm/pos/sessions/active',{_recordSyncBypass:true,headers:{'Cache-Control':'no-cache, no-store'},params:{_cash_intent_probe:crypto.randomUUID()}});
+              const summary=fresh.data as {session?:{id?:number};cash_intent_version?:number};
+              const supported=recovery.pending?Array.isArray(fresh.data)&&fresh.data.some(item=>item?.cash_intent_version===119):summary?.session?.id===sessionId&&summary?.cash_intent_version===119;
+              if(!owns()||financialIntentKey('cash_movement',sessionId)!==key||!supported)throw new Error('Cash movement recovery is unavailable in this context. Reload after the server update before collecting cash.');
+              if(recovery.pending){const current=readFinancialIntent<CashIntent>(key);if(!current.pending||JSON.stringify(current.payload)!==JSON.stringify(pending))throw new Error('Cash recovery storage changed. Retry before submitting another cash movement.');}
+              else if(findPendingCashIntent<CashIntent>().pending)throw new Error('A prior cash movement is awaiting recovery. Save again to recover it first.');
+              const payload=recovery.pending?pending!:{session_id:sessionId,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount.toFixed(2),reason:row.reason,request_key:crypto.randomUUID()};
+              if(!recovery.pending)saveFinancialIntent(key,payload);
+              let result;
+              try {result=await srmApi.createPosCashMovement(payload);}
+              catch(error){
+                const headers=isAxiosError(error)?error.response?.headers:undefined;
+                const notCreated=recovery.pending&&isAxiosError(error)&&error.response?.status===400&&headers?.['x-cash-intent-outcome']==='not_created'&&headers?.['x-cash-intent-request-key']===payload.request_key&&headers?.['x-cash-intent-session-id']===String(payload.session_id);
+                if(notCreated&&owns()&&financialIntentKey('cash_movement',sessionId)===key){const current=readFinancialIntent<CashIntent>(key);if(current.pending&&JSON.stringify(current.payload)===JSON.stringify(payload)){clearFinancialIntent(key);await activeRegister.refetch().catch(()=>undefined);if(!owns()||financialIntentKey('cash_movement',sessionId)!==key)return;setActiveModal(null);toast({title:'Previous cash movement was not created',description:'The original register is closed. The prior request was not recorded; no new movement was submitted.'});return;}}
+                throw error;
+              }
+              if(!Number.isSafeInteger(result?.movement_id)||result.movement_id<=0||result.request_key!==payload.request_key)throw new Error('Cash movement outcome is awaiting confirmation. Save again to recover the original request.');
+              if(owns()&&financialIntentKey('cash_movement',sessionId)===key){const current=readFinancialIntent<CashIntent>(key);if(current.pending&&JSON.stringify(current.payload)===JSON.stringify(payload))clearFinancialIntent(key);await activeRegister.refetch().catch(()=>undefined);if(!owns()||financialIntentKey('cash_movement',sessionId)!==key)return;setActiveModal(null);toast({title:recovery.pending?'Previous cash movement confirmed':'Cash movement confirmed',description:`${payload.movement_type==='cash_out'?'Withdrawal':'Cash In'} ${currency(Number(payload.amount))}${recovery.pending?'. No new cash movement was submitted.':''}`});}
+              });
             }
             catch(error){if(owns())toast({title:'Cash movement not confirmed',description:dealError(error),variant:'destructive'});}
           }} />
@@ -1507,10 +1526,6 @@ function CashMovementForm({ onSave }: { onSave: (row: { id: string; type: string
       <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Reason" className="border-white/15 bg-slate-950 text-white" />
       <Button className="w-full" disabled={saving} onClick={async () => {
         const parsed = Number(amount);
-        if (!Number.isFinite(parsed) || parsed <= 0 || !reason.trim()) {
-          toast({ title: "Amount and reason required" });
-          return;
-        }
         setSaving(true);
         try { await onSave({ id: uid("cash"), type, amount: parsed, reason, createdAt: new Date().toISOString() }); }
         finally { setSaving(false); }

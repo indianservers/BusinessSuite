@@ -173,7 +173,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID", "Retry-After", "ETag", "X-Suite-Sync-Cursor", "X-Suite-Sync-Scope", "X-Suite-Sync-Mode", "X-Suite-Cache", "X-Suite-Setup-Required"],
+    expose_headers=["X-Request-ID", "Retry-After", "ETag", "X-Suite-Sync-Cursor", "X-Suite-Sync-Scope", "X-Suite-Sync-Mode", "X-Suite-Cache", "X-Suite-Setup-Required", "X-Cash-Intent-Outcome", "X-Cash-Intent-Request-Key", "X-Cash-Intent-Session-Id"],
 )
 
 # GZip compression

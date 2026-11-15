@@ -24,3 +24,31 @@ export function saveFinancialIntent<T>(key: string, payload: T) {
   localStorage.setItem(key,JSON.stringify(payload));
 }
 export function clearFinancialIntent(key: string) { localStorage.removeItem(key); }
+
+/** Recover one drawer intent in the exact current owner/realm, before starting any new cash action. */
+export function findPendingCashIntent<T>(): { pending: boolean; key: string | null; recordId: number | null; payload: T | null } {
+  const opaque = {pending:true,key:null,recordId:null,payload:null};
+  try {
+    const scope=logicalIntentScope(), identity=JSON.parse(scope) as unknown[];
+    if(!Array.isArray(identity)||identity.length!==7||identity[0]!=="intent-v1"||!Number.isSafeInteger(identity[1])||Number(identity[1])<=0||!Number.isSafeInteger(identity[3])||Number(identity[3])<=0)return opaque;
+    const matching: {key:string;recordId:number|null}[]=[];
+    let ambiguous=false;
+    for(let index=0;index<localStorage.length;index++) {
+      const key=localStorage.key(index);if(!key?.startsWith(prefix))continue;
+      try {
+        const target=JSON.parse(key.slice(prefix.length));
+        if(!Array.isArray(target)||target.length!==3||target[1]!=="cash_movement")continue;
+        if(target[0]===scope)matching.push({key,recordId:Number.isSafeInteger(target[2])&&target[2]>0?target[2]:null});
+        else if(identity[identity.length-1]===null) {
+          const source=JSON.parse(target[0]);
+          if(Array.isArray(source)&&JSON.stringify(source.slice(0,-1))===JSON.stringify(identity.slice(0,-1)))ambiguous=true;
+        }
+      } catch { /* A foreign/unproved namespace never supplies a private body. */ }
+    }
+    if(ambiguous)return opaque;
+    const first=matching.sort((a,b)=>a.key.localeCompare(b.key))[0];
+    if(!first)return {pending:false,key:null,recordId:null,payload:null};
+    try { return {pending:true,...first,payload:JSON.parse(localStorage.getItem(first.key) || "null") as T}; }
+    catch { return {...opaque,key:first.key,recordId:first.recordId}; }
+  } catch { return opaque; }
+}

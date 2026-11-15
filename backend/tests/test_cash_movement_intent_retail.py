@@ -28,5 +28,7 @@ def test_selected_retail_cash_retry_and_other_pack_denial(client, db, retail_set
     denied = client.post('/api/v1/srm/pos/cash-movements',
         headers={**headers, 'X-Suite-Pack-Context': str(other.id)}, json=body)
     assert denied.status_code in (403, 404), denied.text
+    assert all(field not in denied.headers for field in
+        ('x-cash-intent-outcome','x-cash-intent-request-key','x-cash-intent-session-id'))
     assert 'movement_id' not in denied.json()
     assert db.query(SRMPOSCashMovement).count() == 1

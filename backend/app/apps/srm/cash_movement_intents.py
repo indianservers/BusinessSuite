@@ -137,6 +137,7 @@ def create_intent(data, db, user):
 
     currency = None
     must_open = False
+    must_closed = False
 
     def check():
         result = _authority(db, user, session, scope, epoch)
@@ -145,6 +146,8 @@ def create_intent(data, db, user):
         if source is None or source.organization_id != company or source.deleted_at is not None:
             fail('Native cash register source is unavailable', 404)
         if must_open and source.status != 'open':
+            fail('Cannot add cash movement to a closed session', 400)
+        if must_closed and source.status != 'closed':
             fail('Cannot add cash movement to a closed session', 400)
         if currency is not None:
             current = evidence(db, session)
@@ -169,7 +172,15 @@ def create_intent(data, db, user):
             SRMPOSCashMovement.organization_id == company, SRMPOSCashMovement.request_key == key)) is not None:
         fail('Cash request key is unavailable in the current native scope')
     if session.status != 'open':
-        fail('Cannot add cash movement to a closed session', 400)
+        must_closed = True
+        check()
+        if db.connection().scalar(select(SRMPOSCashMovement.id).where(
+                SRMPOSCashMovement.organization_id == company, SRMPOSCashMovement.request_key == key)) is not None:
+            fail('Cash request key is unavailable in the current native scope')
+        check()
+        raise HTTPException(400, 'Cannot add cash movement to a closed session', headers={
+            'X-Cash-Intent-Outcome': 'not_created', 'X-Cash-Intent-Request-Key': key,
+            'X-Cash-Intent-Session-Id': str(session.id)})
     must_open = True
     item = SRMPOSCashMovement(organization_id=company, session_id=session.id, created_by=user.id,
         movement_type=data.movement_type, amount=data.amount, reason=data.reason,
