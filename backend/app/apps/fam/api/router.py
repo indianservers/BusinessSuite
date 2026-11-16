@@ -986,6 +986,7 @@ def post_srm_receipt_to_fam(db: Session, request: Request, user: User, company_i
     party = ensure_srm_customer_party(db, company_id, receipt.customer_id, "receipt", receipt.id)
     amount = Decimal(receipt.amount or 0)
     receipt_date = receipt.receipt_date or date.today()
+    receipt_ledger_code = "CASH" if (receipt.payment_method or "").strip().lower() == "cash" else "BANK-DEFAULT"
     voucher = create_and_post_voucher(
         db,
         request,
@@ -998,7 +999,7 @@ def post_srm_receipt_to_fam(db: Session, request: Request, user: User, company_i
         "receipt",
         receipt.id,
         [
-            {"ledger_id": ledger_by_code(db, company_id, "BANK-DEFAULT").id, "debit_amount": amount, "credit_amount": Decimal("0"), "narration": f"SRM receipt {receipt.receipt_number}"},
+            {"ledger_id": ledger_by_code(db, company_id, receipt_ledger_code).id, "debit_amount": amount, "credit_amount": Decimal("0"), "narration": f"SRM receipt {receipt.receipt_number}"},
             {"ledger_id": party.ledger_id, "debit_amount": Decimal("0"), "credit_amount": amount, "narration": f"SRM receipt {receipt.receipt_number}", "party_id": party.id},
         ],
     )
