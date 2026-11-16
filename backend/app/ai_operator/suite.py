@@ -1792,6 +1792,11 @@ async def process_suite_batch(db, app, limit=10):
                 raise HTTPException(403, 'Initiator unavailable')
             from app.access.service import activate_run_context
             activate_run_context(db,user,run)
+            if (run.result or {}).get('telegram_origin'):
+                from app.apps.power_apps.telegram_approvals import validate_origin
+                from app.access.service import background_scope
+                execution_branch = validate_origin(db, user, run)
+                execution_scopes.enter_context(background_scope(db, user, 'ai', 'view', branch_id=execution_branch))
             event_context=(run.result or {}).get('event_context') or {}
             if event_context.get('event') in {'pms.message_received','crm.customer_email_reply','crm.whatsapp_message_received'}:
                 from app.ai_operator import agent_schedules

@@ -266,8 +266,9 @@ profile(
             "Send message",
             "POST",
             "/bot{bot_token}/sendMessage",
-            "chat_id text",
+            "chat_id text reply_markup_json",
             body={"chat_id": "chat_id", "text": "text"},
+            defaults={'reply_markup_json': ''},
         ),
     ],
 )
@@ -747,7 +748,7 @@ def install(add, action):
                         min_length=0 if key in spec.get('defaults',{}) else 1,
                         max_length=(
                             4096 if p["id"] == "telegram" and key == "text"
-                            else 16000 if key in {"text", "prompt", "fields_json"} else 1000
+                            else 16000 if key in {"text", "prompt", "fields_json", "reply_markup_json"} else 1000
                         ),
                     ),
                 )
@@ -851,6 +852,9 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key,
     if conn.connector_id == "telegram":
         headers.pop("Authorization", None)
     body = {remote: data[local] for remote, local in spec["body"].items()}
+    if conn.connector_id == 'telegram' and data.get('reply_markup_json'):
+        from app.apps.power_apps.telegram_dialogue import validate_markup
+        body['reply_markup'] = validate_markup(data['reply_markup_json'])
     t = spec["transform"]
     if t and t.startswith('marketplace_'):
         from app.apps.power_apps.integrations.marketplace_actions import build

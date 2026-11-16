@@ -1317,6 +1317,8 @@ def process(db, job_id, token):
                 if conn.connector_id == 'telegram' and config['action'] == 'send_message':
                     from app.apps.power_apps.telegram_operations import authorize_delivery
                     authorize_delivery(db, run, config.get('input', {}), resource_id=root.resource_id)
+                    if run.trigger_kind == 'telegram' and run.input_payload.get('reply_markup_json'):
+                        config['input'] = {**config.get('input', {}), 'reply_markup_json': run.input_payload['reply_markup_json']}
                 output=connector_service.invoke(db,actor,conn,config["action"],config.get("input",{}),confirmed=config.get("confirm_write") is True,key=f"run:{run.id}:step:{step.id}",run_id=run.id,step_id=step.id)
                 from app.apps.power_apps.integrations.providers import PROFILES
                 if conn.connector_id not in PROFILES:
@@ -1335,6 +1337,12 @@ def process(db, job_id, token):
             if external_error:
                 fail_job(db,job,run,step,"ExternalActionFailed",str(external_error) if isinstance(external_error,IntegrationFailure) else "Connection authority or input is unavailable",False)
                 checkpoint.commit();db.commit();return step.status
+            if node.type == 'connector_telegram' and run.input_payload.get('telegram_staff_id') and run.input_payload.get('telegram_conversation_id'):
+                from app.apps.power_apps.models import TelegramConversation
+                from app.apps.power_apps.telegram_routing import staff_responded
+                conversation = db.query(TelegramConversation).filter_by(id=run.input_payload['telegram_conversation_id'], resource_id=root.resource_id).with_for_update().first()
+                if conversation:
+                    staff_responded(conversation, run.input_payload['telegram_staff_id'])
             active={"out"}
         else:
             output, active = EXECUTORS[node.type].execute(node, config, run.input_payload, previous)

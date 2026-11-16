@@ -14,6 +14,7 @@ class TelegramIdentity(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     employee_id = Column(Integer, ForeignKey('employees.id'), nullable=True)
     contact_id = Column(Integer, nullable=True)
+    customer_id = Column(Integer, nullable=True)
     lead_id = Column(Integer, nullable=True)
     display_name = Column(String(180), nullable=False, default='')
     verified_at = Column(DateTime(timezone=True), nullable=True)
@@ -31,6 +32,7 @@ class TelegramLinkChallenge(Base):
     interface = Column(String(20), nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     contact_id = Column(Integer, nullable=True)
+    customer_id = Column(Integer, nullable=True)
     lead_id = Column(Integer, nullable=True)
     created_by_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -50,10 +52,29 @@ class TelegramConversation(Base):
     status = Column(String(20), nullable=False, default='bot')
     assignee_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     state = Column(JSON, nullable=False, default=dict)
+    context = Column(JSON, nullable=False, default=dict, server_default='{}')
     lead_id = Column(Integer, nullable=True)
     task_id = Column(Integer, nullable=True)
     last_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     __table_args__ = (UniqueConstraint('resource_id', 'chat_id', 'interface', name='uq_telegram_conversation'),)
+
+
+class TelegramActionApproval(Base):
+    __tablename__ = 'power_telegram_action_approvals'
+    id = Column(Integer, primary_key=True)
+    resource_id = Column(Integer, ForeignKey('power_apps_resources.id'), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey('companies.id'), nullable=False)
+    environment = Column(String(20), nullable=False)
+    conversation_id = Column(Integer, ForeignKey('power_telegram_conversations.id'), nullable=False)
+    identity_id = Column(Integer, ForeignKey('power_telegram_identities.id'), nullable=False)
+    token_hash = Column(String(64), nullable=False, unique=True)
+    kind = Column(String(30), nullable=False)
+    operation = Column(JSON, nullable=False)
+    operation_hash = Column(String(64), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')
+    result = Column(JSON, nullable=False, default=dict)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 class TelegramMessage(Base):

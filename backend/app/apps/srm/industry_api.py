@@ -351,10 +351,10 @@ def create(db, user, branch, kind, payload, *, record_data=None, **links):
     return row
 
 
-def save(db, user, row, action):
+def save(db, user, row, action, *, commit=True):
     row.revision += 1
     audit(db, user, row, action)
-    db.commit()
+    db.commit() if commit else db.flush()
     return out(row, db, user)
 
 
@@ -664,6 +664,10 @@ def appointment_operation(data, db, user, *, commit=True):
 
 @router.put("/appointments/{ident}/schedule")
 def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return reschedule_operation(ident, data, db, user)
+
+
+def reschedule_operation(ident, data, db, user, *, commit=True):
     branch = context(db, user, True, appointments=True)
     require_pack_operation(db, user, 'appointments.schedule', 'reservations.schedule')
     row = get(db, user, branch, ident, 'appointment')
@@ -683,7 +687,7 @@ def reschedule(ident: int, data: Reschedule, db: Session = Depends(get_db), user
         from app.apps.project_management.schemas import PMSTaskUpdate
         local = data.starts_at.astimezone(ZoneInfo(get(db, user, branch, data.resource_ids[0], 'resource').data['timezone'])).date()
         update_task_operation(row.data['pms_task_id'], PMSTaskUpdate(start_date=local, due_date=local, estimated_hours=Decimal(data.duration_minutes)/60), db, user, commit=False)
-    return save(db, user, row, 'rescheduled')
+    return save(db, user, row, 'rescheduled', commit=commit)
 
 
 @router.post("/boq", status_code=201)
@@ -813,6 +817,10 @@ def material_issue(data: MaterialInput, db: Session = Depends(get_db), user=Depe
 
 @router.post("/records/{ident}/transition")
 def transition(ident: int, data: Transition, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return transition_operation(ident, data, db, user)
+
+
+def transition_operation(ident, data, db, user, *, commit=True):
     branch = context(db, user, True, appointments=True)
     row = get(db, user, branch, ident)
     for_transition(db, user, row.kind, data.status)
@@ -850,7 +858,7 @@ def transition(ident: int, data: Transition, db: Session = Depends(get_db), user
         fail("Enter a reason")
     row.status = data.status
     row.data = {**row.data, 'transition_reason': data.reason}
-    return save(db, user, row, data.status)
+    return save(db, user, row, data.status, commit=commit)
 
 
 @router.post("/records/{ident}/invoice", status_code=201)

@@ -7,6 +7,8 @@ import type { Environment } from '../../registry';
 import { studioPath } from './studioApi';
 import './telegram.css';
 import { TelegramOperations } from './TelegramOperations';
+import { TelegramAISettings } from './TelegramAISettings';
+import { TelegramExperienceSettings } from './TelegramExperienceSettings';
 import { TelegramInterfaceSettings, type TelegramConfiguration } from './TelegramInterfaceSettings';
 
 type Message = { id: number; run_id: number; text: string; reply: string; sender: string; chat_id: string; enquiry_completed: boolean; state: { name?: string; topic?: string; requirement?: string }; created_at: string };
@@ -65,6 +67,8 @@ export function TelegramAutomations({ environment, can, onCreated }: { environme
       <header><div><h4>{bot.name}</h4><p>{bot.username ? <a href={`https://t.me/${bot.username}`} target="_blank" rel="noreferrer">@{bot.username}</a> : 'Telegram bot'} Â· {bot.enabled ? 'Enabled' : 'Paused'} Â· {bot.last_polled ? `Last checked ${new Date(bot.last_polled).toLocaleTimeString()}` : 'Waiting for local worker'}</p></div><div className="telegram-controls"><Link to={studioPath(`/power-apps/automations/${bot.resource_id}/edit`, environment)}>Open workflow</Link>{bot.can_manage && can('publish') && <button disabled={busy} type="button" onClick={() => void toggle(bot)}>{bot.enabled ? 'Pause replies' : 'Enable replies'}</button>}<button type="button" aria-label="Refresh Telegram messages" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16}/></button></div></header>
       <TelegramInterfaceSettings key={`${environment}:${bot.resource_id}`} resourceId={bot.resource_id} environment={environment} initial={bot.configuration} editable={bot.can_manage && can("publish")} username={bot.username} />
       <TelegramOperations key={`operations:${environment}:${bot.resource_id}`} resourceId={bot.resource_id} environment={environment} canManage={bot.can_manage && can("publish")} canExecute={can("execute")} />
+      <TelegramAISettings key={`ai:${environment}:${bot.resource_id}`} resourceId={bot.resource_id} environment={environment} editable={bot.can_manage && can('publish')} />
+      {bot.can_manage && <TelegramExperienceSettings key={`experience:${environment}:${bot.resource_id}`} resourceId={bot.resource_id} environment={environment} editable={can('publish')} />}
       {bot.error && <p role="alert" className="pa-error">{bot.error}</p>}
       <details><summary>Messages & enquiries ({bot.messages.length} recent)</summary>{!bot.messages.length && <p>Send /start to the bot in Telegram to test the live automation.</p>}{bot.messages.map(message => <div className="telegram-message" key={message.id}><p><strong>{message.sender || message.chat_id}:</strong> {message.text}</p><p><strong>Planned reply:</strong> {message.reply}</p>{message.enquiry_completed && <p className="telegram-enquiry">Enquiry recorded: {message.state.topic} Â· {message.state.name} Â· {message.state.requirement}</p>}<Link to={studioPath('/power-apps/automations/executions', environment)}>Check execution #{message.run_id} for delivery status</Link></div>)}</details>
     </article>)}

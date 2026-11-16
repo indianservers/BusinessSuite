@@ -13,8 +13,54 @@ from app.apps.power_apps.runtime import lifecycle
 from app.apps.power_apps.integrations import vault
 from app.apps.power_apps.integrations.contracts import ConnectionCreate
 from app.apps.power_apps.telegram import bot_request, create_workflow, conversation, interface_conversation
+from app.apps.power_apps.telegram_ai import AIConfiguration
+from app.apps.power_apps.telegram_experience import ExperienceConfiguration
 
 router = APIRouter(prefix='/power-apps/automations/telegram', tags=['Telegram automations'], dependencies=[Depends(RequirePermission('power_apps_view'))])
+
+
+@router.get('/{resource_id}/experience')
+def get_experience(resource_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_view'))):
+    from app.apps.power_apps.telegram_experience import configuration
+    _, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    return {'configuration': configuration(trigger).model_dump(mode='json')}
+
+
+@router.put('/{resource_id}/experience')
+def update_experience(resource_id: int, data: ExperienceConfiguration, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_publish'))):
+    from app.apps.power_apps.telegram_experience import save
+    row, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    result = save(db, row, trigger, user, data)
+    db.commit()
+    return {'configuration': result}
+
+
+@router.get('/{resource_id}/experience-options')
+def experience_options(resource_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_view'))):
+    from app.access.service import background_scope
+    row, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    values = {'branch_id': trigger.config.get('branch_id'), 'owner_user_id': row.owner_user_id, 'employees': [], 'services': [], 'resources': [], 'booking_error': None}
+    try:
+        RequirePermission('employee_view', 'employee_update')(user)
+        values['employees'] = employee_options(resource_id, environment, db, user)['items']
+    except HTTPException:
+        pass
+    try:
+        from app.apps.srm.industry_api import context, query
+        from app.apps.srm.models import SRMProduct
+        from app.apps.srm.services.commercial import record
+        with background_scope(db, user, 'srm', 'view', branch_id=trigger.config.get('branch_id')):
+            branch = context(db, user, appointments=True)
+            values['resources'] = [{'id': item.id, 'name': item.title, 'type': item.data['resource_type']} for item in query(db, user, branch).filter_by(kind='resource', status='active').limit(200).all()]
+            for item in db.query(SRMProduct).filter(SRMProduct.active.is_(True), SRMProduct.product_type.in_(['service', 'services', 'Service', 'Services'])).limit(200).all():
+                try:
+                    record(db, SRMProduct, item.id, user)
+                    values['services'].append({'id': item.id, 'name': item.item_name})
+                except HTTPException:
+                    continue
+    except HTTPException:
+        values['booking_error'] = 'Sales appointment access and an active bot branch are required to configure booking.'
+    return values
 
 
 class Setup(Contract):
@@ -153,6 +199,7 @@ class LinkCode(Contract):
     interface: Literal['company', 'public'] = 'company'
     contact_id: int | None = Field(default=None, gt=0)
     lead_id: int | None = Field(default=None, gt=0)
+    customer_id: int | None = Field(default=None, gt=0)
 
 
 class EmployeeLink(Contract):
@@ -165,9 +212,46 @@ class HandoffChange(Contract):
     assignee_user_id: int | None = Field(default=None, gt=0)
 
 
+class StageChange(Contract):
+    target: str = Field(min_length=1, max_length=40)
+    expected_revision: int = Field(ge=0)
+
+
+class StageReview(Contract):
+    approved: bool
+
+
 class StaffReply(Contract):
     text: str = Field(min_length=1, max_length=4096)
     client_key: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9_-]+$')
+    draft_id: int | None = Field(default=None, gt=0)
+
+
+@router.get('/{resource_id}/ai-configuration')
+def ai_configuration(resource_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_view'))):
+    from app.apps.power_apps.telegram_ai import configuration
+    from app.ai_operator.local_tensorflow import status, runtime_scope
+    row, trigger = bot_access(db, user, resource_id, environment)
+    return {'configuration': configuration(trigger).model_dump(), 'local_model': status(runtime_scope(db, user)),
+            'engine': 'actionbot', 'company_mode': 'permission-scoped planning and native reads', 'public_mode': 'approved information and enquiry intake; no business tools'}
+
+
+@router.put('/{resource_id}/ai-configuration')
+def configure_ai(resource_id: int, data: AIConfiguration, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_publish'))):
+    from app.ai_operator.provider_scope import resolve_provider
+    from app.access.service import background_scope
+    from app.ai_agents.api import _require_ai_access
+    row, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    if data.enabled:
+        with background_scope(db, user, 'ai', 'view', branch_id=trigger.config.get('branch_id')):
+            _require_ai_access(user)
+            if data.provider not in {'local', 'preferred'}:
+                model = resolve_provider(db, user, data.provider)
+                if not model or not model.enabled or not model.data_sharing_allowed:
+                    raise HTTPException(422, 'Enable the selected model and its data-sharing setting in ActionBot first')
+    trigger.config = {**trigger.config, 'ai': data.model_dump()}
+    db.commit()
+    return {'configuration': data.model_dump()}
 
 
 @router.get('/{resource_id}/employee-options')
@@ -189,7 +273,7 @@ def link_code(resource_id: int, data: LinkCode, environment: str = 'development'
     row, _ = bot_access(db, user, resource_id, environment, manage=data.interface == 'public')
     if data.interface == 'public':
         RequirePermission('power_apps_publish')(user)
-    token = issue_code(db, row, user, data.interface, data.contact_id, data.lead_id)
+    token = issue_code(db, row, user, data.interface, data.contact_id, data.lead_id, data.customer_id)
     db.commit()
     return {'command': '/link ' + token, 'expires_in_seconds': 600}
 
@@ -238,6 +322,7 @@ def revoke_identity(resource_id: int, identity_id: int, environment: str = 'deve
     linked.revoked_at = now()
     for thread in db.query(TelegramConversation).filter_by(resource_id=row.id, identity_id=linked.id).all():
         thread.state = {}
+        thread.context = {}
         thread.status, thread.assignee_user_id = 'bot', None
         thread.lead_id, thread.task_id = None, None
     db.add(Event(**scope_values(row), resource_id=row.id, kind='telegram_identity_revoked', details={'identity_id': linked.id, 'actor_id': user.id}))
@@ -248,7 +333,9 @@ def revoke_identity(resource_id: int, identity_id: int, environment: str = 'deve
 @router.get('/{resource_id}/operations')
 def operations(resource_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_view'))):
     from app.apps.power_apps.models import TelegramIdentity, TelegramConversation, TelegramMessage, PowerExecution
-    row, _ = bot_access(db, user, resource_id, environment)
+    row, trigger = bot_access(db, user, resource_id, environment)
+    from app.apps.power_apps.telegram_experience import configuration as experience_configuration
+    experience = experience_configuration(trigger)
     manager = row.owner_user_id == user.id or user.is_superuser
     query = db.query(TelegramConversation).filter_by(resource_id=row.id, organization_id=row.organization_id, environment=environment)
     threads = query.order_by(TelegramConversation.last_at.desc()).limit(50).all()
@@ -257,11 +344,14 @@ def operations(resource_id: int, environment: str = 'development', db: Session =
         messages = db.query(TelegramMessage).filter_by(conversation_id=thread.id).order_by(TelegramMessage.id.desc()).limit(50).all()
         items.append({'id': thread.id, 'interface': thread.interface, 'chat_id': thread.chat_id, 'status': thread.status,
             'assignee_user_id': thread.assignee_user_id, 'lead_id': thread.lead_id, 'task_id': thread.task_id,
+            'context': thread.context,
+            'service_stages': [stage.model_dump() for flow in experience.workflows if flow.id == (thread.context or {}).get('workflow_id') for stage in flow.stages],
             'messages': [{'id': message.id, 'direction': message.direction, 'text': message.text, 'created_at': message.created_at,
                 'run_id': message.run_id, 'delivery_status': db.get(PowerExecution, message.run_id).status if message.run_id and db.get(PowerExecution, message.run_id) else None} for message in reversed(messages)]})
     linked = db.query(TelegramIdentity).filter_by(resource_id=row.id, revoked_at=None).order_by(TelegramIdentity.id.desc()).limit(200).all() if manager else []
-    return {'conversations': items, 'identities': [{'id': link.id, 'interface': link.interface, 'telegram_user_id': link.telegram_id,
-        'user_id': link.user_id, 'employee_id': link.employee_id, 'contact_id': link.contact_id, 'lead_id': link.lead_id,
+    reviews = db.query(Event).filter_by(resource_id=row.id, kind='telegram_stage_review').filter(Event.details['status'].as_string() == 'pending').order_by(Event.id.desc()).limit(50).all()
+    return {'conversations': items, 'stage_reviews': [{'id': item.id, **item.details, 'can_review': any(flow.id == item.details['operation']['workflow_id'] and user.id in flow.approval_user_ids for flow in experience.workflows)} for item in reviews], 'identities': [{'id': link.id, 'interface': link.interface, 'telegram_user_id': link.telegram_id,
+        'user_id': link.user_id, 'employee_id': link.employee_id, 'contact_id': link.contact_id, 'lead_id': link.lead_id, 'customer_id': link.customer_id,
         'name': link.display_name, 'verified': bool(link.verified_at)} for link in linked], 'can_manage': manager, 'current_user_id': user.id}
 
 
@@ -323,6 +413,9 @@ def reply(resource_id: int, conversation_id: int, data: StaffReply, environment:
         if existing.text != data.text:
             raise HTTPException(409, 'This reply key has already been used for another message')
         return {'run_id': existing.run_id, 'status': 'queued'}
+    if data.draft_id:
+        from app.apps.power_apps.telegram_reply_drafts import use
+        use(db, row, trigger, thread, user, data.draft_id, data.text)
     owner = trigger_identity(db, trigger)
     with background_scope(db, owner, 'power_apps', 'create', branch_id=trigger.config.get('branch_id')):
         run_id = queue_reply(db, row, trigger, owner, thread, data.text, f'telegram-staff:{thread.id}:{data.client_key}', created_by=user.id)
@@ -331,3 +424,44 @@ def reply(resource_id: int, conversation_id: int, data: StaffReply, environment:
     message.client_key = data.client_key
     db.commit()
     return {'run_id': run_id, 'status': 'queued'}
+
+
+@router.post('/{resource_id}/conversations/{conversation_id}/draft')
+def draft_reply(resource_id: int, conversation_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_execute'))):
+    from app.apps.power_apps.models import TelegramConversation
+    from app.apps.power_apps.telegram_reply_drafts import generate
+    row, trigger = bot_access(db, user, resource_id, environment)
+    thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).first()
+    if not thread:
+        raise HTTPException(404, 'Conversation not found')
+    if thread.status != 'assigned' or thread.assignee_user_id != user.id:
+        raise HTTPException(409, 'Claim this conversation before drafting a reply')
+    db.commit()  # Do not hold the polling/configuration lock during model generation.
+    result = generate(db, row, trigger, thread, user)
+    db.commit()
+    return result
+
+
+@router.post('/{resource_id}/conversations/{conversation_id}/stage')
+def change_stage(resource_id: int, conversation_id: int, data: StageChange, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_execute'))):
+    from app.apps.power_apps.models import TelegramConversation
+    from app.apps.power_apps.telegram_workflows import transition
+    row, trigger = bot_access(db, user, resource_id, environment)
+    thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).with_for_update().first()
+    if not thread:
+        raise HTTPException(404, 'Service conversation not found')
+    result = transition(db, row, trigger, thread, data.target, data.expected_revision, user.id)
+    db.commit()
+    return result
+
+
+@router.post('/{resource_id}/stage-reviews/{review_id}')
+def review_stage(resource_id: int, review_id: int, data: StageReview, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('power_apps_execute'))):
+    from app.apps.power_apps.telegram_workflows import review
+    row, trigger = bot_access(db, user, resource_id, environment)
+    item = db.query(Event).filter_by(id=review_id, resource_id=row.id, organization_id=row.organization_id, environment=environment, kind='telegram_stage_review').with_for_update().first()
+    if not item:
+        raise HTTPException(404, 'Service stage review not found')
+    result = review(db, row, trigger, item, user.id, data.approved)
+    db.commit()
+    return result

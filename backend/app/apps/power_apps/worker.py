@@ -37,6 +37,17 @@ def worker_tick(db, worker_id):
         scheduler_tick(db)
         from app.apps.power_apps.telegram import poll_tick
         poll_tick(db)
+        from app.apps.power_apps.telegram_ai import dispatch as dispatch_telegram_ai
+        from app.main import app
+        import asyncio
+        async def telegram_work():
+            from app.apps.power_apps.telegram_approvals import dispatch as dispatch_approvals
+            from app.ai_operator.suite import process_suite_batch
+            await dispatch_telegram_ai(db, app, limit=1)
+            await dispatch_approvals(db, app)
+            await process_suite_batch(db, app, limit=3)
+            await dispatch_approvals(db, app)
+        asyncio.run(telegram_work())
         from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
         connector_poll_tick(db)
         from app.apps.power_apps.integrations.marketplace_sync import dispatch_due as connector_sync_due

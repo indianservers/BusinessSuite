@@ -1,5 +1,6 @@
 import { test, expect } from '../frontend/node_modules/playwright/test';
 import { setupPowerApps } from './power-apps-fixtures';
+import { emptyExperience } from '../frontend/src/apps/power-apps/applications/automations/telegramExperienceTypes';
 
 for (const width of [1440, 390]) {
   test(`Telegram auto-reply stays inside Automations at ${width}px`, async ({ page }) => {
@@ -9,7 +10,10 @@ for (const width of [1440, 390]) {
     let connected = false;
     let handoffStatus = 'waiting';
     let assigned = false;
+    let stageApproved = false;
+    let serviceStage = 'received';
     let employeeLinked = false;
+    let experience = structuredClone(emptyExperience);
     const transcript = [{ id: 1, direction: 'incoming', text: 'Please help with my order' }];
     await page.route('**/power-apps/automations/telegram/**', async route => {
       const path = new URL(route.request().url()).pathname;
@@ -18,11 +22,29 @@ for (const width of [1440, 390]) {
         connected = true;
         return route.fulfill({ status: 201, json: { resource_id: 91, enabled: true, username: 'fixture_bot' } });
       }
+      if (path.endsWith('/ai-configuration')) {
+        const configuration = route.request().method() === 'PUT' ? route.request().postDataJSON() : { enabled: true, provider: 'local', public_context: '' };
+        return route.fulfill({ json: { configuration, engine: 'actionbot', local_model: { active: true, engine: 'tensorflow-local-intents-v1', description: 'Fixture trained local model' } } });
+      }
       if (path.endsWith('/employee-options')) return route.fulfill({ json: { items: [{ id: 3, employee_code: 'EMP-3', name: 'Alex Employee', user_id: 1 }] } });
+      if (path.endsWith('/experience-options')) return route.fulfill({ json: { owner_user_id: 1, branch_id: 1, employees: [{ id: 3, employee_code: 'EMP-3', name: 'Alex Employee', user_id: 1 }], services: [{ id: 4, name: 'Consultation' }], resources: [{ id: 5, name: 'Dr Alex', type: 'provider' }] } });
+      if (path.endsWith('/experience')) {
+        if (route.request().method() === 'PUT') {
+          experience = { ...route.request().postDataJSON(), revision: experience.revision + 1 };
+          expect(experience.knowledge[0].source_reference).toBe('Hours policy v1');
+          expect(experience.workflows[0].questions).toHaveLength(6);
+          expect(experience.routing_agents[0].user_id).toBe(1);
+          expect(experience.booking_services[0].resource_ids).toEqual([5]);
+        }
+        return route.fulfill({ json: { configuration: experience } });
+      }
       if (path.endsWith('/employee-links')) { expect(route.request().postDataJSON()).toEqual({ employee_id: 3, telegram_user_id: '123456789' }); employeeLinked = true; return route.fulfill({ status: 201, json: { identity_id: 1 } }); }
-      if (path.endsWith('/operations')) return route.fulfill({ json: { current_user_id: 1, can_manage: true, identities: employeeLinked ? [{ id: 1, interface: 'company', name: 'Alex Employee', telegram_user_id: '123456789', employee_id: 3, user_id: 1, verified: true }] : [], conversations: [{ id: 8, interface: 'public', chat_id: '42', status: handoffStatus, assignee_user_id: assigned ? 1 : null, messages: transcript }] } });
+      if (path.endsWith('/operations')) return route.fulfill({ json: { current_user_id: 1, can_manage: true, stage_reviews: stageApproved ? [] : [{ id: 81, operation: { conversation_id: 8, target: 'received' }, can_review: true, expires_at: new Date(Date.now() + 600000).toISOString() }], identities: employeeLinked ? [{ id: 1, interface: 'company', name: 'Alex Employee', telegram_user_id: '123456789', employee_id: 3, user_id: 1, verified: true }] : [], conversations: [{ id: 8, interface: 'public', chat_id: '42', status: handoffStatus, assignee_user_id: assigned ? 1 : null, context: { service_stage: serviceStage, stage_approved: stageApproved, stage_revision: stageApproved ? 1 : 0 }, service_stages: [{ key: 'received', label: 'Received', requires_approval: true, next_stages: ['completed'] }, { key: 'completed', label: 'Completed', requires_approval: false, next_stages: [] }], messages: transcript }] } });
+      if (path.endsWith('/stage-reviews/81')) { expect(route.request().postDataJSON()).toEqual({ approved: true }); stageApproved = true; return route.fulfill({ json: { status: 'approved' } }); }
+      if (path.endsWith('/conversations/8/stage')) { expect(route.request().postDataJSON()).toEqual({ target: 'completed', expected_revision: 1 }); serviceStage = 'completed'; return route.fulfill({ json: { status: 'completed' } }); }
+      if (path.endsWith('/conversations/8/draft')) return route.fulfill({ json: { id: 82, text: 'We are checking your order.', expires_at: new Date(Date.now() + 300000).toISOString(), sources: [{ id: 'hours', url: 'https://example.com/hours', reference: 'Hours policy v1' }], sent: false } });
       if (path.endsWith('/conversations/8')) { const action = route.request().postDataJSON().action; handoffStatus = action === 'claim' ? 'assigned' : action === 'resolve' ? 'resolved' : 'bot'; assigned = action === 'claim'; return route.fulfill({ json: { status: handoffStatus } }); }
-      if (path.endsWith('/conversations/8/reply')) { expect(route.request().postDataJSON().text).toBe('We are checking your order.'); transcript.push({ id: 2, direction: 'outgoing', text: route.request().postDataJSON().text }); return route.fulfill({ status: 202, json: { run_id: 99, status: 'queued' } }); }
+      if (path.endsWith('/conversations/8/reply')) { expect(route.request().postDataJSON().text).toBe('We are checking your order.'); expect(route.request().postDataJSON().draft_id).toBe(82); transcript.push({ id: 2, direction: 'outgoing', text: route.request().postDataJSON().text }); return route.fulfill({ status: 202, json: { run_id: 99, status: 'queued' } }); }
       if (path.endsWith('/configuration')) return route.fulfill({ json: { configuration: route.request().postDataJSON() } });
       if (path.endsWith('/simulate')) return route.fulfill({ json: { sent: false, steps: [{ message: 'Sales', reply: 'What is your name?', stage: 'name' }] } });
       if (path.endsWith('/91')) { enabled = route.request().postDataJSON().enabled; return route.fulfill({ json: { enabled } }); }
@@ -57,13 +79,45 @@ for (const width of [1440, 390]) {
     await expect(configuration.getByText('Employee linked. Company authorization is automatic on their next message.')).toBeVisible();
     await configuration.getByRole('button', { name: /public · Chat 42/ }).click();
     await configuration.getByRole('button', { name: 'Claim conversation' }).click();
+    await configuration.getByRole('button', { name: 'Approve service stage', exact: true }).click();
+    await configuration.getByRole('combobox', { name: 'Next service stage', exact: true }).selectOption('completed');
+    await configuration.getByRole('button', { name: 'Move service stage', exact: true }).click();
+    await expect(configuration.getByText('Service stage: Completed', { exact: true })).toBeVisible();
     await expect(configuration.getByLabel('Reply through Telegram')).toBeEnabled();
-    await configuration.getByLabel('Reply through Telegram').fill('We are checking your order.');
+    await configuration.getByRole('button', { name: 'Draft a grounded reply', exact: true }).click();
+    await expect(configuration.getByLabel('Reply through Telegram')).toHaveValue('We are checking your order.');
+    expect(transcript).toHaveLength(1);
+    await expect(configuration.getByRole('link', { name: 'Hours policy v1', exact: true })).toBeVisible();
     await configuration.getByRole('button', { name: 'Queue Telegram reply' }).click();
     await expect(configuration.getByText('Reply queued. Check its execution status for delivery.')).toBeVisible();
     await expect(configuration.getByText('We are checking your order.', { exact: true })).toBeVisible();
     await configuration.getByRole('button', { name: 'Return to bot', exact: true }).click();
     await expect(configuration.getByLabel('Reply through Telegram')).toBeDisabled();
+    await configuration.getByText('ActionBot AI model', { exact: true }).click();
+    await expect(configuration.getByText(/Fixture trained local model/)).toBeVisible();
+    await configuration.getByRole('combobox', { name: 'ActionBot model source', exact: true }).selectOption('preferred');
+    await configuration.getByRole('button', { name: 'Save ActionBot AI settings' }).click();
+    await expect(configuration.getByText('ActionBot AI settings saved.')).toBeVisible();
+    await configuration.getByText('Knowledge, industry workflows & service operations', { exact: true }).click();
+    await configuration.getByRole('button', { name: 'Add knowledge item', exact: true }).click();
+    await configuration.getByLabel('Knowledge title', { exact: true }).fill('Business hours');
+    await configuration.getByLabel('Approved content', { exact: true }).fill('The showroom opens at 9 AM.');
+    await configuration.getByLabel('Source URL', { exact: true }).fill('https://example.com/hours');
+    await configuration.getByLabel('Source reference', { exact: true }).fill('Hours policy v1');
+    await configuration.getByLabel('I verified this information and approve it for publication').check();
+    await configuration.getByRole('tab', { name: 'Industry workflows', exact: true }).click();
+    await configuration.getByRole('button', { name: 'Add qualification workflow' }).click();
+    await expect(configuration.getByLabel('Workflow name', { exact: true })).toBeVisible();
+    await configuration.getByRole('tab', { name: 'Routing & deadlines' }).click();
+    await configuration.getByRole('button', { name: 'Add routing employee', exact: true }).click();
+    await configuration.getByRole('combobox', { name: 'Routing employee', exact: true }).selectOption('1');
+    await configuration.getByLabel('Staff skills', { exact: true }).fill('sales, support');
+    await configuration.getByRole('tab', { name: 'Appointment services' }).click();
+    await configuration.getByRole('button', { name: 'Add appointment service', exact: true }).click();
+    await configuration.getByRole('combobox', { name: 'Appointment service', exact: true }).selectOption('4');
+    await configuration.getByLabel('Dr Alex · provider', { exact: true }).check();
+    await configuration.getByRole('button', { name: 'Publish Telegram experience (revision 1)' }).click();
+    await expect(configuration.getByText('Telegram experience published.', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
   });
 }

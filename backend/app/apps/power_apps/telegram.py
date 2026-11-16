@@ -145,7 +145,21 @@ def create_workflow(db, user, environment, conn, bot, name):
 
 
 def accept_update(db, row, trigger, actor, update):
-    message = update.get('message') or {}
+    from app.apps.power_apps import telegram_dialogue as dialogue
+    message = dict(update.get('message') or {})
+    callback = update.get('callback_query') or {}
+    if callback:
+        command_text = dialogue.callback_text(callback.get('data', ''))
+        if command_text is None:
+            return None
+        message = {**(callback.get('message') or {}), 'from': callback.get('from') or {}, 'text': command_text, 'date': int(now().timestamp())}
+    attachment = None
+    if isinstance(message.get('location'), dict):
+        attachment = {'type': 'location', **{key: message['location'].get(key) for key in ['latitude', 'longitude']}}
+        message.setdefault('text', '[Shared location]')
+    elif isinstance(message.get('document'), dict):
+        attachment = {'type': 'document', **{key: message['document'].get(key) for key in ['file_id', 'file_unique_id', 'file_name', 'mime_type', 'file_size']}}
+        message.setdefault('text', '[Document received]')
     chat = message.get('chat') or {}
     sender = message.get('from') or {}
     if chat.get('type') != 'private' or sender.get('is_bot') or not isinstance(message.get('text'), str):
@@ -161,6 +175,7 @@ def accept_update(db, row, trigger, actor, update):
     if prior:
         return prior.run_id
     from app.apps.power_apps import telegram_operations as operations
+    from app.apps.power_apps import telegram_ai
     from app.apps.power_apps.models import TelegramIdentity, TelegramConversation, TelegramMessage
     sender_id = str(sender.get('id') or chat_id)
     if sender_id != chat_id:
@@ -204,7 +219,7 @@ def accept_update(db, row, trigger, actor, update):
     if mode == 'public' and not linked:
         linked = db.query(TelegramIdentity).filter_by(resource_id=row.id, telegram_id=sender_id, interface='public').first()
         if linked:
-            linked.user_id, linked.employee_id, linked.contact_id, linked.lead_id = None, None, None, None
+            linked.user_id, linked.employee_id, linked.contact_id, linked.lead_id, linked.customer_id = None, None, None, None, None
             linked.verified_at, linked.revoked_at = None, None
         else:
             linked = TelegramIdentity(organization_id=row.organization_id, environment=row.environment, resource_id=row.id,
@@ -216,37 +231,84 @@ def accept_update(db, row, trigger, actor, update):
     if linking:
         old_state = {}
         thread.lead_id, thread.task_id = None, None
+    text_for_flow = dialogue.canonical(text, old_state.get('stage') in {'name', 'requirement', 'request', 'workflow'})
+    command = text_for_flow.casefold().split('@')[0]
+    guided = (False, old_state, None, None)
+    if reply is None and thread.status not in {'waiting', 'assigned'} and config.get(f'{mode}_enabled', True):
+        guided = dialogue.handle(thread, trigger, text_for_flow, old_state, attachment)
     state = old_state
+    keyboard = None
     if reply is None and not config.get(f'{mode}_enabled', True):
         reply = 'This interface is currently unavailable.'
+    elif reply is None and text.startswith(('/approve ', '/reject ', '/review ')):
+        from app.apps.power_apps.telegram_approvals import respond
+        try:
+            reply, keyboard = respond(db, row, thread, linked, text)
+        except HTTPException as error:
+            reply = str(error.detail)
+        text = '[Action review control redacted]'
+    elif reply is None and command in {'/account', '/orders', '/appointments', '/myrequests'}:
+        from app.apps.power_apps.telegram_customer import read as customer_read
+        try:
+            reply = customer_read(db, row, trigger, actor, thread, linked, command)
+        except HTTPException:
+            reply = 'Your private account information is currently unavailable. Ask the company to review your verified link and access.'
     elif reply is None and command in {'/human', 'human', 'talk to a person'}:
         operations.request_handoff(db, row, thread)
-        reply = 'Your conversation is in the human support queue. You can continue sending messages here.'
+        reply = dialogue.localize('Your conversation is in the human support queue. You can continue sending messages here.', thread)
     elif reply is None and thread.status in {'waiting', 'assigned'}:
         # Record the message and notify the responsible person; leave the bot silent.
         from app.models.notification import Notification
+        from app.apps.power_apps.telegram_routing import start_deadline
+        start_deadline(thread, trigger)
         db.add(Notification(company_id=row.organization_id, user_id=thread.assignee_user_id or row.owner_user_id,
             title='New Telegram handoff message', message=f'Conversation #{thread.id} has a new message.', module='power_apps',
             action_url=f'/power-apps/automations/telegram?environment={row.environment}', channels=['in_app']))
+    elif reply is None and guided[0]:
+        _, state, reply, keyboard = guided
+    elif reply is None and (text_for_flow.startswith(('/book', '/reschedule ', '/cancelbooking ', '/slot ')) or old_state.get('stage') in {'booking_customer', 'booking_service', 'booking_date', 'booking_slot', 'booking_cancel_reason'}):
+        from app.apps.power_apps.telegram_booking import handle as booking_handle
+        try:
+            _, state, reply, keyboard = booking_handle(db, row, trigger, actor, thread, linked, text_for_flow, old_state)
+        except HTTPException as error:
+            reply = str(error.detail)
+    elif reply is None and telegram_ai.configuration(trigger).enabled and telegram_ai.accepts(text_for_flow, old_state):
+        telegram_ai.queue(db, row, thread, text, update_id)
     elif reply is None:
         if command in {'/company', '/public', '/start company', '/start public'}:
             old_state = {}
-        state, reply = interface_conversation(message['text'], {**old_state, 'interface': mode}, config, sender_id)
-        completed = state.get('stage') == 'complete' and old_state.get('stage') != 'complete'
-        if completed and config.get('create_crm_records', False):
-            try:
-                with db.begin_nested():
-                    state = operations.create_records(db, row, trigger, actor, linked, thread, state, update_id)
-                reply = f"Recorded CRM task #{state['task_id']}" + (f" for lead #{state['lead_id']}" if state.get('lead_id') else '') + '. Send /human to speak with the team.'
-            except HTTPException:
-                operations.request_handoff(db, row, thread, 'CRM intake needs staff review')
-                state = {**state, 'crm_error': True}
-                reply = 'Your request is saved for staff review. A person will follow up; no CRM creation is being claimed.'
+        state, reply = interface_conversation(text_for_flow, {**old_state, 'interface': mode}, config, sender_id)
+        reply = dialogue.localize(reply, thread)
+    completed = state.get('stage') == 'complete' and old_state.get('stage') != 'complete'
+    if completed and state.get('workflow_id'):
+        from app.apps.power_apps.telegram_workflows import submit_initial
+        review = submit_initial(db, row, trigger, thread, state, update_id)
+        if review:
+            reply = 'Your request was received and is waiting for approval by the company’s authorized reviewer.'
+    if completed and state.get('workflow_result') == 'handoff':
+        operations.request_handoff(db, row, thread, 'Industry workflow requests staff review')
+    if completed and config.get('create_crm_records', False) and state.get('workflow_result') not in {'handoff', 'appointment_request'} and not state.get('requires_stage_approval'):
+        try:
+            with db.begin_nested():
+                state = operations.create_records(db, row, trigger, actor, linked, thread, state, update_id)
+            reply = f"Recorded CRM task #{state['task_id']}" + (f" for lead #{state['lead_id']}" if state.get('lead_id') else '') + '. Send /human to speak with the team.'
+        except HTTPException:
+            operations.request_handoff(db, row, thread, 'CRM intake needs staff review')
+            state = {**state, 'crm_error': True}
+            reply = 'Your request is saved for staff review. A person will follow up; no CRM creation is being claimed.'
+    if state.get('stage') == 'complete' and old_state.get('stage') != 'complete':
+        memory = {**(thread.context or {}).get('memory', {}), 'name': state.get('name')}
+        requests = list((thread.context or {}).get('requests', []))
+        requests.append({'update_id': update_id, 'topic': state.get('topic'), 'requirement': state.get('requirement'), 'task_id': state.get('task_id'), 'lead_id': state.get('lead_id'), 'status': 'received', 'at': now().isoformat()})
+        thread.context = {**(thread.context or {}), 'memory': memory, 'requests': requests[-20:]}
     thread.state = state
+    if reply and state.get('stage') == 'menu' and keyboard is None:
+        keyboard = dialogue.menu(trigger, mode, dialogue.language(thread, text))
     incoming = TelegramMessage(organization_id=row.organization_id, environment=row.environment, resource_id=row.id,
-        conversation_id=thread.id, direction='incoming', text=text, update_id=update_id)
+        conversation_id=thread.id, direction='incoming', text=text + ('\n' + json.dumps(attachment, ensure_ascii=False) if attachment else ''), update_id=update_id)
     db.add(incoming)
-    run_id = operations.queue_reply(db, row, trigger, actor, thread, reply, f'telegram:{trigger.config["bot_id"]}:{update_id}', handoff_notice=thread.status in {'waiting', 'assigned'}) if reply else None
+    private_identity = linked if mode == 'public' and command in {'/account', '/orders', '/appointments', '/myrequests'} and linked and linked.verified_at and not linked.revoked_at else None
+    run_id = operations.queue_reply(db, row, trigger, actor, thread, reply, f'telegram:{trigger.config["bot_id"]}:{update_id}', handoff_notice=thread.status in {'waiting', 'assigned'}, reply_markup=keyboard, private_identity=private_identity, private_command=command if private_identity else None) if reply else None
     data = {'update_id': update_id, 'chat_id': chat_id, 'sender': sender.get('first_name', ''), 'text': text, 'reply': reply or '', 'conversation_id': thread.id}
     db.add(Event(**scope_values(row), resource_id=row.id, run_id=run_id, kind='telegram_message',
         details={**data, 'state': state, 'enquiry_completed': state.get('stage') == 'complete'}))
@@ -273,14 +335,21 @@ def poll_tick(db, limit=10):
                 conn = vault.connection(db, actor, trigger.environment, trigger.config['connection_id'])
                 if not conn.writes_enabled:
                     raise HTTPException(422, 'Enable sending on this Telegram connection before listening.')
-                updates = bot_request(db, actor, conn, 'getUpdates', {'offset': trigger.config['offset'], 'limit': 20, 'timeout': 0, 'allowed_updates': ['message']})
+                updates = bot_request(db, actor, conn, 'getUpdates', {'offset': trigger.config['offset'], 'limit': 20, 'timeout': 0, 'allowed_updates': ['message', 'callback_query']})
                 offset = trigger.config['offset']
                 for update in sorted(updates, key=lambda item: item['update_id']):
                     if update['update_id'] < offset:
                         continue
                     accept_update(db, row, trigger, actor, update)
+                    if update.get('callback_query', {}).get('id'):
+                        try:
+                            bot_request(db, actor, conn, 'answerCallbackQuery', {'callback_query_id': update['callback_query']['id']})
+                        except HTTPException:
+                            pass
                     offset = update['update_id'] + 1
                 trigger.config = {**trigger.config, 'offset': offset, 'error': None}
+                from app.apps.power_apps.telegram_routing import tick as handoff_tick
+                handoff_tick(db, row, trigger)
                 trigger.last_at, trigger.next_at = now(), now() + timedelta(seconds=5)
             db.commit()
         except Exception as exc:

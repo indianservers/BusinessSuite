@@ -1,5 +1,6 @@
 """Transactional identity, CRM intake, and human handoff for a shared Telegram bot."""
 import hashlib
+import json
 import secrets
 from datetime import timedelta
 
@@ -40,27 +41,27 @@ def identity(db, resource, sender_id, interface):
         environment=resource.environment, telegram_id=sender_id, interface=interface, revoked_at=None).first()
 
 
-def issue_code(db, resource, actor, interface, contact_id=None, lead_id=None):
+def issue_code(db, resource, actor, interface, contact_id=None, lead_id=None, customer_id=None):
     if interface == 'company':
         member(db, actor.id, resource.organization_id)
-        if contact_id or lead_id:
+        if contact_id or lead_id or customer_id:
             raise HTTPException(422, 'Company linking always links your own signed-in account')
-    elif bool(contact_id) == bool(lead_id):
-        raise HTTPException(422, 'Choose exactly one CRM contact or lead for public linking')
+    elif sum(bool(value) for value in (contact_id, lead_id, customer_id)) != 1:
+        raise HTTPException(422, 'Choose exactly one CRM contact, lead or customer account for public linking')
     else:
         from app.apps.crm.api import router as crm
-        entity, record_id = ('contacts', contact_id) if contact_id else ('leads', lead_id)
+        entity, record_id = ('contacts', contact_id) if contact_id else ('leads', lead_id) if lead_id else ('companies', customer_id)
         with background_scope(db, actor, 'crm', 'view'):
             crm._assert_entity_permission(entity, actor, 'manage')
             crm._assert_record_visible(db, crm._get_resource(entity), record_id, resource.organization_id, actor)
     # A newly issued code supersedes earlier unused codes for the same target.
     for old in db.query(Challenge).filter_by(resource_id=resource.id, interface=interface,
-            user_id=actor.id if interface == 'company' else None, contact_id=contact_id, lead_id=lead_id, consumed_at=None).all():
+            user_id=actor.id if interface == 'company' else None, contact_id=contact_id, lead_id=lead_id, customer_id=customer_id, consumed_at=None).all():
         old.consumed_at = now()
     token = secrets.token_urlsafe(24)
     db.add(Challenge(organization_id=resource.organization_id, environment=resource.environment,
         resource_id=resource.id, token_hash=hashlib.sha256(token.encode()).hexdigest(), interface=interface,
-        user_id=actor.id if interface == 'company' else None, contact_id=contact_id, lead_id=lead_id,
+        user_id=actor.id if interface == 'company' else None, contact_id=contact_id, lead_id=lead_id, customer_id=customer_id,
         created_by_user_id=actor.id, expires_at=now() + timedelta(minutes=10)))
     db.flush()
     return token
@@ -80,7 +81,7 @@ def consume_code(db, resource, sender_id, token, display_name):
         try:
             from app.apps.crm.api import router as crm
             issuer = member(db, challenge.created_by_user_id, resource.organization_id)
-            entity, record_id = ('contacts', challenge.contact_id) if challenge.contact_id else ('leads', challenge.lead_id)
+            entity, record_id = ('contacts', challenge.contact_id) if challenge.contact_id else ('leads', challenge.lead_id) if challenge.lead_id else ('companies', challenge.customer_id)
             with background_scope(db, issuer, 'crm', 'view'):
                 crm._assert_entity_permission(entity, issuer, 'manage')
                 crm._assert_record_visible(db, crm._get_resource(entity), record_id, resource.organization_id, issuer)
@@ -88,7 +89,7 @@ def consume_code(db, resource, sender_id, token, display_name):
             return None, 'This customer link is no longer available. Ask your company contact for a new code.'
     existing = db.query(Identity).filter_by(resource_id=resource.id, telegram_id=sender_id, interface=challenge.interface).first()
     # Never silently rebind an active identity or link one account to multiple Telegram accounts.
-    targets = {'user_id': challenge.user_id, 'contact_id': challenge.contact_id, 'lead_id': challenge.lead_id}
+    targets = {'user_id': challenge.user_id, 'contact_id': challenge.contact_id, 'lead_id': challenge.lead_id, 'customer_id': challenge.customer_id}
     if existing and existing.revoked_at is None and existing.verified_at and any(getattr(existing, key) != value for key, value in targets.items()):
         return None, 'This Telegram account is already linked. Revoke its existing link in BusinessSuite first.'
     query = db.query(Identity).filter_by(resource_id=resource.id, interface=challenge.interface, revoked_at=None, **targets)
@@ -121,9 +122,11 @@ def get_conversation(db, resource, chat_id, sender_id, interface, linked):
 def request_handoff(db, resource, conversation, reason='Requested a human'):
     if conversation.status in {'waiting', 'assigned'}:
         return
-    conversation.status = 'waiting'
-    conversation.assignee_user_id = None
-    db.add(Notification(company_id=resource.organization_id, user_id=resource.owner_user_id,
+    from app.apps.power_apps.runtime_models import AutomationTrigger
+    from app.apps.power_apps.telegram_routing import assign_handoff
+    trigger = db.query(AutomationTrigger).filter_by(resource_id=resource.id, kind='telegram').one()
+    target = assign_handoff(db, resource, trigger, conversation)
+    db.add(Notification(company_id=resource.organization_id, user_id=target,
         title='Telegram conversation needs a person', message=f'{conversation.interface.title()} conversation #{conversation.id}: {reason[:250]}',
         module='power_apps', event_type='telegram.handoff', related_entity_type='telegram_conversation', related_entity_id=conversation.id,
         action_url=f'/power-apps/automations/telegram?environment={resource.environment}', channels=['in_app']))
@@ -155,7 +158,9 @@ def create_records(db, resource, trigger, owner, linked, conversation, state, up
             title=f'Telegram {topic}: {requirement[:140]}', description=requirement,
             lead_id=lead_id,
             contact_id=linked.contact_id if linked and conversation.interface == 'public' else None,
-            branch_id=branch_id, priority='Medium', status='To Do',
+            company_id=linked.customer_id if linked and conversation.interface == 'public' else None,
+            branch_id=branch_id, priority='High' if state.get('qualification', {}).get('priority') in {'High', 'Urgent'} else 'Medium', status='To Do',
+            task_details={'telegram': {'workflow_id': state.get('workflow_id'), 'qualification': state.get('qualification'), 'answers': state.get('answers')}},
         ), db, actor, commit=False)
     if linked and conversation.interface == 'public' and topic == 'Sales':
         linked.lead_id = lead_id
@@ -163,11 +168,29 @@ def create_records(db, resource, trigger, owner, linked, conversation, state, up
     return {**state, 'lead_id': lead_id, 'task_id': result['id']}
 
 
-def queue_reply(db, resource, trigger, owner, conversation, text, key, created_by=None, handoff_notice=False):
+def private_binding(linked):
+    """Bind queued private text to the exact verification and account targets."""
+    values = {key: getattr(linked, key) for key in ('id', 'telegram_id', 'interface', 'contact_id', 'lead_id', 'customer_id')}
+    values['verified_at'] = utc(linked.verified_at).isoformat() if linked.verified_at else None
+    return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
+
+
+def queue_reply(db, resource, trigger, owner, conversation, text, key, created_by=None, handoff_notice=False, reply_markup=None, private_identity=None, private_command=None):
     linked = db.get(Identity, conversation.identity_id) if conversation.identity_id else None
     payload = {'chat_id': conversation.chat_id, 'reply': text, 'text': '[Staff reply]' if created_by else '[Bot reply]',
         'telegram_conversation_id': conversation.id, 'telegram_staff_id': created_by, 'telegram_handoff_notice': handoff_notice,
         'telegram_linked_user_id': linked.user_id if linked else None}
+    if private_identity is not None:
+        from app.apps.power_apps.telegram_customer import COMMANDS
+        if conversation.interface != 'public' or not private_identity.verified_at or private_identity.revoked_at or private_identity.id != conversation.identity_id:
+            raise HTTPException(403, 'Verified customer delivery context is unavailable')
+        if private_command not in COMMANDS:
+            raise HTTPException(403, 'Private customer delivery command is unavailable')
+        payload['telegram_private_identity_id'] = private_identity.id
+        payload['telegram_private_binding'] = private_binding(private_identity)
+        payload['telegram_private_command'] = private_command
+    if reply_markup:
+        payload['reply_markup_json'] = json.dumps(reply_markup, ensure_ascii=False)
     run = enqueue(db, resource, owner, payload, key, kind='telegram', trigger=trigger)
     db.add(Message(organization_id=resource.organization_id, environment=resource.environment, resource_id=resource.id,
         conversation_id=conversation.id, direction='outgoing', text=text, run_id=run.id, created_by_user_id=created_by,
@@ -190,6 +213,22 @@ def authorize_delivery(db, run, request, resource_id=None):
         raise HTTPException(403, 'Telegram delivery context is unavailable')
     if not trigger.config.get('interfaces', {}).get(f'{thread.interface}_enabled', True):
         raise HTTPException(403, 'Telegram interface is disabled')
+    if run.input_payload.get('telegram_private_binding'):
+        linked = db.query(Identity).filter_by(id=thread.identity_id, resource_id=resource_id,
+            organization_id=run.organization_id, environment=run.environment, telegram_id=thread.telegram_id,
+            interface='public', revoked_at=None).populate_existing().first()
+        if (not linked or not linked.verified_at or linked.id != run.input_payload.get('telegram_private_identity_id')
+                or private_binding(linked) != run.input_payload['telegram_private_binding']):
+            raise HTTPException(403, 'Customer identity changed before private information delivery')
+        from app.apps.power_apps.models import PowerResource
+        from app.apps.power_apps.telegram_customer import COMMANDS, read
+        resource = db.get(PowerResource, resource_id)
+        command = run.input_payload.get('telegram_private_command')
+        if not resource or command not in COMMANDS:
+            raise HTTPException(403, 'Private customer delivery source is unavailable')
+        # Native read paths recheck the owner's current module rights and source
+        # visibility immediately before transport; the queued text grants no rights.
+        read(db, resource, trigger, member(db, resource.owner_user_id, run.organization_id), thread, linked, command)
     if thread.interface == 'company':
         linked = db.query(Identity).filter_by(id=thread.identity_id, resource_id=resource_id, revoked_at=None).populate_existing().first()
         if not linked or linked.user_id != run.input_payload.get('telegram_linked_user_id'):
