@@ -4,7 +4,9 @@ const { chromium, expect } = require('playwright/test');
 (async () => {
   const root = path.resolve(__dirname, '..'), fixture = path.join(root, 'scripts/.business-theme-cards-fixture.tsx');
   const packs = [['hospital', 'Hospital', true], ['salon', 'Salon', true], ['restaurant', 'Restaurant', false], ['pharma', 'Pharma', false], ['retail', 'Retail', false], ['construction', 'Construction', true], ['accounting_firm', 'Accounting Firm', true]]
-    .map(([key, label, ready]) => ({ key, label, activation_ready: ready, isolation_ready: ready, ui_integrated: ready, workflows: [{ label: 'Existing shared workflows' }] }));
+    // Real catalog flags describe the registry, not branch-specific activation
+    // readiness. Only the explicit release status marks a pack Upcoming.
+    .map(([key, label, ready]) => ({ key, label, activation_ready: false, isolation_ready: false, ui_integrated: false, release_status: ready ? 'review_required' : 'upcoming', workflows: [{ label: 'Existing shared workflows' }] }));
   fs.writeFileSync(fixture, `import React from 'react';import{createRoot}from'react-dom/client';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import BusinessThemeCards from'@/pages/settings/BusinessThemeCards';import{useAuthStore}from'@/store/authStore';import'@/index.css';sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'component-fixture',user:{id:1,email:'fixture@example.test',role:'admin',is_superuser:false,access:{companyId:1,managed:false,grants:{}}}});const cache=new QueryClient({defaultOptions:{queries:{retry:false}}});createRoot(document.getElementById('root')!).render(<QueryClientProvider client={cache}><main className="p-4"><BusinessThemeCards scope="fixture-company-1" companyId={1} catalog={${JSON.stringify(packs)}}/></main></QueryClientProvider>);`);
   const { createServer } = await import('vite');
   const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } });

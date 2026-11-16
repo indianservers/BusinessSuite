@@ -65,6 +65,21 @@ def test_default_general_get_is_readonly_and_does_not_create_configuration(db, t
     assert {model: records(db, model) for model in before} == before
 
 
+def test_real_catalog_distinguishes_published_choices_from_upcoming_without_global_readiness(theme):
+    response = theme['client'].get(ROOT + '/catalog', headers=theme['headers'])
+    assert response.status_code == 200, response.text
+    packs = {item['key']: item for item in response.json()['items']}
+    for key in ('hospital', 'salon', 'accounting_firm', 'construction'):
+        pack = packs[key]
+        assert pack['release_status'] == 'review_required'
+        assert pack['activation_ready'] is False
+        assert pack['isolation_ready'] is False
+        assert pack['ui_integrated'] is False
+    for key in ('retail', 'pharma', 'restaurant'):
+        assert packs[key]['release_status'] == 'upcoming'
+        assert packs[key]['activation_ready'] is False
+
+
 def test_select_a_then_b_then_general_keeps_exactly_one_active_and_changes_terms(db, theme):
     first = choose(theme, 'hospital')
     assert first['active_key'] == 'hospital' and active(db) == ['hospital']

@@ -73,7 +73,7 @@ export default function BusinessThemeCards({ scope, companyId, catalog, beforeAc
     if (owns() && result.isSuccess) { setConflict(false); setError(''); setNotice(''); }
   }
   const cards = [{ key: 'general', label: 'General', upcoming: false, description: 'Standard business terms and shared workflows.' }, ...catalog.map(pack => ({
-    key: pack.key, label: pack.label, upcoming: !pack.activation_ready || !pack.isolation_ready || !pack.ui_integrated || pack.release_status === 'upcoming', description: pack.workflows.slice(0, 2).map(item => item.label).join(' · '),
+    key: pack.key, label: pack.label, upcoming: pack.release_status === 'upcoming', description: pack.workflows.slice(0, 2).map(item => item.label).join(' · '),
   }))];
   return <section className="grid gap-4" aria-label="Business Packs">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">Choose your Business Pack</h3><p className="text-sm text-muted-foreground">One Business Pack is active for this company. Activating a pack applies its business terms automatically.</p></div><Button variant="outline" disabled={busy !== null || theme.isFetching} onClick={() => void reload()}>Reload Business Pack</Button></div>
