@@ -40,7 +40,7 @@ ControlLegacySessionLocal = sessionmaker(autocommit=False, autoflush=False, bind
 def ControlSessionLocal(**kwargs):
     from app.db.tenant import current_tenant, tenant_session
     route = current_tenant.get()
-    return tenant_session(route) if route else ControlLegacySessionLocal(**kwargs)
+    return tenant_session(route, security_store=True) if route else ControlLegacySessionLocal(**kwargs)
 
 
 # PostgreSQL enforces the DB deadline even if a synchronous HTTP worker is cancelled.

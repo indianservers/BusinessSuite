@@ -6,7 +6,7 @@ from starlette.requests import HTTPConnection
 from starlette.concurrency import run_in_threadpool
 from app.core.security import verify_access_token
 from app.core.middleware.audit import client_addresses
-from app.core.request_limits import enabled, factory, consume, acquire, release
+from app.core.request_limits import enabled, consume, acquire, release, security_transaction, digest
 
 
 class WebSocketBoundaryMiddleware:
@@ -25,27 +25,27 @@ class WebSocketBoundaryMiddleware:
         if enabled(connection):
 
             def reserve():
-                with factory(connection)() as db:
-                    db.info["security_store_timeout"] = True
+                def attempt(db):
+                    attempt_leases = []
                     retry = consume(
                         db,
                         [(f"socket-ip:{ip}", 30, 60), (f"socket-user:{user}", 15, 60)],
                     )
                     if not retry:
-                        for key, maximum in [
+                        for key, maximum in sorted([
                             (f"socket-work-ip:{ip}", 20),
                             (f"socket-work-user:{user}", 5),
-                        ]:
+                        ], key=lambda item: digest(item[0])):
                             lease = acquire(db, key, maximum, 610)
                             if lease is None:
                                 retry = 5
                                 break
-                            leases.append(lease)
-                    db.commit()
-                    return retry
+                            attempt_leases.append(lease)
+                    return retry, attempt_leases
+                return security_transaction(connection, attempt)
 
             try:
-                retry = await run_in_threadpool(reserve)
+                retry, leases = await run_in_threadpool(reserve)
             except Exception:
                 retry = 5
             if retry:
@@ -86,11 +86,7 @@ class WebSocketBoundaryMiddleware:
                 if enabled(connection):
 
                     def message_budget():
-                        with factory(connection)() as db:
-                            db.info["security_store_timeout"] = True
-                            retry = consume(db, [(f"socket-messages:{user}", 120, 60)])
-                            db.commit()
-                            return retry
+                        return security_transaction(connection, lambda db: consume(db, [(f"socket-messages:{user}", 120, 60)]))
 
                     try:
                         retry = await run_in_threadpool(message_budget)

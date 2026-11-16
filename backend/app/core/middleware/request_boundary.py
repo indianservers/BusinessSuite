@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from app.core.config import settings
 from app.core.middleware.audit import client_addresses
-from app.core.request_limits import consume, digest, enabled, factory
+from app.core.request_limits import consume, digest, enabled, security_transaction
 
 logger = logging.getLogger("businesssuite.security")
 
@@ -164,11 +164,7 @@ class RequestBoundaryMiddleware:
                 return
 
             def reserve():
-                with factory(request)() as db:
-                    db.info["security_store_timeout"] = True
-                    retry = consume(db, specifications)
-                    db.commit()
-                    return retry
+                return security_transaction(request, lambda db: consume(db, specifications))
 
             try:
                 retry = await run_in_threadpool(reserve)

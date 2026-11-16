@@ -88,8 +88,10 @@ def tenant_engine(route):
         return engine
 
 
-def tenant_session(route):
+def tenant_session(route, *, security_store=False):
     db=sessionmaker(bind=tenant_engine(route),autoflush=False)()
+    if security_store:
+        db.info['security_store_timeout'] = True
     try:
         identity=db.execute(text("SELECT tenant_uuid,company_id,current_database() FROM suite_tenant_identity WHERE singleton=true")).one()
         if tuple(identity)!=(route.tenant_uuid,route.company_id,route.database_name):
@@ -98,7 +100,10 @@ def tenant_session(route):
         db.info["tenant_company_id"]=route.company_id
         return db
     except Exception:
-        db.close();raise HTTPException(503,"Company database identity or connection check failed") from None
+        db.close()
+        if security_store:
+            raise
+        raise HTTPException(503,"Company database identity or connection check failed") from None
 
 
 @contextmanager

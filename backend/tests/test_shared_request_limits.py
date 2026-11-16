@@ -1,4 +1,5 @@
 import asyncio
+import time
 from types import SimpleNamespace
 import pytest
 from sqlalchemy import create_engine, delete
@@ -30,7 +31,7 @@ def limited(client, shared_store, monkeypatch):
     from app.core import request_limits
     # Exercise one fixed rate window even when requests straddle a wall-clock
     # minute under CI load. Keep JWT and request-deadline clocks unchanged.
-    monkeypatch.setattr(request_limits, "time", SimpleNamespace(time=lambda: 1_800_000_001))
+    monkeypatch.setattr(request_limits, "time", SimpleNamespace(time=lambda: 1_800_000_001, monotonic=time.monotonic, sleep=time.sleep))
     monkeypatch.setattr(app.state, "security_enforce_tests", True, raising=False)
     monkeypatch.setattr(
         app.state, "security_session_factory", shared_store, raising=False
@@ -105,6 +106,9 @@ def test_expired_counter_cleanup_is_bounded_and_uses_one_delete(shared_store):
         event.listen(engine, "before_cursor_execute", record)
         try:
             assert consume(db, [("new-active-request", 10, 60)], now=1000) == 0
+            db.commit()
+            from app.core.request_limits import cleanup_expired
+            cleanup_expired(db, now=1000)
             db.commit()
         finally:
             event.remove(engine, "before_cursor_execute", record)
@@ -290,7 +294,7 @@ def test_early_throttle_retains_cors_and_security_headers(limited, monkeypatch):
     # a wall-clock minute boundary. Counter rollover is tested separately.
     monkeypatch.setattr(
         "app.core.middleware.request_boundary.consume",
-        lambda db, specifications: consume(db, specifications, now=120),
+        lambda db, specifications: consume(db, specifications, now=1_800_000_001),
     )
     monkeypatch.setattr(settings, "RATE_LIMIT_PER_MINUTE", 1)
     monkeypatch.setattr(

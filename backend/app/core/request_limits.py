@@ -4,10 +4,62 @@ import hashlib
 import hmac
 import secrets
 import time
+import logging
+from threading import Lock
 from fastapi import HTTPException
 from sqlalchemy import delete, tuple_
 from app.core.config import settings
 from app.models.security_boundary import SecurityRateBucket, SecurityWorkLease
+
+logger = logging.getLogger('businesssuite.security')
+_cleanup_lock = Lock()
+_next_cleanup_at = 0.0
+_retryable_states = {'55P03', '40P01', '40001'}
+
+
+def security_transaction(request, operation, *, cleanup=True):
+    """Retry only explicitly aborted store transactions, never business handlers."""
+    started = time.monotonic()
+    for attempt in range(1, 4):
+        try:
+            with factory(request)() as db:
+                db.info['security_store_timeout'] = True
+                result = operation(db)
+                db.commit()
+            break
+        except Exception as error:
+            original = getattr(error, 'orig', None)
+            state = getattr(original, 'sqlstate', None) or getattr(original, 'pgcode', None)
+            retry = state in _retryable_states and attempt < 3 and time.monotonic() - started < 4
+            # Never log exception strings: DB exceptions can contain SQL parameters.
+            logger.warning('security_event=security_store_%s phase=reserve error_type=%s sqlstate=%s attempt=%s request_id=%s',
+                'retry' if retry else 'failure', type(error).__name__, state or 'unknown', attempt,
+                getattr(request.state, 'request_id', 'unknown') if hasattr(request, 'state') else 'unknown')
+            if not retry:
+                raise
+            time.sleep(0.025 * attempt + secrets.randbelow(26) / 1000)
+            if time.monotonic() - started >= 4:
+                raise
+    if cleanup:
+        _cleanup_after_commit(request)
+    return result
+
+
+def _cleanup_after_commit(request):
+    # Maintenance scheduling is local; all enforcement decisions remain shared.
+    global _next_cleanup_at
+    now = time.monotonic()
+    with _cleanup_lock:
+        if now < _next_cleanup_at:
+            return
+        _next_cleanup_at = now + 1
+    try:
+        with factory(request)() as db:
+            db.info['security_store_timeout'] = True
+            cleanup_expired(db)
+            db.commit()
+    except Exception as error:
+        logger.warning('security_event=security_cleanup_failed error_type=%s', type(error).__name__)
 
 
 def digest(value):
@@ -28,7 +80,8 @@ def insert_for(db, model):
 
 def consume(db, specifications, now=None):
     now = int(time.time()) if now is None else int(now)
-    for name, maximum, seconds in specifications:
+    # Overlapping budgets must take row locks in the same order on every worker.
+    for name, maximum, seconds in sorted(specifications, key=lambda item: (digest(item[0]), now // item[2])):
         window = now // seconds
         table = SecurityRateBucket
         statement = insert_for(db, table).values(
@@ -41,11 +94,18 @@ def consume(db, specifications, now=None):
         ).returning(table.count)
         if db.execute(statement).scalar_one_or_none() is None:
             return max(1, seconds - now % seconds)
-    # Bounded cleanup; even a large backlog never creates unbounded request work.
+    return 0
+
+
+def cleanup_expired(db, now=None):
+    """Opportunistic maintenance must not hold active reservation row locks."""
+    now = int(time.time()) if now is None else int(now)
     keys = (
         db.query(SecurityRateBucket.key, SecurityRateBucket.window)
         .filter(SecurityRateBucket.expires < now)
+        .order_by(SecurityRateBucket.key, SecurityRateBucket.window)
         .limit(100)
+        .with_for_update(skip_locked=True)
         .all()
     )
     if keys:
@@ -54,7 +114,6 @@ def consume(db, specifications, now=None):
                 tuple_(SecurityRateBucket.key, SecurityRateBucket.window).in_(keys)
             )
         )
-    return 0
 
 
 def acquire(db, name, maximum, seconds, now=None):
@@ -116,14 +175,14 @@ def enforce_actor(request, user):
     ]
     leases = []
     try:
-        with factory(request)() as db:
-            db.info["security_store_timeout"] = True
+        def reserve(db):
+            attempt_leases = []
             retry = consume(db, specifications)
             if not retry and expensive(request.url.path):
-                for name in (
+                for name in sorted((
                     f"work-user:{user.organization_id}:{user.id}",
                     f"work-company:{user.organization_id}",
-                ):
+                ), key=digest):
                     lease = acquire(
                         db,
                         name,
@@ -136,8 +195,9 @@ def enforce_actor(request, user):
                     if lease is None:
                         retry = 5
                         break
-                    leases.append(lease)
-            db.commit()
+                    attempt_leases.append(lease)
+            return retry, attempt_leases
+        retry, leases = security_transaction(request, reserve)
         if retry:
             import logging
 
@@ -168,9 +228,8 @@ def release(request, leases):
     if not leases:
         return
     try:
-        with factory(request)() as db:
-            db.info["security_store_timeout"] = True
-            for key, slot, token in leases:
+        def clear(db):
+            for key, slot, token in sorted(leases):
                 db.execute(
                     delete(SecurityWorkLease).where(
                         SecurityWorkLease.key == key,
@@ -178,7 +237,7 @@ def release(request, leases):
                         SecurityWorkLease.token == token,
                     )
                 )
-            db.commit()
+        security_transaction(request, clear, cleanup=False)
     except Exception:
         # Expiring ownership tokens prevent an old request from releasing a new lease.
         import logging
