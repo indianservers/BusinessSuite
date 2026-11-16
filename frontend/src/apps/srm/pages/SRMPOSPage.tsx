@@ -32,7 +32,7 @@ import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import "./srm-pos-mobile.css";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
@@ -238,6 +238,17 @@ function currency(value: number) {
 
 function shortCurrency(value: number) {
   return value.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+}
+
+// Never reuse a pre-settlement register response after a confirmed checkout.
+async function refreshSettledRegister(client: QueryClient, queryKey: readonly unknown[], read: (signal: AbortSignal) => Promise<SRMRecord>, owns: () => boolean) {
+  await client.cancelQueries({queryKey, exact:true});
+  if (!owns()) return;
+  return client.fetchQuery({queryKey, queryFn:({signal})=>read(signal), staleTime:0, retry:false});
+}
+
+function registerCashDisplay(fetching: boolean, failed: boolean, amount: number, format: (amount: number) => string) {
+  return fetching ? "Refreshing..." : failed || !Number.isFinite(amount) ? "Unavailable" : format(amount);
 }
 
 function cashNumber(value: unknown) {
@@ -504,7 +515,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [bookingSummaries,setBookingSummaries] = useState<Record<string,string>>({});
   const [requirements, setRequirements] = useState<Record<string,boolean>>({});
   const [openingCash, setOpeningCash] = useState('0'), [opening, setOpening] = useState(false);
-  const activeRegister = useQuery({queryKey:['srm','pos-active-session',scope],queryFn:()=>srmApi.activePosSession(),retry:false});
+  const registerQueryKey = ['srm','pos-active-session',scope] as const;
+  const readActiveRegister = (signal: AbortSignal) => api.get<SRMRecord>('/srm/pos/sessions/active',{signal,recordCache:false}).then(response=>response.data);
+  const activeRegister = useQuery({queryKey:registerQueryKey,queryFn:({signal})=>readActiveRegister(signal),retry:false});
   const paymentCaps = useQuery({queryKey:['srm','pos-checkout-payment-capabilities',scope],queryFn:()=>api.get<{collect:boolean}>('/srm/industry/capabilities').then(response=>response.data),enabled:!!lastSale?.checkoutId,retry:false});
   type CheckoutAuthority = {invoice?:boolean;collect?:boolean;checkout_create?:boolean;checkout_collect?:boolean};
   const recoveryAuthority = useQuery({queryKey:['srm','pos-checkout-recovery-authority',scope],queryFn:({signal})=>api.get<CheckoutAuthority>('/srm/industry/capabilities',{signal,recordCache:false}).then(response=>response.data),retry:false,enabled:!!uncertain,placeholderData:undefined});
@@ -575,7 +588,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const expectedCash = cashNumber(registerCash?.expected_cash);
   const cashReceived = cashNumber(registerCash?.cash_sales);
   const countedClosingCash = cashNumber(closingCash);
-  const canCloseSession = Boolean(register?.id) && !registerCash?.reconciliation_required && Number.isFinite(expectedCash) && Number.isFinite(countedClosingCash) && countedClosingCash >= 0;
+  const registerCashReady = !activeRegister.isFetching && !activeRegister.isError && Number.isFinite(expectedCash);
+  const canCloseSession = registerCashReady && Boolean(register?.id) && !registerCash?.reconciliation_required && Number.isFinite(expectedCash) && Number.isFinite(countedClosingCash) && countedClosingCash >= 0;
   const lowStockCount = storeProducts.filter((product) => product.trackInventory && product.stock <= product.reorderLevel).length;
 
   const branchDisplay = useQuery({queryKey:['srm','pos-display-branch',scope],queryFn:()=>api.get<{branches:{id:number;name:string}[]}>('/branches/context',{recordCache:false}).then(response=>response.data),retry:false});
@@ -691,7 +705,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       const sale:Sale={...attempt.sale,invoiceNo:result.invoice.number,amount:Number(result.invoice.total),checkoutId:result.id,paid:result.invoice.paid,balance:result.invoice.balance,receiptNumbers:result.receipts.map(row=>row.number),hasBookings:attempt.payload.lines.some(line=>!!line.booking)};
       setUndo(null);setConfirmClear(false);setReadinessOpen(false);setSales(current=>[sale,...current].slice(0,25));setLastSale(sale);setActiveModal('success');
       void syncSrmNow(queryClient,{type:'pos_sale_completed',source:'pos-terminal',ids:{sales_order_id:result.sales_order_id}});
-      void productsQuery.refetch();if(!selectedPOS)void heldBillsQuery.refetch();void activeRegister.refetch();
+      void productsQuery.refetch();if(!selectedPOS)void heldBillsQuery.refetch();
+      // Refresh failures must not turn a committed sale into an uncertain checkout.
+      void refreshSettledRegister(queryClient,registerQueryKey,readActiveRegister,owns).catch(()=>undefined);
       if(attempt.after==='print')printReceipt(sale);
       if(attempt.after==='email')toast({title:'Checkout completed',description:'Email receipt delivery is not configured. No email has been queued.'});
       if(attempt.after==='whatsapp'&&phoneLinks(customer.phone)?.whatsapp)navigate('/crm/whatsapp',{state:{whatsappDraft:{key:`checkout:${sale.checkoutId}`,to:phoneLinks(customer.phone)!.call.slice(4),body:`Hello ${sale.customer}, thank you for your purchase. Invoice: ${sale.invoiceNo}. Total: ${shortCurrency(sale.amount)}. Paid: ${shortCurrency(Number(sale.paid))}. Balance: ${shortCurrency(Number(sale.balance))}.`}}});
@@ -936,7 +952,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             <SessionPill label="Template" value={activeStoreProfile.name} />
             <SessionPill label="Cashier" value={cashierName} />
             <SessionPill label="Opening cash" value={shortCurrency(Number(register?.opening_cash||0))} />
-            <SessionPill label="Expected cash" value={Number.isFinite(expectedCash)?shortCurrency(expectedCash):"Unavailable"} />
+            <SessionPill label="Expected cash" value={registerCashDisplay(activeRegister.isFetching,activeRegister.isError,expectedCash,shortCurrency)} />
           </div>
           <CompactActions className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={!lastSale?.checkoutId && !sales.some(sale=>!!sale.checkoutId)} onClick={()=>{const sale=lastSale || sales.find(sale=>!!sale.checkoutId);if(sale){setLastSale(sale);setActiveModal('success');}}}>Last receipt</Button>
@@ -1402,10 +1418,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         <Overlay title="Close POS Session" onClose={() => setActiveModal(null)}>
           <div className="space-y-3">
             <SummaryLine label="Opening cash" value={register?currency(Number(register.opening_cash||0)):"No open register"} />
-            <SummaryLine label="Cash received" value={register&&Number.isFinite(cashReceived)?currency(cashReceived):"Unavailable"} />
-            <SummaryLine label="Expected closing cash" value={Number.isFinite(expectedCash)?currency(expectedCash):"Unavailable"} />
+            <SummaryLine label="Cash received" value={registerCashDisplay(activeRegister.isFetching,activeRegister.isError,cashReceived,currency)} />
+            <SummaryLine label="Expected closing cash" value={registerCashDisplay(activeRegister.isFetching,activeRegister.isError,expectedCash,currency)} />
             <label className="block text-sm text-slate-400">Actual counted cash<Input value={closingCash} onChange={(event) => setClosingCash(event.target.value)} type="number" className="mt-1 border-white/15 bg-slate-950 text-white" /></label>
-            {Number.isFinite(countedClosingCash) && countedClosingCash >= 0 && Number.isFinite(expectedCash) ? <SummaryLine label="Cash variance" value={currency(countedClosingCash - expectedCash)} /> : null}
+            {registerCashReady && Number.isFinite(countedClosingCash) && countedClosingCash >= 0 ? <SummaryLine label="Cash variance" value={currency(countedClosingCash - expectedCash)} /> : null}
             <Button className="w-full" variant="destructive" disabled={!canCloseSession||nativeBusy} onClick={async () => {
               if(!register?.id||!canCloseSession||!owns()||locked)return;
               setNativeBusy(true);
