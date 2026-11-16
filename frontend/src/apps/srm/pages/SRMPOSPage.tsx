@@ -1092,7 +1092,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                         <span className="block truncate text-xs text-slate-400">{product.barcode}</span>
                       </span>
                     </button>
-                    <span className="truncate text-slate-500">{isService(product) ? product.bookingRequired ? "Appointment required" : "Optional scheduling" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
+                    <span className="truncate text-slate-500">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                     <span className="truncate text-slate-500">{product.category}</span>
                     <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : "Service"}</span>
                     <strong className="text-[#6d49d7]">{currency(product.rate)}</strong>
@@ -1112,7 +1112,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                       <ProductMark product={product} lowStock={lowStock} />
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-slate-950">{product.name}</strong>
-                        <span className="block truncate text-xs text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Optional scheduling" : product.sku} / {product.category} · Tax {product.taxRate}% {product.duration && `· ${product.duration}`}</span>
+                        <span className="block truncate text-xs text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} / {product.category} · Tax {product.taxRate}% {product.duration && `· ${product.duration}`}</span>
                       </span>
                       <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : "Service"}</span>
                       <strong className="w-24 text-right text-[#6d49d7]">{currency(product.rate)}</strong>
@@ -1133,7 +1133,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     <button type="button" className="block w-full text-left" onClick={() => addProduct(product)} data-product-id={product.id} disabled={product.checkoutSupported===false || product.trackInventory && product.stock<=0}>
                       <ProductVisual product={product} lowStock={lowStock} density={tileDensity} />
                       <span className="mt-2 block truncate px-2 text-xs font-semibold text-slate-950">{product.name}</span>
-                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Optional scheduling" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
+                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                       <span className="mt-2 flex items-center justify-between gap-2 px-2 pb-2">
                         <strong className="text-sm text-[#6d49d7]">{shortCurrency(product.rate)}</strong>
                         <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? `${product.stock} in stock` : isService(product) ? "Service" : "Product"}</span>
