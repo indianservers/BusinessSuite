@@ -15,6 +15,7 @@ import { useMobile } from "@/components/mobile/useMobile";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/services/api";
+import { useRecordScope } from "@/lib/record-scope";
 
 import { canAccessRoute } from "@/lib/roles";
 
@@ -91,6 +92,7 @@ export default function MobileModuleDock() {
   const location = useLocation();
 
   const user = useAuthStore(state => state.user);
+  const scope = useRecordScope();
 
   const [selected, setSelected] = useState<Item | null>(null);
 
@@ -112,7 +114,7 @@ export default function MobileModuleDock() {
 
   const badges = useQuery<Record<string, number>>({
 
-    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals],
+    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals, scope],
 
     queryFn: async (): Promise<Record<string, number>> => {
 

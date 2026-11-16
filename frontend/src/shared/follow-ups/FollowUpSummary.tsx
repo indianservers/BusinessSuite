@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
+import { useRecordScope } from "@/lib/record-scope";
 export default function FollowUpSummary({ base }: { base: string }) {
+  const scope = useRecordScope();
   const q = useQuery({
-    queryKey: ["follow-ups", "statistics"],
+    queryKey: ["follow-ups", "statistics", scope],
     queryFn: () => api.get("/follow-ups/statistics").then((r) => r.data),
     refetchInterval: 60000,
   });
