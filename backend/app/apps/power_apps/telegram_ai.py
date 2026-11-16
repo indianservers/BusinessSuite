@@ -99,12 +99,12 @@ async def company_answer(db, app, resource, trigger, thread, linked, text, reque
         plan = result.get('plan') or {}
         reply = plan.get('question') or plan.get('summary') or 'Your request has been processed by ActionBot.'
         if result['status'] == 'awaiting_approval':
-            reply += '\nThis is a proposed action. Review the exact details before approving.'
+            await suite.cancel(result['id'], request, db, user)
+            return ('Company Telegram can view information. Make internal business changes in BusinessSuite.',
+                {'ai_conversation_id': chat_id, 'ai_run_id': result['id'], 'ai_status': 'cancelled'})
         elif result['status'] == 'failed':
             raise HTTPException(422, 'ActionBot could not complete this request')
         metadata = {'ai_conversation_id': chat_id, 'ai_run_id': result['id'], 'ai_status': result['status']}
-        if result['status'] == 'awaiting_approval':
-            metadata['_approval'] = {'operation': {'suite_run_id': result['id'], 'plan_hash': result['plan_hash']}, 'preview': json.dumps(plan, ensure_ascii=False, indent=2)}
         return reply[:4000], metadata
 
 
@@ -128,6 +128,10 @@ def _public_answer(db, resource, trigger, owner, thread, text, config):
     known = knowledge_answer(trigger, 'public', text)
     if known:
         return PublicAnswer(reply=known['reply'][:3000], source_ids=known['source_ids'])
+    from app.apps.power_apps.telegram_catalogue import answer as catalogue_answer
+    catalogue = catalogue_answer(db, resource, trigger, owner, text)
+    if catalogue:
+        return PublicAnswer(reply=catalogue)
     prediction = parse(text, module='CRM', model_scope=runtime_scope(db, owner))
     if config.provider == 'local':
         # The trained local model is an intent model, not a free-form generative LLM.

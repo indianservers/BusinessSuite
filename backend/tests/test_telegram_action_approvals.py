@@ -25,72 +25,48 @@ def proposed(client, db, actors, bot):
     deliver(db, bot, 2, text='Create a CRM task called "Telegram reviewed action"', sender_id=77)
     asyncio.run(telegram_ai.dispatch(db, client.app))
     run = db.query(SuiteRun).one()
-    assert run.status == 'awaiting_approval', run.plan
-    approval = db.query(TelegramActionApproval).one()
-    return resource, approval, run, review_button(db)
+    # Reconstruct an old, pre-view-only review to exercise persisted queue fences.
+    import hashlib
+    from app.apps.power_apps.models import TelegramConversation, TelegramIdentity
+    thread = db.query(TelegramConversation).filter_by(interface='company').one()
+    linked = db.get(TelegramIdentity, thread.identity_id)
+    token = 'a' * 32
+    operation = {'suite_run_id': run.id, 'plan_hash': run.plan_hash,
+        '_binding': telegram_approvals.binding(linked), '_preview': ['Legacy company action']}
+    approval = TelegramActionApproval(resource_id=resource.id, organization_id=resource.organization_id,
+        environment=resource.environment, conversation_id=thread.id, identity_id=linked.id,
+        token_hash=hashlib.sha256(token.encode()).hexdigest(), kind='suite', operation=operation,
+        operation_hash=telegram_approvals.digest(operation), status='pending', result={'viewed_page': 0},
+        expires_at=now() + timedelta(minutes=15))
+    db.add(approval); db.commit()
+    return resource, approval, run, 'approve:' + token
 
 
-def test_telegram_approval_executes_canonical_action_once(client, db, actors, bot, proposed):
+def test_company_action_is_cancelled_and_legacy_review_cannot_execute(client, db, actors, bot, proposed):
     _, approval, run, button = proposed
-    assert db.query(CRMTask).count() == 0
+    assert run.status == 'cancelled'
     deliver(db, bot, 3, callback=button, sender_id=77)
-    asyncio.run(telegram_approvals.dispatch(db, client.app))
-    from app.ai_operator.suite import process_suite_batch
-    assert asyncio.run(process_suite_batch(db, client.app)) == 1
-    asyncio.run(telegram_approvals.dispatch(db, client.app))
-    db.refresh(run)
-    assert run.status == 'succeeded', str((run.status, run.error_code, run.result))
-    assert db.query(CRMTask).one().title == 'Telegram reviewed action'
-    db.refresh(approval); db.refresh(run)
-    assert approval.status == 'approved' and run.status == 'succeeded'
-    assert approval.result['receipts']
-    deliver(db, bot, 4, callback=button, sender_id=77)
-    asyncio.run(telegram_approvals.dispatch(db, client.app))
-    assert asyncio.run(process_suite_batch(db, client.app)) == 0
-    assert db.query(CRMTask).count() == 1
-
-
-@pytest.mark.parametrize('change', ['expired', 'tampered', 'other_sender', 'rejected'])
-def test_review_expiry_tampering_wrong_identity_and_rejection_block_execution(client, db, bot, proposed, change):
-    _, approval, run, button = proposed
-    sender = 77
-    if change == 'expired':
-        approval.expires_at = now() - timedelta(seconds=1); db.commit()
-    elif change == 'tampered':
-        approval.operation = {**approval.operation, 'plan_hash': '0' * 64}; db.commit()
-    elif change == 'other_sender':
-        sender = 88
-    else:
-        button = review_button(db, 'Reject')
-    deliver(db, bot, 3, callback=button, sender_id=sender)
     asyncio.run(telegram_approvals.dispatch(db, client.app))
     from app.ai_operator.suite import process_suite_batch
     assert asyncio.run(process_suite_batch(db, client.app)) == 0
     assert db.query(CRMTask).count() == 0
-    db.refresh(run)
-    assert run.status == ('cancelled' if change == 'rejected' else 'awaiting_approval')
 
 
-def test_revoked_telegram_identity_blocks_already_approved_execution(client, db, actors, bot, proposed):
-    resource, approval, run, button = proposed
-    deliver(db, bot, 3, callback=button, sender_id=77)
-    asyncio.run(telegram_approvals.dispatch(db, client.app))
-    assert client.delete(f'{ROOT}/{resource.id}/identities/{approval.identity_id}', headers=actors[0]).status_code == 200
-    from app.ai_operator.suite import process_suite_batch
-    asyncio.run(process_suite_batch(db, client.app))
-    db.refresh(run)
-    assert run.status == 'paused' and run.error_code == 'CANONICAL_STEP_403'
-    assert db.query(CRMTask).count() == 0
-
-
-def test_expiry_after_queue_does_not_claim_a_known_failed_outcome(client, db, bot, proposed):
-    _, approval, _, button = proposed
-    deliver(db, bot, 3, callback=button, sender_id=77)
-    asyncio.run(telegram_approvals.dispatch(db, client.app))
-    approval.expires_at = now() - timedelta(seconds=1)
+@pytest.mark.parametrize('status', ['approve_requested', 'executing'])
+def test_persisted_company_queue_cannot_bypass_view_only(client, db, bot, proposed, status):
+    _, approval, _, _ = proposed
+    approval.status = status
     db.commit()
     asyncio.run(telegram_approvals.dispatch(db, client.app))
     db.refresh(approval)
-    assert approval.status == 'needs_reconciliation'
-    assert 'receipts before retrying' in approval.result['error']
+    assert approval.status == ('needs_reconciliation' if status == 'executing' else 'failed')
     assert db.query(CRMTask).count() == 0
+
+
+def test_non_telegram_origins_unchanged_but_legacy_company_origin_denied():
+    from types import SimpleNamespace
+    from fastapi import HTTPException
+    assert telegram_approvals.validate_origin(None, None, SimpleNamespace(result={})) is None
+    with pytest.raises(HTTPException) as error:
+        telegram_approvals.validate_origin(None, None, SimpleNamespace(result={'telegram_origin': {'resource_id': 1}}))
+    assert error.value.status_code == 403

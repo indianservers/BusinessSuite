@@ -103,3 +103,15 @@ Claimed staff can generate a sourced suggestion, edit it and manually queue the 
 Native appointment services select a provider plus required room/equipment resources. Verified customers book only their own account; employees use their own current Sales permissions. Creation, rescheduling and cancellation each require an exact expiring review. Native availability and revision checks run again on execution, rejecting intervening bookings, changed prices or unavailable resources. No payment capture or invoice posting is implied.
 
 Additional checks: `test_telegram_experience.py`, `test_telegram_customer_privacy.py`, `test_telegram_routing_regressions.py`, `test_telegram_booking_flow.py`, `test_telegram_action_approvals.py`, `test_telegram_sessions.py` and `test_telegram_staff_workflows.py`. Automated Telegram/cloud calls are mocked; native CRM/appointment writes are exercised against test databases. Browser checks use mocked APIs and do not verify live Telegram transport.
+
+## Customer acquisition policy
+
+Qualified public enquiries must create native CRM leads and follow-up tasks; the old optional CRM switch cannot disable this customer-acquisition path. A greeting or catalogue browse alone is not a qualified lead. Existing scope/branch permissions and duplicate-update protection still apply; failed native creation is handed to staff and never reported as successful.
+
+Public customers may browse explicitly published catalogue items and service availability, submit enquiries, request human assistance and use verified customer booking actions. Company Telegram may view authorized information; new internal action plans are cancelled rather than offered for approval, and historical company Telegram approvals cannot execute. Customer lead capture and booking are intentional exceptions to view-only business discovery.
+
+### Public catalogue and enquiry reminders
+
+Publish service definitions in `booking_services` and choose stock/product IDs explicitly in `catalogue_product_ids`. Public chat returns current active SRM selling prices, tax rates and service durations; native availability excludes conflicting appointments and supports dates, weekdays and requests such as “Consultation availability tomorrow after 4 PM”. Only published catalogue fields are returned; browsing grants no access to costs, stock records, customer identities or appointment details. Booking still uses `/book` and verified customer authorization plus exact review.
+
+`/followup on` opts into one reminder per qualified native lead/task enquiry after 24 hours of inactivity. Default sending hours are 09:00–18:00 Asia/Kolkata. `/followup off`, `/stop` or `/unsubscribe` revoke consent. Human handoff and resolved conversations pause reminders. Consent, current activity, enquiry identity and quiet hours are checked again before delivery through the normal outbox. No historical conversation is automatically opted in.

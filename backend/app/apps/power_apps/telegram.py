@@ -70,6 +70,8 @@ def interface_conversation(text, previous, config, sender_id, company_default=Fa
     state, reply = conversation(text, state)
     if state.get('stage') == 'menu':
         reply = config.get('public_welcome') or WELCOME
+    if command == '/help':
+        reply += '\nAsk for products, services or availability. Send /book to book, /followup on for enquiry reminders, /stop to stop reminders, or /human for support.'
     return {**state, 'interface': 'public'}, reply
 
 
@@ -241,6 +243,10 @@ def accept_update(db, row, trigger, actor, update):
         db.add(linked)
         db.flush()
     thread = operations.get_conversation(db, row, chat_id, sender_id, mode, linked)
+    from app.apps.power_apps.telegram_followups import consent as followup_consent
+    consent_reply = followup_consent(thread, text)
+    if reply is None and consent_reply is not None:
+        reply = consent_reply
     old_state = dict(thread.state or {})
     if verification_notice:
         old_state = {}
@@ -304,7 +310,7 @@ def accept_update(db, row, trigger, actor, update):
             reply = 'Your request was received and is waiting for approval by the company’s authorized reviewer.'
     if completed and state.get('workflow_result') == 'handoff':
         operations.request_handoff(db, row, thread, 'Industry workflow requests staff review')
-    if completed and config.get('create_crm_records', False) and state.get('workflow_result') not in {'handoff', 'appointment_request'} and not state.get('requires_stage_approval'):
+    if completed and (thread.interface == 'public' or config.get('create_crm_records', False)) and state.get('workflow_result') not in {'handoff', 'appointment_request'} and not state.get('requires_stage_approval'):
         try:
             with db.begin_nested():
                 state = operations.create_records(db, row, trigger, actor, linked, thread, state, update_id)
@@ -369,6 +375,8 @@ def poll_tick(db, limit=10):
                 trigger.config = {**trigger.config, 'offset': offset, 'error': None}
                 from app.apps.power_apps.telegram_routing import tick as handoff_tick
                 handoff_tick(db, row, trigger)
+                from app.apps.power_apps.telegram_followups import queue_due as followups_due
+                followups_due(db, row, trigger, actor)
                 trigger.last_at, trigger.next_at = now(), now() + timedelta(seconds=5)
             db.commit()
         except Exception as exc:

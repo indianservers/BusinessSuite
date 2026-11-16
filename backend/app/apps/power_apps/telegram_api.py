@@ -120,6 +120,7 @@ def setup(data: Setup, environment: str = 'development', db: Session = Depends(g
         row = create_workflow(db, user, environment, conn, bot, data.name)
         trigger = db.query(Trigger).filter_by(resource_id=row.id, kind='telegram').one()
         interfaces = BotConfiguration().model_dump(exclude={'audience'})
+        interfaces['create_crm_records'] = data.audience == 'public'
         interfaces['public_enabled'], interfaces['company_enabled'] = data.audience == 'public', data.audience == 'company'
         if data.audience == 'company':
             interfaces['company_welcome'] = 'Company workspace: choose Create lead, Create task, Internal request or Help. Send /human for a person.'
@@ -199,6 +200,8 @@ def configure(resource_id: int, data: BotConfiguration, environment: str = 'deve
     if selected == 'company' and purpose.audience(trigger) != 'company' and trigger.config.get('company_token_verified') is not True:
         raise HTTPException(422, 'Connect a separate employee bot using its own token. A public or legacy bot cannot be promoted to company access here.')
     config = data.model_dump(exclude={'audience'})
+    if selected == 'public':
+        config['create_crm_records'] = True
     if selected != 'shared':
         config['public_enabled'] = selected == 'public' and config['public_enabled']
         config['company_enabled'] = selected == 'company' and config['company_enabled']

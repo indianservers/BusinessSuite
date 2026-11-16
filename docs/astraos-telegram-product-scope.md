@@ -44,7 +44,7 @@ A later Telegram flow could collect service feedback and offer the same review o
 
 The catalog lists unified conversation history, searchable call transcripts, summaries, a daily owner brief, analytics for calls/messages/reviews, and meeting notes/action items. These are broader capabilities than a chatbot widget.
 
-BusinessSuite retains conversation history, unresolved requests, qualification, routing/SLA information and actual delivery/execution references. Company messages use the existing permission-scoped ActionBot planner and require exact approval for proposed actions. Channel-wide conversion/revenue reporting and scheduled owner briefs remain unfinished.
+BusinessSuite retains conversation history, unresolved requests, qualification, routing/SLA information and actual delivery/execution references. Company messages use the existing permission-scoped ActionBot planner for information; internal action proposals are cancelled because company Telegram remains view-only. Public qualified enquiries retain mandatory native lead/task capture and customer booking remains reviewed. Channel-wide conversion/revenue reporting and scheduled owner briefs remain unfinished.
 
 ### Deployment and commercial model
 
@@ -81,9 +81,9 @@ Public pages establish an advertised feature inventory, not uptime, response lat
 
 The public homepage was rechecked in the browser on 16 November 2026. Its claims still center on website acquisition, conversational engagement, scheduling, recovery and reputation. These are advertised capabilities, not independently established operational guarantees.
 
-1. Complete live approval verification after the memory-sharing worker fix and verify a single availability/booking source across Telegram, POS, HRMS and calendars.
+1. Verify public natural-language catalogue discovery, live availability and reviewed customer booking end to end across Telegram, POS, HRMS and calendars; company Telegram remains view-only.
 2. Add a public website chat/booking widget and reviewed website-to-knowledge import; website generation is a separate deliverable.
-3. Add opted-in text follow-ups for unanswered leads, incomplete enquiries and abandoned bookings, with quiet hours and unsubscribe.
+3. Extend the implemented opted-in qualified-enquiry reminders (quiet hours, unsubscribe and delivery consent checks) to incomplete enquiries and abandoned bookings; verify production delivery before claiming recovery outcomes.
 4. Add post-service feedback and consistent Google-review invitations without rating-based review gating.
 5. Connect WhatsApp, SMS and email through channel adapters while preserving identity and conversation boundaries.
 6. Ship tested customer journeys for each advertised target industry, rather than requiring every customer to assemble a workflow from generic questions.
@@ -91,3 +91,7 @@ The public homepage was rechecked in the browser on 16 November 2026. Its claims
 8. Add self-service onboarding and an operator health view showing delivery failures, stale knowledge, overdue handoffs and execution receipts.
 
 Voice reception, telephony and missed-call detection remain intentionally deferred to the next version. The way to compete is to connect these customer-facing journeys reliably to BusinessSuite's existing operational records and report verified outcomes, not to copy unverified performance claims.
+
+## Current implementation checkpoint
+
+Qualified public enquiry lead/task creation is mandatory even when the historical optional switch is false. Public catalogue NLP and native availability reads, plus opted-in qualified-enquiry reminders, are implemented and covered by local tests. These changes do not establish complete AstraOS parity or production deployment. Website acquisition/chat, review invitations, other messaging channels, packaged industry journeys and conversion reporting remain separate deliverables. Voice remains deferred.

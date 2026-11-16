@@ -72,7 +72,8 @@ for (const width of [1440, 390]) {
     await expect(configuration.getByRole('combobox', { name: 'Bot purpose', exact: true })).toHaveValue('public');
     await expect(configuration.getByLabel('Public welcome message')).toBeVisible();
     await expect(configuration.getByLabel('Company welcome message')).toHaveCount(0);
-    await configuration.getByLabel('Create CRM leads and tasks from completed requests').check();
+    await expect(configuration.getByLabel('Automatically create CRM leads and follow-up tasks from qualified enquiries')).toBeChecked();
+    await expect(configuration.getByLabel('Automatically create CRM leads and follow-up tasks from qualified enquiries')).toBeDisabled();
     await configuration.getByLabel('Public welcome message').fill('Welcome customers');
     await configuration.getByRole('button', { name: 'Save interface settings' }).click();
     await expect(configuration.getByText('Telegram configuration saved.')).toBeVisible();

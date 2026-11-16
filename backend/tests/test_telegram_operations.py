@@ -265,3 +265,25 @@ def test_task_failure_rolls_back_new_lead_in_same_transaction(db, bot):
         receive(text)
     assert db.query(CRMLead).count() == 0 and db.query(CRMTask).count() == 0
     assert db.query(TelegramConversation).one().status == 'waiting'
+
+
+def test_public_qualified_lead_creation_cannot_be_disabled(db, bot):
+    resource, trigger, _, _, receive = bot
+    trigger.config = {**trigger.config, 'interfaces': {**trigger.config['interfaces'], 'create_crm_records': False}}
+    db.commit()
+    receive('/public')
+    assert db.query(CRMLead).count() == 0
+    for message in ['Sales', 'Mandatory Lead', 'Need a service consultation']:
+        receive(message)
+    lead = db.query(CRMLead).filter_by(source='Telegram').one()
+    assert lead.full_name == 'Mandatory Lead'
+    assert db.query(CRMTask).filter_by(lead_id=lead.id).count() == 1
+
+
+def test_public_support_enquiry_also_captures_lead(db, bot):
+    _, _, _, _, receive = bot
+    for message in ['/public', 'Support', 'Support Customer', 'Need help selecting the right service']:
+        receive(message)
+    lead = db.query(CRMLead).filter_by(source='Telegram').one()
+    assert lead.full_name == 'Support Customer'
+    assert db.query(CRMTask).filter_by(lead_id=lead.id).count() == 1

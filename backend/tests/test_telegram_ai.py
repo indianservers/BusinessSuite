@@ -50,7 +50,7 @@ def test_public_uses_existing_local_model_and_continues_crm_intake(client, db, b
     assert db.query(Event).filter_by(kind='telegram_ai_request').one().details['status'] == 'completed'
 
 
-def test_company_calls_canonical_actionbot_and_keeps_write_as_reviewed_proposal(client, db, actors, bot):
+def test_company_calls_canonical_actionbot_but_cancels_internal_write(client, db, actors, bot):
     resource, _, owner, _, receive = bot
     ai_permission(db, owner)
     response = client.post(f'{ROOT}/{resource.id}/link-code', headers=actors[0], json={'interface': 'company'})
@@ -61,7 +61,7 @@ def test_company_calls_canonical_actionbot_and_keeps_write_as_reviewed_proposal(
     job = db.query(Event).filter_by(kind='telegram_ai_request').one()
     assert job.details['status'] == 'completed', job.details
     run = db.query(SuiteRun).one()
-    assert run.user_id == owner.id and run.status in {'awaiting_approval', 'needs_clarification'}
+    assert run.user_id == owner.id and run.status in {'cancelled', 'needs_clarification'}
     assert db.query(CRMTask).count() == 0
     assert job.details['ai_run_id'] == run.id
     assert db.query(TelegramConversation).filter_by(interface='company').one().state['ai_conversation_id']

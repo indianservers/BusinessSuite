@@ -17,7 +17,7 @@ export function TelegramInterfaceSettings({ resourceId, environment, initial, ed
     if (config.audience === 'shared') { setFailed(true); setStatus('Choose Public customer bot or Company employee bot before saving.'); return; }
     setBusy(true);
     try {
-      const payload = { ...config, public_enabled: config.audience === 'public', company_enabled: config.audience === 'company' };
+      const payload = { ...config, create_crm_records: config.audience === 'public' || config.create_crm_records, public_enabled: config.audience === 'public', company_enabled: config.audience === 'company' };
       const response = await api.put<{ configuration: TelegramConfiguration }>(`/power-apps/automations/telegram/${resourceId}/configuration`, payload, { params: { environment } });
       setConfig(response.data.configuration); onSaved?.(response.data.configuration); setStatus('Telegram configuration saved.');
     } catch (error) { setFailed(true); setStatus(errorMessage(error)); } finally { setBusy(false); }
@@ -44,7 +44,7 @@ export function TelegramInterfaceSettings({ resourceId, environment, initial, ed
         {username && <a href={`https://t.me/${username}?start=company`} target="_blank" rel="noreferrer">Open company employee bot</a>}
       </fieldset>}
     </div>
-    <label className="telegram-checkbox"><input type="checkbox" disabled={!editable || busy} checked={config.create_crm_records} onChange={e => setConfig({ ...config, create_crm_records: e.target.checked })} />Create CRM leads and tasks from completed requests</label>
+    <label className="telegram-checkbox"><input type="checkbox" disabled={!editable || busy || config.audience === 'public'} checked={config.audience === 'public' || config.create_crm_records} onChange={e => setConfig({ ...config, create_crm_records: e.target.checked })} />Automatically create CRM leads and follow-up tasks from qualified enquiries</label>
     <p>{config.audience === 'company' ? 'Employees create CRM records using their own permissions.' : 'Public intake uses the bot owner’s CRM permissions.'} Enabling requires a bot branch and CRM lead/task creation permission.</p>
     {editable && <button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save interface settings'}</button>}
     {status && <p role={failed ? 'alert' : 'status'}>{status}</p>}

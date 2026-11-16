@@ -149,7 +149,7 @@ def create_records(db, resource, trigger, owner, linked, conversation, state, up
     lead_id = linked.lead_id if linked and conversation.interface == 'public' else None
     with background_scope(db, actor, 'crm', 'create', branch_id=branch_id):
         topic, requirement = state.get('topic', 'Request'), state.get('requirement', '')
-        if topic == 'Sales':
+        if topic == 'Sales' or conversation.interface == 'public':
             # A public identity's existing lead is reused; separate employee-created leads remain separate.
             if lead_id:
                 crm._assert_entity_permission('leads', actor, 'view')
@@ -169,7 +169,7 @@ def create_records(db, resource, trigger, owner, linked, conversation, state, up
             branch_id=branch_id, priority='High' if state.get('qualification', {}).get('priority') in {'High', 'Urgent'} else 'Medium', status='To Do',
             task_details={'telegram': {'workflow_id': state.get('workflow_id'), 'qualification': state.get('qualification'), 'answers': state.get('answers')}},
         ), db, actor, commit=False)
-    if linked and conversation.interface == 'public' and topic == 'Sales':
+    if linked and conversation.interface == 'public':
         linked.lead_id = lead_id
     conversation.lead_id, conversation.task_id = lead_id, result['id']
     return {**state, 'lead_id': lead_id, 'task_id': result['id']}
@@ -229,6 +229,8 @@ def authorize_delivery(db, run, request, resource_id=None):
         raise HTTPException(403, 'Telegram delivery context is unavailable')
     from app.apps.power_apps.telegram_audience import require, safe_verification_notice
     require(trigger, thread.interface)
+    from app.apps.power_apps.telegram_followups import authorize_delivery as authorize_followup
+    authorize_followup(trigger, thread, run.input_payload)
     if run.input_payload.get('telegram_interface', thread.interface) != thread.interface:
         raise HTTPException(403, 'Telegram delivery audience changed')
     verification_notice = run.input_payload.get('telegram_verification_notice') is True

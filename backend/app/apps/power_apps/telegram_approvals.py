@@ -31,6 +31,8 @@ def page_text(approval, page):
 
 
 def issue(db, resource, thread, linked, kind, operation, preview, minutes=15):
+    if thread.interface == 'company':
+        raise HTTPException(403, 'Company Telegram has view-only access. Use BusinessSuite for internal changes.')
     from app.apps.power_apps.telegram_audience import require, trigger_for
     require(trigger_for(db, resource), thread.interface)
     if kind == 'suite':
@@ -61,6 +63,8 @@ def issue(db, resource, thread, linked, kind, operation, preview, minutes=15):
 
 
 def validate(db, resource, thread, linked, approval):
+    if thread.interface == 'company':
+        raise HTTPException(403, 'Company Telegram has view-only access. Use BusinessSuite for internal changes.')
     from app.apps.power_apps.telegram_audience import require, trigger_for
     trigger = trigger_for(db, resource)
     require(trigger, thread.interface)
@@ -116,25 +120,7 @@ def validate_origin(db, user, run):
     origin = (run.result or {}).get('telegram_origin')
     if not origin:
         return None
-    resource = db.get(PowerResource, origin['resource_id'])
-    trigger = db.query(Trigger).filter_by(resource_id=origin['resource_id'], kind='telegram', enabled=True).first()
-    thread = db.get(TelegramConversation, origin['conversation_id'])
-    linked = db.query(TelegramIdentity).filter_by(id=origin['identity_id'], resource_id=origin['resource_id'], revoked_at=None).first()
-    if not resource or not trigger or not thread or not linked or linked.user_id != user.id or resource.organization_id != user.organization_id or binding(linked) != origin['binding']:
-        raise HTTPException(403, 'Telegram execution authorization was revoked')
-    from app.apps.power_apps.telegram_audience import require
-    require(trigger, 'company')
-    if thread.interface != 'company':
-        raise HTTPException(403, 'Company action origin is unavailable')
-    operations.staff_member(db, linked, resource.organization_id)
-    review = db.get(Approval, origin.get('approval_id')) if origin.get('approval_id') else None
-    if not review or review.status not in {'approve_requested', 'executing'} or utc(review.expires_at) <= now() or review.operation_hash != digest(review.operation) or review.operation.get('plan_hash') != run.plan_hash:
-        raise HTTPException(403, 'The Telegram approval is no longer valid')
-    if thread.status in {'waiting', 'assigned'}:
-        raise HTTPException(403, 'Telegram action execution paused for human handoff')
-    if not trigger.config.get('interfaces', {}).get('company_enabled', True):
-        raise HTTPException(403, 'Company Telegram access is disabled')
-    return trigger.config.get('branch_id')
+    raise HTTPException(403, 'Company Telegram has view-only access. Use BusinessSuite for internal changes.')
 
 
 async def dispatch(db, app, limit=5):

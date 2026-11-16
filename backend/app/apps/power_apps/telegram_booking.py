@@ -33,7 +33,7 @@ def available_slots(db, actor, branch, service, day, ignore=None):
     candidate = datetime.combine(day, time.fromisoformat(primary.data['opens']), zone)
     end = datetime.combine(day, time.fromisoformat(primary.data['closes']), zone)
     slots = []
-    while candidate + timedelta(minutes=service.duration_minutes) <= end and len(slots) < 24:
+    while candidate + timedelta(minutes=service.duration_minutes) <= end and len(slots) < 96:
         if candidate > now():
             try:
                 available(db, actor, branch, candidate, service.duration_minutes, service.resource_ids, ignore=ignore, lock=False)

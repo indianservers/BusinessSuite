@@ -154,6 +154,7 @@ class ExperienceConfiguration(Contract):
     lead_workflow_id: str | None = Field(default=None, max_length=64)
     routing_agents: list[RoutingAgent] = Field(default_factory=list, max_length=100)
     booking_services: list[BookingService] = Field(default_factory=list, max_length=50)
+    catalogue_product_ids: list[int] = Field(default_factory=list, max_length=100)
     handoff_minutes: int = Field(default=15, ge=1, le=1440)
     urgent_handoff_minutes: int = Field(default=5, ge=1, le=1440)
     escalation_user_ids: list[int] = Field(default_factory=list, max_length=10)
@@ -163,6 +164,8 @@ class ExperienceConfiguration(Contract):
         for items, field in [(self.knowledge, 'id'), (self.workflows, 'id'), (self.routing_agents, 'user_id'), (self.booking_services, 'service_id')]:
             if len({getattr(item, field) for item in items}) != len(items):
                 raise ValueError('Configuration keys must be unique')
+        if len(set(self.catalogue_product_ids)) != len(self.catalogue_product_ids) or any(value <= 0 for value in self.catalogue_product_ids):
+            raise ValueError('Choose unique positive public catalogue product IDs')
         if len(set(self.escalation_user_ids)) != len(self.escalation_user_ids) or any(value <= 0 for value in self.escalation_user_ids):
             raise ValueError('Choose unique positive escalation user IDs')
         if self.lead_workflow_id and self.lead_workflow_id not in {flow.id for flow in self.workflows}:
@@ -246,6 +249,16 @@ def save(db, resource, trigger, user, payload):
     for fact in payload.knowledge:
         if fact.approved and fact.expires_at <= now():
             raise HTTPException(422, f'Approved knowledge "{fact.title}" needs a future expiry')
+    if payload.catalogue_product_ids:
+        from app.apps.srm.industry_api import context
+        from app.apps.srm.models import SRMProduct
+        from app.apps.srm.services.commercial import record
+        with background_scope(db, user, 'srm', 'view', branch_id=branch):
+            context(db, user, appointments=True)
+            for ident in payload.catalogue_product_ids:
+                product = record(db, SRMProduct, ident, user)
+                if not product.active:
+                    raise HTTPException(422, 'Public catalogue requires active products')
     if payload.booking_services:
         from app.apps.srm.industry_api import context, get, PROVIDER_TYPES
         from app.apps.srm.models import SRMProduct

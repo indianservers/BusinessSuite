@@ -61,7 +61,7 @@ def apply_stage(db, resource, trigger, thread, target, actor_id, initial=False):
         owner = trigger_identity(db, trigger)
         linked = operations.identity(db, resource, thread.telegram_id, thread.interface)
         state = context.get('intake_state', {})
-        if not context.get('stage_approved') and trigger.config.get('interfaces', {}).get('create_crm_records') and state.get('workflow_result') not in {'handoff', 'appointment_request'}:
+        if not context.get('stage_approved') and (thread.interface == 'public' or trigger.config.get('interfaces', {}).get('create_crm_records')) and state.get('workflow_result') not in {'handoff', 'appointment_request'}:
             with db.begin_nested():
                 state = operations.create_records(db, resource, trigger, owner, linked, thread, state, int(context['workflow_case_id']))
             requests = [{**item, 'task_id': state.get('task_id'), 'lead_id': state.get('lead_id')} if str(item.get('update_id')) == context['workflow_case_id'] else item for item in context.get('requests', [])]

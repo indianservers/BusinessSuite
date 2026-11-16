@@ -52,6 +52,21 @@ def test_setup_poll_deduplicate_reply_logs_pause_and_scope(client, db, actors, m
     assert token not in response.text
     assert all(token not in row.encrypted_value for row in db.query(Credential).all())
     trigger = db.query(Trigger).filter_by(resource_id=resource_id, kind='telegram').one()
+    from app.models.user import User, Permission
+    from app.models.company import Branch
+    from app.branches.models import BranchOwnership
+    owner = db.query(User).filter_by(email='power-0@example.com').one()
+    permission = db.query(Permission).filter_by(name='crm_manage').first()
+    if not permission:
+        permission = Permission(name='crm_manage', module='crm')
+        db.add(permission)
+    owner.role.permissions.append(permission)
+    branch = db.query(Branch).filter_by(company_id=1).first()
+    for candidate in db.query(Branch).filter_by(company_id=1).all():
+        if not db.query(BranchOwnership).filter_by(resource_table='branches', resource_key=str(candidate.id)).first():
+            db.add(BranchOwnership(company_id=1, branch_id=candidate.id, resource_table='branches', resource_key=str(candidate.id), source='telegram-test-fixture'))
+    trigger.config = {**trigger.config, 'branch_id': branch.id}
+    db.commit()
     for update_id, text in enumerate(['/start', 'Sales', 'Alex', 'Need 10 units'], 1):
         updates[:] = [{'update_id': update_id, 'message': {'date': trigger.config['started_at'] + 1, 'chat': {'id': 42, 'type': 'private'}, 'from': {'first_name': 'Alex', 'is_bot': False}, 'text': text}}]
         trigger.next_at = None
@@ -68,7 +83,7 @@ def test_setup_poll_deduplicate_reply_logs_pause_and_scope(client, db, actors, m
                 process(db, *job)
     assert len(sent) == 4
     assert all(item['chat_id'] == '42' for item in sent)
-    assert 'received your enquiry' in sent[-1]['text']
+    assert 'Recorded CRM task #' in sent[-1]['text']
     assert db.query(PowerExecution).filter_by(resource_id=resource_id).count() == 4
     trigger = db.get(Trigger, trigger.id)
     trigger.next_at = None
@@ -84,7 +99,7 @@ def test_setup_poll_deduplicate_reply_logs_pause_and_scope(client, db, actors, m
                 'public_welcome': 'Customer welcome', 'company_welcome': 'Staff welcome'}
     saved = client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[0], json=settings)
     assert saved.status_code == 200, saved.text
-    expected = {**settings, 'company_enabled': False, 'audience': 'public'}
+    expected = {**settings, 'create_crm_records': True, 'company_enabled': False, 'audience': 'public'}
     assert saved.json()['configuration'] == expected
     assert client.get(ROOT + '/bots', headers=actors[0]).json()['items'][0]['configuration'] == expected
     assert client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[2], json=settings).status_code in {403, 404}

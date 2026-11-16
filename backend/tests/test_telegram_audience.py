@@ -183,14 +183,14 @@ def test_queued_approved_company_origin_cannot_execute_after_bot_becomes_public(
     _, _, run, button = proposed
     deliver(db, bot, 3, callback=button, sender_id=77)
     asyncio.run(telegram_approvals.dispatch(db, client.app))
-    assert run.status == 'queued'
+    assert run.status == 'cancelled'
     set_purpose(db, bot, 'public')
     deliver(db, bot, 4, callback=button, sender_id=77)
-    assert db.query(TelegramMessage).filter_by(direction='outgoing').order_by(TelegramMessage.id.desc()).first().text == telegram_audience.PUBLIC_NOTICE
+    assert db.query(TelegramMessage).filter_by(direction='outgoing').order_by(TelegramMessage.id.desc()).first().text == 'This action review is unavailable'
     from app.ai_operator.suite import process_suite_batch
     asyncio.run(process_suite_batch(db, client.app, telegram_only=True))
     db.refresh(run)
-    assert run.status == 'paused' and run.error_code == 'CANONICAL_STEP_403'
+    assert run.status == 'cancelled'
     assert db.query(CRMTask).count() == 0
 
 
