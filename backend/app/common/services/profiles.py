@@ -790,6 +790,7 @@ def serialize_profile(db, user, actor):
             ),
             "work_email": employee.work_email,
             "work_location": employee.work_location,
+            "work_categories": employee.work_categories or [],
         }
         if employee
         else None

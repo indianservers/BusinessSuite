@@ -177,6 +177,7 @@ export default function App() {
     { path: "power-apps/approvals", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
     { path: "power-apps/approvals/:section", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
     { path: "power-apps/approvals/designer/:id", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
+    { path: "power-apps/automations/telegram", element: <PowerAppsPage /> },
     { path: "power-apps/automations/executions", element: <AutomationRuntimePage /> },
     { path: "power-apps/automations/executions/:runId", element: <AutomationRuntimePage /> },
     { path: "power-apps/automations/:resourceId/runtime", element: <AutomationRuntimePage /> },

@@ -4941,7 +4941,7 @@ def _record_entity_type(entity: str) -> str | None:
     return ENTITY_TYPE_BY_CANONICAL.get(_canonical_entity(entity))
 
 
-def _create_related_timeline_event(db: Session, entity: str, item: dict[str, Any], organization_id: int, user_id: int | None) -> None:
+def _create_related_timeline_event(db: Session, entity: str, item: dict[str, Any], organization_id: int, user_id: int | None, *, commit: bool = True) -> None:
     canonical = _canonical_entity(entity)
     if canonical == "deals":
         _create_timeline_activity(db, organization_id=organization_id, entity_type="deal", entity_id=int(item["id"]), activity_type="stage_change", title="Deal entered initial pipeline stage", body=f"Created in stage #{item.get('stage_id')}", user_id=user_id, metadata={"field": "stage_id", "old": None, "new": item.get("stage_id"), "sourceEntity": "deals", "sourceId": item["id"]})
@@ -4971,7 +4971,7 @@ def _create_related_timeline_event(db: Session, entity: str, item: dict[str, Any
                 user_id=user_id,
                 metadata={"sourceEntity": canonical, "sourceId": item.get("id"), "status": item.get("status")},
             )
-        db.commit()
+        db.commit() if commit else db.flush()
         return
     if not entity_type or not entity_id:
         return
@@ -4999,7 +4999,7 @@ def _create_related_timeline_event(db: Session, entity: str, item: dict[str, Any
             user_id=user_id,
             metadata={"sourceEntity": canonical, "sourceId": item.get("id")},
         )
-    db.commit()
+    db.commit() if commit else db.flush()
 
 
 def _create_update_timeline_events(
@@ -9076,7 +9076,13 @@ def create_record(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
+    return create_record_operation(entity, payload, db, current_user)
+
+
+def create_record_operation(entity, payload, db, current_user, *, commit=True):
     resource = _get_resource(entity)
+    if not commit and resource.model not in {CRMLead, CRMTask}:
+        raise HTTPException(422, "Transactional record creation supports leads and tasks")
     _assert_entity_permission(entity, current_user, "manage")
     if resource.model in {CRMProduct, CRMService}:
         from app.shared.catalog import save_legacy
@@ -9227,15 +9233,15 @@ def create_record(
         from app.shared.pipeline_workspace import stage_entry
         stage_entry(db, current_user, "crm", "deal", record.id, None, record.stage_id, record.owner_user_id, f"pipeline:{record.pipeline_id}")
         db.flush()
-    else: db.commit()
+    else: db.commit() if commit else db.flush()
     db.refresh(record)
-    _create_related_timeline_event(db, entity, _serialize(record), organization_id, current_user.id)
+    _create_related_timeline_event(db, entity, _serialize(record), organization_id, current_user.id, commit=commit)
     if resource.model is not CRMLead:
         _recalculate_linked_lead(db, _serialize(record), organization_id, current_user.id)
-        db.commit()
+        db.commit() if commit else db.flush()
     if resource.model is CRMDeal:
         _maybe_create_srm_handoff_for_won_deal(db, record, current_user)
-        db.commit()
+        db.commit() if commit else db.flush()
     return _serialize(record)
 
 

@@ -122,6 +122,7 @@ export async function setupPowerApps(
     allowed?: boolean;
     readOnly?: boolean;
     pmsAccess?: boolean;
+    configure?: boolean;
     records?: ReturnType<typeof fixtureRow>[];
   } = {},
 ) {
@@ -140,7 +141,7 @@ export async function setupPowerApps(
         role: options.readOnly ? "viewer" : "admin",
         scope: "organization",
         permissions: effective,
-        actions: ["view", "create", "edit", "delete"],
+        actions: ["view", "create", "edit", "delete", ...(options.configure ? ["configure"] : [])],
       },
     },
     modules: [{ key: "power_apps", route: "/power-apps", label: "Power Apps" },

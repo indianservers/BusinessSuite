@@ -82,3 +82,6 @@ backend/.secrets/
 
 # Local Vite dependency cache
 /.vite/
+
+# Generated local production verification bundle (source is committed separately).
+/output/homepage-build/

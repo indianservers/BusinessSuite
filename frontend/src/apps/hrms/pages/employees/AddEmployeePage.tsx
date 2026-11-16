@@ -1,3 +1,4 @@
+import EmployeeCategories from "@/shared/EmployeeCategories";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
 import { announceCreated } from "@/shared/creation/CreationOutcome";
@@ -27,6 +28,7 @@ import { loadManagerOptions } from "./employeeJobOptions";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const schema = z.object({
+  work_categories: z.array(z.string().max(80)).max(20).optional(),
   first_name: z.string().trim().min(1, "First name is required").max(160).refine(value=>!textError(value,160),"Enter a valid name without control characters"),
   last_name: z.string().trim().max(160).refine(value=>!textError(value,160,false),"Enter a valid name without control characters"),
   gender: z.string().optional(),
@@ -202,6 +204,10 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
       employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}),
     onSuccess: (res) => {
       clearEmployeeDraft();
+      queryClient.invalidateQueries({queryKey:["employee-work-categories"]});
+      queryClient.invalidateQueries({queryKey:["pos-service-scheduling"]});
+      queryClient.invalidateQueries({queryKey:["pos-service-provider-options"]});
+      window.dispatchEvent(new Event("pms:people-changed"));
       announceCreated({ title: "Employee created", href: `/hrms/employees/${res.data.id}`, next: [{ label: "Upload onboarding documents", href: `/hrms/documents?tab=Upload%20Documents&employee_id=${res.data.id}` }] });
       setSubmitError(null);
       toast({ title: "Employee created successfully!", variant: "default" });
@@ -399,6 +405,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                 {errors.date_of_joining && <div id="employee-date_of_joining-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.date_of_joining.message}/></div>}
               </div>
               <div className="space-y-2">
+                <EmployeeCategories create value={watch("work_categories") || []} onChange={value=>setValue("work_categories",value,{shouldDirty:true})}/>
                 <Label>Employment Type</Label>
                 <NativeSelect aria-label="Employment type" {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="Full-time">Full-time</option>

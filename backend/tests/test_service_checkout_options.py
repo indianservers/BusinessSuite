@@ -13,6 +13,43 @@ from app.models.employee import Employee
 from app.business_packs.models import PackActivation, PackContext, PackUserGrant, PackRecordOwnership, PackMasterAvailability
 
 
+def test_availability_slots_recheck_committed_bookings_and_categories(db, scenario):
+    from app.apps.srm.service_checkout_options import scheduling_availability
+    from app.apps.srm.service_checkout import checkout
+    user, branch, catalog, basket = scenario
+    data = basket(False)
+    booking = data.lines[1].booking
+    with native_writer(db, user, branch):
+        before = scheduling_availability(db, user, catalog[2][1], booking.eligibility_id,
+            booking.starts_at.date(), 30, starts_at=booking.starts_at)
+        assert before['selection_available'] is True
+        assert any(slot['label'] == '10:00' for slot in before['slots'])
+        checkout(data, db, user)
+        after = scheduling_availability(db, user, catalog[2][1], booking.eligibility_id,
+            booking.starts_at.date(), 30, starts_at=booking.starts_at)
+        assert after['selection_available'] is False
+        assert not any(slot['label'] == '10:00' for slot in after['slots'])
+        policy = db.query(ServiceBookingPolicy).one()
+        policy.employee_categories = ['Unmatched category']
+        db.commit()
+        with pytest.raises(HTTPException) as denied:
+            scheduling_availability(db, user, catalog[2][1], booking.eligibility_id,
+                booking.starts_at.date(), 30)
+        assert denied.value.status_code == 409
+
+
+def test_availability_rejects_foreign_resource_and_naive_time(db, scenario):
+    from app.apps.srm.service_checkout_options import scheduling_availability
+    user, branch, catalog, basket = scenario
+    booking = basket(False).lines[1].booking
+    with native_writer(db, user, branch):
+        for kwargs in ({'resource_ids':[999999]}, {'starts_at':booking.starts_at.replace(tzinfo=None)}):
+            with pytest.raises(HTTPException) as rejected:
+                scheduling_availability(db, user, catalog[2][1], booking.eligibility_id,
+                    booking.starts_at.date(), 30, **kwargs)
+            assert rejected.value.status_code == 422
+
+
 def test_real_legacy_options_return_only_policy_and_specialist_metadata(db, scenario):
     user, branch, catalog, basket = scenario
     with native_writer(db, user, branch):
@@ -22,7 +59,7 @@ def test_real_legacy_options_return_only_policy_and_specialist_metadata(db, scen
     assert result['policy']['default_duration_minutes'] == 30
     assert len(result['specialists']) == 1
     row = result['specialists'][0]
-    assert set(row) == {'eligibility_id', 'eligibility_revision', 'provider_resource_id', 'employee_id', 'employee_name', 'provider_name', 'timezone'}
+    assert set(row) == {'eligibility_id', 'eligibility_revision', 'provider_resource_id', 'employee_id', 'employee_name', 'provider_name', 'timezone', 'work_categories'}
     assert row['employee_name'] == 'QA Specialist'
     assert providers['providers'][0]['provider_resource_id'] == row['provider_resource_id']
     assert result['has_more'] is providers['has_more'] is False
@@ -32,7 +69,7 @@ def test_no_policy_is_explicit_and_product_validation_remains_native(db, scenari
     user, branch, catalog, basket = scenario
     db.query(ServiceSpecialistEligibility).delete(); db.query(ServiceBookingPolicy).delete(); db.flush()
     with native_writer(db, user, branch):
-        assert service_options(db, user, catalog[2][1]) == {'service_id': catalog[2][1], 'policy': None, 'specialists': [], 'has_more': False}
+        assert service_options(db, user, catalog[2][1]) == {'service_id': catalog[2][1], 'policy': None, 'specialists': [], 'has_more': False, 'resources': []}
         with pytest.raises(HTTPException) as error:
             service_options(db, user, catalog[2][0])
         assert error.value.status_code == 404
@@ -156,3 +193,26 @@ def test_static_options_api_passes_explicit_header_and_returns_metadata(db, scen
         assert client.get('/srm/service-checkout/options', params={'service_id': catalog[2][1], 'search': 'x' * 101}).status_code == 422
         response = client.get('/srm/service-checkout/options/providers', headers={'X-Suite-Pack-Context': 'invalid'})
         assert response.status_code == 403
+
+
+def test_service_categories_follow_live_hrms_employee_changes(db, scenario):
+    from app.apps.srm.service_checkout import checkout
+    user, branch, catalog, basket = scenario
+    with native_writer(db, user, branch):
+        policy = db.query(ServiceBookingPolicy).one()
+        employee = db.query(Employee).filter(Employee.id == basket().lines[1].booking.employee_id).one()
+        employee.work_categories = ['Consultants', 'Senior staff']
+        policy.employee_categories = ['consultants', 'Stylists']
+        db.commit()
+        result = service_options(db, user, catalog[2][1])
+        assert result['policy']['employee_categories'] == ['consultants', 'Stylists']
+        assert result['specialists'][0]['work_categories'] == ['Consultants', 'Senior staff']
+        employee.work_categories = ['Other']
+        db.commit()
+        assert service_options(db, user, catalog[2][1])['specialists'] == []
+        data = basket(False)
+        data.lines[1].booking.expected_policy_revision = policy.revision
+        with pytest.raises(HTTPException) as denied:
+            checkout(data, db, user)
+        assert denied.value.status_code == 409
+        assert 'category' in denied.value.detail

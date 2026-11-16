@@ -137,6 +137,7 @@ export type ListResult = {
 export type Bootstrap = {
   settings: Settings;
   owners: {
+    work_categories?: string[];
     id: number;
     name: string;
     email?: string;

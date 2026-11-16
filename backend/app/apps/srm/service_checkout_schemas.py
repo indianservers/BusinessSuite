@@ -1,3 +1,4 @@
+from app.shared.employee_categories import WorkCategories
 """Strict source inputs for the server-owned atomic checkout operation."""
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -17,8 +18,14 @@ class BookingSelection(Strict):
     expected_eligibility_revision: ID
     provider_resource_id: ID
     employee_id: ID
+    additional_resource_ids: list[ID] = Field(default_factory=list, max_length=9)
     starts_at: datetime
     duration_minutes: Annotated[StrictInt, Field(ge=5, le=720)]
+    @model_validator(mode='after')
+    def resources(self):
+        if len(set(self.additional_resource_ids)) != len(self.additional_resource_ids) or self.provider_resource_id in self.additional_resource_ids:
+            raise ValueError('Select each resource once')
+        return self
     @field_validator('starts_at')
     @classmethod
     def aware(cls,value):
@@ -75,6 +82,7 @@ class CheckoutInput(Strict):
         return self
 
 class PolicyInput(Strict):
+    employee_categories: WorkCategories = Field(default_factory=list)
     service_product_id: ID
     default_duration_minutes: Annotated[StrictInt, Field(ge=5,le=720)]
     min_duration_minutes: Annotated[StrictInt, Field(ge=5,le=720)]

@@ -1,4 +1,5 @@
 import { lazyRoute } from "@/lib/lazy-route";
+const AppointmentScheduler = lazyRoute(() => import("@/apps/srm/industry/IndustryOperationsPage"));
 const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import React from "react";
@@ -35,6 +36,7 @@ const CRMRecordsPage = lazyRoute(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = lazyRoute(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
 const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
 export const crmRoutes: FrontendRoute[] = [
+  { path: "crm/appointments", element: <AppointmentScheduler mode="appointments" /> },
   { path: "crm/workspaces", element: <OperationalWorkspaceDirectory module="crm" /> },
   { path: "crm/whatsapp-communication", element: <WhatsAppCommunicationPage /> },
   {path:"crm/import-data",element:<ImportWorkspace module="crm"/>},

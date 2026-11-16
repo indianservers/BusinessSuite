@@ -116,6 +116,7 @@ def assignee_summary(db, candidate, employee=None):
         "email": candidate.email,
         "employeeId": employee.id if employee else None,
         "employeeCode": code,
+        "work_categories": employee.work_categories or [] if employee else [],
         "kind": "employee" if employee else "crm_user",
     }
 

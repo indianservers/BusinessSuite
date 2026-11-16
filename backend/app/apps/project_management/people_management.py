@@ -115,6 +115,7 @@ def public_person(db, user, *, status=None):
         "photo_url": profile.profile_photo_url if profile and profile.directory_visibility == "public" else None,
         "role": "Super Admin" if user.is_superuser else user.role.name if user.role else "User",
         "status": person_status(db, user) if status is None else status, "availability": "Unavailable" if not user.is_active else "On leave" if employee and (employee.status or "").lower() == "on leave" else "Available",
+        "work_categories": employee.work_categories or [] if employee and employee.deleted_at is None else [],
         "available_from": data.get("available_from"), "employment_status": employee.status if employee else None}
 
 

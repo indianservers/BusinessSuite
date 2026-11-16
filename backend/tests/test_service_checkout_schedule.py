@@ -158,7 +158,7 @@ def pack_group(db,scenario):
 
 @pytest.mark.parametrize('case',['revoked','role','foreign_source'])
 def test_group_schedule_pack_scope_rechecked_for_each_action(db,scenario,case):
-    from app.business_packs.models import PackActivation,PackContext,PackRecordOwnership
+    from app.business_packs.models import PackActivation,PackContext,PackRecordOwnership,PackUserGrant
     user,branch,catalog,basket=scenario
     context,grant,result,ident=pack_group(db,scenario)
     with audited_pack_writer(db,user,branch,context):current=grouped_schedule(ident,db,user)
@@ -167,7 +167,10 @@ def test_group_schedule_pack_scope_rechecked_for_each_action(db,scenario,case):
     else:
         other=PackActivation(company_id=1,pack_key='restaurant',pack_version=1,state='active');db.add(other);db.flush()
         foreign=PackContext(company_id=1,branch_id=branch,activation_id=other.id,pack_key='restaurant',pack_version=1,state='active');db.add(foreign);db.flush()
-        db.connection().execute(update(PackRecordOwnership.__table__).where(PackRecordOwnership.resource_table=='srm_industry_records',PackRecordOwnership.resource_key==str(ident)).values(context_id=foreign.id));db.commit()
+        # Retained ownership is immutable. Recheck access after a real grant change.
+        grant.active=False
+        db.add(PackUserGrant(company_id=1,branch_id=branch,context_id=foreign.id,user_id=user.id,role='restaurant_manager'))
+        db.commit()
     with native_writer(db,user,branch):
         with pytest.raises(HTTPException) as error:grouped_schedule(ident,db,user)
         assert error.value.status_code==403

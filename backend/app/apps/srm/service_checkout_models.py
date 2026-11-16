@@ -111,6 +111,7 @@ class ServiceBookingPolicy(_Scoped, _Revisioned, Base):
         CheckConstraint('revision > 0', name='ck_service_policy_revision'),
     )
     id = Column(Integer, primary_key=True)
+    employee_categories = Column(JSON, nullable=False, default=list, server_default='[]')
     service_product_id = Column(Integer, ForeignKey('srm_products.id', ondelete='RESTRICT'), nullable=False)
     booking_required = Column(Boolean(create_constraint=True, name='ck_service_policy_required'), nullable=False, default=True, server_default='true')
     default_duration_minutes = Column(Integer, nullable=False)

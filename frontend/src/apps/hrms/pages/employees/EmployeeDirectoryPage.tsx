@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 
 interface DirectoryEmployee {
+  work_categories?: string[];
   id: number;
   employee_id: string;
   full_name: string;
@@ -277,7 +278,7 @@ export default function EmployeeDirectoryPage() {
     <ProfileListCard key={employee.id} name={employee.full_name} photoUrl={employee.profile_photo_url}
       location={employee.branch || employee.work_location} onOpen={() => openProfile(employee.id)}
       subtitle={<><strong>{employee.designation || employee.employee_id}</strong>{employee.department && ` · ${employee.department}`}</>}
-      tags={[...(employee.reporting_manager ? [`Manager: ${employee.reporting_manager}`] : []), ...(employee.is_direct_report ? ["Direct report"] : []), ...(employee.contact_masked ? ["Privacy protected"] : []),
+      tags={[...(employee.work_categories || []), ...(employee.reporting_manager ? [`Manager: ${employee.reporting_manager}`] : []), ...(employee.is_direct_report ? ["Direct report"] : []), ...(employee.contact_masked ? ["Privacy protected"] : []),
         ...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,3)]}
       actions={<>
         <ProfileAction onClick={() => openProfile(employee.id)}>View profile</ProfileAction>

@@ -1,8 +1,23 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
-import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInWithCredential } from "firebase/auth";
 import { api, authApi } from "./api";
 
 export const SOCIAL_REDIRECT_KEY = "suite-social-redirect-provider";
+
+// Exchange GIS credentials for a Firebase token. The existing backend verifies its
+// signature, issuer, audience and provider and applies all account/access policies.
+// Never link accounts or retry an account-exists-with-different-credential error.
+export async function googleCredentialLogin(config: FirebaseOptions, credential: string) {
+  const auth = socialAuth(config, "google");
+  await setPersistence(auth, inMemoryPersistence);
+  try {
+    const result = await signInWithCredential(auth, GoogleAuthProvider.credential(credential));
+    const token = await result.user.getIdToken();
+    const response = await authApi.firebaseLogin(token, undefined, "google");
+    if (response.data.workspace_required) response.data = { ...response.data, identity_token: token, identity_provider: "google" };
+    return response;
+  } finally { await signOut(auth); }
+}
 type SocialFirebaseOptions = FirebaseOptions & { googleAuthDomain?: string };
 
 function socialAuth(config: SocialFirebaseOptions, provider: "google" | "microsoft") {

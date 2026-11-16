@@ -70,6 +70,7 @@ class EmployeeUserOption(BaseModel):
 
 
 class EmployeeDirectoryItem(BaseModel):
+    work_categories: list[str] = Field(default_factory=list)
     id: int
     employee_id: str
     full_name: str
@@ -279,6 +280,7 @@ def _to_directory_item(employee: Employee, current_user: User) -> EmployeeDirect
     return EmployeeDirectoryItem(
         id=employee.id,
         employee_id=employee.employee_id,
+        work_categories=employee.work_categories or [],
         full_name=_directory_name(employee),
         preferred_display_name=employee.preferred_display_name,
         email=_mask(employee.work_email or employee.personal_email, can_contact),
@@ -426,6 +428,15 @@ def _parse_date(value: Optional[str], row_number: int, field_name: str):
         raise ValueError(f"{field_name} must be YYYY-MM-DD on row {row_number}")
 
 
+@router.get("/work-category-options")
+def work_category_options(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    names = {}
+    for (categories,) in _directory_query(db).with_entities(Employee.work_categories).all():
+        for name in categories or []:
+            names.setdefault(name.casefold(), name)
+    return {'items': sorted(names.values(), key=str.casefold)}
+
+
 @router.get("/directory", response_model=PaginatedResponse[EmployeeDirectoryItem])
 def employee_directory(
     search: Optional[str] = Query(None),
@@ -434,6 +445,7 @@ def employee_directory(
     branch_id: Optional[int] = Query(None),
     location_id: Optional[int] = Query(None),
     skills: Optional[str] = Query(None),
+    employee_categories: list[str] | None = Query(None),
     work_location: Optional[str] = Query(None),
     employment_type: Optional[str] = Query(None),
     worker_type: Optional[str] = Query(None),
@@ -471,6 +483,9 @@ def employee_directory(
         joined_after=joined_after,
         joined_before=joined_before,
     )
+    if employee_categories:
+        from app.shared.employee_categories import category_clause
+        query = query.filter(category_clause(db, Employee.work_categories, employee_categories))
     if team_only:
         if not current_user.employee:
             raise HTTPException(status_code=400, detail="No employee profile is linked to this user")
@@ -649,7 +664,8 @@ def upcoming_birthdays(
             items.append(DirectoryEventItem(
                 id=employee.id,
                 employee_id=employee.employee_id,
-                full_name=_directory_name(employee),
+                work_categories=employee.work_categories or [],
+        full_name=_directory_name(employee),
                 department=employee.department.name if employee.department else None,
                 designation=employee.designation.name if employee.designation else None,
                 event_date=event_date,
@@ -679,7 +695,8 @@ def upcoming_work_anniversaries(
             items.append(DirectoryEventItem(
                 id=employee.id,
                 employee_id=employee.employee_id,
-                full_name=_directory_name(employee),
+                work_categories=employee.work_categories or [],
+        full_name=_directory_name(employee),
                 department=employee.department.name if employee.department else None,
                 designation=employee.designation.name if employee.designation else None,
                 event_date=event_date,
@@ -745,6 +762,7 @@ def employee_profile_card(
     return EmployeeProfileCard(
         id=employee.id,
         employee_id=employee.employee_id,
+        work_categories=employee.work_categories or [],
         full_name=_directory_name(employee),
         email=_mask(employee.work_email or employee.personal_email, can_contact),
         phone_number=_mask(employee.phone_number, can_contact),

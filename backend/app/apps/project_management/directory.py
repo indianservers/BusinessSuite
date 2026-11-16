@@ -23,7 +23,7 @@ def people_directory(db: Session = Depends(get_db), user: User = Depends(get_cur
         raise HTTPException(403, "Organization directory requires an administrator, HR or executive role")
     # The authenticated session's company boundary applies to every ORM query.
     # Superusers retain their existing installation-wide visibility.
-    query = db.query(User).options(joinedload(User.role), joinedload(User.person).joinedload(CommonPerson.profile)).order_by(User.email, User.id)
+    query = db.query(User).options(joinedload(User.employee), joinedload(User.role), joinedload(User.person).joinedload(CommonPerson.profile)).order_by(User.email, User.id)
     total = query.count()
     users = query.offset((page - 1) * page_size).limit(page_size).all()
     ids = [item.id for item in users]
@@ -37,6 +37,7 @@ def people_directory(db: Session = Depends(get_db), user: User = Depends(get_cur
                        "name": item.person.display_name if item.person else item.email.split("@")[0],
                        "role": "Super Admin" if item.is_superuser else item.role.name if item.role else "User",
                        "is_active": item.is_active,
+                       "work_categories": item.employee.work_categories or [] if item.employee and item.employee.deleted_at is None else [],
                        "profile_photo_url": (item.person.profile.profile_photo_url if item.person and item.person.profile and item.person.profile.directory_visibility == "public" else None),
                        "workspace_ids": [m.workspace_id for m in memberships if m.user_id == item.id and m.workspace_id in workspace_ids]}
                       for item in users],

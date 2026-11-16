@@ -7,6 +7,7 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
+    TELEGRAM_DEFAULT_BOT_TOKEN: str = ""
     LOCAL_NLP_MODEL_DIR: str = ""
     LOCAL_NLP_TRAINING_DIR: str = ""
     FORM16_TRUST_ROOTS_PEM: str = ""

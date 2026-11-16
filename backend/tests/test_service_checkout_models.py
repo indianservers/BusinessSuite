@@ -63,6 +63,8 @@ def db(request, monkeypatch):
             migration['upgrade'](); migration['upgrade'](); migration['downgrade']()
             collection_migration = runpy.run_path(str(COLLECTION_MIGRATION))
             collection_migration['upgrade'](); collection_migration['upgrade']()
+            category_migration = runpy.run_path(str(Path(__file__).parents[1] / 'alembic_postgresql/versions/pg_20261116_122_employee_categories.py'))
+            category_migration['upgrade'](); category_migration['upgrade']()
     with engine.begin() as conn:
         seeds = {'companies':[{'id':1},{'id':2}], 'branches':[{'id':11,'company_id':1},{'id':22,'company_id':2}],
             'users':[{'id':1}], 'crm_companies':[{'id':201,'organization_id':1}],

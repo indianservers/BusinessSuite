@@ -50,7 +50,11 @@ function CheckoutBilling({ checkoutId, serviceCharge, canCollect, onChanged, sco
   const attempt = useRef<Attempt | null>(saved || null);
   const root = `/srm/service-checkout/${checkoutId}`;
   const query = useQuery({ queryKey: ['service-checkout-billing', scope, checkoutId],
-    queryFn: ({ signal }) => api.get<Checkout>(root, { signal, recordCache:false }).then(result => result.data),
+    queryFn: async ({ signal }) => {
+      const {data}=await api.get<Checkout>(root,{signal,recordCache:false});
+      if(!data || data.id!==checkoutId || typeof data.state!=='string' || !Array.isArray(data.receipts) || data.receipts.some(receipt=>typeof receipt.method!=='string'||typeof receipt.status!=='string') || data.invoice && typeof data.invoice.status!=='string')throw new Error('Checkout payment details could not be verified. Reload the confirmed checkout.');
+      return data;
+    },
     enabled: Number.isSafeInteger(checkoutId) && checkoutId > 0, retry: false, placeholderData: undefined, staleTime:0, refetchOnMount:"always" });
   const capabilities = useQuery({ queryKey: ["checkout-payment-authority", scope, checkoutId], queryFn: ({signal}) => api.get<{collect:boolean}>("/srm/industry/capabilities", {signal,recordCache:false}).then(result=>result.data), enabled: query.isSuccess, retry:false, placeholderData:undefined, staleTime:0, refetchOnMount:"always" });
   const authorizedCollection = canCollect && query.isSuccess && !query.isFetching && capabilities.isSuccess && !capabilities.isFetching && capabilities.data?.collect === true;

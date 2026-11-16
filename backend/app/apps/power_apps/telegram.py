@@ -39,6 +39,40 @@ def conversation(text, previous=None):
     return {'stage': 'menu'}, WELCOME
 
 
+def interface_conversation(text, previous, config, sender_id, company_default=False):
+    """Recheck staff access on every message; public commands cannot grant staff access."""
+    state = dict(previous or {})
+    command = text.strip().casefold().split('@')[0]
+    approved = config.get('company_enabled', True) and str(sender_id) in config.get('company_user_ids', [])
+    mode = state.get('interface', 'company' if company_default else 'public')
+    if command.startswith('/start '):
+        command = '/' + command.split(' ', 1)[1]
+    if command in {'/company', '/public'}:
+        mode, state = command[1:], {}
+        command = '/start'
+        text = '/start'
+    if mode == 'company':
+        if not approved:
+            return {'stage': 'menu', 'interface': 'public'}, 'Company access requires an approved Telegram user ID. Send /public for customer enquiries.'
+        welcome = config.get('company_welcome') or 'Company workspace: choose Create lead, Create task, Internal request or Help. Send /human for a person or /public for customer enquiries.'
+        if command in {'/start', '/help', '/cancel', 'help'}:
+            return {'stage': 'menu', 'interface': 'company'}, welcome
+        if command in {'sales', 'create lead'} or state.get('stage') in {'name', 'requirement'}:
+            result, reply = conversation('Sales' if command == 'create lead' else text, state)
+            return {**result, 'interface': 'company'}, reply
+        if command in {'internal request', 'create task'}:
+            return {'stage': 'request', 'interface': 'company'}, 'Describe your internal request. It will be recorded for your company administrator.'
+        if state.get('stage') == 'request' and text.strip():
+            return {'stage': 'complete', 'interface': 'company', 'topic': 'Internal request', 'name': str(sender_id), 'requirement': text.strip()[:4096]}, 'Internal request recorded. Send /company to return to your workspace.'
+        return {'stage': 'menu', 'interface': 'company'}, welcome
+    if not config.get('public_enabled', True):
+        return {'stage': 'menu', 'interface': 'public'}, 'Public enquiries are currently unavailable.'
+    state, reply = conversation(text, state)
+    if state.get('stage') == 'menu':
+        reply = config.get('public_welcome') or WELCOME
+    return {**state, 'interface': 'public'}, reply
+
+
 def bot_request(db, user, conn, method, data=None):
     """Fixed origin, encrypted credential, bounded transport; never expose token URLs."""
     conn = vault.connection(db, user, conn.environment, conn.id)
@@ -126,14 +160,98 @@ def accept_update(db, row, trigger, actor, update):
     prior = db.query(Event).filter_by(resource_id=row.id, organization_id=row.organization_id, environment=row.environment, kind='telegram_message').filter(Event.details['update_id'].as_integer() == update_id).first()
     if prior:
         return prior.run_id
-    previous = db.query(Event).filter_by(resource_id=row.id, organization_id=row.organization_id, environment=row.environment, kind='telegram_message').filter(Event.details['chat_id'].as_string() == chat_id).order_by(Event.id.desc()).first()
-    state, reply = conversation(message['text'], previous.details.get('state') if previous else None)
-    data = {'update_id': update_id, 'chat_id': chat_id, 'sender': sender.get('first_name', ''), 'text': message['text'][:4096], 'reply': reply}
-    run = enqueue(db, row, actor, data, f'telegram:{trigger.config["bot_id"]}:{update_id}', kind='telegram', trigger=trigger)
-    db.add(Event(**scope_values(row), resource_id=row.id, run_id=run.id, kind='telegram_message',
-                 details={**data, 'state': state, 'enquiry_completed': state.get('stage') == 'complete'}))
+    from app.apps.power_apps import telegram_operations as operations
+    from app.apps.power_apps.models import TelegramIdentity, TelegramConversation, TelegramMessage
+    sender_id = str(sender.get('id') or chat_id)
+    if sender_id != chat_id:
+        return None
+    if db.query(TelegramMessage).filter_by(resource_id=row.id, update_id=update_id).first():
+        return None
+    text = message['text'].strip()[:4096]
+    command = text.casefold().split('@')[0]
+    latest = db.query(TelegramConversation).filter_by(resource_id=row.id, chat_id=chat_id).order_by(TelegramConversation.last_at.desc(), TelegramConversation.id.desc()).first()
+    mode = latest.interface if latest else 'public'
+    if command in {'/company', '/start company'}:
+        mode = 'company'
+    elif command in {'/public', '/start public'}:
+        mode = 'public'
+    config = dict(trigger.config.get('interfaces', {}))
+    staff = operations.identity(db, row, sender_id, 'company')
+    if staff:
+        try:
+            operations.staff_member(db, staff, row.organization_id)
+        except HTTPException:
+            staff = None
+    if staff and (latest is None or command == '/start') and command not in {'/public', '/start public'}:
+        mode = 'company'
+    # Numeric allowlists alone no longer grant company access.
+    config['company_user_ids'] = [sender_id] if staff else []
+    linking = text.split(maxsplit=1) if text.casefold().startswith('/link ') else None
+    reply = None
+    if linking:
+        linked, reply = operations.consume_code(db, row, sender_id, linking[1], sender.get('first_name', ''))
+        if linked:
+            mode = linked.interface
+            if mode == 'company':
+                staff = linked
+        text = '[Identity linking code redacted]'
+    linked = operations.identity(db, row, sender_id, mode)
+    if mode == 'company' and (not staff or not config.get('company_enabled', True)):
+        mode, linked = 'public', operations.identity(db, row, sender_id, 'public')
+        reply = 'Link your signed-in BusinessSuite account using a one-time code before opening /company.'
+    if command == '/id':
+        reply = f'Your Telegram user ID is {sender_id}. Give this numeric ID to your company administrator to link your employee account.'
+    if mode == 'public' and not linked:
+        linked = db.query(TelegramIdentity).filter_by(resource_id=row.id, telegram_id=sender_id, interface='public').first()
+        if linked:
+            linked.user_id, linked.employee_id, linked.contact_id, linked.lead_id = None, None, None, None
+            linked.verified_at, linked.revoked_at = None, None
+        else:
+            linked = TelegramIdentity(organization_id=row.organization_id, environment=row.environment, resource_id=row.id,
+                telegram_id=sender_id, interface='public', display_name=sender.get('first_name', '')[:180])
+        db.add(linked)
+        db.flush()
+    thread = operations.get_conversation(db, row, chat_id, sender_id, mode, linked)
+    old_state = dict(thread.state or {})
+    if linking:
+        old_state = {}
+        thread.lead_id, thread.task_id = None, None
+    state = old_state
+    if reply is None and not config.get(f'{mode}_enabled', True):
+        reply = 'This interface is currently unavailable.'
+    elif reply is None and command in {'/human', 'human', 'talk to a person'}:
+        operations.request_handoff(db, row, thread)
+        reply = 'Your conversation is in the human support queue. You can continue sending messages here.'
+    elif reply is None and thread.status in {'waiting', 'assigned'}:
+        # Record the message and notify the responsible person; leave the bot silent.
+        from app.models.notification import Notification
+        db.add(Notification(company_id=row.organization_id, user_id=thread.assignee_user_id or row.owner_user_id,
+            title='New Telegram handoff message', message=f'Conversation #{thread.id} has a new message.', module='power_apps',
+            action_url=f'/power-apps/automations/telegram?environment={row.environment}', channels=['in_app']))
+    elif reply is None:
+        if command in {'/company', '/public', '/start company', '/start public'}:
+            old_state = {}
+        state, reply = interface_conversation(message['text'], {**old_state, 'interface': mode}, config, sender_id)
+        completed = state.get('stage') == 'complete' and old_state.get('stage') != 'complete'
+        if completed and config.get('create_crm_records', False):
+            try:
+                with db.begin_nested():
+                    state = operations.create_records(db, row, trigger, actor, linked, thread, state, update_id)
+                reply = f"Recorded CRM task #{state['task_id']}" + (f" for lead #{state['lead_id']}" if state.get('lead_id') else '') + '. Send /human to speak with the team.'
+            except HTTPException:
+                operations.request_handoff(db, row, thread, 'CRM intake needs staff review')
+                state = {**state, 'crm_error': True}
+                reply = 'Your request is saved for staff review. A person will follow up; no CRM creation is being claimed.'
+    thread.state = state
+    incoming = TelegramMessage(organization_id=row.organization_id, environment=row.environment, resource_id=row.id,
+        conversation_id=thread.id, direction='incoming', text=text, update_id=update_id)
+    db.add(incoming)
+    run_id = operations.queue_reply(db, row, trigger, actor, thread, reply, f'telegram:{trigger.config["bot_id"]}:{update_id}', handoff_notice=thread.status in {'waiting', 'assigned'}) if reply else None
+    data = {'update_id': update_id, 'chat_id': chat_id, 'sender': sender.get('first_name', ''), 'text': text, 'reply': reply or '', 'conversation_id': thread.id}
+    db.add(Event(**scope_values(row), resource_id=row.id, run_id=run_id, kind='telegram_message',
+        details={**data, 'state': state, 'enquiry_completed': state.get('stage') == 'complete'}))
     db.flush()
-    return run.id
+    return run_id
 
 
 def poll_tick(db, limit=10):

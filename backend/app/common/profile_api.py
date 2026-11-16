@@ -124,6 +124,7 @@ def directory(
                 "email": target.email,
                 "employeeId": employee.id if employee else None,
                 "employeeCode": employee.employee_id if employee else None,
+                "work_categories": employee.work_categories or [] if employee else [],
                 "kind": (
                     "intern"
                     if employee and (employee.employment_type or "").lower() == "intern"

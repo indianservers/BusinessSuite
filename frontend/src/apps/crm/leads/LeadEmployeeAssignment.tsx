@@ -1,3 +1,4 @@
+import EmployeeCategories from "@/shared/EmployeeCategories";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useId, useState } from "react";
@@ -22,6 +23,7 @@ export default function LeadEmployeeAssignment({
   const id = useId();
   const [directory, setDirectory] = useState<Bootstrap>();
   const [selected, setSelected] = useState(String(ownerId || ""));
+  const [categories,setCategories] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useRefreshableEffect(() => {
@@ -44,6 +46,7 @@ export default function LeadEmployeeAssignment({
   const current = directory?.owners.find((owner) => owner.id === ownerId);
   const controls = (
     <div className="flex flex-wrap items-center gap-2">
+      {directory && <EmployeeCategories value={categories} onChange={setCategories} options={[...new Set(directory.owners.flatMap(owner=>owner.work_categories || []))]}/>}
       <label htmlFor={id}>Assigned employee</label>
       {directory?.canManage ? (
         <>
@@ -62,9 +65,9 @@ export default function LeadEmployeeAssignment({
                 Current assignee (unavailable)
               </option>
             )}
-            {directory.owners.map((owner) => (
+            {directory.owners.filter(owner=>!categories.length || owner.id === ownerId || owner.work_categories?.some(category=>categories.includes(category))).map((owner) => (
               <option key={owner.id} value={owner.id}>
-                {owner.name}
+                {owner.name}{owner.work_categories?.length ? ` · ${owner.work_categories.join(", ")}` : ""}
               </option>
             ))}
           </NativeSelect>

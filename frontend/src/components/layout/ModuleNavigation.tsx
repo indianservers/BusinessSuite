@@ -108,6 +108,21 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
+    {['srm', 'crm'].includes(moduleKey) && <nav aria-label="Sticky shortcuts" className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border bg-sidebar p-2">
+      {!collapsed && <p className="px-2 pb-1 text-xs font-semibold">Quick access</p>}
+      {(moduleKey === 'srm' ? [
+        ['/srm/pos/terminal', 'POS Terminal'], ['/srm/appointments', 'Appointment Scheduler'],
+        ['/srm/pos/sessions', 'POS Sessions'], ['/srm/inventory/items', 'Stock Items'],
+      ] : [
+        ['/crm/appointments', 'Appointment Scheduler'], ['/crm/contacts', 'Contacts'],
+        ['/crm/leads', 'Leads'], ['/crm/calendar', 'Calendar'],
+      ]).filter(([to]) => canAccessRoute(to, user?.role, user?.is_superuser)).map(([to, label]) =>
+        <Link key={to} to={workspacePageHref(to, location.search, workspaceId)} onClick={onNavigate}
+          title={label} aria-label={label} aria-current={isCurrent(to) ? 'page' : undefined}
+          className={`nav-link flex min-h-9 items-center rounded px-2 text-xs ${isCurrent(to) ? 'bg-sidebar-accent font-semibold' : ''}`}>
+          {collapsed ? label.slice(0, 2) : label}
+        </Link>)}
+    </nav>}
     {!collapsed && <>
       <label className="module-menu-search"><Search size={16} /><input aria-label="Find a page in this application" placeholder="Find a page…" value={query}
         onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />

@@ -1,3 +1,4 @@
+from app.shared.employee_categories import WorkCategories
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
@@ -219,6 +220,7 @@ class EmployeeLifecycleEventSchema(EmployeeLifecycleEventBase):
 
 
 class EmployeeBase(BaseModel):
+    work_categories: WorkCategories = Field(default_factory=list)
     first_name: str
     middle_name: Optional[str] = None
     last_name: str
@@ -329,6 +331,15 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeUpdate(BaseModel):
+    work_categories: WorkCategories | None = None
+
+    @field_validator('work_categories')
+    @classmethod
+    def categories_not_null(cls, value):
+        if value is None:
+            raise ValueError('Use an empty list to clear employee categories')
+        return value
+
     allow_contact_duplicate: bool = False
     custom_fields: dict[str, object] | None = None
     @field_validator('first_name','last_name',mode='before')
@@ -423,6 +434,7 @@ class EmployeeUpdate(BaseModel):
 
 
 class EmployeeListSchema(BaseModel):
+    work_categories: WorkCategories = Field(default_factory=list)
     id: int
     employee_id: str
     first_name: str

@@ -8,6 +8,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { ProductivityReference } from "./shared/ProductivityReference";
 import { productivityReferences } from "@/shared/productivity/references";
 import ModuleNavigation from "@/components/layout/ModuleNavigation";
+import { TelegramAutomations } from "./applications/automations/TelegramAutomations";
 import { AutomationList } from "./applications/automations/AutomationList";
 import {
   environmentFromSearch,
@@ -444,7 +445,7 @@ export default function PowerAppsPage({ children }: { children?: ReactNode }) {
                 </>
               )}
               {section === "automations" && (
-                <AutomationList environment={environment} can={can} />
+                <>{location.pathname.endsWith("/telegram") ? <TelegramAutomations environment={environment} can={can} onCreated={() => setRefresh(value => value + 1)} /> : <AutomationList environment={environment} can={can} />}</>
               )}
               {section === "activity" &&
                 (can("activity_view") ? (

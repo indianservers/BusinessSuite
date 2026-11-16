@@ -404,3 +404,39 @@ def test_multiple_open_registers_require_explicit_selection(db,scenario):
         assert error.value.status_code==409 and db.query(SRMReceipt).count()==0
         data.pos_session_id=extra.id
         assert append_payment(group['id'],data,db,user)['receipts'][0]['collection_session_id']==extra.id
+
+
+def test_checkout_reserves_optional_room_and_rejects_conflicting_reuse(db, scenario):
+    user, branch, _, basket = scenario
+    with native_writer(db, user, branch):
+        room = IndustryRecord(organization_id=1, branch_id=branch, kind='resource', title='Treatment room',
+            status='active', request_id=str(uuid4()), created_by=user.id,
+            data={'resource_type': 'room', 'timezone': 'UTC', 'weekdays': list(range(7)), 'opens': '00:00:00', 'closes': '23:59:00'})
+        db.add(room); db.commit()
+        data = basket(False)
+        data.lines[1].booking.additional_resource_ids = [room.id]
+        result = checkout(data, db, user)
+        appointment = db.get(IndustryRecord, result['lines'][1]['appointment_id'])
+        assert room.id in appointment.data['resource_ids']
+        # A different employee must still be blocked by the room reservation.
+        employee = Employee(employee_id='ROOM-QA-' + uuid4().hex, first_name='Other', last_name='Employee',
+            branch_id=branch, status='Active', date_of_joining=datetime.now().date())
+        db.add(employee); db.flush()
+        provider = IndustryRecord(organization_id=1, branch_id=branch, kind='resource', title='Other provider',
+            status='active', request_id=str(uuid4()), created_by=user.id,
+            data={'resource_type':'employee', 'employee_id':employee.id, 'timezone':'UTC',
+                'weekdays':list(range(7)), 'opens':'00:00:00', 'closes':'23:59:00'})
+        db.add(provider); db.commit()
+        eligibility = save_eligibility(EligibilityInput(policy_id=data.lines[1].booking.policy_id,
+            expected_policy_revision=data.lines[1].booking.expected_policy_revision,
+            provider_resource_id=provider.id, employee_id=employee.id), db, user)
+        retry = basket(False)
+        retry.lines = [retry.lines[1]]
+        retry.lines[0].booking.provider_resource_id = provider.id
+        retry.lines[0].booking.employee_id = employee.id
+        retry.lines[0].booking.eligibility_id = eligibility['id']
+        retry.lines[0].booking.expected_eligibility_revision = eligibility['revision']
+        retry.lines[0].booking.additional_resource_ids = [room.id]
+        with pytest.raises(HTTPException) as conflict:
+            checkout(retry, db, user)
+        assert conflict.value.status_code == 409

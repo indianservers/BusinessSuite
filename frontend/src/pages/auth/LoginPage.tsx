@@ -15,6 +15,7 @@ import { loginDestination } from "@/lib/login";
 import { modules } from "@/lib/moduleCatalog";
 import SuiteBrand from "@/components/suite/SuiteBrand";
 import "./suite-login.css";
+import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
@@ -53,7 +54,8 @@ function errorMessage(error: unknown, fallback: string) {
   return typeof detail === "string" ? detail : fallback;
 }
 
-export default function LoginPage() {
+export default function LoginPage({ embedded = false, onSignup }: { embedded?: boolean; onSignup?: () => void } = {}) {
+  const Main = embedded ? "div" : "main";
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
@@ -142,8 +144,8 @@ export default function LoginPage() {
     setError("");
   }, [resetToken, recoveryRequested]);
   useEffect(() => {
-    heading.current?.focus();
-  }, [view, mfaToken]);
+    if (!embedded) heading.current?.focus();
+  }, [view, mfaToken, embedded]);
   useEffect(() => {
     if (error) errorRef.current?.focus();
   }, [error]);
@@ -247,7 +249,7 @@ export default function LoginPage() {
     setNewPassword("");
     setConfirmPassword("");
     navigate(
-      `/login${destination !== "/dashboard" ? `?next=${encodeURIComponent(destination)}` : ""}`,
+      `${embedded ? "/" : "/login"}${destination !== "/dashboard" ? `?next=${encodeURIComponent(destination)}` : ""}`,
       { replace: true },
     );
   }
@@ -330,6 +332,10 @@ export default function LoginPage() {
       setSsoBusy(false);
     }
   }
+  useGoogleOneTap({ enabled: embedded && view === "login" && !mfaToken && !workspaceChoice && !login.isPending,
+    config: firebase.data?.enabled ? firebase.data.firebase_config : undefined,
+    onSuccess: finish, onError: message => setError(message), onBusy: setSsoBusy,
+  });
   const busy = login.isPending || verify.isPending || ssoBusy;
   const title = mfaToken
     ? "Verify your identity"
@@ -339,14 +345,14 @@ export default function LoginPage() {
         ? "Check your inbox"
         : view === "reset"
           ? "Reset password"
-          : "Sign in to Business Suite";
+          : embedded ? "Welcome back" : "Sign in to Business Suite";
   let authenticatedWorkspace = "";
   let authenticatedTenant = "";
   try { const claims = JSON.parse(atob((useAuthStore.getState().accessToken || "").split(".")[1])); authenticatedWorkspace = claims.workspace || ""; authenticatedTenant = claims.tenant || ""; } catch {}
   if (isHydrated && isAuthenticated && !resetToken && (!workspace || workspace === authenticatedWorkspace || workspace === authenticatedTenant))
     return <Navigate to={continuation} replace />;
   return (
-    <div className="suite-login">
+    <div className={`suite-login${embedded ? " suite-login-embedded" : ""}`}>
       <a className="suite-skip" href="#login-main">
         Skip to sign in
       </a>
@@ -354,7 +360,7 @@ export default function LoginPage() {
         <SuiteBrand />
         <Link to="/help"><Headphones size={21} />Help & support</Link>
       </header>
-      <main id="login-main" className="suite-login-main">
+      <Main id="login-main" className="suite-login-main">
         <section className="suite-login-intro" aria-labelledby="workspace-title">
           <h2 id="workspace-title">A connected workspace<br/>for your growing business</h2>
           <p>Unify your teams, customers, and workflows with<br className="suite-desktop-break"/> Business Suite &mdash; a secure, enterprise-grade platform<br className="suite-desktop-break"/> for sales, CRM, and business operations.</p>
@@ -363,7 +369,7 @@ export default function LoginPage() {
             <li><span><Layers/></span><div><strong>Streamline business workflows</strong><small>From conversations to closed deals</small></div></li>
             <li><span><ShieldCheck/></span><div><strong>Enterprise-grade security</strong><small>Your data, your controls, always protected</small></div></li>
           </ul>
-          <img className="suite-login-illustration" src="/images/suite-login-workspace.png" alt="" aria-hidden="true"/>
+          {!embedded && <img className="suite-login-illustration" src="/images/suite-login-workspace.png" alt="" aria-hidden="true"/>}
         </section>
         <section className="suite-login-card" aria-labelledby="login-title">
           <p className="suite-login-company">
@@ -379,7 +385,7 @@ export default function LoginPage() {
                 ? "Enter the code from your authenticator app."
                 : "Enter one of your saved recovery codes."
               : view === "login"
-                ? "One account for all your authorized applications."
+                ? "One account for your entire workspace."
                 : view === "forgot"
                   ? "We'll email a link to reset your password."
                   : view === "reset"
@@ -392,7 +398,7 @@ export default function LoginPage() {
             </p>
           )}
           {workspaceChoice && <section className="suite-login-note"><h2>Choose your approved workspace</h2>{workspaceChoice.workspaces?.map(choice=><button className="suite-secondary" disabled={ssoBusy} key={choice.workspace} onClick={async()=>{setSsoBusy(true);try{const {data}=await api.post("/auth/firebase/login",{token:workspaceChoice.identity_token,provider:workspaceChoice.identity_provider,workspace:choice.workspace},{headers:{"X-Suite-Tenant":""}});setWorkspaceChoice(undefined);finish(data)}catch(err){setError(errorMessage(err,"Could not open this workspace. Sign in again."))}finally{setSsoBusy(false)}}}>{choice.name}</button>)}</section>}
-          {view==="login" && <p><Link to="/login?application=1">Applied already? Check application status</Link></p>}
+          {!embedded && view==="login" && <p><Link to="/login?application=1">Applied already? Check application status</Link></p>}
           {error && (
             <p
               ref={errorRef}
@@ -583,8 +589,56 @@ export default function LoginPage() {
             </CompactForm>
           ) : (
             <>
+              {(sortedProviders.length > 0 ||
+                (firebase.data?.enabled &&
+                  firebase.data.modules.length > 0)) && (
+                <div className="suite-login-providers">
+
+                  {sortedProviders.map((provider) => (
+                    <button
+                      key={provider.id}
+                      className="suite-secondary"
+                      disabled={busy}
+                      onClick={() => {
+                        setRememberSession(remember);
+                        window.location.assign(
+                          `${getApiBaseUrl()}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(`/login?next=${encodeURIComponent(destination)}`)}`,
+                        );
+                      }}
+                    >
+                      <ProviderMark provider={provider.provider_type}/>{provider.button_label ||
+                        `Continue with ${provider.name}`}
+                    </button>
+                  ))}
+                  {firebase.data?.enabled &&
+                    firebase.data.modules.length > 0 &&
+                    (["google", "microsoft"] as const)
+                      .filter(
+                        (provider) =>
+                          !sortedProviders.some(
+                            (p) =>
+                              p.provider_type === provider ||
+                              (provider === "microsoft" &&
+                                p.provider_type === "azure_ad"),
+                          ),
+                      )
+                      .map((provider) => (
+                        <button
+                          className="suite-secondary"
+                          key={provider}
+                          disabled={busy}
+                          onClick={() => void socialSignIn(provider)}
+                        >
+                          <ProviderMark provider={provider}/>Continue with{" "}
+                          {provider === "google" ? "Google" : "Microsoft"}
+                        </button>
+                      ))}
+                </div>
+              )}
+              {embedded && !firebase.isPending && !providers.isPending && !firebase.data?.enabled && !sortedProviders.length && <div className="suite-login-providers"><button className="suite-secondary" disabled><ProviderMark provider="google"/>Continue with Google</button><button className="suite-secondary" disabled><ProviderMark provider="microsoft"/>Continue with Microsoft</button><p role="status">Social sign-in is unavailable. Use your email below.</p></div>}
+              {embedded && <div className="home-email-divider">or use your email</div>}
               <CompactForm
-                className="suite-form"
+                className="suite-form suite-email-login"
                 noValidate
                 onSubmit={handleSubmit((data) => {
                   setError("");
@@ -658,19 +712,19 @@ export default function LoginPage() {
                     }}
                     aria-describedby="remember-help"
                   />
-                  Keep me signed in
+                  Remember me
                 </label>
-                <small id="remember-help">
+                <small id="remember-help" className={embedded ? "sr-only" : undefined}>
                   Use only on a trusted device. Leave unchecked on shared
                   devices.
                 </small>
                 <button className="suite-primary" disabled={busy}>
                   {busy ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={22} />}
-                  {busy ? "Signing in…" : "Sign in"}
+                  {busy ? "Signing in…" : embedded ? "Log in to workspace" : "Sign in"}
                 </button>
                 <button
                   type="button"
-                  className="suite-login-link"
+                  className="suite-login-link suite-forgot-link"
                   onClick={() => {
                     setRecoveryEmail(email || "");
                     setView("forgot");
@@ -681,61 +735,15 @@ export default function LoginPage() {
                   Forgot password?
                 </button>
               </CompactForm>
-              <p className="mt-4 text-center text-sm"><Button asChild variant="default"><Link className="text-violet-700 underline" to="/signup">New here? Request a software trial</Link></Button></p>
+              <p className="home-trial-link"><Link to={`/signup?next=${encodeURIComponent(destination)}`} onClick={onSignup ? e => { e.preventDefault(); onSignup(); } : undefined}>New to Business Suite? <strong>Start your free trial <span aria-hidden="true">→</span></strong></Link></p>
               {hintedProvider && (
                 <p className="suite-login-context">
                   Your organization uses{" "}
                   {hintedProvider.button_label || hintedProvider.name}.
                 </p>
               )}
-              {(sortedProviders.length > 0 ||
-                (firebase.data?.enabled &&
-                  firebase.data.modules.length > 0)) && (
-                <div className="suite-login-providers">
-                  <p>Or continue with</p>
-                  {sortedProviders.map((provider) => (
-                    <button
-                      key={provider.id}
-                      className="suite-secondary"
-                      disabled={busy}
-                      onClick={() => {
-                        setRememberSession(remember);
-                        window.location.assign(
-                          `${getApiBaseUrl()}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(`/login?next=${encodeURIComponent(destination)}`)}`,
-                        );
-                      }}
-                    >
-                      <ProviderMark provider={provider.provider_type}/>{provider.button_label ||
-                        `Continue with ${provider.name}`}
-                    </button>
-                  ))}
-                  {firebase.data?.enabled &&
-                    firebase.data.modules.length > 0 &&
-                    (["google", "microsoft"] as const)
-                      .filter(
-                        (provider) =>
-                          !sortedProviders.some(
-                            (p) =>
-                              p.provider_type === provider ||
-                              (provider === "microsoft" &&
-                                p.provider_type === "azure_ad"),
-                          ),
-                      )
-                      .map((provider) => (
-                        <button
-                          className="suite-secondary"
-                          key={provider}
-                          disabled={busy}
-                          onClick={() => void socialSignIn(provider)}
-                        >
-                          <ProviderMark provider={provider}/>Continue with{" "}
-                          {provider === "google" ? "Google" : "Microsoft / Outlook"}
-                        </button>
-                      ))}
-                </div>
-              )}
               <details className="suite-application-status" open={params.get("application")==="1"}>
-                <summary>Applied and waiting for approval?</summary>
+                <summary>Check application status</summary>
                 <p>Use Google above with your application email, or receive a private status link by email.</p>
                 <form className="suite-form" onSubmit={async (event) => {
                   event.preventDefault(); setError(""); setStatusBusy(true);
@@ -783,7 +791,7 @@ export default function LoginPage() {
           <Link to="/help">Help & support</Link>
           <span>© {new Date().getFullYear()} Business Suite</span>
         </footer>
-      </main>
+      </Main>
     </div>
   );
 }

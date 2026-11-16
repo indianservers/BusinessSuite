@@ -1,3 +1,4 @@
+import EmployeeCategories from "@/shared/EmployeeCategories";
 import { recordScope, useRecordScope } from "@/lib/record-scope";
 import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import EmployeeCRMWorkspaceAccess from "./EmployeeCRMWorkspaceAccess";
@@ -79,6 +80,7 @@ const EDIT_FIELDS: Record<string, Array<[string, string, string?]>> = {
   job: [
     ["branch_id", "Branch", "select"],
     ["department_id", "Department", "select"],
+    ["work_categories", "Employee categories", "categories"],
     ["designation_id", "Designation / Job Role", "select"],
     ["reporting_manager_id", "Reporting Manager / Intern Supervisor", "select"],
     ["employment_type", "Employment Type", "select"],
@@ -242,6 +244,11 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
       qc.invalidateQueries({ queryKey: ["employee-job-options"] });
       qc.invalidateQueries({ queryKey: ["employee-manager-options"] });
       qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employee-work-categories"] });
+      qc.invalidateQueries({ queryKey: ["employee-directory"] });
+      qc.invalidateQueries({ queryKey: ["pos-service-scheduling"] });
+      qc.invalidateQueries({ queryKey: ["pos-service-provider-options"] });
+      window.dispatchEvent(new Event("pms:people-changed"));
       if (onClose) onClose();
       else {
         const next = new URLSearchParams(params);
@@ -420,6 +427,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
       alternate_phone_country_code: emp.alternate_phone_country_code || (emp.alternate_phone ? "" : "+91"),
       branch_id: emp.branch_id ?? "",
       department_id: emp.department_id ?? "",
+      work_categories: emp.work_categories || [],
       designation_id: emp.designation_id ?? "",
       reporting_manager_id: emp.reporting_manager_id ?? "",
       employment_type: emp.employment_type || "Full-time",
@@ -740,7 +748,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
                 {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>
-                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{emp[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
+                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{emp[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "categories" ? <EmployeeCategories create value={editForm.work_categories || []} onChange={value=>setEditForm(form=>({...form,work_categories:value}))}/> : type === "select" ? (
                       <NativeSelect id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? (key === "role_id" ? userOptions.data?.find((user) => user.id === emp.user_id)?.role_id : "") ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="">Unassigned</option>
                         {(key === "role_id" ? accountRoles : jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
@@ -932,6 +940,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
               {[
                 ["Employee ID", emp.employee_id],
                 ["Employment Type", emp.employment_type],
+                ["Employee categories", (emp.work_categories || []).join(", ") || "Unassigned"],
                 ...([ ["branch_id", "Branch"], ["department_id", "Department"], ["designation_id", "Designation / Job Role"], ["reporting_manager_id", "Reporting Manager / Intern Supervisor"] ].map(([key, label]) => [label, jobOptions?.[key]?.find((option) => option.id === emp[key])?.name || (emp[key] ? `#${emp[key]}` : "Unassigned")])),
                 ["Status", emp.status],
                 ["Work Location", emp.work_location],

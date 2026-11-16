@@ -1314,6 +1314,9 @@ def process(db, job_id, token):
                 if not node.credential_reference or not node.credential_reference.isdecimal(): raise ValueError("A saved connection is required")
                 conn=vault.connection(db,actor,run.environment,int(node.credential_reference))
                 if conn.connector_id!=node.type.removeprefix("connector_"):raise ValueError("Connection/provider mismatch")
+                if conn.connector_id == 'telegram' and config['action'] == 'send_message':
+                    from app.apps.power_apps.telegram_operations import authorize_delivery
+                    authorize_delivery(db, run, config.get('input', {}), resource_id=root.resource_id)
                 output=connector_service.invoke(db,actor,conn,config["action"],config.get("input",{}),confirmed=config.get("confirm_write") is True,key=f"run:{run.id}:step:{step.id}",run_id=run.id,step_id=step.id)
                 from app.apps.power_apps.integrations.providers import PROFILES
                 if conn.connector_id not in PROFILES:

@@ -80,6 +80,14 @@ def test_setup_poll_deduplicate_reply_logs_pause_and_scope(client, db, actors, m
     assert listing.json()['items'] and listing.json()['items'][0]['messages'], (listing.json(), [(e.resource_id, e.kind, e.details) for e in db.query(Event).all() if e.kind == 'telegram_message'])
     assert listing.json()['items'][0]['messages'][0]['enquiry_completed'] is True
     assert token not in listing.text
+    settings = {'public_enabled': True, 'company_enabled': True, 'create_crm_records': False, 'company_user_ids': ['42'],
+                'public_welcome': 'Customer welcome', 'company_welcome': 'Staff welcome'}
+    saved = client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[0], json=settings)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()['configuration'] == settings
+    assert client.get(ROOT + '/bots', headers=actors[0]).json()['items'][0]['configuration'] == settings
+    assert client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[2], json=settings).status_code in {403, 404}
+    assert client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[0], json={**settings, 'company_user_ids': ['@username']}).status_code == 422
     other = client.get(ROOT + '/bots', headers=actors[2])
     assert other.status_code == 200 and other.json()['items'] == []
     paused = client.put(f'{ROOT}/{resource_id}', headers=actors[0], json={'enabled': False})
@@ -94,3 +102,24 @@ def test_preview_is_offline_and_validated(client, actors):
     assert response.json()['sent'] is False
     assert response.json()['enquiry']['requirement'] == 'Login problem'
     assert client.post(ROOT + '/simulate', headers=actors[0], json={'messages': ['x' * 4097]}).status_code == 422
+
+
+def test_company_interface_checks_access_on_every_message():
+    from app.apps.power_apps.telegram import interface_conversation
+    config = {'company_enabled': True, 'company_user_ids': ['42'], 'public_welcome': 'Public hello', 'company_welcome': 'Staff hello'}
+    state, reply = interface_conversation('/start company', None, config, '42')
+    assert state['interface'] == 'company' and reply == 'Staff hello'
+    state, reply = interface_conversation('Internal request', state, config, '42')
+    assert state['stage'] == 'request'
+    completed, reply = interface_conversation('Need new equipment', state, config, '42')
+    assert completed['requirement'] == 'Need new equipment' and completed['interface'] == 'company'
+    denied, reply = interface_conversation('Need new equipment', state, {**config, 'company_user_ids': []}, '42')
+    assert denied['interface'] == 'public' and 'approved' in reply
+    denied, reply = interface_conversation('/company', None, config, '99')
+    assert denied['interface'] == 'public' and 'approved' in reply
+    public, reply = interface_conversation('/public', completed, config, '42')
+    assert public['interface'] == 'public' and reply == 'Public hello'
+    public, reply = interface_conversation('/start public', completed, config, '42')
+    assert public['interface'] == 'public'
+    public, reply = interface_conversation('Sales', public, {**config, 'public_enabled': False}, '99')
+    assert 'unavailable' in reply and public['stage'] == 'menu'

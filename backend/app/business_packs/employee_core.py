@@ -93,6 +93,7 @@ def candidate_operations(operation):
     result={('GET',path):read for path in (
         '/api/v1/employees/','/api/v1/employees/directory','/api/v1/employees/filter-options',
         '/api/v1/employees/reporting-managers','/api/v1/employees/{employee_id}')}
+    result[('GET','/api/v1/employees/work-category-options')]=operation('view',None,purpose=PURPOSE)
     result[('GET','/api/v1/employees/directory')]=operation('view',None,purpose=PURPOSE)
     result[('GET','/api/v1/employees/custom-fields/definitions')]=operation('view',('employee_view','employee_create','employee_update'),purpose=PURPOSE)
     result[('POST','/api/v1/employees/duplicate-check')]=operation('view',('employee_create','employee_update'),purpose=PURPOSE)

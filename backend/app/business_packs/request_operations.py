@@ -172,6 +172,7 @@ _RULES = {
     ('POST', '/api/v1/srm/service-checkout/{checkout_id}/payments'): RequestOperation(('payments.record',)),
     ('GET', '/api/v1/srm/service-checkout/options'): RequestOperation(OPTIONS),
     ('GET', '/api/v1/srm/service-checkout/options/providers'): RequestOperation(OPTIONS),
+    ('GET', '/api/v1/srm/service-checkout/options/availability'): RequestOperation(OPTIONS),
     ('PUT', '/api/v1/srm/service-checkout/policies'): RequestOperation(CONFIGURE),
     ('PUT', '/api/v1/srm/service-checkout/eligibility'): RequestOperation(CONFIGURE),
     ('GET', '/api/v1/srm/service-checkout/appointments/{appointment_id}/schedule'): RequestOperation(SCHEDULE),

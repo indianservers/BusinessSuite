@@ -84,6 +84,9 @@ class Employee(Base):
     voter_id_number = Column(Text)
     ration_card_number = Column(Text)
 
+    # Operational categories are independent of statutory demographic category.
+    work_categories = Column(JSON, nullable=False, default=list, server_default='[]')
+
     # Job Info
     date_of_joining = Column(Date, nullable=False)
     date_of_confirmation = Column(Date)

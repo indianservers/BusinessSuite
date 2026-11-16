@@ -204,6 +204,16 @@ def save_policy(data:PolicyInput,db,user,*,commit=True):
     return result
 
 
+def _assert_employee_category(db, employee_id, policy):
+    if not policy.employee_categories:
+        return
+    from app.models.employee import Employee
+    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    wanted = {name.casefold() for name in policy.employee_categories}
+    if employee is None or not wanted.intersection(name.casefold() for name in employee.work_categories or []):
+        fail('Employee no longer belongs to a category allowed for this service', 409)
+
+
 def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
     company,branch,scope=_authority(db,user,configuration=True)
     with db.begin_nested():
@@ -211,6 +221,7 @@ def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
         policy=_scope(db.query(ServiceBookingPolicy),ServiceBookingPolicy,company,branch,scope).filter_by(id=data.policy_id,active=True).with_for_update().first()
         if not policy:fail('Service policy not found',404)
         if policy.revision!=data.expected_policy_revision:fail('Service policy revision changed',409)
+        _assert_employee_category(db,data.employee_id,policy)
         provider=_provider(db,user,branch,data.provider_resource_id,data.employee_id)
         _source_scope(db,scope,company,branch,type(provider),provider.id,master=True)
         _source_scope(db,scope,company,branch,ServiceBookingPolicy,policy.id)
@@ -243,7 +254,7 @@ def _cross_pack_busy(db,company,branch,booking):
         table.c.kind=='appointment',table.c.status.in_(['booked','checked_in','in_service']),table.c.starts_at<end,table.c.ends_at>booking.starts_at)).scalars()
     for data in rows:
         ids=(data or {}).get('resource_ids',[])
-        if booking.provider_resource_id in ids:fail('Provider is unavailable at that time',409)
+        if set([booking.provider_resource_id, *booking.additional_resource_ids]).intersection(ids):fail('Provider is unavailable at that time',409)
         if ids:
             resources=db.connection().execute(select(table.c.data).where(table.c.organization_id==company,
                 table.c.branch_id==branch,table.c.kind=='resource',table.c.id.in_(ids))).scalars()
@@ -355,6 +366,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 eligibility=_scope(db.query(ServiceSpecialistEligibility),ServiceSpecialistEligibility,company,branch,scope).filter_by(
                     id=b.eligibility_id,booking_policy_id=policy.id,service_product_id=product.id,provider_resource_id=b.provider_resource_id,active=True).with_for_update().first()
                 if not eligibility or eligibility.revision!=b.expected_eligibility_revision:fail('Specialist eligibility revision changed',409)
+                _assert_employee_category(db,b.employee_id,policy)
                 provider=_provider(db,user,branch,b.provider_resource_id,b.employee_id)
                 _source_scope(db,scope,company,branch,type(provider),provider.id,master=True)
                 _source_scope(db,scope,company,branch,ServiceBookingPolicy,policy.id)
@@ -362,10 +374,15 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 if not policy.min_duration_minutes<=b.duration_minutes<=policy.max_duration_minutes or (not policy.allow_duration_override and b.duration_minutes!=policy.default_duration_minutes):fail('Choose a duration permitted by the service policy')
                 start=b.starts_at;end=start+timedelta(minutes=b.duration_minutes)
                 for old in slots:
-                    if old.employee_id==b.employee_id and start<old.starts_at+timedelta(minutes=old.duration_minutes) and old.starts_at<end:fail('Provider has overlapping occurrences in this basket',409)
+                    if (old.employee_id==b.employee_id or set([old.provider_resource_id,*old.additional_resource_ids]).intersection([b.provider_resource_id,*b.additional_resource_ids])) and start<old.starts_at+timedelta(minutes=old.duration_minutes) and old.starts_at<end:fail('Provider has overlapping occurrences in this basket',409)
                 slots.append(b)
                 _cross_pack_busy(db,company,branch,b)
-                available(db,user,branch,start,b.duration_minutes,[b.provider_resource_id])
+                resources=[b.provider_resource_id,*b.additional_resource_ids]
+                from app.apps.srm.industry_api import get
+                for ident in b.additional_resource_ids:
+                    additional=get(db,user,branch,ident,'resource')
+                    _source_scope(db,scope,company,branch,type(additional),additional.id,master=True)
+                available(db,user,branch,start,b.duration_minutes,resources)
                 for bound,is_lower in ((eligibility.effective_from,True),(eligibility.effective_until,False)):
                     if bound:
                         bound=bound.replace(tzinfo=timezone.utc) if bound.tzinfo is None else bound
@@ -429,7 +446,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 if db.connection().execute(select(IndustryRecord.id).where(IndustryRecord.organization_id==company,IndustryRecord.branch_id==branch,IndustryRecord.request_id==str(occurrence_key))).first():
                     fail('Appointment source key is already reserved',409)
                 appointment=appointment_operation(AppointmentInput(request_id=occurrence_key,title=product.item_name,
-                    customer_id=buyer_id,service_id=product.id,resource_ids=[b.provider_resource_id],
+                    customer_id=buyer_id,service_id=product.id,resource_ids=[b.provider_resource_id,*b.additional_resource_ids],
                     starts_at=b.starts_at,duration_minutes=b.duration_minutes),db,user,commit=False)
                 _stamp_new(db,scope,company,branch,[db.get(IndustryRecord,appointment['id'])])
                 occurrence=POSServiceOccurrence(checkout_id=root.id,checkout_line_id=mapped.id,occurrence_key=str(occurrence_key),
@@ -742,6 +759,7 @@ def reschedule_grouped(appointment_id,data,db,user,*,commit=True):
             provider_resource_id=b.provider_resource_id,active=True).with_for_update().populate_existing().first()
         if not eligibility or eligibility.revision!=b.expected_eligibility_revision:fail('Specialist eligibility revision changed; review current options',409)
         for row in (policy,eligibility):_source_scope(db,scope,company,branch,type(row),row.id)
+        _assert_employee_category(db,b.employee_id,policy)
         provider=_provider(db,user,branch,b.provider_resource_id,b.employee_id)
         _source_scope(db,scope,company,branch,type(provider),provider.id,master=True)
         resources=[b.provider_resource_id,*data.additional_resource_ids]

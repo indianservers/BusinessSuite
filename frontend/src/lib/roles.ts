@@ -859,6 +859,7 @@ const employeeNav: RoleNavItem[] = [
 ];
 
 const crmNav: RoleNavItem[] = [
+  { label: "Appointment Scheduler", icon: CalendarDays, to: "/crm/appointments", group: "Sales" },
  {label:"Send reminders",icon:MessageCircle,to:"/crm/send-reminders",group:"Communication"},
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
@@ -995,7 +996,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Follow-Ups", icon: ClipboardCheck, to: "/srm/follow-ups", group: "Sales & Inventory" },
   { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
-  { label: "Appointments", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
+  { label: "Appointment Scheduler", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
   { label: "Scheduled Services", icon: CalendarDays, to: "/srm/scheduled-services", group: "Industry operations" },
   { label: "Restaurant kitchen", icon: ClipboardCheck, to: "/srm/restaurant-kitchen", group: "Industry operations" },
   { label: "Client service periods", icon: ClipboardCheck, to: "/srm/accounts-periods", group: "Industry operations" },
