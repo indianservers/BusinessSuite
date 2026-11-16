@@ -144,12 +144,141 @@ def service_options(db, actor, service_id, *, selected=None, search=''):
         'specialists': rows, 'has_more': more, 'resources': resource_options}
 
 
+class _AvailabilityRead:
+    """Request-local blind occupancy snapshot; never grants resource authority.
+
+    The caller has already authorized the service/provider/resource choices. Keep
+    the shared availability reader's identity and malformed-data validation, but
+    perform each lookup once rather than once per quarter-hour candidate.
+    """
+    def __init__(self, db, actor, company, branch, lower, upper, provider, employee):
+        from sqlalchemy import func
+        self.db, self.actor, self.company, self.branch = db, actor, company, branch
+        self.memo = {}
+        self.selected = {provider.id: provider}
+        self.employees = {employee.id: employee}
+        table = IndustryRecord.__table__
+        self.resource_shape = func.json_type if db.get_bind().dialect.name == 'sqlite' else func.json_typeof
+        self.bookings = db.connection().execute(select(table.c.id, table.c.branch_id,
+            table.c.starts_at, table.c.ends_at, table.c.data['resource_ids'].label('resource_ids')).where(
+            table.c.organization_id == company, table.c.kind == 'appointment',
+            table.c.status.in_(('booked', 'checked_in', 'in_service')),
+            or_(table.c.starts_at.is_(None), table.c.ends_at.is_(None), table.c.starts_at >= table.c.ends_at,
+                and_(table.c.starts_at < upper, table.c.ends_at > lower)))).mappings().all()
+        self.identities = {}
+
+    def remember(self, key, call):
+        if key not in self.memo:
+            try:
+                self.memo[key] = (True, call())
+            except HTTPException as error:
+                self.memo[key] = (False, (error.status_code, error.detail))
+        ok, result = self.memo[key]
+        if not ok:
+            raise HTTPException(result[0], result[1])
+        return result
+
+    def resource(self, identity, historical_branch=None):
+        from app.business_packs.availability import _employee, _id, _unavailable, _user
+        table = IndustryRecord.__table__
+        if identity not in self.identities:
+            self.identities[identity] = self.db.connection().execute(select(table.c.branch_id,
+                table.c.data['employee_id'].label('employee_id'), table.c.data['user_id'].label('user_id'),
+                self.resource_shape(table.c.data).label('shape')).where(table.c.id == identity,
+                table.c.kind == 'resource', table.c.organization_id == self.company)).mappings().first()
+        row = self.identities[identity]
+        if not row or row['shape'] != 'object':
+            _unavailable()
+        def check_branch():
+            if not self.db.connection().execute(select(Branch.id).where(Branch.id == row['branch_id'],
+                    Branch.company_id == self.company)).first():
+                _unavailable()
+        self.remember(('branch', row['branch_id']), check_branch)
+        if historical_branch is not None and row['branch_id'] != historical_branch:
+            _unavailable()
+        employee, user = row['employee_id'], row['user_id']
+        if employee is not None:
+            _id(employee)
+            self.remember(('employee', employee), lambda: _employee(self.db.connection(), self.company, employee))
+        if user is not None:
+            _id(user)
+            historical = historical_branch is not None
+            self.remember(('user', user, historical, employee), lambda: _user(self.db, self.company, user,
+                historical=historical, employee_id=employee))
+        return employee, user
+
+    def conflict(self, start, end, resource_ids):
+        from app.business_packs.availability import _company, _ids, _instant, _unavailable
+        start, end = _instant(start), _instant(end)
+        if start >= end:
+            _unavailable()
+        self.remember(('company',), lambda: _company(self.db.connection(), self.company))
+        selected, employees, users = _ids(resource_ids), set(), set()
+        for identity in selected:
+            employee, user = self.resource(identity)
+            if employee is not None:
+                employees.add(employee)
+            if user is not None:
+                users.add(user)
+        busy = False
+        for row in self.bookings:
+            old_start = _instant(row['starts_at'], stored=self.db.get_bind().dialect.name == 'sqlite')
+            old_end = _instant(row['ends_at'], stored=self.db.get_bind().dialect.name == 'sqlite')
+            if old_start >= old_end:
+                _unavailable()
+            if old_start >= end or old_end <= start:
+                continue
+            def check_branch():
+                if not self.db.connection().execute(select(Branch.id).where(Branch.id == row['branch_id'],
+                        Branch.company_id == self.company)).first():
+                    _unavailable()
+            self.remember(('branch', row['branch_id']), check_branch)
+            source_ids = row['resource_ids']
+            if not isinstance(source_ids, list) or not source_ids:
+                _unavailable()
+            prior = _ids(source_ids)
+            if len(prior) != len(source_ids):
+                _unavailable()
+            busy |= bool(prior & selected)
+            for identity in prior:
+                employee, user = self.resource(identity, row['branch_id'])
+                busy |= employee in employees or user in users
+        return busy
+
+    def available(self, start, minutes, resource_ids):
+        from datetime import timedelta, time
+        from app.apps.srm.industry_api import get, provider_employee
+        from app.business_packs.availability import employee_leave_conflict
+        end = start + timedelta(minutes=minutes)
+        for identity in resource_ids:
+            if identity not in self.selected:
+                self.selected[identity] = get(self.db, self.actor, self.branch, identity, 'resource', lock=False)
+            resource = self.selected[identity]
+            local = start.astimezone(ZoneInfo(resource.data['timezone']))
+            local_end = end.astimezone(ZoneInfo(resource.data['timezone']))
+            if resource.data.get('employee_id'):
+                employee_id = resource.data['employee_id']
+                if employee_id not in self.employees:
+                    self.employees[employee_id] = provider_employee(self.db, self.actor, self.branch, employee_id)
+                employee = self.employees[employee_id]
+                if employee.date_of_exit and employee.date_of_exit <= local.date():
+                    return False
+                if self.remember(('leave', employee_id, local.date(), local_end.date()),
+                        lambda: employee_leave_conflict(self.db, self.company, employee_id, local.date(), local_end.date())):
+                    return False
+            if (resource.status != 'active' or local.weekday() not in resource.data['weekdays']
+                    or local.date() != local_end.date()
+                    or local.time().replace(tzinfo=None) < time.fromisoformat(resource.data['opens'])
+                    or local_end.time().replace(tzinfo=None) > time.fromisoformat(resource.data['closes'])):
+                return False
+        return not self.conflict(start, end, resource_ids)
+
+
 def scheduling_availability(db, actor, service_id, eligibility_id, day, duration_minutes, *, resource_ids=None, starts_at=None, selected=None):
     """Advisory availability only; atomic checkout revalidates every resource."""
     from datetime import timedelta, time
-    from types import SimpleNamespace
-    from app.apps.srm.service_checkout import _assert_employee_category, _cross_pack_busy
-    from app.apps.srm.industry_api import get, available, provider_employee, PROVIDER_TYPES
+    from app.apps.srm.service_checkout import _assert_employee_category
+    from app.apps.srm.industry_api import get, provider_employee, PROVIDER_TYPES
     company, branch, scope = _authority(db, actor, selected)
     options = service_options(db, actor, service_id, selected=selected)
     policy = db.query(ServiceBookingPolicy).filter(ServiceBookingPolicy.id == (options['policy'] or {}).get('id')).first()
@@ -163,7 +292,7 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
     _source_scope(db, scope, company, branch, ServiceSpecialistEligibility, eligibility.id)
     provider = get(db, actor, branch, eligibility.provider_resource_id, 'resource', lock=False)
     employee_id = provider.data.get('employee_id')
-    provider_employee(db, actor, branch, employee_id)
+    employee = provider_employee(db, actor, branch, employee_id)
     if provider.status != 'active' or provider.data.get('resource_type') not in PROVIDER_TYPES:
         raise HTTPException(422, 'Choose an active HRMS-linked employee resource')
     _source_scope(db, scope, company, branch, IndustryRecord, provider.id, master=True)
@@ -179,6 +308,12 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
     if starts_at is not None and (starts_at.utcoffset() is None or starts_at.astimezone(zone).date() != day):
         raise HTTPException(422, 'Availability time must include a timezone and match the selected day')
 
+    # Cover all provider-day candidates plus a selected interval that can extend
+    # into the next day. Busy metadata stays private and is discarded on return.
+    lower = datetime.combine(day, time.min, zone).astimezone(timezone.utc)
+    upper = datetime.combine(day + timedelta(days=1), time.min, zone).astimezone(timezone.utc) + timedelta(minutes=duration_minutes)
+    prepared = _AvailabilityRead(db, actor, company, branch, lower, upper, provider, employee)
+
     def usable(start, additional):
         end = start + timedelta(minutes=duration_minutes)
         if start <= datetime.now(timezone.utc):
@@ -189,10 +324,7 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
                 if (lower and start < bound) or (not lower and end > bound):
                     return False
         try:
-            available(db, actor, branch, start, duration_minutes, [provider.id, *additional], lock=False)
-            _cross_pack_busy(db, company, branch, SimpleNamespace(provider_resource_id=provider.id,
-                employee_id=employee_id, additional_resource_ids=additional, starts_at=start, duration_minutes=duration_minutes))
-            return True
+            return prepared.available(start, duration_minutes, [provider.id, *additional])
         except HTTPException as error:
             if error.status_code not in (409, 422):
                 raise
