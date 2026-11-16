@@ -15,6 +15,7 @@ from app.apps.power_apps.integrations.contracts import ConnectionCreate
 from app.apps.power_apps.telegram import bot_request, create_workflow, conversation, interface_conversation
 from app.apps.power_apps.telegram_ai import AIConfiguration
 from app.apps.power_apps.telegram_experience import ExperienceConfiguration
+from app.apps.power_apps import telegram_audience as purpose
 
 router = APIRouter(prefix='/power-apps/automations/telegram', tags=['Telegram automations'], dependencies=[Depends(RequirePermission('power_apps_view'))])
 
@@ -42,7 +43,7 @@ def experience_options(resource_id: int, environment: str = 'development', db: S
     values = {'branch_id': trigger.config.get('branch_id'), 'owner_user_id': row.owner_user_id, 'employees': [], 'services': [], 'resources': [], 'booking_error': None}
     try:
         RequirePermission('employee_view', 'employee_update')(user)
-        values['employees'] = employee_options(resource_id, environment, db, user)['items']
+        values['employees'] = employee_roster(db, user, row)
     except HTTPException:
         pass
     try:
@@ -66,9 +67,11 @@ def experience_options(resource_id: int, environment: str = 'development', db: S
 class Setup(Contract):
     name: str = Field(default='Telegram customer enquiries', min_length=1, max_length=180)
     token: SecretStr | None = None
+    audience: Literal['public', 'company'] = 'public'
 
 
 class BotConfiguration(Contract):
+    audience: Literal['public', 'company', 'shared'] = 'shared'
     public_enabled: bool = True
     company_enabled: bool = True
     create_crm_records: bool = False
@@ -102,6 +105,10 @@ def setup(data: Setup, environment: str = 'development', db: Session = Depends(g
     for permission in ('power_apps_manage_credentials', 'power_apps_execute', 'power_apps_publish'):
         RequirePermission(permission)(user)
     validate_environment(db, user, environment)
+    if data.audience == 'company' and (not data.token or not data.token.get_secret_value().strip()):
+        raise HTTPException(422, 'Enter a separate employee bot token. The public bootstrap token cannot be used for a company bot.')
+    if data.audience == 'company' and DEFAULT_BOT_TOKEN and data.token.get_secret_value().strip() == DEFAULT_BOT_TOKEN:
+        raise HTTPException(422, 'Create a separate employee bot and enter its token. The public bootstrap bot cannot be used for employee access.')
     if not data.token and not DEFAULT_BOT_TOKEN:
         raise HTTPException(422, "Enter a bot token or configure the server bootstrap token.")
     try:
@@ -111,8 +118,15 @@ def setup(data: Setup, environment: str = 'development', db: Session = Depends(g
         if webhook.get('url'):
             raise HTTPException(409, 'This bot has an existing webhook. Remove that webhook before creating a local polling automation.')
         row = create_workflow(db, user, environment, conn, bot, data.name)
+        trigger = db.query(Trigger).filter_by(resource_id=row.id, kind='telegram').one()
+        interfaces = BotConfiguration().model_dump(exclude={'audience'})
+        interfaces['public_enabled'], interfaces['company_enabled'] = data.audience == 'public', data.audience == 'company'
+        if data.audience == 'company':
+            interfaces['company_welcome'] = 'Company workspace: choose Create lead, Create task, Internal request or Help. Send /human for a person.'
+        trigger.config = {**trigger.config, 'audience': data.audience, 'interfaces': interfaces,
+            'company_token_verified': data.audience == 'company'}
         db.commit()
-        return {'resource_id': row.id, 'username': bot.get('username'), 'enabled': True}
+        return {'resource_id': row.id, 'username': bot.get('username'), 'enabled': True, 'audience': data.audience}
     except Exception:
         db.rollback()
         raise
@@ -129,10 +143,12 @@ def bots(environment: str = 'development', db: Session = Depends(get_db), user=D
             continue
         deployment = db.query(Deployment).filter_by(resource_id=row.id).first()
         events = db.query(Event).filter_by(resource_id=row.id, organization_id=organization(user), environment=environment, kind='telegram_message').order_by(Event.id.desc()).limit(20).all()
+        events = [event for event in events if purpose.audience(trigger) == 'shared' or event.details.get('state', {}).get('interface') == purpose.audience(trigger)]
         items.append({'resource_id': row.id, 'name': row.name, 'username': trigger.config.get('username'),
                       'enabled': bool(trigger.enabled and deployment and deployment.status == 'active'), 'last_polled': trigger.last_at,
                       'error': trigger.config.get('error'), 'can_manage': row.owner_user_id == user.id or user.is_superuser,
-                      'configuration': trigger.config.get('interfaces', BotConfiguration().model_dump()),
+                      'audience': purpose.audience(trigger),
+                      'configuration': {**trigger.config.get('interfaces', BotConfiguration().model_dump(exclude={'audience'})), 'audience': purpose.audience(trigger)},
                       'messages': [{'id': event.id, 'run_id': event.run_id, 'created_at': event.created_at, **event.details} for event in events]})
     return {'items': items}
 
@@ -177,11 +193,20 @@ def configure(resource_id: int, data: BotConfiguration, environment: str = 'deve
         with background_scope(db, user, 'crm', 'create', branch_id=trigger.config['branch_id']):
             crm._assert_entity_permission('leads', user, 'manage')
             crm._assert_entity_permission('tasks', user, 'manage')
-    config = data.model_dump()
+    selected = data.audience if 'audience' in data.model_fields_set else purpose.audience(trigger)
+    if selected == 'shared' and purpose.audience(trigger) != 'shared':
+        raise HTTPException(422, 'Shared access is supported only by legacy bots. Choose public or company.')
+    if selected == 'company' and purpose.audience(trigger) != 'company' and trigger.config.get('company_token_verified') is not True:
+        raise HTTPException(422, 'Connect a separate employee bot using its own token. A public or legacy bot cannot be promoted to company access here.')
+    config = data.model_dump(exclude={'audience'})
+    if selected != 'shared':
+        config['public_enabled'] = selected == 'public' and config['public_enabled']
+        config['company_enabled'] = selected == 'company' and config['company_enabled']
     config['company_user_ids'] = list(dict.fromkeys(config['company_user_ids']))
+    purpose.change(db, row, trigger, selected)
     trigger.config = {**trigger.config, 'interfaces': config}
     db.commit()
-    return {'configuration': config}
+    return {'configuration': {**config, 'audience': selected}}
 
 
 def bot_access(db, user, resource_id, environment, manage=False):
@@ -256,15 +281,22 @@ def configure_ai(resource_id: int, data: AIConfiguration, environment: str = 'de
 
 @router.get('/{resource_id}/employee-options')
 def employee_options(resource_id: int, environment: str = 'development', db: Session = Depends(get_db), user=Depends(RequirePermission('employee_view', 'employee_update'))):
+    row, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    purpose.require(trigger, 'company')
+    return {'items': employee_roster(db, user, row)}
+
+
+def employee_roster(db, user, row):
+    """Authorized ERP roster for routing, independently of Telegram login links."""
     from app.models.employee import Employee
     from app.models.company import Branch
-    row, _ = bot_access(db, user, resource_id, environment, manage=True)
+    RequirePermission('employee_view', 'employee_update')(user)
     from app.access.service import check_background_access
     check_background_access(db, user, 'hrms', 'view')
     records = db.query(Employee).join(Branch, Employee.branch_id == Branch.id).filter(
         Branch.company_id == row.organization_id, Employee.deleted_at.is_(None), Employee.user_id.is_not(None),
         Employee.status.in_(['Active', 'Probation', 'On Leave'])).order_by(Employee.first_name, Employee.id).limit(200).all()
-    return {'items': [{'id': item.id, 'employee_code': item.employee_id, 'name': f'{item.first_name} {item.last_name}', 'user_id': item.user_id} for item in records]}
+    return [{'id': item.id, 'employee_code': item.employee_id, 'name': f'{item.first_name} {item.last_name}', 'user_id': item.user_id} for item in records]
 
 
 @router.post('/{resource_id}/link-code')
@@ -287,6 +319,7 @@ def link_employee(resource_id: int, data: EmployeeLink, environment: str = 'deve
     from app.apps.power_apps.runtime import now, scope_values
     RequirePermission('employee_update')(user)
     row, trigger = bot_access(db, user, resource_id, environment, manage=True)
+    purpose.require(trigger, 'company')
     from app.access.service import check_background_access
     check_background_access(db, user, 'hrms', 'edit', branch_id=trigger.config.get('branch_id'))
     employee = db.query(Employee).join(Branch, Employee.branch_id == Branch.id).filter(
@@ -338,6 +371,8 @@ def operations(resource_id: int, environment: str = 'development', db: Session =
     experience = experience_configuration(trigger)
     manager = row.owner_user_id == user.id or user.is_superuser
     query = db.query(TelegramConversation).filter_by(resource_id=row.id, organization_id=row.organization_id, environment=environment)
+    if purpose.audience(trigger) != 'shared':
+        query = query.filter_by(interface=purpose.audience(trigger))
     threads = query.order_by(TelegramConversation.last_at.desc()).limit(50).all()
     items = []
     for thread in threads:
@@ -348,9 +383,14 @@ def operations(resource_id: int, environment: str = 'development', db: Session =
             'service_stages': [stage.model_dump() for flow in experience.workflows if flow.id == (thread.context or {}).get('workflow_id') for stage in flow.stages],
             'messages': [{'id': message.id, 'direction': message.direction, 'text': message.text, 'created_at': message.created_at,
                 'run_id': message.run_id, 'delivery_status': db.get(PowerExecution, message.run_id).status if message.run_id and db.get(PowerExecution, message.run_id) else None} for message in reversed(messages)]})
-    linked = db.query(TelegramIdentity).filter_by(resource_id=row.id, revoked_at=None).order_by(TelegramIdentity.id.desc()).limit(200).all() if manager else []
+    links = db.query(TelegramIdentity).filter_by(resource_id=row.id, revoked_at=None)
+    if purpose.audience(trigger) != 'shared':
+        links = links.filter_by(interface=purpose.audience(trigger))
+    linked = links.order_by(TelegramIdentity.id.desc()).limit(200).all() if manager else []
     reviews = db.query(Event).filter_by(resource_id=row.id, kind='telegram_stage_review').filter(Event.details['status'].as_string() == 'pending').order_by(Event.id.desc()).limit(50).all()
-    return {'conversations': items, 'stage_reviews': [{'id': item.id, **item.details, 'can_review': any(flow.id == item.details['operation']['workflow_id'] and user.id in flow.approval_user_ids for flow in experience.workflows)} for item in reviews], 'identities': [{'id': link.id, 'interface': link.interface, 'telegram_user_id': link.telegram_id,
+    visible_ids = {thread.id for thread in threads}
+    reviews = [item for item in reviews if item.details.get('conversation_id') in visible_ids or item.details.get('operation', {}).get('conversation_id') in visible_ids]
+    return {'audience': purpose.audience(trigger), 'conversations': items, 'stage_reviews': [{'id': item.id, **item.details, 'can_review': any(flow.id == item.details['operation']['workflow_id'] and user.id in flow.approval_user_ids for flow in experience.workflows)} for item in reviews], 'identities': [{'id': link.id, 'interface': link.interface, 'telegram_user_id': link.telegram_id,
         'user_id': link.user_id, 'employee_id': link.employee_id, 'contact_id': link.contact_id, 'lead_id': link.lead_id, 'customer_id': link.customer_id,
         'name': link.display_name, 'verified': bool(link.verified_at)} for link in linked], 'can_manage': manager, 'current_user_id': user.id}
 
@@ -365,6 +405,7 @@ def handoff(resource_id: int, conversation_id: int, data: HandoffChange, environ
     thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).with_for_update().first()
     if not thread:
         raise HTTPException(404, 'Conversation not found')
+    purpose.require(trigger, thread.interface)
     manager = row.owner_user_id == user.id or user.is_superuser
     if not manager and thread.assignee_user_id not in {None, user.id}:
         raise HTTPException(403, 'This conversation is assigned to another person')
@@ -398,6 +439,7 @@ def reply(resource_id: int, conversation_id: int, data: StaffReply, environment:
     thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).with_for_update().first()
     if not thread:
         raise HTTPException(404, 'Conversation not found')
+    purpose.require(trigger, thread.interface)
     if thread.status != 'assigned' or thread.assignee_user_id != user.id:
         raise HTTPException(409, 'Claim this conversation before replying')
     config = trigger.config.get('interfaces', {})
@@ -434,6 +476,7 @@ def draft_reply(resource_id: int, conversation_id: int, environment: str = 'deve
     thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).first()
     if not thread:
         raise HTTPException(404, 'Conversation not found')
+    purpose.require(trigger, thread.interface)
     if thread.status != 'assigned' or thread.assignee_user_id != user.id:
         raise HTTPException(409, 'Claim this conversation before drafting a reply')
     db.commit()  # Do not hold the polling/configuration lock during model generation.
@@ -450,6 +493,7 @@ def change_stage(resource_id: int, conversation_id: int, data: StageChange, envi
     thread = db.query(TelegramConversation).filter_by(id=conversation_id, resource_id=row.id, organization_id=row.organization_id).with_for_update().first()
     if not thread:
         raise HTTPException(404, 'Service conversation not found')
+    purpose.require(trigger, thread.interface)
     result = transition(db, row, trigger, thread, data.target, data.expected_revision, user.id)
     db.commit()
     return result
@@ -462,6 +506,11 @@ def review_stage(resource_id: int, review_id: int, data: StageReview, environmen
     item = db.query(Event).filter_by(id=review_id, resource_id=row.id, organization_id=row.organization_id, environment=environment, kind='telegram_stage_review').with_for_update().first()
     if not item:
         raise HTTPException(404, 'Service stage review not found')
+    from app.apps.power_apps.models import TelegramConversation
+    thread = db.query(TelegramConversation).filter_by(id=item.details['operation']['conversation_id'], resource_id=row.id).first()
+    if not thread:
+        raise HTTPException(404, 'Service conversation not found')
+    purpose.require(trigger, thread.interface)
     result = review(db, row, trigger, item, user.id, data.approved)
     db.commit()
     return result

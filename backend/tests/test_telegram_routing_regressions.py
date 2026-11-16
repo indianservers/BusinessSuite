@@ -55,7 +55,7 @@ def test_routing_requires_current_mapping_and_matches_availability_and_capacity(
         agent = RoutingAgent(user_id=owner.id, branch_id=branch.id, skills=[] if disqualifier == 'skill' else ['Dental'],
             languages=['en'] if disqualifier == 'language' else ['te'], available=disqualifier != 'unavailable',
             capacity=1, opens='11:00' if disqualifier == 'hours' else '09:00')
-        trigger.config = {**trigger.config, 'experience': ExperienceConfiguration(routing_agents=[agent]).model_dump(mode='json')}
+        trigger.config = {**trigger.config, 'audience': 'shared', 'experience': ExperienceConfiguration(routing_agents=[agent]).model_dump(mode='json')}
         thread = conversation(resource, owner, 800, {'language': 'te', 'required_skills': ['dental']})
         db.add(thread)
         if disqualifier == 'capacity':
@@ -67,3 +67,53 @@ def test_routing_requires_current_mapping_and_matches_availability_and_capacity(
         if disqualifier is None:
             assert explanation['matched_skills'] == ['dental']
             assert explanation['workload'] == 0 and explanation['capacity'] == 1
+
+
+@pytest.mark.parametrize('disqualifier', [None, 'wrong_branch', 'inactive', 'on_leave', 'exited', 'deleted', 'permission', 'directory_permission', 'capacity', 'inactive_user'])
+def test_dedicated_public_bot_routes_erp_staff_without_telegram_company_link(db, bot, disqualifier):
+    from app.models.user import User
+    from app.models.company import Branch
+    from app.access.models import AccessPolicy
+    resource, trigger, owner, branch, _ = bot
+    staff = db.query(User).filter_by(email='power-3@example.com').one()
+    employee_branch = branch
+    if disqualifier == 'wrong_branch':
+        from app.branches.models import BranchOwnership
+        employee_branch = Branch(company_id=1, name='Other routing branch', code='OTHER-ROUTING', is_active=True)
+        db.add(employee_branch)
+        db.flush()
+        db.add(BranchOwnership(company_id=1, branch_id=employee_branch.id, resource_table='branches', resource_key=str(employee_branch.id), source='routing-test'))
+        db.commit()
+    with background_scope(db, owner, 'hrms', 'view', branch_id=employee_branch.id):
+        employee = Employee(employee_id='PUBLIC-ROUTING-1', first_name='ERP', last_name='Support', user_id=staff.id,
+            branch_id=employee_branch.id, date_of_joining=date(2020, 1, 1),
+            status='Suspended' if disqualifier == 'inactive' else 'On Leave' if disqualifier == 'on_leave' else 'Active',
+            date_of_exit=now().date() if disqualifier == 'exited' else None,
+            deleted_at=now() if disqualifier == 'deleted' else None)
+        db.add(employee)
+        db.commit()
+    if disqualifier == 'permission':
+        policy = db.query(AccessPolicy).filter_by(user_id=staff.id, company_id=1).one()
+        grant = policy.grants['power_apps']
+        policy.grants = {'power_apps': {**grant, 'permissions': [item for item in grant['permissions'] if item != 'power_apps_execute']}}
+        db.commit()
+    elif disqualifier == 'inactive_user':
+        staff.is_active = False
+        db.commit()
+    elif disqualifier == 'directory_permission':
+        owner.role.permissions = [permission for permission in owner.role.permissions if permission.name != 'employee_view']
+        db.commit()
+    with background_scope(db, owner, 'power_apps', 'create', branch_id=branch.id):
+        agent = RoutingAgent(user_id=staff.id, branch_id=branch.id, skills=['Dental'], languages=['te'], capacity=1)
+        trigger.config = {**trigger.config, 'audience': 'public', 'experience': ExperienceConfiguration(routing_agents=[agent]).model_dump(mode='json')}
+        thread = conversation(resource, owner, 810, {'language': 'te', 'required_skills': ['dental']})
+        db.add(thread)
+        if disqualifier == 'capacity':
+            occupied = conversation(resource, owner, 811, {})
+            occupied.assignee_user_id = staff.id
+            db.add(occupied)
+        db.commit()
+        assert db.query(TelegramIdentity).filter_by(resource_id=resource.id, interface='company').count() == 0
+        ident, explanation = telegram_routing.select_agent(db, resource, trigger, thread, datetime(2026, 11, 16, 5, 0, tzinfo=timezone.utc))
+        assert ident == (staff.id if disqualifier is None else owner.id)
+        assert explanation['fallback'] is (disqualifier is not None)

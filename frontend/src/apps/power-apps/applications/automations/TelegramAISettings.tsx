@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { api } from '@/services/api';
 import { errorMessage } from '../../api';
 import type { Environment } from '../../registry';
+import type { TelegramAudience } from './TelegramInterfaceSettings';
 
 type Configuration = { enabled: boolean; provider: 'local' | 'preferred' | 'openai' | 'gemini' | 'claude'; public_context: string };
 type ModelStatus = { active: boolean; description: string; engine: string };
-export function TelegramAISettings({ resourceId, environment, editable }: { resourceId: number; environment: Environment; editable: boolean }) {
+export function TelegramAISettings({ resourceId, environment, editable, audience = 'shared' }: { resourceId: number; environment: Environment; editable: boolean; audience?: TelegramAudience }) {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState<Configuration>({ enabled: true, provider: 'local', public_context: '' });
   const [model, setModel] = useState<ModelStatus>();
@@ -34,7 +35,7 @@ export function TelegramAISettings({ resourceId, environment, editable }: { reso
         <label>ActionBot model source<select value={config.provider} disabled={!editable || busy} onChange={event => setConfig({ ...config, provider: event.target.value as Configuration['provider'] })}><option value="local">Trained local ActionBot model</option><option value="preferred">Existing ActionBot model preference</option><option value="openai">Configured OpenAI model</option><option value="gemini">Configured Gemini model</option><option value="claude">Configured Claude model</option></select></label>
         {model && <p role="note">Local model: {model.description}. {model.active ? 'A compatible trained release is active.' : 'The trained release is unavailable; local intent handling uses the existing retrieval and rules fallback.'}</p>}
         <p>The local model recognizes intents; it is not a generative chat model. Cloud choices use the existing enabled provider, model, credentials and data-sharing settings.</p>
-        <p>Publish factual answers under Verified knowledge, with sources, approval and expiry. Public cloud replies receive only approved current facts and that public chat’s recent messages. They cannot access internal business tools. Employees use their own permissions and can review proposed actions through exact, expiring Telegram approval buttons.</p>
+        <p>Publish factual answers under Verified knowledge, with sources, approval and expiry. {audience !== 'company' && <>Public cloud replies receive only approved current facts and that public chat’s recent messages. They cannot access internal business tools. </>}{audience !== 'public' && <>Employees use their own permissions and can review proposed actions through exact, expiring Telegram approval buttons.</>}</p>
         {editable && <button type="submit" disabled={busy}>{busy ? 'Saving AI settings…' : 'Save ActionBot AI settings'}</button>}
       </>}
     </form>}

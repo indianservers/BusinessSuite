@@ -84,8 +84,9 @@ def test_setup_poll_deduplicate_reply_logs_pause_and_scope(client, db, actors, m
                 'public_welcome': 'Customer welcome', 'company_welcome': 'Staff welcome'}
     saved = client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[0], json=settings)
     assert saved.status_code == 200, saved.text
-    assert saved.json()['configuration'] == settings
-    assert client.get(ROOT + '/bots', headers=actors[0]).json()['items'][0]['configuration'] == settings
+    expected = {**settings, 'company_enabled': False, 'audience': 'public'}
+    assert saved.json()['configuration'] == expected
+    assert client.get(ROOT + '/bots', headers=actors[0]).json()['items'][0]['configuration'] == expected
     assert client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[2], json=settings).status_code in {403, 404}
     assert client.put(f'{ROOT}/{resource_id}/configuration', headers=actors[0], json={**settings, 'company_user_ids': ['@username']}).status_code == 422
     other = client.get(ROOT + '/bots', headers=actors[2])

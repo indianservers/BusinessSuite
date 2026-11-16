@@ -50,7 +50,9 @@ def bot(client, db, actors, monkeypatch):
         if not db.query(BranchOwnership).filter_by(resource_table='branches', resource_key=str(candidate.id)).first():
             db.add(BranchOwnership(company_id=1, branch_id=candidate.id, resource_table='branches', resource_key=str(candidate.id), source='telegram-test-fixture'))
     db.flush()
-    trigger.config = {**trigger.config, 'branch_id': branch.id, 'interfaces': {'public_enabled': True, 'company_enabled': True, 'create_crm_records': True}}
+    # Existing shared-bot regressions intentionally exercise the legacy mode;
+    # newly created production bots now default to a dedicated public audience.
+    trigger.config = {**trigger.config, 'audience': 'shared', 'branch_id': branch.id, 'interfaces': {'public_enabled': True, 'company_enabled': True, 'create_crm_records': True}}
     db.commit()
     owner.organization_id = 1
     counter = [0]

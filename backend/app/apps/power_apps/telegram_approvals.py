@@ -31,6 +31,10 @@ def page_text(approval, page):
 
 
 def issue(db, resource, thread, linked, kind, operation, preview, minutes=15):
+    from app.apps.power_apps.telegram_audience import require, trigger_for
+    require(trigger_for(db, resource), thread.interface)
+    if kind == 'suite':
+        require(trigger_for(db, resource), 'company')
     if not linked or linked.revoked_at or not linked.verified_at:
         raise HTTPException(403, 'Verify this Telegram identity before approving business actions')
     if kind == 'suite' and (thread.interface != 'company' or not linked.user_id):
@@ -57,6 +61,11 @@ def issue(db, resource, thread, linked, kind, operation, preview, minutes=15):
 
 
 def validate(db, resource, thread, linked, approval):
+    from app.apps.power_apps.telegram_audience import require, trigger_for
+    trigger = trigger_for(db, resource)
+    require(trigger, thread.interface)
+    if approval.kind == 'suite':
+        require(trigger, 'company')
     if approval.resource_id != resource.id or approval.conversation_id != thread.id or approval.organization_id != resource.organization_id or approval.environment != resource.environment:
         raise HTTPException(403, 'This review belongs to another conversation')
     if not linked or linked.revoked_at or not linked.verified_at or approval.identity_id != linked.id or approval.operation.get('_binding') != binding(linked):
@@ -113,6 +122,10 @@ def validate_origin(db, user, run):
     linked = db.query(TelegramIdentity).filter_by(id=origin['identity_id'], resource_id=origin['resource_id'], revoked_at=None).first()
     if not resource or not trigger or not thread or not linked or linked.user_id != user.id or resource.organization_id != user.organization_id or binding(linked) != origin['binding']:
         raise HTTPException(403, 'Telegram execution authorization was revoked')
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, 'company')
+    if thread.interface != 'company':
+        raise HTTPException(403, 'Company action origin is unavailable')
     operations.staff_member(db, linked, resource.organization_id)
     review = db.get(Approval, origin.get('approval_id')) if origin.get('approval_id') else None
     if not review or review.status not in {'approve_requested', 'executing'} or utc(review.expires_at) <= now() or review.operation_hash != digest(review.operation) or review.operation.get('plan_hash') != run.plan_hash:

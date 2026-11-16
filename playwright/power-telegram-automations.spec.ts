@@ -13,12 +13,14 @@ for (const width of [1440, 390]) {
     let stageApproved = false;
     let serviceStage = 'received';
     let employeeLinked = false;
+    let botConfiguration = { audience: 'public', public_enabled: true, company_enabled: false, create_crm_records: false, company_user_ids: [], public_welcome: 'Welcome customers', company_welcome: 'Welcome employees' };
     let experience = structuredClone(emptyExperience);
     const transcript = [{ id: 1, direction: 'incoming', text: 'Please help with my order' }];
     await page.route('**/power-apps/automations/telegram/**', async route => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/setup')) {
         expect(route.request().postDataJSON().token).toBe('123456789:fixture_only');
+        expect(route.request().postDataJSON().audience).toBe('public');
         connected = true;
         return route.fulfill({ status: 201, json: { resource_id: 91, enabled: true, username: 'fixture_bot' } });
       }
@@ -45,10 +47,11 @@ for (const width of [1440, 390]) {
       if (path.endsWith('/conversations/8/draft')) return route.fulfill({ json: { id: 82, text: 'We are checking your order.', expires_at: new Date(Date.now() + 300000).toISOString(), sources: [{ id: 'hours', url: 'https://example.com/hours', reference: 'Hours policy v1' }], sent: false } });
       if (path.endsWith('/conversations/8')) { const action = route.request().postDataJSON().action; handoffStatus = action === 'claim' ? 'assigned' : action === 'resolve' ? 'resolved' : 'bot'; assigned = action === 'claim'; return route.fulfill({ json: { status: handoffStatus } }); }
       if (path.endsWith('/conversations/8/reply')) { expect(route.request().postDataJSON().text).toBe('We are checking your order.'); expect(route.request().postDataJSON().draft_id).toBe(82); transcript.push({ id: 2, direction: 'outgoing', text: route.request().postDataJSON().text }); return route.fulfill({ status: 202, json: { run_id: 99, status: 'queued' } }); }
-      if (path.endsWith('/configuration')) return route.fulfill({ json: { configuration: route.request().postDataJSON() } });
+      if (path.endsWith('/configuration')) { botConfiguration = route.request().postDataJSON(); return route.fulfill({ json: { configuration: botConfiguration } }); }
+      if (path.endsWith('/link-code')) { expect(route.request().postDataJSON()).toEqual({ interface: 'public', customer_id: 7 }); return route.fulfill({ json: { command: '/link fixture_one_time' } }); }
       if (path.endsWith('/simulate')) return route.fulfill({ json: { sent: false, steps: [{ message: 'Sales', reply: 'What is your name?', stage: 'name' }] } });
       if (path.endsWith('/91')) { enabled = route.request().postDataJSON().enabled; return route.fulfill({ json: { enabled } }); }
-      return route.fulfill({ json: { items: connected ? [{ resource_id: 91, name: 'Telegram customer enquiries', username: 'fixture_bot', enabled, can_manage: true, messages: [] }] : [] } });
+      return route.fulfill({ json: { items: connected ? [{ resource_id: 91, name: 'Telegram customer enquiries', username: 'fixture_bot', enabled, can_manage: true, configuration: botConfiguration, messages: [] }] : [] } });
     });
     await page.goto('/power-apps/automations');
     const panel = page.getByRole('region', { name: 'Telegram automations' });
@@ -66,17 +69,20 @@ for (const width of [1440, 390]) {
     await panel.getByRole('link', { name: 'Open Telegram configuration page' }).click();
     await expect(page).toHaveURL(/automations\/telegram/);
     const configuration = page.getByRole('region', { name: 'Telegram automations' });
-    await expect(configuration.getByText('Public interface', { exact: true })).toBeVisible();
-    await expect(configuration.getByText('Company interface', { exact: true })).toBeVisible();
+    await expect(configuration.getByRole('combobox', { name: 'Bot purpose', exact: true })).toHaveValue('public');
+    await expect(configuration.getByLabel('Public welcome message')).toBeVisible();
+    await expect(configuration.getByLabel('Company welcome message')).toHaveCount(0);
     await configuration.getByLabel('Create CRM leads and tasks from completed requests').check();
-    await configuration.getByLabel('Company welcome message').fill('Welcome to our company');
+    await configuration.getByLabel('Public welcome message').fill('Welcome customers');
     await configuration.getByRole('button', { name: 'Save interface settings' }).click();
     await expect(configuration.getByText('Telegram configuration saved.')).toBeVisible();
     await configuration.getByText('Identity linking & human handoff', { exact: true }).click();
-    await configuration.getByRole('combobox', { name: 'Employee', exact: true }).selectOption('3');
-    await configuration.getByLabel('Employee Telegram user ID', { exact: true }).fill('123456789');
-    await configuration.getByRole('button', { name: 'Link employee Telegram ID' }).click();
-    await expect(configuration.getByText('Employee linked. Company authorization is automatic on their next message.')).toBeVisible();
+    await expect(configuration.getByRole('button', { name: 'Generate my company link code' })).toHaveCount(0);
+    await expect(configuration.getByRole('button', { name: 'Link employee Telegram ID' })).toHaveCount(0);
+    await configuration.getByLabel('CRM record type').selectOption('customer');
+    await configuration.getByLabel('CRM record ID').fill('7');
+    await configuration.getByRole('button', { name: 'Generate customer linking code' }).click();
+    await expect(configuration.getByLabel('One-time Telegram command')).toHaveValue('/link fixture_one_time');
     await configuration.getByRole('button', { name: /public · Chat 42/ }).click();
     await configuration.getByRole('button', { name: 'Claim conversation' }).click();
     await configuration.getByRole('button', { name: 'Approve service stage', exact: true }).click();
@@ -118,6 +124,108 @@ for (const width of [1440, 390]) {
     await configuration.getByLabel('Dr Alex · provider', { exact: true }).check();
     await configuration.getByRole('button', { name: 'Publish Telegram experience (revision 1)' }).click();
     await expect(configuration.getByText('Telegram experience published.', { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`Dedicated company bot requires its own token and hides customer linking at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await setupPowerApps(page, { configure: true });
+    let connected = false;
+    let setupCalls = 0;
+    let companyClaimed = false;
+    const configuration = { audience: 'company', public_enabled: false, company_enabled: true, create_crm_records: false, company_user_ids: [], public_welcome: 'Customer greeting', company_welcome: 'Employee greeting' };
+    await page.route('**/power-apps/automations/telegram/**', async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/setup')) {
+        setupCalls++;
+        expect(route.request().postDataJSON()).toMatchObject({ audience: 'company', token: '987654321:separate_company_fixture' });
+        connected = true;
+        return route.fulfill({ status: 201, json: { resource_id: 92 } });
+      }
+      if (path.endsWith('/operations')) return route.fulfill({ json: { audience: 'company', current_user_id: 1, can_manage: true, identities: [], conversations: [{ id: 9, interface: 'company', chat_id: '77', status: companyClaimed ? 'assigned' : 'waiting', assignee_user_id: companyClaimed ? 1 : null, messages: [{ id: 1, direction: 'incoming', text: 'Please help with an internal request' }] }] } });
+      if (path.endsWith('/conversations/9')) { expect(route.request().postDataJSON()).toEqual({ action: 'claim' }); companyClaimed = true; return route.fulfill({ json: { status: 'assigned' } }); }
+      if (path.endsWith('/employee-options')) return route.fulfill({ json: { items: [{ id: 3, name: 'Alex Employee', employee_code: 'EMP-3', user_id: 1 }] } });
+      if (path.endsWith('/link-code')) { expect(route.request().postDataJSON()).toEqual({ interface: 'company' }); return route.fulfill({ json: { command: '/link company_one_time' } }); }
+      return route.fulfill({ json: { items: connected ? [{ resource_id: 92, name: 'Company employee workspace', username: 'company_fixture_bot', enabled: true, can_manage: true, configuration, messages: [] }] : [] } });
+    });
+    await page.goto('/power-apps/automations/telegram');
+    const panel = page.getByRole('region', { name: 'Telegram automations' });
+    await expect(panel).toBeVisible({ timeout: 45000 });
+    await panel.getByRole('button', { name: 'Connect Telegram bot' }).click();
+    await panel.getByLabel('New bot purpose').selectOption('company');
+    await expect(panel.getByLabel('Telegram bot token')).toHaveAttribute('required', '');
+    await panel.getByRole('button', { name: 'Verify bot & enable auto-reply' }).click();
+    expect(setupCalls).toBe(0);
+    await panel.getByLabel('Telegram bot token').fill('987654321:separate_company_fixture');
+    await panel.getByRole('button', { name: 'Verify bot & enable auto-reply' }).click();
+    await expect(panel.getByRole('link', { name: '@company_fixture_bot' })).toBeVisible();
+    await expect(panel.getByLabel('Company welcome message')).toBeVisible();
+    await expect(panel.getByLabel('Public welcome message')).toHaveCount(0);
+    await panel.getByText('Identity linking & human handoff', { exact: true }).click();
+    await expect(panel.getByRole('button', { name: 'Link employee Telegram ID' })).toBeVisible();
+    await expect(panel.getByLabel('CRM record type')).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: 'Generate customer linking code' })).toHaveCount(0);
+    await expect(panel.getByText('Conversation inbox', { exact: true })).toBeVisible();
+    await panel.getByRole('button', { name: /company · Chat 77/ }).click();
+    await panel.getByRole('button', { name: 'Claim conversation' }).click();
+    await expect(panel.getByLabel('Reply through Telegram')).toBeEnabled();
+    await panel.getByRole('button', { name: 'Generate my company link code' }).click();
+    await expect(panel.getByLabel('One-time Telegram command')).toHaveValue('/link company_one_time');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
+  });
+
+  test(`Legacy shared bot changes purpose only after explicit save at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await setupPowerApps(page, { configure: true });
+    let saves = 0;
+    let configuration = { audience: 'shared', public_enabled: true, company_enabled: true, create_crm_records: false, company_user_ids: [], public_welcome: 'Customer greeting', company_welcome: 'Employee greeting' };
+    await page.route('**/power-apps/automations/telegram/**', async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/configuration')) {
+        saves++; configuration = route.request().postDataJSON();
+        expect(configuration).toMatchObject({ audience: 'public', public_enabled: true, company_enabled: false });
+        return route.fulfill({ json: { configuration } });
+      }
+      if (path.endsWith('/operations')) return route.fulfill({ json: { audience: configuration.audience, current_user_id: 1, can_manage: true,
+        identities: [{ id: 1, interface: 'company', name: 'Private employee identity', telegram_user_id: '77', verified: true }, { id: 2, interface: 'public', name: 'Customer identity', telegram_user_id: '42', verified: true }],
+        conversations: [{ id: 9, interface: 'company', chat_id: '77', status: 'assigned', assignee_user_id: 1, messages: [{ id: 1, direction: 'incoming', text: 'Confidential company conversation' }] },
+          { id: 10, interface: 'public', chat_id: '42', status: 'assigned', assignee_user_id: 1, messages: [{ id: 2, direction: 'incoming', text: 'Public customer enquiry' }] }] } });
+      if (path.endsWith('/conversations/9/draft')) return route.fulfill({ json: { id: 82, text: 'Confidential employee suggestion', expires_at: new Date(Date.now() + 300000).toISOString(), sources: [], sent: false } });
+      if (path.endsWith('/employee-options')) return route.fulfill({ json: { items: [] } });
+      return route.fulfill({ json: { items: [{ resource_id: 91, name: 'Existing bot', username: 'legacy_fixture_bot', enabled: true, can_manage: true, configuration, messages: [] }] } });
+    });
+    await page.goto('/power-apps/automations/telegram');
+    const panel = page.getByRole('region', { name: 'Telegram automations' });
+    await expect(panel.getByRole('combobox', { name: 'Bot purpose', exact: true })).toHaveValue('shared', { timeout: 45000 });
+    await expect(panel.getByRole('combobox', { name: 'Bot purpose', exact: true }).locator('option[value="company"]')).toHaveCount(0);
+    await panel.getByText('Identity linking & human handoff', { exact: true }).click();
+    await expect(panel.getByRole('button', { name: 'Generate my company link code' })).toBeVisible();
+    await expect(panel.getByLabel('CRM record type')).toBeVisible();
+    await panel.getByRole('button', { name: /company · Chat 77/ }).click();
+    await expect(panel.getByText('Confidential company conversation', { exact: true })).toBeVisible();
+    await panel.getByRole('button', { name: 'Draft a grounded reply', exact: true }).click();
+    await expect(panel.getByLabel('Reply through Telegram')).toHaveValue('Confidential employee suggestion');
+    await panel.getByRole('combobox', { name: 'Bot purpose', exact: true }).selectOption('public');
+    expect(saves).toBe(0);
+    await expect(panel.getByText('Legacy shared bot · choose a dedicated purpose', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Generate my company link code' })).toBeVisible();
+    const refreshedOperations = page.waitForRequest(request => new URL(request.url()).pathname.endsWith('/operations'), { timeout: 3000 });
+    await panel.getByRole('button', { name: 'Save interface settings' }).click();
+    await refreshedOperations;
+    await expect(panel.getByText('Telegram configuration saved.', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Generate my company link code' })).toHaveCount(0);
+    await expect(panel.getByLabel('Company welcome message')).toHaveCount(0);
+    await expect(panel.getByText('Conversation inbox', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('button', { name: /company · Chat 77/ })).toHaveCount(0);
+    await expect(panel.getByText('Confidential company conversation', { exact: true })).toHaveCount(0);
+    await expect(panel.getByText(/Private employee identity/)).toHaveCount(0);
+    await expect(panel.getByLabel('Reply through Telegram')).toHaveCount(0);
+    await panel.getByRole('button', { name: /public · Chat 42/ }).click();
+    await expect(panel.getByLabel('Reply through Telegram')).toHaveValue('');
+    await expect(panel.getByText(/Suggestion expires/)).toHaveCount(0);
+    expect(saves).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
   });
 }

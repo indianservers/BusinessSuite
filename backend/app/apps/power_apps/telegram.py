@@ -184,20 +184,24 @@ def accept_update(db, row, trigger, actor, update):
         return None
     text = message['text'].strip()[:4096]
     command = text.casefold().split('@')[0]
+    from app.apps.power_apps import telegram_audience as purpose
+    bot_audience = purpose.audience(trigger)
     latest = db.query(TelegramConversation).filter_by(resource_id=row.id, chat_id=chat_id).order_by(TelegramConversation.last_at.desc(), TelegramConversation.id.desc()).first()
-    mode = latest.interface if latest else 'public'
+    mode = bot_audience if bot_audience != 'shared' else latest.interface if latest else 'public'
     if command in {'/company', '/start company'}:
         mode = 'company'
     elif command in {'/public', '/start public'}:
         mode = 'public'
+    if bot_audience != 'shared':
+        mode = bot_audience
     config = dict(trigger.config.get('interfaces', {}))
-    staff = operations.identity(db, row, sender_id, 'company')
+    staff = operations.identity(db, row, sender_id, 'company') if bot_audience != 'public' else None
     if staff:
         try:
             operations.staff_member(db, staff, row.organization_id)
         except HTTPException:
             staff = None
-    if staff and (latest is None or command == '/start') and command not in {'/public', '/start public'}:
+    if staff and bot_audience != 'public' and (latest is None or command == '/start') and command not in {'/public', '/start public'}:
         mode = 'company'
     # Numeric allowlists alone no longer grant company access.
     config['company_user_ids'] = [sender_id] if staff else []
@@ -210,10 +214,20 @@ def accept_update(db, row, trigger, actor, update):
             if mode == 'company':
                 staff = linked
         text = '[Identity linking code redacted]'
+    if bot_audience == 'public' and command in {'/company', '/start company'}:
+        reply = purpose.PUBLIC_NOTICE
+    elif bot_audience == 'company' and command in {'/public', '/start public', '/account', '/orders', '/appointments', '/myrequests', 'support', 'order status'}:
+        reply = purpose.COMPANY_PUBLIC_NOTICE
     linked = operations.identity(db, row, sender_id, mode)
+    verification_notice = False
     if mode == 'company' and (not staff or not config.get('company_enabled', True)):
-        mode, linked = 'public', operations.identity(db, row, sender_id, 'public')
-        reply = 'Link your signed-in BusinessSuite account using a one-time code before opening /company.'
+        if bot_audience == 'company':
+            linked = None
+            reply = purpose.COMPANY_NOTICE
+            verification_notice = True
+        else:
+            mode, linked = 'public', operations.identity(db, row, sender_id, 'public')
+            reply = 'Link your signed-in BusinessSuite account using a one-time code before opening /company.'
     if command == '/id':
         reply = f'Your Telegram user ID is {sender_id}. Give this numeric ID to your company administrator to link your employee account.'
     if mode == 'public' and not linked:
@@ -228,6 +242,9 @@ def accept_update(db, row, trigger, actor, update):
         db.flush()
     thread = operations.get_conversation(db, row, chat_id, sender_id, mode, linked)
     old_state = dict(thread.state or {})
+    if verification_notice:
+        old_state = {}
+        thread.state, thread.context = {}, {}
     if linking:
         old_state = {}
         thread.lead_id, thread.task_id = None, None
@@ -304,11 +321,13 @@ def accept_update(db, row, trigger, actor, update):
     thread.state = state
     if reply and state.get('stage') == 'menu' and keyboard is None:
         keyboard = dialogue.menu(trigger, mode, dialogue.language(thread, text))
+    if text.startswith(('/approve ', '/reject ', '/review ')):
+        text = '[Action review control redacted]'
     incoming = TelegramMessage(organization_id=row.organization_id, environment=row.environment, resource_id=row.id,
         conversation_id=thread.id, direction='incoming', text=text + ('\n' + json.dumps(attachment, ensure_ascii=False) if attachment else ''), update_id=update_id)
     db.add(incoming)
     private_identity = linked if mode == 'public' and command in {'/account', '/orders', '/appointments', '/myrequests'} and linked and linked.verified_at and not linked.revoked_at else None
-    run_id = operations.queue_reply(db, row, trigger, actor, thread, reply, f'telegram:{trigger.config["bot_id"]}:{update_id}', handoff_notice=thread.status in {'waiting', 'assigned'}, reply_markup=keyboard, private_identity=private_identity, private_command=command if private_identity else None) if reply else None
+    run_id = operations.queue_reply(db, row, trigger, actor, thread, reply, f'telegram:{trigger.config["bot_id"]}:{update_id}', handoff_notice=thread.status in {'waiting', 'assigned'}, reply_markup=keyboard, private_identity=private_identity, private_command=command if private_identity else None, verification_notice=verification_notice) if reply else None
     data = {'update_id': update_id, 'chat_id': chat_id, 'sender': sender.get('first_name', ''), 'text': text, 'reply': reply or '', 'conversation_id': thread.id}
     db.add(Event(**scope_values(row), resource_id=row.id, run_id=run_id, kind='telegram_message',
         details={**data, 'state': state, 'enquiry_completed': state.get('stage') == 'complete'}))

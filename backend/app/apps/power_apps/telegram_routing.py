@@ -14,11 +14,32 @@ from app.apps.power_apps.telegram_experience import configuration
 
 def eligible(db, resource, trigger, user_id):
     from app.apps.power_apps.telegram_operations import member, staff_member
-    linked = db.query(TelegramIdentity).filter_by(resource_id=resource.id, user_id=user_id, interface='company', revoked_at=None).first()
+    from app.apps.power_apps.telegram_audience import audience
+    # Public-bot staff work in ERP; their customer-facing bot must never infer
+    # company authentication from a Telegram identity on any bot.
+    linked = None if audience(trigger) == 'public' else db.query(TelegramIdentity).filter_by(resource_id=resource.id, user_id=user_id, interface='company', revoked_at=None).first()
     actor = staff_member(db, linked, resource.organization_id) if linked else member(db, user_id, resource.organization_id)
     with background_scope(db, actor, 'power_apps', 'create', branch_id=trigger.config.get('branch_id')):
         RequirePermission('power_apps_execute')(actor)
     return actor
+
+
+def public_employee(db, resource, trigger, user_id):
+    """Check the published owner's current ERP directory authority and mapping."""
+    from app.apps.power_apps.telegram_operations import member
+    from app.models.employee import Employee
+    from app.models.company import Branch
+    owner = member(db, resource.owner_user_id, resource.organization_id)
+    branch = trigger.config.get('branch_id')
+    with background_scope(db, owner, 'hrms', 'view', branch_id=branch):
+        RequirePermission('employee_view')(owner)
+        employee = db.query(Employee).join(Branch, Employee.branch_id == Branch.id).filter(
+            Employee.user_id == user_id, Employee.branch_id == branch, Employee.deleted_at.is_(None),
+            Employee.status.in_(['Active', 'Probation']), Branch.company_id == resource.organization_id,
+            Branch.is_active.is_(True),
+        ).populate_existing().first()
+        if not employee or employee.date_of_exit and employee.date_of_exit <= now().date():
+            raise HTTPException(403, 'Routing employee is no longer active in this branch')
 
 
 def select_agent(db, resource, trigger, thread, instant=None):
@@ -33,10 +54,14 @@ def select_agent(db, resource, trigger, thread, instant=None):
         local = instant.astimezone(ZoneInfo(agent.timezone))
         if local.weekday() not in agent.weekdays or not agent.opens <= local.strftime('%H:%M') < agent.closes:
             continue
-        link = db.query(TelegramIdentity).filter_by(resource_id=resource.id, user_id=agent.user_id, interface='company', revoked_at=None).first()
-        if not link or not link.employee_id:
-            continue
         try:
+            from app.apps.power_apps.telegram_audience import audience
+            if audience(trigger) == 'public':
+                public_employee(db, resource, trigger, agent.user_id)
+            else:
+                link = db.query(TelegramIdentity).filter_by(resource_id=resource.id, user_id=agent.user_id, interface='company', revoked_at=None).first()
+                if not link or not link.employee_id:
+                    continue
             eligible(db, resource, trigger, agent.user_id)
         except HTTPException:
             continue

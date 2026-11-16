@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '@/services/api';
 import { errorMessage } from '../../api';
 import type { Environment } from '../../registry';
+import type { TelegramAudience } from './TelegramInterfaceSettings';
 
 type Identity = { id: number; interface: string; telegram_user_id: string; name: string; verified: boolean; employee_id?: number; user_id?: number; contact_id?: number; lead_id?: number };
 type ThreadContext = { language?: string; qualification?: { qualified: boolean; priority: string; reasons: string[] }; routing?: { reason: string }; sla_due_at?: string; sla_waiting?: boolean; sla_breached?: boolean; service_stage?: string; stage_revision?: number; stage_approved?: boolean; workflow_id?: string };
@@ -11,7 +12,7 @@ type Thread = { context?: ThreadContext; service_stages?: { key: string; label: 
 type Operations = { stage_reviews?: { id: number; can_review: boolean; expires_at: string; operation: { conversation_id: number; from_stage: string; target: string } }[]; identities: Identity[]; conversations: Thread[]; current_user_id: number; can_manage: boolean };
 type Employee = { id: number; employee_code: string; name: string; user_id: number };
 
-export function TelegramOperations({ resourceId, environment, canManage, canExecute }: { resourceId: number; environment: Environment; canManage: boolean; canExecute: boolean }) {
+export function TelegramOperations({ resourceId, environment, canManage, canExecute, audience = 'shared' }: { resourceId: number; environment: Environment; canManage: boolean; canExecute: boolean; audience?: TelegramAudience }) {
   const base = `/power-apps/automations/telegram/${resourceId}`;
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<Operations>();
@@ -33,6 +34,10 @@ export function TelegramOperations({ resourceId, environment, canManage, canExec
   const [stageTarget, setStageTarget] = useState('');
   const [replyKeys, setReplyKeys] = useState<Record<number, string>>({});
   useEffect(() => {
+    setCommand(''); setData(undefined); setSelectedId(undefined); setSuggestions({}); setDrafts({}); setReplyKeys({});
+    setEmployees([]); setEmployeeId(''); setTelegramId(''); setPublicId(''); setAssignee(''); setStageTarget(''); setStatus(''); setError('');
+  }, [audience]);
+  useEffect(() => {
     if (!open) return;
     let active = true;
     const load = async () => {
@@ -41,28 +46,30 @@ export function TelegramOperations({ resourceId, environment, canManage, canExec
     };
     void load(); const timer = window.setInterval(() => void load(), 8000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [base, environment, open, refresh]);
+  }, [base, environment, open, refresh, audience]);
   useEffect(() => {
-    if (!open || !canManage) return;
+    if (!open || !canManage || audience === 'public') return;
     let active = true;
     void api.get<{ items: Employee[] }>(`${base}/employee-options`, { params: { environment } }).then(result => { if (active) setEmployees(result.data.items || []); }).catch(() => { if (active) setEmployees([]); });
     return () => { active = false; };
-  }, [base, environment, open, canManage]);
+  }, [base, environment, open, canManage, audience]);
   async function action(work: () => Promise<unknown>, success: string) {
     setBusy(true); setError(''); setStatus('');
     try { await work(); setStatus(success); setRefresh(value => value + 1); }
     catch (err) { setError(errorMessage(err)); }
     finally { setBusy(false); }
   }
-  const threads = (data?.conversations || []).filter(thread => filter === 'all' || thread.status === filter);
-  const selected = data?.conversations?.find(thread => thread.id === selectedId);
+  const visibleThreads = (data?.conversations || []).filter(thread => audience === 'shared' || thread.interface === audience);
+  const identities = (data?.identities || []).filter(link => audience === 'shared' || link.interface === audience);
+  const threads = visibleThreads.filter(thread => filter === 'all' || thread.status === filter);
+  const selected = visibleThreads.find(thread => thread.id === selectedId);
   return <details className="telegram-operations" onToggle={event => setOpen(event.currentTarget.open)}>
     <summary>Identity linking & human handoff</summary>
     {open && <>
-      <p>Company access follows the linked employee and their current BusinessSuite permissions. Public visitors can enquire without a customer account. Send /human in either interface to request a person.</p>
+      <p>{audience === 'public' ? 'Public visitors can enquire without a customer account. Verify their account link before sharing private information.' : audience === 'company' ? 'Company access follows the linked employee and their current BusinessSuite permissions.' : 'This legacy bot still serves employees and public customers until its purpose is saved.'} Send /human to request a person. Staff can manage the handoff inbox below.</p>
       {error && <p role="alert">{error}</p>}{status && <p role="status">{status}</p>}
       {canManage && <div className="telegram-interfaces">
-        <form className="telegram-setup" onSubmit={event => { event.preventDefault(); void action(async () => {
+        {audience !== 'public' && <form className="telegram-setup" onSubmit={event => { event.preventDefault(); void action(async () => {
           await api.post(`${base}/employee-links`, { employee_id: Number(employeeId), telegram_user_id: telegramId.trim() }, { params: { environment } });
           setTelegramId('');
         }, 'Employee linked. Company authorization is automatic on their next message.'); }}>
@@ -71,8 +78,8 @@ export function TelegramOperations({ resourceId, environment, canManage, canExec
           <p>Lists up to 200 active employees with a BusinessSuite user account. Employee update permission is required. Employees can send /id to this bot, then /start after linking.</p>
           <label>Employee Telegram user ID<input required inputMode="numeric" pattern="[1-9][0-9]{0,19}" value={telegramId} onChange={event => setTelegramId(event.target.value)} disabled={busy} /></label>
           <button disabled={busy || !employeeId} type="submit">Link employee Telegram ID</button>
-        </form>
-        <form className="telegram-setup" onSubmit={event => { event.preventDefault(); setCommand(''); void action(async () => {
+        </form>}
+        {audience !== 'company' && <form className="telegram-setup" onSubmit={event => { event.preventDefault(); setCommand(''); void action(async () => {
           const result = await api.post<{ command: string }>(`${base}/link-code`, { interface: 'public', [publicType === 'contact' ? 'contact_id' : publicType === 'lead' ? 'lead_id' : 'customer_id']: Number(publicId) }, { params: { environment } });
           setCommand(result.data.command);
         }, 'Customer link code generated. It expires in 10 minutes and works once.'); }}>
@@ -81,13 +88,13 @@ export function TelegramOperations({ resourceId, environment, canManage, canExec
           <label>CRM record ID<input required type="number" min={1} step={1} value={publicId} onChange={event => setPublicId(event.target.value)} /></label>
           <p>Share the one-time command privately with the verified customer. They send it to this bot. Names and usernames never auto-link a customer.</p>
           <button type="submit" disabled={busy}>Generate customer linking code</button>
-        </form>
+        </form>}
       </div>}
-      <button type="button" disabled={busy} onClick={() => { setCommand(''); void action(async () => {
+      {audience !== 'public' && <button type="button" disabled={busy} onClick={() => { setCommand(''); void action(async () => {
         const result = await api.post<{ command: string }>(`${base}/link-code`, { interface: 'company' }, { params: { environment } }); setCommand(result.data.command);
-      }, 'Your account link code expires in 10 minutes. Send it privately to this bot.'); }}>Generate my company link code</button>
+      }, 'Your account link code expires in 10 minutes. Send it privately to this bot.'); }}>Generate my company link code</button>}
       {command && <label>One-time Telegram command<input readOnly value={command} onFocus={event => event.target.select()} /></label>}
-      {canManage && (data?.identities || []).length > 0 && <section aria-label="Linked Telegram identities"><h5>Linked identities</h5>{data?.identities.map(link => <div key={link.id} className="telegram-identity"><span>{link.name || link.telegram_user_id} · {link.interface} · {link.verified ? 'Linked' : 'Telegram visitor'} · ID {link.telegram_user_id}{link.employee_id && <> · <Link to={`/hrms/employees/${link.employee_id}`}>Employee #{link.employee_id}</Link></>}</span>{link.verified && <button type="button" disabled={busy} onClick={() => void action(() => api.delete(`${base}/identities/${link.id}`, { params: { environment } }), 'Identity revoked. Company access ends on the next message.')}>Revoke link</button>}</div>)}</section>}
+      {canManage && identities.length > 0 && <section aria-label="Linked Telegram identities"><h5>Linked identities</h5>{identities.map(link => <div key={link.id} className="telegram-identity"><span>{link.name || link.telegram_user_id} · {link.interface} · {link.verified ? 'Linked' : 'Telegram visitor'} · ID {link.telegram_user_id}{link.employee_id && <> · <Link to={`/hrms/employees/${link.employee_id}`}>Employee #{link.employee_id}</Link></>}</span>{link.verified && <button type="button" disabled={busy} onClick={() => void action(() => api.delete(`${base}/identities/${link.id}`, { params: { environment } }), 'Identity revoked. Verified access ends immediately.')}>Revoke link</button>}</div>)}</section>}
       <header><h5>Conversation inbox</h5><label>Conversation status<select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">All conversations</option><option value="waiting">Waiting for a person</option><option value="assigned">Assigned</option><option value="bot">Bot active</option><option value="resolved">Resolved</option></select></label><button type="button" onClick={() => setRefresh(value => value + 1)}>Refresh inbox</button></header>
       <p>The inbox shows the 50 most recent conversations and up to 50 recent messages per conversation. Outgoing messages show execution status; queued does not mean delivered.</p>
       <div className="telegram-inbox"><nav aria-label="Telegram conversations">{threads.map(thread => <button type="button" aria-pressed={selectedId === thread.id} key={thread.id} onClick={() => { setSelectedId(thread.id); setAssignee(''); setStageTarget(''); }}>{thread.interface} · Chat {thread.chat_id}<br />{thread.status}{thread.assignee_user_id ? ` · User #${thread.assignee_user_id}` : ''}</button>)}{!threads.length && <p>No conversations match this filter.</p>}</nav>

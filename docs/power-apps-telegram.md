@@ -1,12 +1,16 @@
-# Shared Telegram bot
+# Dedicated public and company Telegram bots
 
-Open `/power-apps/automations/telegram?environment=development`, or follow **Open Telegram configuration page** from Automations. One bot serves public customers and company employees, with separate conversations, identity mappings, enable controls and welcome messages. WhatsApp and Voice AI remain deferred.
+Open `/power-apps/automations/telegram?environment=development`, or follow **Open Telegram configuration page** from Automations. Connect separate bots for public enquiries and company/employee operations. Each has its own Telegram token, knowledge configuration, identity links and conversation history. WhatsApp and Voice AI remain deferred.
+
+New bots default to public-only. A public bot never opens company mode, even for a previously linked employee. A company bot requires a verified employee or company-account link and never falls back to public intake. Linking an employee retains that employee's existing application permissions; it does not grant administrator privileges.
+
+Existing bots without a stored audience remain labelled legacy shared until a manager explicitly saves a dedicated purpose. Omitted audience fields in older API clients preserve the saved purpose. Dedicated bots cannot be converted back to shared. A legacy/public bot cannot gain company access through a purpose edit; company setup must first verify a separate, explicitly supplied token. Changing purpose revokes incompatible links and pending linking codes, closes incompatible intake state and prevents queued replies/actions from crossing the new boundary. Historical messages and native CRM records remain available in their existing audit records; identities are never copied to another bot.
 
 ## Setup and operation
 
 Apply the Telegram operations migration using the deployment's existing migration command: `20261116_084_telegram_ops` for the main Alembic chain, or `pg_20261116_123_telegram_ops` for the PostgreSQL chain. Both add identity links, hashed one-time linking challenges, conversations and messages. Migration tests exercise upgrade/downgrade on SQLite; no production migration is performed by the test suite.
 
-Connect using **Connect Telegram bot**. Leaving the token blank uses the temporary server-only bootstrap credential; a replacement token is optional. Setup verifies the bot identity, refuses an existing webhook or duplicate listener, and puts credentials in the encrypted backend vault. Tokens are never returned to the browser or stored in workflow definitions.
+Connect using **Connect Telegram bot**, then select its purpose. Public setup can use the configured server-only bootstrap credential. Company setup requires a different bot's explicit token; it cannot reuse the bootstrap credential as an implicit fallback. Setup verifies the bot identity, refuses an existing webhook or duplicate listener, and puts credentials in the encrypted backend vault. Tokens are never returned to the browser or stored in workflow definitions.
 
 For a single-process API deployment, set `POWER_TELEGRAM_WORKER_ENABLED=true` in the existing API service environment. This starts one Telegram-only background thread sharing the API's application, ORM and model memory, with separate database sessions for every tick. It polls at three-second idle intervals, recovers failed ticks, and requests a drain of at most 75 seconds on shutdown. An interrupted native write retains its existing reconciliation safeguards. Do not also start a standalone poller.
 

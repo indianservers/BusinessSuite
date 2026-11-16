@@ -60,6 +60,8 @@ async def company_answer(db, app, resource, trigger, thread, linked, text, reque
     """Use canonical suite planning, native reads, memory, model selection and previews."""
     from app.ai_operator import suite, suite_conversations as chats
     from app.core.security import create_access_token
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, 'company')
     user = operations.staff_member(db, linked, resource.organization_id)
     with background_scope(db, user, 'ai', 'view', branch_id=trigger.config.get('branch_id')):
         suite.authorize(db, user, None)
@@ -107,6 +109,8 @@ async def company_answer(db, app, resource, trigger, thread, linked, text, reque
 
 
 def public_answer(db, resource, trigger, owner, thread, text, config):
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, 'public')
     from app.ai_operator.suite import authorize
     from app.ai_agents.services.advanced_security import AiUsageService
     with background_scope(db, owner, 'ai', 'view', branch_id=trigger.config.get('branch_id')):
@@ -176,6 +180,9 @@ def _public_answer(db, resource, trigger, owner, thread, text, config):
 
 
 def still_current(db, request, thread, trigger):
+    from app.apps.power_apps.telegram_audience import allows
+    if not allows(trigger, thread.interface):
+        return False
     if not trigger.enabled or thread.status in {'waiting', 'assigned'} or not configuration(trigger).enabled:
         return False
     if not trigger.config.get('interfaces', {}).get(f'{thread.interface}_enabled', True):

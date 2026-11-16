@@ -84,10 +84,15 @@ def localize(reply, thread):
 
 
 def menu(trigger, interface, lang):
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, interface)
     labels = TEXT[lang]
     rows = [[{'text': labels['sales'], 'callback_data': 'menu:sales'}, {'text': labels['support'], 'callback_data': 'menu:support'}],
             [{'text': labels['order'], 'callback_data': 'menu:order'}, {'text': labels['human'], 'callback_data': 'menu:human'}],
             [{'text': 'English', 'callback_data': 'lang:en'}, {'text': 'తెలుగు', 'callback_data': 'lang:te'}, {'text': 'हिन्दी', 'callback_data': 'lang:hi'}]]
+    if interface == 'company':
+        rows[:2] = [[{'text': 'Create lead', 'callback_data': 'menu:lead'}, {'text': 'Create task', 'callback_data': 'menu:task'}],
+            [{'text': 'Internal request', 'callback_data': 'menu:internal'}, {'text': labels['human'], 'callback_data': 'menu:human'}]]
     for flow in configuration(trigger).workflows:
         if flow.enabled and flow.interface in {interface, 'both'}:
             rows.append([{'text': flow.name, 'callback_data': f'wf:{flow.id}'}])
@@ -99,7 +104,8 @@ def menu(trigger, interface, lang):
 def callback_text(data):
     if data in {'lang:en', 'lang:te', 'lang:hi'}:
         return '/language ' + data[5:]
-    menus = {'menu:sales': 'Sales', 'menu:support': 'Support', 'menu:order': 'Order status', 'menu:human': '/human', 'menu:book': '/book'}
+    menus = {'menu:sales': 'Sales', 'menu:support': 'Support', 'menu:order': 'Order status', 'menu:human': '/human', 'menu:book': '/book',
+        'menu:lead': 'Create lead', 'menu:task': 'Create task', 'menu:internal': 'Internal request'}
     if data in menus:
         return menus[data]
     if re.fullmatch(r'wf:[a-z][a-z0-9_-]{0,63}', data):
@@ -164,6 +170,8 @@ def answer(question, text, attachment=None):
 
 def handle(thread, trigger, text, state, attachment=None):
     """Return (handled, state, reply, keyboard); business writes remain in ingress."""
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, thread.interface)
     lang = language(thread, text)
     thread.context = {**(thread.context or {}), 'language': lang}
     if text.startswith('/language '):

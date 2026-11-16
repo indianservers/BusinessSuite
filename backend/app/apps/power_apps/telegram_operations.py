@@ -42,6 +42,8 @@ def identity(db, resource, sender_id, interface):
 
 
 def issue_code(db, resource, actor, interface, contact_id=None, lead_id=None, customer_id=None):
+    from app.apps.power_apps.telegram_audience import require, trigger_for
+    require(trigger_for(db, resource), interface)
     if interface == 'company':
         member(db, actor.id, resource.organization_id)
         if contact_id or lead_id or customer_id:
@@ -72,6 +74,9 @@ def consume_code(db, resource, sender_id, token, display_name):
         environment=resource.environment, token_hash=hashlib.sha256(token.encode()).hexdigest(), consumed_at=None).with_for_update().first()
     if not challenge or utc(challenge.expires_at) <= now():
         return None, 'This linking code is invalid or expired. Generate a new code in BusinessSuite.'
+    from app.apps.power_apps.telegram_audience import allows, trigger_for
+    if not allows(trigger_for(db, resource), challenge.interface):
+        return None, 'This linking code is not valid for this bot. Use the appropriate public or employee bot.'
     if challenge.interface == 'company':
         try:
             member(db, challenge.user_id, resource.organization_id)
@@ -135,6 +140,8 @@ def request_handoff(db, resource, conversation, reason='Requested a human'):
 def create_records(db, resource, trigger, owner, linked, conversation, state, update_id):
     """Native CRM validation and audit; all writes share the ingress transaction."""
     from app.apps.crm.api import router as crm
+    from app.apps.power_apps.telegram_audience import require
+    require(trigger, conversation.interface)
     actor = staff_member(db, linked, resource.organization_id) if conversation.interface == 'company' else owner
     branch_id = trigger.config.get('branch_id')
     if not branch_id:
@@ -175,11 +182,20 @@ def private_binding(linked):
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 
-def queue_reply(db, resource, trigger, owner, conversation, text, key, created_by=None, handoff_notice=False, reply_markup=None, private_identity=None, private_command=None):
+def queue_reply(db, resource, trigger, owner, conversation, text, key, created_by=None, handoff_notice=False, reply_markup=None, private_identity=None, private_command=None, verification_notice=False):
+    from app.apps.power_apps.telegram_audience import require, audience, safe_verification_notice
+    require(trigger, conversation.interface)
     linked = db.get(Identity, conversation.identity_id) if conversation.identity_id else None
+    if verification_notice and (conversation.interface != 'company' or created_by or not safe_verification_notice(text, conversation.telegram_id)):
+        raise HTTPException(403, 'Invalid employee verification notice')
+    if audience(trigger) == 'company' and not verification_notice:
+        if not linked or not linked.verified_at or linked.revoked_at:
+            raise HTTPException(403, 'A verified employee is required for this bot')
+        staff_member(db, linked, resource.organization_id)
     payload = {'chat_id': conversation.chat_id, 'reply': text, 'text': '[Staff reply]' if created_by else '[Bot reply]',
         'telegram_conversation_id': conversation.id, 'telegram_staff_id': created_by, 'telegram_handoff_notice': handoff_notice,
-        'telegram_linked_user_id': linked.user_id if linked else None}
+        'telegram_linked_user_id': linked.user_id if linked else None,
+        'telegram_interface': conversation.interface, 'telegram_verification_notice': verification_notice}
     if private_identity is not None:
         from app.apps.power_apps.telegram_customer import COMMANDS
         if conversation.interface != 'public' or not private_identity.verified_at or private_identity.revoked_at or private_identity.id != conversation.identity_id:
@@ -211,6 +227,13 @@ def authorize_delivery(db, run, request, resource_id=None):
     trigger = db.query(AutomationTrigger).filter_by(resource_id=resource_id, kind='telegram', enabled=True).populate_existing().first()
     if not thread or not trigger or str(request.get('chat_id')) != thread.chat_id:
         raise HTTPException(403, 'Telegram delivery context is unavailable')
+    from app.apps.power_apps.telegram_audience import require, safe_verification_notice
+    require(trigger, thread.interface)
+    if run.input_payload.get('telegram_interface', thread.interface) != thread.interface:
+        raise HTTPException(403, 'Telegram delivery audience changed')
+    verification_notice = run.input_payload.get('telegram_verification_notice') is True
+    if verification_notice and (thread.interface != 'company' or run.input_payload.get('telegram_staff_id') or not safe_verification_notice(request.get('text'), thread.telegram_id)):
+        raise HTTPException(403, 'Invalid employee verification notice')
     if not trigger.config.get('interfaces', {}).get(f'{thread.interface}_enabled', True):
         raise HTTPException(403, 'Telegram interface is disabled')
     if run.input_payload.get('telegram_private_binding'):
@@ -229,7 +252,7 @@ def authorize_delivery(db, run, request, resource_id=None):
         # Native read paths recheck the owner's current module rights and source
         # visibility immediately before transport; the queued text grants no rights.
         read(db, resource, trigger, member(db, resource.owner_user_id, run.organization_id), thread, linked, command)
-    if thread.interface == 'company':
+    if thread.interface == 'company' and not verification_notice:
         linked = db.query(Identity).filter_by(id=thread.identity_id, resource_id=resource_id, revoked_at=None).populate_existing().first()
         if not linked or linked.user_id != run.input_payload.get('telegram_linked_user_id'):
             raise HTTPException(403, 'Company identity was revoked')
