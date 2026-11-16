@@ -19,7 +19,7 @@ const control = 'w-full rounded-md border bg-background px-3 py-2 text-sm';
 type Row = { id: number; title: string; kind: string; status: string; revision: number; created_by: number; invoice_id?: number; parent_id?: number; data: Record<string, unknown> };
 type Task = { id: number; title: string; task_key?: string; parent_task_id?: number | null; start_date?: string; due_date?: string; status?: string; actual_hours?: string | null; updated_at?: string | null; progress_revision?: number; progress_mode?: string; progress_percent?: number };
 type File = { id: number; original_name: string };
-type Caps = { workspace_ready?: boolean; workspace_setup_manage?: boolean; commercial_manage?: boolean; cost_budget_manage?: boolean; sites_create?: boolean; wbs_define?: boolean; actuals_task_manage?: boolean; actuals_cost_manage?: boolean; planning_manage?: boolean; planning_approve?: boolean; handover_prepare?: boolean; certificate_prepare?: boolean; delivery_approve?: boolean; reports?: boolean; measurements_certify?: boolean };
+type Caps = { workspace_team_manage?: boolean; workspace_ready?: boolean; workspace_setup_manage?: boolean; commercial_manage?: boolean; cost_budget_manage?: boolean; sites_create?: boolean; wbs_define?: boolean; actuals_task_manage?: boolean; actuals_cost_manage?: boolean; planning_manage?: boolean; planning_approve?: boolean; handover_prepare?: boolean; certificate_prepare?: boolean; delivery_approve?: boolean; reports?: boolean; measurements_certify?: boolean };
 type Intent = { scope: string; project: number; path: string; method: 'post' | 'put'; body: Record<string, unknown> };
 type Baseline = { id: string; name: string };
 type Checklist = { label: string; complete: boolean };
@@ -50,7 +50,7 @@ function loadIntent(key: string, scope: string, project: number): Intent | null 
   try {
     const value = JSON.parse(sessionStorage.getItem(key) || 'null') as Intent | null;
     return value && value.scope === scope && value.project === project && ['post', 'put'].includes(value.method)
-      && /^\/srm\/industry\/(workspace-definitions|site-projects|projects\/\d+\/(?:commercial-source|wbs-tasks|cost-budget|cost-actuals|task-actuals\/\d+)|work-packages(?:\/\d+)?|planning-baselines(?:\/\d+\/review)?|payment-certificates|measurements\/\d+\/work-package|handovers(?:\/\d+)?|delivery\/\d+\/review)$/.test(value.path)
+      && /^\/srm\/industry\/(workspaces\/\d+\/member-definitions|workspace-definitions|site-projects|projects\/\d+\/(?:commercial-source|wbs-tasks|cost-budget|cost-actuals|task-actuals\/\d+)|work-packages(?:\/\d+)?|planning-baselines(?:\/\d+\/review)?|payment-certificates|measurements\/\d+\/work-package|handovers(?:\/\d+)?|delivery\/\d+\/review)$/.test(value.path)
       && value.body && typeof value.body === 'object' ? value : null;
   } catch { return null; }
 }
@@ -63,6 +63,52 @@ export default function ConstructionPlanningPanel({ projectId, onSaved }: { proj
 export function ConstructionSiteCreate({ onCreated }: { onCreated?: (project: { id: number; name: string }) => void }) {
   const generation = useRecordScope();
   return <SiteDefinition key={generation} scope={masterScope()} onCreated={onCreated} />;
+}
+
+function ConstructionWorkspaceTeam({ scope, workspaceId, disabled }: { scope: string; workspaceId: number; disabled: boolean }) {
+  const cache = useQueryClient(), alive = useRef(true), writing = useRef(false);
+  const indexKey = `construction-team-intent:${scope}:${workspaceId}`, path = `${ROOT}/workspaces/${workspaceId}/member-definitions`;
+  const intentKey = (value: Intent) => `${indexKey}:${value.body.user_id}:${value.body.role}`;
+  function restore() {
+    const index = loadIntent(indexKey, scope, 0);
+    if (!index || index.path !== path || index.method !== 'post' || !Number.isSafeInteger(index.body.user_id) || Number(index.body.user_id) < 1 || !['Member', 'Admin'].includes(String(index.body.role))) return null;
+    const value = loadIntent(intentKey(index), scope, 0);
+    return value && JSON.stringify(value) === JSON.stringify(index) ? value : null;
+  }
+  const [intent, setIntent] = useState<Intent | null>(restore), pending = useRef(intent);
+  const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const [userId, setUserId] = useState(''), [role, setRole] = useState<'Member' | 'Admin'>('Member'), [after, setAfter] = useState(0);
+  const [items, setItems] = useState<{ id: number; name: string }[]>([]);
+  const owns = () => alive.current && scope === masterScope();
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const query = useQuery({ queryKey: ['construction-team-options', scope, workspaceId, after], enabled: open, retry: false,
+    queryFn: async ({ signal }) => (await api.get<{ items: { id: number; name: string }[]; next_after_user_id: number | null; can_add_admin: boolean }>(`${ROOT}/workspaces/${workspaceId}/member-options`, { params: { after_user_id: after }, signal })).data });
+  useEffect(() => { if (query.data) setItems(previous => after === 0 ? query.data.items : [...new Map([...previous, ...query.data.items].map(item => [item.id, item])).values()]); }, [query.data, after]);
+  useEffect(() => { if (query.data?.can_add_admin === false && !pending.current) setRole('Member'); }, [query.data?.can_add_admin]);
+  function retain(value: Intent | null) {
+    const previous = pending.current; pending.current = value; setIntent(value);
+    try {
+      if (value) { sessionStorage.setItem(intentKey(value), JSON.stringify(value)); sessionStorage.setItem(indexKey, JSON.stringify(value)); }
+      else { if (previous) sessionStorage.removeItem(intentKey(previous)); sessionStorage.removeItem(indexKey); }
+    } catch { /* The immutable request remains in memory when browser storage is unavailable. */ }
+  }
+  async function send(saved: Intent) {
+    if (!owns() || writing.current || disabled) return;
+    writing.current = true; setBusy(true); setError(''); setNotice('');
+    try {
+      const result = (await api.post<{ id: number; user_id: number; email: string; role: 'Member' | 'Admin' }>(path, saved.body)).data;
+      if (!owns()) return;
+      if (!Number.isSafeInteger(result.id) || result.id < 1 || result.user_id !== saved.body.user_id || result.role !== saved.body.role) throw new Error('The native membership receipt could not be verified. Retry this same request.');
+      retain(null); setUserId(''); setRole('Member'); setAfter(0); setNotice(`Native workspace ${result.role} membership added.`);
+      await Promise.all([cache.invalidateQueries({ queryKey: ['construction-team-options', scope, workspaceId] }), cache.invalidateQueries({ queryKey: ['construction-planning', scope] }), cache.invalidateQueries({ queryKey: ['construction-resources', scope] })]);
+    } catch (failure) {
+      if (!owns()) return;
+      setError(dealError(failure));
+      const status = (failure as { response?: { status?: number } }).response?.status;
+      if (status && status >= 400 && status < 500) retain(null);
+    } finally { writing.current = false; if (owns()) setBusy(false); }
+  }
+  return <details className="rounded-md border p-3" onToggle={event => setOpen(event.currentTarget.open)}><summary className="cursor-pointer font-medium">Native Construction workspace team</summary>{open && <div className="mt-3 grid gap-3"><p className="text-sm text-muted-foreground">Add an existing eligible account to this owned workspace. Construction assignments and native permissions remain separate.</p>{query.isError && <p role="alert" className="text-sm text-destructive">{dealError(query.error)} <Button variant="outline" disabled={busy || disabled} onClick={() => void query.refetch()}>Retry eligible accounts</Button></p>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm">{notice}</p>}{intent && <div className="grid gap-2 rounded-md border p-3 text-sm"><p>Membership for account #{String(intent.body.user_id)} as {String(intent.body.role)} has not been confirmed. Retry the same request.</p><Button variant="outline" disabled={busy || disabled} onClick={() => void send(intent)}>Retry membership request</Button></div>}<form className="grid gap-3" aria-label="Add existing Construction workspace member" onSubmit={event => { event.preventDefault(); if (!owns() || pending.current || writing.current || disabled || !items.some(item => item.id === Number(userId)) || (role === 'Admin' && !query.data?.can_add_admin)) return; const saved: Intent = { scope, project: 0, method: 'post', path, body: { request_id: crypto.randomUUID(), user_id: Number(userId), role } }; retain(saved); void send(saved); }}><fieldset disabled={busy || disabled || !!intent || query.isFetching || query.isError} className="grid gap-3 md:grid-cols-2"><Field label="Existing eligible account"><NativeSelect aria-label="Construction team eligible account" className={control} required value={userId} onChange={event => setUserId(event.target.value)}><option value="">Choose existing account</option>{items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field><Field label="Native workspace role"><NativeSelect aria-label="Construction team workspace role" className={control} value={role} onChange={event => setRole(event.target.value as 'Member' | 'Admin')}><option value="Member">Member</option>{query.data?.can_add_admin && <option value="Admin">Admin</option>}</NativeSelect></Field></fieldset><div className="flex flex-wrap gap-2"><Button disabled={busy || disabled || !!intent || query.isFetching || query.isError || !userId}>Add native workspace member</Button>{query.data?.next_after_user_id != null && <Button type="button" variant="outline" disabled={busy || disabled || !!intent || query.isFetching} onClick={() => setAfter(query.data!.next_after_user_id!)}>Load more eligible accounts</Button>}</div>{query.isFetching && <p role="status" className="text-sm">Checking eligible existing accounts…</p>}{query.isSuccess && !items.length && <p className="text-sm text-muted-foreground">No eligible nonmember account is available. Complete the existing native permissions and Construction assignment setup first.</p>}</form></div>}</details>;
 }
 
 function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (project: { id: number; name: string }) => void }) {
@@ -123,6 +169,7 @@ function SiteDefinition({ scope, onCreated }: { scope: string; onCreated?: (proj
       <Field label="Estimated work hours"><Input aria-label="Site estimated hours" type="number" min="0.01" step="0.01" required value={form.estimated_hours} onChange={event => setForm({ ...form, estimated_hours: event.target.value })} /></Field>
       <Field label="Project description"><textarea aria-label="Site project description" className={control} maxLength={10000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></Field>
     </fieldset><Button disabled={busy || !!intent || !workspaces.data?.length}>Create native PMS site</Button>{workspaces.data?.length === 0 && <p className="text-sm text-muted-foreground">No owned workspace is available for this assignment. Create one with the authorized workspace setup above, or ask your Construction administrator to complete setup.</p>}</form>}
+    {caps.data?.workspace_team_manage && form.workspace_id && <ConstructionWorkspaceTeam key={`${scope}:${form.workspace_id}`} scope={scope} workspaceId={Number(form.workspace_id)} disabled={busy || !!intent} />}
   </div>}</details>;
 }
 
