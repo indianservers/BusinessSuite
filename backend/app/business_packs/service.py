@@ -64,8 +64,10 @@ def _manifest(key):
 
 
 def manifest_output(manifest):
+    from .release_policy import catalog_metadata
     return {
         **asdict(manifest),
+        **catalog_metadata(manifest.key, manifest.label),
         'required_modules': sorted(manifest.required_modules),
         'optional_modules': sorted(manifest.optional_modules),
         'roles': [{**asdict(role), 'capabilities': sorted(role.capabilities)} for role in manifest.roles],

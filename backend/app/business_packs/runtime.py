@@ -9,6 +9,7 @@ from types import MappingProxyType
 from typing import Mapping
 from sqlalchemy import inspect, select
 from .registry import get_pack
+from .release_policy import activation_reasons
 
 
 SCHEMA_COLUMNS: Mapping[str, frozenset[str]] = MappingProxyType({
@@ -57,7 +58,7 @@ def activation_readiness(db, company_id, pack_key, branch_id=None):
     from app.enterprise.controls import disabled_modules
     from app.module_registry import is_app_enabled
     manifest = get_pack(pack_key)
-    reasons = []
+    reasons = activation_reasons(manifest.key)
     company = db.connection().execute(select(Company.id).where(
         Company.id == company_id, Company.is_active.is_(True))).scalar_one_or_none()
     if company is None:
