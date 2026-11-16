@@ -45,6 +45,12 @@ class ActivateContext(Activate):
     activation_revision: ExistingRevision
 
 
+class ActivateTheme(Strict):
+    pack_key: Key
+    expected_selection: Annotated[str, StringConstraints(strict=True, pattern=r'^[0-9a-f]{64}$')]
+    reason: Reason
+
+
 class PreviewActivation(DraftActivation):
     action: Literal['draft_activation']
 

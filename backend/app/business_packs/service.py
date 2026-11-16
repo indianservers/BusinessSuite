@@ -373,7 +373,13 @@ def activate(db, actor, ident, data, request=None):
     if not ready['ready']:
         raise HTTPException(409, {'message': 'Business Pack activation is blocked', 'readiness': ready})
     before = _output(row)
-    row.state = 'active'; _flush(db)
+    from .theme_selection import select_only
+    suspended = select_only(db, actor, company, row)
+    row.state = 'active'
+    _flush(db)
+    for previous in suspended:
+        _audit(db, actor, company, 'activation.suspended', data.reason, previous,
+               {**previous, 'state': 'suspended'}, request)
     _audit(db, actor, row.company_id, 'activation.activated', data.reason, before, _output(row), request)
     _commit(db)
     return _output(row)

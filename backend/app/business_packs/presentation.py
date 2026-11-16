@@ -18,8 +18,10 @@ def effective_profile(db, actor, branch_ctx, selected=None, *, workspace_module=
             branch_id = scope.branch_id
     check_workspace(db, actor, branch_id, workspace_module, workspace_id)
     if scope is None:
-        return {**effective(db, actor.organization_id, branch_id,
-                            workspace_module=workspace_module, workspace_id=workspace_id),
+        from .theme_selection import selected_profile
+        profile = selected_profile(db, actor.organization_id)
+        return {**(profile if profile is not None else effective(db, actor.organization_id, branch_id,
+                            workspace_module=workspace_module, workspace_id=workspace_id)),
                 'companyId': actor.organization_id, 'branchId': branch_id}
     # Company/branch labels may belong to another pack. Switching contexts must
     # neither inherit those words nor rewrite the shared settings to change them.

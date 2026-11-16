@@ -164,7 +164,9 @@ def require_option(db, actor, key):
 def list_settings(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     ctx = context(db, actor)
     company = db.get(Company, ctx["company"])
-    options = [item(o, ctx) for o in OPTIONS if allows(o, ctx)]
+    # Retain legacy option authorization and APIs, but consolidate discovery
+    # under Business Packs instead of presenting a second terminology editor.
+    options = [item(o, ctx) for o in OPTIONS if o[0] != 'business-profile' and allows(o, ctx)]
     allowed = {o["id"] for o in options}
     states = {}
     if company:
@@ -397,16 +399,11 @@ def business_profile_configuration(branch_id: int | None = None, workspace_modul
 
 @router.get('/business-profile/onboarding')
 def business_profile_onboarding(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    from app.apps.saas.models import TenantSubscription
-    from app.shared.business_profile import KIND, scope_key
-    from app.shared.models import ServicePolicy
     ctx = context(db, actor)
     editable = bool(can_edit_company(ctx))
-    subscription = db.query(TenantSubscription).filter_by(company_id=ctx['company']).first()
-    requested = bool(subscription and (subscription.config_json or {}).get('business_profile_required'))
-    policy = db.query(ServicePolicy).filter_by(organization_id=ctx['company'], kind=KIND, scope_key=scope_key(ctx['company'])).first()
-    selected = bool(policy and (policy.values_json or {}).get('business_type'))
-    return {'companyId': ctx['company'], 'required': editable and requested and not selected, 'editable': editable}
+    # Business Packs select terminology automatically; General is the default.
+    # Retain the compatibility endpoint without forcing a separate profile step.
+    return {'companyId': ctx['company'], 'required': False, 'editable': editable}
 
 
 @router.put("/business-profile/configuration")

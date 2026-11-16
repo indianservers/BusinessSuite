@@ -8,6 +8,19 @@ from . import schemas, service
 router = APIRouter(prefix='/business-packs', tags=['Business Packs settings'])
 
 
+@router.get('/theme')
+def theme(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from .theme_selection import configuration
+    return configuration(db, actor)
+
+
+@router.post('/theme')
+def activate_theme(data: schemas.ActivateTheme, request: Request,
+                   db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from .theme_selection import activate
+    return activate(db, actor, data, request)
+
+
 @router.get('/catalog')
 def catalog(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     return service.catalog(db, actor)

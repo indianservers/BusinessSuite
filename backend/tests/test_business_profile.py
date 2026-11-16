@@ -17,10 +17,13 @@ def test_semantic_fields_preserve_custom_captions(field, label, expected):
     assert field_label(resolve([{'business_type': 'hospital'}]), field, label) == expected
 
 
-def test_first_login_selection_is_company_admin_only_and_preserves_existing_companies(client, db):
+def test_general_default_never_forces_legacy_selection_and_preserves_profile_guards(client, db):
     from app.apps.saas.models import TenantSubscription, TenantSubscriptionPlan
     headers, _ = actor(db, superuser=True)
     endpoint = BASE + '/business-profile/onboarding'
+    theme = client.get(BASE + '/business-packs/theme', headers=headers)
+    assert theme.status_code == 200, theme.text
+    assert theme.json()['active_key'] == 'general'
     assert client.get(endpoint, headers=headers).json()['required'] is False
     subscription = db.query(TenantSubscription).filter_by(company_id=1).first()
     if subscription is None:
@@ -32,9 +35,12 @@ def test_first_login_selection_is_company_admin_only_and_preserves_existing_comp
     db.commit()
     status = client.get(endpoint, headers=headers)
     assert status.status_code == 200, status.text
-    assert status.json()['required'] is True
+    assert status.json() == {'companyId': 1, 'required': False, 'editable': True}
+    assert subscription.config_json['business_profile_required'] is True
     reader, _ = actor(db, 'profile-onboarding-employee')
     assert client.get(endpoint, headers=reader).json()['required'] is False
+    assert client.get(URL, headers=reader).status_code == 403
+    assert client.put(URL, headers=reader, json={'version': 0, 'values': {'business_type': 'general'}}).status_code == 403
     saved = client.put(URL, headers=headers, json={'version': 0, 'values': {'business_type': 'general'}})
     assert saved.status_code == 200, saved.text
     assert client.get(endpoint, headers=headers).json()['required'] is False

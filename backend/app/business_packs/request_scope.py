@@ -43,8 +43,8 @@ _CONTROL = frozenset({
     ('GET', '/api/v1/access/settings/business-profile/onboarding'),
 })
 _PACK_ROOT = '/api/v1/access/settings/business-packs'
-_PACK_EXACT = frozenset({('GET', path) for path in ('catalog', 'configuration', 'readiness', 'history')} | {
-    ('POST', 'preview'), ('POST', 'activations'), ('POST', 'contexts')})
+_PACK_EXACT = frozenset({('GET', path) for path in ('catalog', 'configuration', 'readiness', 'history', 'theme')} | {
+    ('POST', 'preview'), ('POST', 'activations'), ('POST', 'contexts'), ('POST', 'theme')})
 _CONTROL_PATTERNS = (
     ('PATCH|DELETE', r'/api/v1/branches/[1-9][0-9]*'),
     ('POST', r'/api/v1/branches/[1-9][0-9]*/(?:trash|protect|restore)'),
