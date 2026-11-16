@@ -33,3 +33,26 @@ This is focused release validation, not a claim that the entire repository test
 suite passed. UI changes use existing components and styles; unrelated pending
 authentication-page edits are excluded from this release. Production activation
 and post-deployment health are recorded separately after execution.
+
+## Production result
+
+Deployed exact commit `e2e534c60f055f50c0a071d79125163352513e3e` to
+`https://besterp.app`. Both frontends were rebuilt from that committed snapshot;
+concurrent uncommitted homepage/authentication work was preserved separately.
+Subsequent Team UI commits on main are not part of this release.
+
+Before migration, API/socket and backup writers were stopped. The matching
+database and private uploads/configuration were streamed off-host and validated
+with PostgreSQL18 full restore-to-null, complete tar reads and SHA256 receipts.
+Migration reached `pg_20261116_121_delivery_sources`; strict delivery qualification,
+exact four-pack publication and existing critical business counts passed.
+
+The initial automated public check received HTTP403 for Python's default user
+agent. The API had started successfully; public verification using curl returned
+HTTP200 and the exact release commit. The new release was resumed and both public
+and local API health passed. The existing backup timer was restored.
+
+Live anonymous browser checks passed at1440px and390px: Settings redirected to
+login, returned HTTP200 and produced zero page errors. These checks do not claim
+authenticated production workflow testing. Existing UI styles and components
+were retained. Retail, Pharma and Restaurant remain Upcoming.
