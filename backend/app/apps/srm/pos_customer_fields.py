@@ -44,12 +44,16 @@ def _policy(db,actor):
     from app.models.user import User,Role
     from app.apps.admin_security.models import AdminProfile,AdminFieldSecurity
     u,r=User.__table__,Role.__table__;connection=db.connection()
-    actual=connection.execute(select(u.c.role_id,r.c.name).select_from(u.join(r,r.c.id==u.c.role_id)).where(u.c.id==actor.id,u.c.is_active.is_(True))).first()
-    if actual is None or actual.role_id!=actor.role_id:fail('Native customer field authorization changed',403)
+    actual=connection.execute(select(u.c.role_id,r.c.name).select_from(u.outerjoin(r,r.c.id==u.c.role_id)).where(u.c.id==actor.id,u.c.is_active.is_(True))).first()
+    if (actual is None or actual.role_id!=actor.role_id
+            or (actual.role_id is not None and actual.name is None)):
+        fail('Native customer field authorization changed',403)
     profile,rule=AdminProfile.__table__,AdminFieldSecurity.__table__
     inspector=inspect(connection);installed=[inspector.has_table(table.name) for table in (profile,rule)]
     if not any(installed):return actual.role_id,[]
     if not all(installed):fail('Native field permission installation is incomplete',503)
+    # Native FLS has no role-named profile when the actual user has no legacy role.
+    if actual.role_id is None:return None,[]
     names={actual.name,actual.name.replace('_',' ').title()}
     statement=select(rule.c.id,rule.c.module_name,rule.c.field_name,rule.c.can_view,rule.c.can_edit,rule.c.mask_value).select_from(rule.join(profile,profile.c.id==rule.c.profile_id)).where(
         profile.c.name.in_(names),profile.c.active.is_(True),rule.c.module_name.in_(('crm','srm','companies'))).order_by(rule.c.id)
