@@ -5,11 +5,14 @@ const root = path.resolve(__dirname, '..');
 const catalog = require('../../backend/app/core/business_profiles.json');
 const source = `import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Panel from '@/apps/srm/industry/AppointmentVisitPanel';import {useAuthStore} from '@/store/authStore';import '@/index.css';useAuthStore.setState({isHydrated:true,isAuthenticated:true,user:{id:1,email:'test@example.invalid',role:'super_admin',is_superuser:true}});const finance=!new URLSearchParams(location.search).has('no-finance');createRoot(document.getElementById('root')).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/srm/appointments']}><Panel row={{id:1,title:'Follow-up consultation',status:'completed',revision:1,customer_id:2,data:{customer_name:'Patient Example',service_name:'Consultation',currency:'INR',starts_at:'2026-11-16T10:00:00+05:30',duration_minutes:30}}} canViewBilling={finance} canCollect={finance} canInvoice={finance} canApprove={finance} onChanged={()=>{}}/></MemoryRouter></QueryClientProvider>);`;
 (async () => {
+  process.chdir(root);
   const fixture = path.join(__dirname, `.visit-payments-${process.pid}-${Date.now()}.tsx`);
   fs.writeFileSync(fixture, source);
   const { createServer } = await import('vite');
-  const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null } });
-  await server.listen(); const browser = await chromium.launch({ headless: true });
+  const server = await createServer({ cacheDir: path.resolve(root, '../.local/appointment-visit-payments-vite'), optimizeDeps: { entries: [fixture] }, root, server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null } });
+  await server.listen();
+  await server.warmupRequest('/scripts/' + path.basename(fixture));
+  await server.waitForRequestsIdle(); const browser = await chromium.launch({ headless: true });
   try {
     for (const width of [390, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 1000 } });

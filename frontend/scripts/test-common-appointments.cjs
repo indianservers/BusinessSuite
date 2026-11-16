@@ -4,11 +4,14 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const source = `import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Page from '@/apps/srm/industry/IndustryOperationsPage';import {useAuthStore} from '@/store/authStore';useAuthStore.setState({isHydrated:true,isAuthenticated:true,user:{id:1,email:'test@example.invalid',role:'super_admin',is_superuser:true}});createRoot(document.getElementById('root')).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/srm/appointments']}><Page mode="appointments"/></MemoryRouter></QueryClientProvider>);`;
 (async () => {
+  process.chdir(root);
   const fixture = path.join(__dirname, `.common-appointments-${process.pid}-${Date.now()}.tsx`);
   fs.writeFileSync(fixture, source);
   const { createServer } = await import('vite');
-  const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null } });
+  const server = await createServer({ cacheDir: path.resolve(root, '../.local/common-appointments-vite'), optimizeDeps: { entries: [fixture] }, root, server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null } });
   await server.listen();
+  await server.warmupRequest('/scripts/' + path.basename(fixture));
+  await server.waitForRequestsIdle();
   const catalog = require('../../backend/app/core/business_profiles.json');
   const terms = { ...catalog.terms, ...catalog.profiles.find(p => p.id === 'hospital').terms };
   const browser = await chromium.launch({ headless: true });
@@ -46,7 +49,7 @@ const source = `import React from 'react';import {createRoot} from 'react-dom/cl
         await page.getByRole('option').filter({ hasText: 'doctor@example.invalid' }).click();
       }
       await page.getByRole('button', { name: 'Save operation', exact: true }).click();
-      await expect(page.getByRole('status')).toContainText('Saved successfully');
+      await expect(page.getByRole('status').filter({ hasText: 'Saved successfully' })).toContainText('Saved successfully');
       expect(write.url).toBe('/srm/industry/resources'); expect(write.body.resource_type).toBe('provider');
       if (providerSource === 'employee') { expect(write.body.employee_id).toBe(17); expect(write.body.user_id).toBeUndefined(); }
       else expect(write.body.user_id).toBe(7);

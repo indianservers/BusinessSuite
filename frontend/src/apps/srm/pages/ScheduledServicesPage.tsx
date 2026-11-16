@@ -83,22 +83,24 @@ function Services({ scope, packContextId }: { scope: string; packContextId?: num
   const [day, setDay] = useState(from.slice(0, 10));
   const [zoom, setZoom] = useState('0.6');
   const [selected, setSelected] = useState<Booking | null>(null);
+  const [readGeneration] = useState(() => crypto.randomUUID());
   const starts = useMemo(() => instants(from, zone), [from, zone]);
   const ends = useMemo(() => instants(until, zone), [until, zone]);
   const start = starts[0], end = ends[0];
   const valid = starts.length === 1 && ends.length === 1 && end > start && end - start <= 93 * DAY;
   const query = useInfiniteQuery({
-    queryKey: ['scheduled-services', scope, packContextId, start, end, employee.id, service.id, status],
+    queryKey: ['scheduled-services', scope, readGeneration, packContextId, start, end, employee.id, service.id, status],
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => api.get<Projection>('/employees/planned-services', { signal, params: {
+    queryFn: ({ pageParam, signal }) => api.get<Projection>('/employees/planned-services', { signal, recordCache: false, params: {
       from_at: new Date(start).toISOString(), until_at: new Date(end).toISOString(),
       employee_id: employee.id || undefined, service_id: service.id || undefined, statuses: status || undefined,
       pack_context_id: packContextId, limit: 100, cursor: pageParam,
     } }).then(result => result.data),
-    getNextPageParam: page => page.next_cursor || undefined, enabled: valid, retry: false,
+    getNextPageParam: page => page.next_cursor || undefined, enabled: valid, retry: false, gcTime: 0,
   });
-  const items = useMemo(() => [...new Map((query.data?.pages.flatMap(page => page.items) || []).map(item => [`${item.appointment_id}:${item.employee_id}`, item])).values()], [query.data]);
-  const options = query.data?.pages[0]?.filter_options;
+  const items = useMemo(() => query.isError ? [] : [...new Map((query.data?.pages.flatMap(page => page.items) || []).map(item => [`${item.appointment_id}:${item.employee_id}`, item])).values()], [query.data, query.isError]);
+  const options = !query.isError ? query.data?.pages[0]?.filter_options : undefined;
+  useEffect(() => { setSelected(null); }, [start, end, employee.id, service.id, status, query.isError]);
   const employees = options?.employees || [], services = options?.services || [];
   const zones = [...new Set([zone, query.data?.pages[0]?.timezone, Intl.DateTimeFormat().resolvedOptions().timeZone, 'UTC'].filter((value): value is string => !!value && validZone(value)))];
   function changeZone(next: string) {
@@ -113,8 +115,8 @@ function Services({ scope, packContextId }: { scope: string; packContextId?: num
       <label className="space-y-1 text-sm">From<Input type="datetime-local" value={from} onChange={event => { setFrom(event.target.value); setDay(event.target.value.slice(0, 10)); }}/></label>
       <label className="space-y-1 text-sm">Until (exclusive)<Input type="datetime-local" value={until} onChange={event => setUntil(event.target.value)}/></label>
       <label className="space-y-1 text-sm">Time zone<NativeSelect aria-label="Time zone" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={zone} onChange={event => changeZone(event.target.value)}>{zones.map(value => <option key={value}>{value}</option>)}</NativeSelect></label>
-      <label className="space-y-1 text-sm">Employee<NativeSelect aria-label="Employee" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={employee.id} onChange={event => setEmployee({ id: event.target.value, name: event.target.selectedOptions[0].text })}><option value="">All authorized employees with bookings</option>{employee.id && !employees.some(item => String(item.id) === employee.id) && <option value={employee.id}>{employee.name}</option>}{employees.map(item => <option key={item.id} value={item.id}>{item.name}{item.code ? ` (${item.code})` : ''}</option>)}</NativeSelect></label>
-      <label className="space-y-1 text-sm">Service<NativeSelect aria-label="Service" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={service.id} onChange={event => setService({ id: event.target.value, name: event.target.selectedOptions[0].text })}><option value="">All services</option>{service.id && !services.some(item => String(item.id) === service.id) && <option value={service.id}>{service.name}</option>}{services.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
+      <label className="space-y-1 text-sm">Employee<NativeSelect aria-label="Employee" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={employee.id} onChange={event => setEmployee({ id: event.target.value, name: event.target.selectedOptions[0].text })}><option value="">All authorized employees with bookings</option>{!query.isError && employee.id && !employees.some(item => String(item.id) === employee.id) && <option value={employee.id}>{employee.name}</option>}{employees.map(item => <option key={item.id} value={item.id}>{item.name}{item.code ? ` (${item.code})` : ''}</option>)}</NativeSelect></label>
+      <label className="space-y-1 text-sm">Service<NativeSelect aria-label="Service" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={service.id} onChange={event => setService({ id: event.target.value, name: event.target.selectedOptions[0].text })}><option value="">All services</option>{!query.isError && service.id && !services.some(item => String(item.id) === service.id) && <option value={service.id}>{service.name}</option>}{services.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
       <label className="space-y-1 text-sm">Status<NativeSelect aria-label="Status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={status} onChange={event => setStatus(event.target.value)}><option value="">All statuses</option>{['booked', 'checked_in', 'in_service', 'completed', 'cancelled', 'no_show'].map(value => <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>)}</NativeSelect></label>
     </div>
     {!valid && <p role="alert" className="text-sm">Choose an unambiguous time range of up to 93 days. A skipped or repeated daylight-saving time cannot be used; choose another time or UTC.</p>}
@@ -125,7 +127,7 @@ function Services({ scope, packContextId }: { scope: string; packContextId?: num
     {valid && !query.isPending && !query.isError && !items.length && <p className="rounded-lg border p-6 text-sm">No scheduled services match this range and your access.</p>}
     {valid && items.length > 0 && (mode === 'List' ? <div className="max-w-full overflow-auto rounded-lg border"><table className="w-full text-left text-sm"><caption className="sr-only">Loaded planned services. Times in {zone}.</caption><thead className="bg-muted/50"><tr>{['Employee', 'Service', 'Start', 'End', 'Planned minutes', 'Status'].map(value => <th key={value} className="p-3">{value}</th>)}</tr></thead><tbody>{items.map(item => <tr key={`${item.appointment_id}:${item.employee_id}`} className="border-t"><td className="p-3">{item.employee_name}<span className="block text-xs text-muted-foreground">{item.employee_code}</span></td><td className="p-3"><button className="text-left underline underline-offset-4" onClick={() => setSelected(item)}>{item.service_name}</button></td><td className="whitespace-nowrap p-3">{label(item.starts_at, zone)}</td><td className="whitespace-nowrap p-3">{label(item.ends_at, zone)}</td><td className="p-3">{item.planned_minutes}</td><td className="p-3">{item.status.replace(/_/g, ' ')}</td></tr>)}</tbody></table></div> : mode === 'Calendar' ? <MinuteCalendar items={items} zone={zone} day={day} setDay={setDay} onSelect={setSelected}/> : <MinuteGantt items={items} zone={zone} start={start} end={end} zoom={zoom} setZoom={setZoom} onSelect={setSelected}/>)}
     {valid && query.hasNextPage && <Button variant="outline" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{query.isFetchingNextPage ? 'Loading…' : 'Load more bookings'}</Button>}
-    <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent><DialogTitle>Scheduled service</DialogTitle><DialogDescription>Planned booking details; this does not record actual worked time.</DialogDescription>{selected && <dl className="grid grid-cols-2 gap-3 text-sm">{[['Employee', selected.employee_name], ['Service', selected.service_name], ['Start', label(selected.starts_at, zone)], ['End', label(selected.ends_at, zone)], ['Planned minutes', selected.planned_minutes], ['Status', selected.status.replace(/_/g, ' ')], ['Blocks availability', selected.blocks_availability ? 'Yes' : 'No']].map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key}</dt><dd>{value}</dd></div>)}</dl>}</DialogContent></Dialog>
+    <Dialog open={valid && !query.isError && !!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent><DialogTitle>Scheduled service</DialogTitle><DialogDescription>Planned booking details; this does not record actual worked time.</DialogDescription>{selected && <dl className="grid grid-cols-2 gap-3 text-sm">{[['Employee', selected.employee_name], ['Service', selected.service_name], ['Start', label(selected.starts_at, zone)], ['End', label(selected.ends_at, zone)], ['Planned minutes', selected.planned_minutes], ['Status', selected.status.replace(/_/g, ' ')], ['Blocks availability', selected.blocks_availability ? 'Yes' : 'No']].map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key}</dt><dd>{value}</dd></div>)}</dl>}</DialogContent></Dialog>
   </div>;
 }
 
