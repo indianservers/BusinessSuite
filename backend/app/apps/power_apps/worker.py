@@ -22,7 +22,7 @@ def stop(*_):
     STOP = True
 
 
-def worker_tick(db, worker_id):
+def worker_tick(db, worker_id, *, telegram_only=False):
     record = db.get(AutomationWorker, worker_id)
     if not record:
         record = AutomationWorker(id=worker_id, heartbeat_at=now(), processed=0)
@@ -33,8 +33,9 @@ def worker_tick(db, worker_id):
     if not record.scheduler_at or now() - record.scheduler_at.replace(
         tzinfo=record.scheduler_at.tzinfo or now().tzinfo
     ) > timedelta(seconds=5):
-        tick(db)
-        scheduler_tick(db)
+        if not telegram_only:
+            tick(db)
+            scheduler_tick(db)
         from app.apps.power_apps.telegram import poll_tick
         poll_tick(db)
         from app.apps.power_apps.telegram_ai import dispatch as dispatch_telegram_ai
@@ -45,28 +46,32 @@ def worker_tick(db, worker_id):
             from app.ai_operator.suite import process_suite_batch
             await dispatch_telegram_ai(db, app, limit=1)
             await dispatch_approvals(db, app)
-            await process_suite_batch(db, app, limit=3)
+            await process_suite_batch(db, app, limit=3, telegram_only=telegram_only)
             await dispatch_approvals(db, app)
         asyncio.run(telegram_work())
-        from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
-        connector_poll_tick(db)
-        from app.apps.power_apps.integrations.marketplace_sync import dispatch_due as connector_sync_due
-        connector_sync_due(db)
-        from app.apps.power_apps.integrations.google_leads import dispatch_due as lead_forms_due
-        lead_forms_due(db)
-        from app.apps.power_apps.integrations.health_alerts import dispatch as connector_expiry_alerts
-        connector_expiry_alerts(db)
-        from app.apps.power_apps.runtime_retention import purge_payloads
+        if not telegram_only:
+            from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
+            connector_poll_tick(db)
+            from app.apps.power_apps.integrations.marketplace_sync import dispatch_due as connector_sync_due
+            connector_sync_due(db)
+            from app.apps.power_apps.integrations.google_leads import dispatch_due as lead_forms_due
+            lead_forms_due(db)
+            from app.apps.power_apps.integrations.health_alerts import dispatch as connector_expiry_alerts
+            connector_expiry_alerts(db)
+            from app.apps.power_apps.runtime_retention import purge_payloads
 
-        purge_payloads(db)
+            purge_payloads(db)
         record.scheduler_at = now()
         db.commit()
-    from app.apps.power_apps.integrations.native_runtime import tick as native_tick
-    native_tick(db)
+    if not telegram_only:
+        from app.apps.power_apps.integrations.native_runtime import tick as native_tick
+        native_tick(db)
     record = db.get(AutomationWorker, worker_id)
     record.heartbeat_at = now()
     db.commit()
-    work = claim(db, worker_id)
+    from app.apps.power_apps.runtime_models import AutomationRun
+    run_ids = db.query(AutomationRun.id).filter(AutomationRun.trigger_kind == 'telegram') if telegram_only else None
+    work = claim(db, worker_id, run_ids=run_ids)
     if not work:
         return False
     from app.apps.power_apps.runtime_models import AutomationJob, AutomationRun, AutomationTrigger
@@ -96,6 +101,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--poll-seconds", type=float, default=1)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--telegram-only", action="store_true", help="Poll and execute only Telegram work; leave other automations and ActionBot runs untouched")
     parser.add_argument("--workspace", help="Process one registered company workspace; otherwise process this worker's shard")
     args = parser.parse_args()
     if not 0.05 <= args.poll_seconds <= 60:
@@ -108,7 +114,7 @@ def main():
     def one_database():
         with SessionLocal() as db:
             try:
-                return worker_tick(db, worker_id)
+                return worker_tick(db, worker_id, telegram_only=args.telegram_only)
             except Exception as exc:
                 db.rollback()
                 logger.error(

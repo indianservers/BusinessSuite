@@ -3,8 +3,12 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
+import os
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from tests.test_power_runtime import db
+from tests.test_power_apps import actors
+from tests.test_telegram_operations import bot
 
 
 @pytest.mark.parametrize('path', ['alembic/versions/20261116_084_telegram_operations.py', 'alembic_postgresql/versions/pg_20261116_123_telegram_operations.py'])
@@ -28,6 +32,31 @@ def test_telegram_migration_upgrade_and_downgrade(path):
             module.downgrade()
             assert 'power_telegram_identities' not in sa.inspect(connection).get_table_names()
     engine.dispose()
+
+
+@pytest.mark.skipif(not os.environ.get('TEST_DATABASE_URL'), reason='Requires disposable PostgreSQL')
+def test_postgres_experience_upgrade_preserves_existing_identity_and_conversation(db, bot):
+    from tests.test_telegram_experience import deliver
+    from app.apps.power_apps.models import TelegramConversation, TelegramIdentity
+    deliver(db, bot, 1, text='/start')
+    thread = db.query(TelegramConversation).one()
+    linked = db.query(TelegramIdentity).one()
+    ident, identity_id, original_state = thread.id, linked.id, dict(thread.state)
+    counts = {name: db.execute(sa.text('select count(*) from ' + name)).scalar_one() for name in ['users', 'employees', 'power_apps_resources', 'power_telegram_messages']}
+    path = Path(__file__).parents[1] / 'alembic_postgresql/versions/pg_20261116_124_telegram_experience.py'
+    spec = importlib.util.spec_from_file_location('telegram_pg_live_upgrade', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with Operations.context(MigrationContext.configure(db.connection())):
+        module.downgrade()
+        assert 'context' not in {column['name'] for column in sa.inspect(db.connection()).get_columns('power_telegram_conversations')}
+        module.upgrade()
+    db.expire_all()
+    upgraded = db.get(TelegramConversation, ident)
+    assert upgraded.identity_id == identity_id and upgraded.state == original_state and upgraded.context == {}
+    assert db.get(TelegramIdentity, identity_id).customer_id is None
+    for name, count in counts.items():
+        assert db.execute(sa.text('select count(*) from ' + name)).scalar_one() == count
 
 
 @pytest.mark.parametrize('path', ['alembic/versions/20261116_085_telegram_experience.py', 'alembic_postgresql/versions/pg_20261116_124_telegram_experience.py'])

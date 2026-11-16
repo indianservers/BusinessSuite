@@ -11,10 +11,12 @@ Connect using **Connect Telegram bot**. Leaving the token blank uses the tempora
 Run the backend and worker. From `backend`:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.apps.power_apps.worker --poll-seconds 1
+.\venv\Scripts\python.exe -m app.apps.power_apps.worker --telegram-only --poll-seconds 3
 ```
 
 The worker polls approximately every five seconds. Telegram permits one polling listener per bot and polling cannot run alongside a webhook. New private messages, known inline-button callbacks, shared locations and workflow document receipts from human senders are processed. Group chats and messages older than setup are ignored. Document receipts retain Telegram file metadata; this release does not download or scan file contents.
+
+Use `--telegram-only` for a dedicated bot deployment: it leaves unrelated automation schedules, connector jobs and ActionBot queues untouched. Omit it only when intentionally running the general automation worker. The API does not start this worker. Supervise one instance using the API's existing database and encryption settings. Preserve the trained model directory (or set `LOCAL_NLP_MODEL_DIR`); an absent or incompatible artifact selects the reported rules fallback. Company AI commands use separate, revocable twenty-minute sessions and do not borrow browser credentials. Native PMS child plans still require their dedicated worker.
 
 The versioned workflow still uses Telegram message received → check enquiry → Telegram send message. Sending follows the connector operation journal, retries and delivery outcome handling. Inbox replies show queued/execution state, not an unverified delivery claim.
 

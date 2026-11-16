@@ -1745,12 +1745,18 @@ def finish_step(db,run,index,tool,response):
         input_json={'suite_run_id':run.id,'step':index,'tool':tool},output_json=receipt,status='success')
 
 
-async def process_suite_batch(db, app, limit=10):
+async def process_suite_batch(db, app, limit=10, *, telegram_only=False):
     from contextlib import ExitStack
     processed = 0
+    runs = db.query(SuiteRun)
+    if telegram_only:
+        # This provenance is written only by the server's Telegram approval
+        # path. validate_origin still rechecks its live binding before dispatch.
+        runs = runs.filter(SuiteRun.result['telegram_origin']['approval_id'].as_integer().is_not(None),
+            SuiteRun.result['telegram_origin']['resource_id'].as_integer().is_not(None))
     # Yield to the canonical PMS worker rather than waiting inside its own loop.
     from app.ai_operator.models import OperatorRun
-    for waiting in db.query(SuiteRun).filter_by(status='waiting_pms').with_for_update(skip_locked=True).all():
+    for waiting in runs.filter_by(status='waiting_pms').with_for_update(skip_locked=True).all():
         child=(waiting.snapshots or {}).get('pms_children',{}).get(str(waiting.active_step),{})
         nested=db.get(OperatorRun,child.get('id'))
         if not nested or nested.user_id!=waiting.user_id or nested.plan_hash!=child.get('plan_hash'):
@@ -1766,7 +1772,7 @@ async def process_suite_batch(db, app, limit=10):
         if approval:approval.execution_status=waiting.status
     db.commit()
     # Never replay a write after a crashed/timed-out executor.
-    for expired in db.query(SuiteRun).filter(SuiteRun.status.in_(['executing', 'cancelling']), SuiteRun.lease_until < now()).with_for_update(skip_locked=True).all():
+    for expired in runs.filter(SuiteRun.status.in_(['executing', 'cancelling']), SuiteRun.lease_until < now()).with_for_update(skip_locked=True).all():
         expired.status = 'needs_reconciliation'
         expired.error_code = 'IN_FLIGHT_OUTCOME_UNKNOWN'
         approval = db.get(AiActionApproval, expired.approval_id)
@@ -1777,7 +1783,7 @@ async def process_suite_batch(db, app, limit=10):
     for _ in range(limit):
         from sqlalchemy import or_
         retry_at=SuiteRun.result['checkpoint']['retry_at'].as_string()
-        run = db.query(SuiteRun).filter_by(status='queued').filter(or_(retry_at.is_(None),retry_at<=now().isoformat())).order_by(SuiteRun.id).with_for_update(skip_locked=True).first()
+        run = runs.filter_by(status='queued').filter(or_(retry_at.is_(None),retry_at<=now().isoformat())).order_by(SuiteRun.id).with_for_update(skip_locked=True).first()
         if not run:
             break
         ident = run.id
