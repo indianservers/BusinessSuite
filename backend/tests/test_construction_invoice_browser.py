@@ -10,11 +10,11 @@ from app.apps.srm.commercial_models import ProjectCommercial
 from app.apps.project_management.models import PMSProjectMember
 from app.access.models import AccessPolicy
 from app.business_packs.models import PackContext, PackMasterAvailability
-from tests.test_business_pack_construction import construction, scenario, catalog, directory_identity
+from tests.test_business_pack_construction import construction, scenario, catalog, directory_identity, construction_approver
 from tests.test_business_pack_http_integration import grant
 
 
-def test_actual_app_construction_invoice_collection_only_actor(client, db, construction, catalog, monkeypatch):
+def test_actual_app_construction_invoice_collection_only_actor(client, db, construction, catalog, monkeypatch, construction_approver):
     from tests.test_control_browser import test_control_center_real_browser
     actor, branch, context_id, project_id = construction
     db.add(ProjectCommercial(project_id=project_id, customer_id=101, seller_id=1, currency='INR', updated_by=actor.id))
@@ -24,7 +24,8 @@ def test_actual_app_construction_invoice_collection_only_actor(client, db, const
     manager = {**catalog[0], 'X-Suite-Pack-Context': str(context_id)}
     root = '/api/v1/srm/industry'
     def post(path, data, expected=201):
-        response = client.post(root + path, headers=manager, json=data)
+        auth = construction_approver[0] if path.endswith('/transition') else manager
+        response = client.post(root + path, headers=auth, json=data)
         assert response.status_code == expected, response.text
         return response.json()
     boq = post('/boq', {'request_id': str(uuid4()), 'title': 'Browser certified work', 'project_id': project_id,

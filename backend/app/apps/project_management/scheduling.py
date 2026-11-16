@@ -185,6 +185,10 @@ def _load(db, project_id, user, write=False):
 
 @router.get("/projects/{project_id}/schedule-analysis")
 def analysis(project_id: int, baseline_id: str | None = Query(None), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_planning import analysis as selected_analysis
+        return selected_analysis(db, user, project_id, baseline_id)
     project, _, state, tasks, deps, revision = _load(db, project_id, user)
     plan = calculate(tasks, deps, CalendarSpec.model_validate(state["calendar"]))
     selected = next((b for b in state["baselines"] if b["id"] == baseline_id), None) if baseline_id else (state["baselines"][-1] if state["baselines"] else None)
@@ -201,6 +205,10 @@ def analysis(project_id: int, baseline_id: str | None = Query(None), db: Session
 
 @router.post("/projects/{project_id}/schedule-preview")
 def preview(project_id: int, data: PlanInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_planning import preview as selected_preview
+        return selected_preview(db, user, project_id, data)
     project, _, state, tasks, deps, revision = _load(db, project_id, user, True)
     calendar = data.calendar or CalendarSpec.model_validate(state["calendar"])
     plan, revision = _plan(db, project, tasks, deps, calendar, data, revision, user)
@@ -209,6 +217,14 @@ def preview(project_id: int, data: PlanInput, db: Session = Depends(get_db), use
 
 @router.post("/projects/{project_id}/schedule-apply")
 def apply(project_id: int, data: PlanInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_planning import apply as selected_apply
+        return selected_apply(db, user, project_id, data)
+    return apply_operation(project_id, data, db, user)
+
+
+def apply_operation(project_id, data, db, user, *, commit=True):
     project, row, state, tasks, deps, revision = _load(db, project_id, user, True)
     calendar = data.calendar or CalendarSpec.model_validate(state["calendar"])
     plan, revision = _plan(db, project, tasks, deps, calendar, data, revision, user)
@@ -226,30 +242,50 @@ def apply(project_id: int, data: PlanInput, db: Session = Depends(get_db), user:
         _record_activity(db, project.id, user, "schedule.changed", "task", task.id, f"Applied {'resource' if data.level_resources else 'dependency'} plan to {task.task_key}", task_id=task.id, metadata=change)
     state["calendar"] = calendar.model_dump(mode="json")
     _save(db, project, user, row, state)
-    db.commit()
-    _broadcast_realtime(user, "task.updated", project_id=project.id, message="Project resource plan applied" if data.level_resources else "Project dependency plan applied")
+    if commit:
+        db.commit()
+        _broadcast_realtime(user, "task.updated", project_id=project.id, message="Project resource plan applied" if data.level_resources else "Project dependency plan applied")
+    else:
+        db.flush()
     return {"updated": len(plan["changes"]), "finish_date": plan["finish_date"]}
 
 
 @router.post("/projects/{project_id}/schedule-baselines", status_code=201)
 def capture_baseline(project_id: int, data: BaselineInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_planning import capture
+        return capture(db, user, project_id, data)
+    return capture_baseline_operation(project_id, data, db, user)
+
+
+def capture_baseline_operation(project_id, data, db, user, *, commit=True):
     project, row, state, tasks, _, revision = _load(db, project_id, user, True)
     if revision != data.expected_revision: raise HTTPException(409, "Schedule changed. Reload before capturing a baseline")
     if not data.name.strip(): raise HTTPException(422, "Enter a baseline name")
     if len(state["baselines"]) >= 20: raise HTTPException(422, "This project already has 20 retained baselines")
     baseline = {"id": str(uuid.uuid4()), "name": data.name.strip(), "created_at": datetime.now(timezone.utc).isoformat(), "author_id": user.id,
                 "tasks": [{"id": t.id, "start_date": str(t.start_date) if t.start_date else None, "due_date": str(t.due_date) if t.due_date else None} for t in tasks]}
+    if not commit:
+        baseline["calendar"] = state["calendar"]
     state["baselines"].append(baseline)
     _save(db, project, user, row, state)
     from .api.router import _record_activity
     _record_activity(db, project.id, user, "schedule.baseline", "project", project.id, f"Captured schedule baseline: {data.name.strip()}", metadata={"baseline_id": baseline["id"], "task_count": len(tasks)})
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return {k: v for k, v in baseline.items() if k != "tasks"}
 
 
 @router.get("/projects/{project_id}/schedule-variance/export")
 def export_variance(project_id: int, baseline_id: str | None = None, file_format: Literal["csv", "xlsx"] = Query("csv", alias="format"),
                     db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_planning import export_variance as selected_export
+        return selected_export(db, user, project_id, baseline_id, file_format)
     result = analysis(project_id, baseline_id, db, user)
     if not result["selected_baseline_id"]: raise HTTPException(422, "Capture a baseline before exporting schedule variance")
     baseline = next(b for b in result["baselines"] if b["id"] == result["selected_baseline_id"])

@@ -200,6 +200,10 @@ class EntryInput(BaseModel):
 
 @router.post("/tasks/{task_id}/entries", status_code=201)
 def add_entry(task_id: int, data: EntryInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return add_entry_operation(task_id, data, db, user)
+
+
+def add_entry_operation(task_id, data, db, user, *, commit=True):
     from .api.router import _record_activity, _project_user_query
     from app.models.notification import Notification
     from app.services.metrics.queries import business_day
@@ -235,7 +239,11 @@ def add_entry(task_id: int, data: EntryInput, db: Session = Depends(get_db), use
         if account and can_access_project(db, project, account, "browse"):
             db.add(Notification(company_id=organization_id_for(user), user_id=identity, title="Task blocker reported" if data.kind == "blocker" else "Task follow-up scheduled" if data.kind == "followup" else "Mentioned in a task update" if identity in data.mentioned_user_ids else "Task update posted", message=task.title, module="project_management", event_type="task."+data.kind, action_url=f"/pms/tasks/{task.id}"))
     _record_activity(db, project.id, user, "task."+data.kind+"_posted", "task", task.id, f"Posted {data.kind} on {task.task_key}", task_id=task.id, metadata={"entry_id": row.id, "progress": data.progress, "minutes": data.minutes})
-    db.commit(); publish(user, task, "task.updated")
+    if commit:
+        db.commit()
+        publish(user, task, "task.updated")
+    else:
+        db.flush()
     return entry_payload(db, row, user, can_access_project(db, project, user, "approve"))
 
 class EditEntry(BaseModel):

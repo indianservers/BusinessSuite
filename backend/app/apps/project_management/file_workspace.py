@@ -25,6 +25,10 @@ def folder_for_project(db, identity, project_id):
 
 @router.get("/file-folders")
 def list_folders(project_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_documents import list_folders as selected_folders
+        return selected_folders(db, user, project_id)
     get_project_for_action(db, project_id, user, "browse")
     return [{"id": f.id, "name": f.name} for f in db.query(PMSFileFolder).filter_by(project_id=project_id).order_by(PMSFileFolder.name, PMSFileFolder.id)]
 
@@ -41,6 +45,15 @@ def create_folder(data: FolderInput, db: Session = Depends(get_db), user: User =
 
 @router.post("/projects/{project_id}/files/upload", status_code=201)
 def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id: int | None = Form(None), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_documents import upload
+        return upload(db, user, project_id, file, folder_id)
+    return upload_project_file_operation(project_id, file, folder_id, db, user)
+
+
+def upload_project_file_operation(project_id, file, folder_id, db, user, *, commit=True):
+    """Native upload; finite pack commands may retain the outer transaction."""
     from .api.router import _validate_attachment_upload, _safe_attachment_name, PMS_UPLOAD_ROOT, PMS_MAX_ATTACHMENT_BYTES, _file_payload, _record_activity
     from app.core.storage import persist_file
     project = get_project_for_action(db, project_id, user, "upload")
@@ -67,10 +80,16 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
         asset = PMSFileAsset(project_id=project.id, folder_id=folder_id, uploaded_by_user_id=user.id, file_name=filename, original_name=original, storage_path=str(target), mime_type=file.content_type or "application/octet-stream", size_bytes=size, visibility="Project Team")
         db.add(asset); db.flush()
         _record_activity(db, project.id, user, "attachment.added", "file", asset.id, f"Uploaded {original}", metadata={"folder_id": folder_id})
-        db.commit(); db.refresh(asset)
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+            return asset
+        db.refresh(asset)
         return _file_payload(asset, user)
     except Exception:
-        db.rollback()
+        if commit:
+            db.rollback()
         if not storage_attempted: target.unlink(missing_ok=True)
         raise
     finally:

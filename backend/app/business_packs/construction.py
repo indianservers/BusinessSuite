@@ -16,6 +16,9 @@ from .common_core import _native_authority
 from .common_queries import assert_mapped_sources
 
 _PROJECT_PROOFS = WeakKeyDictionary()
+_CONSTRUCTION_EVIDENCE = frozenset({'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
+    'work_package', 'planning_baseline', 'payment_certificate', 'handover',
+    'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition', 'workspace_definition'})
 
 
 def _project_epoch(db, scope, project_id):
@@ -169,7 +172,7 @@ def project_for_action(db, actor, project_id, action='browse'):
     from app.shared.models import ServicePolicy
     from app.shared.settings import effective
 
-    if action not in {'browse', 'manage_tasks', 'approve'}:
+    if action not in {'browse', 'manage_tasks', 'approve', 'edit_project', 'upload'}:
         _deny('Unreviewed Construction project action', 403)
     scope, workspace_id = _source(db, actor, project_id)
     authority = _native_authority(db, actor, scope.company_id)
@@ -243,6 +246,71 @@ def project_for_action(db, actor, project_id, action='browse'):
         native.close()
 
 
+def project_files(db, actor, project_id, *, file_ids=None, offset=0, limit=50):
+    """Read minimal native file metadata for one freshly authorized owned site.
+
+    Files remain canonical PMS assets. This resource grants no PMS ORM access,
+    storage paths, download authority, or authority over another project.
+    """
+    from app.apps.project_management.models import PMSFileAsset
+    from .operations import require
+    require(db, actor, 'sites.view', 'diary.record')
+    project_for_action(db, actor, project_id)
+    scope, _ = _source(db, actor, project_id)
+    authority = _native_authority(db, actor, scope.company_id)
+    epoch = _project_epoch(db, scope, project_id)
+    table = PMSFileAsset.__table__
+    query = select(table.c.id, table.c.original_name, table.c.visibility,
+        table.c.uploaded_by_user_id).where(table.c.project_id == project_id, table.c.deleted_at.is_(None))
+    if file_ids is not None:
+        query = query.where(table.c.id.in_(file_ids)).with_for_update()
+    else:
+        query = query.where((table.c.visibility != 'Work Evidence') |
+            (table.c.uploaded_by_user_id == actor.id)).order_by(table.c.id.desc()).offset(offset).limit(limit)
+    rows = db.connection().execute(query).all()
+    if file_ids is not None:
+        if {row.id for row in rows} != set(file_ids):
+            _deny("Site photos must be uploaded to this project's Files first", 422)
+        if any(row.visibility == 'Work Evidence' and row.uploaded_by_user_id != actor.id for row in rows):
+            _deny('This project file is private to its uploader', 403)
+    _source(db, actor, project_id)
+    if authority != _native_authority(db, actor, scope.company_id) or epoch != _project_epoch(db, scope, project_id):
+        _deny('Native Construction file authority changed', 403)
+    return [{'id': row.id, 'original_name': row.original_name} for row in rows]
+
+
+def subcontract_vendor_roles(db, actor, project_id, vendor):
+    """Canonical roles of the already native-authorized, available CRM vendor."""
+    from types import SimpleNamespace
+    from app.shared.master_data import relationships
+    from app.shared.master_data_models import BusinessRelationship
+    from app.apps.srm.services.commercial import customer
+    project_for_action(db, actor, project_id, 'edit_project')
+    scope, _ = _source(db, actor, project_id)
+    if customer(db, vendor.id, actor) is not vendor:
+        _deny('Construction vendor identity changed', 403)
+    table = BusinessRelationship.__table__
+    roles = db.connection().execute(select(table.c.role).where(
+        table.c.organization_id == scope.company_id, table.c.account_id == vendor.id)).scalars().all()
+    return relationships(db, vendor, 'company', links=[SimpleNamespace(role=role) for role in roles])
+
+
+def reject_evidence_delete(db, scope, item):
+    """Deny retained Construction evidence before native branch cleanup."""
+    from .access import PackScope
+    from app.apps.srm.industry_models import IndustryRecord
+    if (not isinstance(scope, PackScope) or scope.pack_key != 'construction'
+            or db.info.get('business_pack_scope') is not scope
+            or type(item) is not IndustryRecord or item not in db.deleted):
+        return
+    state = inspect(item)
+    stored_kind = db.connection().scalar(select(IndustryRecord.__table__.c.kind).where(
+        IndustryRecord.__table__.c.id == state.identity[0])) if state.identity else None
+    if item.kind in _CONSTRUCTION_EVIDENCE or stored_kind in _CONSTRUCTION_EVIDENCE:
+        _current(scope, db.connection())
+        _deny('Construction workflow evidence cannot be deleted', 403)
+
+
 def validate_industry_source(db, scope, item):
     """No private BOQ/project/parent link may cross its actual source boundary."""
     from .construction_materials import validate_item
@@ -251,15 +319,45 @@ def validate_industry_source(db, scope, item):
     from .models import PackRecordOwnership
     if type(item) is not IndustryRecord or scope.pack_key != 'construction':
         return
-    kinds = {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue'}
-    if item.kind not in kinds:
-        return
-    from .construction_billing import validate_record
-    validate_record(db, item)
+    kinds = _CONSTRUCTION_EVIDENCE
     state = inspect(item)
     if state.persistent and any(state.attrs[name].history.has_changes()
                                 for name in ('kind', 'project_id', 'parent_id')):
-        _deny('Construction source identity is immutable', 403)
+        stored_kind = db.connection().scalar(select(IndustryRecord.__table__.c.kind).where(
+            IndustryRecord.__table__.c.id == state.identity[0]))
+        if item.kind in kinds or stored_kind in kinds:
+            _deny('Construction source identity is immutable', 403)
+    if item.kind not in kinds:
+        return
+    if item in db.deleted:
+        _deny('Construction workflow evidence cannot be deleted', 403)
+    if item.kind == 'workspace_definition':
+        from .construction_workspaces import validate_record as validate_workspace
+        if validate_workspace(db, scope, item):
+            return
+    from .construction_billing import validate_record
+    validate_record(db, item)
+    if item.kind in {'work_package', 'measurement'}:
+        from .construction_workpackages import validate_work_package_source
+        validate_work_package_source(db, scope, item)
+    if item.kind in {'payment_certificate', 'handover'}:
+        from .construction_delivery import validate_record as validate_delivery
+        validate_delivery(db, scope, item)
+    if item.kind == 'planning_baseline':
+        from .construction_controls import validate_baseline_record
+        validate_baseline_record(db, scope, item)
+    if item.kind in {'project_definition', 'task_definition'}:
+        from .construction_definition import validate_record as validate_definition
+        validate_definition(db, scope, item)
+    if item.kind in {'task_actual', 'cost_actual', 'cost_budget'}:
+        from .construction_actuals import validate_record as validate_actuals
+        validate_actuals(db, scope, item)
+    if item.kind == 'commercial_link':
+        from .construction_commercial import validate_record as validate_commercial
+        validate_commercial(db, scope, item)
+    if item.kind == 'dependency_definition':
+        from .construction_dependencies import validate_record as validate_dependency
+        validate_dependency(db, scope, item)
     # Source validation uses the actual request actor, never the row's author.
     from app.models.user import User
     actor = db.get(User, scope.user_id)
@@ -275,7 +373,7 @@ def validate_industry_source(db, scope, item):
                 owner.c.context_id == scope.context_id))))
         if not valid:
             _deny('Construction parent is unavailable')
-    if item.kind in {'variation', 'measurement'} and item.parent_id is None:
+    if item.kind in {'variation', 'measurement', 'work_package'} and item.parent_id is None:
         _deny('Construction parent is required', 422)
 
 
@@ -307,11 +405,29 @@ def authorize_record_project(db, actor, record_id):
             owner.c.context_id == scope.context_id))).first()
     if actual is None:
         _deny('Industry record not found')
-    if actual.kind not in {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue'}:
+    if actual.kind not in {'boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue',
+                           'work_package', 'planning_baseline', 'payment_certificate', 'handover',
+                           'project_definition', 'task_definition', 'task_actual', 'cost_actual', 'cost_budget', 'commercial_link', 'dependency_definition'}:
         return
     if actual.project_id is None:
         _deny('Industry record not found')
     project_for_action(db, actor, actual.project_id)
+
+
+def authorize_retry_project(db, actor, request_id):
+    """Prove the stored retry source before its native parent-filtered ORM read."""
+    from app.apps.srm.industry_models import IndustryRecord
+    from .models import PackRecordOwnership
+    scope = db.info.get('business_pack_scope')
+    _current(scope, db.connection())
+    row, owner = IndustryRecord.__table__, PackRecordOwnership.__table__
+    ident = db.connection().scalar(select(row.c.id).where(row.c.request_id == str(request_id),
+        row.c.organization_id == scope.company_id, row.c.branch_id == scope.branch_id,
+        exists().where(owner.c.resource_table == row.name, owner.c.resource_key == row.c.id.cast(String),
+            owner.c.company_id == scope.company_id, owner.c.branch_id == scope.branch_id,
+            owner.c.context_id == scope.context_id)))
+    if ident is not None:
+        authorize_record_project(db, actor, ident)
 
 
 def require_clean_billing_start(db, actor, project_id):

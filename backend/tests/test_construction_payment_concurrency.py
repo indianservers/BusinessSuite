@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import select
 
 from tests.test_pms_workflow_postgresql import live, race
-from tests.test_business_pack_construction import construction, scenario, catalog, directory_identity
+from tests.test_business_pack_construction import construction, scenario, catalog, directory_identity, independent_approver
 from tests.test_business_pack_http_integration import native_actor, grant
 from tests.srm_test_utils import seed_invoice_parties
 from app.access.models import AccessPolicy
@@ -39,7 +39,9 @@ def prepare(client, db, creator_headers, branch, context_id, project_id, approve
     db.add(member); db.commit()
     collector_id, membership_id, policy_id = collector.id, member.id, policy.id
     creator_headers = {**creator_headers, 'X-Suite-Branch': str(branch), 'X-Suite-Pack-Context': str(context_id)}
-    approver_headers = {**(approver_headers or creator_headers), 'X-Suite-Branch': str(branch), 'X-Suite-Pack-Context': str(context_id)}
+    if approver_headers is None:
+        approver_headers, _ = independent_approver(db, branch, context_id, project_id)
+    approver_headers = {**approver_headers, 'X-Suite-Branch': str(branch), 'X-Suite-Pack-Context': str(context_id)}
     headers = {**headers, 'X-Suite-Pack-Context': str(context_id)}
     def post(path, body, auth=creator_headers, status=201):
         response = client.post(BASE+path, headers=auth, json=body)

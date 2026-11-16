@@ -2292,6 +2292,11 @@ def update_project(
     current_user: User = Depends(get_current_user),
 ):
     """Update a project."""
+    return update_project_operation(project_id, project_in, db, current_user)
+
+
+def update_project_operation(project_id, project_in, db, current_user, *, commit=True):
+    """Update a project."""
     project = get_project_for_action(db, project_id, current_user, "edit_project")
     
     update_data = project_in.dict(exclude_unset=True)
@@ -2328,16 +2333,19 @@ def update_project(
         _record_activity(db, project.id, current_user, "project.status_changed", "project", project.id, f"Changed project status to {project.status}", metadata={"old_value": before.get("status"), "new_value": project.status})
     if "budget_amount" in update_data or "estimated_cost" in update_data:
         _record_activity(db, project.id, current_user, "project.budget_changed", "project", project.id, f"Changed project budget for {project.project_key}", metadata={"old_values": before, "new_values": update_data})
-    db.commit()
-    db.refresh(project)
-    _broadcast_realtime(
-        current_user,
-        "project.updated",
-        project_id=project.id,
-        message=f"Project {project.name} was updated",
-        entity={"id": project.id, "name": project.name, "projectKey": project.project_key},
-        data={"changedFields": list(update_data.keys())},
-    )
+    if commit:
+        db.commit()
+        db.refresh(project)
+        _broadcast_realtime(
+            current_user,
+            "project.updated",
+            project_id=project.id,
+            message=f"Project {project.name} was updated",
+            entity={"id": project.id, "name": project.name, "projectKey": project.project_key},
+            data={"changedFields": list(update_data.keys())},
+        )
+    else:
+        db.flush()
     project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
     project.can_upload_files = can_access_project(db, project, current_user, "upload")
     project.can_log_time = can_access_project(db, project, current_user, "log_time")
@@ -6381,6 +6389,12 @@ def list_files(
     current_user: User = Depends(get_current_user),
 ):
     """List accessible file metadata."""
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_documents import list_files as selected_files
+        if task_id is not None:
+            raise HTTPException(422, 'Select the Construction project file library')
+        return selected_files(db, current_user, project_id, skip=skip, limit=limit)
     accessible_project_ids = accessible_project_query(db, current_user).with_entities(PMSProject.id)
     query = db.query(PMSFileAsset).filter(
         PMSFileAsset.deleted_at == None,
@@ -6432,6 +6446,10 @@ def download_attachment(
     current_user: User = Depends(get_current_user),
 ):
     """Authenticated download route for a PMS attachment."""
+    scope = db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        from app.business_packs.construction_documents import download
+        return download(db, current_user, file_id)
     file_asset, _project = _get_file_for_action(db, file_id, current_user, "browse")
     storage_path = Path(file_asset.storage_path).resolve()
     if not upload_exists(str(storage_path)):

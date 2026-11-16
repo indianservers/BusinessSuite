@@ -304,6 +304,9 @@ def install(db, user, ctx, *, identity_administration=False):
             if "branch_id" in table.c and item not in session.new and state.attrs.branch_id.history.has_changes():
                 deny("Use an authorized branch transfer to change ownership")
             if item in session.deleted:
+                if table.name == 'srm_industry_records' and getattr(session.info.get('business_pack_scope'), 'pack_key', None) == 'construction':
+                    from app.business_packs.construction import reject_evidence_delete
+                    reject_evidence_delete(session, session.info['business_pack_scope'], item)
                 retained = False
                 if table.name == 'srm_sales_order_lines':
                     from app.business_packs.restaurant.removals import retain_deleted_branch_source

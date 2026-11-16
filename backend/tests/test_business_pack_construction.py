@@ -43,7 +43,7 @@ def test_specialists_cannot_read_financial_document_controls(client, db, constru
 
 
 @pytest.mark.parametrize('billing_role', ['project_manager', 'billing_officer'])
-def test_native_construction_certified_invoice_retains_full_receivable(client, db, construction, catalog, billing_role, monkeypatch):
+def test_native_construction_certified_invoice_retains_full_receivable(client, db, construction, catalog, billing_role, monkeypatch, construction_approver):
     from app.apps.srm.commercial_models import ProjectCommercial
     from app.business_packs.models import PackMasterAvailability
     from app.apps.srm.models import SRMInvoice
@@ -55,7 +55,8 @@ def test_native_construction_certified_invoice_retains_full_receivable(client, d
     headers = {**catalog[0], 'X-Suite-Pack-Context': str(context_id)}
     root = '/api/v1/srm/industry'
     def post(path, data, expected=201):
-        response = client.post(root + path, headers=headers, json=data)
+        auth = construction_approver[0] if path.endswith('/transition') else headers
+        response = client.post(root + path, headers=auth, json=data)
         assert response.status_code == expected, response.text
         return response.json()
     boq = post('/boq', {'request_id': str(uuid4()), 'title': 'Certified construction billing',
@@ -194,7 +195,7 @@ def test_native_construction_certified_invoice_retains_full_receivable(client, d
 
 
 @pytest.mark.parametrize('currency', ['INR', 'USD'])
-def test_native_construction_measurements_variation_and_diary(client, db, construction, catalog, currency):
+def test_native_construction_measurements_variation_and_diary(client, db, construction, catalog, currency, construction_approver):
     actor, branch, context_id, project_id = construction
     if currency == 'USD':
         from app.apps.srm.commercial_models import ProjectCommercial
@@ -203,7 +204,8 @@ def test_native_construction_measurements_variation_and_diary(client, db, constr
     headers = {**catalog[0], 'X-Suite-Pack-Context': str(context_id)}
     root = '/api/v1/srm/industry'
     def post(path, payload, expected=201):
-        response = client.post(root + path, headers=headers, json=payload)
+        auth = construction_approver[0] if path.endswith('/transition') else headers
+        response = client.post(root + path, headers=auth, json=payload)
         assert response.status_code == expected, response.text
         return response.json()
     def create(path, **values):
@@ -214,7 +216,8 @@ def test_native_construction_measurements_variation_and_diary(client, db, constr
     approve(boq)
     measured = create('/measurements', boq_id=boq['id'], quantity='8', measured_on='2026-11-15')
     approved = approve(measured)
-    assert approved['approved_by'] == actor.id
+    assert approved['approved_by'] == construction_approver[1].id
+    assert approved['approved_by'] != approved['created_by']
     overrun = create('/measurements', boq_id=boq['id'], quantity='3', measured_on='2026-11-15')
     approve(overrun, 409)
     variation = create('/boq', project_id=project_id, code='EXTRA', unit='m3', quantity='3', unit_rate='1300', tax_rate='5', variation_of=boq['id'])
@@ -255,6 +258,25 @@ def construction(db, scenario):
             resource_table='pms_projects', resource_key=str(project.id), source='explicit-test-enrollment'))
     db.commit()
     return actor, branch, context.id, project.id
+
+
+def independent_approver(db, branch, context_id, project_id):
+    from app.access.models import AccessPolicy
+    from tests.test_business_pack_http_integration import native_actor, grant
+    headers, reviewer = native_actor(db, branch)
+    policy = db.query(AccessPolicy).filter_by(company_id=1, user_id=reviewer.id).one()
+    policy.grants = {**policy.grants, 'project_management': {'enabled': True,
+        'permissions': ['pms_view'], 'actions': ['view', 'create', 'edit', 'approve'], 'scope': 'organization'}}
+    db.add(PMSProjectMember(project_id=project_id, user_id=reviewer.id, role='Manager'))
+    db.commit()
+    grant(db, reviewer, branch, 'construction', 'project_manager', db.get(PackContext, context_id))
+    return {**headers, 'X-Suite-Pack-Context': str(context_id)}, reviewer
+
+
+@pytest.fixture
+def construction_approver(db, construction):
+    _, branch, context_id, project_id = construction
+    return independent_approver(db, branch, context_id, project_id)
 
 
 def test_native_project_resource_returns_primitives_preserves_transaction_and_pack(db, construction):
@@ -370,7 +392,7 @@ def test_native_authorization_resource_rejects_other_sources_and_mutation(db, co
             cleanup()
 
 
-def test_actual_http_boq_create_replay_list_and_approve(client, db, construction, catalog):
+def test_actual_http_boq_create_replay_list_and_approve(client, db, construction, catalog, construction_approver):
     actor, branch, context_id, project_id = construction
     headers = {**catalog[0], 'X-Suite-Pack-Context': str(context_id)}
     body = {'request_id': str(uuid4()), 'title': 'Foundation concrete', 'project_id': project_id,
@@ -388,7 +410,10 @@ def test_actual_http_boq_create_replay_list_and_approve(client, db, construction
     assert listed.status_code == 200 and [item['id'] for item in listed.json()['items']] == [row['id']], listed.text
     picker = client.get(root + '/project-options', headers=headers)
     assert picker.status_code == 200 and picker.json()['items'] == [{'id': project_id, 'name': 'Private site'}], picker.text
-    approved = client.post(root + f'/records/{row["id"]}/transition', headers=headers,
+    self_approval = client.post(root + f'/records/{row["id"]}/transition', headers=headers,
+        json={'expected_revision': 1, 'status': 'approved'})
+    assert self_approval.status_code == 403, self_approval.text
+    approved = client.post(root + f'/records/{row["id"]}/transition', headers=construction_approver[0],
         json={'expected_revision': 1, 'status': 'approved'})
     assert approved.status_code == 200 and approved.json()['revision'] == 2, approved.text
     stale = client.post(root + f'/records/{row["id"]}/transition', headers=headers,

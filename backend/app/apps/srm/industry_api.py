@@ -21,8 +21,9 @@ from app.apps.project_management.access import get_project_for_action as _native
 from app.business_packs.operations import require as require_pack_operation, for_record_read, for_transition
 
 router = APIRouter(prefix="/srm/industry", tags=["Salon and construction operations"])
-KINDS = {"resource", "appointment", "boq", "measurement", "site_diary", "variation", "subcontract", "material_issue"}
-CONSTRUCTION = {"boq", "measurement", "site_diary", "variation", "subcontract", "material_issue"}
+CONSTRUCTION = {"boq", "measurement", "site_diary", "variation", "subcontract", "material_issue",
+                "work_package", "planning_baseline", "payment_certificate", "handover"}
+KINDS = {"resource", "appointment"} | CONSTRUCTION
 
 
 def get_project_for_action(db, project_id, user, action='browse'):
@@ -121,6 +122,7 @@ class BOQInput(BaseInput):
 
 class MeasurementInput(BaseInput):
     boq_id: int = Field(gt=0)
+    work_package_id: int | None = Field(None, gt=0)
     quantity: Decimal = Field(gt=0, max_digits=16, decimal_places=4)
     measured_on: date
     notes: str = Field(default="", max_length=4000)
@@ -219,6 +221,64 @@ def capabilities(project_id: int | None = None, db: Session = Depends(get_db), u
     from app.apps.srm.service_checkout import checkout_capabilities
     result.update(checkout_capabilities(db, user))
     scope=db.info.get('business_pack_scope')
+    if scope is not None and scope.pack_key == 'construction':
+        result['self_approve'] = False
+        from app.access.service import check_background_access
+        def ceiling(module, action):
+            try:
+                check_background_access(db, user, module, action, administrative_read=False, stamp=False)
+                return True
+            except HTTPException as exc:
+                if exc.status_code != 403:
+                    raise
+                return False
+        def project_action(action):
+            if not project_id:
+                return False
+            try:
+                get_project_for_action(db, project_id, user, action)
+                return True
+            except HTTPException as exc:
+                if exc.status_code != 403:
+                    raise
+                return False
+        from app.business_packs.catalog_management import _module_grant
+        from app.apps.project_management.access import PMS_GLOBAL_MANAGE_PROJECTS
+        from app.business_packs.construction_definition import _workspace
+        from app.business_packs.construction import _source
+        native_pms = _module_grant(db, user, scope, 'project_management')
+        global_projects = bool(user.is_superuser or PMS_GLOBAL_MANAGE_PROJECTS.intersection(native_pms.get('permissions', ())))
+        workspace_ready = False
+        if project_id:
+            try:
+                _, workspace_id = _source(db, user, project_id)
+                if workspace_id is not None:
+                    _workspace(db, user, scope, workspace_id)
+                    workspace_ready = True
+            except HTTPException as exc:
+                if exc.status_code not in {403, 404}:
+                    raise
+        native_write = ceiling('srm', 'create')
+        task_write = project_action('manage_tasks')
+        native_approve = project_action('approve')
+        result.update(
+            workspace_ready=workspace_ready,
+            workspace_setup_manage='settings.manage' in allowed and scope.writable and manage and global_projects and native_write and ceiling('project_management', 'create'),
+            planning_manage=workspace_ready and 'boq.prepare' in allowed and task_write and native_write
+                and ceiling('project_management', 'create') and ceiling('project_management', 'edit'),
+            sites_create='settings.manage' in allowed and scope.writable and manage and global_projects and native_write and ceiling('project_management', 'create'),
+            wbs_define=workspace_ready and 'boq.prepare' in allowed and task_write and native_write and ceiling('project_management', 'create'),
+            actuals_task_manage=workspace_ready and 'diary.record' in allowed and task_write and native_write and ceiling('project_management', 'edit'),
+            actuals_cost_manage=workspace_ready and 'billing.prepare' in allowed and result['invoice'] and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
+            cost_budget_manage=workspace_ready and 'boq.prepare' in allowed and manage and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
+            commercial_manage='billing.prepare' in allowed and has_any_permission(user, {'pms_manage_projects', 'pms_admin', 'srm_manage', 'srm_admin'}) and project_action('edit_project') and native_write and ceiling('project_management', 'edit'),
+            planning_approve=workspace_ready and 'boq.approve' in allowed and native_approve and native_write,
+            handover_prepare='diary.record' in allowed and task_write and native_write,
+            certificate_prepare='billing.prepare' in allowed and result['invoice'] and native_write,
+            delivery_approve=bool(allowed & {'boq.approve', 'billing.prepare'}) and native_approve and native_write,
+            measurements_certify='measurements.certify' in allowed and native_approve and native_write,
+            reports='sites.view' in allowed and ceiling('srm', 'view'),
+        )
     result['operational_scope']={'realm':'pack' if scope is not None else 'legacy','user_id':user.id,'company_id':tenant(user),'branch_id':branch_id,
         **{key:getattr(scope,key,None) for key in ('context_id','pack_key','pack_version','context_revision','grant_revision','activation_revision')}}
     return result
@@ -257,6 +317,10 @@ def audit(db, user, row, action):
 
 
 def existing(db, user, branch_id, payload, kind):
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction' and kind in CONSTRUCTION:
+        from app.business_packs.construction import authorize_retry_project
+        authorize_retry_project(db, user, payload.request_id)
     row = query(db, user, branch_id).filter_by(request_id=str(payload.request_id)).first()
     if row and (row.kind != kind or row.branch_id != branch_id):
         fail("Request ID already belongs to another operation", 409)
@@ -271,13 +335,15 @@ def digest(payload):
     # Preserve retry identities for resources created before HRMS linking existed.
     if isinstance(payload, ResourceInput) and values.get('employee_id') is None:
         values.pop('employee_id', None)
+    if isinstance(payload, MeasurementInput) and values.get('work_package_id') is None:
+        values.pop('work_package_id', None)
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 
-def create(db, user, branch, kind, payload, **links):
+def create(db, user, branch, kind, payload, *, record_data=None, **links):
     row = Record(organization_id=tenant(user), branch_id=branch, kind=kind, title=payload.title,
                  request_id=str(payload.request_id), created_by=user.id, status="draft", revision=1,
-                 data={**payload.model_dump(mode="json", exclude={"request_id", "title"}), '_request_digest': digest(payload)}, **links)
+                 data={**payload.model_dump(mode="json", exclude={"request_id", "title"}), **(record_data or {}), '_request_digest': digest(payload)}, **links)
     db.add(row)
     db.flush()
     audit(db, user, row, "created")
@@ -361,7 +427,7 @@ def project_currency(db, user, project_id):
 
 
 @router.get("/records")
-def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db: Session = Depends(get_db), user=Depends(get_current_user)):
+def records(kind: str, project_id: int | None = None, from_at: datetime | None = None, until_at: datetime | None = None, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), include_files: bool = False, db: Session = Depends(get_db), user=Depends(get_current_user)):
     branch = context(db, user, appointments=kind in {'appointment', 'resource'})
     for_record_read(db, user, kind)
     if kind not in KINDS:
@@ -393,7 +459,13 @@ def records(kind: str, project_id: int | None = None, from_at: datetime | None =
         q = q.filter(Record.ends_at > from_at)
     if until_at:
         q = q.filter(Record.starts_at < until_at)
-    return {"items": [out(r, db, user) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
+    result = {"items": [out(r, db, user) for r in q.order_by(Record.id.desc()).offset(offset).limit(limit).all()]}
+    if include_files:
+        if not construction_scope or kind != 'site_diary':
+            fail('Project file choices require the selected Construction site diary', 403)
+        from app.business_packs.construction import project_files
+        result['project_files'] = project_files(db, user, project_id, offset=offset, limit=limit)
+    return result
 
 
 @router.get('/material-warehouse-options')
@@ -403,11 +475,27 @@ def material_warehouse_options(search: str = Query('', max_length=180), offset: 
 
 
 @router.get('/project-options')
-def project_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
+def project_options(search: str = Query('', max_length=180), offset: int = Query(0, ge=0), files_project_id: int | None = Query(None, gt=0), db: Session = Depends(get_db), user=Depends(get_current_user)):
     require_pack_operation(db, user, 'sites.view')
     selected = db.info.get('business_pack_scope')
+    if files_project_id is not None and (selected is None or selected.pack_key != 'construction'):
+        fail('Construction file projects require the selected Construction context', 403)
     if selected is not None and selected.pack_key == 'construction':
         context(db, user)
+        if files_project_id is not None:
+            project = get_project_for_action(db, files_project_id, user)
+            can_upload = False
+            from app.business_packs.operations import capabilities as selected_capabilities
+            if 'diary.record' in selected_capabilities(db, user):
+                try:
+                    get_project_for_action(db, files_project_id, user, 'upload')
+                    from app.access.service import check_background_access
+                    check_background_access(db, user, 'project_management', 'create', administrative_read=False, stamp=False)
+                    can_upload = True
+                except HTTPException as exc:
+                    if exc.status_code != 403:
+                        raise
+            return {'items': [{'id': project.id, 'name': project.name, 'can_upload_files': can_upload}], 'has_more': False}
         from app.business_packs.construction import project_options as selected_options
         return selected_options(db, user, search, offset)
     from app.apps.project_management.access import accessible_project_query
@@ -630,8 +718,13 @@ def measurement(data: MeasurementInput, db: Session = Depends(get_db), user=Depe
     if item.kind not in {'boq', 'variation'} or item.status != 'approved':
         fail("Measure an approved BOQ item or variation")
     get_project_for_action(db, item.project_id, user, 'manage_tasks')
-    row = create(db, user, branch, 'measurement', data, project_id=item.project_id, parent_id=item.id)
-    row.data = {**row.data, 'unit': item.data['unit'], 'unit_rate': item.data['unit_rate'], 'tax_rate': item.data['tax_rate'], 'boq_code': item.data['code'], 'currency': item.data['currency']}
+    package_source = {}
+    if data.work_package_id is not None:
+        from app.business_packs.construction_workpackages import measurement_source
+        package_source = measurement_source(db, user, item.id, data.work_package_id)
+    row = create(db, user, branch, 'measurement', data, project_id=item.project_id, parent_id=item.id,
+        record_data={'unit': item.data['unit'], 'unit_rate': item.data['unit_rate'], 'tax_rate': item.data['tax_rate'],
+            'boq_code': item.data['code'], 'currency': item.data['currency'], **package_source})
     db.commit()
     return out(row)
 
@@ -645,12 +738,17 @@ def diary(data: DiaryInput, db: Session = Depends(get_db), user=Depends(get_curr
     if prior:
         return out(prior)
     get_project_for_action(db, data.project_id, user, 'manage_tasks')
-    for ident in data.file_ids:
-        asset = db.query(PMSFileAsset).filter_by(id=ident, project_id=data.project_id, deleted_at=None).first()
-        if not asset:
-            fail("Site photos must be uploaded to this project's Files first")
-        if asset.visibility == 'Work Evidence' and asset.uploaded_by_user_id != user.id:
-            fail('This project file is private to its uploader', 403)
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import project_files
+        project_files(db, user, data.project_id, file_ids=data.file_ids)
+    else:
+        for ident in data.file_ids:
+            asset = db.query(PMSFileAsset).filter_by(id=ident, project_id=data.project_id, deleted_at=None).first()
+            if not asset:
+                fail("Site photos must be uploaded to this project's Files first")
+            if asset.visibility == 'Work Evidence' and asset.uploaded_by_user_id != user.id:
+                fail('This project file is private to its uploader', 403)
     row = create(db, user, branch, 'site_diary', data, project_id=data.project_id)
     row.status = 'recorded'
     db.commit()
@@ -667,7 +765,13 @@ def subcontract(data: SubcontractInput, db: Session = Depends(get_db), user=Depe
     get_project_for_action(db, data.project_id, user, 'edit_project')
     vendor = customer(db, data.vendor_id, user)
     from app.shared.master_data import relationships
-    vendor_roles = {r.lower() for r in relationships(db, vendor, 'company')} | {(vendor.account_type or '').lower()}
+    selected = db.info.get('business_pack_scope')
+    if selected is not None and selected.pack_key == 'construction':
+        from app.business_packs.construction import subcontract_vendor_roles
+        roles = subcontract_vendor_roles(db, user, data.project_id, vendor)
+    else:
+        roles = relationships(db, vendor, 'company')
+    vendor_roles = {r.lower() for r in roles} | {(vendor.account_type or '').lower()}
     if not vendor_roles.intersection({'vendor', 'supplier'}):
         fail("Choose a vendor from the shared company directory")
     row = create(db, user, branch, 'subcontract', data, project_id=data.project_id)
@@ -723,11 +827,16 @@ def transition(ident: int, data: Transition, db: Session = Depends(get_db), user
         get_project_for_action(db, row.project_id, user, 'approve')
         if row.status != 'draft' or data.status not in {'approved', 'rejected'}:
             fail("Only draft records can be approved or rejected", 409)
-        if row.created_by == user.id and not user.is_superuser:
+        selected = db.info.get('business_pack_scope')
+        if row.created_by == user.id and (not user.is_superuser or
+                (selected is not None and selected.pack_key == 'construction')):
             fail("A different project approver must review this record", 403)
         if row.kind in {'boq', 'variation'} and data.status == 'approved':
             require_clean_billing_start(db, user, row.project_id)
         if row.kind == 'measurement' and data.status == 'approved':
+            if row.data.get('work_package_id'):
+                from app.business_packs.construction_workpackages import validate_measurement_quantity
+                validate_measurement_quantity(db, user, row)
             parent = get(db, user, branch, row.parent_id)
             approved = query(db, user, branch).filter_by(kind='measurement', parent_id=parent.id, status='approved').all()
             total = sum((Decimal(r.data['quantity']) for r in approved), Decimal(0)) + Decimal(row.data['quantity'])
@@ -826,5 +935,25 @@ def summary(project_id: int, db: Session = Depends(get_db), user=Depends(get_cur
             'currency_source': 'PMS Project Billing', 'amount_basis': 'Before tax; retention is tracked within the full invoice receivable, not a discount or payment'}
 
 
+from app.business_packs.construction_workpackages import router as construction_workpackages_router
+from app.business_packs.construction_delivery import router as construction_delivery_router
+from app.business_packs.construction_controls import router as construction_controls_router
+from app.business_packs.construction_definition import router as construction_definition_router
+from app.business_packs.construction_actuals import router as construction_actuals_router
+router.include_router(construction_workpackages_router)
+router.include_router(construction_delivery_router)
+router.include_router(construction_controls_router)
+router.include_router(construction_definition_router)
+router.include_router(construction_actuals_router)
+
+
 from app.apps.srm.appointment_billing import router as appointment_billing_router
 router.include_router(appointment_billing_router)
+
+from app.business_packs.construction_commercial import router as construction_commercial_router
+from app.business_packs.construction_dependencies import router as construction_dependencies_router
+router.include_router(construction_commercial_router)
+router.include_router(construction_dependencies_router)
+
+from app.business_packs.construction_workspaces import router as construction_workspaces_router
+router.include_router(construction_workspaces_router)

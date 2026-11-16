@@ -36,6 +36,10 @@ def for_record_read(db, actor, kind):
         'site_diary': ('sites.view', 'diary.record'),
         'subcontract': ('sites.view', 'subcontracts.manage'),
         'material_issue': ('sites.view', 'materials.request'),
+        'work_package': ('sites.view', 'boq.prepare'),
+        'planning_baseline': ('sites.view', 'boq.prepare', 'boq.approve'),
+        'payment_certificate': ('billing.view', 'billing.prepare'),
+        'handover': ('sites.view', 'diary.record'),
     }
     require(db, actor, *actions.get(kind, ()))
 
