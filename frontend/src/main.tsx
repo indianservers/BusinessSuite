@@ -21,6 +21,7 @@ import { api } from "./services/api";
 import { installRecordCache } from "./lib/smart-cache/integration";
 import CacheDiagnostics from "./lib/smart-cache/CacheDiagnostics";
 import {useAuthStore} from "./store/authStore";
+import {securityAuthStamp} from "./lib/security-auth-stamp";
 import AsyncProgress from "./components/app/AsyncProgress";
 import "./index.css";
 import "./design-system/premium.css";
@@ -59,7 +60,7 @@ installRecordListRefresh(queryClient);
 installRecordSync(queryClient);
 
 // Statistics caches must not survive an identity, tenant or permission-context switch.
-const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.primary_role??u?.role,u?.is_superuser,u?.access?.grants])};
+const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,securityAuthStamp(u)])};
 let activeStatisticsContext=statisticsContext();
 useAuthStore.subscribe(()=>{const next=statisticsContext();if(next!==activeStatisticsContext){activeStatisticsContext=next;navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()}});
 window.addEventListener("suite:organization-changed",()=>{navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()});

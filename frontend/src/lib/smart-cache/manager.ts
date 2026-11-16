@@ -179,7 +179,9 @@ export class RecordCacheManager {
           return { ...response, config, data, status: 200 };
         }
         const serverScope = String(response.headers['x-suite-sync-scope'] || '');
-        if ((old?.serverScope || [...this.memory.values()].find(e => e.scope === scope)?.serverScope) && (old?.serverScope || [...this.memory.values()].find(e => e.scope === scope)?.serverScope) !== serverScope) {
+        // Server fingerprints include the endpoint's purpose/realm. Different
+        // views can legitimately differ without revoking the user's forms.
+        if (old?.serverScope && old.serverScope !== serverScope) {
           await this.clear(); this.env.revoked();
           throw new axios.CanceledError('Authorization scope changed; reload authorized views');
         }

@@ -8,6 +8,7 @@ import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
 import { clearPackContext } from '@/lib/pack-context';
 import { refreshCurrentAccess } from '@/features/access/refresh-current-access';
 import { registerSettingsDraftGuard } from './settingsNavigationGuard';
+import { DEFAULT_BUSINESS_PACK_LABEL } from '@/lib/business-pack-labels';
 
 type CatalogPack = { key: string; label: string; activation_ready: boolean; isolation_ready: boolean; ui_integrated: boolean; workflows: { label: string }[]; release_status?: string };
 type ThemeState = { company_id: number; active_key: string | null; selection_revision: string; multiple_active: boolean; terminology: { business_type: string; terms: Record<string, unknown> }; activation_id?: number | null };
@@ -72,7 +73,7 @@ export default function BusinessThemeCards({ scope, companyId, catalog, beforeAc
     const result = await theme.refetch();
     if (owns() && result.isSuccess) { setConflict(false); setError(''); setNotice(''); }
   }
-  const cards = [{ key: 'general', label: 'General', upcoming: false, description: 'Standard business terms and shared workflows.' }, ...catalog.map(pack => ({
+  const cards = [{ key: 'general', label: DEFAULT_BUSINESS_PACK_LABEL, upcoming: false, description: 'The default Business Pack for your current business, with standard terms and shared workflows.' }, ...catalog.map(pack => ({
     key: pack.key, label: pack.label, upcoming: pack.release_status === 'upcoming', description: pack.workflows.slice(0, 2).map(item => item.label).join(' · '),
   }))];
   return <section className="grid gap-4" aria-label="Business Packs">

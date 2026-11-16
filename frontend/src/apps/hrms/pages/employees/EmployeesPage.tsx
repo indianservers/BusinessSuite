@@ -198,10 +198,6 @@ function EmployeesPage() {
       header: "Employee categories",
       cell: info => (info.getValue() || []).join(", ") || "Unassigned",
     }),
-    columnHelper.accessor("work_categories", {
-      header: "Employee categories",
-      cell: info => info.getValue()?.join(", ") || "Unassigned",
-    }),
     columnHelper.accessor("employment_type", {
       header: "Type",
       cell: (info) => (

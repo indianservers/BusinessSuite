@@ -10,7 +10,7 @@
   .srm-pos-session-details.is-open { display:contents; }
   .srm-pos-mobile-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:12px; background:#f1f5fb; }
   .srm-pos-mobile-tabs button { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; min-height:44px; border:1px solid #dbe1ef; border-radius:12px; background:white; font-weight:650; font-size:14px; }
-  .srm-pos-mobile-tabs [aria-pressed="true"] { background:#3157d8; border-color:#3157d8; color:white; }
+  .srm-pos-mobile-tabs [aria-pressed="true"] { background:#6d49d7; border-color:#6d49d7; color:white; }
   .srm-pos-view-products .srm-pos-cart,.srm-pos-view-cart .srm-pos-catalog { display:none; }
   .srm-pos-configuration-toggle { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:8px; text-align:left; font-size:14px; font-weight:650; }
   .srm-pos-configuration-toggle span { margin-left:auto; }
@@ -59,9 +59,9 @@
 .srm-pos .srm-pos-session-details.is-open{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .srm-pos .srm-pos-checkout{position:fixed;left:var(--pos-sidebar-offset,0);right:0;bottom:0;z-index:35;min-height:76px}
 .srm-pos :is(button,input,select,[role=combobox],summary){min-height:44px}
-.srm-pos :is(button,input,select,summary):focus-visible{outline:3px solid #3157d8;outline-offset:3px}
+.srm-pos :is(button,input,select,summary):focus-visible{outline:3px solid #6d49d7;outline-offset:3px}
 .srm-pos .pos-cart-line strong{overflow-wrap:anywhere}
-.srm-pos .pos-cart-line.pos-added,[data-highlighted=true]{border-color:#3157d8;background:#f3f6ff}
+.srm-pos .pos-cart-line.pos-added,[data-highlighted=true]{border-color:#6d49d7;background:#f7f4ff}
 .srm-pos .pos-favorite-toggle{position:absolute;right:6px;top:6px;z-index:2;min-height:36px;font-size:11px;background:white}
 .srm-pos .pos-guidance:empty{display:none}
 .srm-pos .srm-pos-catalog article>button.block>span:nth-child(2){white-space:normal;line-height:1.4;min-height:34px}
@@ -80,3 +80,53 @@
 @media(max-width:767px){.srm-pos-dialog:has(.pos-payment-layout){display:flex;flex-direction:column;overflow:hidden;height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}.srm-pos-dialog:has(.pos-payment-layout)>div:first-child{flex-shrink:0}.pos-payment-layout{overflow:auto;min-height:0;flex:1;padding-bottom:12px}.pos-payment-summary{display:none}.pos-payment-mobile-footer{display:block;flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom))}}
 
 @media(max-width:767px){.pos-payment-layout label:has([aria-label="Follow-up customer"]){flex-basis:100%;min-width:0}.pos-payment-layout [aria-label="Follow-up customer"]{width:100%}}
+
+/* Booking-aware sales workspace; financial and scheduling controls retain their semantics. */
+.pos-booking-workspace{--pos-accent:#6d49d7;--pos-line:#e5e7ef;--pos-muted:#697386;background:#f6f7fb!important}
+.pos-booking-workspace .pos-shell-header{background:#fff;border-color:var(--pos-line);box-shadow:none;padding:16px 20px}
+.pos-booking-workspace .pos-shell-header>div{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.pos-workspace-eyebrow{display:block;margin-bottom:2px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pos-muted);font-weight:700}
+.pos-workspace-identity h1{letter-spacing:-.02em}.pos-workspace-identity p{margin-top:3px;font-size:12px}
+.pos-header-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.pos-workspace-links{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:#f6f5fb;border:1px solid #eeebf6;border-radius:10px}
+.pos-workspace-links :is(a,span){display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 10px;border-radius:7px;font-size:12px;font-weight:600;color:#666177;white-space:nowrap}
+.pos-workspace-links a:hover{color:var(--pos-accent);background:#fff}.pos-workspace-links [aria-current=page]{background:#fff;color:var(--pos-accent);box-shadow:0 1px 4px #39246d14}
+.pos-workspace-links a:focus-visible{outline:3px solid var(--pos-accent);outline-offset:2px}
+.pos-booking-workspace .srm-pos-session-toggle{min-height:44px;border:1px solid var(--pos-line);background:white;color:#555066;font-size:12px}
+.pos-booking-workspace .srm-pos-session-details.is-open{grid-column:1/-1;border-top:1px solid var(--pos-line);padding-top:14px}
+.pos-booking-workspace .pos-search-toolbar{background:#fff;border-color:var(--pos-line);padding:14px 20px}
+.pos-booking-workspace .pos-search-toolbar input{background:#fff;border-radius:9px}
+.pos-booking-workspace .pos-guidance{padding:12px 20px;color:#5f697b}.pos-booking-workspace .pos-guidance p:empty{display:none}
+.pos-booking-workspace [aria-label="POS startup progress"]{gap:6px}.pos-booking-workspace [aria-label="POS startup progress"] li{padding:5px 8px;background:#fff;border:1px solid #e9e9f2;border-radius:6px}
+.pos-booking-workspace>main{gap:16px;padding:8px 20px 20px}
+.pos-booking-workspace .srm-pos-configuration{border:1px solid var(--pos-line);border-radius:10px;background:white;box-shadow:none}
+.pos-booking-workspace .srm-pos-catalog{background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;backdrop-filter:none}
+.pos-booking-workspace .pos-catalog-toolbar{border:1px solid var(--pos-line);border-radius:10px;box-shadow:none}
+.pos-booking-workspace .pos-catalog-toolbar .kf-button{min-height:36px;padding:7px 10px;font-size:12px}
+.pos-booking-workspace [aria-label="Catalogue filters"]{gap:6px}.pos-booking-workspace [aria-label="Catalogue filters"] .kf-button{min-height:36px;border-radius:7px;font-size:12px}
+.pos-booking-workspace .pos-catalog-card{border-color:var(--pos-line);border-radius:10px;box-shadow:0 1px 3px #30204705}
+.pos-booking-workspace .pos-catalog-card:hover{transform:none;border-color:#c7b9e9;box-shadow:0 3px 10px #49347d0c}
+.pos-booking-workspace .pos-service-card{border-top:3px solid #b9a6ee}
+.pos-booking-workspace .pos-product-visual{background:#f4f6fa}.pos-booking-workspace .pos-product-visual.is-service{background:#f4f0ff;color:var(--pos-accent)}
+.pos-booking-workspace .pos-favorite-toggle{right:5px;top:5px;min-height:30px;padding:3px 7px;border-color:#e3deef;color:#6d6481;box-shadow:none}
+.pos-booking-workspace .pos-favorites-editor{padding:9px 12px;border:1px solid var(--pos-line);border-radius:8px;background:white;font-size:12px;color:#60586f}
+.pos-booking-workspace .srm-pos-cart{padding:0!important;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none}
+.pos-booking-workspace :is(.pos-cart-items,.pos-bill-summary){border-color:var(--pos-line);border-radius:10px;box-shadow:none}
+.pos-booking-workspace .pos-cart-items>div:first-child{padding:16px;border-bottom:1px solid #efedf5}.pos-booking-workspace .pos-cart-items>div:last-child{padding:14px}
+.pos-cart-caption{margin-top:4px;font-size:11px;color:var(--pos-muted)}
+.pos-booking-workspace .pos-cart-line{border-color:#e6e3ee;border-radius:9px;padding:12px}.pos-booking-workspace .pos-cart-line.has-appointment{border-left:3px solid var(--pos-accent)}
+.pos-booking-workspace .pos-cart-line>div:first-child>div{min-width:0}.pos-booking-workspace .pos-cart-basics{gap:6px}
+.pos-booking-workspace .pos-line-booking{padding:10px;border:1px solid #e9e1fc;border-radius:8px;background:#faf8ff}
+.pos-booking-workspace .pos-line-booking>summary{line-height:1.5;color:#5d3bb2;overflow-wrap:anywhere}.pos-booking-workspace .pos-line-booking[open]>summary{margin-bottom:10px}
+.pos-booking-workspace .pos-payable-panel{padding:13px 16px;border-radius:9px;background:#f3effe;color:#50319a}.pos-booking-workspace .pos-payable-panel strong{font-size:28px}
+.pos-booking-workspace .srm-pos-checkout{border-top-color:var(--pos-line);box-shadow:0 -3px 14px #2f22530a}
+@media(min-width:1440px){.pos-booking-workspace .pos-shell-header>div{grid-template-columns:minmax(0,1fr) auto;align-items:center}}
+@media(min-width:1280px){.pos-booking-workspace>main{grid-template-columns:minmax(0,1fr) minmax(360px,400px)}}
+@media(max-width:767px){
+.pos-booking-workspace .pos-shell-header{padding:12px}.pos-booking-workspace .pos-search-toolbar,.pos-booking-workspace .pos-guidance{padding:10px 12px}.pos-booking-workspace>main{padding:8px 12px 20px}
+.pos-header-actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.pos-workspace-links{flex-wrap:nowrap;max-width:100%;overflow-x:auto}
+.pos-workspace-links :is(a,span){flex-shrink:0;min-height:44px;padding:8px;font-size:11px}.pos-workspace-links svg{width:14px;height:14px}
+.pos-booking-workspace .srm-pos-session-toggle{width:100%}.pos-booking-workspace .srm-pos-mobile-tabs{background:#f6f7fb}
+.pos-booking-workspace .pos-catalog-toolbar .kf-button,.pos-booking-workspace [aria-label="Catalogue filters"] .kf-button{min-height:44px}
+.pos-booking-workspace .srm-pos-cart .pos-cart-items>div:last-child{padding:10px}.pos-booking-workspace .pos-favorite-toggle{min-height:36px}
+}

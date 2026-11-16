@@ -45,14 +45,14 @@ const { chromium, expect } = require('playwright/test');
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', response => { const url = new URL(response.url()); if (url.pathname.startsWith('/api/')) trace.push({ method: response.request().method(), path: url.pathname, status: response.status() }); });
     await page.goto('http://127.0.0.1:' + server.httpServer.address().port + '/__business-pack-cards.html');
-    await expect(active('General')).toBeDisabled(); await verify('general');
+    await expect(active('Entrepreneur')).toBeDisabled(); await verify('general');
     await page.getByText('Configure branch access / advanced setup', { exact: true }).click();
     await expect(page.getByLabel('Business Pack', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Pack branch', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pack access & shared masters', exact: true })).toBeVisible();
     await page.getByText('Configure branch access / advanced setup', { exact: true }).click();
     for (const [key, width] of [['construction', 1440], ['salon', 390], ['general', 390]]) {
-      const label = key === 'general' ? 'General' : catalog.items.find(item => item.key === key).label;
+      const label = key === 'general' ? 'Entrepreneur' : catalog.items.find(item => item.key === key).label;
       await page.setViewportSize({ width, height: 1000 });
       await page.getByRole('button', { name: `Activate ${label} Business Pack`, exact: true }).click();
       await expect(active(label)).toBeDisabled(); await verify(key);
@@ -61,7 +61,7 @@ const { chromium, expect } = require('playwright/test');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
       await page.screenshot({ path: path.resolve('../.local/business-pack-cards-native-' + key + '.png'), fullPage: true });
     }
-    await page.reload(); await expect(active('General')).toBeDisabled(); await verify('general');
+    await page.reload(); await expect(active('Entrepreneur')).toBeDisabled(); await verify('general');
     assert.deepEqual(trace.filter(item => item.status >= 400), []); assert.deepEqual(errors, []);
     const proof = { backend: 'actual FastAPI HTTP over disposable fixture DB', mocked_http_responses: false, ordinary_get_post_status: 403, contexts_and_grants_unchanged: true, trace, selections, js_errors: errors };
     fs.writeFileSync(path.resolve('../.local/business-pack-cards-native-proof.json'), JSON.stringify(proof, null, 2));

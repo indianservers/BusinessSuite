@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useAuthStore, type AuthUser } from "@/store/authStore";
+import { selectedPackContext } from '@/lib/pack-context';
 /** Deduplicate concurrent permission reads only. No permission freshness TTL. */
 export function accessQueryOptions() {
   const user = useAuthStore.getState().user;
@@ -11,6 +12,7 @@ export function accessQueryOptions() {
       sessionStorage.getItem("suite-tenant"),
       sessionStorage.getItem("suite-organization"),
       sessionStorage.getItem("suite-branch"),
+      selectedPackContext(),
     ],
     queryFn: ({ signal }) =>
       api

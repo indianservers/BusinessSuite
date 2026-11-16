@@ -44,7 +44,7 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
    if(server.mode==='denied')return {status:403,data:{detail:'Forbidden'},headers:{'cache-control':'no-store'}};
    const rows=structuredClone(server.rows),data={items:rows,total:rows.length};
    if(server.mode==='secret')data.items[0].bank_account='must never persist';
-   const headers={'x-suite-cache':'persist','x-suite-sync-scope':`${request.actor}:${server.scope}`,'cache-control':server.mode==='no-store'?'no-store':'private, max-age=0, must-revalidate'};
+   const headers={'x-suite-cache':'persist','x-suite-sync-scope':`${request.actor}:${server.scope}${server.mode==='separate-realms'?':'+request.url:''}`,'cache-control':server.mode==='no-store'?'no-store':'private, max-age=0, must-revalidate'};
    const etag='"'+crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex')+'"';
    const old=server.snapshots.get(request.headers['X-Suite-Sync-Cursor']);
    const cursor=crypto.randomUUID();
@@ -172,6 +172,14 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
   await page.evaluate(()=>window.dispatchEvent(new Event('suite:record-mutated')));
   await page.waitForFunction(()=>[...h.manager.memory.values()].every(entry=>entry.data.items[0].phone==='legacy-event'));
   assert.equal(server.calls,beforeGenericEvent+2,'generic event refreshes only the two cached projections');
+  // Distinct server purpose/realm fingerprints may coexist under one browser identity.
+  server.mode='separate-realms';
+  const realms=await page.evaluate(async()=>{await h.manager.clear();const before=h.revoked;await h.api.get('/crm/leads',{params:{regression:'realm'}});await h.api.get('/srm/inventory/items',{params:{regression:'realm'}});return {revocations:h.revoked-before,views:h.manager.memory.size,scopes:new Set([...h.manager.memory.values()].map(e=>e.serverScope)).size};});
+  assert.deepEqual(realms,{revocations:0,views:2,scopes:2},'different endpoint realms must not close open forms');
+  server.scope='revoked-same-view';
+  const priorRevocations=await page.evaluate(()=>h.revoked);
+  await page.evaluate(()=>h.manager.syncModuleChanges(undefined,true));
+  assert.ok(await page.evaluate(()=>h.revoked)>priorRevocations,'same-view permission changes still revoke');
   assert.deepEqual(errors,[]);
   console.log('PASS: persistent reload, instant repeat reads, delta updates/inserts/deletes, 304, stable query row references, cross-tab locks, offline/reconnect/backoff, optimistic rollback/conflicts, risky-action gating, permission/scope/user changes, logout race, no-store/secrets, deduplication, eviction, stale delta and storage failure.');
   console.log(`BENCHMARK fixture: first=${first.ms.toFixed(1)}ms, memory repeat=${repeat.toFixed(1)}ms; 8 simultaneous reads -> 1 request; repeat view -> 0 requests. These are local fixture results, not production latency claims.`);

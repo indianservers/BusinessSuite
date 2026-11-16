@@ -1,3 +1,5 @@
+import { Info } from 'lucide-react';
+import SchedulingFrame, { schedulingIcons } from './SchedulingFrame';
 import { useDeferredValue, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -28,29 +30,33 @@ function Workspace({ scope }: { scope: string }) {
   const initial = new URLSearchParams(location.search).get('view');
   const [view, setView] = useState(initial === 'schedule' || initial === 'availability' ? initial : 'guide');
   const module = location.pathname.startsWith('/hrms') ? 'hrms' : location.pathname.startsWith('/crm') ? 'crm' : 'srm';
-  return <main className="min-w-0 space-y-4 p-3 sm:p-5">
-    <header><h1 className="text-2xl font-semibold">Service scheduling</h1><p className="text-sm text-muted-foreground">HRMS employee categories, service stock, employee and room availability, and booked service details.</p></header>
-    <nav aria-label="Service scheduling workspace" className="flex flex-wrap gap-2">
-      {([['guide', 'Setup guide'], ['availability', 'Available resources'], ['schedule', 'Schedule & Gantt']] as const).map(([id, label]) => <Button key={id} variant={view === id ? 'default' : 'outline'} aria-pressed={view === id} onClick={() => setView(id)}>{label}</Button>)}
-    </nav>
+  const appointments = `/${module === 'crm' ? 'crm' : 'srm'}/appointments`;
+  return <main className="min-w-0"><SchedulingFrame title="Service scheduling" subtitle="Connect employee categories, service stock and resource availability." nav={[
+    {label:'Setup guide',icon:schedulingIcons.guide,active:view==='guide',onClick:()=>setView('guide')},
+    {label:'Available resources',icon:schedulingIcons.resources,active:view==='availability',onClick:()=>setView('availability')},
+    {label:'Schedule & Gantt',icon:schedulingIcons.calendar,active:view==='schedule',onClick:()=>setView('schedule')},
+    {label:'Service types',icon:schedulingIcons.services,to:'/srm/inventory/products?kind=service'},
+    {label:'Employees',icon:schedulingIcons.employees,to:'/employees'},
+    {label:'Appointments',icon:schedulingIcons.timeline,to:appointments},
+  ]} actions={<><Button asChild variant="outline"><Link to={`${appointments}?resources=1`}>Manage resources</Link></Button><Button asChild><Link to="/srm/pos/terminal">New POS booking</Link></Button></>}>
     {view === 'guide' && <section className="space-y-4" aria-label="Service booking setup guide">
-      <p className="rounded-lg border bg-card p-4 text-sm">Select one branch in the top bar. Use the same branch and Business Pack context throughout setup and booking. Your permissions determine which employees and resources are visible.</p>
-      <ol className="grid gap-3 md:grid-cols-2">
+      <p className="bookings-guide-note"><Info size={17}/><span>Select one branch in the top bar. Use the same branch and Business Pack context throughout setup and booking. Your permissions determine which employees and resources are visible.</span></p>
+      <ol className="bookings-setup-grid">
         <Step number={1} title="Create and assign employee categories" to="/employees" action="Open HRMS employees">Open an employee → Job → Edit → Employee categories. Enter a category, click Add category, select one or more categories, then save the employee. Categories such as Stylist or Consultant become available for other employees and service rules after saving.</Step>
         <Step number={2} title="Add employees and rooms as resources" to={`/${module === 'crm' ? 'crm' : 'srm'}/appointments?resources=1`} action="Manage employees & rooms">Create an Employee/provider resource linked to the existing HRMS employee. Set timezone, opening and closing time, and working days. Create each Room, Chair or Equipment resource with its own working hours.</Step>
         <Step number={3} title="Configure the service stock" to="/srm/inventory/products?kind=service" action="Open service stock">Add a Service with name, code, rate and tax. Click Save and configure scheduling. Set default/minimum/maximum duration, optional or required booking, and multiple HRMS employee categories. Save the scheduling policy, then enable each eligible employee for this service.</Step>
         <Step number={4} title="Book from the POS cart" to="/srm/pos/terminal" action="Open POS">Open a register, select a registered customer and add the service. Enable appointment scheduling in the cart line, choose an eligible employee and room, and enter From and To date/time in the displayed timezone. Apply appointment details, then complete checkout. Add the service again for another employee or time.</Step>
       </ol>
-      <div className="rounded-lg border bg-card p-4 text-sm"><h2 className="font-semibold">Where to see the details</h2><p className="mt-2">HRMS Employees: use Table/Sheet for employee categories and open an employee’s Schedule tab for their service bookings. HRMS Timesheets → Planned services shows planned work separately from recorded actual hours. Schedule &amp; Gantt here provides List, Calendar and Gantt views; select a booking to see employee, categories, room/equipment, From, To and status. CRM/SRM Appointment Scheduler handles visit details and rescheduling.</p><div className="mt-3 flex flex-wrap gap-2"><Button variant="outline" onClick={() => setView('availability')}>Check available resources</Button><Button variant="outline" onClick={() => setView('schedule')}>View booked services</Button><Button asChild variant="outline"><Link to="/timesheets">Open HRMS timesheets</Link></Button></div></div>
+      <div className="bookings-detail-note"><h2 className="font-semibold">Where to see the details</h2><p className="mt-2">HRMS Employees: use Table/Sheet for employee categories and open an employee’s Schedule tab for their service bookings. HRMS Timesheets → Planned services shows planned work separately from recorded actual hours. Schedule &amp; Gantt here provides List, Calendar and Gantt views; select a booking to see employee, categories, room/equipment, From, To and status. CRM/SRM Appointment Scheduler handles visit details and rescheduling.</p><div className="mt-3 flex flex-wrap gap-2"><Button variant="outline" onClick={() => setView('availability')}>Check available resources</Button><Button variant="outline" onClick={() => setView('schedule')}>View booked services</Button><Button asChild variant="outline"><Link to="/timesheets">Open HRMS timesheets</Link></Button></div></div>
       <p className="text-xs text-muted-foreground">Applying cart details prepares a booking. The appointment is created when checkout succeeds. Availability is checked again at checkout; planned bookings do not create attendance, payroll or actual timesheet hours.</p>
     </section>}
     {view === 'availability' && <ResourceAvailability scope={scope}/>}
-    {view === 'schedule' && <ScheduledServicesPage/>}
-  </main>;
+    {view === 'schedule' && <ScheduledServicesPage embedded/>}
+  </SchedulingFrame></main>;
 }
 
 function Step({ number, title, to, action, children }: { number: number; title: string; to: string; action: string; children: React.ReactNode }) {
-  return <li className="min-w-0 space-y-3 rounded-lg border bg-card p-4"><h2 className="font-semibold">{number}. {title}</h2><p className="text-sm leading-relaxed">{children}</p><Button asChild variant="outline"><Link to={to}>{action}</Link></Button></li>;
+  return <li className="bookings-step"><span className="bookings-step-number" aria-hidden="true">{number.toString().padStart(2,'0')}</span><h2>{number}. {title}</h2><p>{children}</p><Button asChild variant="outline"><Link to={to}>{action}</Link></Button></li>;
 }
 
 function ResourceAvailability({ scope }: { scope: string }) {
@@ -72,7 +78,7 @@ function ResourceAvailability({ scope }: { scope: string }) {
     if (item) { const begin = Math.ceil((Date.now() + 3600000) / 900000) * 900000; setFrom(wall(begin, item.timezone)); setTo(wall(begin + (options.data?.policy?.default_duration_minutes || 30) * 60000, item.timezone)); }
     else { setFrom(''); setTo(''); }
   }
-  return <section className="min-w-0 space-y-4" aria-label="Service resource availability">
+  return <section className="bookings-resource-check space-y-4" aria-label="Service resource availability">
     <p className="text-sm text-muted-foreground">Choose a service and employee to check rooms and equipment for an exact time range. This check does not reserve a booking.</p>
     <div className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
       <label className="space-y-1 text-sm">Search service stock<Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); setService(''); chooseEmployee(''); }}/></label>
@@ -90,8 +96,8 @@ function ResourceAvailability({ scope }: { scope: string }) {
     {valid && <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={availability.isFetching} onClick={() => void availability.refetch()}>Refresh availability</Button>{availability.isFetching ? <p role="status">Checking employee and resources…</p> : availability.isError ? <p role="alert">{dealError(availability.error)}</p> : availability.data && <p role="status">{availability.data.selection_available ? 'Employee and selected resources are available.' : 'Employee or a selected resource is unavailable at this time.'}</p>}</div>}
     {options.data && <div className="space-y-3"><h2 className="font-semibold">Rooms, chairs &amp; equipment</h2><p className="text-xs text-muted-foreground">Availability below includes the chosen employee’s leave, other bookings and working hours. Select multiple resources to check them together. Displayed times are each resource’s local working hours.</p><div className="grid gap-3 md:grid-cols-2">{options.data.resources.map(resource => {
       const state = !availability.isFetching && !availability.isError && valid ? availability.data?.resources.find(item => item.id === resource.id) : undefined;
-      return <label key={resource.id} className="flex min-w-0 items-start gap-3 rounded-lg border bg-card p-4"><input className="mt-1" type="checkbox" checked={resources.includes(resource.id)} disabled={!specialist || !resources.includes(resource.id) && resources.length >= 9} onChange={e => setResources(ids => e.target.checked ? [...ids, resource.id] : ids.filter(id => id !== resource.id))}/><span className="min-w-0 text-sm"><strong className="block break-words">{resource.name}</strong><span className="block">{resource.resource_type} · {resource.opens || '—'}–{resource.closes || '—'} · {resource.timezone || 'Timezone unavailable'}</span><span className="block">{resource.weekdays?.map(day => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day]).filter(Boolean).join(', ') || 'Working days not supplied'}</span><span className="block">{state ? state.available ? 'Available with this employee' : 'Unavailable with this employee' : 'Choose employee and time to check'}</span></span></label>;
+      return <label key={resource.id} className="bookings-resource-card flex min-w-0 items-start gap-3 rounded-lg border bg-card p-4"><input className="mt-1" type="checkbox" checked={resources.includes(resource.id)} disabled={!specialist || !resources.includes(resource.id) && resources.length >= 9} onChange={e => setResources(ids => e.target.checked ? [...ids, resource.id] : ids.filter(id => id !== resource.id))}/><span className="min-w-0 text-sm"><strong className="block break-words">{resource.name}</strong><span className="block">{resource.resource_type} · {resource.opens || '—'}–{resource.closes || '—'} · {resource.timezone || 'Timezone unavailable'}</span><span className="block">{resource.weekdays?.map(day => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day]).filter(Boolean).join(', ') || 'Working days not supplied'}</span><span className="block">{state ? state.available ? 'Available with this employee' : 'Unavailable with this employee' : 'Choose employee and time to check'}</span></span></label>;
     })}</div>{!options.data.resources.length && <p className="text-sm">No active room or equipment resources in this branch and context. Create them in Appointment Scheduler → Resources.</p>}<p className="text-xs text-muted-foreground">Up to 100 active resources are shown. Availability can change before checkout.</p></div>}
-    {valid && availability.data && !availability.isError && !availability.isFetching && <div className="space-y-2"><h2 className="font-semibold">Available start times on {from.slice(0, 10)}</h2><div className="flex flex-wrap gap-2">{availability.data.slots.map(slot => <Button variant="outline" key={slot.starts_at} onClick={() => { const begin = Date.parse(slot.starts_at); setFrom(wall(begin, zone!)); setTo(wall(begin + minutes * 60000, zone!)); }}>{slot.label}</Button>)}</div>{!availability.data.slots.length && <p className="text-sm">No available slots for this employee, duration and selected resources.</p>}<p className="text-xs text-muted-foreground">Checked {new Date(availability.data.checked_at).toLocaleString()}. To reserve, choose these details in the POS cart and complete checkout.</p></div>}
+    {valid && availability.data && !availability.isError && !availability.isFetching && <div className="space-y-2"><h2 className="font-semibold">Available start times on {from.slice(0, 10)}</h2><div className="bookings-resource-slots flex flex-wrap gap-2">{availability.data.slots.map(slot => <Button variant="outline" key={slot.starts_at} onClick={() => { const begin = Date.parse(slot.starts_at); setFrom(wall(begin, zone!)); setTo(wall(begin + minutes * 60000, zone!)); }}>{slot.label}</Button>)}</div>{!availability.data.slots.length && <p className="text-sm">No available slots for this employee, duration and selected resources.</p>}<p className="text-xs text-muted-foreground">Checked {new Date(availability.data.checked_at).toLocaleString()}. To reserve, choose these details in the POS cart and complete checkout.</p></div>}
   </section>;
 }

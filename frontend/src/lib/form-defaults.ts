@@ -9,6 +9,34 @@ export type DefaultsPayload = { values: DefaultValues; modules: Record<string, D
 const builtIn = Object.fromEntries(definitions.map(field => [field.key, field.default])) as DefaultValues;
 function storedContext(key: string): string | null { try { return sessionStorage.getItem(key); } catch { return null; } }
 let snapshot: { scope: string; payload: DefaultsPayload } | undefined;
+const preferencesKey = 'suite-workspace-preferences-v1';
+type CachedPreferences = {scope:string; payload:DefaultsPayload; savedAt:number};
+/** Starting values only. Access and checkout authority are verified separately. */
+export function cachedFormDefaults(scope = defaultsScope()): CachedPreferences | undefined {
+  try {
+    const entries:CachedPreferences[] = JSON.parse(localStorage.getItem(preferencesKey) || '[]');
+    if (!Array.isArray(entries)) return;
+    return entries.find(entry => entry.scope === scope && Date.now() - entry.savedAt < 15 * 60_000
+      && entry.savedAt <= Date.now() && entry.payload?.companyId === useAuthStore.getState().user?.access?.companyId
+      && entry.payload.values && typeof entry.payload.values === 'object' && !Array.isArray(entry.payload.values)
+      && entry.payload.modules && typeof entry.payload.modules === 'object' && !Array.isArray(entry.payload.modules));
+  } catch { return; }
+}
+export function cacheFormDefaults(payload:DefaultsPayload) {
+  try {
+    const scope = defaultsScope(), savedAt = Date.now();
+    const previous = JSON.parse(localStorage.getItem(preferencesKey) || '[]');
+    const entries = Array.isArray(previous) ? previous.filter((entry:CachedPreferences) => entry.scope !== scope && savedAt - entry.savedAt < 15 * 60_000) : [];
+    const value = JSON.stringify([{scope,payload,savedAt}, ...entries].slice(0,8));
+    if (value.length <= 256_000) localStorage.setItem(preferencesKey,value);
+  } catch { /* Storage denial must not block forms. */ }
+}
+useAuthStore.subscribe((state, previous) => {
+  if (previous.isAuthenticated && (!state.isAuthenticated || state.user?.id !== previous.user?.id)) {
+    snapshot = undefined;
+    try { localStorage.removeItem(preferencesKey); } catch { /* Optional storage. */ }
+  }
+});
 export function defaultsScope() {
   const user = useAuthStore.getState().user;
   return JSON.stringify([user?.id, storedContext("suite-tenant"), storedContext("suite-organization") || user?.access?.companyId, storedContext("suite-branch") || "", selectedPackContext(), securityAuthStamp(user)]);

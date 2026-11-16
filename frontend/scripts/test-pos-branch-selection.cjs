@@ -10,10 +10,10 @@ const {chromium, expect} = require('playwright/test');
   try {
     for(const width of [390,1280]) {
       const page=await browser.newPage({viewport:{width,height:850}});
-      let denied=true, destination;
+      let denied=true, destination, serverDefault=null;
       await page.route('**/api/v1/**',route=>{
         const request=route.request(),url=new URL(request.url());
-        if(url.pathname.endsWith('/branches/context'))return route.fulfill({json:{company_id:1,all_branches:true,selected:null,branches:[{id:2,name:'Main branch',can_write:true},{id:3,name:'Other branch',can_write:true},{id:4,name:'Read only',can_write:false},{id:5,name:'Archived',can_write:true,is_active:false}]}});
+        if(url.pathname.endsWith('/branches/context'))return route.fulfill({json:{company_id:1,default_branch_id:serverDefault,all_branches:true,selected:null,branches:[{id:2,name:'Main branch',can_write:true},{id:3,name:'Other branch',can_write:true},{id:4,name:'Read only',can_write:false},{id:5,name:'Archived',can_write:true,is_active:false}]}});
         if(url.pathname.endsWith('/access/me')){destination=request.headers();return denied?route.fulfill({status:403,json:{detail:'Branch access denied'}}):route.fulfill({json:{companyId:1,modules:[],grants:{}}});}
         return route.fulfill({json:{}});
       });
@@ -33,6 +33,21 @@ const {chromium, expect} = require('playwright/test');
       expect(destination['x-suite-branch']).toBe('2');
       expect(destination['x-suite-organization']).toBe('1');
       expect(await page.evaluate(()=>sessionStorage.getItem('suite-branch'))).toBe('2');
+      expect(await page.evaluate(()=>localStorage.getItem('suite-default-branch::1:1'))).toBe('2');
+      await page.goto(server.resolvedUrls.local[0]+'branch-qa');
+      await expect(page.getByRole('heading',{name:'Selected branch terminal'})).toBeVisible();
+      expect(await page.evaluate(()=>sessionStorage.getItem('suite-branch'))).toBe('2');
+      await page.evaluate(()=>localStorage.setItem('suite-default-branch::1:1','4'));
+      await page.goto(server.resolvedUrls.local[0]+'branch-qa');
+      await expect(page.getByRole('button',{name:'Open POS',exact:true})).toBeDisabled();
+      expect(await page.evaluate(()=>sessionStorage.getItem('suite-branch'))).toBe('all');
+      serverDefault=2;
+      await page.goto(server.resolvedUrls.local[0]+'branch-qa');
+      await expect(page.getByLabel('POS branch',{exact:true})).toHaveValue('2');
+      await page.getByRole('checkbox').uncheck();
+      await page.getByRole('button',{name:'Open POS',exact:true}).click();
+      await expect(page.getByRole('heading',{name:'Selected branch terminal'})).toBeVisible();
+      expect(await page.evaluate(()=>localStorage.getItem('suite-default-branch::1:1'))).toBe('4');
       await page.close();
     }
     console.log('PASS POS branch selection: phone/desktop, valid writable branches, denied switch preserves All branches, verified switch opens POS');

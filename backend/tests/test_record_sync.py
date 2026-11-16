@@ -16,6 +16,7 @@ class RecordSyncTests(unittest.TestCase):
         self.calls = 0
         app = FastAPI()
         @app.get('/api/v1/crm/leads')
+        @app.get('/api/v1/srm/inventory/items')
         @app.get('/api/v1/srm/sales-orders')
         @app.get('/api/v1/employees/')
         def records(request: Request):
@@ -128,6 +129,16 @@ class RecordSyncTests(unittest.TestCase):
 
     def test_financial_views_are_memory_only(self):
         self.assertEqual(self.first('/api/v1/srm/sales-orders').headers['x-suite-cache'], 'memory')
+
+    def test_pos_catalog_persists_but_still_authorizes_every_check(self):
+        first = self.first('/api/v1/srm/inventory/items')
+        self.assertEqual(first.headers['x-suite-cache'], 'persist')
+        self.denied = True
+        self.assertEqual(self.first('/api/v1/srm/inventory/items').status_code, 403)
+        self.assertEqual(self.calls, 2)
+        self.denied = False
+        self.no_store = True
+        self.assertNotIn('x-suite-cache', self.first('/api/v1/srm/inventory/items').headers)
 
     def test_sensitive_fields_never_persist(self):
         for key in ['salary', 'bank_account', 'password', 'personal_email', 'passport', 'medical_notes', 'access_token']:

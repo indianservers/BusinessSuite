@@ -32,6 +32,10 @@ Offline reads use previously authorized, unexpired snapshots. Permission changes
 
 The service worker uses Cache Storage only for the application shell and bounded immutable assets. Authenticated API requests bypass it. Cache eviction is limited to this application's shell cache names.
 
+The native POS catalog (`/srm/inventory/items`) participates in this server-approved cache. Stock and prices may render from a prior snapshot while refreshing; checkout still validates current server state. Pack-specific POS catalogs and transaction/recovery authority reads retain their fresh network checks. POS catalog polling runs every 45 seconds and held-bill polling every 30 seconds, only while the tab is visible.
+
+Workspace starting preferences also have a separate bounded local cache: at most eight scopes, 256 KB and 15 minutes, isolated by user, tenant, company, branch, pack and canonical authorization stamp. A matching snapshot lets forms mount immediately; preferences older than one minute refresh in the background. Logout/account changes clear this preference cache. These starting values do not establish permissions or queue transactions.
+
 Employee portrait downloads (JPG/PNG in the `photos` storage directory) use the browser HTTP cache with `private, no-cache, must-revalidate`. Every reuse still validates the signed token, session and current permissions before ETag comparison; unchanged files return 304 without retransferring photo bytes. This only helps repeat requests for the same signed URL. Renewed URLs require a new download. Other private files retain `no-store`; portraits are not added to the service worker or IndexedDB. Shared avatars decode asynchronously and reserve their display dimensions.
 
 ## Synchronization and mutations
@@ -39,6 +43,8 @@ Employee portrait downloads (JPG/PNG in the `photos` storage directory) use the 
 Visible active views check approximately every 45 seconds with jitter. Hidden tabs suspend these checks. Focus and reconnect resume them; failures back off up to five minutes. Per-view promises deduplicate concurrent callers, Web Locks serialize tabs, and a second IndexedDB read inside the lock avoids repeating another tab's successful synchronization. BroadcastChannel carries scoped invalidation notices, not record payloads. Memory-only views cannot reuse another tab's persisted response.
 
 TanStack Query dependencies are discovered from cached result provenance. Nested combined results are supported. ID-based structural sharing retains unchanged row references when sorting or insertion moves their array positions. The existing shared data grid retains its row/column virtualization and server pagination. A 10,000-row structural-sharing fixture verifies that 9,999 unchanged row references survive a single-row update; these fixture rows are not automatically persisted.
+
+Server scope fingerprints are compared against the previous response for the same view, because different endpoint purposes and realms legitimately have different fingerprints. Unrelated views must not trigger a global access reset or close open forms. Same-view fingerprint changes, real canonical authority changes and access-denied responses still revoke cached data. The global query identity uses the canonical security stamp so equivalent permission ordering cannot unmount forms.
 
 State-based grids subscribe to the exact URL/filter combination through `useRecordView` and receive the current view directly.
 

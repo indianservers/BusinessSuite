@@ -19,7 +19,7 @@ MAX_ROWS = 500
 MAX_BODY = 2 * 1024 * 1024
 TTL = 900
 # Explicit collection endpoints only. Financial/attendance views remain memory-only.
-PERSIST = re.compile(r"^/api/v1/(?:project-management/(?:projects|tasks|teams|people-workspace/people|people-workspace/groups)|crm/(?:leads|lead-management/leads|contact-directory|contacts|accounts|companies|deals|deal-workspace/(?:query|grid/query)|customers|products|services)|srm/(?:customers|products|services)|catalog/(?:products|services|items)|profiles/directory|employees(?:/directory)?|departments|teams|company/(?:departments|teams)|interns-hub/(?:management/batches|learning/assignments))/?$")
+PERSIST = re.compile(r"^/api/v1/(?:project-management/(?:projects|tasks|teams|people-workspace/people|people-workspace/groups)|crm/(?:leads|lead-management/leads|contact-directory|contacts|accounts|companies|deals|deal-workspace/(?:query|grid/query)|customers|products|services)|srm/(?:inventory/items|customers|products|services)|catalog/(?:products|services|items)|profiles/directory|employees(?:/directory)?|departments|teams|company/(?:departments|teams)|interns-hub/(?:management/batches|learning/assignments))/?$")
 MEMORY = re.compile(r"^/api/v1/(?:master-data/(?:companies|contacts|company-directory/query)|crm/(?:quotes|quotations|sales-orders)|srm/(?:sales-orders|sales|quotations|customer-360)|attendance/(?:my|team|register)|leave/(?:requests|my|my-requests))/?$")
 SENSITIVE = re.compile(r"password|token|secret|bank|iban|aadhaar|aadhar|pan_?number|passport|national_?id|ssn|tax_?id|home_?address|emergency_?contact|salary(?!_currency)|compensation|payroll|document|personal_?email|date_?of_?birth|dob(?:$|_)|medical|biometric|latitude|longitude", re.I)
 
