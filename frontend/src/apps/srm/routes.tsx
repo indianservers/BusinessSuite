@@ -1,4 +1,5 @@
 import { lazyRoute } from "@/lib/lazy-route";
+const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import SRMRouteWorkspace from "./components/SRMRouteWorkspace";
 const PurchaseOrderDetailPage = lazyRoute(() => import("@/common/PurchaseOrderDetailPage"));
@@ -51,6 +52,7 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 
 const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
 const nativeSrmRoutes: FrontendRoute[] = [
+  { path: "srm/service-scheduling", element: <ServiceSchedulingWorkspace /> },
   { path: "srm/appointments", element: <IndustryOperationsPage mode="appointments" /> },
   { path: "srm/scheduled-services", element: <ScheduledServicesPage /> },
   { path: "srm/restaurant-kitchen", element: <RestaurantKitchenPage /> },

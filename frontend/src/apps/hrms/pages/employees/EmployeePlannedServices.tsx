@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useDeferredValue, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -10,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { NativeSelect } from '@/components/ui/native-select';
 
 type PlannedService = {
+  resources?: {id:number;name:string;resource_type:string}[]; employee_categories?: string[];
   appointment_id: number; revision: number; service_id: number | null; service_name: string;
   starts_at: string; ends_at: string; planned_minutes: number; status: string; blocks_availability: boolean;
 };
@@ -78,7 +80,7 @@ function PlannedServicesPanel({ employeeId, packContextId, scope }: { employeeId
   const items = !query.isError ? query.data?.pages.flatMap(page => page.items) || [] : [];
   const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone || undefined });
   return <Card>
-    <CardHeader><CardTitle className="text-base">Planned services</CardTitle><p className="text-sm text-muted-foreground">Scheduled bookings only. Record actual work separately in timesheets.</p></CardHeader>
+    <CardHeader><CardTitle className="text-base">Planned services</CardTitle><div className="flex flex-wrap gap-2"><Button asChild variant="outline" size="sm"><Link to={`/hrms/scheduled-services?employee_id=${employeeId}&mode=Gantt`}>Employee Gantt &amp; list</Link></Button><Button asChild variant="outline" size="sm"><Link to="/hrms/service-scheduling?view=availability">Available resources</Link></Button></div><p className="text-sm text-muted-foreground">Scheduled bookings only. Record actual work separately in timesheets.</p></CardHeader>
     <CardContent className="space-y-4">
       <div className="flex flex-wrap gap-3">
         <label className="min-w-0">From<Input aria-label="Planned services from" type="date" value={from} onChange={event => setFrom(event.target.value)}/></label>
@@ -94,7 +96,7 @@ function PlannedServicesPanel({ employeeId, packContextId, scope }: { employeeId
         <div className="space-y-3">{items.map(item => <article key={item.appointment_id} className="min-w-0 space-y-2 rounded-lg border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2"><strong className="break-words text-sm">{item.service_name}</strong><Badge variant="outline">{item.status.replace(/_/g, ' ')}</Badge></div>
           <p className="text-sm">{formatter.format(new Date(item.starts_at))} – {formatter.format(new Date(item.ends_at))}</p>
-          <p className="text-xs text-muted-foreground">{item.planned_minutes} planned minutes{!item.blocks_availability ? ' · Does not reserve availability' : ''}</p>
+          <p className="text-sm">Room / equipment: {item.resources?.map(resource=>resource.name).join(", ") || "None assigned"}</p><p className="text-xs text-muted-foreground">Categories: {item.employee_categories?.join(", ") || "Unassigned"}</p><p className="text-xs text-muted-foreground">{item.planned_minutes} planned minutes{!item.blocks_availability ? ' · Does not reserve availability' : ''}</p>
         </article>)}</div>
         {query.hasNextPage && <Button variant="outline" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{query.isFetchingNextPage ? 'Loading…' : 'Load more bookings'}</Button>}
       </>}

@@ -1,3 +1,4 @@
+import { wall, candidates } from '@/shared/scheduling/booking-time';
 import EmployeeCategories from "@/shared/EmployeeCategories";
 import { Link } from 'react-router-dom';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
@@ -22,21 +23,6 @@ type Options = { resources?: {id: number; name: string; resource_type: string}[]
 type PolicyDraft = { employee_categories: string[]; service_product_id: number; expected_revision?: number; default_duration_minutes: number; min_duration_minutes: number; max_duration_minutes: number; booking_required: boolean; allow_duration_override: boolean; active: boolean };
 type Props = { productId: number; lineKey: string; value?: BookingSelection; onChange: (value: BookingSelection | undefined) => void; onRequirement?: (required: boolean) => void; onSummary?: (summary:string)=>void; onAvailability?: (available:boolean|null)=>void; context?: 'checkout' | 'reschedule'; configurationOnly?: boolean };
 const fields = 'h-10 w-full rounded-md border bg-background px-3 text-sm';
-function wall(instant: number, zone: string) {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(instant);
-  const part = (key: string) => parts.find(item => item.type === key)?.value || '';
-  return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
-}
-function candidates(value: string, zone: string) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return [];
-  const nominal = Date.parse(`${value}:00Z`); if (!Number.isFinite(nominal)) return [];
-  try {
-    const offsets = new Set<number>();
-    for (let hour = -36; hour <= 36; hour += 6) { const sample = nominal + hour * 3600000; offsets.add(Date.parse(`${wall(sample, zone)}:00Z`) - sample); }
-    return [...offsets].map(offset => nominal - offset).filter(instant => wall(instant, zone) === value);
-  } catch { return []; }
-}
-
 /** Draft configuration only. Native checkout creates the actual appointment. */
 export default function POSServiceScheduling(props: Props) {
   const scope = useRecordScope();

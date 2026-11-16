@@ -714,6 +714,7 @@ const hrNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
   { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
   { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
@@ -757,6 +758,7 @@ const adminNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
   { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
   { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
@@ -829,6 +831,7 @@ const managerNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave Approvals", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
   { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Core HR" },
   { label: "Assets", icon: Package, to: "/assets", group: "Core HR" },
@@ -851,6 +854,7 @@ const employeeNav: RoleNavItem[] = [
   { label: "My Profile", icon: UserRound, to: "/profile", group: "Self Service" },
   { label: "My Attendance", icon: Clock, to: "/my-attendance", group: "Self Service" },
   { label: "My Leave", icon: CalendarDays, to: "/leave", group: "Self Service" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
   { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Self Service" },
   { label: "My Payslips", icon: DollarSign, to: "/my-payslips", group: "Self Service" },
   { label: "My Documents", icon: FileText, to: "/documents", group: "Self Service" },
@@ -859,6 +863,7 @@ const employeeNav: RoleNavItem[] = [
 ];
 
 const crmNav: RoleNavItem[] = [
+  { label: "Service setup & availability", icon: CalendarDays, to: "/crm/service-scheduling", group: "Sales" },
   { label: "Appointment Scheduler", icon: CalendarDays, to: "/crm/appointments", group: "Sales" },
  {label:"Send reminders",icon:MessageCircle,to:"/crm/send-reminders",group:"Communication"},
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
@@ -997,6 +1002,7 @@ const srmNav: RoleNavItem[] = [
   { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
   { label: "Appointment Scheduler", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
+  { label: "Service setup & availability", icon: CalendarDays, to: "/srm/service-scheduling", group: "Industry operations" },
   { label: "Scheduled Services", icon: CalendarDays, to: "/srm/scheduled-services", group: "Industry operations" },
   { label: "Restaurant kitchen", icon: ClipboardCheck, to: "/srm/restaurant-kitchen", group: "Industry operations" },
   { label: "Client service periods", icon: ClipboardCheck, to: "/srm/accounts-periods", group: "Industry operations" },

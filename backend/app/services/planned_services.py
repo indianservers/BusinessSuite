@@ -254,6 +254,24 @@ def _service_item(row):
             'status': row['status'], 'blocks_availability': row['status'] in BLOCKING}
 
 
+def _booking_resources(db, rows, company, pack):
+    """Only room/equipment labels from the already-authorized booking page."""
+    from app.apps.srm.industry_models import IndustryRecord
+    table = IndustryRecord.__table__
+    ids = {ident for row in rows for ident in (row['resource_ids'] if isinstance(row['resource_ids'], list) else [])[:10] if _positive(ident)}
+    if not ids:
+        return {}
+    resources = db.connection().execute(select(table.c.id, table.c.branch_id, table.c.title,
+        table.c.data['resource_type'].as_string().label('resource_type')).where(
+        table.c.id.in_(ids), table.c.organization_id == company, table.c.kind == 'resource',
+        table.c.data['resource_type'].as_string().in_(('room', 'chair', 'equipment', 'location')),
+        _ownership(db, table, company, pack.branch_id if pack else None, pack, master=True))
+        .order_by(table.c.title, table.c.id)).mappings().all()
+    return {row['id']: [{'id': resource['id'], 'name': resource['title'], 'resource_type': resource['resource_type']}
+        for resource in resources if resource['branch_id'] == row['branch_id'] and resource['id'] in (row['resource_ids'] or [])]
+        for row in rows}
+
+
 def planned_services(db, actor, branch_ctx, employee_id, from_at, until_at, pack_scope=None, *, limit=100, cursor=None, statuses=None):
     """One bounded projection for employee profiles, schedules and HRMS sheets."""
     if not _positive(employee_id) or type(limit) is not int or not 1 <= limit <= 100:
@@ -262,7 +280,7 @@ def planned_services(db, actor, branch_ctx, employee_id, from_at, until_at, pack
     company, fresh_branch = _actor_and_branch(db, actor, branch_ctx)
     _modules(db, company)
     employee = db.connection().execute(select(Employee.id, Employee.user_id, Employee.branch_id,
-        Employee.department_id, Employee.reporting_manager_id).join(Branch, Branch.id == Employee.branch_id).where(
+        Employee.department_id, Employee.reporting_manager_id, Employee.work_categories).join(Branch, Branch.id == Employee.branch_id).where(
         Employee.id == employee_id, Employee.deleted_at.is_(None), Branch.company_id == company,
         Branch.is_active.is_(True), Branch.id.in_(fresh_branch.allowed),
         *([Branch.id == fresh_branch.branch_id] if fresh_branch.branch_id is not None else []),
@@ -295,6 +313,7 @@ def planned_services(db, actor, branch_ctx, employee_id, from_at, until_at, pack
         resource.c.data['resource_type'].as_string().in_(PROVIDER_TYPES), linked_employee,
         _ownership(db, resource, company, branch, pack, master=True))
     query = select(table.c.id, table.c.revision, table.c.starts_at, table.c.ends_at, table.c.status,
+        table.c.branch_id, table.c.data['resource_ids'].label('resource_ids'),
         cast(table.c.data['service_id'].as_string(), String).label('service_id'),
         table.c.data['service_name'].as_string().label('service_name')).where(
         table.c.organization_id == company, table.c.branch_id == branch, table.c.kind == 'appointment',
@@ -307,7 +326,9 @@ def planned_services(db, actor, branch_ctx, employee_id, from_at, until_at, pack
         query = query.where(or_(table.c.starts_at > after, and_(table.c.starts_at == after, table.c.id > ident)))
     rows = db.connection().execute(query.order_by(table.c.starts_at, table.c.id).limit(limit + 1)).mappings().all()
     more, rows = len(rows) > limit, rows[:limit]
-    items = [_service_item(row) for row in rows]
+    resources = _booking_resources(db, rows, company, pack)
+    items = [{**_service_item(row), 'resources': resources.get(row['id'], []),
+              'employee_categories': employee['work_categories'] or []} for row in rows]
     next_cursor = None
     if more and rows:
         last = rows[-1]
@@ -361,6 +382,7 @@ def scheduled_services(db, actor, branch_ctx, from_at, until_at, pack_scope=None
     name_column = table.c.data['service_name'].as_string().label('service_name')
     employee_name = func.trim(func.coalesce(employees.c.first_name, '') + ' ' + func.coalesce(employees.c.last_name, '')).label('employee_name')
     base = select(table.c.id, table.c.revision, table.c.starts_at, table.c.ends_at, table.c.status,
+                  table.c.branch_id, table.c.data['resource_ids'].label('resource_ids'), employees.c.work_categories,
                   service_column, name_column, employees.c.id.label('employee_id'),
                   employee_name, employees.c.employee_id.label('employee_code')).select_from(
         table.join(employees, employees.c.branch_id == table.c.branch_id).join(
@@ -411,7 +433,9 @@ def scheduled_services(db, actor, branch_ctx, from_at, until_at, pack_scope=None
             and_(table.c.starts_at == after, table.c.id == ident, employees.c.id > employee_after)))
     rows = db.connection().execute(query.order_by(table.c.starts_at, table.c.id, employees.c.id).limit(limit + 1)).mappings().all()
     more, rows = len(rows) > limit, rows[:limit]
-    items = [{**_service_item(row), 'employee_id': row['employee_id'],
+    resources = _booking_resources(db, rows, company, pack)
+    items = [{**_service_item(row), 'resources': resources.get(row['id'], []),
+              'employee_categories': row['work_categories'] or [], 'employee_id': row['employee_id'],
               'employee_name': row['employee_name'], 'employee_code': row['employee_code']} for row in rows]
     next_cursor = None
     if more and rows:

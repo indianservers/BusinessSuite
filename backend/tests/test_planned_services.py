@@ -114,7 +114,7 @@ def test_reception_created_assignment_is_visible_without_broad_sales_rights_and_
     assert response['items'] == [{'appointment_id': row.id, 'revision': row.revision, 'service_id': 17,
         'service_name': 'Scheduled consultation', 'starts_at': START.isoformat(),
         'ends_at': (START + timedelta(hours=1)).isoformat(), 'planned_minutes': 60,
-        'status': 'booked', 'blocks_availability': True}]
+        'status': 'booked', 'blocks_availability': True, 'resources': [], 'employee_categories': []}]
     assert response['next_cursor'] is None
     assert not any(key in str(response) for key in ['PRIVATE', 'customer_name', 'payment_requests', 'actual_hours', 'paid_amount'])
     assert p.db.connection().execute(select(IndustryRecord.id, IndustryRecord.data, IndustryRecord.updated_at)).all() == before
@@ -262,3 +262,23 @@ def test_pack_master_availability_is_explicit_and_chef_role_has_no_appointment_a
     assert [item['appointment_id'] for item in p.read(scope=scope)['items']] == [row.id]
     chef = resolve_context(p.db, p.users['specialist'], branch, chef_context.id)
     denied(lambda: p.read(scope=chef))
+
+
+def test_booking_room_details_exclude_foreign_branch_and_context_resources(plans):
+    p = plans
+    room = p.provider(resource_type='room'); room.title = 'Room A'
+    foreign = p.provider(branch=p.branches[1].id, resource_type='room'); foreign.title = 'HIDDEN FOREIGN ROOM'
+    anchored = p.provider(resource_type='equipment'); anchored.title = 'HIDDEN PACK EQUIPMENT'
+    context, _ = p.pack()
+    other_context, _ = p.pack('salon', 'stylist')
+    p.anchor(anchored, other_context)
+    p.anchor(p.default_provider, context); p.anchor(room, context)
+    p.employees['specialist'].work_categories = ['Consultant', 'Senior']
+    booking = p.appointment([p.default_provider, room, foreign, anchored]); p.anchor(booking, context)
+    p.db.commit()
+    branch = branch_context(p.db, p.users['specialist'], 1, p.branches[0].id)
+    scope = resolve_context(p.db, p.users['specialist'], branch, context.id)
+    item = p.read(scope=scope)['items'][0]
+    assert item['resources'] == [{'id': room.id, 'name': 'Room A', 'resource_type': 'room'}]
+    assert item['employee_categories'] == ['Consultant', 'Senior']
+    assert 'HIDDEN' not in str(item)

@@ -128,3 +128,14 @@ def test_invalid_global_filters_fail_closed(plans, filters):
     with pytest.raises(HTTPException) as error:
         read(plans, **filters)
     assert error.value.status_code == 422
+
+
+def test_global_schedule_includes_employee_categories_and_room_labels(plans):
+    p = plans
+    room = p.provider(resource_type='room'); room.title = 'Consultation room'
+    p.employees['specialist'].work_categories = ['Consultant']
+    p.appointment([p.default_provider, room]);p.db.commit()
+    item = read(p)['items'][0]
+    assert item['employee_categories'] == ['Consultant']
+    assert item['resources'] == [{'id': room.id, 'name': 'Consultation room', 'resource_type': 'room'}]
+    assert not any(key in str(item) for key in ['PRIVATE', 'customer_name', 'payment_requests'])

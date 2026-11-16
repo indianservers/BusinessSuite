@@ -1,3 +1,4 @@
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -10,6 +11,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 type Booking = {
+  resources?: {id:number;name:string;resource_type:string}[]; employee_categories?: string[];
   appointment_id: number; revision: number; employee_id: number; employee_name: string; employee_code: string;
   service_id: number | null; service_name: string; starts_at: string; ends_at: string;
   planned_minutes: number; status: string; blocks_availability: boolean;
@@ -52,7 +54,7 @@ function dayBoundary(day: string, zone: string) {
 function label(instant: string | number, zone: string) {
   return new Intl.DateTimeFormat(undefined, { timeZone: zone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }).format(new Date(instant));
 }
-function description(item: Booking, zone: string) { return `${item.employee_name}: ${item.service_name}, ${label(item.starts_at, zone)} to ${label(item.ends_at, zone)}, ${item.status}`; }
+function description(item: Booking, zone: string) { return `${item.employee_name}: ${item.service_name}, ${label(item.starts_at, zone)} to ${label(item.ends_at, zone)}, ${item.status}${item.resources?.length ? ', '+item.resources.map(resource=>resource.name).join(', ') : ''}`; }
 function lanes(items: Booking[]) {
   const ends: number[] = [];
   const placed = [...items].sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at) || a.appointment_id - b.appointment_id).map(item => {
@@ -70,16 +72,17 @@ export default function ScheduledServicesPage({ packContextId }: { packContextId
 }
 
 function Services({ scope, packContextId }: { scope: string; packContextId?: number }) {
+  const [params] = useSearchParams();
   const [zone, setZone] = useState(() => {
     const configured = defaultText('timezone', 'hrms');
     return validZone(configured) ? configured : Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   });
   const [from, setFrom] = useState(() => `${wall(Date.now(), zone).slice(0, 10)}T00:00`);
   const [until, setUntil] = useState(() => `${shiftDay(wall(Date.now(), zone).slice(0, 10), 7)}T00:00`);
-  const [employee, setEmployee] = useState<{ id: string; name: string }>({ id: '', name: '' });
+  const [employee, setEmployee] = useState<{ id: string; name: string }>({ id: /^[1-9][0-9]*$/.test(params.get('employee_id') || '') ? params.get('employee_id')! : '', name: 'Selected employee' });
   const [service, setService] = useState<{ id: string; name: string }>({ id: '', name: '' });
   const [status, setStatus] = useState('');
-  const [mode, setMode] = useState<Mode>('List');
+  const [mode, setMode] = useState<Mode>(params.get('mode') === 'Gantt' ? 'Gantt' : 'List');
   const [day, setDay] = useState(from.slice(0, 10));
   const [zoom, setZoom] = useState('0.6');
   const [selected, setSelected] = useState<Booking | null>(null);
@@ -110,7 +113,7 @@ function Services({ scope, packContextId }: { scope: string; packContextId?: num
   }
   const error = isAxiosError(query.error) && typeof query.error.response?.data?.detail === 'string' ? query.error.response.data.detail : 'Scheduled services could not load.';
   return <div className="min-w-0 space-y-4 p-4">
-    <div><h1 className="text-2xl font-semibold">Scheduled Services</h1><p className="text-sm text-muted-foreground">Booked service plans for employees you may view. Actual worked hours remain in Timesheets.</p></div>
+    <div><div className="flex flex-wrap items-center justify-between gap-2"><h1 className="text-2xl font-semibold">Scheduled Services</h1><Button variant="outline" disabled={query.isFetching || !valid} onClick={()=>void query.refetch()}>Refresh bookings</Button></div><p className="text-sm text-muted-foreground">Booked service plans for employees you may view. Actual worked hours remain in Timesheets.</p></div>
     <div className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3">
       <label className="space-y-1 text-sm">From<Input type="datetime-local" value={from} onChange={event => { setFrom(event.target.value); setDay(event.target.value.slice(0, 10)); }}/></label>
       <label className="space-y-1 text-sm">Until (exclusive)<Input type="datetime-local" value={until} onChange={event => setUntil(event.target.value)}/></label>
@@ -125,9 +128,9 @@ function Services({ scope, packContextId }: { scope: string; packContextId?: num
     {query.isPending && valid && <p role="status">Loading scheduled services…</p>}
     {query.isError && <p role="alert">{error} <Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></p>}
     {valid && !query.isPending && !query.isError && !items.length && <p className="rounded-lg border p-6 text-sm">No scheduled services match this range and your access.</p>}
-    {valid && items.length > 0 && (mode === 'List' ? <div className="max-w-full overflow-auto rounded-lg border"><table className="w-full text-left text-sm"><caption className="sr-only">Loaded planned services. Times in {zone}.</caption><thead className="bg-muted/50"><tr>{['Employee', 'Service', 'Start', 'End', 'Planned minutes', 'Status'].map(value => <th key={value} className="p-3">{value}</th>)}</tr></thead><tbody>{items.map(item => <tr key={`${item.appointment_id}:${item.employee_id}`} className="border-t"><td className="p-3">{item.employee_name}<span className="block text-xs text-muted-foreground">{item.employee_code}</span></td><td className="p-3"><button className="text-left underline underline-offset-4" onClick={() => setSelected(item)}>{item.service_name}</button></td><td className="whitespace-nowrap p-3">{label(item.starts_at, zone)}</td><td className="whitespace-nowrap p-3">{label(item.ends_at, zone)}</td><td className="p-3">{item.planned_minutes}</td><td className="p-3">{item.status.replace(/_/g, ' ')}</td></tr>)}</tbody></table></div> : mode === 'Calendar' ? <MinuteCalendar items={items} zone={zone} day={day} setDay={setDay} onSelect={setSelected}/> : <MinuteGantt items={items} zone={zone} start={start} end={end} zoom={zoom} setZoom={setZoom} onSelect={setSelected}/>)}
+    {valid && items.length > 0 && (mode === 'List' ? <div className="max-w-full overflow-auto rounded-lg border"><table className="w-full text-left text-sm"><caption className="sr-only">Loaded planned services. Times in {zone}.</caption><thead className="bg-muted/50"><tr>{['Employee', 'Categories', 'Service', 'Room / equipment', 'From', 'To', 'Planned minutes', 'Status'].map(value => <th key={value} className="p-3">{value}</th>)}</tr></thead><tbody>{items.map(item => <tr key={`${item.appointment_id}:${item.employee_id}`} className="border-t"><td className="p-3">{item.employee_name}<span className="block text-xs text-muted-foreground">{item.employee_code}</span></td><td className="p-3">{item.employee_categories?.join(", ") || "Unassigned"}</td><td className="p-3"><button className="text-left underline underline-offset-4" onClick={() => setSelected(item)}>{item.service_name}</button></td><td className="p-3">{item.resources?.map(resource=>resource.name).join(", ") || "No room/equipment assigned"}</td><td className="whitespace-nowrap p-3">{label(item.starts_at, zone)}</td><td className="whitespace-nowrap p-3">{label(item.ends_at, zone)}</td><td className="p-3">{item.planned_minutes}</td><td className="p-3">{item.status.replace(/_/g, ' ')}</td></tr>)}</tbody></table></div> : mode === 'Calendar' ? <MinuteCalendar items={items} zone={zone} day={day} setDay={setDay} onSelect={setSelected}/> : <MinuteGantt items={items} zone={zone} start={start} end={end} zoom={zoom} setZoom={setZoom} onSelect={setSelected}/>)}
     {valid && query.hasNextPage && <Button variant="outline" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{query.isFetchingNextPage ? 'Loading…' : 'Load more bookings'}</Button>}
-    <Dialog open={valid && !query.isError && !!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent><DialogTitle>Scheduled service</DialogTitle><DialogDescription>Planned booking details; this does not record actual worked time.</DialogDescription>{selected && <dl className="grid grid-cols-2 gap-3 text-sm">{[['Employee', selected.employee_name], ['Service', selected.service_name], ['Start', label(selected.starts_at, zone)], ['End', label(selected.ends_at, zone)], ['Planned minutes', selected.planned_minutes], ['Status', selected.status.replace(/_/g, ' ')], ['Blocks availability', selected.blocks_availability ? 'Yes' : 'No']].map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key}</dt><dd>{value}</dd></div>)}</dl>}</DialogContent></Dialog>
+    <Dialog open={valid && !query.isError && !!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent><DialogTitle>Scheduled service</DialogTitle><DialogDescription>Planned booking details; this does not record actual worked time.</DialogDescription>{selected && <dl className="grid grid-cols-2 gap-3 text-sm">{[['Employee', selected.employee_name], ['Categories', selected.employee_categories?.join(', ') || 'Unassigned'], ['Room / equipment', selected.resources?.map(resource=>`${resource.name} (${resource.resource_type})`).join(', ') || 'No room/equipment assigned'], ['Service', selected.service_name], ['From', label(selected.starts_at, zone)], ['To', label(selected.ends_at, zone)], ['Planned minutes', selected.planned_minutes], ['Status', selected.status.replace(/_/g, ' ')], ['Blocks availability', selected.blocks_availability ? 'Yes' : 'No']].map(([key, value]) => <div key={key}><dt className="text-muted-foreground">{key}</dt><dd>{value}</dd></div>)}</dl>}{selected && <Button asChild variant="outline"><Link to={`/employees/${selected.employee_id}?tab=schedule`}>Open employee schedule</Link></Button>}</DialogContent></Dialog>
   </div>;
 }
 

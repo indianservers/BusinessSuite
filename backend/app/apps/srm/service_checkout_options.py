@@ -134,7 +134,8 @@ def service_options(db, actor, service_id, *, selected=None, search=''):
         IndustryRecord.status == 'active',
         IndustryRecord.data['resource_type'].as_string().in_(('room', 'chair', 'equipment', 'location')),
         _owned_clause(IndustryRecord, company, branch, scope)).order_by(IndustryRecord.title).limit(100)).mappings()
-    resource_options = [{'id': row['id'], 'name': row['title'], 'resource_type': row['data'].get('resource_type')} for row in resources]
+    resource_options = [{'id': row['id'], 'name': row['title'], 'resource_type': row['data'].get('resource_type'),
+        **{key: row['data'].get(key) for key in ('timezone', 'opens', 'closes', 'weekdays')}} for row in resources]
     if policy is None:
         return {'service_id': service_id, 'policy': None, 'specialists': [], 'has_more': False, 'resources': resource_options}
     _source_scope(db, scope, company, branch, model, policy['id'])

@@ -1,4 +1,6 @@
 import { lazyRoute } from "@/lib/lazy-route";
+const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
+const ScheduledServicesPage = lazyRoute(() => import("@/apps/srm/pages/ScheduledServicesPage"));
 const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import React from "react";
 const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
@@ -147,6 +149,8 @@ function LegacyHrmsRedirect() {
 
 const BirthdaysPage = lazyRoute(()=>import("@/shared/master-data/BirthdaysPage"));
 export const hrmsRoutes: FrontendRoute[] = [
+  { path: "hrms/scheduled-services", element: <ScheduledServicesPage /> },
+  { path: "hrms/service-scheduling", element: <ServiceSchedulingWorkspace /> },
   { path: "hrms/workspaces", element: <OperationalWorkspaceDirectory module="hrms" /> },
   {path:"hrms/import-data",element:<ImportWorkspace module="hrms"/>},
  {path:"hrms/birthdays",element:<BirthdaysPage source="hrms"/>},

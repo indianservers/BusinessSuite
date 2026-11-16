@@ -1,4 +1,5 @@
 import React from 'react';
+import {MemoryRouter} from 'react-router-dom';
 import {createRoot} from 'react-dom/client';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {EmployeePlannedServicesBrowser} from '@/apps/hrms/pages/employees/EmployeePlannedServices';
@@ -21,4 +22,4 @@ function Screen() {
   const employeeId = useAuthStore(state => state.user?.employee_id);
   return <EmployeePlannedServicesBrowser defaultEmployeeId={employeeId || undefined} canBrowse/>;
 }
-createRoot(document.getElementById('root')!).render(<QueryClientProvider client={client}><Screen/></QueryClientProvider>);
+createRoot(document.getElementById('root')!).render(<MemoryRouter><QueryClientProvider client={client}><Screen/></QueryClientProvider></MemoryRouter>);

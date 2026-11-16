@@ -69,6 +69,7 @@ interface Employee {
   status: string;
   date_of_joining: string;
   profile_photo_url: string | null;
+  work_categories?: string[];
   skills_tags?: string | null;
   branch_id?: number | null;
 }
@@ -193,6 +194,14 @@ function EmployeesPage() {
       header: "Department",
       cell: info => filterOptions?.department_id?.find(option => option.value === String(info.getValue()))?.label || "Not set",
     }),
+    columnHelper.accessor("work_categories", {
+      header: "Employee categories",
+      cell: info => (info.getValue() || []).join(", ") || "Unassigned",
+    }),
+    columnHelper.accessor("work_categories", {
+      header: "Employee categories",
+      cell: info => info.getValue()?.join(", ") || "Unassigned",
+    }),
     columnHelper.accessor("employment_type", {
       header: "Type",
       cell: (info) => (
@@ -276,6 +285,7 @@ function EmployeesPage() {
             {data?.total ?? 0} {activeCount || search ? "matching" : "total"} {term("employee", true).toLowerCase()}
           </p>
         </div>
+        <Button asChild variant="outline" size="sm"><Link to="/hrms/service-scheduling">Service schedules &amp; resources</Link></Button>
         <CompactActions primaryId="quick-add-employee" className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
@@ -356,7 +366,7 @@ function EmployeesPage() {
             return <ProfileListCard key={employee.id} name={name} photoUrl={employee.profile_photo_url} location={branch}
               subtitle={<><strong>{designation || employee.employment_type}</strong>{department && ` · ${department}`}</>}
               status={{label:employee.status,tone:employee.status.toLowerCase() === "active" ? "positive" : "muted"}}
-              tags={[employee.employee_id,...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,2)]}
+              tags={[employee.employee_id,...(employee.work_categories || []),...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,2)]}
               onOpen={() => setEmployeePopup({employee,editing:false})}
               actions={<><ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction>{canEditEmployee&&<ProfileAction onClick={() => setEmployeePopup({employee,editing:true})}>Edit</ProfileAction>}<RecordMaintenance record={employee as unknown as Record<string,unknown>} name={`${employee.first_name} ${employee.last_name}`} endpoint={`/employees/${employee.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
 }}/>}
