@@ -42,51 +42,61 @@ def durable_store(db_engine):
     ) or not url.database.endswith("_test"):
         raise RuntimeError("An isolated business_suite_*_test database is required")
     schema = "power_runtime_it_" + uuid.uuid4().hex
-    with db_engine.begin() as conn:
-        conn.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
-    target = url.set(
-        query={**url.query, "options": f"-csearch_path={schema} -ctimezone=UTC"}
-    )
-    engine = create_engine(target, pool_size=12, max_overflow=4, hide_parameters=True)
-    Base.metadata.create_all(engine)
-    factory = sessionmaker(bind=engine, expire_on_commit=False)
-    from app.models.company import Company
-    from app.models.user import User, Role, Permission
-    from app.common.models import CommonPerson
-    from app.apps.power_apps.registry import PERMISSIONS
+    engine = None
+    schema_created = False
+    try:
+        with db_engine.begin() as conn:
+            conn.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+            schema_created = True
+        target = url.set(
+            query={**url.query, "options": f"-csearch_path={schema} -ctimezone=UTC"}
+        )
+        engine = create_engine(target, pool_size=12, max_overflow=4, hide_parameters=True)
+        Base.metadata.create_all(engine)
+        factory = sessionmaker(bind=engine, expire_on_commit=False)
+        from app.models.company import Company
+        from app.models.user import User, Role, Permission
+        from app.common.models import CommonPerson
+        from app.apps.power_apps.registry import PERMISSIONS
 
-    with factory() as db:
-        db.add(Company(id=101, name="Runtime isolated load company", is_active=True))
-        db.flush()
-        role = Role(
-            name="runtime_load",
-            permissions=[Permission(name=p, module="power_apps") for p in PERMISSIONS],
-        )
-        db.add(role)
-        db.flush()
-        user = User(
-            email="runtime-load@example.invalid",
-            hashed_password="unused",
-            is_active=True,
-            role=role,
-            person=CommonPerson(
-                organization_id=101,
-                primary_email="runtime-load@example.invalid",
-                display_name="Runtime load actor",
-            ),
-        )
-        db.add(user)
-        db.flush()
-        from test_identity_utils import attach_workflow_branch
-        attach_workflow_branch(db, user, company_id=101)
-        db.add(PowerEnvironment(organization_id=101, key="testing", enabled=True))
-        db.commit()
-        user_id = user.id
-    yield factory, target, user_id, engine
-    engine.dispose()
-    # Literal generated schema on the previously verified disposable test database only.
-    with db_engine.begin() as conn:
-        conn.exec_driver_sql(f'DROP SCHEMA "{schema}" CASCADE')
+        with factory() as db:
+            db.add(Company(id=101, name="Runtime isolated load company", is_active=True))
+            db.flush()
+            role = Role(
+                name="runtime_load",
+                permissions=[Permission(name=p, module="power_apps") for p in PERMISSIONS],
+            )
+            db.add(role)
+            db.flush()
+            user = User(
+                email="runtime-load@example.invalid",
+                hashed_password="unused",
+                is_active=True,
+                role=role,
+                person=CommonPerson(
+                    organization_id=101,
+                    primary_email="runtime-load@example.invalid",
+                    display_name="Runtime load actor",
+                ),
+            )
+            db.add(user)
+            db.flush()
+            from test_identity_utils import attach_workflow_branch
+            attach_workflow_branch(db, user, company_id=101)
+            db.add(PowerEnvironment(organization_id=101, key="testing", enabled=True))
+            db.commit()
+            user_id = user.id
+        yield factory, target, user_id, engine
+    finally:
+        try:
+            if engine is not None:
+                engine.dispose()
+        finally:
+            # Also clean up if migration or seeding fails before the yield.
+            if schema_created:
+                with db_engine.begin() as conn:
+                    conn.exec_driver_sql(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+                    assert conn.execute(text('SELECT 1 FROM information_schema.schemata WHERE schema_name=:schema'), {'schema': schema}).first() is None
 
 
 def prepare(factory, user_id, multi=True):

@@ -2,6 +2,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import pytest
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+from tests.test_payroll_qa_concurrency import payroll_engine
 from app.core.config import settings, Settings
 from app.models.employee import Employee
 from app.models.leave import LeaveType, LeaveBalanceLedger
@@ -111,29 +113,41 @@ def test_scheduler_resumes_batches_and_does_not_credit_twice(db):
     assert db.query(LeaveBalanceLedger).filter_by(transaction_type="scheduled_accrual").count() == 3
 
 
-def test_scheduler_retries_failed_and_expired_leases(db_engine, monkeypatch):
-    if db_engine.dialect.name != "postgresql":
-        pytest.skip("PostgreSQL claim integration")
-    with Session(db_engine) as db:
-        import app.services.scheduled_jobs as jobs
-        now = datetime(2026, 11, 2, 2, tzinfo=timezone.utc)
-        original = jobs.run_scheduled_leave_accruals
-        def fail(*args, **kwargs):
-            raise RuntimeError("Simulated provider failure")
-        monkeypatch.setattr(jobs, "run_scheduled_leave_accruals", fail)
-        with pytest.raises(RuntimeError):
-            jobs.run_cron_batch(db, now=now)
-        row = db.query(ScheduledJobRun).one()
-        assert row.status == "failed"
-        monkeypatch.setattr(jobs, "run_scheduled_leave_accruals", original)
-        assert jobs.run_cron_batch(db, now=now)["status"] == "completed"
-        row.status = "running"
-        row.lease_until = now + timedelta(minutes=2)
-        db.commit()
-        assert jobs.run_cron_batch(db, now=now)["status"] == "already_running_or_completed"
-        assert jobs.run_cron_batch(db, now=now + timedelta(minutes=3))["status"] == "completed"
-        db.query(ScheduledJobRun).delete()
-        db.commit()
+def test_scheduler_retries_failed_and_expired_leases(db_engine,payroll_engine, monkeypatch):
+    from app.models.deployment import CollaborationEvent
+    from app.models.leave import LeaveBalance
+    primary=db_engine
+    tables=(ScheduledJobRun.__table__,CollaborationEvent.__table__,Employee.__table__,LeaveType.__table__,LeaveBalanceLedger.__table__,LeaveBalance.__table__)
+    def primary_keys():
+        with primary.connect() as connection:
+            return {table.name:set(connection.execute(select(*table.primary_key.columns)).tuples()) for table in tables}
+    before=primary_keys()
+    db_engine=payroll_engine
+    try:
+        if db_engine.dialect.name != "postgresql":
+            pytest.skip("PostgreSQL claim integration")
+        with Session(db_engine) as db:
+            import app.services.scheduled_jobs as jobs
+            now = datetime(2026, 11, 2, 2, tzinfo=timezone.utc)
+            original = jobs.run_scheduled_leave_accruals
+            def fail(*args, **kwargs):
+                raise RuntimeError("Simulated provider failure")
+            monkeypatch.setattr(jobs, "run_scheduled_leave_accruals", fail)
+            with pytest.raises(RuntimeError):
+                jobs.run_cron_batch(db, now=now)
+            row = db.query(ScheduledJobRun).one()
+            assert row.status == "failed"
+            monkeypatch.setattr(jobs, "run_scheduled_leave_accruals", original)
+            assert jobs.run_cron_batch(db, now=now)["status"] == "completed"
+            row.status = "running"
+            row.lease_until = now + timedelta(minutes=2)
+            db.commit()
+            assert jobs.run_cron_batch(db, now=now)["status"] == "already_running_or_completed"
+            assert jobs.run_cron_batch(db, now=now + timedelta(minutes=3))["status"] == "completed"
+            db.query(ScheduledJobRun).delete()
+            db.commit()
+    finally:
+        assert primary_keys()==before, "Independent scheduler commits changed primary rows"
 
 
 def test_neon_pooled_connections_do_not_send_session_startup_options():
