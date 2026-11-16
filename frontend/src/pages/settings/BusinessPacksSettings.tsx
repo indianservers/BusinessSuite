@@ -1,3 +1,5 @@
+import BusinessThemeCards from './BusinessThemeCards';
+import { useRecordScope } from '@/lib/record-scope';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -48,7 +50,8 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 export default function BusinessPacksSettings() {
-  return <PackEditor key={defaultsScope()} scope={defaultsScope()}/>;
+  const generation = useRecordScope();
+  return <PackEditor key={`${defaultsScope()}:${generation}`} scope={defaultsScope()}/>;
 }
 
 function PackEditor({ scope }: { scope: string }) {
@@ -174,6 +177,8 @@ function PackEditor({ scope }: { scope: string }) {
 
   return <section className="settings-panel grid gap-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h2>Business Packs</h2><p>Review industry workflows, approved module dependencies, and setup for this company.</p></div><Button type="button" variant="outline" disabled={!!busy || configuration.isFetching || catalog.isFetching} onClick={() => void reload()}>Reload configuration</Button></div>
+    <BusinessThemeCards scope={scope} companyId={configuration.data.company_id} catalog={catalog.data.items} beforeActivate={() => { if (!window.dispatchEvent(new Event('suite:before-context-change', { cancelable: true }))) return false; change(); setReason(''); return true; }} onActivated={key => { change(); setBranch(''); if (key !== 'general') setPackKey(key); }} />
+    <details className="rounded border p-4"><summary className="cursor-pointer font-medium">Configure branch access / advanced setup</summary><div className="mt-4 grid gap-5">
     <p className="text-sm text-muted-foreground">Draft setup preserves your current business profile and sales pipelines. Pack roles apply only within their own pack and do not grant company administrator access.</p>
     {(configuration.data.has_more?.activations || configuration.data.has_more?.contexts) && <p role="alert">Some saved pack configuration is outside this view. New draft creation is unavailable when its existing configuration list is incomplete.</p>}
     <label>Business Pack<NativeSelect aria-label="Business Pack" value={packKey} disabled={!!busy} onChange={event => changePack(event.target.value)} className="w-full rounded border bg-background p-2"><option value="">Choose a Business Pack</option>{catalog.data.items.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</NativeSelect></label>
@@ -206,6 +211,7 @@ function PackEditor({ scope }: { scope: string }) {
       </section>
     </>}
     <BusinessPackAccessSettings packKey={packKey}/>
+    </div></details>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

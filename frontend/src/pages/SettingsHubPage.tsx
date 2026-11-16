@@ -67,7 +67,8 @@ export function SettingsHomeEntry() {
 export default function SettingsHubPage({ sectionId, moduleHome, moduleLabel }: { sectionId?: string; moduleHome?: string; moduleLabel?: string } = {}) {
 
   const params = useParams();
-  const section = sectionId || params.section;
+  const requestedSection = sectionId || params.section;
+  const section = requestedSection === "business-profile" ? "business-packs" : requestedSection;
 
   const {user,isAuthenticated,isHydrated} = useAuthStore();
   const scope = useRecordScope();

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-const BusinessProfile = lazy(() => import("./BusinessProfileSettings"));
+import { Navigate, useLocation } from "react-router-dom";
 const BusinessPacks = lazy(() => import("./BusinessPacksSettings"));
 const Defaults = lazy(() => import("./DefaultsSettings"));
 const FilesStorage = lazy(() => import("./FilesStorageSettings"));
@@ -21,10 +21,11 @@ centralEditorKeys.add("business-profile");
 centralEditorKeys.add("business-packs");
 
 export default function CentralSettingsEditor({ section }: { section: string }) {
+  const location = useLocation();
+  if (section === "business-profile") return <Navigate replace to={{ pathname: "/settings/business-packs", search: location.search, hash: location.hash }}/>;
   let editor;
   switch (section) {
     case "business-packs": editor = <BusinessPacks/>; break;
-    case "business-profile": editor = <BusinessProfile/>; break;
     case "business-defaults": editor = <Defaults/>; break;
     case "files-storage": editor = <FilesStorage/>; break;
     case "shared-companies": editor = <Companies/>; break;
