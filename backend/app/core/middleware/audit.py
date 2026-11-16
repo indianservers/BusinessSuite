@@ -158,13 +158,15 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             location = [{'file': Path(frame.filename).name, 'line': frame.lineno, 'function': frame.name} for frame in traceback.extract_tb(leaf.__traceback__)[-5:]] if leaf else []
             actor_id = actor.get('user_id')
             retained_actor_id = actor_id if actor_id and db.query(User.id).filter_by(id=actor_id).scalar() else None
+            from app.core.canonical_audit import take_product_birth
+            product_birth = take_product_birth(value, db, request, status_code)
             row = AuditLog(organization_id=getattr(request.state, "observed_company_id", None), user_id=retained_actor_id, actor_email=actor.get('email'), actor_role=actor.get('role'),
                            actor_authenticated=bool(actor.get('authenticated')), request_id=request_id[:64], module=module[:80],
                            method=request.method[:10], endpoint=endpoint[:500], ip_address=ip, ip_source=source, forwarded_ip=forwarded,
                            user_agent=request.headers.get('user-agent', '')[:500], status_code=status_code, duration_ms=duration_ms,
                            task_id=task_id or (next(iter(task_ids)) if len(task_ids) == 1 else None), project_id=project_id, workspace_id=workspace_id,
-                           entity_type='task' if task_ids else 'project' if project_id else 'workspace' if workspace_id else None,
-                           entity_id=task_id or (next(iter(task_ids)) if len(task_ids) == 1 else None) or project_id or workspace_id,
+                           entity_type='task' if task_ids else 'project' if project_id else 'workspace' if workspace_id else product_birth[0] if product_birth else None,
+                           entity_id=task_id or (next(iter(task_ids)) if len(task_ids) == 1 else None) or project_id or workspace_id or (product_birth[1] if product_birth else None),
                            action='ERROR' if status_code >= 500 else 'REJECTED' if status_code >= 400 else request.method,
                            error_type=type(leaf).__name__[:160] if leaf else "HTTP500Response" if status_code >= 500 else None,
                            description=json.dumps({'actor_id': actor_id, 'safe_query': safe_query, 'changed_fields': sorted(value.get('changed_fields', set())),

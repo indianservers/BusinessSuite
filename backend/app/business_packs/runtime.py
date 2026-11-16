@@ -28,9 +28,12 @@ class PackRuntimeSupport:
     workflows: frozenset[str]
 
 
-# Intentionally empty during framework installation. A registered manifest is
-# a definition, not evidence that its operational routes enforce pack ownership.
-RUNTIME_SUPPORT: Mapping[str, PackRuntimeSupport] = MappingProxyType({})
+# Only explicitly reviewed code-owned publications contribute runtime support.
+# A manifest or configuration row never publishes operational support.
+from .publication import PUBLICATIONS
+RUNTIME_SUPPORT: Mapping[str, PackRuntimeSupport] = MappingProxyType({
+    key: PackRuntimeSupport(value.version, value.isolation_version, value.workflows) for key,value in PUBLICATIONS.items()
+})
 
 # These workflows currently post real native Accounting vouchers. Optional
 # module licensing must not be mistaken for a working refund workflow when
@@ -101,6 +104,11 @@ def activation_readiness(db, company_id, pack_key, branch_id=None):
         reasons.append('Operational pack isolation is not enabled for this release yet.')
     if not workflows:
         reasons.append('The pack workflows are still being connected and verified.')
+    if manifest.key in PUBLICATIONS and branch_id is not None:
+        from .delivery_release_readiness import installation_reasons as delivery_installation_reasons
+        reasons.extend(delivery_installation_reasons(db.connection()))
+        from .first_activation import reasons as cutover_reasons
+        reasons.extend(cutover_reasons(db, company_id, branch_id))
     return {'ready': not reasons, 'reasons': reasons, 'schema_ready': installed,
             'isolation_ready': isolated, 'workflows_ready': workflows,
             'workflow_modules_ready': not workflow_missing, 'missing_workflow_modules': workflow_missing,

@@ -76,8 +76,11 @@ def create(client,headers,payload):
 
 def test_real_http_hospital_checkout_native_graph_replay_and_runtime_gate(client,db,hospital_http):
     headers,_,branch,context,_,payload=hospital_http
-    assert not RUNTIME_SUPPORT
-    assert not activation_readiness(db,1,'hospital',branch)['ready']
+    # Published workflows do not publish unrelated packs or weaken their gate.
+    assert 'retail' not in RUNTIME_SUPPORT
+    unpublished=activation_readiness(db,1,'retail',branch)
+    assert not unpublished['ready'] and not unpublished['isolation_ready']
+    assert 'Operational pack isolation is not enabled for this release yet.' in unpublished['reasons']
     result=create(client,headers,payload)
     assert create(client,headers,payload)==result
     assert result['invoice']['balance']=='0.00'

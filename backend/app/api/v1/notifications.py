@@ -108,12 +108,8 @@ def mark_notification_read(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    notification = (
-        db.query(Notification)
-        .options(joinedload(Notification.delivery_logs))
-        .filter(Notification.id == notification_id, Notification.user_id == current_user.id)
-        .first()
-    )
+    from app.services.metrics.queries import personal_notifications
+    notification = personal_notifications(db,current_user).options(joinedload(Notification.delivery_logs)).filter(Notification.id == notification_id).first()
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
     if not notification.is_read:
@@ -129,10 +125,8 @@ def mark_all_notifications_read(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Notification).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False,
-    )
+    from app.services.metrics.queries import personal_notifications
+    query = personal_notifications(db,current_user).filter(Notification.is_read == False)
     current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
     if current_company_id:
         query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))

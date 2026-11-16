@@ -681,6 +681,8 @@ def install(db, scope: PackScope | None, *, policy: PackBoundaryPolicy | None = 
             session.connection().execute(target.insert().values(**data))
         for item in queue:
             native_references(item, new=True)
+        from .delivery_sources import finalize_pack_births
+        finalize_pack_births(session,scope,queue)
 
     def scoped_get(model, identity, **kwargs):
         nonlocal trusted_identity_load

@@ -139,7 +139,8 @@ def task_counts(db, user, project_id=None, workspace_id=None):
 
 def personal_notifications(db,user):
     from app.models.notification import Notification
-    return db.query(Notification).filter(Notification.user_id==user.id,or_(Notification.company_id==company_id(user),Notification.company_id.is_(None)))
+    from app.business_packs.delivery_sources import filter_notifications
+    return filter_notifications(db.query(Notification).filter(Notification.user_id==user.id,or_(Notification.company_id==company_id(user),Notification.company_id.is_(None))),db,user)
 
 
 def amounts_by_currency(query,currency,amount):

@@ -399,6 +399,8 @@ def activate_context(db, actor, ident, data, request=None):
     row, ready = _context_activation_preview(db, actor, ident, data, lock=True)
     if not ready['ready']:
         raise HTTPException(409, {'message': 'Branch pack activation is blocked', 'readiness': ready})
+    from .first_activation import require_empty
+    require_empty(db, company, row.branch_id)
     before = _output(row)
     row.state = 'active'; _flush(db)
     _audit(db, actor, row.company_id, 'context.activated', data.reason, before, _output(row), request)

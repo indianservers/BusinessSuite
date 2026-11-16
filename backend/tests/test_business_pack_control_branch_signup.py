@@ -46,8 +46,13 @@ def test_actual_native_signup_new_branch_can_create_draft_context(client,db,owne
     result=draft_context(client,owner)
     assert result.status_code==201,result.text
     assert (result.json()['company_id'],result.json()['branch_id'])==(owner[1],owner[2])
-    from app.business_packs.runtime import RUNTIME_SUPPORT
-    assert not RUNTIME_SUPPORT  # Pure control fix is independent of pack publication.
+    from app.business_packs.models import PackUserGrant
+    assert result.json()['state']=='draft'
+    assert db.connection().scalar(select(PackUserGrant.id).where(PackUserGrant.context_id==result.json()['id'])) is None
+    # Native company-admin control never creates an operational grant implicitly.
+    denied=client.get('/api/v1/srm/industry/capabilities',headers={**owner[0],
+        'X-Suite-Pack-Context':str(result.json()['id'])})
+    assert denied.status_code==403,denied.text
 
 @pytest.mark.parametrize('fault',['foreignbranch','foreigncompany','inactive','deleted','ordinary'])
 def test_addressed_branch_control_does_not_broaden_native_authority(client,db,owner,fault):

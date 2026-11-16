@@ -11,6 +11,7 @@ from app.core import email
 from app.models.email_outbox import EmailOutbox
 from app.models.notification import Notification, NotificationDeliveryLog
 from app.models.user import User
+from app.business_packs import delivery_sources as _pack_delivery_sources
 
 
 def queue_email(db, *, recipient, subject, body, module, organization_id=None,
@@ -32,6 +33,8 @@ def queue_email(db, *, recipient, subject, body, module, organization_id=None,
     if source_record is not None:row._suite_source_record=source_record
     if employee_event is not None:row._suite_employee_email=employee_event
     db.add(row)
+    _pack_delivery_sources.prepare_email(db,row,source_record)
+    if row not in db:return None
     return row
 
 
@@ -119,6 +122,7 @@ def _deliver_authorized(db, row, *, notification=None):
             recipient, subject, body = row.recipient, row.subject, row.body
             allowed = user_can_receive(db, row.recipient_user_id, recipient, row.organization_id)
             allowed = allowed and branch_recipient_allowed(db, row, row.recipient_user_id, row.organization_id)
+            allowed = allowed and _pack_delivery_sources.delivery_allowed(db,row)
             if row.event_key.startswith("domain-report:"):
                 from app.services.domain_report_delivery import outbox_allowed
                 allowed = allowed and outbox_allowed(db, row)
@@ -146,6 +150,7 @@ def _deliver_authorized(db, row, *, notification=None):
             recipient = user.email if user else ""
             allowed = user_can_receive(db, notification.user_id, recipient, notification.company_id)
             allowed = allowed and branch_recipient_allowed(db, notification, notification.user_id, notification.company_id)
+            allowed = allowed and _pack_delivery_sources.delivery_allowed(db,notification)
             subject = "Business Suite notification"
             # Do not put private comments, HR data or approval details in an email preview.
             body = f"You have an update in {notification.module or 'Business Suite'}. Sign in to review it.\n"

@@ -201,6 +201,29 @@ class _PlanSession(_Writer):
         return super().execute(statement, *args, **kwargs)
 
 
+_PLAN_STAMPS = WeakKeyDictionary()
+
+
+def _stamp_planning_births(session, flush_context):
+    witness = _PLAN_STAMPS.get(session)
+    if witness is None:
+        return
+    parent, scope, actor, stamp = witness
+    expected = next(code for code in _run.__code__.co_consts
+        if getattr(code, 'co_name', None) == 'stamp_births')
+    if (type(session) is not _PlanSession or stamp.__code__ is not expected
+            or stamp.__globals__ is not globals()
+            or parent.info.get('business_pack_scope') is not scope
+            or session.info.get('shared_actor') != (actor.id, scope.company_id)):
+        deny('Planning stamping requires its actual private native birth plan')
+    stamp(session, flush_context)
+
+
+# The fixed private subclass stamps genuine persistent births before base
+# Session mail callbacks inspect their source graph. Registered once at import.
+event.listen(_PlanSession, 'after_flush_postexec', _stamp_planning_births, insert=True)
+
+
 def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format='csv'):
     from app.access.models import AccessMembership, AccessPolicy, AccessRole
     from app.access.scope import install_scope
@@ -331,6 +354,10 @@ def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format
     changed_tasks = {}
     changed_entries = {}
     cleanup = None
+    emitter_frame, emitter_cleanup, emitter_successful = None, None, False
+    if write:
+        from .construction_emitter import issue, seal, release_native
+        from .delivery_sources import bind_native_emitter, mint_private
     def current():
         _current(scope, connection)
         if authority != _native_authority(db, actor, scope.company_id) or epoch != _project_epoch(db, scope, project_id):
@@ -417,10 +444,13 @@ def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format
         # The first native flush can birth the project schedule entry and queue
         # runtime events for a second flush. Certify only genuinely persistent
         # validated births before that second flush rechecks the exact graph.
+        mail = []
         for row in minted:
             if id(row) in stamped:
                 continue
-            if inspect(row).session is not native or not inspect(row).persistent:
+            state = inspect(row)
+            if (state.session is not native or not state.persistent or len(args) != 2
+                    or state not in args[1].states):
                 deny('Schedule ownership requires the actual flushed native birth')
             from app.branches.catalog import resource_key
             key = resource_key(type(row).__table__, {column.name: getattr(row, column.name) for column in row.__table__.primary_key})
@@ -428,6 +458,10 @@ def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format
                 connection.execute(table.insert().values(resource_table=row.__tablename__, resource_key=key,
                     company_id=scope.company_id, branch_id=scope.branch_id, source='construction-native-schedule', **extra))
             stamped.add(id(row))
+            if type(row) is EmailOutbox:
+                mail.append(row)
+        for row in mail:
+            mint_private(native, scope, row)
     try:
         # Actual native central scope remains in force, then the closed source
         # inventory restricts requested ORM graphs before those native filters.
@@ -452,7 +486,13 @@ def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format
         event.listen(native, 'do_orm_execute', restrict)
         event.listen(native, 'do_orm_execute', added[0])
         event.listen(native, 'before_flush', validate)
-        event.listen(native, 'after_flush_postexec', stamp_births)
+        _PLAN_STAMPS[native] = (db, scope, actor, stamp_births)
+        if write:
+            emitter_frame = issue(native, parent=db, scope=scope, actor=actor, self_user=principal,
+                purpose={'apply': 'construction.schedule.apply', 'capture': 'construction.schedule.capture',
+                    'task_actual': 'construction.actuals.task', 'cost_actual': 'construction.actuals.cost',
+                    'cost_budget': 'construction.actuals.budget'}[action], current=current, epoch=authority)
+            emitter_cleanup = bind_native_emitter(native, scope, parent=db, frame=emitter_frame)
         for proof in mail_proofs:
             target = native.get(User, proof['id'])
             target_grant = _module_grant(db, target, proof['epoch'][1], 'project_management')
@@ -517,14 +557,21 @@ def _run(db, actor, project_id, action, data=None, baseline_id=None, file_format
             if db not in _CHECKS:
                 deny('A native Construction write requires its outer command lease')
             _CHECKS[db].append(current)
+            seal(emitter_frame)
             Session.commit(native)
+            emitter_successful = True
         else:
             current()
         return deepcopy(result)
     finally:
+        _PLAN_STAMPS.pop(native, None)
+        if emitter_cleanup is not None:
+            emitter_cleanup()
         if cleanup is not None:
             cleanup()
         native.close()
+        if emitter_frame is not None:
+            release_native(emitter_frame, successful=emitter_successful)
 
 
 def analysis(db, actor, project_id, baseline_id=None):

@@ -258,6 +258,10 @@ def eligible_people(workspace_id: int, q: str = Query("", max_length=150), db: S
 
 @router.post("/workspaces/{workspace_id}/members", status_code=201)
 def add_workspace_member(workspace_id: int, data: AddMemberInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return add_workspace_member_operation(workspace_id, data, db, user)
+
+
+def add_workspace_member_operation(workspace_id, data, db, user, *, commit=True):
     workspace, actor = workspace_member(db, workspace_id, user, True)
     if data.role == "Admin" and actor.role != "Owner":
         raise HTTPException(403, "Only the owner can appoint administrators")
@@ -268,13 +272,22 @@ def add_workspace_member(workspace_id: int, data: AddMemberInput, db: Session = 
         raise HTTPException(409, "User is already a workspace member")
     member = PMSWorkspaceMember(workspace_id=workspace_id, user_id=target.id, role=data.role)
     db.add(member)
+    if not commit:
+        db.flush()
     from .people_management import record
     record(db, user, target.id, "PMS_WORKSPACE_ADDED", "Added existing person directly", after={"role": data.role}, workspace_id=workspace_id)
     for invitation in db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=target.email.lower(), status="pending").all():
         invitation.status = "accepted"
-    db.add(Notification(user_id=target.id, title="Added to workspace", message=f"You were added to {workspace.name} as {data.role}.", module="project_management", event_type="workspace.member_added", action_url=f"/pms/workspaces?workspace={workspace_id}"))
-    db.commit()
-    return {"id": member.id, "user_id": target.id, "email": target.email, "role": member.role}
+    notice = Notification(user_id=target.id, title="Added to workspace", message=f"You were added to {workspace.name} as {data.role}.", module="project_management", event_type="workspace.member_added", action_url=f"/pms/workspaces?workspace={workspace_id}")
+    notice._suite_source_record = member
+    if not commit:
+        notice.company_id = workspace.organization_id
+    db.add(notice)
+    if commit:
+        db.commit()
+        return {"id": member.id, "user_id": target.id, "email": target.email, "role": member.role}
+    db.flush()
+    return member
 
 
 def editable_member(db, workspace_id, member_id, user):

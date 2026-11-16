@@ -4831,5 +4831,24 @@
     "receipt_id",
     "request_key",
     "request_sha256"
+  ],
+  "business_pack_delivery_sources": [
+    "actor_user_id",
+    "branch_id",
+    "company_id",
+    "context_id",
+    "created_at",
+    "email_outbox_id",
+    "id",
+    "module",
+    "notification_id",
+    "pack_key",
+    "pack_version",
+    "payload_sha256",
+    "recipient_email",
+    "recipient_user_id",
+    "source_key",
+    "source_kind",
+    "source_table"
   ]
 }

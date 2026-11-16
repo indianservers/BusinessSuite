@@ -185,10 +185,10 @@ def _audit(db: Session, user: User, entity_type: str, entity_id: int | None, act
     ))
 
 
-def _notify(db: Session, user_id: int | None, title: str, message: str, entity_type: str, entity_id: int | None, action_url: str, company_id: int | None = None) -> None:
+def _notify(db: Session, user_id: int | None, title: str, message: str, entity_type: str, entity_id: int | None, action_url: str, company_id: int | None = None, *, source_record=None) -> None:
     if not user_id:
         return
-    db.add(Notification(
+    notice=Notification(
         company_id=company_id,
         user_id=user_id,
         title=title,
@@ -199,7 +199,11 @@ def _notify(db: Session, user_id: int | None, title: str, message: str, entity_t
         related_entity_id=entity_id,
         action_url=action_url,
         priority="normal",
-    ))
+    )
+    db.add(notice)
+    if source_record is not None:
+        from app.business_packs.delivery_sources import certify_native_notification
+        certify_native_notification(db,source_record,notice)
 
 
 def _serialize(item):
@@ -1345,10 +1349,15 @@ def create_srm_product(data: SRMProductCreate, db: Session = Depends(get_db), cu
     if not row.mrp:
         row.mrp = row.sales_rate
     db.add(row)
-    db.flush()
-    _audit(db, current_user, "product", row.id, "CREATE", None, _product_payload(row))
-    db.commit()
-    db.refresh(row)
+    from app.core.canonical_audit import arm_product_birth
+    release_audit_birth = arm_product_birth(db, current_user, row)
+    try:
+        db.flush()
+        _audit(db, current_user, "product", row.id, "CREATE", None, _product_payload(row))
+        db.commit()
+        db.refresh(row)
+    finally:
+        release_audit_birth()
     return _product_payload(row)
 
 
@@ -3752,7 +3761,7 @@ def _create_invoice_from_lines(
         ))
     db.add(SRMInvoiceHistory(invoice_id=invoice.id, to_status="draft", actor_user_id=user.id, notes="Invoice draft created"))
     _audit(db, user, "invoice", invoice.id, "draft_created", after={"source_type": source_type, "source_id": source_id})
-    _notify(db, user.id, "Invoice draft created", f"{invoice.invoice_number} is ready for review.", "invoice", invoice.id, f"/srm/invoices/{invoice.id}")
+    _notify(db, user.id, "Invoice draft created", f"{invoice.invoice_number} is ready for review.", "invoice", invoice.id, f"/srm/invoices/{invoice.id}", source_record=invoice)
     return invoice
 
 

@@ -158,7 +158,8 @@ def _native(plan):
     from app.access.scope import install_scope
     from app.access.models import AccessMembership, AccessPolicy, AccessRole
     from app.models.user import User, Role, Permission, role_permissions
-    from app.models.company import Company
+    from app.models.company import Company, Branch
+    from app.models.employee import Employee
     from app.common.models import CommonPerson
     from app.apps.project_management import workspaces as native_workspaces
     db, actor, scope = plan.db, plan.actor, plan.scope
@@ -168,6 +169,8 @@ def _native(plan):
         PMSWorkspace: and_(PMSWorkspace.id == workspace_id, PMSWorkspace.organization_id == scope.company_id),
         PMSWorkspaceMember: and_(PMSWorkspaceMember.workspace_id == workspace_id, PMSWorkspaceMember.user_id == actor.id),
         User: User.id == actor.id, Role: Role.id == actor.role_id,
+        Employee: and_(Employee.user_id == actor.id, (Employee.branch_id.in_(select(Branch.__table__.c.id).where(Branch.__table__.c.company_id == scope.company_id))) | (Employee.branch_id.is_(None) & (scope.company_id == 1))),
+        Branch: and_(Branch.company_id == scope.company_id, Branch.id.in_(select(Employee.__table__.c.branch_id).where(Employee.__table__.c.user_id == actor.id))),
         Permission: Permission.id.in_(select(role_permissions.c.permission_id).where(role_permissions.c.role_id == actor.role_id)),
         CommonPerson: and_(CommonPerson.user_id == actor.id, CommonPerson.organization_id == scope.company_id),
         Company: Company.id == scope.company_id,
@@ -181,12 +184,6 @@ def _native(plan):
     native.info.update(shared_actor=(actor.id, scope.company_id), security_write_request=True)
     cleanup = None
     try:
-        prior = tuple(native.dispatch.do_orm_execute)
-        cleanup = install_scope(native, actor, scope.company_id, plan.grants)
-        added = [listener for listener in native.dispatch.do_orm_execute if listener not in prior]
-        if len(added) != 1:
-            fail('Unexpected native workspace setup source graph')
-        event.remove(native, 'do_orm_execute', added[0])
         def restrict(execution):
             if not execution.is_select or not execution.is_orm_statement:
                 fail('Native workspace setup has no general SQL authority')
@@ -194,7 +191,6 @@ def _native(plan):
             execution.statement = execution.statement.options(*(with_loader_criteria(model, clause,
                 include_aliases=True, propagate_to_loaders=True) for model, clause in criteria.items()))
         event.listen(native, 'do_orm_execute', restrict)
-        event.listen(native, 'do_orm_execute', added[0])
         event.listen(native, 'before_flush', plan.validate)
         event.listen(native, 'after_flush_postexec', plan.stamp)
         principal = native.get(User, actor.id)
@@ -209,6 +205,10 @@ def _native(plan):
         membership = AccessMembership.__table__
         principal._suite_is_company_admin = bool(db.connection().scalar(select(membership.c.is_admin).where(
             membership.c.company_id == scope.company_id, membership.c.user_id == actor.id, membership.c.active.is_(True))))
+        prior = tuple(native.dispatch.do_orm_execute)
+        cleanup = install_scope(native, principal, scope.company_id, plan.grants)
+        if len([listener for listener in native.dispatch.do_orm_execute if listener not in prior]) != 1:
+            fail('Unexpected native workspace setup source graph')
         result = native_workspaces.create_workspace_operation(native_workspaces.WorkspaceInput(name=plan.data.name),
             native, principal, commit=False)
         while native.new or native.dirty:

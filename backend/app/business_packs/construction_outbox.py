@@ -290,7 +290,206 @@ def source_allowed(db, certificate, recipient, scope):
                 certificate.pack_key, certificate.pack_version, certificate.recipient_user_id)
             != (scope.company_id, scope.branch_id, scope.context_id, 'construction', scope.pack_version, recipient.id)
             or certificate.module not in {'pms', 'project_management'}
-            or certificate.source_table not in {'pms_tasks', 'pms_task_assignees'}):
+            or certificate.source_table not in {'pms_tasks', 'pms_task_assignees', 'pms_workspace_members'}):
         return False
+    if certificate.source_table == 'pms_workspace_members':
+        return _member_source_allowed(db, certificate, recipient, scope)
     return source_access(db, company_id=scope.company_id, branch_id=scope.branch_id, context_id=scope.context_id,
         recipient_user_id=recipient.id, source_table=certificate.source_table, source_key=certificate.source_key)
+
+
+def verify_native_emitter(native, scope, parent, frame):
+    from .construction_emitter import verify_native_emitter as verify
+    return verify(native, scope, parent=parent, frame=frame)
+
+
+def issuer_allowed(db, certificate, actual_issuer, scope):
+    """Original issuer's current authority, separate from recipient eligibility.
+
+    This is a predicate for the shared retained certificate verifier. It cannot
+    mint a certificate, reinterpret its recipient, or authorize a provider.
+    """
+    from app.models.user import User
+    from app.apps.project_management.models import PMSWorkspace, PMSWorkspaceMember
+    from .common_core import _native_authority
+    from .boundary import _current
+    from .operations import require
+    state = inspect(actual_issuer, raiseerr=False)
+    if (type(actual_issuer) is not User or state is None or not state.persistent
+            or state.session is not db or actual_issuer in db.deleted or not actual_issuer.is_active
+            or not isinstance(scope, PackScope) or scope.pack_key != 'construction'
+            or db.info.get('business_pack_scope') is not scope or scope.user_id != actual_issuer.id
+            or getattr(certificate, 'actor_user_id', None) != actual_issuer.id
+            or (certificate.company_id, certificate.branch_id, certificate.context_id,
+                certificate.pack_key, certificate.pack_version)
+            != (scope.company_id, scope.branch_id, scope.context_id, 'construction', scope.pack_version)
+            or certificate.module not in {'pms', 'project_management'}):
+        return False
+    try:
+        authority = _native_authority(db, actual_issuer, scope.company_id)
+        _current(scope, db.connection())
+        if certificate.source_table == 'pms_workspace_members':
+            from .construction_workspace_members import access
+            key = certificate.source_key
+            if not isinstance(key, str) or not re.fullmatch(r'[1-9][0-9]{0,9}', key) or int(key) > 2147483647:
+                return False
+            member, workspace = PMSWorkspaceMember.__table__, PMSWorkspace.__table__
+            def member_facts():
+                return db.connection().execute(select(member.c.id, member.c.workspace_id,
+                    member.c.user_id, member.c.role).where(member.c.id == int(key),
+                    member.c.user_id == certificate.recipient_user_id, member.c.role.in_(('Member','Admin')),
+                    _owned(member, member.c.id, scope), member.c.workspace_id.in_(select(workspace.c.id).where(
+                        workspace.c.organization_id == scope.company_id, _owned(workspace, workspace.c.id, scope))))).first()
+            before = member_facts()
+            if before is None:
+                return False
+            # Includes settings.manage, native PMS create/edit/view + Sales
+            # create, and the actual native Workspace Owner/Admin guard.
+            access(db, actual_issuer, before.workspace_id)
+            if before != member_facts():
+                return False
+        elif certificate.source_table in {'pms_tasks', 'pms_task_assignees'}:
+            from .construction_workpackages import task_source
+            task_id, assignee = _decode(certificate.source_table, certificate.source_key)
+            task, assignment = PMSTask.__table__, PMSTaskAssignee.__table__
+            def task_facts():
+                row = db.connection().execute(select(task.c.project_id, task.c.parent_task_id).where(
+                    task.c.id == task_id, task.c.deleted_at.is_(None), _owned(task, task.c.id, scope))).first()
+                if row is None:
+                    _deny()
+                if assignee is not None and db.connection().execute(select(assignment.c.task_id).where(
+                        assignment.c.task_id == task_id, assignment.c.user_id == assignee,
+                        _owned(assignment, None, scope))).first() is None:
+                    _deny()
+                return row
+            before = task_facts()
+            require(db, actual_issuer, 'sites.view')
+            task_source(db, actual_issuer, before.project_id, task_id)
+            # Exercise PMS visibility through the finite native reader, rather
+            # than asking the common delivery reader to acquire PMS query rights.
+            if not _native_visible(db, actual_issuer, scope, before.project_id, task_id):
+                return False
+            if before != task_facts():
+                return False
+        else:
+            return False
+        _current(scope, db.connection())
+        return authority == _native_authority(db, actual_issuer, scope.company_id)
+    except (HTTPException, ValueError, TypeError, AttributeError, KeyError):
+        return False
+
+
+def _member_notice(native, notice, scope, *, pending):
+    from app.models.notification import Notification
+    from app.apps.project_management.models import PMSWorkspace, PMSWorkspaceMember
+    from .construction_workspace_members import _MemberSession
+    plan = getattr(native, '_member_plan', None)
+    state = inspect(notice, raiseerr=False)
+    member = getattr(notice, '_suite_source_record', None)
+    member_state = inspect(member, raiseerr=False)
+    if (type(native) is not _MemberSession or plan is None or plan.scope is not scope
+            or not isinstance(scope, PackScope) or scope.pack_key != 'construction'
+            or native.info.get('shared_actor') != (scope.user_id, scope.company_id)
+            or type(notice) is not Notification or notice is not plan.notice
+            or state is None or state.session is not native or notice in native.deleted
+            or notice not in plan.births
+            or (pending and (not state.pending or notice.id is not None or notice not in native.new))
+            or (not pending and (not state.persistent or not notice.id))
+            or type(member) is not PMSWorkspaceMember or member is not plan.root
+            or member_state is None or not member_state.persistent or member_state.session is not native
+            or member in native.deleted or id(member) not in plan.stamped
+            or not member.id or member.workspace_id != plan.wid or member.user_id != plan.reference.id
+            or member.role != plan.data.role or member.role not in {'Member', 'Admin'}):
+        _deny()
+    plan.current()
+    workspace = PMSWorkspace.__table__
+    name = plan.db.connection().scalar(select(workspace.c.name).where(
+        workspace.c.id == member.workspace_id, workspace.c.organization_id == scope.company_id,
+        _owned(workspace, workspace.c.id, scope)))
+    if (name is None or notice.company_id != scope.company_id or notice.user_id != member.user_id
+            or notice.title != 'Added to workspace' or notice.module != 'project_management'
+            or notice.event_type != 'workspace.member_added'
+            or notice.message != f'You were added to {name} as {member.role}.'
+            or notice.action_url != f'/pms/workspaces?workspace={member.workspace_id}'):
+        _deny()
+    return member
+
+
+def notice_identity(native, notice, scope):
+    """Describe only the pending native notice's genuine born membership."""
+    member = _member_notice(native, notice, scope, pending=True)
+    return {'source_table': 'pms_workspace_members', 'source_key': str(member.id)}
+
+
+def notification_email_identity(native, outbox, scope):
+    """Describe the native email's persisted notice, without delivery authority."""
+    import hashlib
+    from app.core.config import settings
+    state = inspect(outbox, raiseerr=False)
+    if (type(outbox) is not EmailOutbox or state is None or not state.pending
+            or state.session is not native or outbox.id is not None or outbox not in native.new):
+        _deny()
+    notice = getattr(outbox, '_suite_source_record', None)
+    member = _member_notice(native, notice, scope, pending=False)
+    plan = native._member_plan
+    suffix = hashlib.sha256(plan.reference.email.casefold().encode()).hexdigest()
+    body = (f'Business Suite notification #{notice.id} has an update.\nSign in to review details: '
+        + settings.FRONTEND_PUBLIC_URL.rstrip('/') + '/notifications')
+    if (outbox.organization_id != scope.company_id or outbox.module != 'notifications'
+            or outbox.recipient_user_id != member.user_id or outbox.recipient != plan.reference.email
+            or outbox.subject != 'Business Suite notification: created' or outbox.body != body
+            or outbox.is_html or not isinstance(outbox.event_key, str)
+            or not re.fullmatch(r'event:[0-9a-f]{32}:' + suffix, outbox.event_key)):
+        _deny()
+    return {'source_table': 'notifications', 'source_key': str(notice.id)}
+
+
+def _member_source_allowed(db, certificate, recipient, scope):
+    """Revalidate an exact certified membership under the recipient's own ACL."""
+    from app.apps.project_management.models import PMSWorkspace, PMSWorkspaceMember
+    from app.apps.project_management.workspace_lifecycle import WorkspaceArchive
+    from app.models.notification import Notification
+    from .construction_workspace_members import target_proof
+    from .boundary import _current
+    key = certificate.source_key
+    if not isinstance(key, str) or not re.fullmatch(r'[1-9][0-9]{0,9}', key) or int(key) > 2147483647:
+        return False
+    member, workspace, archived = PMSWorkspaceMember.__table__, PMSWorkspace.__table__, WorkspaceArchive.__table__
+    def facts():
+        return db.connection().execute(select(member.c.id, member.c.workspace_id, member.c.user_id, member.c.role,
+            workspace.c.name).select_from(member.join(workspace, member.c.workspace_id == workspace.c.id)).where(
+            member.c.id == int(key), member.c.user_id == recipient.id, member.c.role.in_(('Member','Admin')),
+            _owned(member, member.c.id, scope),
+            workspace.c.organization_id == scope.company_id, _owned(workspace, workspace.c.id, scope),
+            ~select(archived.c.workspace_id).where(archived.c.workspace_id == workspace.c.id,
+                archived.c.deleted_at.is_not(None)).exists())).first()
+    try:
+        before = facts()
+        if before is None:
+            return False
+        notice_id = getattr(certificate, 'notification_id', None)
+        def notice_matches():
+            # The shared certificate seals this historical native payload. Its
+            # fixed action URL binds the same-ID membership to its born parent.
+            # A renamed workspace intentionally fails closed until its native
+            # notice is superseded; body text never discovers the source.
+            if notice_id is None:
+                return True  # Internal mint has already checked the live pointer.
+            if type(notice_id) is not int or not 1 <= notice_id <= 2147483647:
+                return False
+            notice = Notification.__table__
+            row = db.connection().execute(select(notice.c.title, notice.c.message, notice.c.module,
+                notice.c.event_type, notice.c.action_url).where(notice.c.id == notice_id,
+                notice.c.company_id == scope.company_id, notice.c.user_id == recipient.id,
+                _owned(notice, notice.c.id, scope))).first()
+            return row is not None and tuple(row) == ('Added to workspace',
+                f'You were added to {before.name} as {before.role}.', 'project_management',
+                'workspace.member_added', f'/pms/workspaces?workspace={before.workspace_id}')
+        if not notice_matches():
+            return False
+        reference, epoch = target_proof(db, recipient, scope, recipient.id)
+        _current(scope, db.connection())
+        fresh_reference, fresh_epoch = target_proof(db, recipient, scope, recipient.id)
+        return reference == fresh_reference and epoch == fresh_epoch and before == facts() and notice_matches()
+    except (HTTPException, ValueError, TypeError, AttributeError, KeyError):
+        return False

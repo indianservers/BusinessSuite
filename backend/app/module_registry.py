@@ -83,6 +83,7 @@ COMMON_MODEL_MODULES = (
     "app.models.security_boundary",
     "app.access.models",
     "app.business_packs.models",
+    "app.business_packs.delivery_source_models",
     "app.business_packs.retail.models",
     "app.business_packs.pharma.models",
     "app.business_packs.pharma.recall_models",

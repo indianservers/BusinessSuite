@@ -33,6 +33,7 @@ from .operations import require
 router = APIRouter(tags=['Construction project definition'])
 KINDS = {'project_definition', 'task_definition'}
 _COMMANDS = WeakKeyDictionary()
+_BIRTH_STAMPS = WeakKeyDictionary()
 
 
 class _DefinitionSession(_Writer):
@@ -313,6 +314,7 @@ class _Birth:
     def stamp(self, session, *args):
         from app.branches.catalog import resource_key
         connection = self.db.connection()
+        mail = []
         for row in self.births:
             state = inspect(row)
             if not state.persistent or id(row) in self.stamped:
@@ -327,14 +329,41 @@ class _Birth:
                     values.update(context_id=self.scope.context_id, revision=1)
                 connection.execute(target.insert().values(**values))
             self.stamped.add(id(row))
+            if type(row) is EmailOutbox:
+                mail.append(row)
+        # Every real native birth is anchored before any common mail verifier
+        # inspects the actual source graph in this flush.
+        for row in mail:
+            from .delivery_sources import mint_private
+            mint_private(session, self.scope, row)
+
+
+def _stamp_definition_births(session, flush_context):
+    plan = _BIRTH_STAMPS.get(session)
+    if plan is None:
+        return
+    if (type(session) is not _DefinitionSession or type(plan) is not _Birth
+            or plan.db.info.get('business_pack_scope') is not plan.scope
+            or session.info.get('shared_actor') != (plan.actor.id, plan.scope.company_id)):
+        fail('Definition stamping requires its actual private native birth plan', 403)
+    plan.stamp(session, flush_context)
+
+
+# Install once, before any flush. The subclass listener runs before base
+# Session email callbacks; all existing birth validation/final guards remain.
+event.listen(_DefinitionSession, 'after_flush_postexec', _stamp_definition_births, insert=True)
 
 
 def _native(plan):
+    from .construction_emitter import issue, seal, release_native
+    from .delivery_sources import bind_native_emitter
     from app.access.models import AccessMembership, AccessPolicy, AccessRole
     from app.apps.project_management.workspace_lifecycle import WorkspaceArchive
     from app.shared.communication.models import FollowUp as ChatFollowUp
     from app.shared.models import ServiceEvent
     from app.models.user import User, Role
+    from app.models.employee import Employee
+    from app.models.company import Branch
     from app.common.models import CommonPerson
     from .catalog_management import _module_grant
     from app.access.scope import install_scope
@@ -368,6 +397,11 @@ def _native(plan):
         AccessPolicy: and_(AccessPolicy.company_id == scope.company_id, AccessPolicy.user_id.in_(users)),
         AccessRole: and_(AccessRole.company_id == scope.company_id, AccessRole.id.in_(role_ids)),
         User: User.id.in_(users),
+        Employee: and_(Employee.user_id == actor.id, or_(Employee.branch_id.in_(
+            select(Branch.__table__.c.id).where(Branch.__table__.c.company_id == scope.company_id)),
+            Employee.branch_id.is_(None) & (scope.company_id == 1))),
+        Branch: and_(Branch.company_id == scope.company_id, Branch.id.in_(
+            select(Employee.__table__.c.branch_id).where(Employee.__table__.c.user_id == actor.id))),
         Role: Role.id.in_(select(User.__table__.c.role_id).where(User.__table__.c.id.in_(users))),
         CommonPerson: and_(CommonPerson.user_id.in_(users), CommonPerson.organization_id == scope.company_id),
         EmailOutbox: and_(EmailOutbox.organization_id == scope.company_id, EmailOutbox.module == 'pms',
@@ -379,14 +413,10 @@ def _native(plan):
     native = _DefinitionSession(bind=db.connection(), autoflush=False, expire_on_commit=False, join_transaction_mode='create_savepoint')
     native._authority_reads = _PlanAuthority(db.connection(), scope.company_id, users)
     native.info.update(shared_actor=(actor.id, scope.company_id), security_write_request=True)
+    _BIRTH_STAMPS[native] = plan
     cleanup = None
+    emitter_frame, emitter_cleanup, emitter_successful = None, None, False
     try:
-        prior = tuple(native.dispatch.do_orm_execute)
-        cleanup = install_scope(native, actor, scope.company_id, grants)
-        listeners = [listener for listener in native.dispatch.do_orm_execute if listener not in prior]
-        if len(listeners) != 1:
-            fail('Native definition scope has an unexpected reader graph', 403)
-        event.remove(native, 'do_orm_execute', listeners[0])
         recovery_update = str(update(RecoveryChange).where(RecoveryChange.workspace_id == plan.workspace_id,
             RecoveryChange.actor_id == actor.id, RecoveryChange.state == 'undone').values(state='discarded').compile(compile_kwargs={'literal_binds': True}))
         def restrict(execution):
@@ -402,9 +432,7 @@ def _native(plan):
             execution.statement = execution.statement.options(*(with_loader_criteria(model, criterion,
                 include_aliases=True, propagate_to_loaders=True) for model, criterion in criteria.items()))
         event.listen(native, 'do_orm_execute', restrict)
-        event.listen(native, 'do_orm_execute', listeners[0])
         event.listen(native, 'before_flush', plan.validate)
-        event.listen(native, 'after_flush_postexec', plan.stamp)
         # The actual native operation receives a genuine User in this finite
         # Session. Actor identity is not a permission-bearing DTO/namespace.
         principal = native.get(User, actor.id)
@@ -419,9 +447,18 @@ def _native(plan):
         membership = AccessMembership.__table__
         principal._suite_is_company_admin = bool(db.connection().scalar(select(membership.c.is_admin).where(
             membership.c.company_id == scope.company_id, membership.c.user_id == actor.id, membership.c.active.is_(True))))
+        prior = tuple(native.dispatch.do_orm_execute)
+        cleanup = install_scope(native, principal, scope.company_id, grants)
+        listeners = [listener for listener in native.dispatch.do_orm_execute if listener not in prior]
+        if len(listeners) != 1:
+            fail('Native definition scope has an unexpected reader graph', 403)
         resource_principals = [native.get(User, identity) for identity in users - {actor.id}]
         for resource in resource_principals:
             resource.organization_id = scope.company_id
+        emitter_frame = issue(native, parent=db, scope=scope, actor=actor, self_user=principal,
+            purpose='construction.definition.project' if plan.kind == 'project_definition' else 'construction.definition.task',
+            current=plan.current, epoch=plan.authority)
+        emitter_cleanup = bind_native_emitter(native, scope, parent=db, frame=emitter_frame)
         from app.apps.project_management.api import router as pms
         if plan.kind == 'project_definition':
             from app.apps.project_management.schemas import PMSProjectCreate
@@ -443,14 +480,21 @@ def _native(plan):
         native.commit = lambda: fail('Native definition does not own the outer commit', 403)
         # SessionTransaction commit releases only this native savepoint; the
         # public native operation was explicitly called commit=False.
+        seal(emitter_frame)
         native.get_transaction().commit()
+        emitter_successful = True
         return {column.name: getattr(result, column.name) for column in result.__table__.columns
                 if column.name in {'id', 'name', 'title', 'project_key', 'task_key', 'workspace_id', 'project_id',
                     'branch_id', 'parent_task_id', 'status', 'start_date', 'due_date', 'estimated_cost', 'estimated_hours'}}
     finally:
+        if emitter_cleanup is not None:
+            emitter_cleanup()
         if cleanup is not None:
             cleanup()
         native.close()
+        _BIRTH_STAMPS.pop(native, None)
+        if emitter_frame is not None:
+            release_native(emitter_frame, successful=emitter_successful)
 
 
 def validate_record(db, scope, row):
