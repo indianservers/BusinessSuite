@@ -34,8 +34,9 @@ export function setPackContext(value: string | null) {
 // Existing switchers may write storage directly. Persisted ownership also
 // detects changes across reloads, before the next request/cache/owner read.
 if (typeof window !== 'undefined') {
-  selectedPackContext();
+  const refreshHint = () => { try { selectedPackContext(); } catch { /* Storage can be unavailable for this navigation hint. */ } };
+  refreshHint();
   for (const event of ['suite:organization-changed', 'suite:branch-changed', 'suite:tenant-changed']) {
-    window.addEventListener(event, () => { selectedPackContext(); });
+    window.addEventListener(event, refreshHint);
   }
 }

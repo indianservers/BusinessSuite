@@ -8,7 +8,7 @@ import "./files-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useModuleAction } from "@/hooks/use-module-action";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { usePageRefresh } from "@/lib/page-refresh";
@@ -25,22 +25,25 @@ type SavedChange={projectId:string;kind:"folder"|"move"|"delete"|"upload";messag
 export default function FilesPage() {
   const phone=useMobile(480),mobileOrigin=useRef(phone);
   if(phone)mobileOrigin.current=true;
+  const [searchParams]=useSearchParams();
+  const constructionProject=searchParams.get("constructionProject") || "";
   const scope=useMobileContext(mobileOrigin.current),{projectId}=useParams<{projectId:string}>();
   const route=useRef(projectId),epoch=useRef(0);
   if(mobileOrigin.current&&route.current!==projectId)epoch.current++;
   route.current=projectId;
   if(mobileOrigin.current&&scope!==syncScope())return <p role="status">Updating file context…</p>;
-  return <FilesContent key={scope+":"+epoch.current} protectedContext={mobileOrigin.current}/>;
+  return <FilesContent key={scope+":"+epoch.current+":"+constructionProject} protectedContext={mobileOrigin.current||!!constructionProject} constructionProject={constructionProject}/>;
 }
 
-function FilesContent({protectedContext}:{protectedContext:boolean}) {
+function FilesContent({protectedContext,constructionProject}:{protectedContext:boolean;constructionProject:string}) {
   const { term: businessTerm } = useBusinessTerms();
   const phone=useMobile(480),mutationLock=useRef(false);
   const ownerScope=useRef(syncScope()),projectEpoch=useRef(0),folderBaseline=useRef("");
   const [savedRevision,setSavedRevision]=useState(0),[completedRevision,setCompletedRevision]=useState(0);
   const confirmed=useRef<SavedChange|null>(null),verification=useRef<Promise<void>|null>(null);
   const [recovery,setRecovery]=useState<SavedChange|null>(null),[checking,setChecking]=useState(false),[recoveryError,setRecoveryError]=useState("");
-  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  const { projectId: pathProjectId } = useParams<{ projectId: string }>();
+  const routeProjectId=constructionProject || pathProjectId;
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [projectId, setProjectId] = useState("");
   const [files, setFiles] = useState<PMSFileAsset[]>([]);
@@ -96,7 +99,7 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
       if(!active||!ownsContext()||reading)return;
       reading=true;if(phone||confirmed.current||protectedContext)source("projects","loading");
       try{
-        const items=await listAllProjects();
+        const items=constructionProject ? (await api.get<{items:PMSProject[]}>("/srm/industry/project-options",{params:{files_project_id:constructionProject}})).data.items : await listAllProjects();
         const selected=routeProjectId&&!items.some(project=>String(project.id)===routeProjectId)?await projectsAPI.get(Number(routeProjectId)):null;
         if(!active||!mounted.current||!ownsContext())return;
         setProjects(selected?[selected,...items]:items);
@@ -118,7 +121,7 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
     }
     retryProjects.current=loadProjects;void loadProjects();
     return () => { active = false; };
-  }, [routeProjectId,phone,protectedContext]);
+  }, [routeProjectId,phone,protectedContext,constructionProject]);
 
   async function load(id = projectId, fresh = false) {
     const protectedRead=phone||fresh||!!confirmed.current||protectedContext;
@@ -208,7 +211,8 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
     </div>;
   }
   const withSource=(children:ReactNode)=>phone||recovery||protectedContext?<div>{sourceNotice()}{error&&<p role="alert" className="move-error">{error}</p>}{children}</div>:children;
-  const canCreate=canManage&&allowCreate,canEdit=canManage&&allowEdit,canDelete=canManage&&allowDelete;
+  const canCreate=canManage&&allowCreate,canEdit=canManage&&allowEdit&&!constructionProject,canDelete=canManage&&allowDelete&&!constructionProject;
+  const canCreateFolder=canCreate&&!constructionProject;
   async function upload(selected: File[]) {
     if (!ownsContext() || confirmed.current || !selected.length || !projectId || busy || !canCreate || (phone&&(mutationLock.current||!isSourceReady()))) return;
     if(phone)mutationLock.current=true;
@@ -284,7 +288,7 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
     finally { if(!protectedContext||ownsProject(owner,epoch)){if(phone)mutationLock.current=false;setBusy(false);} }
   }
   async function createFolder() {
-    if (!ownsContext() || confirmed.current || !folder.trim() || !canCreate || busy || (phone&&(mutationLock.current||!isSourceReady()))) return;
+    if (!ownsContext() || confirmed.current || !folder.trim() || !canCreateFolder || busy || (phone&&(mutationLock.current||!isSourceReady()))) return;
     if(phone)mutationLock.current=true;
     setBusy(true); setError("");const epoch=projectEpoch.current,owner=projectId;
     try { await api.post("/project-management/file-folders", { project_id: Number(projectId), name: folder.trim() }); if(protectedContext&&!ownsProject(owner,epoch))return;if(phone)await saved("folder","Folder created");else{setFolder("");await load();setNotice("Folder created");} }
@@ -303,7 +307,7 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
     <div className="pd-file-toolbar"><label className="pd-file-search"><Search size={17} /><input aria-label="Search project files" value={fileQuery} onChange={e => setFileQuery(e.target.value)} placeholder="Search files by name…" /></label><NativeSelect aria-label="Filter files by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="all">All folders</option><option value="root">Unfiled</option>{missingFilter&&<option value={folderFilter}>Selected folder (unverified)</option>}{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><NativeSelect aria-label="Upload folder" disabled={busy || !canCreate || !sourceReady} value={target} onChange={e => setTarget(e.target.value)}><option value="">Upload to: Unfiled</option>{missingTarget&&<option value={target}>Selected folder (unverified)</option>}{folders.map(f => <option key={f.id} value={f.id}>Upload to: {f.name}</option>)}</NativeSelect><div className="pd-file-views" aria-label="File layout"><button aria-pressed={fileView === "library"} onClick={() => setFileView("library")}><LayoutGrid size={15} />Library</button><button aria-pressed={fileView === "folders"} onClick={() => setFileView("folders")}><Folder size={15} />Folders</button></div></div>
     {recordsVisible&&(fileView === "library" ? <GroupedRecords scope="pms-file-library" items={(visibleFiles) || []} fields={[{id:"visibility",label:"Visibility",value:file=>file.visibility},{id:"folder",label:"Folder",value:file=>folders.find(folder=>folder.id===file.folder_id)?.name || "Unfiled"}]} gridClassName="pd-file-grid" renderItem={(file,_index,closePreview) => {const card=<article className="pd-file-card" key={file.id}><div className="pd-file-preview"><SuiteFileIcon name={file.original_name} /></div><h3>{file.original_name}</h3><small>{Math.max(1, Math.ceil(file.size_bytes / 1024))} KB · {file.visibility} · v{file.version_number}</small><div className="pd-file-card-footer"><NativeSelect aria-label={`Move ${file.original_name} to folder`} disabled={busy || !sourceReady || !canEdit || String(file.visibility) === "Work Evidence"} value={file.folder_id || "root"} onChange={e => void moveFile(file, e.target.value)}><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect>{fileActions(file)}</div></article>;return phone&&closePreview?<div className="pms-files pms-files-preview">{card}</div>:card;}}/> : <MoveBoard label="Project file folders" reorder={false} disabled={busy || !sourceReady || !canEdit} groups={[{ id: "root", label: "Unfiled" }, ...folders.map(f => ({ id: String(f.id), label: f.name }))]} items={visibleFiles.map(file => ({ id: file.id, label: file.original_name, group: file.folder_id ? String(file.folder_id) : "root", disabled: String(file.visibility) === "Work Evidence", content: <div className="flex justify-between text-xs"><span>{Math.ceil(file.size_bytes / 1024)} KB · {file.visibility}</span>{fileActions(file)}</div> }))} onMove={async ({ item, group }) => { const file = files.find(f => f.id === item.id); if (file) await moveFile(file, group, phone); }} />)}
     {(!phone||sourceReady)&&!visibleFiles.length && <p className="pd-files-empty">{files.length ? "No files match your search. Try another name or folder." : "No files yet. Upload the first project document to get started."}</p>}
-    {canCreate && <SmartCreateSection onClose={closeFolderDraft} title="Create folder" size="compact" mobileSheet={phone} savedRevision={phone||recovery?savedRevision:0} closeOnRecordSaved={!phone&&!recovery} completionRevision={completedRevision} trigger={phone?<Button className="pms-files-create-trigger"><FolderPlus size={16}/>Create folder</Button>:undefined}>{withSource(<form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input disabled={!!recovery||(phone&&busy)} aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button data-save-action variant="outline" disabled={!folder.trim() || busy || !sourceReady}>Create folder</Button></form>)}</SmartCreateSection>}
+    {canCreateFolder && <SmartCreateSection onClose={closeFolderDraft} title="Create folder" size="compact" mobileSheet={phone} savedRevision={phone||recovery?savedRevision:0} closeOnRecordSaved={!phone&&!recovery} completionRevision={completedRevision} trigger={phone?<Button className="pms-files-create-trigger"><FolderPlus size={16}/>Create folder</Button>:undefined}>{withSource(<form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input disabled={!!recovery||(phone&&busy)} aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button data-save-action variant="outline" disabled={!folder.trim() || busy || !sourceReady}>Create folder</Button></form>)}</SmartCreateSection>}
     <p className="text-xs text-muted-foreground">Showing up to 100 files available to you in this project.</p>
   </div>;
   return (
@@ -396,10 +400,10 @@ function FilesContent({protectedContext}:{protectedContext:boolean}) {
           value={folder}
           onChange={(e) => setFolder(e.target.value)}
         />
-        <Button data-save-action available={!!(canCreate)}
+        <Button data-save-action available={!!(canCreateFolder)}
           disabled={!folder.trim() || busy || !canCreate || !sourceReady}
           onClick={async () => {
-            if(!ownsContext()||confirmed.current||(phone&&(!canCreate||busy||mutationLock.current||!isSourceReady()||!folder.trim())))return;
+            if(!ownsContext()||confirmed.current||(phone&&(!canCreateFolder||busy||mutationLock.current||!isSourceReady()||!folder.trim())))return;
             if(phone)mutationLock.current=true;
             setBusy(true);
             setError("");const epoch=projectEpoch.current,owner=projectId;

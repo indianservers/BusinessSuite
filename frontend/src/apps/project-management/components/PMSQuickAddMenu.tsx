@@ -1,3 +1,4 @@
+import { selectedConstruction } from '@/lib/selected-construction';
 import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { useQueryClient } from "@tanstack/react-query";
 import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
@@ -32,6 +33,7 @@ function ScopedPMSQuickAddMenu({ children, scope }: QuickAddProps & {scope:strin
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true; setLoading(true); setContext(undefined);
+    if(selectedConstruction(user)){setLoading(false);return;}
     const project = location.pathname.match(/\/pms\/projects\/(\d+)/)?.[1];
     void Promise.all([
       client.fetchQuery(pmsWorkspaceOptions(workspaceScope)),

@@ -1,3 +1,4 @@
+import { selectedConstruction } from '@/lib/selected-construction';
 import { useEffect, useLayoutEffect, useState } from "react";
 
 import { Link, useLocation } from "react-router-dom";
@@ -92,6 +93,7 @@ export default function MobileModuleDock() {
   const location = useLocation();
 
   const user = useAuthStore(state => state.user);
+  const construction = selectedConstruction(user);
   const scope = useRecordScope();
 
   const [selected, setSelected] = useState<Item | null>(null);
@@ -114,13 +116,13 @@ export default function MobileModuleDock() {
 
   const badges = useQuery<Record<string, number>>({
 
-    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals, scope],
+    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals, scope, construction],
 
     queryFn: async (): Promise<Record<string, number>> => {
 
       if ((module === "crm" || module === "srm") && allowed(`/${module}/follow-ups`)) { const r = await api.get("/follow-ups/statistics", { progress: false }); return { "Follow-ups": Number(r.data.Overdue || 0) }; }
 
-      if (module === "pms" && allowed("/pms/my-work")) { const r = await api.get("/project-management/tasks", { params: { workView: "mine", pageSize: 1 }, progress: false }); return { "My Work": Number(r.data.summary?.overdue || 0), Tasks: Number(r.data.summary?.in_review || 0) }; }
+      if (module === "pms" && !construction && allowed("/pms/my-work")) { const r = await api.get("/project-management/tasks", { params: { workView: "mine", pageSize: 1 }, progress: false }); return { "My Work": Number(r.data.summary?.overdue || 0), Tasks: Number(r.data.summary?.in_review || 0) }; }
 
       if (module === "hrms" && canReadLeaveApprovals) { const r = await api.get("/leave/requests", { params: { status: "Pending" }, progress: false, recordCache: false }); const rows = Array.isArray(r.data) ? r.data : r.data.items; return { Leave: Array.isArray(rows) ? rows.length : 0 }; }
 
