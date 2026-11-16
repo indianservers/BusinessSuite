@@ -440,6 +440,8 @@ def dispatch(db):
         if now < due - timedelta(minutes=lead):
             continue
         phase = 'overdue' if now > due else 'reminder'
+        from app.business_packs.followup_delivery import dispatch_private_followup
+        if dispatch_private_followup(db,row,now=now,phase=phase):continue
         preference = db.query(FollowUpPreference).filter_by(organization_id=row.organization_id, user_id=row.assigned_user_id).first()
         if preference and (not preference.in_app or (phase == 'overdue' and (not preference.overdue))):
             continue

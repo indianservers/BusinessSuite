@@ -263,6 +263,7 @@ def capabilities(project_id: int | None = None, db: Session = Depends(get_db), u
         native_approve = project_action('approve')
         result.update(
             workspace_ready=workspace_ready,
+            workspace_team_manage='settings.manage' in allowed and scope.writable and manage and native_write and ceiling('project_management', 'create') and ceiling('project_management', 'edit'),
             workspace_setup_manage='settings.manage' in allowed and scope.writable and manage and global_projects and native_write and ceiling('project_management', 'create'),
             planning_manage=workspace_ready and 'boq.prepare' in allowed and task_write and native_write
                 and ceiling('project_management', 'create') and ceiling('project_management', 'edit'),
@@ -957,3 +958,6 @@ router.include_router(construction_dependencies_router)
 
 from app.business_packs.construction_workspaces import router as construction_workspaces_router
 router.include_router(construction_workspaces_router)
+
+from app.business_packs.construction_workspace_members import router as construction_workspace_members_router
+router.include_router(construction_workspace_members_router)

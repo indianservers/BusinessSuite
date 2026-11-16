@@ -25,6 +25,11 @@ def test_baseline_preview_cascade_apply_variance_and_stale_plan(client, db):
     assert initial["complete"] and set(initial["critical_task_ids"]) == {a, b}
     base = client.post(path + "/schedule-baselines", headers=oh, json={"name": "Approved plan", "expected_revision": initial["revision"]})
     assert base.status_code == 201, base.text
+    assert set(base.json()) == {"id", "name", "created_at", "author_id"}
+    from app.apps.project_management.scheduling import _state
+    from app.apps.project_management.models import PMSProject
+    _, public_state = _state(db, db.get(PMSProject, pid))
+    assert set(public_state["baselines"][0]) == {"id", "name", "created_at", "author_id", "tasks"}
     payload = {"task_id": a, "start_date": "2026-11-12", "due_date": "2026-11-13", "calendar": {"weekdays": [0,1,2,3,4], "holidays": ["2026-11-16"]}}
     preview = client.post(path + "/schedule-preview", headers=oh, json=payload)
     assert preview.status_code == 200, preview.text

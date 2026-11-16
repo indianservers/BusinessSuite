@@ -264,8 +264,10 @@ def capture_baseline_operation(project_id, data, db, user, *, commit=True):
     if revision != data.expected_revision: raise HTTPException(409, "Schedule changed. Reload before capturing a baseline")
     if not data.name.strip(): raise HTTPException(422, "Enter a baseline name")
     if len(state["baselines"]) >= 20: raise HTTPException(422, "This project already has 20 retained baselines")
-    baseline = {"id": str(uuid.uuid4()), "name": data.name.strip(), "created_at": datetime.now(timezone.utc).isoformat(), "author_id": user.id, "calendar": state["calendar"],
+    baseline = {"id": str(uuid.uuid4()), "name": data.name.strip(), "created_at": datetime.now(timezone.utc).isoformat(), "author_id": user.id,
                 "tasks": [{"id": t.id, "start_date": str(t.start_date) if t.start_date else None, "due_date": str(t.due_date) if t.due_date else None} for t in tasks]}
+    if not commit:
+        baseline["calendar"] = state["calendar"]
     state["baselines"].append(baseline)
     _save(db, project, user, row, state)
     from .api.router import _record_activity

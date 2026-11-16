@@ -6,6 +6,7 @@ from sqlalchemy import inspect, update
 
 from app.models.user import User
 from app.models.employee import Employee
+from app.apps.crm.models import CRMDeal
 from app.apps.project_management.models import PMSProject, PMSTask
 from app.apps.srm.industry_models import IndustryRecord
 from tests.test_business_pack_construction import construction,scenario,catalog,directory_identity
@@ -56,7 +57,11 @@ def test_real_native_definition_actor_cannot_read_unregistered_employee_realm(cl
     def foreign_read(*args,**kwargs):
         reader,actor = args[-2],args[-1]
         assert type(actor) is User and inspect(actor).session is reader
-        reader.query(Employee).all()
+        # Native scope may read only this actual actor's employee identity.
+        assert reader.query(Employee).filter(Employee.user_id != actor.id).count() == 0
+        assert reader.query(User).filter(User.id != actor.id).count() == 0
+        # CRM deal records remain outside the finite definition source inventory.
+        reader.query(CRMDeal).all()
         return original(*args,**kwargs)
     with monkeypatch.context() as fault:
         fault.setattr(native,name,foreign_read)
