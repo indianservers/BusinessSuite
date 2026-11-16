@@ -14,7 +14,8 @@ def lock_company_writer(db, company_id):
         connection.execute(text('SELECT pg_advisory_xact_lock(:key)'), {'key': 720000000 + company_id})
         row = connection.execute(select(Company.id).where(Company.id == company_id).with_for_update()).first()
     else:
-        connection.execute(Company.__table__.update().where(Company.id == company_id).values(name=Company.__table__.c.name))
+        # Acquire the SQLite write lock without firing the timestamp's onupdate.
+        connection.execute(Company.__table__.update().where(Company.id == company_id).values(name=Company.__table__.c.name, updated_at=Company.__table__.c.updated_at))
         row = connection.execute(select(Company.id).where(Company.id == company_id)).first()
     if row is None:
         raise HTTPException(403, 'Company writer scope is unavailable')
