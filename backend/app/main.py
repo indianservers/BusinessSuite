@@ -118,12 +118,19 @@ async def lifespan(app: FastAPI):
     if settings.BUSINESSSUITE_BACKUP_SCHEDULER:
         from app.services.backup_scheduler import start_scheduler
         backup_worker = start_scheduler()
+    telegram_worker = None
+    if settings.POWER_TELEGRAM_WORKER_ENABLED:
+        from app.apps.power_apps.telegram_worker_service import start_worker as start_telegram_worker
+        telegram_worker = start_telegram_worker(app)
     import asyncio
     from app.platform_owner.worker import run as run_platform_checks
     platform_worker = asyncio.create_task(run_platform_checks())
     try:
         yield
     finally:
+        if telegram_worker:
+            from app.apps.power_apps.telegram_worker_service import stop_worker as stop_telegram_worker
+            await asyncio.to_thread(stop_telegram_worker, telegram_worker)
         platform_worker.cancel()
         try:
             await platform_worker

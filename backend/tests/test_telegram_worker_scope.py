@@ -34,6 +34,7 @@ def test_telegram_worker_claims_only_telegram_and_skips_other_schedulers(client,
         raise AssertionError('Telegram-only mode invoked an unrelated scheduler')
 
     async def no_ai(*args, **kwargs):
+        assert args[1] is application
         return 0
 
     monkeypatch.setattr(worker, 'tick', unrelated)
@@ -46,6 +47,8 @@ def test_telegram_worker_claims_only_telegram_and_skips_other_schedulers(client,
     monkeypatch.setattr('app.apps.power_apps.integrations.native_runtime.tick', unrelated)
     monkeypatch.setattr('app.apps.power_apps.telegram.poll_tick', lambda *args: 0)
     monkeypatch.setattr('app.apps.power_apps.telegram_ai.dispatch', no_ai)
+    from fastapi import FastAPI
+    application = FastAPI()
     sent = []
 
     class Transport:
@@ -59,7 +62,7 @@ def test_telegram_worker_claims_only_telegram_and_skips_other_schedulers(client,
 
     monkeypatch.setattr('app.apps.power_apps.integrations.adapters.HTTP_FACTORY', Transport)
     for _ in range(10):
-        if not worker.worker_tick(db, 'telegram-scoped-test', telegram_only=True):
+        if not worker.worker_tick(db, 'telegram-scoped-test', telegram_only=True, application=application):
             break
     assert sent and all(str(message['chat_id']) == '42' for message in sent)
     assert all(db.get(PowerExecution, ident).status == 'completed' for ident in telegram_ids)

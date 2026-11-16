@@ -22,7 +22,7 @@ def stop(*_):
     STOP = True
 
 
-def worker_tick(db, worker_id, *, telegram_only=False):
+def worker_tick(db, worker_id, *, telegram_only=False, application=None):
     record = db.get(AutomationWorker, worker_id)
     if not record:
         record = AutomationWorker(id=worker_id, heartbeat_at=now(), processed=0)
@@ -39,7 +39,10 @@ def worker_tick(db, worker_id, *, telegram_only=False):
         from app.apps.power_apps.telegram import poll_tick
         poll_tick(db)
         from app.apps.power_apps.telegram_ai import dispatch as dispatch_telegram_ai
-        from app.main import app
+        if application is None:
+            from app.main import app
+        else:
+            app = application
         import asyncio
         async def telegram_work():
             from app.apps.power_apps.telegram_approvals import dispatch as dispatch_approvals
