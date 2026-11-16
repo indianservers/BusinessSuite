@@ -145,6 +145,11 @@ def get_current_user(
                 definition_branch = definition_target_branch(request)
                 definition_administration = definition_branch is not None
                 branch_selection = definition_branch or branch_selection
+            if route_kind is RouteKind.CONTROL:
+                from app.business_packs.control_target import addressed_branch
+                pack_control_branch = addressed_branch(db, user, request)
+                if pack_control_branch is not None:
+                    branch_selection = str(pack_control_branch)
             if request.url.path.endswith(("/settings/defaults/effective", "/settings/business-profile/effective")):
                 branch_selection = request.headers.get("X-Suite-Branch")
             if request.url.path.endswith(("/settings/defaults/configuration", "/settings/business-profile/configuration")) and request.query_params.get("branch_id"):
