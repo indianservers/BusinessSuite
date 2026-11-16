@@ -94,18 +94,26 @@ def _require_modules(db, company, manifest):
 
 
 def _branch(db, actor, company, ident, *, write=False, active=True):
+    # Company controls address a branch independently of the operational default
+    # branch filter. This is administration metadata, never a Branch ORM lease.
+    from types import SimpleNamespace
     from app.models.company import Branch
     from app.branches.models import BranchLifecycle
-    row = db.query(Branch).filter_by(id=ident, company_id=company).first()
-    lifecycle = db.query(BranchLifecycle).filter_by(branch_id=ident, company_id=company).first()
-    if row is None or active and (not row.is_active or lifecycle and lifecycle.deleted_at is not None):
+    if company_control(db, actor) != company:
+        raise HTTPException(403, 'Company access administrator required')
+    table, lifecycle = Branch.__table__, BranchLifecycle.__table__
+    row = db.connection().execute(select(table.c.id, table.c.company_id, table.c.is_active,
+        lifecycle.c.company_id.label('lifecycle_company'), lifecycle.c.deleted_at).select_from(
+            table.outerjoin(lifecycle, lifecycle.c.branch_id == table.c.id)).where(
+                table.c.id == ident, table.c.company_id == company)).mappings().first()
+    if row is None or row['lifecycle_company'] not in {None, company} or active and (not row['is_active'] or row['deleted_at'] is not None):
         raise HTTPException(404, 'Active branch not found in this company')
     if active:
         from app.branches.service import context
         native = context(db, actor, company, str(ident))
         if write and ident not in native.writable:
             raise HTTPException(403, 'Branch configuration is read-only')
-    return row
+    return SimpleNamespace(id=row['id'], company_id=row['company_id'], is_active=row['is_active'])
 
 
 def _runtime_status(db, company, pack_key, branch_id):
