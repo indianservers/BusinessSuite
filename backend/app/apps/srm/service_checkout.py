@@ -196,8 +196,19 @@ def save_policy(data:PolicyInput,db,user,*,commit=True):
             row=ServiceBookingPolicy(organization_id=company,branch_id=branch,pack_context_id=scope.context_id if scope else None,service_product_id=product.id)
             db.add(row)
         elif data.expected_revision!=row.revision:fail('Service policy revision changed',409)
-        for key,value in data.model_dump(exclude={'expected_revision','service_product_id'}).items():setattr(row,key,value)
+        previous_revision = row.revision
+        for key,value in data.model_dump(exclude={'expected_revision','service_product_id','required_resource_types'}).items():setattr(row,key,value)
         db.flush()
+        if data.required_resource_types is not None:
+            from app.apps.srm.service_resource_requirements import required_types
+            previous = required_types(product, row.id)
+            requested = set(data.required_resource_types)
+            if previous != requested:
+                product.metadata_json = {**(product.metadata_json or {}), 'service_resource_requirements': {
+                    **(product.metadata_json or {}).get('service_resource_requirements', {}), str(row.id): sorted(requested)}}
+                if not new:
+                    row.revision = previous_revision + 1
+                db.flush()
         if new:_stamp_new(db,scope,company,branch,[row])
         result={'id':row.id,'revision':row.revision,'service_product_id':row.service_product_id}
     if commit:db.commit()
@@ -248,17 +259,10 @@ def _digest(data):
 
 def _cross_pack_busy(db,company,branch,booking):
     """Privacy-safe busy proof across aliases/packs; never returns booking data."""
-    from app.apps.srm.industry_models import IndustryRecord
-    table=IndustryRecord.__table__;end=booking.starts_at+timedelta(minutes=booking.duration_minutes)
-    rows=db.connection().execute(select(table.c.data).where(table.c.organization_id==company,table.c.branch_id==branch,
-        table.c.kind=='appointment',table.c.status.in_(['booked','checked_in','in_service']),table.c.starts_at<end,table.c.ends_at>booking.starts_at)).scalars()
-    for data in rows:
-        ids=(data or {}).get('resource_ids',[])
-        if set([booking.provider_resource_id, *booking.additional_resource_ids]).intersection(ids):fail('Provider is unavailable at that time',409)
-        if ids:
-            resources=db.connection().execute(select(table.c.data).where(table.c.organization_id==company,
-                table.c.branch_id==branch,table.c.kind=='resource',table.c.id.in_(ids))).scalars()
-            if any((r or {}).get('employee_id')==booking.employee_id for r in resources):fail('Provider is unavailable at that time',409)
+    from app.business_packs.availability import appointment_conflict
+    if appointment_conflict(db, company, booking.starts_at, booking.starts_at+timedelta(minutes=booking.duration_minutes),
+            resource_ids=[booking.provider_resource_id, *booking.additional_resource_ids], employee_ids=[booking.employee_id]):
+        fail('Provider or resource is unavailable at that time',409)
 
 
 def _collection_register(db,user,company,branch,scope,selected=None,*,cash=False,currency=None):
@@ -374,7 +378,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 if not policy.min_duration_minutes<=b.duration_minutes<=policy.max_duration_minutes or (not policy.allow_duration_override and b.duration_minutes!=policy.default_duration_minutes):fail('Choose a duration permitted by the service policy')
                 start=b.starts_at;end=start+timedelta(minutes=b.duration_minutes)
                 for old in slots:
-                    if (old.employee_id==b.employee_id or set([old.provider_resource_id,*old.additional_resource_ids]).intersection([b.provider_resource_id,*b.additional_resource_ids])) and start<old.starts_at+timedelta(minutes=old.duration_minutes) and old.starts_at<end:fail('Provider has overlapping occurrences in this basket',409)
+                    if (old.employee_id==b.employee_id or old.provider_resource_id==b.provider_resource_id) and start<old.starts_at+timedelta(minutes=old.duration_minutes) and old.starts_at<end:fail('Provider has overlapping occurrences in this basket',409)
                 slots.append(b)
                 _cross_pack_busy(db,company,branch,b)
                 resources=[b.provider_resource_id,*b.additional_resource_ids]
@@ -382,7 +386,12 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 for ident in b.additional_resource_ids:
                     additional=get(db,user,branch,ident,'resource')
                     _source_scope(db,scope,company,branch,type(additional),additional.id,master=True)
-                available(db,user,branch,start,b.duration_minutes,resources)
+                from app.apps.srm.service_resource_requirements import assert_required_resources
+                assert_required_resources(product, policy.id, [get(db,user,branch,ident,'resource') for ident in b.additional_resource_ids])
+                available(db,user,branch,start,b.duration_minutes,resources, draft_bookings=[{
+                    'id':None,'branch_id':branch,'starts_at':old.starts_at,
+                    'ends_at':old.starts_at+timedelta(minutes=old.duration_minutes),
+                    'resource_ids':[old.provider_resource_id,*old.additional_resource_ids]} for old in slots[:-1]])
                 for bound,is_lower in ((eligibility.effective_from,True),(eligibility.effective_until,False)):
                     if bound:
                         bound=bound.replace(tzinfo=timezone.utc) if bound.tzinfo is None else bound
@@ -770,6 +779,10 @@ def reschedule_grouped(appointment_id,data,db,user,*,commit=True):
         end=b.starts_at+timedelta(minutes=b.duration_minutes)
         for bound,lower in ((eligibility.effective_from,True),(eligibility.effective_until,False)):
             if bound and ((lower and b.starts_at<_utc(bound)) or (not lower and end>_utc(bound))):fail('Specialist is unavailable for this interval',409)
+        from app.apps.srm.service_resource_requirements import assert_current_service_requirements
+        from app.apps.srm.models import SRMProduct
+        product = record(db,SRMProduct,occurrence.service_product_id,user)
+        assert_current_service_requirements(db,user,branch,product,resources)
         available(db,user,branch,b.starts_at,b.duration_minutes,resources,ignore=appointment.id)
         with occurrence_reschedule_scope(db,occurrence.id):
             appointment.starts_at=b.starts_at;appointment.ends_at=end

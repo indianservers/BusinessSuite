@@ -123,6 +123,11 @@ def db(db_engine):
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():
+        # Nested canonical ASGI requests are independent HTTP requests in
+        # production. The shared transactional fixture must likewise give
+        # each request its own immutable operational-realm binding.
+        realm_keys = ('business_pack_scope', 'business_pack_request_binding')
+        previous_realm = {key: db.info.pop(key) for key in realm_keys if key in db.info}
         try:
             yield db
         except BaseException:
@@ -130,6 +135,10 @@ def client(db):
             # shared test session used by subsequent requests and audit writes.
             db.rollback()
             raise
+        finally:
+            for key in realm_keys:
+                db.info.pop(key, None)
+            db.info.update(previous_realm)
 
     app.dependency_overrides[get_db] = override_get_db
     previous_factory = getattr(app.state, "business_os_session_factory", None)

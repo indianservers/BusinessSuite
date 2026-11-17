@@ -1,24 +1,20 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, CalendarRange, CheckCheck, Clock3, DoorOpen, Layers3, Settings2, ShoppingCart, UsersRound, type LucideIcon } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { canAccessRoute } from '@/lib/roles';
+import { useAuthStore } from '@/store/authStore';
+import { CalendarDays, CalendarRange, Clock3, DoorOpen, Layers3, Settings2, ShoppingCart, UsersRound, type LucideIcon } from 'lucide-react';
 import './scheduling-workspace.css';
 
 export type SchedulingNav = { label: string; icon: LucideIcon; active?: boolean; to?: string; onClick?: () => void };
 export const schedulingIcons = { calendar: CalendarDays, timeline: CalendarRange, guide: Settings2, resources: DoorOpen, services: Layers3, employees: UsersRound, pos: ShoppingCart, time: Clock3 };
 
-/** The module sidebar remains global; this rail contains only booking operations. */
+/** Shared full-width surface; secondary setup stays inside More. */
 export default function SchedulingFrame({ title, subtitle, nav, children, actions, eyebrow = 'BOOKINGS WORKSPACE' }: {
   title: string; subtitle: string; nav: SchedulingNav[]; children: ReactNode; actions?: ReactNode; eyebrow?: string;
 }) {
+  const location=useLocation(),user=useAuthStore(state=>state.user);
+  const workflow=[{label:'POS',to:'/srm/pos/terminal',icon:ShoppingCart},{label:'Appointments',to:'/srm/appointments',icon:CalendarDays},{label:'Scheduling',to:'/srm/service-scheduling?view=schedule',icon:CalendarRange}];
   return <div className="bookings-workspace">
-    <aside className="bookings-rail" aria-label="Booking workspace navigation">
-      <div className="bookings-brand"><span><CalendarDays size={21}/></span><div><strong>Bookings</strong><small>People. Services. Time.</small></div></div>
-      <p className="bookings-rail-label">WORKSPACE</p>
-      <nav>{nav.map(({ label, icon: Icon, active, to, onClick }) => to
-        ? <Link key={label} className={`bookings-rail-item ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined} to={to}><Icon size={17}/><span>{label}</span></Link>
-        : <button key={label} type="button" className={`bookings-rail-item ${active ? 'is-active' : ''}`} aria-pressed={active} onClick={onClick}><Icon size={17}/><span>{label}</span></button>)}</nav>
-      <div className="bookings-rail-note"><CheckCheck size={18}/><p>One connected schedule<small>Employee categories and resources stay connected to HRMS.</small></p></div>
-    </aside>
-    <div className="bookings-main"><header className="bookings-heading"><div><p>{eyebrow}</p><h1>{title}</h1><span>{subtitle}</span></div>{actions && <div className="bookings-heading-actions">{actions}</div>}</header><div className="bookings-content">{children}</div></div>
+    <div className="bookings-main"><header className="bookings-heading"><div><p className="sr-only">{eyebrow}</p><h1>{title}</h1><nav className="booking-workflow-tabs" aria-label="Sales and scheduling">{workflow.filter(item=>canAccessRoute(item.to.split('?')[0],user?.role,user?.is_superuser)).map(({label,to,icon:Icon})=><Link key={label} to={to} aria-current={location.pathname===to.split('?')[0]?'page':undefined}><Icon size={16}/>{label}</Link>)}</nav><span>{subtitle}</span></div>{actions && <div className="bookings-heading-actions">{actions}</div>}</header><details className="bookings-more"><summary><Settings2 size={14}/> More · setup &amp; management</summary><nav aria-label="Booking workspace navigation">{nav.map(({ label, icon: Icon, active, to, onClick }) => to ? <Link key={label} className="bookings-rail-item" aria-current={active ? 'page' : undefined} to={to}><Icon size={16}/>{label}</Link> : <button key={label} type="button" className="bookings-rail-item" aria-pressed={active} onClick={onClick}><Icon size={16}/>{label}</button>)}</nav></details><div className="bookings-content">{children}</div></div>
   </div>;
 }

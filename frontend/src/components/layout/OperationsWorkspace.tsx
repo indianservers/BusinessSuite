@@ -4,7 +4,7 @@ import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
-import { getOperationWorkspace, operationAliases } from "@/lib/navigation-workspaces";
+import { getOperationWorkspace, operationAliases, isStandaloneSrmOperation } from "@/lib/navigation-workspaces";
 import { menuLabel } from "@/lib/navigation-menu";
 import { commonNavigationHref, commonRouteContext } from "@/lib/common-routes";
 import { useAuthStore } from "@/store/authStore";
@@ -49,6 +49,13 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     if (workspaceLabel && selectedLabel) document.title = `${workspaceLabel} · ${selectedLabel} - Business Suite`;
   }, [workspaceLabel, selectedLabel]);
   if (!workspace || !canonical || !selected) return <>{route.element}</>;
+  if(isStandaloneSrmOperation(selected)){
+    if(pathname!==selected){
+      const params=new URLSearchParams(location.search);params.delete('operation');
+      return <Navigate replace to={`${selected}${params.size?`?${params}`:''}${location.hash}`}/>;
+    }
+    return <ErrorBoundary><Suspense fallback={<LoadingState label={`Loading ${selectedLabel}`} />}><OperationContentContext.Provider value={true}><OperationWorkspaceContext.Provider value={true}>{pages.find(page=>page.path===selected)!.element}</OperationWorkspaceContext.Provider></OperationContentContext.Provider></Suspense></ErrorBoundary>;
+  }
   const searchFor = (path: string) => {
     const params = new URLSearchParams(location.search);
     params.delete("operation");

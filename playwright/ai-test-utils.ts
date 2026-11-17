@@ -39,7 +39,9 @@ export async function installAiApiStubs(page: Page, role: Role = "crm_org_admin"
     const method = request.method();
     let status = 200;
     let body: unknown = {};
-    if (path.includes("/auth/me")) {
+    if (path === "/access/settings/defaults/effective") {
+      body = { values: {}, modules: {}, companyId: 1, branchId: null };
+    } else if (path.includes("/auth/me")) {
       body = { id: 701, email: `${role}@example.com`, role: { name: role }, is_superuser: role === "crm_org_admin" };
     } else if (path.includes("/notifications/unread")) {
       body = { unread: 0 };

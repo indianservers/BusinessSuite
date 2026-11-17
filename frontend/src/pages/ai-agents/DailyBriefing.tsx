@@ -36,7 +36,12 @@ export default function DailyBriefing({ workspace, project, onDraft }: { workspa
     api.get<Brief>('/ai-operator/suite/briefing', { signal: controller.signal, params: {
       workspace_id: workspace || undefined, project_id: (!module || module === 'PMS') ? project || undefined : undefined,
       module: module || undefined, mine, horizon_days: Number(horizon), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    } }).then(response => { if (active) setBrief(response.data); }).catch(() => {
+    } }).then(response => {
+      if (!Array.isArray(response.data?.priorities) || !Array.isArray(response.data?.delivery_risks) || !Array.isArray(response.data?.coverage)) {
+        throw new Error('Invalid briefing response');
+      }
+      if (active) setBrief(response.data);
+    }).catch(() => {
       if (active) setError('The briefing could not load. Check access and refresh.');
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; controller.abort(); };

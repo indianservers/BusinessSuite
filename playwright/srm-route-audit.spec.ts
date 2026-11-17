@@ -1,6 +1,7 @@
 import { expect, test } from "../frontend/node_modules/playwright/test";
 import { authenticate } from "./srm-test-utils";
-import { getOperationWorkspace, navigationOperationPath } from "../frontend/src/lib/navigation-workspaces";
+import { getOperationWorkspace, navigationOperationPath, isStandaloneSrmOperation } from "../frontend/src/lib/navigation-workspaces";
+import {commonRouteContext,isCommercialEntity} from '../frontend/src/lib/common-routes';
 
 test("every registered SRM page and legacy URL renders or enforces its pack restriction", async ({ page }, testInfo) => {
   test.setTimeout(360_000);
@@ -38,7 +39,8 @@ test("every registered SRM page and legacy URL renders or enforces its pack rest
             const current = new URL(page.url());
             return navigationOperationPath(current.searchParams.get("operation") || current.pathname + current.search);
           }).toBe(navigationOperationPath(route));
-          await expect(main.locator('[id^="operation-panel-"]:visible')).toHaveCount(1);
+          const current=new URL(page.url()),shared=commonRouteContext(current.pathname,current.search);
+          await expect(main.locator('[id^="operation-panel-"]:visible')).toHaveCount((shared&&isCommercialEntity(shared.entity))||isStandaloneSrmOperation(route)?0:1);
         }
         await expect(main).not.toBeEmpty();
         expect(await main.innerText()).not.toMatch(/Something went wrong|This commercial page is unavailable|The module providing this shared page is not installed|403 Access Denied/);

@@ -1,5 +1,6 @@
 import { expect, type Page } from "../frontend/node_modules/playwright/test";
-import { getOperationWorkspace, navigationOperationPath } from "../frontend/src/lib/navigation-workspaces";
+import { getOperationWorkspace, navigationOperationPath, isStandaloneSrmOperation } from "../frontend/src/lib/navigation-workspaces";
+import {commonRouteContext,isCommercialEntity,commonNavigationHref} from '../frontend/src/lib/common-routes';
 import { resolveBusinessProfile } from "../frontend/src/lib/business-profile";
 
 export type SRMRole = "admin" | "srm_admin" | "srm_sales_manager" | "srm_finance_manager" | "srm_revenue_manager" | "srm_sales_executive" | "srm_collection_executive" | "srm_business_owner" | "srm_viewer" | "employee";
@@ -148,7 +149,9 @@ export async function expectHealthySrmRoute(page: Page, route: string) {
       const url = new URL(page.url());
       return navigationOperationPath(url.searchParams.get("operation") || url.pathname + url.search);
     }).toBe(navigationOperationPath(route));
-    await expect(page.locator('[id^="operation-panel-"]:visible')).toHaveCount(1);
+    const shared=commonRouteContext(commonNavigationHref(route,'srm'));
+    if(shared&&isCommercialEntity(shared.entity))await expect(page.getByRole('navigation',{name:'Shared page breadcrumbs'})).toBeVisible();
+    await expect(page.locator('[id^="operation-panel-"]:visible')).toHaveCount((shared&&isCommercialEntity(shared.entity))||isStandaloneSrmOperation(route)?0:1);
   } else {
     await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
   }

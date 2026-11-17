@@ -3,8 +3,8 @@ import { Check, ChevronDown, Loader2, Plus, Search, X } from "lucide-react";
 import "./smart-record-picker.css";
 
 export type RecordSuggestion<T> = { id: string; label: string; description?: string; searchText?: string; record: T };
-export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId, placeholder }: {
-  placeholder?: string; inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
+export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId, placeholder, emptyMessage }: {
+  emptyMessage?: string; placeholder?: string; inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
   items: RecordSuggestion<T>[]; selected?: RecordSuggestion<T>; onSelect: (record: T) => void; onClear: () => void;
   loading?: boolean; error?: string; retry?: () => void; onCreate?: (seedName: string) => void; hasMore?: boolean; loadMore?: () => void;
 }) {
@@ -46,7 +46,7 @@ export default function SmartRecordPicker<T>({ name, value, search, onSearch, it
           <span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>{item.id === value && <Check size={16}/>}
         </button>)}
       </div>
-      {!loading && !ranked.length && !error && <p role="status">No matching {name.toLowerCase()} found. Try another name, email or phone.</p>}
+      {!loading && !ranked.length && !error && <p role="status">{emptyMessage || `No matching ${name.toLowerCase()} found. Try another name, email or phone.`}</p>}
       {error && <p role="alert">{error}{retry && <button type="button" onClick={retry}>Retry</button>}</p>}
       {hasMore && <button type="button" className="smart-record-more" disabled={loading} onClick={loadMore}>Load more suggestions</button>}
       {createAction}

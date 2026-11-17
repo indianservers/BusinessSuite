@@ -1,0 +1,204 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium, expect: base } = require('playwright/test');
+const expect = base.configure({ timeout: 15000 });
+
+(async () => {
+  process.chdir(path.resolve(__dirname, '..'));
+  const fixture = path.resolve('scripts', `.prebooking-ux-${process.pid}.tsx`);
+  fs.writeFileSync(fixture, `import '@/index.css';import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Workspace from '@/shared/scheduling/ServiceSchedulingWorkspace';import Appointments from '@/apps/srm/industry/IndustryOperationsPage';import {useAuthStore} from '@/store/authStore';sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:1,role:'super_admin',is_superuser:true}});createRoot(document.getElementById('root')).render(<MemoryRouter initialEntries={[new URLSearchParams(location.search).get('module') === 'hrms' ? '/hrms/service-scheduling' : '/srm/service-scheduling']}><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}>{new URLSearchParams(location.search).get('surface') === 'appointments' ? <Appointments mode="appointments"/> : <Workspace/>}</QueryClientProvider></MemoryRouter>);`);
+  const { createServer } = await import('vite');
+  const { default: react } = await import('@vitejs/plugin-react');
+  const server = await createServer({ configFile: false, plugins: [react()], resolve: { alias: { '@': path.resolve('src') } }, cacheDir: path.resolve('node_modules/.vite-prebooking-ux'), optimizeDeps: { entries: [fixture] }, server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } });
+  await server.listen();
+  const browser = await chromium.launch();
+  try {
+    for (const width of [1440, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 1000 }, timezoneId: 'UTC' });
+      const errors = [], posts = [], checks = [];
+      let mode = 'available', failSubmit = false, delay = 0;
+      const date = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+      const customer = { id: 8, name: 'Meera Rao', roles: ['Customer'], entityKind: 'Individual', phone: '9999999999' };
+      const specialists = [
+        { eligibility_id: 2, eligibility_revision: 1, employee_id: 22, provider_resource_id: 12, employee_name: 'Alex Employee', provider_name: 'Alex', timezone: 'UTC' },
+        { eligibility_id: 3, eligibility_revision: 1, employee_id: 23, provider_resource_id: 13, employee_name: 'Sam Employee', provider_name: 'Sam', timezone: 'UTC' },
+      ];
+      page.on('pageerror', e => { errors.push(e.message); console.log('PAGE ERROR',e.message); });
+      await page.route('**/api/v1/**', async route => {
+        const req = route.request(), url = new URL(req.url()), p = url.pathname;
+        let json = { items: [], total: 0, pages: 1 };
+        if (p.endsWith('/industry/capabilities')) json = { manage: true, projects_enabled: false, crm_enabled: false };
+        else if (p.endsWith('/industry/records')) json = {items:url.searchParams.get('kind') === 'resource' ? [{id:12,kind:'resource',title:'Alex Employee',status:'active',data:{resource_type:'provider',employee_id:22,timezone:'UTC',opens:'09:00',closes:'18:00',weekdays:[0,1,2,3,4,5,6]}}] : []};
+        else if (p.endsWith('/master-data/companies')) json = { items: [customer], total: 1, canCreate: false };
+        else if (p.endsWith('/master-data/companies/8')) json = customer;
+        else if(/\/catalog\/items\/service\/\d+$/.test(p)) json={id:9,kind:'service',name:'Styling',code:'S9',price:800,currency:'INR'};
+        else if (p.endsWith('/catalog/items')) json = { items: [{ id: 9, name: 'Styling', code: 'S9', kind: 'service', price:800,currency:'INR' }], pages: 1 };
+        else if (p.endsWith('/service-checkout/options')) json = { policy: { id: 1, revision: 1, active: true, booking_required: false, default_duration_minutes: 30, min_duration_minutes: 15, max_duration_minutes: 120, allow_duration_override: true }, specialists, resources: [{ id: 30, name: 'Room A', resource_type: 'room' }, { id: 31, name: 'Room B', resource_type: 'room' }, { id: 40, name: 'Projector', resource_type: 'equipment' }], has_more: false };
+        else if (p.endsWith('/options/availability')) {
+          const snapshot = mode;
+          checks.push(url.searchParams);
+          if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+          if (snapshot === 'error') return route.fulfill({ status: 503, json: { detail: 'Availability temporarily unavailable' } });
+          const ids = url.searchParams.getAll('resource_ids').map(Number), employee = url.searchParams.get('eligibility_id');
+          const starts = url.searchParams.get('starts_at') || '', hour = new Date(starts).getUTCHours();
+          const busyEmployee = snapshot === 'employee' && employee === '2' && hour === 10;
+          const busyRoom = snapshot === 'room' && ids.includes(30) && hour === 10;
+          const conflicts = [...(busyEmployee ? [{ resource_id: 12, name: 'Alex Employee', message: 'Alex Employee is booked from 10:00–10:30.' }] : []), ...(busyRoom ? [{ resource_id: 30, name: 'Room A', message: 'Room A is booked from 10:00–11:00.' }] : [])];
+          json = { selection_available: !busyEmployee && !busyRoom, conflicts, resources: [{ id: 30, available: !busyRoom }, { id: 31, available: true }], slots: [{ starts_at: `${url.searchParams.get('day')}T11:00:00Z`, label: '11:00' }] };
+        } else if (p.endsWith('/employees/planned-services')) json = { timezone: 'UTC', items: [], next_cursor: null, filter_options: { employees: [{ id: 22, name: 'Alex Employee', code: 'E22' }], services: [], employees_complete: true, services_complete: true } };
+        else if (p.endsWith('/industry/appointments') && req.method() === 'POST') {
+          posts.push(req.postDataJSON());
+          if (failSubmit) return route.fulfill({ status: 409, json: { detail: 'Slot was taken. Choose another time.' } });
+          json = { id: 99, kind: 'appointment', revision: 1, status: 'booked', title: 'Service prebooking', customer_id:8,data: {starts_at:posts.at(-1).starts_at,duration_minutes:posts.at(-1).duration_minutes,resource_ids:posts.at(-1).resource_ids,customer_name:'Meera Rao',service_name:'Styling'} };
+        }
+        await route.fulfill({ json });
+      });
+      await page.route('**/prebooking-ux?*', route => route.fulfill({ contentType: 'text/html', body: `<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/${path.basename(fixture)}');</script>` }));
+      await page.goto(server.resolvedUrls.local[0] + `prebooking-ux?module=${width === 390 ? 'hrms' : 'srm'}`);
+      const panel = page.getByRole('complementary', { name: 'New prebooking' });
+      const confirm = panel.getByRole('button', { name: 'Confirm prebooking', exact: true });
+      await expect(page.getByRole('heading',{name:'Appointment Scheduler',exact:true})).toBeVisible({timeout:60000});
+      if(width===390) await page.getByRole('button',{name:/New prebooking/}).click();
+      const addResource = async name => { await panel.getByRole('combobox',{name:name==='Projector'?'Search equipment':'Search room',exact:true}).click(); await page.getByRole('option',{name:new RegExp('^'+name)}).click(); };
+      const removeResource = name => panel.getByRole('button',{name:'Remove '+name,exact:true}).click();
+      await expect(panel.getByLabel('Prebooking employee',{exact:true})).toBeDisabled({timeout:60000});
+      await expect(panel.getByLabel('Prebooking date')).toBeDisabled();
+      await expect(panel.getByLabel('Prebooking start time')).toBeDisabled();
+      await expect(panel.getByLabel('Prebooking resource')).toBeDisabled();
+      await expect(confirm).toBeDisabled();
+      await expect(page.locator('#prebooking-confirm-reason')).toHaveText('Choose a customer before confirming.');
+      // Timeline prefill is carried into the form after selecting a service.
+      if(width===390) await panel.getByRole('button',{name:'Close prebooking panel',exact:true}).click();
+      await page.getByRole('button', {name:'Filters',exact:true}).click();
+      await page.getByLabel('Time zone', {exact:true}).selectOption('UTC');
+      await page.getByRole('button', {name:'Filters',exact:true}).click();
+      await page.getByLabel('Selected date').fill(date);
+      await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+      await page.getByRole('button', { name: /Prebook Alex Employee at.*10:00/ }).first().click();
+      await panel.getByRole('combobox', { name: 'Search service', exact: true }).click();
+      await page.getByRole('option', { name: /^Styling/ }).click();
+      await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveValue('2');
+      await expect(panel.getByLabel('Prebooking date')).toHaveValue(date);
+      await expect(panel.getByLabel('Prebooking start time')).toHaveValue('10:00');
+      await panel.getByRole('combobox', { name: 'Search customer', exact: true }).click();
+      await page.getByRole('option', { name: /Meera Rao/ }).click();
+      await expect(panel.getByRole('button', { name: 'Use these booking details' })).toHaveCount(0);
+      await expect(confirm).toBeEnabled();
+      await panel.getByRole('button',{name:'Edit duration',exact:true}).click();
+      await panel.getByLabel('Prebooking duration').fill('5');
+      await expect(confirm).toBeDisabled();
+      await expect(panel.locator('#prebooking-confirm-reason')).toHaveText('Choose a duration allowed by this service.');
+      await panel.getByLabel('Prebooking duration').fill('30');
+      await expect(confirm).toBeEnabled();
+      delay = 350;
+      await panel.getByLabel('Prebooking start time').fill('12:00');
+      await expect(confirm).toBeDisabled();
+      await panel.getByLabel('Prebooking start time').fill('12:30');
+      await expect(confirm).toBeEnabled();
+      delay = 0;
+      await panel.getByLabel('Prebooking start time').fill('10:00');
+      await expect(confirm).toBeEnabled();
+      // Checking and network failures must block confirmation despite previously valid data.
+      mode = 'error';
+      await panel.getByLabel('Prebooking start time').fill('10:15');
+      await expect(confirm).toBeDisabled();
+      await expect(panel.getByText('Availability could not be verified. Retry below.', { exact: true }).first()).toBeVisible();
+      mode = 'available';
+      await panel.getByRole('button', { name: 'Retry availability' }).click();
+      await expect(confirm).toBeEnabled();
+      mode = 'employee';
+      await panel.getByLabel('Prebooking start time').fill('10:00');
+      await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveAttribute('aria-invalid', 'true');
+      await expect(panel.locator('#prebooking-employee-conflict')).toBeVisible();
+      await expect(confirm).toBeDisabled();
+      await panel.getByRole('button', { name: /Change employee: Sam Employee/ }).click();
+      await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveValue('3');
+      await expect(confirm).toBeEnabled();
+      mode = 'room';
+      await addResource('Projector');
+      await addResource('Room A');
+      await expect(panel.getByRole('group', { name: 'room resources', exact: true })).toHaveAttribute('aria-invalid', 'true');
+      await expect(panel.locator('#prebooking-resource-30')).toBeVisible();
+      await expect(confirm).toBeDisabled();
+      await page.screenshot({ path: `../output/prebooking-conflict-${width}.png`, fullPage: true });
+      await panel.getByRole('button', { name: /Change resources: Room B/ }).click();
+      await expect(panel.getByRole('button', { name: 'Remove Room B', exact: true })).toBeVisible();
+      await expect(panel.getByRole('button', { name: 'Remove Projector', exact: true })).toBeVisible();
+      await expect(panel.getByRole('button', { name: 'Remove Room A', exact: true })).toHaveCount(0);
+      await expect(confirm).toBeEnabled();
+      // Next-time chips move the interval and retain resources.
+      await removeResource('Room B');
+      await addResource('Room A');
+      await panel.getByRole('button', { name: /Next available:/ }).click();
+      await expect(panel.getByLabel('Prebooking start time')).toHaveValue('11:00');
+      await expect(confirm).toBeEnabled();
+      await panel.locator('summary').filter({hasText:'More details'}).click();
+      await panel.getByLabel('Visit notes', { exact: true }).fill('Keep this draft');
+      await panel.getByRole('button', { name: 'Close prebooking panel', exact: true }).click();
+      await expect(panel).toBeHidden();
+      await page.getByRole('button', { name: /New prebooking/ }).click();
+      await expect(panel.getByLabel('Visit notes', { exact: true })).toHaveValue('Keep this draft');
+      await expect(panel.getByLabel('Prebooking start time')).toHaveValue('11:00');
+      const sticky = await panel.locator('.prebooking-footer').evaluate(el => { const parent = el.closest('.prebooking-drawer') || el.closest('aside'); parent.scrollTop = parent.scrollHeight; const r = el.getBoundingClientRect(), p = parent.getBoundingClientRect(); return getComputedStyle(el).position === 'sticky' && r.bottom <= p.bottom + 2 && r.top < p.bottom; });
+      expect(sticky).toBeTruthy();
+      // Server-side races preserve draft and retry identity, and do not introduce payments.
+      failSubmit = true;
+      await confirm.click();
+      await expect(panel.getByRole('alert').filter({ hasText: 'Slot was taken' })).toBeVisible();
+      await expect(panel.getByLabel('Visit notes', { exact: true })).toHaveValue('Keep this draft');
+      failSubmit = false;
+      await expect(confirm).toBeEnabled();
+      await confirm.click();
+      await expect(panel.getByRole('heading',{name:'Prebooking confirmed'})).toBeVisible();
+      expect(posts).toHaveLength(2);
+      expect(posts[0].request_id).toBe(posts[1].request_id);
+      expect(posts[1].booking.employee_id).toBe(23);
+      expect(posts[1].booking.starts_at).toBe(`${date}T11:00:00.000Z`);
+      expect(posts[1].booking.additional_resource_ids.sort()).toEqual([30, 40]);
+      expect(posts[1].payments).toBeUndefined();
+      // Cancel explicitly discards; cancelling the discard prompt keeps the draft.
+      await panel.getByRole('button', { name: 'Book another', exact: true }).click();
+      await panel.locator('summary').filter({hasText:'More details'}).click();
+      await panel.getByLabel('Visit notes', { exact: true }).fill('Discard me');
+      page.once('dialog', d => d.dismiss());
+      await panel.getByRole('button', { name: 'Cancel prebooking', exact: true }).click();
+      await expect(panel.getByLabel('Visit notes', { exact: true })).toHaveValue('Discard me');
+      page.once('dialog', d => d.accept());
+      await panel.getByRole('button', { name: 'Cancel prebooking', exact: true }).click();
+      await expect(panel).toBeHidden();
+      await page.getByRole('button', { name: /New prebooking/ }).click();
+      await panel.getByRole('button', { name: 'New prebooking', exact: true }).click();
+      await panel.locator('summary').filter({hasText:'More details'}).click();
+      await expect(panel.getByLabel('Visit notes', { exact: true })).toHaveValue('');
+      await expect(panel.getByLabel('Prebooking employee',{exact:true})).toBeDisabled();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
+      expect(checks.some(p => p.getAll('resource_ids').includes('40') && p.getAll('resource_ids').includes('31'))).toBeTruthy();
+      expect(errors).toEqual([]);
+      await page.screenshot({ path: `../output/prebooking-reset-${width}.png`, fullPage: true });
+      // The SRM appointments page uses the same automatic flow and preserves a locally closed draft.
+      mode = 'available';
+      if(width===390) await panel.getByRole('button',{name:'Close prebooking panel',exact:true}).click();
+      await page.goto(server.resolvedUrls.local[0] + 'prebooking-ux?surface=appointments');
+      await expect(page.getByRole('region',{name:'Appointment timeline'})).toBeVisible();
+      await page.getByLabel('Timeline date').fill(date);
+      await page.getByRole('button',{name:new RegExp(`Prebook Alex Employee at ${date} 10:00`)}).click();
+      const form = page.getByRole('form',{name:'Create operation'});
+      await form.getByRole('combobox',{name:'Search service',exact:true}).click();
+      await page.getByRole('option',{name:/^Styling/}).click();
+      await expect(form.getByLabel('Prebooking employee',{exact:true})).toHaveValue('2');
+      await expect(form.getByLabel('Prebooking date')).toHaveValue(date);
+      await expect(form.getByLabel('Prebooking start time')).toHaveValue('10:00');
+      await form.locator('summary').filter({hasText:'More details'}).click();
+      await form.getByLabel('Visit notes',{exact:true}).fill('Local draft');
+      await form.getByRole('button',{name:'Close prebooking panel',exact:true}).click();
+      await expect(form).toBeHidden();
+      await page.getByRole('button',{name:'Resume prebooking',exact:true}).click();
+      await expect(form.getByLabel('Visit notes',{exact:true})).toHaveValue('Local draft');
+      await expect(form.getByRole('button',{name:'Use these booking details'})).toHaveCount(0);
+      await page.screenshot({path:`../output/prebooking-appointments-${width}.png`,fullPage:true});
+      expect(errors).toEqual([]);
+      await page.close();
+      console.log(`PASS prebooking UX 1–10: ${width}px ${width === 390 ? 'HRMS' : 'SRM'}`);
+    }
+  } finally { await browser.close(); await server.close(); fs.unlinkSync(fixture); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

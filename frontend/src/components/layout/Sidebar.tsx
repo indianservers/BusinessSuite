@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import AdminNavigationLinks from "./AdminNavigationLinks";
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -174,24 +174,15 @@ export default function Sidebar({
           <ModuleSwitcher />
         </div>
       )}
-      {!collapsed && (user?.is_superuser || user?.access?.isAccessAdmin) && (
-        <Link
-          to="/admin/access"
-          onClick={onClose}
-          className="mx-3 mt-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs"
-        >
-          Users & access
-        </Link>
-      )}
       <nav
         aria-label="Module navigation"
         className="min-h-0 flex-1 overflow-y-auto py-3"
       >
         <SetupReadiness navigation collapsed={collapsed} onNavigate={onClose} />
         <ModuleNavigation collapsed={collapsed} onNavigate={onClose} />
-      <Link to="/company-admin" className={cn("nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2", collapsed && "justify-center")} title="Company Admin" onClick={onClose}><SettingsIcon className="h-4 w-4" />{!collapsed && "Company Admin"}</Link>
       </nav>
       <div className="shrink-0 border-t border-sidebar-border p-2">
+        <AdminNavigationLinks collapsed={collapsed} onNavigate={onClose} />
         <Link
           to="/account"
           className={cn("nav-link min-h-11", collapsed && "justify-center")}

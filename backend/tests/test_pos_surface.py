@@ -206,3 +206,16 @@ def test_foreign_billing_country_does_not_invent_personal_contact_jurisdiction(c
     assert response.status_code==201,response.text
     row=db.get(CRMCompany,response.json()['id']);contact=db.query(CRMContact).filter_by(company_id=row.id).one()
     assert row.country=='US' and contact.country is None and contact.address is None
+
+
+def test_catalog_exposes_only_public_images_not_private_metadata(client, db, stock):
+    s = stock
+    db.connection().execute(SRMProduct.__table__.update().where(SRMProduct.id == s.product).values(
+        metadata_json={'images':['https://example.com/catalog.png'], 'private_supplier_note':'must not leak'}))
+    db.commit()
+    response = client.get('/api/v1/srm/pos/catalog', headers=s.headers())
+    assert response.status_code == 200, response.text
+    item = next(row for row in response.json()['items'] if row['id'] == s.product)
+    assert item['images'] == ['https://example.com/catalog.png']
+    assert 'private_supplier_note' not in response.text
+    assert 'metadata_json' not in item

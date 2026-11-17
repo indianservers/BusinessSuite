@@ -1,3 +1,5 @@
+import IndustryOperationsPage from '@/apps/srm/industry/IndustryOperationsPage';
+import type { BookingSlot } from './PrebookingFields';
 import { Info } from 'lucide-react';
 import SchedulingFrame, { schedulingIcons } from './SchedulingFrame';
 import { useDeferredValue, useState } from 'react';
@@ -28,17 +30,19 @@ export default function ServiceSchedulingWorkspace() {
 function Workspace({ scope }: { scope: string }) {
   const location = useLocation();
   const initial = new URLSearchParams(location.search).get('view');
-  const [view, setView] = useState(initial === 'schedule' || initial === 'availability' ? initial : 'guide');
+  const [view, setView] = useState(initial === 'schedule' || initial === 'availability' ? initial : initial === 'guide' ? 'guide' : 'schedule');
+  const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
+  const [prefill, setPrefill] = useState<BookingSlot>();
   const module = location.pathname.startsWith('/hrms') ? 'hrms' : location.pathname.startsWith('/crm') ? 'crm' : 'srm';
   const appointments = `/${module === 'crm' ? 'crm' : 'srm'}/appointments`;
-  return <main className="min-w-0"><SchedulingFrame title="Service scheduling" subtitle="Connect employee categories, service stock and resource availability." nav={[
+  return <main className="min-w-0"><SchedulingFrame title="Appointment Scheduler" subtitle="Plan services, people and resources." nav={[
     {label:'Setup guide',icon:schedulingIcons.guide,active:view==='guide',onClick:()=>setView('guide')},
     {label:'Available resources',icon:schedulingIcons.resources,active:view==='availability',onClick:()=>setView('availability')},
     {label:'Schedule & Gantt',icon:schedulingIcons.calendar,active:view==='schedule',onClick:()=>setView('schedule')},
     {label:'Service types',icon:schedulingIcons.services,to:'/srm/inventory/products?kind=service'},
     {label:'Employees',icon:schedulingIcons.employees,to:'/employees'},
     {label:'Appointments',icon:schedulingIcons.timeline,to:appointments},
-  ]} actions={<><Button asChild variant="outline"><Link to={`${appointments}?resources=1`}>Manage resources</Link></Button><Button asChild><Link to="/srm/pos/terminal">New POS booking</Link></Button></>}>
+  ]} actions={<><Button asChild variant="outline"><Link to={`${appointments}?resources=1`}>Manage resources</Link></Button><Button asChild><Link to="/srm/pos/terminal">Open POS</Link></Button><Button onClick={() => { setView('schedule'); setPanelOpen(value => !value); }}>{panelOpen ? 'Close booking panel' : '+ New prebooking'}</Button></>}>
     {view === 'guide' && <section className="space-y-4" aria-label="Service booking setup guide">
       <p className="bookings-guide-note"><Info size={17}/><span>Select one branch in the top bar. Use the same branch and Business Pack context throughout setup and booking. Your permissions determine which employees and resources are visible.</span></p>
       <ol className="bookings-setup-grid">
@@ -51,7 +55,7 @@ function Workspace({ scope }: { scope: string }) {
       <p className="text-xs text-muted-foreground">Applying cart details prepares a booking. The appointment is created when checkout succeeds. Availability is checked again at checkout; planned bookings do not create attendance, payroll or actual timesheet hours.</p>
     </section>}
     {view === 'availability' && <ResourceAvailability scope={scope}/>}
-    {view === 'schedule' && <ScheduledServicesPage embedded/>}
+    {view === 'schedule' && <div className={`scheduler-layout ${panelOpen ? '' : 'scheduler-panel-closed'}`}><ScheduledServicesPage embedded onSlot={slot => { setPrefill(slot); setPanelOpen(true); }}/><div hidden={!panelOpen}><IndustryOperationsPage mode="appointments" bookingOnly panelOpen={panelOpen} prefill={prefill} onClose={() => setPanelOpen(false)} onDiscard={() => { setPrefill(undefined); setPanelOpen(false); }}/></div></div>}
   </SchedulingFrame></main>;
 }
 

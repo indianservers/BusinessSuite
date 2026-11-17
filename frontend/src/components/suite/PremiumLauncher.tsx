@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BarChart3, BookOpen, Building2, CalendarDays, ChevronDown, Flag, Handshake, HelpCircle, Home, Layers3, LayoutGrid, List, Network, Package, Search, Settings, ShieldCheck, ShoppingCart, Sparkles, Star, Users, UserRound, Zap, Filter } from "lucide-react";
@@ -34,6 +35,8 @@ export default function PremiumLauncher({ applications, authenticated = false, c
   onFavoritesOnly?: (value: boolean) => void; onReorder?: (keys: string[]) => void;
   workspaceCount?: number; loading?: boolean;
 }) {
+  const user = useAuthStore(state => state.user);
+  const isAdmin = authenticated && (user?.is_superuser || user?.access?.isAccessAdmin);
   const [localQuery, setLocalQuery] = useState("");
   const [localFavoritesOnly, setLocalFavoritesOnly] = useState(false);
   const searchQuery = query ?? localQuery;
@@ -88,7 +91,6 @@ export default function PremiumLauncher({ applications, authenticated = false, c
         {!authenticated && <Link to="/signup">Sign up for a trial</Link>}
         <Link className="launcher-nav-home" to={authenticated ? "/dashboard" : "/"}><Home size={19}/>Home</Link>
         <details ref={appMenu} className="launcher-app-menu"><summary><LayoutGrid size={18}/>Applications<ChevronDown size={15}/></summary><div>{applications.map(m => <Link key={m.key} to={destination(m)} onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")}><m.icon size={18}/>{m.name}</Link>)}</div></details>
-        <Link to={authenticated ? "/company-admin" : "/login?next=%2Fcompany-admin"}><Settings size={19}/>Settings</Link>
       </nav>
       <div className="launcher-search-box" ref={searchBox}>
         <div className="launcher-search"><Search size={19}/><input ref={search} placeholder="Find an application..." aria-label="Search applications" role="combobox" aria-expanded={open} aria-controls="launcher-search-results" aria-autocomplete="list" aria-activedescendant={open && visible[active] ? `launcher-result-${active}` : undefined} value={searchQuery} onFocus={() => setOpen(true)} onChange={e => { setQuery(e.target.value); setActive(0); setOpen(true); }} onKeyDown={e => {
@@ -126,7 +128,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
           </article>)}</div>
           {!loading && !visible.length && applications.length > 0 && <div className="launcher-empty" role="status"><Search size={28}/><h3>{onlyFavorites ? "No matching favorite applications" : "No matching applications"}</h3><button onClick={() => { setQuery(""); setFavoritesOnly(false); setActive(0); }}>Show all applications</button></div>}
         </section>
-        <Link to={authenticated ? "/company-admin" : "/login?next=%2Fcompany-admin"} className="launcher-settings"><span><Settings size={28}/></span><div><h2>Company Admin</h2><p>Settings, users, insights and analytics</p></div><ArrowRight size={25}/></Link>
+        {isAdmin && <Link to="/company-admin" className="launcher-settings"><span><Settings size={28}/></span><div><h2>Company Admin</h2><p>Settings, users, insights and analytics</p></div><ArrowRight size={25}/></Link>}
       </div>
     </main>
   </div>;

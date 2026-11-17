@@ -1,3 +1,4 @@
+import AdminNavigationLinks from "./AdminNavigationLinks";
 import {Link} from "react-router-dom";
 import {LayoutGrid} from "lucide-react";
 import {useAuthStore} from "@/store/authStore";
@@ -76,6 +77,7 @@ export default function WorkspaceNavigation({
           <span>Log out</span>
         </button>
       </nav>
+      <div className="mt-auto shrink-0 border-t border-sidebar-border p-2"><AdminNavigationLinks collapsed={collapsed} onNavigate={onClose} /></div>
       {!collapsed && !boardStyle && (
         <>
           <ModuleSwitcher />

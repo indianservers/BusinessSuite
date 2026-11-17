@@ -9,6 +9,7 @@ from app.branches.models import BranchOwnership
 from app.apps.srm.models import SRMEngagement, SRMProfitabilitySnapshot
 from app.apps.crm.models import CRMCompany
 from app.models.audit import AuditLog
+from app.ai_agents.models import AiAuditLog
 from tests.test_branch_access import setup
 
 
@@ -46,20 +47,49 @@ def test_read_derivative_requires_exact_native_parent_and_writable_branch(db, ca
 
 
 @pytest.mark.parametrize('case', ['allowed', 'another_actor', 'foreign_company', 'write_request', 'business_record'])
-def test_company_read_audit_exception_never_grants_transaction_authority(db, case):
+@pytest.mark.parametrize('audit_kind', ['http', 'ai'])
+def test_company_read_audit_exception_never_grants_transaction_authority(db, case, audit_kind):
     user, *_ = setup(db)
     user.is_superuser = True
     db.commit()
     cleanup = install(db, user, context(db, user, 1, 'all'))
     db.info['security_write_request'] = case == 'write_request'
-    row = CRMCompany(organization_id=1, name='No implicit transaction') if case == 'business_record' else AuditLog(
+    row = CRMCompany(organization_id=1, name='No implicit transaction') if case == 'business_record' else (AiAuditLog(
         organization_id=2 if case == 'foreign_company' else 1,
-        user_id=user.id + 99 if case == 'another_actor' else user.id, method='GET', endpoint='/api/v1/report', action='EXPORT')
+        user_id=user.id + 99 if case == 'another_actor' else user.id,
+        module='CRM', action='AI_POLICY_ALLOWED', status='success') if audit_kind == 'ai' else AuditLog(
+        organization_id=2 if case == 'foreign_company' else 1,
+        user_id=user.id + 99 if case == 'another_actor' else user.id, method='GET', endpoint='/api/v1/report', action='EXPORT'))
     try:
         db.add(row)
         if case == 'allowed':
             db.flush()
             assert row.id is not None
+        else:
+            with pytest.raises(HTTPException):
+                db.flush()
+    finally:
+        cleanup(); db.rollback()
+        db.info.pop('security_write_request', None)
+
+
+@pytest.mark.parametrize('case', ['allowed', 'another_actor', 'foreign_company', 'write_request', 'business_record'])
+def test_ai_read_audit_on_readonly_branch_does_not_grant_business_writes(db, case):
+    user, branch, *_ = setup(db)
+    ctx = replace(context(db, user, 1, str(branch.id)), writable=frozenset())
+    cleanup = install(db, user, ctx)
+    db.info['security_write_request'] = case == 'write_request'
+    row = CRMCompany(organization_id=1, name='No implicit write') if case == 'business_record' else AiAuditLog(
+        organization_id=2 if case == 'foreign_company' else 1,
+        user_id=user.id + 99 if case == 'another_actor' else user.id,
+        module='CRM', action='AI_POLICY_ALLOWED', status='success')
+    try:
+        db.add(row)
+        if case == 'allowed':
+            db.flush()
+            owned = db.connection().execute(select(BranchOwnership.branch_id).where(
+                BranchOwnership.resource_table == 'ai_audit_logs', BranchOwnership.resource_key == str(row.id))).scalar_one()
+            assert owned == branch.id
         else:
             with pytest.raises(HTTPException):
                 db.flush()

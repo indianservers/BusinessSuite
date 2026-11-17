@@ -1,0 +1,53 @@
+{
+  "checks": [
+    {
+      "name": "Company-wide capability discovery",
+      "status": "passed",
+      "tools": 176
+    },
+    {
+      "name": "Reviewed five-module actions and dependent record references",
+      "status": "passed",
+      "run_id": 10,
+      "receipts": 6
+    },
+    {
+      "name": "Approval replay preserves completed receipts",
+      "status": "passed"
+    },
+    {
+      "name": "Natural-language local planning through live execution",
+      "status": "passed",
+      "run_id": 11
+    },
+    {
+      "name": "Cancellation before execution",
+      "status": "passed"
+    },
+    {
+      "name": "Private module memory save, read and forget",
+      "status": "passed"
+    },
+    {
+      "name": "Natural-language form draft creation",
+      "status": "passed",
+      "form_id": 2
+    },
+    {
+      "name": "Reviewed form editing, publication and closure",
+      "status": "passed"
+    },
+    {
+      "name": "Balanced finance voucher remains an unposted draft",
+      "status": "passed"
+    },
+    {
+      "name": "Leave submission through employee self-service",
+      "status": "passed",
+      "run_id": 18
+    }
+  ],
+  "environment": "disposable loopback QA",
+  "external_provider_calls": 0,
+  "status": "passed"
+}

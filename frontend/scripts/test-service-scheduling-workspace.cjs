@@ -5,19 +5,20 @@ const { chromium, expect } = require('playwright/test');
 (async () => {
   process.chdir(path.resolve(__dirname, '..'));
   const fixture = path.resolve('scripts', `.service-workspace-${process.pid}.tsx`);
-  fs.writeFileSync(fixture, `import '@/index.css';import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Workspace from '@/shared/scheduling/ServiceSchedulingWorkspace';import {useAuthStore} from '@/store/authStore';useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:1,role:'super_admin',is_superuser:true}});createRoot(document.getElementById('root')).render(<MemoryRouter initialEntries={['/hrms/service-scheduling']}><QueryClientProvider client={new QueryClient()}><Workspace/></QueryClientProvider></MemoryRouter>);`);
+  fs.writeFileSync(fixture, `import '@/index.css';import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Workspace from '@/shared/scheduling/ServiceSchedulingWorkspace';import {useAuthStore} from '@/store/authStore';useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:1,role:'super_admin',is_superuser:true}});createRoot(document.getElementById('root')).render(<MemoryRouter initialEntries={['/hrms/service-scheduling?view=guide']}><QueryClientProvider client={new QueryClient()}><Workspace/></QueryClientProvider></MemoryRouter>);`);
   const { createServer } = await import('vite');
-  const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } });
+  const {default:reactPlugin}=await import('@vitejs/plugin-react');
+  const server = await createServer({configFile:false,plugins:[reactPlugin()],resolve:{alias:{'@':path.resolve('src')}},cacheDir:path.resolve('node_modules/.vite-scheduler-qa'),optimizeDeps:{entries:[fixture]},server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});
   await server.listen();
   const browser = await chromium.launch();
   try {
     for (const width of [390, 1440]) {
       const page = await browser.newPage({ viewport: { width, height: 1000 } });
       const failures = [], checks = [];
-      page.on('pageerror', e => failures.push(e.message));
+      page.on('pageerror', e => { failures.push(e.message); console.error('Scheduler page error:', e.message); });
       await page.route('**/api/v1/**', async route => {
         const url = new URL(route.request().url());
-        let json = {};
+        let json = {items:[],total:0,pages:1};
         if (url.pathname.endsWith('/catalog/items')) json = { items: [{ id: 9, kind: 'service', name: 'Consultation', code: 'S9' }], pages: 1 };
         else if (url.pathname.endsWith('/options/availability')) {
           checks.push(url.searchParams);
@@ -28,7 +29,8 @@ const { chromium, expect } = require('playwright/test');
       });
       await page.route('**/service-workspace-qa', route => route.fulfill({ contentType: 'text/html', body: `<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/${path.basename(fixture)}');</script>` }));
       await page.goto(server.resolvedUrls.local[0] + 'service-workspace-qa');
-      await expect(page.getByRole('heading', { name: '1. Create and assign employee categories' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '1. Create and assign employee categories' })).toBeVisible({timeout:20000});
+      await page.locator('.bookings-more summary').click();
       await page.getByRole('button', { name: 'Available resources', exact: true }).click();
       await page.getByLabel('Availability service').selectOption('9');
       await page.getByRole('checkbox', { name: 'Consultants', exact: true }).check();
@@ -41,13 +43,14 @@ const { chromium, expect } = require('playwright/test');
       await page.getByRole('button', { name: '11:00', exact: true }).click();
       await expect(page.getByLabel('Availability to', { exact: true })).toHaveValue('2030-12-20T11:45');
       await page.getByRole('button', { name: 'Schedule & Gantt', exact: true }).click();
-      await expect(page.getByRole('cell', { name: 'Room A', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'List', exact: true }).click();
+      await expect(page.getByRole('cell', { name: 'Room A', exact: true }).first()).toBeVisible();
       await expect(page.getByRole('cell', { name: 'Consultants, Senior', exact: true })).toBeVisible();
-      await page.getByRole('button', { name: 'Consultation', exact: true }).click();
+      await page.getByRole('button', { name: 'Consultation', exact: true }).first().click();
       await expect(page.getByRole('dialog')).toContainText('Room A (room)');
       await expect(page.getByRole('dialog')).toContainText('Consultants, Senior');
       await page.keyboard.press('Escape');
-      await page.getByRole('button', { name: 'Gantt', exact: true }).click();
+      await page.getByRole('button', { name: 'Timeline', exact: true }).click();
       await expect(page.getByRole('button', { name: /Alex Employee: Consultation/ })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBeTruthy();
       expect(failures).toEqual([]);

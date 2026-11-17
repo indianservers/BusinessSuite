@@ -115,6 +115,8 @@ def catalog(db,actor,selected=None,*,after=0,limit=200,search=''):
         policy=policies.get(row.id) if service else None
         reason=('Scheduling is inactive for this service' if policy and not policy.active else 'Appointment scheduling permission is required for this service' if policy and policy.booking_required and not feature_values['appointments_schedule'] else 'Required follow-up workflow is not integrated in this POS' if required else 'Tracked stock requires an allocation workflow' if tracked and not pharma_lot else 'No eligible stock warehouse is available' if physical and stock is None else None)
         items.append({key:getattr(row,key) for key in ('id','item_name','sku','barcode','category_name','product_type','sales_rate','mrp','gst_rate','unit_code')}|{
+            'images':[value for value in (row.metadata_json or {}).get('images', []) if isinstance(value, str)][:10] if isinstance((row.metadata_json or {}).get('images'), list) else [],
+            'duration_minutes':policy.default_duration_minutes if policy else None,
             'active':True,'track_inventory':physical,'batch_tracking':bool(row.batch_tracking and not service),'serial_tracking':bool(row.serial_tracking and not service),
             'expiry_tracking':bool(row.expiry_tracking and not service),'stock':stock,'booking_policy':({'required':policy.booking_required,'active':policy.active,'revision':policy.revision} if policy else None),'checkout_supported':reason is None,'unsupported_reason':reason,
             **({'lot_allocation':'fefo'} if pharma_lot and stock is not None else {})})
@@ -275,5 +277,36 @@ def _create_customer(data,db,actor,company,branch,scope,custom_values,field_fing
 
 def customer_schema(db,actor,selected=None):
     company,branch,scope=authority(db,actor,selected,create=True)
-    from .pos_customer_fields import snapshot
+    from .pos_customer_fields import snapshot, _policy
     return snapshot(db,actor,company,scope).output()
+
+
+def customer_identity(db, actor, ident, selected=None):
+    """Only configured, FLS-visible operational identifiers for an authorized buyer."""
+    company, branch, scope = authority(db, actor, selected)
+    if customer_query(db, company).filter(CRMCompany.id == ident).first() is None:
+        fail('POS customer not found', 404)
+    from .pos_customer_fields import snapshot, _policy
+    from app.apps.crm.models import CRMCustomFieldValue
+    keys = {'patient_id','patient_number','medical_record_number','mrn','prescription_id',
+            'prescription_reference','prescription_status','vehicle_registration','vehicle_number',
+            'vehicle_model','vehicle_make','registration_number'}
+    definitions = snapshot(db, actor, company, scope).definitions
+    _, rules = _policy(db, actor)
+    fields = {}
+    for row in definitions:
+        identifiers = {row['field_key'], 'cf_'+row['field_key'], row['field_name']}
+        visible = row['is_visible'] is True and all(rule['can_view'] and not rule['mask_value'] for rule in rules if rule['field_name'] in identifiers)
+        if visible and row['field_key'].lower().removeprefix('cf_') in keys:
+            fields[row['id']] = row
+    values = CRMCustomFieldValue.__table__
+    rows = db.connection().execute(select(values).where(values.c.organization_id == company,
+        values.c.entity == 'companies', values.c.record_id == ident, values.c.custom_field_id.in_(fields),
+        values.c.deleted_at.is_(None))).mappings() if fields else []
+    result = []
+    for row in rows:
+        value = next((row[key] for key in ('value_text','value_number','value_date','value_datetime','value_boolean','value_json') if row[key] is not None), None)
+        if value is None or isinstance(value, dict):
+            continue
+        result.append({'label':fields[row['custom_field_id']]['label'], 'value':', '.join(map(str,value)) if isinstance(value,list) else str(value)})
+    return {'customer_id':ident,'fields':result}

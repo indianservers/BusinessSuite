@@ -507,11 +507,27 @@ def tools(db: Session = Depends(get_db), user: User = Depends(get_current_user),
 
 
 @router.get('/runs')
-def runs(workspace_id: int | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def runs(workspace_id: int | None = None,
+         search: str | None = Query(default=None,max_length=200),
+         status: Literal['planning','needs_clarification','answered','awaiting_approval','queued','executing','waiting_pms','cancelling','cancelled','paused','failed','succeeded','needs_reconciliation','superseded'] | None = None,
+         before_id: int | None = Query(default=None,gt=0),
+         limit: int = Query(default=50,ge=1,le=50),
+         db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     scope = authorize(db, user, workspace_id, control=True)
-    rows = db.query(SuiteRun).filter_by(user_id=user.id, scope_key=scope).order_by(SuiteRun.id.desc()).limit(50).all()
+    query = db.query(SuiteRun).filter_by(user_id=user.id, scope_key=scope)
+    if status:query=query.filter(SuiteRun.status==status)
+    if before_id is not None:query=query.filter(SuiteRun.id<before_id)
+    term=(search or '').strip()
+    if term:
+        from sqlalchemy import func,or_,cast,String
+        query=query.filter(or_(func.lower(SuiteRun.command).contains(term.lower(),autoescape=True),
+                              func.lower(SuiteRun.plan['summary'].as_string()).contains(term.lower(),autoescape=True),
+                              cast(SuiteRun.id,String)==term.removeprefix('#')))
+    scanned = query.order_by(SuiteRun.id.desc()).limit(limit+1).all()
+    rows=scanned[:limit]
     from app.ai_agents.security import visible_history
-    return {'items': [public(r) for r in visible_history(db,user,rows,control=True)]}
+    return {'items': [public(r) for r in visible_history(db,user,rows,control=True)],
+            'has_more':len(scanned)>limit,'next_before_id':rows[-1].id if len(scanned)>limit else None}
 
 
 @router.get('/runs/{ident}')
@@ -525,6 +541,25 @@ def get_run(ident: int, db: Session = Depends(get_db), user: User = Depends(get_
             receipt=read(db,user,row)
             if receipt:return receipt
         raise
+
+
+@router.get('/runs/{ident}/receipt')
+def download_receipt(ident: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from fastapi.encoders import jsonable_encoder
+    from fastapi.responses import JSONResponse
+    row=get_run(ident,db,user)
+    # Export only confirmed execution metadata, never prompts, plans, provider
+    # responses, credentials or the security envelope used to authorize a run.
+    receipts=[{key:value for key,value in receipt.items() if key in
+        {'step','tool','record_id','status','pms_run_id','delivery_counts'}}
+        for receipt in row.get('receipts',[]) if receipt.get('status')=='succeeded']
+    if not receipts:raise HTTPException(409,'No completed actions are available to export')
+    value={key:row.get(key) for key in ('id','workspace_id','status','created_at','updated_at','error_code')}
+    value.update(version='action-agent-receipt-v1',exported_at=now(),receipts=receipts,
+                 note='Confirmed completed steps only. Unfinished steps are not proof of execution.')
+    return JSONResponse(jsonable_encoder(value),headers={
+        'Content-Disposition':f'attachment; filename="action-agent-receipt-{ident}.json"',
+        'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
 
 
 def memory_scope(db,user,workspace_id,module):

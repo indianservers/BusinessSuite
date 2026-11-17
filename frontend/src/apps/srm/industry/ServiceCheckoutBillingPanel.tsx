@@ -1,3 +1,4 @@
+import { PaymentAmounts } from "@/shared/scheduling/BookingUX";
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -127,14 +128,14 @@ function CheckoutBilling({ checkoutId, serviceCharge, canCollect, onChanged, sco
     unresolved.set(memoryKey, request); attempt.current = request; setUnknown(true);
     mutation.mutate(request);
   }
-  return <section className="mt-5 grid gap-4 border-t pt-4" aria-label="Service checkout payments">
+  return <section className="mt-5 grid gap-4 border-t pt-4" aria-label="Service checkout payments">{invoice && <PaymentAmounts value={{total:invoice.total,paid:invoice.paid,balance:invoice.balance,currency:invoice.currency,linked:true}}/>}
     <div><h3 className="font-semibold">Checkout charges & payments</h3><p className="text-xs text-muted-foreground">This service belongs to a shared checkout. Payments settle the whole invoice; a paid amount is not allocated to each service here.</p></div>
     {query.isSuccess && !query.isFetching && serviceCharge !== undefined && <div className="rounded border p-3"><p className="text-xs text-muted-foreground">This service charge</p><p className="font-semibold">{money(serviceCharge)}</p></div>}
     {query.isPending && <p role="status">Loading checkout payments…</p>}
     {query.isError && <p role="alert">{dealError(query.error)} <Button variant="outline" disabled={pending || query.isFetching} onClick={() => void query.refetch()}>Retry checkout</Button></p>}
     {checkout && <>
       <p className="text-sm">Checkout #{checkout.id} · {checkout.state === 'committed' ? 'Completed' : words(checkout.state)}{checkout.sales_order_id ? ` · Sales order #${checkout.sales_order_id}` : ''}</p>
-      {invoice ? <><dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{[['Whole checkout total', invoice.total], ['Paid on checkout invoice', invoice.paid], ['Checkout balance', invoice.balance]].map(([label, value]) => <div key={String(label)}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="font-semibold">{money(value)}</dd></div>)}</dl><p className="text-sm">Invoice {invoice.number} · {words(invoice.status)}</p></> : <p className="text-sm">An invoice is not available for this checkout.</p>}
+      {invoice ? <><p className="text-sm">Invoice {invoice.number} · {words(invoice.status)}</p></> : <p className="text-sm">An invoice is not available for this checkout.</p>}
       <Button className="justify-self-start" variant="outline" disabled={pending || query.isFetching} onClick={async () => { await query.refetch(); if (owns()) onChanged(); }}>Reload checkout payments</Button>
       {authorizedCollection && invoice && ((Number(invoice.balance) > 0 && !['cancelled', 'voided'].includes(invoice.status)) || attempt.current) && <form className="grid gap-3 rounded border p-3" aria-label="Collect checkout payment" onSubmit={event => { event.preventDefault(); collect(); }}>
         <h4 className="font-medium">Record checkout payment received</h4>

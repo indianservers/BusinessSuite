@@ -82,6 +82,14 @@ class CheckoutInput(Strict):
         return self
 
 class PolicyInput(Strict):
+    required_resource_types: list[Literal['room', 'chair', 'equipment', 'location']] | None = Field(default=None, max_length=4)
+    @field_validator('required_resource_types')
+    @classmethod
+    def unique_resource_types(cls, value):
+        if value is not None and len(value) != len(set(value)):
+            raise ValueError('Choose each required resource type once')
+        return value
+
     employee_categories: WorkCategories = Field(default_factory=list)
     service_product_id: ID
     default_duration_minutes: Annotated[StrictInt, Field(ge=5,le=720)]

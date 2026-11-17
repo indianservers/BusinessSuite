@@ -11,6 +11,7 @@ test(`${module} agent memory, follow-up, approval and receipts`,async({page})=>{
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const req=route.request(),path=new URL(req.url()).pathname;
     if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
+    if(path.endsWith('/briefing'))return route.fulfill({json:{today:'2026-11-17',generated_at:'2026-11-17T00:00:00Z',priorities:[],delivery_risks:[],coverage:[],limited:true,note:'Test sample'}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/memories')){
       if(req.method()==='POST')memories=[{id:10,...req.postDataJSON()}];
@@ -34,13 +35,13 @@ test(`${module} agent memory, follow-up, approval and receipts`,async({page})=>{
   await page.getByRole('button',{name:'Forget memory',exact:true}).click();
   await expect(page.getByText('Use weekly reviews',{exact:true})).toHaveCount(0);
   await page.getByLabel('Suite command').fill('Remember my review day');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect(page.getByText('Which review day?',{exact:true})).toBeVisible();
-  expect(commands[0]).toMatchObject({module,provider:'gemini'});
+  expect(commands[0]).toMatchObject({module,provider:'local'});
   await page.getByLabel('Suite command').fill('Friday');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toBeVisible();
-  expect(commands[1]).toMatchObject({module,provider:'gemini',parent_run_id:1,context:[]});
+  expect(commands[1]).toMatchObject({module,provider:'local',parent_run_id:1,context:[]});
   await page.getByRole('button',{name:'Approve these exact actions',exact:true}).click();
   await expect(page.getByLabel('Suite plan review')).toContainText('saved record #10');
   await page.setViewportSize({width:390,height:844});

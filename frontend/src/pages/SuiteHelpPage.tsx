@@ -27,7 +27,7 @@ export default function SuiteHelpPage() {
         <p>
           Choose an application from the dashboard. Pin favorites, return to
           recent pages, or use Ctrl+K (⌘K on Mac) to search applications and
-          authorized pages. Inside an application, use “Find a page” to filter
+          authorized pages. Inside an application, use “Search menu items” to filter
           its navigation.
         </p>
         <Link

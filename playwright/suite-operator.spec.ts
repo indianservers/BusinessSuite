@@ -4,10 +4,13 @@ import {authenticateAi} from './ai-test-utils';
 for(const role of ['crm_org_admin','employee'] as const){
 test(`suite retries recover the same request after a lost response (${role})`,async({page})=>{
   await authenticateAi(page,role);
+  const pageErrors:string[]=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
   const keys:string[]=[];
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
+    if(path.endsWith('/briefing'))return route.fulfill({json:role==='employee'?{items:[]}:{today:'2026-11-17',generated_at:'2026-11-17T00:00:00Z',priorities:[],delivery_risks:[],coverage:[],limited:true,note:'Test sample'}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/runs'))return route.fulfill({json:{items:[]}});
     if(path.endsWith('/commands')){
@@ -21,12 +24,14 @@ test(`suite retries recover the same request after a lost response (${role})`,as
   await page.route('**/api/v1/project-management/workspaces',route=>route.fulfill({json:[]}));
   await page.goto('/ai-agents/operator');
   await page.getByLabel('Suite command').fill('Summarize selected work');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
-  await expect(page.getByRole('alert')).toContainText('Retry the unchanged message');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(page.getByRole('alert').filter({hasText:'Retry the unchanged message'})).toBeVisible();
   await expect(page.getByLabel('Suite command')).toHaveValue('Summarize selected work');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect(page.getByText('Recovered original result.',{exact:true})).toBeVisible();
   expect(keys).toHaveLength(2);expect(keys[0]).toBe(keys[1]);
+  if(role==='employee')await expect(page.getByLabel('Daily priorities and delivery risk')).toContainText('The briefing could not load');
+  expect(pageErrors).toEqual([]);
 });
 }
 
@@ -41,6 +46,7 @@ test('agent preserves selected-task context, editable voice and follow-up identi
   await page.route('**/api/v1/ai-operator/suite/**',async route=>{
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/providers'))return route.fulfill({json:{items:[{provider:'gemini',enabled:true,data_sharing_allowed:true,model:'test'}]}});
+    if(path.endsWith('/briefing'))return route.fulfill({json:{today:'2026-11-17',generated_at:'2026-11-17T00:00:00Z',priorities:[],delivery_risks:[],coverage:[],limited:true,note:'Test sample'}});
     if(path.endsWith('/tools'))return route.fulfill({json:{tools:[]}});
     if(path.endsWith('/commands')){
       const body=route.request().postDataJSON();commands.push(body);
@@ -55,16 +61,16 @@ test('agent preserves selected-task context, editable voice and follow-up identi
   await page.getByRole('button',{name:'Voice command',exact:true}).click();
   await expect(page.getByLabel('Suite command')).toHaveValue('Set this task priority to high');
   await page.getByLabel('Suite command').fill('Change this task priority');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect(page.getByText('Which priority?',{exact:true})).toBeVisible();
-  expect(commands[0]).toMatchObject({project_id:42,task_ids:[7],input_mode:'voice',provider:'gemini'});
+  expect(commands[0]).toMatchObject({project_id:42,task_ids:[7],input_mode:'voice',provider:'local'});
   await page.getByLabel('Suite command').fill('High please');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect.poll(()=>commands.length).toBe(2);
   expect(commands[1]).toMatchObject({parent_run_id:1,text:'High please',input_mode:'text'});
   await page.getByRole('button',{name:'Revise plan',exact:true}).click();
   await page.getByLabel('Suite command').fill('Use urgent priority instead');
-  await page.getByRole('button',{name:'Ask Gemini',exact:true}).click();
+  await page.getByRole('button',{name:'Send',exact:true}).click();
   await expect.poll(()=>commands.length).toBe(3);
   expect(commands[2]).toMatchObject({parent_run_id:2,text:'Use urgent priority instead'});
 });

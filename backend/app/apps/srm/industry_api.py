@@ -48,6 +48,7 @@ class BaseInput(Strict):
 
 
 class ResourceInput(BaseInput):
+    capacity: int = Field(default=1, ge=1, le=1000)
     resource_type: Literal["provider", "doctor", "stylist", "consultant", "technician", "employee", "chair", "room", "equipment", "location"]
     user_id: int | None = Field(None, gt=0)
     employee_id: int | None = Field(None, gt=0)
@@ -58,6 +59,8 @@ class ResourceInput(BaseInput):
 
     @model_validator(mode="after")
     def valid(self):
+        if self.resource_type in {'provider', 'doctor', 'stylist', 'consultant', 'technician', 'employee'} and self.capacity != 1:
+            raise ValueError('Employee resources have capacity one')
         try:
             ZoneInfo(self.timezone)
         except Exception:
@@ -69,7 +72,11 @@ class ResourceInput(BaseInput):
         return self
 
 
+from app.apps.srm.service_checkout_schemas import BookingSelection
+
+
 class AppointmentInput(BaseInput):
+    booking: BookingSelection | None = None
     customer_id: int = Field(gt=0)
     service_id: int = Field(gt=0)
     resource_ids: list[int] = Field(min_length=1, max_length=10)
@@ -334,8 +341,12 @@ def existing(db, user, branch_id, payload, kind):
 def digest(payload):
     values = payload.model_dump(mode='json')
     # Preserve retry identities for resources created before HRMS linking existed.
+    if isinstance(payload, ResourceInput) and values.get('capacity') == 1:
+        values.pop('capacity', None)
     if isinstance(payload, ResourceInput) and values.get('employee_id') is None:
         values.pop('employee_id', None)
+    if isinstance(payload, AppointmentInput) and values.get('booking') is None:
+        values.pop('booking', None)
     if isinstance(payload, MeasurementInput) and values.get('work_package_id') is None:
         values.pop('work_package_id', None)
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
@@ -425,6 +436,26 @@ def project_currency(db, user, project_id):
     from app.shared.settings import effective
     ctx = db.get(ProjectCommercial, project_id)
     return ctx.currency if ctx else effective(db, tenant(user), 'srm')['values']['currency']
+
+
+@router.get('/appointments/requests/{request_id}')
+def prebooking_request_status(request_id: UUID, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.apps.srm.prebooking_experience import request_status
+    return request_status(db,user,request_id)
+
+
+@router.get('/appointments/customer-context/{customer_id}')
+def prebooking_customer_context(customer_id: int, service_id: int | None = None, starts_at: datetime | None = None,
+        db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.apps.srm.prebooking_experience import customer_context
+    return customer_context(db,user,customer_id,service_id=service_id,starts_at=starts_at)
+
+
+@router.get('/appointments/{appointment_id}')
+def appointment_detail(appointment_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    branch = context(db, user, appointments=True)
+    for_record_read(db, user, 'appointment')
+    return out(get(db, user, branch, appointment_id, 'appointment', lock=False), db, user)
 
 
 @router.get("/records")
@@ -584,7 +615,7 @@ def employee_options(search: str = Query('', max_length=180), offset: int = Quer
     return {'items': [{'id': row.id, 'name': f'{row.first_name} {row.last_name}'.strip(), 'code': row.employee_id} for row in rows[:50]], 'has_more': len(rows) > 50}
 
 
-def available(db, user, branch, starts, minutes, resource_ids, ignore=None, *, lock=True):
+def available(db, user, branch, starts, minutes, resource_ids, ignore=None, *, lock=True, draft_bookings=()):
     if len(set(resource_ids)) != len(resource_ids):
         fail("Select each resource once")
     end = starts + timedelta(minutes=minutes)
@@ -606,7 +637,7 @@ def available(db, user, branch, starts, minutes, resource_ids, ignore=None, *, l
     # Tenant writer lock serializes conflict check + insert, including distinct resources
     # that reference the same staff identity. Cancelled/no-show slots are released.
     from app.business_packs.availability import appointment_conflict
-    if appointment_conflict(db, tenant(user), starts, end, resource_ids=resource_ids, ignore_appointment_id=ignore):
+    if appointment_conflict(db, tenant(user), starts, end, resource_ids=resource_ids, ignore_appointment_id=ignore, draft_bookings=draft_bookings):
         fail("Provider or resource is already booked at that time", 409)
 
 
@@ -640,6 +671,11 @@ def appointment_operation(data, db, user, *, commit=True):
         deal = record(db, CRMDeal, data.deal_id, user)
         if deal.company_id != data.customer_id:
             fail("CRM deal must belong to the same customer")
+    if data.booking is not None:
+        from app.apps.srm.service_checkout_options import validate_prebooking
+        validate_prebooking(db, user, data)
+    from app.apps.srm.service_resource_requirements import assert_current_service_requirements
+    assert_current_service_requirements(db,user,branch,service,data.resource_ids)
     available(db, user, branch, data.starts_at, data.duration_minutes, data.resource_ids)
     row = create(db, user, branch, 'appointment', data, customer_id=data.customer_id, project_id=data.project_id)
     row.starts_at, row.ends_at = data.starts_at, data.starts_at + timedelta(minutes=data.duration_minutes)
@@ -678,6 +714,11 @@ def reschedule_operation(ident, data, db, user, *, commit=True):
     revision(row, data.expected_revision)
     if row.status != 'booked':
         fail("Only booked appointments can be rescheduled", 409)
+    from app.apps.srm.service_resource_requirements import assert_current_service_requirements
+    if row.data.get('service_id'):
+        from app.apps.srm.models import SRMProduct
+        service = record(db, SRMProduct, row.data['service_id'], user)
+        assert_current_service_requirements(db,user,branch,service,data.resource_ids)
     available(db, user, branch, data.starts_at, data.duration_minutes, data.resource_ids, row.id)
     row.data = {**row.data, **data.model_dump(mode='json', exclude={'expected_revision'})}
     row.starts_at, row.ends_at = data.starts_at, data.starts_at + timedelta(minutes=data.duration_minutes)

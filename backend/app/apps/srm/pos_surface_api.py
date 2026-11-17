@@ -19,3 +19,8 @@ def create(data:service.CustomerInput,selected:str|None=Header(None,alias='X-Sui
 @router.get('/customer-schema')
 def customer_schema(selected:str|None=Header(None,alias='X-Suite-Pack-Context'),db=Depends(get_db),actor=Depends(get_current_user)):
     return service.customer_schema(db,actor,selected)
+
+
+@router.get('/customers/{customer_id}/identity')
+def identity(customer_id:int,selected:str|None=Header(None,alias='X-Suite-Pack-Context'),db=Depends(get_db),actor=Depends(get_current_user)):
+    return service.customer_identity(db,actor,customer_id,selected)

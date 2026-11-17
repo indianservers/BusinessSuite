@@ -69,7 +69,11 @@ def test_no_policy_is_explicit_and_product_validation_remains_native(db, scenari
     user, branch, catalog, basket = scenario
     db.query(ServiceSpecialistEligibility).delete(); db.query(ServiceBookingPolicy).delete(); db.flush()
     with native_writer(db, user, branch):
-        assert service_options(db, user, catalog[2][1]) == {'service_id': catalog[2][1], 'policy': None, 'specialists': [], 'has_more': False, 'resources': []}
+        options = service_options(db, user, catalog[2][1])
+        assert {key: options[key] for key in ('service_id','policy','specialists','has_more','resources')} == {'service_id': catalog[2][1], 'policy': None, 'specialists': [], 'has_more': False, 'resources': []}
+        assert options['can_configure'] is True
+        assert options['service']['name']
+        assert options['branch_timezone']
         with pytest.raises(HTTPException) as error:
             service_options(db, user, catalog[2][0])
         assert error.value.status_code == 404

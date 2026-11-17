@@ -21,12 +21,20 @@ export default function CommonEntityPage({ routes }: { routes: FrontendRoute[] }
   // those to the shared manager itself, so both modules open the same page.
   const operation = new URLSearchParams(location.search).get('operation');
   if (commercial && operation && getOperationWorkspace(context.nativePath)?.paths.includes(operation)) {
+    if(!canAccessRoute(operation,user?.role,user?.is_superuser)){
+      const params=new URLSearchParams(location.search);params.delete('operation');
+      return <Navigate replace to={`${location.pathname}?${params}${location.hash}`}/>;
+    }
     const target = commonNavigationHref(operation, context.module);
     if (commonRouteContext(target)) {
       const params = new URLSearchParams(location.search);
       params.delete('operation');
       params.set('module', context.module);
       return <Navigate replace to={`${target.split('?')[0]}?${params}${location.hash}`}/>;
+    }
+    if(context.module==='srm'&&canAccessRoute(operation,user?.role,user?.is_superuser)){
+      const params=new URLSearchParams(location.search);params.delete('operation');
+      return <Navigate replace to={`${target.split('?')[0]}${params.size?`?${params}`:''}${location.hash}`}/>;
     }
   }
   const route = routes.find(item => `/${item.path}` === (commercial ? context.definition.owner : context.nativePath));

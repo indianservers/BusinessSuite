@@ -87,7 +87,26 @@ def _instant(value, *, stored=False):
     return value.astimezone(timezone.utc)
 
 
-def appointment_conflict(db, company_id, starts_at, ends_at, *, resource_ids=(), employee_ids=(), user_ids=(), ignore_appointment_id=None):
+def resource_capacity(value):
+    if value is None:
+        return 1
+    if type(value) is not int or not 1 <= value <= 1000:
+        _unavailable()
+    return value
+
+
+def capacity_conflict(intervals, capacity):
+    """The proposed reservation consumes one unit; endpoints are half-open."""
+    events = sorted((point, delta) for start, end in intervals for point, delta in ((start, 1), (end, -1)))
+    occupied = 0
+    for _, delta in events:
+        occupied += delta
+        if occupied >= capacity:
+            return True
+    return False
+
+
+def appointment_conflict(db, company_id, starts_at, ends_at, *, resource_ids=(), employee_ids=(), user_ids=(), ignore_appointment_id=None, draft_bookings=()):
     """Return occupancy across all company contexts; ignore requires prior authorization."""
     starts_at, ends_at = _instant(starts_at), _instant(ends_at)
     if starts_at >= ends_at:
@@ -115,7 +134,7 @@ def appointment_conflict(db, company_id, starts_at, ends_at, *, resource_ids=(),
     def resource(identity, branch_id=None):
         if identity not in resources:
             resources[identity] = connection.execute(select(record.c.branch_id,
-                record.c.data['employee_id'].label('employee_id'), record.c.data['user_id'].label('user_id'),
+                record.c.data['employee_id'].label('employee_id'), record.c.data['user_id'].label('user_id'), record.c.data['capacity'].label('capacity'),
                 json_type(record.c.data).label('shape')).where(record.c.id == identity, record.c.kind == 'resource',
                 record.c.organization_id == company_id)).mappings().first()
         row = resources[identity]
@@ -147,9 +166,11 @@ def appointment_conflict(db, company_id, starts_at, ends_at, *, resource_ids=(),
         record.c.kind == 'appointment', record.c.status.in_(('booked', 'checked_in', 'in_service')),
         or_(record.c.starts_at.is_(None), record.c.ends_at.is_(None), record.c.starts_at >= record.c.ends_at,
             and_(record.c.starts_at < ends_at, record.c.ends_at > starts_at)))).mappings()
+    rows = list(rows) + list(draft_bookings)
+    occupancy = {identity: [] for identity in selected}
     busy = False
     for row in rows:
-        if row['id'] == ignore_appointment_id:
+        if ignore_appointment_id is not None and row['id'] == ignore_appointment_id:
             continue
         old_start = _instant(row['starts_at'], stored=connection.dialect.name == 'sqlite')
         old_end = _instant(row['ends_at'], stored=connection.dialect.name == 'sqlite')
@@ -164,11 +185,12 @@ def appointment_conflict(db, company_id, starts_at, ends_at, *, resource_ids=(),
         prior = _ids(source_ids)
         if len(prior) != len(source_ids):
             _unavailable()
-        busy |= bool(prior & selected)
+        for identity in prior & selected:
+            occupancy[identity].append((max(starts_at, old_start), min(ends_at, old_end)))
         for identity in prior:
             employee, user = resource(identity, row['branch_id'])
             busy |= employee in employees or user in users
-    return bool(busy)
+    return bool(busy or any(capacity_conflict(intervals, resource_capacity(resources[identity]['capacity'])) for identity, intervals in occupancy.items()))
 
 
 def employee_leave_conflict(db, company_id, employee_id, from_date, until_date):

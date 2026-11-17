@@ -23,3 +23,13 @@
 @media(pointer:coarse){.module-menu .module-menu-create{flex-basis:36px;width:36px;height:40px}}
 
 .module-menu-row>a>span{white-space:normal;overflow-wrap:anywhere}.module-menu-page-row>a{white-space:normal;overflow-wrap:anywhere}
+
+/* Sales operational rail uses the reference plum palette. */
+body:has(.module-menu[data-module=srm]) .suite-sidebar{background:linear-gradient(150deg,#340c43,#250039);color:#fff;--sidebar-background:282 75% 10%;--sidebar-foreground:0 0% 100%;--sidebar-border:280 35% 24%;--sidebar-accent:276 90% 94%;--sidebar-accent-foreground:273 100% 44%}
+.module-menu[data-module=srm]{color:#fff}.module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"]{background:transparent;border-color:#ffffff10;padding:8px}
+.module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"]>p{display:none}
+.module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"] a{display:flex;align-items:center;gap:14px;min-height:46px;padding:12px 14px;margin:4px 0;font-size:14px;border-radius:10px}
+.module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"] a[aria-current=page]{background:#f1dfff;color:#7900de;font-weight:700}
+.module-menu[data-module=srm] .module-menu-toolbar{display:none}.module-menu[data-module=srm] .module-menu-search{background:#ffffff0a;color:white;border-color:#ffffff20}
+.module-menu[data-module=srm] .module-menu-heading,.module-menu[data-module=srm] .module-menu-row a{color:inherit}
+.module-menu[data-module=srm] .module-menu-row.is-active{background:#eedbff;color:#7900de}

@@ -3,30 +3,28 @@ import { authenticate } from "./srm-test-utils";
 import { navigationOperationPath } from "../frontend/src/lib/navigation-workspaces";
 
 test.describe("SRM navigation", () => {
-  test("merged menu has one entry per workspace and no duplicate destinations", async ({ page }) => {
+  for(const [path,heading] of [['/srm/inventory/gantt','Inventory Gantt'],['/srm/inventory/purchase-receipts','Purchase Receipts']]){
+    test(`purchasing operation opens its native screen: ${path}`,async({page})=>{
+      await authenticate(page,'srm_admin');
+      await page.goto(`/common/purchase-orders?module=srm&operation=${encodeURIComponent(path)}`);
+      await expect(page).toHaveURL(new RegExp(path+'\\?module=srm'));
+      await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
+      await expect(page.getByRole('navigation',{name:'Shared page breadcrumbs'})).toHaveCount(0);
+    });
+  }
+  test("Sales shortcuts are unique and open the shared invoice manager", async ({ page }) => {
     await authenticate(page, "srm_admin");
     await page.goto("/srm/dashboard");
-    const menu = page.getByRole("navigation", { name: "Module navigation", exact: true });
-    await menu.getByRole("button", { name: "Expand all menu categories" }).click();
-    for (const label of ["Customers & suppliers", "Sales orders & contracts", "POS sessions & returns", "Products & pricing", "Stock & warehouses", "Stock movements", "Purchasing", "Invoices & payments", "Sales reports", "Stock reports"]) {
-      await expect(menu.getByRole("link", { name: label, exact: true })).toHaveCount(1);
-      await expect(menu.getByRole("link", { name: label, exact: true })).toBeVisible();
-    }
-    const links = await menu.locator(".module-menu-categories a[href]").evaluateAll(nodes => nodes.map(node => node.getAttribute("href")!));
-    const destinations = links.map(navigationOperationPath);
-    expect(new Set(destinations).size).toBe(destinations.length);
-    await menu.getByRole("link", { name: "Sales orders & contracts", exact: true }).click();
-    await expect(page.getByRole("tablist", { name: "Sales orders & contracts operations" })).toBeVisible();
-    const register=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/srm/documents/contracts'&&request.method()==='GET');
-    register.catch(()=>{});
-    await page.getByRole("tab", { name: "Contracts", exact: true }).click();
-    expect(new URL((await register).url()).pathname).toBe('/api/v1/srm/documents/contracts');
-    await expect(page).toHaveURL(/operation=%2Fsrm%2Fcontracts/);
-    await expect(menu.getByRole("link", { name: "Sales orders & contracts", exact: true })).toHaveAttribute("aria-current", "page");
-    await page.reload();
-    await expect(page.getByRole("tab", { name: "Contracts", exact: true })).toHaveAttribute("aria-selected", "true");
-    await page.goBack();
-    await expect(page.getByRole("tab", { name: /^Sales orders$/i, exact: true })).toHaveAttribute("aria-selected", "true");
+    const menu=page.getByRole("navigation",{name:"Module navigation",exact:true});
+    const shortcuts=menu.getByRole("navigation",{name:"Sticky shortcuts"});
+    for(const label of ["POS","Appointments","Scheduling","Customers","Transactions","Reports"])await expect(shortcuts.getByRole("link",{name:label,exact:true})).toBeVisible();
+    const links=await shortcuts.locator('a[href]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href')!));
+    expect(new Set(links.map(navigationOperationPath)).size).toBe(links.length);
+    await menu.getByRole('button',{name:/^More \d+$/}).click();
+    await expect(menu.locator('.module-menu-categories a[href]').first()).toBeVisible();
+    await shortcuts.getByRole('link',{name:'Transactions',exact:true}).click();
+    await expect(page).toHaveURL(/\/common\/invoices\?module=srm/);
+    await expect(page.getByRole('navigation',{name:'Shared page breadcrumbs'})).toContainText('Invoices');
   });
 
   test("shared catalog and supplier links render the merged tabs", async ({ page }) => {
@@ -52,39 +50,28 @@ test.describe("SRM navigation", () => {
     page.on('request',request=>{if(new URL(request.url()).pathname==='/api/v1/srm/documents/invoices')deniedRegisters.push(request.url());});
     await page.goto("/srm/collections?operation=/srm/invoices");
     const menu = page.getByRole("navigation", { name: "Module navigation", exact: true });
-    await menu.getByRole("button", { name: "Expand all menu categories" }).click();
+    await menu.getByRole("button", { name: /^More \d+$/ }).click();
     await expect(menu.getByRole("link", { name: /^(Payments & collections|Collections)$/, exact: true })).toBeVisible();
     await expect(menu.getByRole("link", { name: "Sales & inventory settings", exact: true })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Invoices", exact: true })).toHaveCount(0);
-    await expect(page.locator('[id^="operation-panel-"]:visible')).toHaveCount(1);
+    await expect(page.getByRole("navigation",{name:"Shared page breadcrumbs"})).toContainText("Collections");
+    await expect(page).not.toHaveURL(/operation=/);
     await expect(menu.getByRole("link", { name: "Invoices", exact: true })).toHaveCount(0);
     expect(deniedRegisters).toEqual([]);
   });
 
-  test("create intents target only the selected tab and submit to its original API", async ({ page }) => {
-    await authenticate(page, "srm_admin");
-    await page.goto("/srm/sales-orders");
-    await page.getByRole("tab", {name:"Contracts",exact:true}).click();
-    await page.getByRole("tab", {name:/^Sales orders$/i}).click();
-    await page.evaluate(() => {
-      window.history.pushState({}, "", window.location.pathname + "?operation=%2Fsrm%2Fcontracts#new-record");
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    });
-    await expect(page.getByRole("dialog")).toHaveCount(1);
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("Create Contract");
-    await dialog.getByLabel("Title", {exact:true}).fill("Merged workspace contract");
-    await page.evaluate(() => {
-      window.history.pushState({}, "", window.location.pathname);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    });
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await page.getByRole("tab", {name:"Contracts",exact:true}).click();
-    await expect(dialog.getByLabel("Title", {exact:true})).toHaveValue("Merged workspace contract");
-    const write = page.waitForRequest(request => new URL(request.url()).pathname === "/api/v1/srm/contracts" && request.method() === "POST");
+  test("legacy create intents open exactly one native contract form", async ({ page }) => {
+    await authenticate(page,"srm_admin");
+    await page.goto('/srm/sales-orders?operation=%2Fsrm%2Fcontracts#new-record');
+    await expect(page).toHaveURL(/\/common\/contracts\?module=srm#new-record/);
+    await expect(page.getByRole('dialog')).toHaveCount(1);
+    const dialog=page.getByRole('dialog');
+    await expect(dialog).toContainText('Create Contract');
+    await dialog.getByLabel('Title',{exact:true}).fill('Shared manager contract');
+    const write=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/srm/contracts'&&request.method()==='POST');
     await dialog.locator('button[type="submit"]').click();
-    expect((await write).postDataJSON().title).toBe("Merged workspace contract");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(page.getByRole("tab", {name:"Contracts",exact:true})).toHaveAttribute("aria-selected","true");
+    expect((await write).postDataJSON().title).toBe('Shared manager contract');
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/common\/contracts\?module=srm/);
   });
 });

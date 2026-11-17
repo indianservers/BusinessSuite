@@ -54,12 +54,12 @@ def _owned_clause(model, company, branch, scope):
         anchor.c.branch_id == branch, anchor.c.context_id == scope.context_id))
 
 
-def _providers(db, company, branch, scope, *, search='', policy=None):
+def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, eligibility_id=None):
     from app.apps.srm.industry_api import PROVIDER_TYPES
     r, e = IndustryRecord, Employee
     employee_id = cast(r.data['employee_id'].as_string(), String)
     statement = select(r.id.label('provider_resource_id'), r.title.label('provider_name'),
-        r.data['timezone'].as_string().label('timezone'), r.data['employee_id'].label('_employee_ref'), e.id.label('employee_id'), e.first_name, e.last_name, e.work_categories)
+        r.data['timezone'].as_string().label('timezone'), r.data['employee_id'].label('_employee_ref'), e.id.label('employee_id'), e.first_name, e.last_name, e.work_categories, e.profile_photo_url)
     statement = statement.select_from(r.__table__.join(e.__table__, cast(e.id, String) == employee_id).join(Branch.__table__, Branch.id == e.branch_id)).where(
         r.organization_id == company, r.branch_id == branch, r.kind == 'resource', r.status == 'active',
         r.data['resource_type'].as_string().in_(PROVIDER_TYPES), e.branch_id == branch, Branch.company_id == company,
@@ -77,12 +77,15 @@ def _providers(db, company, branch, scope, *, search='', policy=None):
             eligibility.active.is_(True), or_(eligibility.effective_from.is_(None), eligibility.effective_from <= datetime.now(timezone.utc)),
             or_(eligibility.effective_until.is_(None), eligibility.effective_until > datetime.now(timezone.utc)),
             _owned_clause(eligibility, company, branch, scope))
+    if policy is not None and eligibility_id is not None:
+        statement = statement.where(ServiceSpecialistEligibility.id == eligibility_id)
     if policy is not None and policy.get('employee_categories'):
         from app.shared.employee_categories import category_clause
         statement = statement.where(category_clause(db, e.work_categories, policy['employee_categories']))
     # Date of exit is interpreted in each provider's local timezone.
     statement = statement.add_columns(e.date_of_exit).order_by(r.title, r.id)
     output = []
+    skipped = 0
     for source in db.connection().execute(statement).mappings():
         row = dict(source)
         reference = row.pop('_employee_ref')
@@ -95,7 +98,13 @@ def _providers(db, company, branch, scope, *, search='', policy=None):
         exit_date = row.pop('date_of_exit')
         if exit_date is not None and exit_date <= datetime.now(zone).date():
             continue
+        photo = row.pop('profile_photo_url', None)
+        if photo:
+            row['avatar_url'] = photo
         row['employee_name'] = ' '.join(value for value in (row.pop('first_name'), row.pop('last_name')) if value)
+        if skipped < offset:
+            skipped += 1
+            continue
         output.append(row)
         if len(output) == 101:
             break
@@ -110,14 +119,14 @@ def provider_options(db, actor, *, selected=None, search=''):
     return {'providers': rows, 'has_more': more, 'employee_categories': sorted({name for row in rows for name in row.get('work_categories') or []}, key=str.casefold)}
 
 
-def service_options(db, actor, service_id, *, selected=None, search=''):
+def service_options(db, actor, service_id, *, selected=None, search='', offset=0):
     company, branch, scope = _authority(db, actor, selected)
     if len(search) > 100:
         raise HTTPException(422, 'Search must be at most 100 characters')
     if type(service_id) is not int or service_id <= 0:
         raise HTTPException(422, 'Choose a service')
     from app.shared.catalog_branches import availability_clause
-    product = db.connection().execute(select(SRMProduct.id).where(SRMProduct.id == service_id,
+    product = db.connection().execute(select(SRMProduct.id, SRMProduct.metadata_json, SRMProduct.item_name, SRMProduct.sales_rate, SRMProduct.category_name).where(SRMProduct.id == service_id,
         SRMProduct.organization_id == company, SRMProduct.active.is_(True),
         SRMProduct.product_type.in_(('service', 'services')), availability_clause(SRMProduct, branch))).first()
     if product is None:
@@ -135,13 +144,28 @@ def service_options(db, actor, service_id, *, selected=None, search=''):
         IndustryRecord.data['resource_type'].as_string().in_(('room', 'chair', 'equipment', 'location')),
         _owned_clause(IndustryRecord, company, branch, scope)).order_by(IndustryRecord.title).limit(100)).mappings()
     resource_options = [{'id': row['id'], 'name': row['title'], 'resource_type': row['data'].get('resource_type'),
-        **{key: row['data'].get(key) for key in ('timezone', 'opens', 'closes', 'weekdays')}} for row in resources]
+        **{key: row['data'].get(key) for key in ('timezone', 'opens', 'closes', 'weekdays', 'capacity')}} for row in resources]
+    can_configure = False
+    try:
+        from app.apps.srm.service_checkout import _authority as checkout_authority
+        _, configuration_branch, _ = checkout_authority(db, actor, configuration=True, write=False)
+        can_configure = configuration_branch in db.info['branch_context'].writable
+    except HTTPException as error:
+        if error.status_code not in (403, 409, 503):
+            raise
+    from app.shared.settings import effective
+    details = {'can_configure': can_configure, 'branch_timezone': effective(db, company, 'srm')['values'].get('timezone'),
+        'service': {'name': product.item_name, 'price': str(product.sales_rate), 'category': product.category_name,
+                    'currency': (product.metadata_json or {}).get('currency', 'INR')}}
     if policy is None:
-        return {'service_id': service_id, 'policy': None, 'specialists': [], 'has_more': False, 'resources': resource_options}
+        return {'service_id': service_id, 'policy': None, 'specialists': [], 'has_more': False, 'resources': resource_options, **details}
     _source_scope(db, scope, company, branch, model, policy['id'])
-    rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip()) if policy['active'] else ([], False)
-    return {'service_id': service_id, 'policy': {key: value for key, value in policy.items() if key != 'service_product_id'},
-        'specialists': rows, 'has_more': more, 'resources': resource_options}
+    rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip(), offset=offset) if policy['active'] else ([], False)
+    from app.apps.srm.service_resource_requirements import required_types
+    from types import SimpleNamespace
+    requirements = sorted(required_types(SimpleNamespace(metadata_json=product.metadata_json), policy['id']))
+    return {'service_id': service_id, 'policy': {**{key: value for key, value in policy.items() if key != 'service_product_id'}, 'required_resource_types': requirements},
+        'specialists': rows, 'has_more': more, 'next_offset': offset + len(rows) if more else None, 'resources': resource_options, **details}
 
 
 class _AvailabilityRead:
@@ -183,7 +207,7 @@ class _AvailabilityRead:
         table = IndustryRecord.__table__
         if identity not in self.identities:
             self.identities[identity] = self.db.connection().execute(select(table.c.branch_id,
-                table.c.data['employee_id'].label('employee_id'), table.c.data['user_id'].label('user_id'),
+                table.c.data['employee_id'].label('employee_id'), table.c.data['user_id'].label('user_id'), table.c.data['capacity'].label('capacity'),
                 self.resource_shape(table.c.data).label('shape')).where(table.c.id == identity,
                 table.c.kind == 'resource', table.c.organization_id == self.company)).mappings().first()
         row = self.identities[identity]
@@ -220,6 +244,7 @@ class _AvailabilityRead:
                 employees.add(employee)
             if user is not None:
                 users.add(user)
+        occupancy = {identity: [] for identity in selected}
         busy = False
         for row in self.bookings:
             old_start = _instant(row['starts_at'], stored=self.db.get_bind().dialect.name == 'sqlite')
@@ -239,11 +264,31 @@ class _AvailabilityRead:
             prior = _ids(source_ids)
             if len(prior) != len(source_ids):
                 _unavailable()
-            busy |= bool(prior & selected)
+            for identity in prior & selected:
+                occupancy[identity].append((max(start, old_start), min(end, old_end)))
             for identity in prior:
                 employee, user = self.resource(identity, row['branch_id'])
                 busy |= employee in employees or user in users
-        return busy
+        from app.business_packs.availability import capacity_conflict, resource_capacity
+        return busy or any(capacity_conflict(intervals, resource_capacity(self.identities[identity]['capacity'])) for identity, intervals in occupancy.items())
+
+    def remaining_capacity(self, start, minutes, identity):
+        """Return free units without revealing another booking's identity."""
+        from app.business_packs.availability import _instant, resource_capacity
+        from datetime import timedelta
+        start = _instant(start); end = start + timedelta(minutes=minutes)
+        self.conflict(start, end, [identity])  # Validate the same private occupancy snapshot.
+        capacity = resource_capacity(self.identities[identity]['capacity'])
+        events = []
+        for row in self.bookings:
+            begin = _instant(row['starts_at'], stored=self.db.get_bind().dialect.name == 'sqlite')
+            finish = _instant(row['ends_at'], stored=self.db.get_bind().dialect.name == 'sqlite')
+            if begin < end and finish > start and identity in row['resource_ids']:
+                events.extend([(max(start, begin), 1), (min(end, finish), -1)])
+        occupied = peak = 0
+        for _, delta in sorted(events):
+            occupied += delta; peak = max(peak, occupied)
+        return {'capacity': capacity, 'remaining_capacity': max(0, capacity - peak)}
 
     def available(self, start, minutes, resource_ids):
         from datetime import timedelta, time
@@ -316,6 +361,8 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
 
     def usable(start, additional):
         end = start + timedelta(minutes=duration_minutes)
+        if set(options['policy'].get('required_resource_types') or []) - {r['resource_type'] for r in options.get('resources', []) if r['id'] in additional}:
+            return False
         if start <= datetime.now(timezone.utc):
             return False
         for bound, lower in ((eligibility.effective_from, True), (eligibility.effective_until, False)):
@@ -330,6 +377,9 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
                 raise
             return False
 
+    required = set(options['policy'].get('required_resource_types') or [])
+    selected_types = {r['resource_type'] for r in options.get('resources', []) if r['id'] in resource_ids}
+    missing = sorted(required - selected_types)
     candidate = datetime.combine(day, time.fromisoformat(provider.data['opens']), zone)
     close = datetime.combine(day, time.fromisoformat(provider.data['closes']), zone)
     slots = []
@@ -340,6 +390,62 @@ def scheduling_availability(db, actor, service_id, eligibility_id, day, duration
         if start.astimezone(zone).replace(tzinfo=None) == candidate.replace(tzinfo=None) and usable(start, resource_ids):
             slots.append({'starts_at': start.isoformat(), 'label': candidate.strftime('%H:%M')})
         candidate += timedelta(minutes=15)
-    return {'timezone': str(zone), 'slots': slots, 'checked_at': datetime.now(timezone.utc).isoformat(),
+    conflicts = []
+    if starts_at:
+        end = starts_at + timedelta(minutes=duration_minutes)
+        for identity, name in [(provider.id, provider.title), *[(r['id'], r['name']) for r in options.get('resources', []) if r['id'] in resource_ids]]:
+            try:
+                free = prepared.available(starts_at, duration_minutes, [identity])
+            except HTTPException as error:
+                if error.status_code not in (409, 422):
+                    raise
+                free = False
+            if not free:
+                resource = prepared.selected.get(identity) or get(db,actor,branch,identity,'resource',lock=False)
+                local = starts_at.astimezone(ZoneInfo(resource.data['timezone']))
+                local_end = end.astimezone(ZoneInfo(resource.data['timezone']))
+                code = 'capacity' if int(resource.data.get('capacity') or 1)>1 else 'booking'
+                detail = 'capacity is full or the resource is otherwise reserved' if code=='capacity' else 'already reserved or unavailable'
+                if (local.weekday() not in resource.data['weekdays'] or local.date()!=local_end.date()
+                    or local.time().replace(tzinfo=None)<time.fromisoformat(resource.data['opens'])
+                    or local_end.time().replace(tzinfo=None)>time.fromisoformat(resource.data['closes'])):
+                    code,detail='working_hours','outside working hours'
+                elif resource.data.get('employee_id'):
+                    from app.business_packs.availability import employee_leave_conflict
+                    if employee_leave_conflict(db,company,resource.data['employee_id'],local.date(),local_end.date()):
+                        code,detail='leave','on leave'
+                conflicts.append({'resource_id': identity, 'name': name, 'reason_code':code,
+                    'message': f'{name} is {detail} ({local.strftime("%H:%M")}–{local_end.strftime("%H:%M")} {resource.data["timezone"]}).'})
+    return {'missing_resource_types': missing, 'conflicts': conflicts, 'timezone': str(zone), 'slots': slots, 'checked_at': datetime.now(timezone.utc).isoformat(),
         'selection_available': usable(starts_at, resource_ids) if starts_at else None,
-        'resources': [{'id': item['id'], 'available': usable(starts_at, [item['id']])} for item in options.get('resources', [])] if starts_at else []}
+        'resources': [{'id': item['id'], 'available': usable(starts_at, list(set([*resource_ids, item['id']]))), **prepared.remaining_capacity(starts_at, duration_minutes, item['id'])} for item in options.get('resources', [])] if starts_at else []}
+
+
+def validate_prebooking(db, actor, data):
+    """Apply POS eligibility rules to a reservation without financial writes.
+
+    The caller holds the same tenant writer lock used by atomic checkout; the
+    subsequent appointment insert and resource validation share its transaction.
+    """
+    b = data.booking
+    company, branch, scope = _authority(db, actor)
+    policy = _scope(db.query(ServiceBookingPolicy), ServiceBookingPolicy, company, branch, scope).filter_by(
+        id=b.policy_id, service_product_id=data.service_id, active=True).with_for_update().first()
+    if not policy or policy.revision != b.expected_policy_revision:
+        raise HTTPException(409, 'Service policy changed. Review booking details.')
+    eligibility = _scope(db.query(ServiceSpecialistEligibility), ServiceSpecialistEligibility, company, branch, scope).filter_by(
+        id=b.eligibility_id, booking_policy_id=policy.id, service_product_id=data.service_id,
+        provider_resource_id=b.provider_resource_id, active=True).with_for_update().first()
+    if not eligibility or eligibility.revision != b.expected_eligibility_revision:
+        raise HTTPException(409, 'Employee eligibility changed. Review booking details.')
+    if (data.starts_at != b.starts_at or data.duration_minutes != b.duration_minutes
+            or sorted(data.resource_ids) != sorted([b.provider_resource_id, *b.additional_resource_ids])):
+        raise HTTPException(422, 'Appointment details differ from the selected booking.')
+    from app.apps.srm.service_checkout import _provider
+    provider = _provider(db, actor, branch, b.provider_resource_id, b.employee_id)
+    zone = ZoneInfo(provider.data['timezone'])
+    result = scheduling_availability(db, actor, data.service_id, b.eligibility_id,
+        b.starts_at.astimezone(zone).date(), b.duration_minutes,
+        resource_ids=b.additional_resource_ids, starts_at=b.starts_at)
+    if result['selection_available'] is not True:
+        raise HTTPException(409, 'The employee or required resource is unavailable. Choose another available time.')

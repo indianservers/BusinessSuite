@@ -1,3 +1,4 @@
+import { ShoppingCart, CalendarDays, Clock3, Receipt } from "lucide-react";
 import { commonNavigationHref, commonModules, commonRouteContext, moduleContextPath, type CommonModule } from "@/lib/common-routes";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { sharedNotesPath } from "@/lib/shared-notes";
@@ -31,7 +32,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   collapsed?: boolean; onNavigate: () => void; workspaceId?: number; modulePath?: string; customItems?: RoleNavItem[]; quickActions?: NewAction[];
 }) {
   const location = useLocation(), id = useId();
-  const { routeLabel } = useBusinessTerms();
+  const { routeLabel, term } = useBusinessTerms();
   const user = useAuthStore(state => state.user);
   const moduleKey = (modulePath || moduleContextPath(location.pathname, location.search)).split("/")[1] || "suite";
   const catalogPath = ["crm", "hrms", "pms", "srm", "fam"].includes(moduleKey) ? `/${moduleKey}` : modulePath || location.pathname;
@@ -74,9 +75,10 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const activeGroup = current?.group;
   const displayLabel = (item: {to:string;label:string}) => preferences.menuItems?.[item.to.split(/[?#]/)[0]]?.label || (customItems ? menuLabel(item) : routeLabel(item.to, menuLabel(item)));
   const items = query.trim() ? available.filter(item => menuMatches(item, query) || displayLabel(item).toLowerCase().includes(query.trim().toLowerCase())) : consolidated;
-  const directItems = items.filter(item => landing.direct.some(link => link.to === item.to));
+  const directItems = moduleKey === "srm" && !query.trim() ? [] : items.filter(item => landing.direct.some(link => link.to === item.to));
   const groupedItems = items.filter(item => !landing.direct.some(link => link.to === item.to)
-    && !([`/${moduleKey}`, `/${moduleKey}/dashboard`].includes(item.to)));
+    && (query.trim() || !([`/${moduleKey}`, `/${moduleKey}/dashboard`].includes(item.to))));
+  if (moduleKey === "srm") groupedItems.forEach(item => { item.group = "More"; });
   const groups = [...new Set(groupedItems.map(item => item.group || "Workspace"))];
   const allGroups = [...new Set(landing.grouped.map(item => item.group || "Workspace"))];
   const key = (group: string) => `menu-v2:${moduleKey}:${group}`;
@@ -108,11 +110,22 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
-    {['srm', 'crm'].includes(moduleKey) && <nav aria-label="Sticky shortcuts" className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border bg-sidebar p-2">
+    {!collapsed && <>
+      <label className="module-menu-search"><Search size={16} /><input type="search" aria-label="Search menu items" placeholder="Search menu items..." value={query}
+        onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
+        {query && <button type="button" aria-label="Clear menu search" onClick={() => setQuery("")}><X size={14} /></button>}
+      </label>
+      <div className="module-menu-toolbar"><span role="status" aria-live="polite">{query.trim() ? `${items.length} results` : "Explore workspace"}</span><div>
+        <button type="button" aria-label="Expand all menu categories" title="Expand all categories" onClick={() => expandAll(true)}><ChevronsUpDown size={14} /></button>
+        <button type="button" aria-label="Collapse all menu categories" title="Collapse all categories" onClick={() => expandAll(false)}><ChevronsDownUp size={14} /></button>
+      </div></div>
+    </>}
+    {!query.trim() && ['srm', 'crm'].includes(moduleKey) && <nav aria-label="Sticky shortcuts" className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border bg-sidebar p-2">
       {!collapsed && <p className="px-2 pb-1 text-xs font-semibold">Quick access</p>}
       {(moduleKey === 'srm' ? [
-        ['/srm/pos/terminal', 'POS Terminal'], ['/srm/appointments', 'Appointment Scheduler'],
-        ['/srm/pos/sessions', 'POS Sessions'], ['/srm/inventory/items', 'Stock Items'],
+        ['/srm/pos/terminal', 'POS'], ['/srm/appointments', 'Appointments'],
+        ['/srm/service-scheduling?view=schedule', 'Scheduling'], ['/srm/customers', term('customer', true)],
+        ['/srm/invoices', 'Transactions'], ['/srm/reports', 'Reports'],
       ] : [
         ['/crm/appointments', 'Appointment Scheduler'], ['/crm/contacts', 'Contacts'],
         ['/crm/leads', 'Leads'], ['/crm/calendar', 'Calendar'],
@@ -120,19 +133,9 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         <Link key={to} to={workspacePageHref(to, location.search, workspaceId)} onClick={onNavigate}
           title={label} aria-label={label} aria-current={isCurrent(to) ? 'page' : undefined}
           className={`nav-link flex min-h-9 items-center rounded px-2 text-xs ${isCurrent(to) ? 'bg-sidebar-accent font-semibold' : ''}`}>
-          {collapsed ? label.slice(0, 2) : label}
+          <MenuItemIcon path={to} fallback={to.includes("/pos/") ? ShoppingCart : to.includes("appointments") ? CalendarDays : (to.includes("scheduled-services") || to.includes("service-scheduling")) ? Clock3 : to.includes("invoices") ? Receipt : categoryIcon(label)}/>{!collapsed && <span>{label}</span>}
         </Link>)}
     </nav>}
-    {!collapsed && <>
-      <label className="module-menu-search"><Search size={16} /><input aria-label="Find a page in this application" placeholder="Find a page…" value={query}
-        onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
-        {query && <button type="button" aria-label="Clear menu search" onClick={() => setQuery("")}><X size={14} /></button>}
-      </label>
-      <div className="module-menu-toolbar"><span>{query.trim() ? `${items.length} results` : "Explore workspace"}</span><div>
-        <button type="button" aria-label="Expand all menu categories" title="Expand all categories" onClick={() => expandAll(true)}><ChevronsUpDown size={14} /></button>
-        <button type="button" aria-label="Collapse all menu categories" title="Collapse all categories" onClick={() => expandAll(false)}><ChevronsDownUp size={14} /></button>
-      </div></div>
-    </>}
     {directItems.length > 0 && <ul className="module-menu-landing" aria-label="Application landing pages">{directItems.map(item => {
       const itemPath = item.to.split(/[?#]/)[0].replace(/\/$/, "");
       const primary = itemPath === `/${moduleKey}` || itemPath === `/${moduleKey}/dashboard`;
@@ -146,7 +149,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         {!collapsed && <MenuItemMore path={workspacePageHref(item.to, location.search, workspaceId)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/>}
       </div></li>;
     })}</ul>}
-    {!collapsed && !query.trim() && preferences.favorites.some(path=>available.some(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0])) && <ul className="module-menu-favorites" aria-label="Favorite menu pages"><li><p>Favorites</p></li>{preferences.favorites.flatMap(path=>{
+    {moduleKey !== "srm" && !collapsed && !query.trim() && preferences.favorites.some(path=>available.some(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0])) && <ul className="module-menu-favorites" aria-label="Favorite menu pages"><li><p>Favorites</p></li>{preferences.favorites.flatMap(path=>{
       const item=available.find(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0]);
       if(!item)return []; const label=displayLabel(item);
       return [<li key={path}><div className="module-menu-row"><Link to={path} onClick={onNavigate} title={label}><Star size={15}/><span>{label}</span></Link><MenuQuickAdd actions={createActions} paths={[path]} label={label} onNavigate={onNavigate}/><MenuItemMore path={path} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/></div></li>];

@@ -177,6 +177,7 @@ def install(db, user, ctx, *, identity_administration=False):
     protected = set(models) - SHARED
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(n) for n in protected) + r")\b", re.I)
     pending = []
+    read_audit_events = set()
     original_get = db.get
     original_refresh = db.refresh
     original_bulk = {name: getattr(db, name) for name in ("bulk_insert_mappings", "bulk_update_mappings", "bulk_save_objects")}
@@ -252,13 +253,24 @@ def install(db, user, ctx, *, identity_administration=False):
             # A company-wide administrative read may emit its own audit event
             # without inventing a destination branch. Keep branch-scoped events
             # on the normal ownership path and never exempt business writes.
-            audit_actor = {'audit_logs': 'user_id', 'srm_audit_logs': 'actor_user_id'}.get(table.name)
+            audit_actor = {'audit_logs': 'user_id', 'srm_audit_logs': 'actor_user_id',
+                           'ai_audit_logs': 'user_id'}.get(table.name)
             if (audit_actor is not None and item in session.new
                     and ctx.branch_id is None
                     and (ctx.superuser or getattr(ctx, 'company_admin', False))
                     and session.info.get('security_write_request') is False
                     and getattr(item, audit_actor) == user.id
                     and item.organization_id == ctx.company_id):
+                continue
+            # Native AI reads emit server-owned policy telemetry even when
+            # the selected branch grants read access only. Attribute the new
+            # event to that branch without authorizing any business mutation.
+            if (table.name == 'ai_audit_logs' and item in session.new
+                    and session.info.get('security_write_request') is False
+                    and ctx.branch_id is not None and ctx.branch_id in ctx.allowed
+                    and item.user_id == user.id and item.organization_id == ctx.company_id):
+                read_audit_events.add(item)
+                pending.append(item)
                 continue
             if table.name == "fam_ledgers" and item.system_ledger:
                 changes = {c.name for c in table.c if state.attrs[c.name].history.has_changes()}
@@ -340,12 +352,13 @@ def install(db, user, ctx, *, identity_administration=False):
                 if len(evidence) > 1:
                     deny("Cross-branch record links require an explicit supported workflow")
                 branch = next(iter(evidence), ctx.branch_id or current)
-                if branch is None or branch not in ctx.writable or ctx.branch_id and branch != ctx.branch_id:
+                if branch is None or (branch not in ctx.writable and item not in read_audit_events) or ctx.branch_id and branch != ctx.branch_id:
                     deny()
                 if current is not None and current != branch:
                     deny("Record ownership cannot change through an ordinary update")
                 if current is None:
                     connection.execute(ownership.insert().values(resource_table=table.name, resource_key=key, company_id=ctx.company_id, branch_id=branch, source="validated-write"))
+                read_audit_events.discard(item)
                 progress = True
             if unresolved and not progress:
                 raise last_error

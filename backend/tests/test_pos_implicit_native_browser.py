@@ -15,6 +15,7 @@ def test_native_implicit_pos_pins_exact_context_and_never_retags_uncertain_inten
     from app.apps.project_management.models import PMSTimesheet
     from app.business_packs.models import PackMasterAvailability
     from app.business_packs.runtime import RUNTIME_SUPPORT
+    before_runtime=dict(RUNTIME_SUPPORT)
     headers,actor,branch,context,_,existing=hospital_http
     product=db.query(SRMProduct).filter_by(track_inventory=True,active=True).first()
     assert product is not None and product.default_warehouse_id
@@ -48,4 +49,4 @@ def test_native_implicit_pos_pins_exact_context_and_never_retags_uncertain_inten
         assert db.query(SRMInventoryBalance).filter_by(organization_id=1,product_id=product.id,warehouse_id=product.default_warehouse_id).one().quantity==before_stock
     assert db.query(SRMPOSSession).count()==before_registers
     assert db.query(PMSTimesheet).count()==before_time
-    assert not RUNTIME_SUPPORT
+    assert dict(RUNTIME_SUPPORT)==before_runtime

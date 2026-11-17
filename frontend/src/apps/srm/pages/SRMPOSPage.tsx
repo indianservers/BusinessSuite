@@ -1,3 +1,9 @@
+import POSCustomerIdentity from "../components/POSCustomerIdentity";
+import { BookingSummary } from "@/shared/scheduling/BookingUX";
+import PrebookingPOSVisit from '../industry/PrebookingPOSVisit';
+import { posPresentation } from "../pos-presentation";
+import { catalogIcon } from "../components/catalog-icon";
+import { useBusinessTerms } from "@/hooks/use-business-terms";
 import POSCustomerPicker from "../components/POSCustomerPicker";
 import POSReceipt, { downloadReceipt, receiptText } from "../components/POSReceipt";
 import POSBranchSelection from "../components/POSBranchSelection";
@@ -32,8 +38,10 @@ import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import "./srm-pos-mobile.css";
+import "./pos-ux25.css";
+import "./pos-mobile-reference.css";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { phoneLinks } from "@/components/PhoneActions";
@@ -90,6 +98,7 @@ type Product = {
   trackInventory: boolean;
   checkoutSupported?: boolean;
   bookingRequired?: boolean;
+  schedulingConfigured?: boolean;
   unsupportedReason?: string;
   followUp?: Schedule;
   kind: string;
@@ -115,6 +124,7 @@ type Customer = {
 };
 
 type CartLine = Product & {
+  resourceCapacities?: Record<number,number>;
   lineId: string;
   booking?: BookingSelection;
   draftScope?: string;
@@ -286,10 +296,11 @@ function productFromRecord(item: SRMRecord): Product {
   return {
     id: recordNumber(item.id),
     name: String(item.item_name || item.name || "Unnamed product"),
-    image: ((item.metadata_json as { images?: string[] } | undefined)?.images || [])[0],
+    image: (Array.isArray(item.images) ? item.images as string[] : (item.metadata_json as { images?: string[] } | undefined)?.images || [])[0],
     followUp: (item.metadata_json as {follow_up?:Schedule} | undefined)?.follow_up,
     kind: String(["service","services"].includes(String(item.product_type).toLowerCase()) ? "Services" : item.product_type === "package" ? "Packages" : "Products"),
-    duration: String((item.metadata_json as Record<string, unknown> | undefined)?.duration || ""),
+    schedulingConfigured: 'booking_policy' in item ? Boolean(item.booking_policy && (item.booking_policy as {active?:boolean}).active !== false) : undefined,
+    duration: item.duration_minutes ? `${item.duration_minutes} min` : String((item.metadata_json as Record<string, unknown> | undefined)?.duration || ""),
     active: item.active !== false,
     sku: String(item.sku || ""),
     barcode: String(item.barcode || item.sku || ""),
@@ -328,6 +339,16 @@ function lineTax(line: CartLine) {
 
 function lineTotal(line: CartLine) {
   return lineTaxable(line) + lineTax(line);
+}
+
+function cartBookingConflict(cart: CartLine[], lineId: string, booking: BookingSelection, capacities: Record<number,number> = {}) {
+  const start=Date.parse(booking.starts_at),end=start+booking.duration_minutes*60000;
+  const overlapping=cart.filter(line=>line.lineId!==lineId && line.booking && Date.parse(line.booking.starts_at)<end && Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000>start);
+  if(overlapping.some(line=>line.booking!.employee_id===booking.employee_id || line.booking!.provider_resource_id===booking.provider_resource_id))return true;
+  return (booking.additional_resource_ids || []).some(resource=>{
+    const events=overlapping.filter(line=>line.booking!.additional_resource_ids?.includes(resource)).flatMap(line=>[[Math.max(start,Date.parse(line.booking!.starts_at)),1],[Math.min(end,Date.parse(line.booking!.starts_at)+line.booking!.duration_minutes*60000),-1]]);
+    let occupied=0;return events.sort((a,b)=>a[0]-b[0] || a[1]-b[1]).some(([,delta])=>{occupied+=delta;return occupied >= (capacities[resource] || 1);});
+  });
 }
 
 function buildCartLine(product: Product): CartLine {
@@ -370,9 +391,12 @@ function posDraftScope() {
 function normalizeCart(lines: CartLine[]) { return lines.map(line => ({...line, lineId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(line.lineId) ? line.lineId : crypto.randomUUID(), qty: line.booking ? 1 : line.qty})); }
 function isService(line: Product) { return ['service','services'].includes(line.kind.toLowerCase()); }
 export default function SRMPOSPage() {
+  const [routeParams]=useSearchParams();
+  const prebooking=routeParams.get('prebooking');
   const scope = useRecordScope(), [packGeneration, setPackGeneration] = useState(0);
   useEffect(() => { const changed = () => setPackGeneration(value => value + 1); const events = ['suite:pack-context-changed','suite:business-pack-changed']; events.forEach(name => window.addEventListener(name, changed)); return () => events.forEach(name => window.removeEventListener(name, changed)); }, []);
   const draftScope = posDraftScope();
+  if(prebooking && /^[1-9][0-9]*$/.test(prebooking))return <PrebookingPOSVisit key={`${scope}:${prebooking}`} id={Number(prebooking)}/>;
   return <POSAuthority key={`${scope}:${packGeneration}:${draftScope}`} scope={`${scope}:${draftScope}`} draftScope={draftScope}/>;
 }
 function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
@@ -428,6 +452,10 @@ function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
 }
 function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:string;draftScope:string;selectedPOS:boolean;operationalPackKey:string|null}) {
   const owns = useRecordScopeOwner();
+  const workspaceRef=useRef<HTMLDivElement>(null), checkoutFooterRef=useRef<HTMLElement>(null), cartScrollRef=useRef<HTMLDivElement>(null);
+  useLayoutEffect(()=>{const root=workspaceRef.current,footer=checkoutFooterRef.current,scroll=cartScrollRef.current;if(!root||!footer||!scroll)return;const measure=()=>{root.style.setProperty('--pos-footer-height',`${footer.getBoundingClientRect().height}px`);const main=root.querySelector('main'),cart=root.querySelector('.srm-pos-cart');if(main&&cart){const style=getComputedStyle(cart);const pieces=Array.from(cart.children).filter(el=>!el.classList.contains('pos-cart-items')&&!el.classList.contains('pos-cart-scroll-hint')&&getComputedStyle(el).display!=='none');const minimum=pieces.reduce((sum,el)=>sum+el.getBoundingClientRect().height,0)+340+18+(parseFloat(style.rowGap)||10)*pieces.length+parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);root.style.setProperty('--pos-main-height',`${Math.max(minimum,window.innerHeight-main.getBoundingClientRect().top-14)}px`);}scroll.dataset.overflow=String(scroll.scrollHeight>scroll.clientHeight+2);};const observer=new ResizeObserver(measure);observer.observe(footer);observer.observe(scroll);root.querySelector('.srm-pos-cart')?.querySelectorAll(':scope > *').forEach(el=>{if(!el.classList.contains('pos-cart-items')&&!el.classList.contains('pos-cart-scroll-hint'))observer.observe(el);});root.querySelectorAll('.pos-shell-header,.pos-guidance').forEach(el=>observer.observe(el));window.addEventListener('resize',measure);if(scroll.firstElementChild)observer.observe(scroll.firstElementChild);measure();return()=>{observer.disconnect();window.removeEventListener('resize',measure);};},[]);
+  const { term, profile } = useBusinessTerms();
+  const presentation = posPresentation(operationalPackKey || profile.business_type);
   const storage = (key:string) => `business-suite-srm-pos-v2:${draftScope}:${key}`;
   const navigate = useNavigate();
   const authUser = useAuthStore(state => state.user);
@@ -605,15 +633,15 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     const current = dbProducts.find(product=>product.id===line.id);
     if (!current || current.checkoutSupported===false) readiness.push({id:`item-${line.lineId}`,lineId:line.lineId,text:`${line.name}: ${current?.unsupportedReason || 'reload or remove this unavailable item'}.`});
     if (line.trackInventory && line.qty > (current?.stock ?? line.stock)) readiness.push({id:`stock-${line.lineId}`,lineId:line.lineId,text:`${line.name}: only ${current?.stock ?? line.stock} in stock.`});
-    if (isService(line) && (!selectedPOS || posFeatures?.appointments_schedule) && (!(line.lineId in requirements) || requirements[line.lineId] && !line.booking)) readiness.push({id:`booking-${line.lineId}`,lineId:line.lineId,text:`${line.name}: ${line.lineId in requirements ? 'apply the required appointment details' : 'wait for scheduling rules to load'}.`});
+    if (isService(line) && line.schedulingConfigured !== false && (!selectedPOS || posFeatures?.appointments_schedule) && (!(line.lineId in requirements) || requirements[line.lineId] && !line.booking)) readiness.push({id:`booking-${line.lineId}`,lineId:line.lineId,text:`${line.name}: ${line.lineId in requirements ? 'apply the required appointment details' : 'wait for scheduling rules to load'}.`});
     if (!isService(line) && (line.serialTracking || line.batchTracking && line.lotAllocation !== 'fefo')) readiness.push({id:`tracking-${line.lineId}`,lineId:line.lineId,text:`${line.name}: use the supported serial/batch stock workflow.`});
     if (line.booking && bookingAvailability[line.lineId]===false) readiness.push({id:`availability-${line.lineId}`,lineId:line.lineId,text:`${line.name}: this employee or resource is no longer available. Refresh scheduling.`});
-    if (line.booking && cart.some(other=>other.lineId!==line.lineId && other.booking && (other.booking.employee_id===line.booking!.employee_id || [other.booking.provider_resource_id,...(other.booking.additional_resource_ids || [])].some(id=>[line.booking!.provider_resource_id,...(line.booking!.additional_resource_ids || [])].includes(id))) && Date.parse(other.booking.starts_at)<Date.parse(line.booking!.starts_at)+line.booking!.duration_minutes*60000 && Date.parse(line.booking!.starts_at)<Date.parse(other.booking.starts_at)+other.booking.duration_minutes*60000)) readiness.push({id:`overlap-${line.lineId}`,lineId:line.lineId,text:`${line.name}: employee or resource overlaps another appointment in this basket.`});
+    if (line.booking && cartBookingConflict(cart,line.lineId,line.booking,line.resourceCapacities)) readiness.push({id:`overlap-${line.lineId}`,lineId:line.lineId,text:`${line.name}: employee or resource capacity overlaps another appointment in this basket.`});
   }
   function reviewIssue(issue:{id:string;lineId?:string}) {
     if (issue.id==='register') setSessionDetailsOpen(true);
     if (issue.id==='catalog') void productsQuery.refetch();
-    if (issue.id==='customer') document.querySelector<HTMLInputElement>('[aria-label="Search customers"]')?.focus();
+    if (issue.id==='customer') document.querySelector<HTMLButtonElement>('[aria-label="Change sale customer"]')?.click();
     if (issue.lineId) {setMobileView('cart');requestAnimationFrame(()=>{const row=document.getElementById(`pos-line-${issue.lineId}`);row?.querySelectorAll('details').forEach(details=>details.open=true);row?.scrollIntoView({block:'center',behavior:'smooth'});});}
   }
   function removeLine(lineId:string) {
@@ -926,7 +954,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
   return (
     <><fieldset disabled={locked} className="contents">
-    <div className={`srm-pos pos-booking-workspace srm-pos-view-${mobileView} min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950`}>
+    <div ref={workspaceRef} className={`srm-pos pos-booking-workspace srm-pos-view-${mobileView} min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950`}>
       <header className="pos-shell-header relative z-30 border-b border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <div className="pos-workspace-identity flex min-w-0 items-center gap-3">
@@ -935,15 +963,15 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             </span>
             <div className="min-w-0">
               <span className="pos-workspace-eyebrow">Sales workspace</span>
-              <h1 className="truncate text-xl font-semibold">Sales & Inventory POS</h1>
+              <h1 className="truncate text-xl font-semibold">{presentation.title}</h1>
               <p className="text-sm text-slate-500">{branchName} / {register?.register_name || "Register not open"} / Session {register?.session_number || (register ? `#${register.id}` : "not open")}</p>
             </div>
           </div>
           <div className="pos-header-actions">
             <nav aria-label="Sales and scheduling" className="pos-workspace-links">
               <span aria-current="page"><ShoppingCart size={15}/>POS</span>
-              {canAccessRoute('/srm/appointments', authUser?.role, authUser?.is_superuser) && <Link to="/srm/appointments"><CalendarDays size={15}/>Appointments</Link>}
-              {canAccessRoute('/srm/service-scheduling', authUser?.role, authUser?.is_superuser) && <><Link to="/srm/service-scheduling?view=availability"><Clock3 size={15}/>Availability</Link><Link to="/srm/service-scheduling?view=schedule"><CalendarRange size={15}/>Schedule &amp; Gantt</Link></>}
+              {(!selectedPOS || posFeatures?.appointments_schedule) && canAccessRoute('/srm/appointments', authUser?.role, authUser?.is_superuser) && <Link to="/srm/appointments"><CalendarDays size={15}/>Appointments</Link>}
+              {(!selectedPOS || posFeatures?.appointments_schedule) && canAccessRoute('/srm/service-scheduling', authUser?.role, authUser?.is_superuser) && <Link to="/srm/service-scheduling?view=schedule"><CalendarRange size={15}/>Scheduling</Link>}
             </nav>
           <button type="button" className="srm-pos-session-toggle" aria-expanded={sessionDetailsOpen} aria-controls="pos-session-details" onClick={() => setSessionDetailsOpen(value => !value)}><Settings size={18} />Session & actions<span aria-hidden="true">{sessionDetailsOpen ? "−" : "+"}</span></button>
           </div>
@@ -963,50 +991,6 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => window.print()}><Printer className="h-4 w-4" />Print</Button>
             <Button variant="destructive" onClick={() => setActiveModal("close")}><DoorClosed className="h-4 w-4" />Close</Button>
           </CompactActions>
-          </div>
-        </div>
-      </header>
-
-      <section className="pos-search-toolbar grid gap-3 border-b border-white/70 bg-white/75 px-4 py-3 backdrop-blur xl:grid-cols-[minmax(20rem,1fr)_24rem_auto]">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-          <Input
-            ref={searchRef}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") scanSearch();
-            }}
-            className="h-11 border-slate-200 bg-slate-50 pl-10 text-base text-slate-950 placeholder:text-slate-400"
-            aria-label="Search or scan items"
-            placeholder="Search or scan product, SKU, barcode [F2]"
-          />
-        </div>
-        <div className="min-w-0"><div className="flex gap-2">
-          <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
-          {customerId>0&&<Button type="button" variant="outline" aria-label="Open customer 360" onClick={()=>setCustomerProfile(true)}>360°</Button>}
-          {customerProfile&&customerId>0&&<>{selectedPOS?<POSCustomerProfile id={customerId} onClose={()=>setCustomerProfile(false)}/>:<CompanyProfile id={customerId} source="srm" onClose={()=>setCustomerProfile(false)}/>}</>}
-          <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" disabled={selectedPOS&&!posFeatures?.customers_register} title={selectedPOS?posFeatures?.registration_unavailable_reason||undefined:undefined} onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add</Button>
-        </div>{selectedPOS && posFeatures?.customers_register===false && <p className="mt-1 text-xs text-slate-600">{posFeatures.registration_unavailable_reason || 'Quick add is unavailable for this register. Choose an existing customer.'}</p>}{customerId===0&&<AnonymousCashSetup canConfigure={!!authUser?.is_superuser||!!(authUser?.access as {isAccessAdmin?:boolean}|undefined)?.isAccessAdmin}/>} {customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <Button variant="outline" type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</Button></p>}</div>
-        <Button variant="outline" onClick={()=>setHelpOpen(value=>!value)} aria-expanded={helpOpen}>Keyboard shortcuts</Button>
-      </section>
-
-      <div className="pos-guidance px-4 py-2 space-y-2">
-        <ol className="flex flex-wrap gap-3 text-xs" aria-label="POS startup progress"><li>1. {branchName}</li><li>2. {register?.id ? `Register ${register.session_number || register.id} open` : 'Register not open'}</li><li>3. {register?.id ? `Opening cash ${currency(Number(register.opening_cash || 0))}` : 'Set opening cash'}</li><li>{register?.id && online ? 'Ready for billing' : 'Setup required'}</li></ol>
-        {!register?.id && <Button variant="outline" size="sm" onClick={()=>setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
-        <p className="text-xs">Customer: <strong>{customer.name}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
-        {!online && <p role="alert">Offline. Your basket is retained; reconnect to check availability and take payment.</p>}
-        <p role="status" aria-live="polite" className="text-xs">{scanFeedback}</p>
-        {helpOpen && <p className="text-sm">F2 Search / scan | F4 Hold (when supported) | F5 Recall (when supported) | F7 Checkout | F8 Print confirmed receipt. Tab moves between fields; Escape closes dialogs.</p>}
-        {undo && <div role="status" className="flex items-center gap-3 text-sm">{undo.message}<Button variant="outline" size="sm" onClick={()=>{setCart(current=>[...current,...undo.lines.filter(line=>!current.some(item=>item.lineId===line.lineId))]);setUndo(null);}}>Undo removal</Button><Button size="sm" variant="ghost" onClick={()=>setUndo(null)}>Dismiss</Button></div>}
-        {readinessOpen && <section aria-label="Checkout readiness" className="rounded border bg-white p-3"><strong>{readiness.length ? `${readiness.length} items to review before payment` : 'Ready for payment'}</strong>{readiness.map(issue=><div key={issue.id} className="flex items-center justify-between gap-2 py-1 text-sm"><span>{issue.text}</span><Button size="sm" variant="outline" onClick={()=>reviewIssue(issue)}>Review</Button></div>)}<p className="text-xs text-slate-500">Stock, appointments and payment permissions are checked again when you confirm.</p></section>}
-        {selectedPOS && <p className="text-xs text-slate-500">Hold and Recall are unavailable for this register type. Your active basket is saved on this device.</p>}
-      </div>
-      <nav className="srm-pos-mobile-tabs" aria-label="POS workspace">
-        <button type="button" aria-pressed={mobileView === "products"} onClick={() => setMobileView("products")}><LayoutGrid size={18} />Products</button>
-        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart ({cart.length})</button>
-      </nav>
-      <main className="grid min-h-[calc(100vh-13.5rem)] gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <aside className={`srm-pos-configuration ${configurationOpen ? "is-open" : ""} rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm backdrop-blur`}>
           <button type="button" className="srm-pos-configuration-toggle" aria-expanded={configurationOpen} aria-controls="pos-register-configuration" onClick={() => setConfigurationOpen(value => !value)}><Settings size={18} />Categories & register<span>{configurationOpen ? "−" : "+"}</span></button>
           <div id="pos-register-configuration">
@@ -1057,7 +1041,39 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
           </div>
           </div>
         </aside>
-        <section className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
+          </div>
+        </div>
+      </header>
+
+
+      <nav className="pos-phone-navigation" aria-label="Mobile POS navigation">
+        <button type="button" aria-current="page" onClick={()=>setMobileView('cart')}><ShoppingCart size={20}/>POS</button>
+        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><CalendarDays size={20}/>Sessions</button>
+        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><Settings size={20}/>Actions</button>
+      </nav>
+      <div className="pos-phone-feedback" role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
+      <div className="pos-phone-bill"><Receipt size={28}/><div><strong>Current Bill</strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={16}/>Clear</Button></div>
+      <div className="pos-phone-customer">
+        <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
+        <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
+      </div>
+      <div className="pos-guidance px-4 py-2 space-y-2">
+        <ol className="flex flex-wrap gap-3 text-xs" aria-label="POS startup progress"><li>1. {branchName}</li><li>2. {register?.id ? `Register ${register.session_number || register.id} open` : 'Register not open'}</li><li>3. {register?.id ? `Opening cash ${currency(Number(register.opening_cash || 0))}` : 'Set opening cash'}</li><li>{register?.id && online ? 'Ready for billing' : 'Setup required'}</li></ol>
+        {!register?.id && <Button variant="outline" size="sm" onClick={()=>setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
+        <p className="text-xs">Customer: <strong>{customer.name}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
+        {!online && <p role="alert">Offline. Your basket is retained; reconnect to check availability and take payment.</p>}
+        <p role="status" aria-live="polite" className="text-xs">{scanFeedback}</p>
+        {helpOpen && <p className="text-sm">F2 Search / scan | F4 Hold (when supported) | F5 Recall (when supported) | F7 Checkout | F8 Print confirmed receipt. Tab moves between fields; Escape closes dialogs.</p>}
+        {undo && <div role="status" className="flex items-center gap-3 text-sm">{undo.message}<Button variant="outline" size="sm" onClick={()=>{setCart(current=>[...current,...undo.lines.filter(line=>!current.some(item=>item.lineId===line.lineId))]);setUndo(null);}}>Undo removal</Button><Button size="sm" variant="ghost" onClick={()=>setUndo(null)}>Dismiss</Button></div>}
+        {readinessOpen && readiness.length>0 && <section aria-label="Checkout readiness" className="rounded border bg-white p-3"><strong>{readiness.length ? `${readiness.length} items to review before payment` : 'Ready for payment'}</strong>{readiness.map(issue=><div key={issue.id} className="flex items-center justify-between gap-2 py-1 text-sm"><span>{issue.text}</span><Button size="sm" variant="outline" onClick={()=>reviewIssue(issue)}>Review</Button></div>)}<p className="text-xs text-slate-500">Stock, appointments and payment permissions are checked again when you confirm.</p></section>}
+        {selectedPOS && <p className="text-xs text-slate-500">Hold and Recall are unavailable for this register type. Your active basket is saved on this device.</p>}
+      </div>
+      <nav className="srm-pos-mobile-tabs" aria-label="POS workspace">
+        <button type="button" aria-pressed={mobileView === "products"} onClick={() => setMobileView("products")}><LayoutGrid size={18} />Products</button>
+        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart ({cart.length})</button>
+      </nav>
+      <main className="grid min-h-[calc(100vh-13.5rem)] gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <section aria-label="Products and services catalogue" className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
           <div className="srm-pos-stock-summary grid gap-3 md:grid-cols-3">
             <StatusTile label="Products" value={String(storeProducts.length)} detail={`${filteredProducts.length} visible`} />
             <StatusTile label="Low stock" value={String(lowStockCount)} detail="Reorder watch" />
@@ -1066,25 +1082,44 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
           <div className="srm-pos-mode-summary"><ModePanel mode={mode} customer={customer} /></div>
           <div className="pos-catalog-toolbar flex flex-col gap-3 rounded-2xl border border-white bg-white p-3 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
-              <strong className="text-sm text-slate-950">Products & services</strong>
+              <strong className="text-sm text-slate-950">{presentation.catalogue}</strong>
               <p className="text-xs text-slate-500">{filteredProducts.length} eligible products & services</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline"><Link to="/srm/inventory/products">Manage catalog</Link></Button>
+            <details className="pos-catalog-actions"><summary><Plus size={16}/>Add new</summary><div className="flex flex-wrap gap-2">
+
               {(authUser?.is_superuser || (authUser?.access?.grants.srm?.enabled && authUser.access.grants.srm.actions.includes("create")) || (!authUser?.access?.managed && ["admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(authUser?.role).toLowerCase()))) && <><Button asChild variant="outline"><Link to="/srm/inventory/products?new=item&kind=product"><Plus size={16}/>Add product</Link></Button><Button asChild variant="outline"><Link to="/srm/inventory/products?new=item&kind=service"><Plus size={16}/>Add service</Link></Button></>}
-              <ViewModeButton active={productView === "tiles"} icon={LayoutGrid} label="Tiles" onClick={() => setProductView("tiles")} />
+            </div></details>
+<details className="pos-catalog-actions"><summary><Settings size={16}/>View &amp; manage</summary><div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/srm/inventory/products">Manage catalog</Link></Button>              <ViewModeButton active={productView === "tiles"} icon={LayoutGrid} label="Tiles" onClick={() => setProductView("tiles")} />
               <ViewModeButton active={productView === "list"} icon={List} label="List" onClick={() => setProductView("list")} />
               <ViewModeButton active={productView === "details"} icon={Table2} label="Details" onClick={() => setProductView("details")} />
-            </div>
+</div></details>
           </div>
 
+          <div className="pos-catalog-search">        <div className="relative">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+          <Input
+            ref={searchRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") scanSearch();
+            }}
+            className="h-11 border-slate-200 bg-slate-50 pl-10 text-base text-slate-950 placeholder:text-slate-400"
+            aria-label="Search or scan items"
+            placeholder="Search or scan product, SKU, barcode [F2]"
+          />
+        </div>
+</div>
           <div className="flex flex-wrap items-center gap-2" aria-label="Catalogue filters">
-            {["All", "Products", "Services", "Favorites", "Frequently Used", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : tab === "Services" ? isService(p) : tab === "Products" ? !isService(p) : false)).length})</Button>)}
+{["All", "Products", "Services"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : tab === "Services" ? isService(p) : tab === "Products" ? !isService(p) : false)).length})</Button>)}
+<details className="pos-catalog-actions pos-filter-menu"><summary>Filters{!['All','Products','Services'].includes(catalogTab)?` · ${catalogTab}`:''}</summary><div className="flex flex-wrap gap-2">{["Favorites", "Frequently Used", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : tab === "Services" ? isService(p) : tab === "Products" ? !isService(p) : false)).length})</Button>)}
             <NativeSelect aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option><option value="frequent">Most used</option></NativeSelect>
+</div></details>
           </div>
+          <nav className="pos-category-chips" aria-label="Product categories">{categories.map(item => <Button key={item} size="sm" variant={category === item ? "default" : "outline"} onClick={() => setCategory(item)}><LayoutGrid size={15}/>{item === "All" ? "All categories" : item}</Button>)}</nav>
           {productsQuery.isLoading && <div role="status" aria-label="Loading products and services" aria-busy="true"><span className="sr-only">Loading products and services</span><div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 motion-safe:animate-pulse">{Array.from({length:10},(_,i)=><div key={i} className="overflow-hidden rounded-xl border bg-white"><div className="h-20 bg-slate-100"/><div className="space-y-3 p-3"><div className="h-3 w-4/5 rounded bg-slate-100"/><div className="h-3 w-1/2 rounded bg-slate-100"/><div className="h-4 w-1/3 rounded bg-slate-100"/></div></div>)}</div></div>}
           {productsQuery.isError && <p role="alert">Unable to load the catalog. <Button variant="outline" type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</Button></p>}
-          <details className="pos-favorites-editor"><summary>Manage favorites</summary><div className="flex flex-wrap gap-2 py-2">{filteredProducts.map(product=><Button key={product.id} size="sm" variant={favoriteIds.includes(product.id)?'default':'outline'} aria-pressed={favoriteIds.includes(product.id)} onClick={()=>setFavoriteIds(ids=>ids.includes(product.id)?ids.filter(id=>id!==product.id):[...ids,product.id])}>{favoriteIds.includes(product.id)?'Starred: ':'Star: '}{product.name}</Button>)}</div></details>
+
           {!productsQuery.isLoading && !productsQuery.isError && !filteredProducts.length && <p className="rounded-lg border border-dashed p-6 text-sm text-slate-600">No active products or services match this view. Add an item in the shared catalog or change your filters.</p>}
           {productView === "details" ? (
             <div className="srm-pos-product-details overflow-x-auto rounded-2xl border border-white bg-white shadow-sm">
@@ -1139,29 +1174,26 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               })}
             </div>
           ) : (
-            <div className={`grid gap-2 ${tileDensity === "compact" ? "grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}`}>
+            <div className={`pos-catalog-grid grid gap-2 ${tileDensity === "compact" ? "grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}`}>
               {filteredProducts.map((product) => {
                 const qty = cart.filter((line) => line.id === product.id).reduce((sum, line) => sum + line.qty, 0);
                 const lowStock = product.trackInventory && product.stock <= product.reorderLevel;
+                const ItemIcon = catalogIcon(product.name, product.category, isService(product));
                 return (
                   <article key={product.id} className={`pos-catalog-card ${isService(product) ? "pos-service-card" : ""} relative overflow-hidden rounded-xl border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${qty ? "border-[#6d49d7] ring-2 ring-[#6d49d7]/10" : "border-white"}`}>
 
                     <button type="button" className="block w-full text-left" onClick={() => addProduct(product)} data-product-id={product.id} disabled={product.checkoutSupported===false || product.trackInventory && product.stock<=0}>
                       <ProductVisual product={product} lowStock={lowStock} density={tileDensity} />
-                      <span className="mt-2 block truncate px-2 text-xs font-semibold text-slate-950">{product.name}</span>
+                      <span className="mt-2 block truncate px-2 text-xs font-semibold text-slate-950"><ItemIcon size={21} className="shrink-0 text-violet-700"/>{product.name}</span>
                       <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                       <span className="mt-2 flex items-center justify-between gap-2 px-2 pb-2">
-                        <strong className="text-sm text-[#6d49d7]">{shortCurrency(product.rate)}</strong>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? `${product.stock} in stock` : isService(product) ? "Service" : "Product"}</span>
+                        <span className="text-xs text-violet-700">{isService(product) ? product.duration : ""}</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? `Stock: ${product.stock}` : isService(product) ? `${product.duration || "Service"}${product.bookingRequired ? " · Booking required" : ""}` : "Product"}</span>
                       </span>
                     </button>
                     {product.checkoutSupported===false && <p className="px-2 pb-2 text-xs text-red-700">{product.unsupportedReason || 'Unavailable for checkout'}</p>}
-                    <Button type="button" variant="outline" size="sm" className="pos-favorite-toggle" aria-label={`Favorite ${product.name}`} aria-pressed={favoriteIds.includes(product.id)} onClick={()=>setFavoriteIds(ids=>ids.includes(product.id)?ids.filter(id=>id!==product.id):[...ids,product.id])}>{favoriteIds.includes(product.id)?'Starred':'Star'}</Button>
-                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 p-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-600 hover:bg-white" onClick={() => removeProduct(product.id)} disabled={!qty}><Minus className="h-3.5 w-3.5" /></Button>
-                      <strong className="min-w-8 text-center text-sm text-slate-900">{qty}</strong>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-600 hover:bg-white" onClick={() => addProduct(product)} data-product-id={product.id} disabled={product.checkoutSupported===false || product.trackInventory && product.stock<=0}><Plus className="h-3.5 w-3.5" /></Button>
-                    </div>
+                    <Button type="button" variant="outline" size="sm" className="pos-favorite-toggle" aria-label={`Favorite ${product.name}`} aria-pressed={favoriteIds.includes(product.id)} onClick={()=>setFavoriteIds(ids=>ids.includes(product.id)?ids.filter(id=>id!==product.id):[...ids,product.id])}><span aria-hidden="true">{favoriteIds.includes(product.id)?'★':'☆'}</span><span className="sr-only">{favoriteIds.includes(product.id)?'Remove favorite':'Add favorite'}</span></Button>
+                    <div className="pos-product-action flex items-center justify-between p-3"><strong>{shortCurrency(product.rate)}</strong><Button variant="outline" size="sm" onClick={() => addProduct(product)} data-product-id={product.id} disabled={product.checkoutSupported===false || product.trackInventory && product.stock<=0}><ShoppingCart size={16}/>Add{qty ? ` (${qty})` : ''}</Button></div>
                   </article>
                 );
               })}
@@ -1170,36 +1202,38 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         </section>
 
         <aside className="srm-pos-cart space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
-          <Card className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <div className="min-w-0"><CardTitle className="text-base">Cart</CardTitle><p className="pos-cart-caption">{cart.length} {cart.length === 1 ? "line" : "lines"}{cart.some(line=>!!line.booking) ? ` - ${cart.filter(line=>!!line.booking).length} appointment drafts` : " - Products & services"}</p></div>
+              <div className="min-w-0"><CardTitle className="text-base">{presentation.bill}</CardTitle><p className="pos-cart-caption">{cart.length} {cart.length === 1 ? "line" : "lines"}{cart.some(line=>!!line.booking) ? ` - ${cart.filter(line=>!!line.booking).length} appointment drafts` : " - Products & services"}</p></div>
               <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-950" onClick={() => setConfirmClear(true)} disabled={!cart.length}><Trash2 className="h-4 w-4" />Clear</Button>
             </CardHeader>
+<div className="pos-sale-customer"><strong className="text-xs">{term("customer")}</strong>        <div className="min-w-0"><div className="flex gap-2">
+          <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
+          {customerId>0&&<Button type="button" variant="outline" aria-label="Open customer 360" onClick={()=>setCustomerProfile(true)}>360°</Button>}
+          {customerProfile&&customerId>0&&<>{selectedPOS?<POSCustomerProfile id={customerId} onClose={()=>setCustomerProfile(false)}/>:<CompanyProfile id={customerId} source="srm" onClose={()=>setCustomerProfile(false)}/>}</>}
+          <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" disabled={selectedPOS&&!posFeatures?.customers_register} title={selectedPOS?posFeatures?.registration_unavailable_reason||undefined:undefined} onClick={() => setQuickAddOpen(true)}><Plus size={16}/>New {term("customer").toLowerCase()}</Button>
+        </div>{selectedPOS && posFeatures?.customers_register===false && <p className="mt-1 text-xs text-slate-600">{posFeatures.registration_unavailable_reason || 'Quick add is unavailable for this register. Choose an existing customer.'}</p>}{customerId===0&&<AnonymousCashSetup canConfigure={!!authUser?.is_superuser||!!(authUser?.access as {isAccessAdmin?:boolean}|undefined)?.isAccessAdmin}/>} {customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <Button variant="outline" type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</Button></p>}</div>
+<POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
+
+</div>
+          <Card ref={cartScrollRef} role="region" tabIndex={0} aria-label="Sale items, scroll for more" className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
+
             <CardContent className="space-y-3">
+
               {cart.length ? cart.map((line) => (
                 <div key={line.lineId} id={`pos-line-${line.lineId}`} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <strong className="text-sm">{line.name}</strong>
-                      <p className="text-xs text-slate-400">{line.sku}{line.batchNo ? ` / Batch ${line.batchNo}` : ""}{line.serialNo ? ` / Serial ${line.serialNo}` : ""}</p>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-400 hover:text-red-600" aria-label={`Remove ${line.name}`} onClick={() => removeLine(line.lineId)}><X className="h-4 w-4" /></Button>
+                  <div className="pos-compact-cart-row">
+                    <div className="pos-phone-line-icon" aria-hidden="true">{isService(line) ? <CalendarDays size={27}/> : <ShoppingCart size={27}/>}</div><div className="pos-line-identity"><strong>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : `Product · ${line.sku}`}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
+                    <div className="pos-inline-quantity"><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
+                    <strong className="pos-line-amount">{currency(operationalPackKey==='pharma' && line.lotAllocation==='fefo' ? pharmaCheckoutQuote([{quantity:String(line.qty),price:line.rate.toFixed(2),discount:lineDiscount(line).toFixed(2),taxRate:String(line.taxRate)}],'0.00')?.grandTotal ?? lineTotal(line) : lineTotal(line))}</strong>
+                    <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
                   </div>
-                  <div className="pos-cart-basics mt-2 flex items-end gap-2"><div className="w-20">                    <label className="text-xs text-slate-500">Qty<Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed ? "0.001" : "1"} step={line.decimalAllowed ? "0.001" : "1"} value={line.qty} onChange={(event) => updateLine(line.lineId, { qty: line.booking ? 1 : line.trackInventory ? Math.min(line.stock, Math.max(0.001, Number(event.target.value) || 1)) : Math.max(0.001, Number(event.target.value) || 1) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
-</div><span className="flex-1 text-xs text-slate-500">@ {currency(line.rate)}{line.booking && <span className="block">One appointment per line</span>}</span><Button type="button" variant="outline" size="sm" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}>+</Button><Button type="button" variant="outline" size="sm" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}>-</Button></div>
                   <details className="mt-2"><summary className="cursor-pointer text-xs font-medium">Price, discount &amp; note</summary><div className="grid grid-cols-2 gap-2 py-2">                    <label className="text-xs text-slate-500">Rate<Input type="number" min="0" value={line.rate} onChange={(event) => updateLine(line.lineId, { rate: Math.max(0, Number(event.target.value) || 0) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
 </div>                  <label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
 </details>
-                  {isService(line) && (!selectedPOS||posFeatures?.appointments_schedule) && <><details className="pos-line-booking mt-3"><summary className="cursor-pointer text-sm font-medium">{line.booking ? bookingSummaries[line.lineId] || `Appointment: ${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleTimeString()}` : requirements[line.lineId] ? 'Appointment required - choose employee & time' : 'Schedule service (optional)'}</summary><POSServiceScheduling productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>updateLine(line.lineId,{booking,...(booking?{qty:1}:{})})} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></details><Button variant="outline" size="sm" className="mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};setCart(current=>[...current,next]);}}>Add another appointment</Button></>}
+                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? 'Booking details' : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};setCart(current=>[...current,next]);}}>Add another appointment</Button></>}
 
-                  <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Tax {line.taxRate}%</span>
-                    <strong>{currency(operationalPackKey === "pharma" && line.lotAllocation === "fefo"
-                      ? pharmaCheckoutQuote([{quantity: String(line.qty), price: line.rate.toFixed(2),
-                          discount: lineDiscount(line).toFixed(2), taxRate: String(line.taxRate)}], "0.00")?.grandTotal ?? lineTotal(line)
-                      : lineTotal(line))}</strong>
-                  </div>
+
                 </div>
               )) : (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
@@ -1211,9 +1245,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             </CardContent>
           </Card>
 
+          <p className="pos-cart-scroll-hint">Scroll for more sale items ↓</p>
           <Card className="pos-bill-summary overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
             <CardContent className="space-y-3 p-4">
               <SummaryLine label="Subtotal" value={currency(totals.subtotal)} />
+              <SummaryLine label="Tax" value={currency(totals.tax)} />
               <details><summary>Tax, discounts &amp; coupon</summary><div className="space-y-3 py-2">
               <SummaryLine label="Line discount" value={currency(totals.lineDiscount)} />
               <div className="grid grid-cols-[1fr_8rem] items-center gap-3 text-sm">
@@ -1233,24 +1269,27 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                 <span className="block text-xs font-semibold uppercase">Amount payable</span>
                 <strong className="text-3xl">{currency(totals.grandTotal)}</strong>
               </div>
-              <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Bill note / delivery instruction" className="border-slate-200 bg-slate-50 text-slate-950" />
+<details className="pos-extra-bill"><summary>Sale note &amp; actions</summary>              <Input aria-label="Sale note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Bill note / delivery instruction" className="border-slate-200 bg-slate-50 text-slate-950" />
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS || !cart.length} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={holdCart}><PauseCircle className="h-4 w-4" />Hold</Button>
                 <Button variant="outline" onClick={()=>setReadinessOpen(value=>!value)}>Review bill</Button>
               </div>
-            </CardContent>
+</details>            </CardContent>
           </Card>
-        </aside>
-      </main>
-
-      <footer className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
+      <footer ref={checkoutFooterRef} className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
+        <p id="pos-checkout-reason" className="pos-checkout-reason" role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
+        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Calculator size={16}/> : <CreditCard size={16}/>} {method}</Button>)}</div>
         <FooterMetric label="Items" value={String(cart.length)} />
         <FooterMetric label="Quantity" value={String(totals.qty)} />
         <FooterMetric label="Payable" value={operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo") && !Number.isInteger(totals.grandTotal) ? currency(totals.grandTotal) : shortCurrency(totals.grandTotal)} />
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={() => setActiveModal("held")}><RotateCcw className="h-4 w-4" />Recall</Button>
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={!sales.some(sale=>!!sale.checkoutId) && !lastSale?.checkoutId} onClick={() => printReceipt()}><Printer className="h-4 w-4" />Print Last</Button>
-        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Checkout [F7] {currency(totals.grandTotal)}</Button>
+        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & book` : `Collect ${currency(totals.grandTotal)}`}</Button>
       </footer>
+        </aside>
+      </main>
+
+
 
       {quickAddOpen && (selectedPOS&&posFeatures?<POSQuickAddCustomer features={posFeatures} onClose={()=>setQuickAddOpen(false)} onCreated={customerCreated}/>:!selectedPOS?<QuickAddCustomer onClose={() => setQuickAddOpen(false)} onCreated={customerCreated}/>:null)}
       {activeModal === "payment" ? (
@@ -1343,7 +1382,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-400" />
             <h2 className={`mt-3 text-2xl font-semibold ${lastSale.checkoutId?"text-slate-100":""}`}>{lastSale.invoiceNo}</h2>
             <p className="text-slate-400">{lastSale.customer} · {currency(lastSale.amount)} · {lastSale.mode}</p>
-            {lastSale.checkoutId && <div className="mt-3 space-y-1 text-sm"><p>Invoice: {lastSale.invoiceNo}</p><p>Paid {currency(Number(lastSale.paid))} / Balance {currency(Number(lastSale.balance))}</p><p>Receipts: {lastSale.receiptNumbers?.join(', ') || 'No payment received (credit invoice)'}</p>{lastSale.hasBookings&&<Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={()=>navigate('/srm/scheduled-services')}>View Scheduled Services</Button>}</div>}
+            {lastSale.checkoutId && <section className="pos-confirmed-sale" aria-label="Confirmed sale summary"><dl><div><dt>Invoice</dt><dd>{lastSale.invoiceNo}</dd></div><div><dt>Paid</dt><dd>{currency(Number(lastSale.paid))}</dd></div><div><dt>Remaining balance</dt><dd>{currency(Number(lastSale.balance))}</dd></div><div><dt>Receipt numbers</dt><dd>{lastSale.receiptNumbers?.join(', ') || 'No payment received'}</dd></div></dl>{lastSale.hasBookings && <><p role="status">Appointments confirmed with this sale.</p><ul>{lastSale.lines?.filter(line=>line.appointment).map((line,index)=><li key={index}><strong>{line.name}</strong> · {line.appointment}</li>)}</ul><Button variant="outline" onClick={()=>navigate('/srm/appointments')}>View confirmed appointments</Button></>}</section>}
             {lastSale.checkoutId&&<details className="mt-4 rounded-lg bg-card p-3 text-left text-foreground"><summary>Payment details &amp; adjustments</summary><ServiceCheckoutBillingPanel checkoutId={lastSale.checkoutId} canCollect={!!paymentCaps.data?.collect} onChanged={()=>{const id=lastSale.checkoutId;void api.get<NativeCheckoutResult>(`/srm/service-checkout/${id}`).then(({data})=>{if(owns())setLastSale(current=>current&&current.checkoutId===id?{...current,paid:data.invoice.paid,balance:data.invoice.balance,receiptNumbers:data.receipts.map(row=>row.number)}:current);}).catch(error=>{if(owns())toast({title:"Checkout refresh failed",description:dealError(error),variant:"destructive"});});void activeRegister.refetch();}}/>{paymentCaps.isError&&<p role="alert">Payment permissions could not load. <Button variant="outline" onClick={()=>void paymentCaps.refetch()}>Reload payment permissions</Button></p>}</details>}
             {lastSale.checkoutId&&operationalPackKey==='retail'&&posFeatures&&'retail_returns' in posFeatures&&posFeatures.retail_returns===true&&<RetailReturnPanel checkoutId={lastSale.checkoutId} sessionId={register?.id||null} onChanged={()=>{void productsQuery.refetch();void activeRegister.refetch();}}/>}
             {!lastSale.checkoutId&&<p className="mt-2 text-xs text-slate-400">Sales order reference. Payment is not confirmed for this older sale.</p>}
@@ -1505,11 +1544,11 @@ function ProductVisual({ product, lowStock, density }: { product: Product; lowSt
     Pharmacy: "from-rose-100 to-red-50 text-rose-700",
     Garments: "from-violet-100 to-fuchsia-50 text-violet-700",
   };
-  const initials = product.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const Icon = catalogIcon(product.name, product.category, isService(product));
   return (
     <span className={`pos-product-visual ${isService(product) ? "is-service" : ""} relative flex ${density === "compact" ? "h-14" : "h-20"} items-center justify-center bg-gradient-to-br ${tone[product.category] || "from-slate-100 to-slate-50 text-slate-600"}`}>
       {lowStock ? <span className="absolute right-1.5 top-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">Low</span> : null}
-      {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <span className={`${density === "compact" ? "h-9 w-9 text-sm" : "h-12 w-12 text-base"} flex items-center justify-center rounded-full border border-white/80 bg-white/80 font-bold shadow-sm`}>{isService(product) ? <CalendarDays size={density === "compact" ? 18 : 22} aria-hidden="true"/> : initials}</span>}
+      {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <span className={`${density === "compact" ? "h-9 w-9 text-sm" : "h-12 w-12 text-base"} flex items-center justify-center rounded-full border border-white/80 bg-white/80 font-bold shadow-sm`}><Icon size={density === "compact" ? 24 : 36} aria-hidden="true"/></span>}
     </span>
   );
 }
@@ -1559,10 +1598,11 @@ function FooterMetric({ label, value }: { label: string; value: string }) {
 }
 
 function Overlay({ title, onClose, children, wide, titleClassName }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean; titleClassName?:string }) {
+  const returnFocus=useRef<HTMLElement | null>(document.activeElement instanceof HTMLElement?document.activeElement:null);
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-      <Dialog.Content aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
+      <Dialog.Content onCloseAutoFocus={event=>{event.preventDefault();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.querySelector<HTMLInputElement>('[aria-label="Search or scan items"]')?.focus();}} aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <Dialog.Title className={`text-lg font-semibold ${titleClassName||""}`}>{title}</Dialog.Title>
           <Button size="icon" variant="ghost" aria-label={`Close ${title}`} className="shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onClose}><X className="h-4 w-4" /></Button>

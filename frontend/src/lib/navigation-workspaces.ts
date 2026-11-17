@@ -1,4 +1,4 @@
-import { commonRouteContext } from "./common-routes";
+import { commonRouteContext, commonNavigationHref, isCommercialEntity } from "./common-routes";
 
 type Link = { to: string; label: string; group?: string };
 export type WorkspaceNavigation<T> = T & { pages?: T[] };
@@ -82,6 +82,15 @@ export function getOperationWorkspace(pathname: string) {
   // Communication already renders its operations inside a single hub.
   if (!definition || definition[1].includes("/crm/communication-hub")) return undefined;
   return { label: definition[0], paths: definition[1] };
+}
+
+/** A native receipt/timeline cannot be embedded in a standalone document manager. */
+export function isStandaloneSrmOperation(pathname:string){
+  const path=navigationOperationPath(pathname),workspace=getOperationWorkspace(path);
+  if(!path.startsWith('/srm/')||!workspace)return false;
+  const canonical=commonRouteContext(commonNavigationHref(workspace.paths[0],'srm'));
+  const selected=commonRouteContext(commonNavigationHref(path,'srm'));
+  return !!canonical&&isCommercialEntity(canonical.entity)&&!(selected&&isCommercialEntity(selected.entity));
 }
 
 // These aliases render exactly the same operation; retain their URLs without
