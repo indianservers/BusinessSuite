@@ -1,0 +1,3572 @@
+[
+  {
+    "page": "pms/admin/workspaces",
+    "control": "Refresh preview",
+    "result": "passed",
+    "evidence": "Preview refreshed: 1 active workspace."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Create savepoint",
+    "result": "passed",
+    "evidence": "Control audit baseline created: 180 tasks,327 rows,SHA256 shown."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Preview restore",
+    "result": "passed",
+    "evidence": "0 changed tasks;0 newer kept;0 missing;confirmation required."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Restore task content",
+    "result": "passed",
+    "evidence": "Success notice and safety savepoint created."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Back up entire system now",
+    "result": "passed",
+    "evidence": "Verified archive created;1 file,0.43MB,SQLite."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Save workspace schedule + Automatic backups + interval + retention",
+    "result": "passed",
+    "evidence": "Enabled with12hours/8copies; persisted after page reload."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Save full-system schedule",
+    "result": "passed",
+    "evidence": "Full-system backup policy saved notice after changing interval48/retention6;automatic left disabled."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Export savepoint #2",
+    "result": "passed",
+    "evidence": "Downloaded workspace-1-savepoint-2.json,469176bytes verified on disk."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Download archive",
+    "result": "passed",
+    "evidence": "Individual download after reload saved businesssuite-ce61eccb0de54d69bbfc3d8707765970.zip,452297bytes."
+  },
+  {
+    "page": "pms/admin/workspaces",
+    "control": "Reset all workspaces",
+    "result": "passed",
+    "evidence": "After exact typed confirmation:1workspace soft-deleted;activecount0;restore button appeared."
+  },
+  {
+    "page": "pms/admin/workspaces",
+    "control": "Restore Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Workspace restored notice,Active state,activecount1."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Create savepoint busy feedback",
+    "result": "passed",
+    "evidence": "Updated build: Creating savepoint status;full-system button retains label;both policy fieldsets disabled;savepoint completes."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Text + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Long text + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Radio buttons + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Searchable combobox + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Multi-select + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Number + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Currency + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Date + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Datetime + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Checkbox + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Email + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Phone + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Url + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type User lookup + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Owner lookup + Save field",
+    "result": "passed",
+    "evidence": "Created field card visible after refreshed field list loaded."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Field type Dropdown + preview choice + Save field",
+    "result": "passed",
+    "evidence": "Alpha/Beta options;Beta selected in preview;field card visible after save."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Leads",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Contacts",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Companies",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Deals",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Quotations",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Record type Tasks",
+    "result": "passed",
+    "evidence": "Selected type and matching heading rendered."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Create form",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Edit form",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Quick-add / inline create",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Record detail view",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Required",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Unique value",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Visible",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Edit QA Dropdown option Available in filters",
+    "result": "passed",
+    "evidence": "Checkbox toggled and restored to original value in dialog."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Text live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Long text live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Number live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Currency live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Text live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Long text live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Number live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Currency live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Date live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Datetime live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Checkbox live preview",
+    "result": "passed",
+    "evidence": "Preview checkbox checked."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Email live preview",
+    "result": "passed",
+    "evidence": "Valid test input accepted and nonempty rendered value verified;exact values are redacted by browser tool."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone live preview",
+    "result": "passed",
+    "evidence": "Valid test input accepted and nonempty rendered value verified;exact values are redacted by browser tool."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Url live preview",
+    "result": "passed",
+    "evidence": "Typed preview value reflected in rendered control."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Afghanistan +93"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Albania +355"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Algeria +213"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: American Samoa +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Andorra +376"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Angola +244"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Anguilla +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Antigua and Barbuda +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Argentina +54"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Armenia +374"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Aruba +297"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Australia +61"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Austria +43"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Azerbaijan +994"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bahamas +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bahrain +973"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bangladesh +880"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BB",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Barbados +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Belarus +375"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Belgium +32"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Belize +501"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BJ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Benin +229"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bermuda +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bhutan +975"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bolivia, Plurinational State of +591"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BQ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bonaire, Sint Eustatius and Saba +599"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bosnia and Herzegovina +387"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Botswana +267"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Brazil +55"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: British Indian Ocean Territory +246"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Brunei Darussalam +673"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Bulgaria +359"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Burkina Faso +226"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Burundi +257"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CV",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cabo Verde +238"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cambodia +855"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cameroon +237"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Canada +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cayman Islands +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Central African Republic +236"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Chad +235"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Chile +56"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: China +86"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CX",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Christmas Island +61"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cocos (Keeling) Islands +61"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Colombia +57"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Comoros +269"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Congo +242"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Congo, The Democratic Republic of the +243"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cook Islands +682"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Costa Rica +506"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country HR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Croatia +385"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cuba +53"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cura\u00e7ao +599"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Cyprus +357"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Czechia +420"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: C\u00f4te d'Ivoire +225"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Denmark +45"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DJ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Djibouti +253"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Dominica +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Dominican Republic +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country EC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Ecuador +593"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country EG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Egypt +20"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SV",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: El Salvador +503"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GQ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Equatorial Guinea +240"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ER",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Eritrea +291"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country EE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Estonia +372"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Eswatini +268"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ET",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Ethiopia +251"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Falkland Islands (Malvinas) +500"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Faroe Islands +298"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FJ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Fiji +679"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Finland +358"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: France +33"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: French Guiana +594"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: French Polynesia +689"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Gabon +241"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Gambia +220"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Georgia +995"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country DE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Germany +49"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Ghana +233"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Gibraltar +350"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Greece +30"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Greenland +299"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Grenada +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GP",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guadeloupe +590"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guam +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guatemala +502"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guernsey +44"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guinea +224"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guinea-Bissau +245"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Guyana +592"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country HT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Haiti +509"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Holy See (Vatican City State) +39"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country HN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Honduras +504"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country HK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Hong Kong +852"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country HU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Hungary +36"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Iceland +354"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: India +91"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ID",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Indonesia +62"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Iran, Islamic Republic of +98"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IQ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Iraq +964"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Ireland +353"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Isle of Man +44"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Israel +972"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country IT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Italy +39"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country JM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Jamaica +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country JP",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Japan +81"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country JE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Jersey +44"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country JO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Jordan +962"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Kazakhstan +7"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Kenya +254"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Kiribati +686"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KP",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Korea, Democratic People's Republic of +850"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Korea, Republic of +82"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Kuwait +965"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Kyrgyzstan +996"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Lao People's Democratic Republic +856"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LV",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Latvia +371"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LB",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Lebanon +961"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Lesotho +266"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Liberia +231"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Libya +218"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Liechtenstein +423"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Lithuania +370"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Luxembourg +352"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Macao +853"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Madagascar +261"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Malawi +265"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Malaysia +60"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MV",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Maldives +960"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ML",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mali +223"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Malta +356"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Marshall Islands +692"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MQ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Martinique +596"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mauritania +222"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mauritius +230"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country YT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mayotte +262"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MX",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mexico +52"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country FM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Micronesia, Federated States of +691"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Moldova, Republic of +373"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Monaco +377"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mongolia +976"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ME",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Montenegro +382"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Montserrat +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Morocco +212"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Mozambique +258"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Myanmar +95"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Namibia +264"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Nauru +674"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NP",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Nepal +977"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Netherlands +31"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: New Caledonia +687"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: New Zealand +64"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Nicaragua +505"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Niger +227"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Nigeria +234"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Niue +683"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Norfolk Island +672"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: North Macedonia +389"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MP",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Northern Mariana Islands +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country NO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Norway +47"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country OM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Oman +968"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Pakistan +92"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Palau +680"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Palestine, State of +970"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Panama +507"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Papua New Guinea +675"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Paraguay +595"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Peru +51"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Philippines +63"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Poland +48"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Portugal +351"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Puerto Rico +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country QA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Qatar +974"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country RO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Romania +40"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country RU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Russian Federation +7"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country RW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Rwanda +250"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country RE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: R\u00e9union +262"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country BL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Barth\u00e9lemy +590"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Helena, Ascension and Tristan da Cunha +290"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country KN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Kitts and Nevis +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Lucia +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country MF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Martin (French part) +590"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country PM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Pierre and Miquelon +508"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saint Vincent and the Grenadines +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country WS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Samoa +685"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: San Marino +378"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ST",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sao Tome and Principe +239"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Saudi Arabia +966"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Senegal +221"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country RS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Serbia +381"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Seychelles +248"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sierra Leone +232"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Singapore +65"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SX",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sint Maarten (Dutch part) +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Slovakia +421"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Slovenia +386"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SB",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Solomon Islands +677"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Somalia +252"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ZA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: South Africa +27"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SS",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: South Sudan +211"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ES",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Spain +34"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country LK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sri Lanka +94"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SD",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sudan +249"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Suriname +597"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SJ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Svalbard and Jan Mayen +47"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Sweden +46"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country CH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Switzerland +41"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country SY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Syrian Arab Republic +963"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Taiwan, Province of China +886"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TJ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tajikistan +992"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tanzania, United Republic of +255"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Thailand +66"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TL",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Timor-Leste +670"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Togo +228"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TK",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tokelau +690"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TO",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tonga +676"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TT",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Trinidad and Tobago +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tunisia +216"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Turkmenistan +993"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TC",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Turks and Caicos Islands +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TV",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Tuvalu +688"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country TR",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: T\u00fcrkiye +90"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country UG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Uganda +256"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country UA",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Ukraine +380"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: United Arab Emirates +971"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country GB",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: United Kingdom +44"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country US",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: United States +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country UY",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Uruguay +598"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country UZ",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Uzbekistan +998"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VU",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Vanuatu +678"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Venezuela, Bolivarian Republic of +58"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VN",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Viet Nam +84"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VG",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Virgin Islands, British +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country VI",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Virgin Islands, U.S. +1"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country WF",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Wallis and Futuna +681"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country EH",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Western Sahara +212"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country YE",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Yemen +967"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ZM",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Zambia +260"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country ZW",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: Zimbabwe +263"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Phone country AX",
+    "result": "passed",
+    "evidence": "QA Phone country calling code: \u00c5land Islands +358"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Invalid sample email while saving field definition",
+    "result": "fixed-and-passed",
+    "evidence": "Save field left dialog open because preview input QA Email was :invalid;valid definition update was blocked. Updated build closed dialog and persisted help text Preview isolation verified with invalid sample email still present."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Radio preview Alpha/Beta/Clear",
+    "result": "passed",
+    "evidence": "Both options selected separately;Clear removed checked state."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Dropdown up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Text up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Long text up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Radio buttons up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Searchable combobox up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Multi-select up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Number up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Currency up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Date up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Datetime up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Checkbox up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Email up/down",
+    "result": "passed",
+    "evidence": "Moved one position and restored original order after server refresh."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Phone up/down",
+    "result": "passed",
+    "evidence": "Up action completed despite input timeout;observed Phone before Email;Down restored original position."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Url up/down",
+    "result": "passed",
+    "evidence": "Observed URL above Phone after up;restored to index13 after down."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA User lookup up/down",
+    "result": "passed",
+    "evidence": "Expected row positions observed after each move."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Order QA Owner lookup up/down",
+    "result": "passed",
+    "evidence": "Expected row positions observed after each move."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Empty search + Clear search",
+    "result": "passed",
+    "evidence": "No fields match message shown;Clear search restored all16 field cards."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Definition validation: name/options/duplicate/placements/required visibility",
+    "result": "passed",
+    "evidence": "Each invalid definition prevented save with precise alert;preview sample no longer blocks valid definitions."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Searchable combobox Alpha/Beta/search/Clear selection",
+    "result": "passed",
+    "evidence": "Both choices selected;search narrowed to Beta;clear restored placeholder."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Multi-select Alpha/Beta/deselect/Clear selection",
+    "result": "passed",
+    "evidence": "Both options aria-selected true;deselect left Beta;clear restored placeholder."
+  },
+  {
+    "page": "crm/settings",
+    "control": "User lookup data source",
+    "result": "fixed-and-passed",
+    "evidence": "User lookup displayed No matching options because it queried empty CRM owners,not existing workspace users. Corrected build returned Admin,Employee,Hr;all3selectionsverified;search employee returned Employee."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Greetings",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Greetings"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Payment Reminder",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Payment Reminder"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Send Invoice",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Send Invoice"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Follow-up",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Follow-up"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Quotation",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Quotation"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Message kind Order Update",
+    "result": "passed",
+    "evidence": "Configuration panel Configure Order Update"
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token contact name",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token company name",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token invoice number",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token due amount",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token due date",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token follow up date",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Insert token occasion",
+    "result": "passed",
+    "evidence": "Token inserted into editable message draft."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Owner option All owners",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Owner option Unassigned",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Stage / status option All stages",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Stage / status option Active",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "WhatsApp availability option All contacts",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "WhatsApp availability option Opted in or reply window open",
+    "result": "passed",
+    "evidence": "Selected option reflected;0 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "WhatsApp availability option Reply window open",
+    "result": "passed",
+    "evidence": "Selected option reflected;0 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "WhatsApp availability option Opted out",
+    "result": "passed",
+    "evidence": "Selected option reflected;0 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Last communication option Any time",
+    "result": "passed",
+    "evidence": "Selected option reflected;4 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Last communication option More than 7 days ago",
+    "result": "passed",
+    "evidence": "Selected option reflected;0 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Last communication option More than 30 days ago",
+    "result": "passed",
+    "evidence": "Selected option reflected;0 customer rows visible."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "With mobile number",
+    "result": "passed",
+    "evidence": "Filter checked/unchecked;no fixture customers satisfy this filter."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Has overdue invoice balance",
+    "result": "passed",
+    "evidence": "Filter checked/unchecked;no fixture customers satisfy this filter."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Saved filter Save/Apply/Delete",
+    "result": "passed",
+    "evidence": "Saved eligibility filter;Clear then Apply restored eligibility option;Delete removed saved filter."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Select + preview Acme Enterprises",
+    "result": "passed",
+    "evidence": "Individual checkbox toggled;contact preview heading matched selected customer."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Select + preview Nova Retail",
+    "result": "passed",
+    "evidence": "Individual checkbox toggled;contact preview heading matched selected customer."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Select + preview Vertex Tech",
+    "result": "passed",
+    "evidence": "Individual checkbox toggled;contact preview heading matched selected customer."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Select + preview Zenith Solutions",
+    "result": "passed",
+    "evidence": "Individual checkbox toggled;contact preview heading matched selected customer."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Select all filtered contacts",
+    "result": "passed",
+    "evidence": "All4customercheckboxes checked;thenbulkcleared."
+  },
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Delivery Send now/Schedule/Tomorrow9AM",
+    "result": "passed",
+    "evidence": "Schedule exposed datetime;Tomorrow shortcut set2026-11-08T09:00;Send now restored immediate mode."
+  },
+  {
+    "page": "crm/settings",
+    "control": "User lookup option Admin",
+    "result": "passed",
+    "evidence": "Selected company-scoped user label rendered in preview."
+  },
+  {
+    "page": "crm/settings",
+    "control": "User lookup option Employee",
+    "result": "passed",
+    "evidence": "Selected company-scoped user label rendered in preview."
+  },
+  {
+    "page": "crm/settings",
+    "control": "User lookup option Hr",
+    "result": "passed",
+    "evidence": "Selected company-scoped user label rendered in preview."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Selected user label during search",
+    "result": "fixed-and-passed",
+    "evidence": "Selected Hr became User #4 when query employee excluded Hr. Updated build retains Hr after employee search finishes and Admin disappears from results."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Automation content and Create rule",
+    "result": "fixed-and-passed",
+    "evidence": "Hardcoded18active/4atrisk/6live counts and example rules;Create rule had no handler and was hidden. Replaced sample metrics with real tool destinations;Create rule and all7buttons opened intended Automation Studio sections."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Workspace option 1",
+    "result": "passed",
+    "evidence": "Selected Portfolio acceptance workspace \u00b7 Admin reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 1",
+    "result": "passed",
+    "evidence": "Selected BusinessSuite Website Redesign reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 10",
+    "result": "passed",
+    "evidence": "Selected BusinessSuite Website Redesign - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 19",
+    "result": "passed",
+    "evidence": "Selected BusinessSuite Website Redesign - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 28",
+    "result": "passed",
+    "evidence": "Selected BusinessSuite Website Redesign - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 2",
+    "result": "passed",
+    "evidence": "Selected CRM Lead Management Rollout reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 11",
+    "result": "passed",
+    "evidence": "Selected CRM Lead Management Rollout - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 20",
+    "result": "passed",
+    "evidence": "Selected CRM Lead Management Rollout - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 29",
+    "result": "passed",
+    "evidence": "Selected CRM Lead Management Rollout - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 4",
+    "result": "passed",
+    "evidence": "Selected Customer Self-Service Portal reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 13",
+    "result": "passed",
+    "evidence": "Selected Customer Self-Service Portal - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 22",
+    "result": "passed",
+    "evidence": "Selected Customer Self-Service Portal - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 31",
+    "result": "passed",
+    "evidence": "Selected Customer Self-Service Portal - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 9",
+    "result": "passed",
+    "evidence": "Selected Finance & Accounting Integration reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 18",
+    "result": "passed",
+    "evidence": "Selected Finance & Accounting Integration - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 27",
+    "result": "passed",
+    "evidence": "Selected Finance & Accounting Integration - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 36",
+    "result": "passed",
+    "evidence": "Selected Finance & Accounting Integration - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 6",
+    "result": "passed",
+    "evidence": "Selected Inventory Barcode Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 15",
+    "result": "passed",
+    "evidence": "Selected Inventory Barcode Implementation - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 24",
+    "result": "passed",
+    "evidence": "Selected Inventory Barcode Implementation - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 33",
+    "result": "passed",
+    "evidence": "Selected Inventory Barcode Implementation - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 8",
+    "result": "passed",
+    "evidence": "Selected Purchase Approval Workflow reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 17",
+    "result": "passed",
+    "evidence": "Selected Purchase Approval Workflow - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 26",
+    "result": "passed",
+    "evidence": "Selected Purchase Approval Workflow - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 35",
+    "result": "passed",
+    "evidence": "Selected Purchase Approval Workflow - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 3",
+    "result": "passed",
+    "evidence": "Selected Sales Pipeline Automation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 12",
+    "result": "passed",
+    "evidence": "Selected Sales Pipeline Automation - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 21",
+    "result": "passed",
+    "evidence": "Selected Sales Pipeline Automation - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 30",
+    "result": "passed",
+    "evidence": "Selected Sales Pipeline Automation - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 7",
+    "result": "passed",
+    "evidence": "Selected Warehouse Management Upgrade reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 16",
+    "result": "passed",
+    "evidence": "Selected Warehouse Management Upgrade - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 25",
+    "result": "passed",
+    "evidence": "Selected Warehouse Management Upgrade - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 34",
+    "result": "passed",
+    "evidence": "Selected Warehouse Management Upgrade - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 5",
+    "result": "passed",
+    "evidence": "Selected WhatsApp Customer Support reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 14",
+    "result": "passed",
+    "evidence": "Selected WhatsApp Customer Support - Phase 2 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 23",
+    "result": "passed",
+    "evidence": "Selected WhatsApp Customer Support - Phase 3 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Task project option 32",
+    "result": "passed",
+    "evidence": "Selected WhatsApp Customer Support - Phase 4 reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option ",
+    "result": "passed",
+    "evidence": "Selected Link a task (optional) reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 1",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 2",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 3",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 4",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 5",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 6",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 7",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 8",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 9",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 10",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 11",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 12",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 13",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 14",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 15",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 16",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 17",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 18",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 19",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 20",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 21",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 22",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 23",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 24",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 25",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 26",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 27",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 28",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 29",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 30",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 31",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 32",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 33",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 34",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 35",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 36",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 37",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 38",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 39",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 40",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 41",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 42",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 43",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 44",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 45",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 46",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 47",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 48",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 49",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 50",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 51",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 52",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 53",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 54",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 55",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 56",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 57",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 58",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 59",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 60",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 61",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 62",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 63",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 64",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 65",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 66",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 67",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 68",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 69",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 70",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 71",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 72",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 73",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 74",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 75",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 76",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 77",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 78",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 79",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 80",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 81",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 82",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 83",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 84",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 85",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 86",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 87",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 88",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 89",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 90",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 91",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 92",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 93",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 94",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 95",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 96",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 97",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 98",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 99",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 100",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 101",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 102",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 103",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 104",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 105",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 106",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 107",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 108",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 109",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 110",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 111",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 112",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 113",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 114",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 115",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 116",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 117",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 118",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 119",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 120",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 121",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 122",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 123",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 124",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 125",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 126",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 127",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 128",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 129",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 130",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 131",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 132",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 133",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 134",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 135",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 136",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 137",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 138",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 139",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 140",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 141",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 142",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 143",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 144",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 145",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 146",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 147",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 148",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 149",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 150",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 151",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 152",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 153",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 154",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 155",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 156",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 157",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 158",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 159",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 160",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 161",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 162",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 163",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 164",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 165",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 166",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 167",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 168",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 169",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 170",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 171",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 172",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 173",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 174",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 175",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 176",
+    "result": "passed",
+    "evidence": "Selected Confirm requirements reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 177",
+    "result": "passed",
+    "evidence": "Selected Design review reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 178",
+    "result": "passed",
+    "evidence": "Selected Implementation reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 179",
+    "result": "passed",
+    "evidence": "Selected Quality assurance reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace Link to task option 180",
+    "result": "passed",
+    "evidence": "Selected Launch checklist reflected in select value;no creation or message submitted."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Create rule",
+    "result": "passed",
+    "evidence": "Opened /admin/automation/workflows;Create Workflow form visible."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open workflows",
+    "result": "passed",
+    "evidence": "Automation Studio workflows section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open blueprints",
+    "result": "passed",
+    "evidence": "Automation Studio blueprints section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open approvals",
+    "result": "passed",
+    "evidence": "Automation Studio approvals section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open assignment rules",
+    "result": "passed",
+    "evidence": "Automation Studio assignment-rules section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open cadences",
+    "result": "passed",
+    "evidence": "Automation Studio cadences section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open webhooks",
+    "result": "passed",
+    "evidence": "Automation Studio webhooks section opened."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Open execution logs",
+    "result": "passed",
+    "evidence": "Automation Studio logs section opened."
+  },
+  {
+    "page": "pms/management",
+    "control": "Rapid owner/status filter composition",
+    "result": "fixed-and-passed",
+    "evidence": "Owner1 then Backlog produced URL ?status=Backlog and cleared owner. Updated build retained owner1+Backlog;owner2+ToDo+workspace1 retained all3 URL parameters and settled controls."
+  },
+  {
+    "page": "pms/management",
+    "control": "Task/project view status compatibility",
+    "result": "fixed-and-passed",
+    "evidence": "Projects view retained URLstatus=ToDo;status select showedAllstatuses andprojectslistwasempty. Updated build removesToDo when opening Projects;Active+AtRisk removedwhenreturningAlltasks;owner1preservedthroughbothswitches."
+  },
+  {
+    "page": "crm/sales-home",
+    "control": "Rapid salesperson/importance/age composition",
+    "result": "fixed-and-passed",
+    "evidence": "Owner1 thenHot then7days produced URLwithage7only;earlierfilterchoiceswerelost. Updated build retainedowner1+importanceHot+age7;Clearfiltersremovedall3andpreservedqa_build."
+  },
+  {
+    "page": "crm/companies",
+    "control": "Column manager viewport containment",
+    "result": "fixed-and-passed",
+    "evidence": "Before: bottom1020.5px in889px viewport, available421px. After CSS available-height constraint: bottom889px, height421px, scrollHeight551px/clientHeight419px. Industry, Status and Tags visibility/pin/order actions then passed."
+  },
+  {
+    "page": "crm/leads",
+    "control": "Loaded-row pagination scope label",
+    "result": "fixed-and-passed",
+    "evidence": "Loaded dataset table now exposes Loaded rows per page. All five options10/25/50/100/200 selected and restored in browser. Server-backed company directory retains Rows per page."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Create, reopen, trash and restore synthetic customer",
+    "result": "passed",
+    "evidence": "Created QA Browser customer lifecycle with Industry Local QA, Other registration QA-LOCAL-001 and address QA local address. Reopened editor and confirmed name/registration/address persisted. Selected only this record, moved to Trash, observed archived row, restored it, returned to Active records and confirmed Edit enabled."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Currency and searchable type pickers above nested editor",
+    "result": "fixed-and-passed",
+    "evidence": "Before: USD option hit-test returned underlying crm-financial-grid, dialog z211 versus picker z180; click kept AED while keyboard Enter selected. After z1000: option receives pointer, USD click shows $USD. Business type pointer selection Private Limited Company saved and reopened as private_limited. All162currency choices covered in form-options.json."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Customer creation auxiliary controls",
+    "result": "passed",
+    "evidence": "Visited all4tabs; added tax registration and selectedall5types; added2phone/2emailrows and selectedall26typechoices, removedonlyaddedrows. Toggled WhatsAppavailable and embedded-contact checkbox on/off; addedaddress and verified its savedvalue. Added/removedbank andUPIrows;242bankcountries and9paymentterms selected/restored. No financial transaction or communication was sent."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Contact picker after mutation and hard reload",
+    "result": "fixed-and-passed",
+    "evidence": "Reproduced render failure .items.map on sync delta. Diagnostic metadata showed modeunchanged with delta keys schema/key/order/upserts/removed/meta. Fixed client handling of browser-merged200unchanged and server baseline requirement for304. After disposable QA restart: picker8contacts,9aftercustomercreation,9aftereachof2hardreloads;state ready and noalert. Empty list and response-error recovery UI also checked."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Text Between range filter upper bound",
+    "result": "fixed-and-passed",
+    "evidence": "Text column had lower input type text and upper input type number. Upper bound now follows the same column type. Both inputs accepted A/M; applied server filter returned exactly Acme Enterprises. All12nameoperators and all10filterablecolumns verified against explicit expected row sets in grid-controls.json."
+  }
+]

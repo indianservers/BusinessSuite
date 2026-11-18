@@ -1,0 +1,146 @@
+[
+  {
+    "buttons": [
+      {
+        "bottom": 552,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 552,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      320,
+      568
+    ],
+    "panelOverflow": 0,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      320,
+      568
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 552,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 552,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      320,
+      568
+    ],
+    "panelOverflow": 0,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      320,
+      568
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 621,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 621,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      360,
+      640
+    ],
+    "panelOverflow": 1,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      360,
+      640
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 621,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 621,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      390,
+      844
+    ],
+    "panelOverflow": 0,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 621,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 621,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      430,
+      932
+    ],
+    "panelOverflow": 0,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      430,
+      932
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 825,
+        "text": "Cancel"
+      },
+      {
+        "bottom": 825,
+        "text": "Save service"
+      }
+    ],
+    "clipped": [],
+    "page": [
+      390,
+      844
+    ],
+    "panelOverflow": 0,
+    "scrollers": 0,
+    "steps": 2,
+    "viewport": [
+      390,
+      844
+    ]
+  }
+]

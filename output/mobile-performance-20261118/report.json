@@ -1,0 +1,1679 @@
+{
+  "summary": {
+    "release": [
+      "stock-report-preview-20261118-v3"
+    ],
+    "started": "2026-11-18T13:25:17.818Z",
+    "finished": "2026-11-18T13:36:37.433Z",
+    "method": "Chromium Pixel 7 emulation, 390x844, unthrottled host network; authenticated, login excluded; 2 independent cold contexts per route and same-context repeat reloads. Background requests counted by initiation during a 60s window after 5s settling.",
+    "rows": [
+      {
+        "key": "appointments",
+        "label": "Appointments",
+        "idle": {
+          "name": "appointments",
+          "seconds": 60,
+          "count": 4,
+          "endpoints": {
+            "/api/v1/access/me": 2,
+            "/api/v1/access/setup": 1,
+            "/api/v1/notifications/summary": 1
+          }
+        },
+        "cold": {
+          "median_seconds": 24.633,
+          "min_seconds": 20.571,
+          "max_seconds": 28.694,
+          "samples": 2,
+          "api_counts": [
+            12,
+            12
+          ],
+          "fcp_ms": [
+            796,
+            776
+          ]
+        },
+        "repeat": {
+          "median_seconds": 20.39,
+          "min_seconds": 10.317,
+          "max_seconds": 30.464,
+          "samples": 2,
+          "api_counts": [
+            11,
+            11
+          ],
+          "fcp_ms": [
+            2636,
+            260
+          ]
+        }
+      },
+      {
+        "key": "scheduling",
+        "label": "Service scheduling",
+        "idle": {
+          "name": "scheduling",
+          "seconds": 60,
+          "count": 3,
+          "endpoints": {
+            "/api/v1/access/me": 1,
+            "/api/v1/access/setup": 1,
+            "/api/v1/notifications/summary": 1
+          }
+        },
+        "cold": {
+          "median_seconds": 18.451,
+          "min_seconds": 7.475,
+          "max_seconds": 29.428,
+          "samples": 2,
+          "api_counts": [
+            9,
+            9
+          ],
+          "fcp_ms": [
+            932,
+            724
+          ]
+        },
+        "repeat": {
+          "median_seconds": 5.73,
+          "min_seconds": 5.717,
+          "max_seconds": 5.744,
+          "samples": 2,
+          "api_counts": [
+            8,
+            8
+          ],
+          "fcp_ms": [
+            168,
+            168
+          ]
+        }
+      },
+      {
+        "key": "pos",
+        "label": "POS terminal",
+        "idle": {
+          "name": "pos",
+          "seconds": 60,
+          "count": 4,
+          "endpoints": {
+            "/api/v1/srm/business/customers": 1,
+            "/api/v1/access/me": 1,
+            "/api/v1/access/setup": 1,
+            "/api/v1/notifications/summary": 1
+          }
+        },
+        "cold": {
+          "median_seconds": 11.669,
+          "min_seconds": 10.576,
+          "max_seconds": 12.762,
+          "samples": 2,
+          "api_counts": [
+            18,
+            18
+          ],
+          "fcp_ms": [
+            684,
+            1368
+          ]
+        },
+        "repeat": {
+          "median_seconds": 4.953,
+          "min_seconds": 4.765,
+          "max_seconds": 5.141,
+          "samples": 2,
+          "api_counts": [
+            15,
+            15
+          ],
+          "fcp_ms": [
+            152,
+            224
+          ]
+        }
+      },
+      {
+        "key": "product",
+        "label": "Product entry",
+        "idle": {
+          "name": "product",
+          "seconds": 60,
+          "count": 3,
+          "endpoints": {
+            "/api/v1/access/me": 1,
+            "/api/v1/notifications/summary": 1,
+            "/api/v1/access/setup": 1
+          }
+        },
+        "cold": {
+          "median_seconds": 16.154,
+          "min_seconds": 15.627,
+          "max_seconds": 16.682,
+          "samples": 2,
+          "api_counts": [
+            9,
+            9
+          ],
+          "fcp_ms": [
+            852,
+            1196
+          ]
+        },
+        "repeat": {
+          "median_seconds": 21.145,
+          "min_seconds": 3.355,
+          "max_seconds": 38.935,
+          "samples": 2,
+          "api_counts": [
+            8,
+            8
+          ],
+          "fcp_ms": [
+            160,
+            536
+          ]
+        }
+      }
+    ],
+    "javascript_errors": [],
+    "api_errors": []
+  },
+  "measurements": {
+    "started": "2026-11-18T13:25:17.818Z",
+    "method": "Chromium Pixel 7 emulation, 390x844, unthrottled host network; authenticated, login excluded; 2 independent cold contexts per route and same-context repeat reloads. Background requests counted by initiation during a 60s window after 5s settling.",
+    "runs": [
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "appointments",
+        "route": "/srm/appointments",
+        "sample": 1,
+        "visit": "cold",
+        "usable_ms": 20571,
+        "ttfb_ms": 234,
+        "fcp_ms": 796,
+        "dom_ms": 2140,
+        "resources": 58,
+        "transfer_bytes": 1521573,
+        "api_until_usable": 12,
+        "api_through_2s_settle": 12,
+        "responses": [
+          {
+            "at": 1795008326346,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008326626,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008326841,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008328030,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008328187,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008328327,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008328537,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008328548,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008330763,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008336821,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008336830,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008338259,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "appointments",
+        "route": "/srm/appointments",
+        "sample": 1,
+        "visit": "repeat",
+        "usable_ms": 30464,
+        "ttfb_ms": 2607,
+        "fcp_ms": 2636,
+        "dom_ms": 2787,
+        "resources": 57,
+        "transfer_bytes": 15676,
+        "api_until_usable": 11,
+        "api_through_2s_settle": 11,
+        "responses": [
+          {
+            "at": 1795008366624,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008367149,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008367187,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008367965,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008369778,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008370634,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008370640,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008370751,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008371700,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008372439,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008374005,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "appointments",
+        "route": "/srm/appointments",
+        "sample": 2,
+        "visit": "cold",
+        "usable_ms": 28694,
+        "ttfb_ms": 182,
+        "fcp_ms": 776,
+        "dom_ms": 2271,
+        "resources": 58,
+        "transfer_bytes": 1522288,
+        "api_until_usable": 12,
+        "api_through_2s_settle": 12,
+        "responses": [
+          {
+            "at": 1795008446239,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008446557,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008446877,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008447516,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008447524,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008447626,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008447636,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008447790,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008449695,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008450077,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008450353,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008469945,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "appointments",
+        "route": "/srm/appointments",
+        "sample": 2,
+        "visit": "repeat",
+        "usable_ms": 10317,
+        "ttfb_ms": 228,
+        "fcp_ms": 260,
+        "dom_ms": 385,
+        "resources": 57,
+        "transfer_bytes": 15676,
+        "api_until_usable": 11,
+        "api_through_2s_settle": 11,
+        "responses": [
+          {
+            "at": 1795008478013,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008478697,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008480546,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008480614,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008481651,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008482916,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008482934,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008483085,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008483411,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008484362,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008485586,
+            "path": "/api/v1/srm/industry/records",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "scheduling",
+        "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+        "sample": 1,
+        "visit": "cold",
+        "usable_ms": 29428,
+        "ttfb_ms": 358,
+        "fcp_ms": 932,
+        "dom_ms": 2280,
+        "resources": 37,
+        "transfer_bytes": 1022337,
+        "api_until_usable": 9,
+        "api_through_2s_settle": 9,
+        "responses": [
+          {
+            "at": 1795008624410,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008624820,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008626495,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008626906,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008626912,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008628168,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008629091,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008629250,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008630717,
+            "path": "/api/v1/employees/planned-services",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "scheduling",
+        "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+        "sample": 1,
+        "visit": "repeat",
+        "usable_ms": 5744,
+        "ttfb_ms": 141,
+        "fcp_ms": 168,
+        "dom_ms": 318,
+        "resources": 36,
+        "transfer_bytes": 13431,
+        "api_until_usable": 8,
+        "api_through_2s_settle": 8,
+        "responses": [
+          {
+            "at": 1795008638396,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008639195,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008639784,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008640242,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008640406,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008640487,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008640563,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008641615,
+            "path": "/api/v1/employees/planned-services",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "scheduling",
+        "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+        "sample": 2,
+        "visit": "cold",
+        "usable_ms": 7475,
+        "ttfb_ms": 158,
+        "fcp_ms": 724,
+        "dom_ms": 2138,
+        "resources": 37,
+        "transfer_bytes": 1021829,
+        "api_until_usable": 9,
+        "api_through_2s_settle": 9,
+        "responses": [
+          {
+            "at": 1795008713157,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008713645,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008713678,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008713781,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008714318,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008714481,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008714490,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008714502,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008715951,
+            "path": "/api/v1/employees/planned-services",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "scheduling",
+        "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+        "sample": 2,
+        "visit": "repeat",
+        "usable_ms": 5717,
+        "ttfb_ms": 143,
+        "fcp_ms": 168,
+        "dom_ms": 302,
+        "resources": 36,
+        "transfer_bytes": 13431,
+        "api_until_usable": 8,
+        "api_through_2s_settle": 8,
+        "responses": [
+          {
+            "at": 1795008724750,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008724940,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008725582,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008725739,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008725743,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008725831,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008725837,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008726949,
+            "path": "/api/v1/employees/planned-services",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "pos",
+        "route": "/srm/pos/terminal",
+        "sample": 1,
+        "visit": "cold",
+        "usable_ms": 10576,
+        "ttfb_ms": 160,
+        "fcp_ms": 684,
+        "dom_ms": 2091,
+        "resources": 58,
+        "transfer_bytes": 1037872,
+        "api_until_usable": 18,
+        "api_through_2s_settle": 18,
+        "responses": [
+          {
+            "at": 1795008733974,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008733985,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734452,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734606,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734644,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734695,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734860,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008734866,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008735899,
+            "path": "/api/v1/auth/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008736289,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008736840,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008738417,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008739166,
+            "path": "/api/v1/srm/business/customers",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008739233,
+            "path": "/api/v1/srm/pos/held-bills",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008739842,
+            "path": "/api/v1/srm/inventory/items",
+            "status": 200,
+            "mode": "full"
+          },
+          {
+            "at": 1795008741228,
+            "path": "/api/v1/srm/anonymous-cash/configuration",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008741288,
+            "path": "/api/v1/srm/business/customers",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "pos",
+        "route": "/srm/pos/terminal",
+        "sample": 1,
+        "visit": "repeat",
+        "usable_ms": 5141,
+        "ttfb_ms": 124,
+        "fcp_ms": 152,
+        "dom_ms": 269,
+        "resources": 53,
+        "transfer_bytes": 24014,
+        "api_until_usable": 15,
+        "api_through_2s_settle": 15,
+        "responses": [
+          {
+            "at": 1795008747886,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008747972,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008748298,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008748324,
+            "path": "/api/v1/auth/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008748730,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008748760,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008749003,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008749017,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008749765,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008749972,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "pos",
+        "route": "/srm/pos/terminal",
+        "sample": 2,
+        "visit": "cold",
+        "usable_ms": 12762,
+        "ttfb_ms": 361,
+        "fcp_ms": 1368,
+        "dom_ms": 4369,
+        "resources": 57,
+        "transfer_bytes": 1037636,
+        "api_until_usable": 18,
+        "api_through_2s_settle": 18,
+        "responses": [
+          {
+            "at": 1795008824330,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008824998,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825220,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825663,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825683,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825836,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825974,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008825984,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008826951,
+            "path": "/api/v1/auth/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008827492,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008827644,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008829738,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008830085,
+            "path": "/api/v1/srm/business/customers",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008830186,
+            "path": "/api/v1/srm/anonymous-cash/configuration",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008830200,
+            "path": "/api/v1/srm/inventory/items",
+            "status": 200,
+            "mode": "full"
+          },
+          {
+            "at": 1795008830760,
+            "path": "/api/v1/srm/pos/held-bills",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008831713,
+            "path": "/api/v1/srm/business/customers",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008832146,
+            "path": "/api/v1/srm/pos/sessions/active",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "pos",
+        "route": "/srm/pos/terminal",
+        "sample": 2,
+        "visit": "repeat",
+        "usable_ms": 4765,
+        "ttfb_ms": 191,
+        "fcp_ms": 224,
+        "dom_ms": 460,
+        "resources": 53,
+        "transfer_bytes": 24014,
+        "api_until_usable": 15,
+        "api_through_2s_settle": 15,
+        "responses": [
+          {
+            "at": 1795008837589,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008838352,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839133,
+            "path": "/api/v1/auth/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839151,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839285,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839433,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839572,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839577,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008839920,
+            "path": "/api/v1/srm/industry/capabilities",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008840153,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "product",
+        "route": "/srm/inventory/products?new=item&kind=product",
+        "sample": 1,
+        "visit": "cold",
+        "usable_ms": 16682,
+        "ttfb_ms": 177,
+        "fcp_ms": 852,
+        "dom_ms": 2285,
+        "resources": 38,
+        "transfer_bytes": 1023350,
+        "api_until_usable": 9,
+        "api_through_2s_settle": 9,
+        "responses": [
+          {
+            "at": 1795008856523,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008857311,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858397,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858448,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858616,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858708,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858771,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008858794,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008859565,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "product",
+        "route": "/srm/inventory/products?new=item&kind=product",
+        "sample": 1,
+        "visit": "repeat",
+        "usable_ms": 3355,
+        "ttfb_ms": 130,
+        "fcp_ms": 160,
+        "dom_ms": 281,
+        "resources": 37,
+        "transfer_bytes": 13169,
+        "api_until_usable": 8,
+        "api_through_2s_settle": 8,
+        "responses": [
+          {
+            "at": 1795008867037,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867298,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867346,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867380,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867514,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867522,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867718,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008867736,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "product",
+        "route": "/srm/inventory/products?new=item&kind=product",
+        "sample": 2,
+        "visit": "cold",
+        "usable_ms": 15627,
+        "ttfb_ms": 450,
+        "fcp_ms": 1196,
+        "dom_ms": 6597,
+        "resources": 38,
+        "transfer_bytes": 1022489,
+        "api_until_usable": 9,
+        "api_through_2s_settle": 9,
+        "responses": [
+          {
+            "at": 1795008944077,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945211,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945235,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945254,
+            "path": "/api/v1/access/settings/defaults/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945278,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945440,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945672,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008945699,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008950896,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      },
+      {
+        "release": "stock-report-preview-20261118-v3",
+        "name": "product",
+        "route": "/srm/inventory/products?new=item&kind=product",
+        "sample": 2,
+        "visit": "repeat",
+        "usable_ms": 38935,
+        "ttfb_ms": 501,
+        "fcp_ms": 536,
+        "dom_ms": 659,
+        "resources": 37,
+        "transfer_bytes": 13169,
+        "api_until_usable": 8,
+        "api_through_2s_settle": 8,
+        "responses": [
+          {
+            "at": 1795008992008,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008992035,
+            "path": "/api/v1/access/enterprise/branding",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008992978,
+            "path": "/api/v1/access/settings/business-profile/effective",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008993885,
+            "path": "/api/v1/notifications/summary",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008994668,
+            "path": "/api/v1/business-os/modules",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008994965,
+            "path": "/api/v1/access/me",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008995144,
+            "path": "/api/v1/access/setup",
+            "status": 200,
+            "mode": null
+          },
+          {
+            "at": 1795008995247,
+            "path": "/api/v1/branches/context",
+            "status": 200,
+            "mode": null
+          }
+        ]
+      }
+    ],
+    "idle": [
+      {
+        "name": "appointments",
+        "seconds": 60,
+        "count": 4,
+        "endpoints": {
+          "/api/v1/access/me": 2,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      {
+        "name": "scheduling",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      {
+        "name": "pos",
+        "seconds": 60,
+        "count": 4,
+        "endpoints": {
+          "/api/v1/srm/business/customers": 1,
+          "/api/v1/access/me": 1,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      {
+        "name": "product",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/notifications/summary": 1,
+          "/api/v1/access/setup": 1
+        }
+      }
+    ],
+    "errors": [],
+    "finished": "2026-11-18T13:36:37.433Z",
+    "status": "complete"
+  },
+  "customer_cache_sync": {
+    "started": "2026-11-18T13:24:23.206Z",
+    "events": [
+      {
+        "at": 1795008285207,
+        "status": 200,
+        "mode": "full",
+        "cache": "memory",
+        "query": "?source=srm&entity_kind=all&search=&page=1&per_page=50"
+      },
+      {
+        "at": 1795008285834,
+        "status": 200,
+        "mode": "full",
+        "cache": "memory",
+        "query": "?source=srm&entity_kind=all&search=DEMO+Calendar&page=1&per_page=50"
+      },
+      {
+        "at": 1795008423276,
+        "status": 200,
+        "mode": "full",
+        "cache": "memory",
+        "query": "?source=srm&entity_kind=all&search=DEMO+Calendar&page=1&per_page=50"
+      }
+    ],
+    "initial_sql": [],
+    "customer_storage_policy": "memory",
+    "cached_lookup_ms": 26,
+    "lookup_with_network_blocked": true,
+    "blocked_attempts": 0,
+    "repeat_sql": [],
+    "sqlite_get_confirmed": false,
+    "server_change_at": "2026-11-18T13:25:21.900Z",
+    "automatic_sync_ms": 101813,
+    "updated_visible": true,
+    "updated_sql": [],
+    "status": "passed",
+    "demo_restored": true,
+    "finished": "2026-11-18T13:27:08.357Z",
+    "scope": "Customer picker memory cache and automatic server refresh; customer endpoint is not approved for disk persistence",
+    "observed_sync_transport": "full snapshot",
+    "cached_lookup_timing_valid": false,
+    "lookup_blocking_proof_valid": false,
+    "lookup_probe_limitation": "The 26 ms observation preceded the debounced search; the lookup route block was removed too early. It is excluded from performance and offline-cache conclusions. Customer automatic refresh and guarded demo restoration remain valid."
+  },
+  "inventory_cache": {
+    "started": "2026-11-18T13:27:53.070Z",
+    "network": [
+      {
+        "path": "/api/v1/srm/inventory/items",
+        "status": 200,
+        "cache": "persist",
+        "sync": "full",
+        "cacheControl": "private, max-age=0, must-revalidate"
+      }
+    ],
+    "workers": [
+      "/assets/sqlite.worker-VrTvwDl3.js"
+    ],
+    "database": {
+      "exists": true,
+      "views": [
+        {
+          "key": "201534fe2960a5970679e7c8ecbf1190895b42bf3b74690fb935437f254b74b5:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+          "url": "/srm/inventory/items?page=1&per_page=200&search=",
+          "persistent": true,
+          "row_count": 52
+        }
+      ]
+    },
+    "sqlite_read": {
+      "error": null,
+      "present": true,
+      "rows": 52
+    },
+    "cached_ui_loaded": true,
+    "blocked_catalog_requests": 0,
+    "cached_product_cards": 2,
+    "visible_error": [],
+    "finished": "2026-11-18T13:28:41.494Z"
+  },
+  "inventory_automatic_sync": {
+    "started": "2026-11-18T13:35:36.704Z",
+    "scope": "Real inventory cache; unchanged-data automatic server revalidation and SQLite metadata update; no server writes",
+    "initial": {
+      "key": "201534fe2960a5970679e7c8ecbf1190895b42bf3b74690fb935437f254b74b5:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "checked": 1795008991442,
+      "rows": 52
+    },
+    "initial_sql": {
+      "error": null,
+      "checked": 1795008991442,
+      "rows": 52
+    },
+    "status": "failed",
+    "error": "TimeoutError: page.waitForResponse: Timeout 180000ms exceeded while waiting for event \"response\"",
+    "finished": "2026-11-18T13:39:36.028Z"
+  },
+  "explicit_sync_probe": {
+    "started": "2026-11-18T13:39:55.995Z",
+    "scope": "Explicit suite:record-push sync event for existing inventory cache; no server writes",
+    "initial": {
+      "key": "201534fe2960a5970679e7c8ecbf1190895b42bf3b74690fb935437f254b74b5:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "checked": 1795009257377,
+      "rows": 52
+    },
+    "status": "inconclusive",
+    "error": "TypeError: Cannot read properties of undefined (reading 'evaluate')",
+    "finished": "2026-11-18T13:41:01.515Z",
+    "note": "Audit probe assumed a SQLite worker was available. It aborted before dispatching the explicit sync event; this is not evidence that explicit sync fails."
+  },
+  "api_diagnostics": {
+    "method": "Single direct authenticated GET from the audit machine; diagnostic only, excluded from mobile medians",
+    "checks": [
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "status": 200,
+        "elapsed_seconds": 28.52,
+        "manage": true
+      },
+      {
+        "path": "/api/v1/access/settings/defaults/effective",
+        "status": 200,
+        "elapsed_seconds": 7.36
+      }
+    ],
+    "note": "Captured from api-diag.py console during audit; not a physical handset measurement"
+  },
+  "conclusion": "Inventory persistence and cached reload passed. Customer memory-cache refresh passed. Automatic inventory revalidation was not observed within 180 seconds; synchronization is not fully verified.",
+  "limitations": [
+    "Live production, authenticated Chrome mobile emulation at 390 x 844; desktop CPU and unthrottled audit-machine network, not physical handset or 4G.",
+    "Two cold/repeat pairs per page; each cold context has empty browser caches, but DNS and server caches were not reset.",
+    "Usable means appointment records and enabled creation control; loaded mobile booking agenda; visible POS products; or product form with enabled Save item.",
+    "API request counts exclude static assets and use request initiation time. Idle windows start five seconds after the repeat visit settled, one 60-second window per page.",
+    "Release changed before the accepted set; all 16 accepted runs use stock-report-preview-20261118-v3.",
+    "Customer sync used a reversible demo-customer name edit with version guards; original name restored. Inventory test performed no server writes.",
+    "Initial persistent reads use IndexedDB while SQLite warms; in-page hits use memory. Persistent storage is limited to server-approved views.",
+    "No inventory changes were made; the persistent-sync check tested automatic revalidation of unchanged data, not offline write-back.",
+    "The 26 ms observation preceded the debounced search; the lookup route block was removed too early. It is excluded from performance and offline-cache conclusions. Customer automatic refresh and guarded demo restoration remain valid."
+  ],
+  "final_health": {
+    "initial_health_check": "Timed out after 15 seconds",
+    "checks": [
+      {
+        "url": "https://besterp.app/release.json",
+        "status": 200,
+        "elapsed_seconds": 0.469,
+        "release": "stock-report-preview-20261118-v3"
+      },
+      {
+        "url": "https://besterp.app/health",
+        "status": 200,
+        "elapsed_seconds": 0.422
+      }
+    ]
+  },
+  "temporary_audit_session_revoked": true,
+  "temporary_credential_file_removed": true
+}

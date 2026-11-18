@@ -1,0 +1,191 @@
+{
+  "started": "2026-11-18T13:16:30.360Z",
+  "method": "Chromium Pixel 7 emulation, 390x844, unthrottled host network; authenticated, login excluded; 3 independent cold contexts per route and same-context repeat reloads. Background requests counted by initiation during a 60s window after 5s settling.",
+  "runs": [
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "cold",
+      "usable_ms": 22575,
+      "ttfb_ms": 376,
+      "fcp_ms": 1972,
+      "dom_ms": 5311,
+      "resources": 49,
+      "transfer_bytes": 1019743,
+      "api_until_usable": 11,
+      "api_through_2s_settle": 11,
+      "responses": [
+        {
+          "at": 1795007810335,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007810342,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007810457,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007811681,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007812126,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007812143,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007812911,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007813574,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "repeat",
+      "usable_ms": 3013,
+      "ttfb_ms": 2364,
+      "fcp_ms": 2388,
+      "dom_ms": 2523,
+      "resources": 46,
+      "transfer_bytes": 300,
+      "api_until_usable": 11,
+      "api_through_2s_settle": 11,
+      "responses": [
+        {
+          "at": 1795007819727,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007819771,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "cold",
+      "usable_ms": 11294,
+      "ttfb_ms": 182,
+      "fcp_ms": 600,
+      "dom_ms": 2358,
+      "resources": 50,
+      "transfer_bytes": 1021503,
+      "api_until_usable": 11,
+      "api_through_2s_settle": 11,
+      "responses": [
+        {
+          "at": 1795007893354,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007894654,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007894669,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007895898,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007895973,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007895995,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007896148,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795007896161,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "repeat",
+      "usable_ms": 4727,
+      "ttfb_ms": 117,
+      "fcp_ms": 152,
+      "dom_ms": 3508,
+      "resources": 46,
+      "transfer_bytes": 300,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": []
+    }
+  ],
+  "idle": [
+    {
+      "name": "appointments",
+      "seconds": 60,
+      "count": 4,
+      "endpoints": {
+        "/api/v1/srm/industry/records": 1,
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    }
+  ],
+  "errors": []
+}

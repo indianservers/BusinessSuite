@@ -1,0 +1,60 @@
+{
+  "source": "Persisted production HRMS taxonomy snapshot",
+  "results": [
+    {
+      "width": 320,
+      "height": 568,
+      "twoPages": true,
+      "noScrolling": true,
+      "noClippedButtons": true,
+      "multipleSelections": true,
+      "relevantChildren": true,
+      "staleChildrenRemoved": true,
+      "paginationOnlyWhenNeeded": true
+    },
+    {
+      "width": 360,
+      "height": 640,
+      "twoPages": true,
+      "noScrolling": true,
+      "noClippedButtons": true,
+      "multipleSelections": true,
+      "relevantChildren": true,
+      "staleChildrenRemoved": true,
+      "paginationOnlyWhenNeeded": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "twoPages": true,
+      "noScrolling": true,
+      "noClippedButtons": true,
+      "multipleSelections": true,
+      "relevantChildren": true,
+      "staleChildrenRemoved": true,
+      "paginationOnlyWhenNeeded": true
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "twoPages": true,
+      "noScrolling": true,
+      "noClippedButtons": true,
+      "multipleSelections": true,
+      "relevantChildren": true,
+      "staleChildrenRemoved": true,
+      "paginationOnlyWhenNeeded": true
+    },
+    {
+      "width": 767,
+      "height": 1024,
+      "twoPages": true,
+      "noScrolling": true,
+      "noClippedButtons": true,
+      "multipleSelections": true,
+      "relevantChildren": true,
+      "staleChildrenRemoved": true,
+      "paginationOnlyWhenNeeded": true
+    }
+  ]
+}

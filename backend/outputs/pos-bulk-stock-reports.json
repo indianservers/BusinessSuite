@@ -1,0 +1,1570 @@
+{
+  "environment": "isolated SQLite API integration; seeded customers/products; not deployed browser",
+  "customers": 55,
+  "products": 45,
+  "transactions": 60,
+  "duplicate_retries": 6,
+  "gross": "27384.85",
+  "tax": "4177.35",
+  "collections": {
+    "cash": "16874.00",
+    "card": "10510.85"
+  },
+  "stock": [
+    {
+      "product_id": 4,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 5,
+      "received": 100,
+      "sold": "4.50",
+      "expected": "95.50",
+      "actual": "95.500"
+    },
+    {
+      "product_id": 6,
+      "received": 100,
+      "sold": "8",
+      "expected": "92",
+      "actual": "92.000"
+    },
+    {
+      "product_id": 7,
+      "received": 100,
+      "sold": "2.50",
+      "expected": "97.50",
+      "actual": "97.500"
+    },
+    {
+      "product_id": 8,
+      "received": 100,
+      "sold": "6",
+      "expected": "94",
+      "actual": "94.000"
+    },
+    {
+      "product_id": 9,
+      "received": 100,
+      "sold": "6.50",
+      "expected": "93.50",
+      "actual": "93.500"
+    },
+    {
+      "product_id": 10,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 11,
+      "received": 100,
+      "sold": "6.50",
+      "expected": "93.50",
+      "actual": "93.500"
+    },
+    {
+      "product_id": 12,
+      "received": 100,
+      "sold": "8.50",
+      "expected": "91.50",
+      "actual": "91.500"
+    },
+    {
+      "product_id": 13,
+      "received": 100,
+      "sold": "4.50",
+      "expected": "95.50",
+      "actual": "95.500"
+    },
+    {
+      "product_id": 14,
+      "received": 100,
+      "sold": "6.50",
+      "expected": "93.50",
+      "actual": "93.500"
+    },
+    {
+      "product_id": 15,
+      "received": 100,
+      "sold": "8.50",
+      "expected": "91.50",
+      "actual": "91.500"
+    },
+    {
+      "product_id": 16,
+      "received": 100,
+      "sold": "4.50",
+      "expected": "95.50",
+      "actual": "95.500"
+    },
+    {
+      "product_id": 17,
+      "received": 100,
+      "sold": "6.50",
+      "expected": "93.50",
+      "actual": "93.500"
+    },
+    {
+      "product_id": 18,
+      "received": 100,
+      "sold": "8.50",
+      "expected": "91.50",
+      "actual": "91.500"
+    },
+    {
+      "product_id": 19,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 20,
+      "received": 100,
+      "sold": "4.50",
+      "expected": "95.50",
+      "actual": "95.500"
+    },
+    {
+      "product_id": 21,
+      "received": 100,
+      "sold": "5.50",
+      "expected": "94.50",
+      "actual": "94.500"
+    },
+    {
+      "product_id": 22,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 23,
+      "received": 100,
+      "sold": "4.50",
+      "expected": "95.50",
+      "actual": "95.500"
+    },
+    {
+      "product_id": 24,
+      "received": 100,
+      "sold": "5.50",
+      "expected": "94.50",
+      "actual": "94.500"
+    },
+    {
+      "product_id": 25,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 26,
+      "received": 100,
+      "sold": "2.50",
+      "expected": "97.50",
+      "actual": "97.500"
+    },
+    {
+      "product_id": 27,
+      "received": 100,
+      "sold": "5",
+      "expected": "95",
+      "actual": "95.000"
+    },
+    {
+      "product_id": 28,
+      "received": 100,
+      "sold": "1.50",
+      "expected": "98.50",
+      "actual": "98.500"
+    },
+    {
+      "product_id": 29,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 30,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 31,
+      "received": 100,
+      "sold": "3",
+      "expected": "97",
+      "actual": "97.000"
+    },
+    {
+      "product_id": 32,
+      "received": 100,
+      "sold": "2.50",
+      "expected": "97.50",
+      "actual": "97.500"
+    },
+    {
+      "product_id": 33,
+      "received": 100,
+      "sold": "5",
+      "expected": "95",
+      "actual": "95.000"
+    },
+    {
+      "product_id": 34,
+      "received": 100,
+      "sold": "1.50",
+      "expected": "98.50",
+      "actual": "98.500"
+    },
+    {
+      "product_id": 35,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 36,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 37,
+      "received": 100,
+      "sold": "3",
+      "expected": "97",
+      "actual": "97.000"
+    },
+    {
+      "product_id": 38,
+      "received": 100,
+      "sold": "2.50",
+      "expected": "97.50",
+      "actual": "97.500"
+    },
+    {
+      "product_id": 39,
+      "received": 100,
+      "sold": "5",
+      "expected": "95",
+      "actual": "95.000"
+    },
+    {
+      "product_id": 40,
+      "received": 100,
+      "sold": "1.50",
+      "expected": "98.50",
+      "actual": "98.500"
+    },
+    {
+      "product_id": 41,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 42,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    },
+    {
+      "product_id": 43,
+      "received": 100,
+      "sold": "3",
+      "expected": "97",
+      "actual": "97.000"
+    },
+    {
+      "product_id": 44,
+      "received": 100,
+      "sold": "2.50",
+      "expected": "97.50",
+      "actual": "97.500"
+    },
+    {
+      "product_id": 45,
+      "received": 100,
+      "sold": "5",
+      "expected": "95",
+      "actual": "95.000"
+    },
+    {
+      "product_id": 46,
+      "received": 100,
+      "sold": "1.50",
+      "expected": "98.50",
+      "actual": "98.500"
+    },
+    {
+      "product_id": 47,
+      "received": 100,
+      "sold": "4",
+      "expected": "96",
+      "actual": "96.000"
+    },
+    {
+      "product_id": 48,
+      "received": 100,
+      "sold": "3.50",
+      "expected": "96.50",
+      "actual": "96.500"
+    }
+  ],
+  "daily_report_status": 200,
+  "daily_report": {
+    "day": "2026-11-18",
+    "timezone": "Asia/Kolkata",
+    "date_basis": "Native receipt and stock dates; company timezone for checkout, cash movement and register timestamps",
+    "sales": [
+      {
+        "currency": "INR",
+        "count": 60,
+        "gross": "27384.85",
+        "tax": "4177.35"
+      }
+    ],
+    "collections": [
+      {
+        "currency": "INR",
+        "method": "card",
+        "amount": "10510.85"
+      },
+      {
+        "currency": "INR",
+        "method": "cash",
+        "amount": "16874.00"
+      }
+    ],
+    "refunds": [],
+    "stock_movements": [
+      {
+        "id": 3,
+        "product_id": 4,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 4,
+        "product_id": 5,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 5,
+        "product_id": 6,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 6,
+        "product_id": 7,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 7,
+        "product_id": 8,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 8,
+        "product_id": 9,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 9,
+        "product_id": 10,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 10,
+        "product_id": 11,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 11,
+        "product_id": 12,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 12,
+        "product_id": 13,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 13,
+        "product_id": 14,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 14,
+        "product_id": 15,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 15,
+        "product_id": 16,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 16,
+        "product_id": 17,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 17,
+        "product_id": 18,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 18,
+        "product_id": 19,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 19,
+        "product_id": 20,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 20,
+        "product_id": 21,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 21,
+        "product_id": 22,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 22,
+        "product_id": 23,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 23,
+        "product_id": 24,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 24,
+        "product_id": 25,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 25,
+        "product_id": 26,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 26,
+        "product_id": 27,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 27,
+        "product_id": 28,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 28,
+        "product_id": 29,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 29,
+        "product_id": 30,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 30,
+        "product_id": 31,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 31,
+        "product_id": 32,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 32,
+        "product_id": 33,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 33,
+        "product_id": 34,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 34,
+        "product_id": 35,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 35,
+        "product_id": 36,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 36,
+        "product_id": 37,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 37,
+        "product_id": 38,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 38,
+        "product_id": 39,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 39,
+        "product_id": 40,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 40,
+        "product_id": 41,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 41,
+        "product_id": 42,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 42,
+        "product_id": 43,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 43,
+        "product_id": 44,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 44,
+        "product_id": 45,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 45,
+        "product_id": 46,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 46,
+        "product_id": 47,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 47,
+        "product_id": 48,
+        "warehouse_id": 1,
+        "quantity_in": "100.000",
+        "quantity_out": "0.000"
+      },
+      {
+        "id": 48,
+        "product_id": 4,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 49,
+        "product_id": 11,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 50,
+        "product_id": 5,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 51,
+        "product_id": 12,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 52,
+        "product_id": 6,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 53,
+        "product_id": 13,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 54,
+        "product_id": 7,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 55,
+        "product_id": 14,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 56,
+        "product_id": 8,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 57,
+        "product_id": 15,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 58,
+        "product_id": 9,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 59,
+        "product_id": 16,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 60,
+        "product_id": 10,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 61,
+        "product_id": 17,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 62,
+        "product_id": 11,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 63,
+        "product_id": 18,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 64,
+        "product_id": 12,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 65,
+        "product_id": 19,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 66,
+        "product_id": 13,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 67,
+        "product_id": 20,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 68,
+        "product_id": 14,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 69,
+        "product_id": 21,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 70,
+        "product_id": 15,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 71,
+        "product_id": 22,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 72,
+        "product_id": 16,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 73,
+        "product_id": 23,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 74,
+        "product_id": 17,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 75,
+        "product_id": 24,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 76,
+        "product_id": 18,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 77,
+        "product_id": 25,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 78,
+        "product_id": 19,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 79,
+        "product_id": 26,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 80,
+        "product_id": 20,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 81,
+        "product_id": 27,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 82,
+        "product_id": 21,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 83,
+        "product_id": 28,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 84,
+        "product_id": 22,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 85,
+        "product_id": 29,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 86,
+        "product_id": 23,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 87,
+        "product_id": 30,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 88,
+        "product_id": 24,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 89,
+        "product_id": 31,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 90,
+        "product_id": 25,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 91,
+        "product_id": 32,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 92,
+        "product_id": 26,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 93,
+        "product_id": 33,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 94,
+        "product_id": 27,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 95,
+        "product_id": 34,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 96,
+        "product_id": 28,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 97,
+        "product_id": 35,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 98,
+        "product_id": 29,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 99,
+        "product_id": 36,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 100,
+        "product_id": 30,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 101,
+        "product_id": 37,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 102,
+        "product_id": 31,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 103,
+        "product_id": 38,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 104,
+        "product_id": 32,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 105,
+        "product_id": 39,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 106,
+        "product_id": 33,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 107,
+        "product_id": 40,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 108,
+        "product_id": 34,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 109,
+        "product_id": 41,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 110,
+        "product_id": 35,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 111,
+        "product_id": 42,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 112,
+        "product_id": 36,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 113,
+        "product_id": 43,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 114,
+        "product_id": 37,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 115,
+        "product_id": 44,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 116,
+        "product_id": 38,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 117,
+        "product_id": 45,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 118,
+        "product_id": 39,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 119,
+        "product_id": 46,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 120,
+        "product_id": 40,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 121,
+        "product_id": 47,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 122,
+        "product_id": 41,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 123,
+        "product_id": 48,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 124,
+        "product_id": 42,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 125,
+        "product_id": 4,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 126,
+        "product_id": 43,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 127,
+        "product_id": 5,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 128,
+        "product_id": 44,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 129,
+        "product_id": 6,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 130,
+        "product_id": 45,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 131,
+        "product_id": 7,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 132,
+        "product_id": 46,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 133,
+        "product_id": 8,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 134,
+        "product_id": 47,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 135,
+        "product_id": 9,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 136,
+        "product_id": 48,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 137,
+        "product_id": 10,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 138,
+        "product_id": 4,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 139,
+        "product_id": 11,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 140,
+        "product_id": 5,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 141,
+        "product_id": 12,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 142,
+        "product_id": 6,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 143,
+        "product_id": 13,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 144,
+        "product_id": 7,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 145,
+        "product_id": 14,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 146,
+        "product_id": 8,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 147,
+        "product_id": 15,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 148,
+        "product_id": 9,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 149,
+        "product_id": 16,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 150,
+        "product_id": 10,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 151,
+        "product_id": 17,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 152,
+        "product_id": 11,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 153,
+        "product_id": 18,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 154,
+        "product_id": 12,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 155,
+        "product_id": 19,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 156,
+        "product_id": 13,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 157,
+        "product_id": 20,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 158,
+        "product_id": 14,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 159,
+        "product_id": 21,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 160,
+        "product_id": 15,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 161,
+        "product_id": 22,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 162,
+        "product_id": 16,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "1.000"
+      },
+      {
+        "id": 163,
+        "product_id": 23,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      },
+      {
+        "id": 164,
+        "product_id": 17,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 165,
+        "product_id": 24,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "2.000"
+      },
+      {
+        "id": 166,
+        "product_id": 18,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "3.000"
+      },
+      {
+        "id": 167,
+        "product_id": 25,
+        "warehouse_id": 1,
+        "quantity_in": "0.000",
+        "quantity_out": "0.500"
+      }
+    ],
+    "registers": [
+      {
+        "session_id": 2,
+        "status": "open",
+        "cash_collected": "16874.00",
+        "cash_collected_by_currency": [
+          {
+            "currency": "INR",
+            "amount": "16874.00"
+          }
+        ],
+        "currency_reconciliation_required": false,
+        "cash_in": "0",
+        "cash_out": "0",
+        "net_cash_change": "16874.00",
+        "lifetime_reconciliation": {
+          "session": {
+            "id": 2,
+            "organization_id": 1,
+            "session_number": "RETAIL-5481ba45c7d141819f98600ceadf4127",
+            "status": "open",
+            "branch": "Main Branch",
+            "register_name": "Main POS Register",
+            "cashier_user_id": 2,
+            "opening_cash": 0.0,
+            "expected_cash": 0.0,
+            "counted_cash": 0.0,
+            "cash_variance": 0.0,
+            "opened_at": "2026-11-18T03:05:13",
+            "closed_at": null,
+            "notes": null,
+            "metadata_json": {
+              "cash_currency": "INR"
+            },
+            "created_by": 2,
+            "created_at": "2026-11-18T03:05:13",
+            "updated_at": "2026-11-18T03:05:44",
+            "deleted_at": null
+          },
+          "cash_intent_version": 119,
+          "sales_count": 60,
+          "cash_sales": 16874.0,
+          "cash_in": 0.0,
+          "cash_out": 0.0,
+          "expected_cash": 16874.0,
+          "cash_currency": "INR",
+          "cash_by_currency": {
+            "INR": 16874.0
+          },
+          "unattributed_cash_count": 0,
+          "reconciliation_required": false,
+          "movements": [],
+          "closing": null
+        }
+      }
+    ]
+  }
+}

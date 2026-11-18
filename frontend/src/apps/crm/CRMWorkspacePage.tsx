@@ -3816,7 +3816,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
     <div className="record-directory">
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
-        <GridTable gridId="apps/crm/CRMWorkspacePage:table-4" className="w-full min-w-[1040px] text-left text-sm">
+        <GridTable pinActions gridId="apps/crm/CRMWorkspacePage:table-4" className="w-full min-w-[1040px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all contacts" /></th>
@@ -3829,7 +3829,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
               {visibleColumns.owner ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("owner")}>Owner<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.nextFollowUp ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("nextFollowUp")}>Next follow-up<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
-              <th className="sticky right-0 z-20 w-48 bg-muted px-3 py-3 font-semibold">Actions</th>
+              <th style={{width:250}} className="sticky right-0 z-20 bg-muted px-3 py-3 font-semibold">Actions</th>
             {locationFields.map(field=><th key={field.id} className="px-3 py-3">{field.label}</th>)}</tr>
           </thead>
           <tbody>

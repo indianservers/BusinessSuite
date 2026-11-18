@@ -216,7 +216,7 @@ export class RecordCacheManager {
     if (!navigator.onLine) { this.report({ health: 'offline' }); return; }
     if (!force && Date.now() < this.retryAt) return;
     // Only views used in the last two minutes; never enumerate or preload a table.
-    const entries = [...this.memory.values()].filter(e => !this.optimistic.has(e.entity) && (!module || e.module === module) && (this.isActive(e) || Date.now() - e.accessed < 120000) && (force || Date.now() - e.checked >= refreshInterval(e.url)));
+    const entries = [...this.memory.values()].filter(e => !this.optimistic.has(e.entity) && (!module || e.module === module) && (force || this.isActive(e)) && (force || Date.now() - e.checked >= refreshInterval(e.url)));
     // Bound concurrency and let the per-view Web Lock deduplicate other tabs.
     for (let i = 0; i < entries.length; i += 4) await Promise.allSettled(entries.slice(i, i + 4).map(e => {
       const config = this.configs.get(e.key);

@@ -1,0 +1,25 @@
+{
+  "columns": 2,
+  "automatedSizes": [
+    "320x568",
+    "360x640",
+    "390x844",
+    "430x932",
+    "767x1024"
+  ],
+  "release": "catalog-two-pages-20261118",
+  "build": "passed",
+  "keyboardViewport": "390x460",
+  "smallOptionalSettings": "passed at 320x568",
+  "retryWithoutDuplicateCreation": "passed",
+  "health": "healthy",
+  "liveChecks": 8,
+  "maxSteps": 2,
+  "essentialsSave": "passed",
+  "typecheck": "passed",
+  "liveRecordsCreated": 0,
+  "serviceBookingAndRecurringPayload": "passed with mocked APIs",
+  "scrollContainers": 0,
+  "liveViewport": "390x844",
+  "clippedControls": 0
+}

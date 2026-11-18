@@ -1,0 +1,14 @@
+@media(max-width:480px){
+ .record-maintenance-phone.mobile-experience-sheet[role=dialog]{bottom:calc(10px + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset,0px));max-height:calc(var(--mobile-viewport-height,90dvh) - 20px);padding:16px;gap:12px;border-radius:18px;scroll-padding-bottom:90px}
+ .record-maintenance-phone h2{font-size:20px;font-weight:600;line-height:1.25;padding-right:32px}
+ .record-maintenance-phone p,.record-maintenance-discard p{overflow-wrap:anywhere;line-height:1.5;font-size:14px}
+ .record-maintenance-phone form{min-width:0}
+ .record-maintenance-phone label{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+ .record-maintenance-phone input{min-height:44px;min-width:0;font-size:16px}
+ .record-maintenance-phone input[type=checkbox]{min-height:24px}
+ .record-maintenance-phone button,.record-maintenance-discard button{min-height:44px;white-space:normal}
+ .record-maintenance-actions{position:sticky;bottom:-16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:hsl(var(--background));border-top:1px solid hsl(var(--border));z-index:2}
+ .record-maintenance-actions [role=status]{grid-column:1/-1;grid-row:1;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+ .record-maintenance-actions [role=status]:empty{display:none}
+ .record-maintenance-discard{top:calc((100dvh - var(--mobile-keyboard-inset,0px))/2);max-height:calc(var(--mobile-viewport-height,100dvh) - 24px);overflow-y:auto;overscroll-behavior:contain}
+}

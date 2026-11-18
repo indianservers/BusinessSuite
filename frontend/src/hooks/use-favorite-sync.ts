@@ -11,7 +11,7 @@ export function useFavoriteSync(scope: string, enabled: boolean) {
   const preferences = useSuitePreferences(s => s.contexts[scope] || defaultSuitePreferences);
   const remote = useQuery({ queryKey: ["launcher-favorites", scope], enabled,
     queryFn: () => api.get<{ favorites: string[] | null }>("/access/launcher-preferences", { progress: false }).then(r => r.data),
-    refetchInterval: 30_000, retry: false });
+    staleTime: 300_000, refetchOnWindowFocus: true, retry: false });
   useEffect(() => {
     if (!enabled || !remote.data) return;
     const current = useSuitePreferences.getState().contexts[scope] || defaultSuitePreferences;

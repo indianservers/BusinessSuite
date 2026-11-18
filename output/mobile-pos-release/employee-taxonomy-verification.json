@@ -1,0 +1,27 @@
+{
+  "serviceMultiSelect": "passed",
+  "typecheck": "passed",
+  "nativeParentAndChildEligibility": "passed",
+  "childFilteringAndDependentCleanup": "passed",
+  "workflowPages": 2,
+  "liveManagementEditorOverflow": 0,
+  "build": "passed",
+  "liveManagementViewport": "320x568",
+  "liveClippedControls": 0,
+  "liveActionButtonsClearOfNavigation": true,
+  "mobileSizes": [
+    "320x568",
+    "360x640",
+    "390x844",
+    "430x932",
+    "767x1024"
+  ],
+  "backendTests": 14,
+  "managementMockSaveAndVersionConflict": "passed",
+  "release": "employee-taxonomy-20261118-v4",
+  "liveRecordsCreated": 0,
+  "liveDropdownViewport": "390x844",
+  "popupSearchConditionalPaginationAndBounds": "passed",
+  "schemaMigration": "none",
+  "health": "healthy"
+}

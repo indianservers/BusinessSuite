@@ -1,0 +1,707 @@
+{
+  "release": "srm-standard-fast-20261118-v9",
+  "results": [
+    {
+      "width": 360,
+      "route": "/srm/appointments",
+      "ready_and_checks_ms": 10683,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/project-options",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/prebooking-workflows/waitlist",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 360,
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "ready_and_checks_ms": 562,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [],
+      "status": "passed"
+    },
+    {
+      "width": 360,
+      "route": "/srm/pos/terminal",
+      "ready_and_checks_ms": 20702,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 360,
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "ready_and_checks_ms": 5425,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "route": "/srm/appointments",
+      "ready_and_checks_ms": 9586,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/project-options",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/prebooking-workflows/waitlist",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "ready_and_checks_ms": 566,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [],
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "route": "/srm/pos/terminal",
+      "ready_and_checks_ms": 16500,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "ready_and_checks_ms": 4177,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 430,
+      "route": "/srm/appointments",
+      "ready_and_checks_ms": 19270,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/prebooking-workflows/waitlist",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/project-options",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 430,
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "ready_and_checks_ms": 535,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [],
+      "status": "passed"
+    },
+    {
+      "width": 430,
+      "route": "/srm/pos/terminal",
+      "ready_and_checks_ms": 5548,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 430,
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "ready_and_checks_ms": 3845,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "apiFailures": [],
+  "idle_65s": {
+    "requests": [
+      {
+        "path": "/api/v1/notifications/summary",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/access/me",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/follow-ups/statistics",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/access/me",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "status": 200
+      },
+      {
+        "path": "/api/v1/follow-ups/statistics",
+        "status": 200
+      }
+    ],
+    "favorites_polling": 0
+  },
+  "status": "passed",
+  "verification_mode": "Isolated production frontend build with real production APIs",
+  "production_api_origin": "https://besterp.app",
+  "currently_published": false,
+  "final_product_layout_verified_by": "fixture-results.json",
+  "idle_summary": "3 maintenance requests in 65 seconds; no favorites, catalog or held-bill polling; product form remained open"
+}

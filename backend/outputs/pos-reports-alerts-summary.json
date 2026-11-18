@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "browser": {
+    "origin": "http://127.0.0.1:5174",
+    "login": "local admin credentials",
+    "company": "Indian Servers Pvt Ltd",
+    "branch": "Main Branch",
+    "stock_report_items": 187,
+    "low_stock_items": 20,
+    "items_without_threshold": 6,
+    "checks": [
+      "Stock summary loads",
+      "Reports hub shows low stock",
+      "Expand low-stock details",
+      "Manual stock refresh",
+      "Receive stock shortcut loads item and warehouse choices",
+      "Product detail alert settings save succeeds with existing values",
+      "Invoice register preview opens",
+      "Invoice register export confirmation appears"
+    ],
+    "screenshot": "output/stock-alerts-browser.jpg"
+  },
+  "changes": [
+    "Visible low-stock panel on reports and stock summary",
+    "Product reorder/minimum alert settings",
+    "60-second in-page stock refresh",
+    "Scoped Retail stock status and low-only pages",
+    "Request-local checkout report source prefetch retaining validation",
+    "Refresh cached inventory identity after login"
+  ],
+  "automated": {
+    "passed": 55,
+    "typecheck": "passed",
+    "volume": {
+      "customers": 55,
+      "products": 45,
+      "sales": 60,
+      "duplicate_retries": 6,
+      "daily_report_status": 200,
+      "gross": "27384.85",
+      "tax": "4177.35",
+      "collections": {
+        "cash": "16874.00",
+        "card": "10510.85"
+      },
+      "test_environment": "isolated SQLite API integration; seeded customers/products; not deployed browser"
+    }
+  },
+  "scope": "Local source changes only. In-app alerts while page is open; no email, SMS, or OS notification subscription."
+}

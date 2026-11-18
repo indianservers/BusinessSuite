@@ -203,6 +203,7 @@ function LeadManagementPage({potential = false}: {potential?: boolean}) {
 }
 function LeadWorkbench() {
   const {api: leadsApi, potential} = useLeadRecord();
+  const mobile = useMobile();
   const { toast } = useToast();
   const userId = useAuthStore((s) => s.user?.id);
   const canEdit=useModuleAction("edit"),canAssign=useModuleAction("assign"),canDelete=useModuleAction("delete");
@@ -424,6 +425,11 @@ function LeadWorkbench() {
     setViewName("");
   };
 
+  const transferTools = <>
+    <DataExportButton filename={potential ? "potential-clients.xlsx" : "leads.xlsx"} description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
+    {bootstrap?.canManage && canCreate && <Button variant="outline" onClick={() => setImportOpen(true)}><FileSpreadsheet size={16}/>Import Excel</Button>}
+  </>;
+  const workflowSettings = bootstrap?.canAdmin && <Button variant="outline" aria-label="Lead workflow settings" onClick={() => setSettingsOpen(true)}><Settings2 size={17}/></Button>;
   return (
     <div className="lm-root" aria-label="Lead workbench">
       {followUp && bootstrap && (
@@ -448,31 +454,21 @@ function LeadWorkbench() {
           <p>Know where every enquiry stands. Make the next move.</p>
         </div>
         <div className="lm-actions">
-          <DataExportButton filename={potential ? "potential-clients.xlsx" : "leads.xlsx"} description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
-
+          {!mobile && transferTools}
           {bootstrap?.canManage && canCreate && (
             <>
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <FileSpreadsheet size={16} />
-                Import Excel
-              </Button>
               <Button onClick={() => setCreateOpen(true)}>
                 <Plus size={16} />
                 {potential ? "Add potential client" : "Add lead"}
               </Button>
             </>
           )}
-          {bootstrap?.canAdmin && (
-            <Button
-              variant="outline"
-              aria-label="Lead workflow settings"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings2 size={17} />
-            </Button>
-          )}
+          {!mobile && workflowSettings}
         </div>
       </header>
+      <details className="lm-workbench-extras" open={!mobile}>
+      <summary>Related tools & sales process</summary>
+      {mobile && <div className="lm-actions">{transferTools}{workflowSettings}</div>}
       <nav className="lm-links" aria-label="Related CRM tools">
         <Link to={potential ? "/crm/leads" : "/crm/potential-clients"}>{potential ? "Leads" : "Potential Clients"}</Link>
         <Link to="/crm/webforms">Website forms</Link>
@@ -482,7 +478,8 @@ function LeadWorkbench() {
         <Link to="/crm/duplicates?entity=lead">Duplicate review & merge</Link>
       </nav>
       {!potential && bootstrap && <SalesProcessPanel bootstrap={bootstrap} search={search} stage={stage} owner={owner} revision={revision} changed={refresh}/>}
-      <section className="lm-metrics" aria-label="Lead health">
+      </details>
+      <section className="lm-metrics lm-health-metrics" aria-label={search || stage || owner ? "Lead health within current filters" : "Lead health"}>
         {[
           ["active", "Active leads"],
           ["overdue", "Overdue follow-ups"],

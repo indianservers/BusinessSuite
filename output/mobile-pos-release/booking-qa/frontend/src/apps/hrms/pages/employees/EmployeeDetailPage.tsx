@@ -1,0 +1,1315 @@
+import EmployeeCategories from "@/shared/EmployeeCategories";
+import { recordScope, useRecordScope } from "@/lib/record-scope";
+import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
+import EmployeeCRMWorkspaceAccess from "./EmployeeCRMWorkspaceAccess";
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
+import EmployeeDocumentsPanel from "./EmployeeDocumentsPanel";
+import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
+import PhoneActions from "@/components/PhoneActions";
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm from "@/components/forms/CompactForm";
+import EmployeeActions from "../../workbench/EmployeeActions";
+import { Link as AccountAdminLink } from "react-router-dom";
+import { ConversationLauncher } from "@/shared/communication";
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields, emailError, textError } from "@/lib/validation";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import type React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, Banknote, Briefcase, CalendarDays, Camera, ChevronLeft, Clock, CreditCard, FileText, GraduationCap, HeartPulse, HelpCircle, Link2, Package, Save, Star, Target, Unlink, User, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import AskAiButton from "@/components/ai-agents/AskAiButton";
+import { api, employeeApi, payrollApi, companyApi, authApi } from "@/services/api";
+import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
+import { useEffect, useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
+
+import { loadManagerOptions } from "./employeeJobOptions";
+import { useAuthStore } from "@/store/authStore";
+import SharedProfilePage from "@/features/profiles/ProfilePage";
+import EmployeeReliabilityPanel from "./EmployeeReliabilityPanel";
+import Employee360Panel from "./Employee360Panel";
+import EmployeeVerificationPanel from "../compliance/EmployeeVerificationPanel";
+import EmployeePlannedServices from "./EmployeePlannedServices";
+
+const TABS = [
+  { id: "profile", label: "Complete Profile", icon: User },
+  { id: "360", label: "Employee 360", icon: Activity },
+  { id: "personal", label: "Personal", icon: User },
+  { id: "job", label: "Job", icon: Briefcase },
+  { id: "schedule", label: "Schedule", icon: CalendarDays },
+  { id: "history", label: "Profile checks & history", icon: Clock },
+  { id: "education", label: "Education", icon: GraduationCap },
+  { id: "experience", label: "Experience", icon: Briefcase },
+  { id: "skills", label: "Skills", icon: Star },
+  { id: "certifications", label: "Certifications", icon: GraduationCap },
+  { id: "documents", label: "Documents", icon: FileText },
+  { id: "verification", label: "Verification & exit records", icon: FileText },
+  { id: "payroll", label: "Payroll", icon: Banknote },
+  { id: "account", label: "Account", icon: Link2 },
+  { id: "family", label: "Family", icon: Users },
+  { id: "health", label: "Health", icon: HeartPulse },
+  { id: "bank", label: "Bank & Tax", icon: CreditCard },
+];
+
+const EDIT_FIELDS: Record<string, Array<[string, string, string?]>> = {
+  personal: [
+    ["first_name", "First Name"],
+    ["middle_name", "Middle Name"],
+    ["last_name", "Last Name"],
+    ["personal_email", "Email"],
+    ["phone_number", "Phone"],
+    ["alternate_phone", "Alternate Phone"],
+    ["emergency_contact_name", "Emergency Contact"],
+    ["emergency_contact_number", "Emergency Phone"],
+    ["emergency_contact_relation", "Relation"],
+    ["present_address", "Present Address", "textarea"],
+    ["bio", "Bio", "textarea"],
+    ["interests", "Interests", "textarea"],
+    ["research_work", "Research / Publications", "textarea"],
+  ],
+  job: [
+    ["branch_id", "Branch", "select"],
+    ["department_id", "Department", "select"],
+    ["work_categories", "Employee categories", "categories"],
+    ["designation_id", "Designation / Job Role", "select"],
+    ["reporting_manager_id", "Reporting Manager / Intern Supervisor", "select"],
+    ["employment_type", "Employment Type", "select"],
+    ["role_id", "Account Role", "select"],
+    ["work_location", "Work Location"],
+    ["date_of_joining", "Date of Joining", "date"],
+    ["date_of_confirmation", "Date of Confirmation", "date"],
+  ],
+  family: [["family_information", "Family Information", "textarea"]],
+  health: [["health_information", "Health Information", "textarea"]],
+  bank: [
+    ["bank_name", "Bank Name"],
+    ["bank_branch", "Bank Branch"],
+    ["account_number", "Account Number"],
+    ["ifsc_code", "IFSC"],
+    ["pan_number", "PAN"],
+    ["aadhaar_number", "Aadhaar"],
+    ["uan_number", "UAN"],
+    ["pf_number", "PF Number"],
+    ["esic_number", "ESIC Number"],
+  ],
+};
+
+function getApiErrorMessage(error: unknown): string {
+  const responseData = (error as { response?: { data?: { detail?: unknown; message?: unknown } }; message?: string })?.response?.data;
+  const detail = responseData?.detail || responseData?.message;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const location = Array.isArray(item?.loc) ? item.loc.filter((part: string) => part !== "body").join(".") : "";
+        const message = item?.msg || item?.message || "Invalid value";
+        return location ? `${location}: ${message}` : message;
+      })
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    return Object.entries(detail as Record<string, unknown>)
+      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`)
+      .join("; ");
+  }
+  return (error as { message?: string })?.message || "Please check the required fields and try again.";
+}
+
+interface EmployeeDetailPageProps {
+  employeeId?: number;
+  initialEditing?: boolean;
+  onClose?: () => void;
+}
+
+export default function EmployeeDetailPage(props: EmployeeDetailPageProps = {}) {
+  useRecordScope();
+  const {id} = useParams<{id:string}>();
+  const authorityScope = recordScope(useAuthStore.getState().user);
+  return <ScopedEmployeeDetailPage key={`${authorityScope}:${props.employeeId ?? id ?? ""}`} {...props} authorityScope={authorityScope}/>;
+}
+
+function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose, authorityScope }: EmployeeDetailPageProps & {authorityScope:string}) {
+  const owns = useRecordScopeOwner();
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = employeeId == null ? routeId : String(employeeId);
+  const customFieldForm=useCrmFieldForm("employees","edit",Number(id));
+  const [popupEditing, setPopupEditing] = useState(initialEditing);
+  const navigate = useNavigate();
+  const [params, setRouteParams] = useSearchParams();
+  const setParams = (values: Record<string, string>) => {
+    if (employeeId != null) setPopupEditing(values.edit === "true");
+    else setRouteParams({tab: activeTab, ...values});
+  };
+  const closeDetails = () => onClose ? onClose() : navigate(params.get("returnTo")?.startsWith("/hrms/") ? params.get("returnTo")! : "/hrms/employees");
+  const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState(params.get("tab") || (initialEditing || params.get("edit") === "true" ? "personal" : "360"));
+  const [scheduleActionsOpen, setScheduleActionsOpen] = useState(false);
+  const canChangeRole = useAuthStore((state) => !!state.user?.is_superuser);
+  const { data: accountRoles = [] } = useQuery({
+    queryKey: ["employee-account-roles",authorityScope],
+    queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string; branch_id?: number; department_id?: number }>),
+    enabled: canChangeRole && activeTab === "job",
+  });
+  const { data: jobOptions } = useQuery({
+    queryKey: ["employee-job-options",authorityScope],
+    queryFn: async () => {
+      const [branches, departments, designations, managers] = await Promise.all([
+        companyApi.listBranches(), companyApi.listDepartments(), companyApi.listDesignations(), loadManagerOptions(),
+      ]);
+      return { employment_type: ["Full-time", "Part-time", "Contract", "Intern", "Visiting", "Deputation"].map((name) => ({ id: name, name })), branch_id: branches.data, department_id: departments.data, designation_id: designations.data, reporting_manager_id: managers } as Record<string, Array<{ id: number | string; name: string; branch_id?: number; department_id?: number }>>;
+    },
+    enabled: activeTab === "job",
+  });
+  useEffect(()=>{const requested=params.get("tab");if(requested&&TABS.some(t=>t.id===requested))setActiveTab(requested);},[params.get("tab")]);
+  const ownEmployeeId = useAuthStore(state => state.user?.employee_id);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [editErrors,setEditErrors]=useState<Record<string,string>>({});
+  const [educationForm, setEducationForm] = useState<Record<string, any>>({});
+  const [experienceForm, setExperienceForm] = useState<Record<string, any>>({});
+  const [certificationForm, setCertificationForm] = useState<Record<string, any>>({});
+  const [saveConflict,setSaveConflict]=useState(false);
+  const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
+  const [editVersion, setEditVersion] = useState<string | undefined>();
+  const initializedEdit = useRef("");
+  const [editingRecord, setEditingRecord] = useState<{section: string; id: number; version?: string} | null>(null);
+  const [skillForm, setSkillForm] = useState<Record<string, any>>({});
+  const [salaryForm, setSalaryForm] = useState<Record<string, any>>({
+    structure_id: "",
+    ctc: "",
+    basic: "",
+    hra: "",
+    effective_from: "",
+  });
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [accountForm, setAccountForm] = useState({ email: "", password: "" });
+  const requestedEditing = employeeId != null ? popupEditing : params.get("edit") === "true";
+  usePageTitle("Employee Details");
+
+  const { data: emp, isLoading, isFetching: employeeFetching, error: employeeError } = useQuery({
+    queryKey: ["employee", id,authorityScope],
+    queryFn: ({signal}) => api.get(`/employees/${Number(id)}`,{signal,recordCache:false}).then((r) => r.data),
+    enabled: !!id, placeholderData:undefined, staleTime:0, refetchOnMount:"always",
+  });
+
+  const canEditProfile = emp?.can_edit_profile ?? canChangeRole;
+  const editing = requestedEditing && canEditProfile;
+
+  const userOptions = useQuery({
+    queryKey: ["employee-user-options", id,authorityScope],
+    queryFn: () =>
+      employeeApi
+        .userOptions({ include_employee_id: Number(id) })
+        .then((r) => r.data as Array<{ id: number; email: string; role?: string | null; role_id?: number | null; employee_id?: number | null; employee_code?: string | null; employee_name?: string | null }>),
+    enabled: !!id && (activeTab === "account" || activeTab === "profile" || (editing && activeTab === "job")),
+  });
+
+  const salaryHistory = useQuery({
+    queryKey: ["employee-salary-history", id,authorityScope],
+    queryFn: () => payrollApi.salaryHistory(Number(id)).then((r) => r.data as EmployeeSalaryRow[]),
+    enabled: !!id && activeTab === "payroll",
+  });
+
+  const salaryStructures = useQuery({
+    queryKey: ["salary-structures",authorityScope],
+    queryFn: () => payrollApi.structures().then((r) => r.data as SalaryStructureOption[]),
+    enabled: activeTab === "payroll",
+  });
+
+  const changeEdit = (key:string,value:string) => {
+    setEditForm(current=>({...current,[key]:value}));
+    setEditErrors(current=>{const next={...current};delete next[key.replace(/_country_code$/,'')];return next;});
+  };
+  const validateEdit = (key:string) => {
+    const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
+    setEditErrors(current=>{const next={...current};if(message)next[key]=message;else delete next[key];return next;});
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), {...payload,custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}, editVersion),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "Employee updated" });
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+      qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
+      qc.invalidateQueries({ queryKey: ["employee-job-options"] });
+      qc.invalidateQueries({ queryKey: ["employee-manager-options"] });
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employee-work-categories"] });
+      qc.invalidateQueries({ queryKey: ["employee-directory"] });
+      qc.invalidateQueries({ queryKey: ["pos-service-scheduling"] });
+      qc.invalidateQueries({ queryKey: ["pos-service-provider-options"] });
+      window.dispatchEvent(new Event("pms:people-changed"));
+      if (onClose) onClose();
+      else {
+        const next = new URLSearchParams(params);
+        next.delete("edit");
+        setRouteParams(next);
+      }
+    },
+    onError: (err:unknown) => {
+      if(getApiErrorMessage(err).includes("profile changed"))setSaveConflict(true);
+      const details=(err as {response?:{data?:{detail?:Array<{loc?:string[];msg?:string}>}}})?.response?.data?.detail;
+      if(Array.isArray(details))setEditErrors(Object.fromEntries(details.map(item=>[String(item.loc?.at(-1)||'').replace(/_country_code$/,''),item.msg||'Invalid value'])));
+      toast({ title: "Could not update employee", description: getApiErrorMessage(err), variant: "destructive" });
+    },
+  });
+
+  const photoMutation = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return employeeApi.uploadPhoto(Number(id), form);
+    },
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "Photo updated" });
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: () => toast({ title: "Could not upload photo", variant: "destructive" }),
+  });
+
+  const educationMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "education" ? employeeApi.updateProfileRecord(Number(id), "education", editingRecord.id, payload, editingRecord.version) : employeeApi.addEducation(Number(id), payload, emp?.profile_version),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: editingRecord?.section === "education" ? "Education updated" : "Education added" });
+      setEditingRecord(null);
+      setEducationForm({});
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not add education",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const experienceMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "experience" ? employeeApi.updateProfileRecord(Number(id), "experience", editingRecord.id, payload, editingRecord.version) : employeeApi.addExperience(Number(id), payload, emp?.profile_version),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: editingRecord?.section === "experience" ? "Experience updated" : "Experience added" });
+      setEditingRecord(null);
+      setExperienceForm({});
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not add experience",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const skillMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "skills" ? employeeApi.updateProfileRecord(Number(id), "skills", editingRecord.id, payload, editingRecord.version) : employeeApi.addSkill(Number(id), payload, emp?.profile_version),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: editingRecord?.section === "skills" ? "Skill updated" : "Skill added" });
+      setEditingRecord(null);
+      setSkillForm({});
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not add skill",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const certificationMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "certifications"
+      ? employeeApi.updateProfileRecord(Number(id), "certifications", editingRecord.id, payload, editingRecord.version)
+      : employeeApi.addCertification(Number(id), payload, emp?.profile_version),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: editingRecord ? "Certification updated" : "Certification added" });
+      setCertificationForm({}); setEditingRecord(null);
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({ title: "Could not save certification", description: getApiErrorMessage(err), variant: "destructive" }),
+  });
+  const deleteRecordMutation = useMutation({
+    mutationFn: ({section, recordId}: {section: string; recordId: number}) => employeeApi.deleteProfileRecord(Number(id), section, recordId, emp?.profile_version),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "Record deleted" });
+      setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({ title: "Could not delete record", description: getApiErrorMessage(err), variant: "destructive" }),
+  });
+  const recordActions = (section: string, record: Record<string, any>, setForm: (form: Record<string, any>) => void) => (
+    !canEditProfile ? null : <div className="mt-3 flex gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
+        setForm({ ...record }); setEditingRecord({section, id: record.id, version: emp?.profile_version}); setParams({edit: "true"});
+        requestAnimationFrame(() => document.getElementById(`profile-${({education: "degree", experience: "company_name", skills: "skill_name", certifications: "certification_name"} as Record<string, string>)[section]}`)?.focus());
+      }}>Edit record</Button>
+      <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
+        if (window.confirm("Delete this employee profile record?")) deleteRecordMutation.mutate({section, recordId: record.id});
+      }}>Delete record</Button>
+    </div>
+  );
+  useEffect(() => {
+    setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
+  }, [activeTab, id]);
+  useEffect(() => { if (!editing) {setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});} }, [editing]);
+
+  const linkUserMutation = useMutation({
+    mutationFn: (userId: number | null) => employeeApi.linkUser(Number(id), userId),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "User mapping updated" });
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+      qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not update user mapping",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const createUserAccountMutation = useMutation({
+    mutationFn: (payload: { email: string; password: string }) => employeeApi.createUserAccount(Number(id), payload),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "Employee login account created" });
+      setAccountForm({ email: "", password: "" });
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+      qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not create login account",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const salaryMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => payrollApi.setEmployeeSalary(payload),
+    onSuccess: () => {
+      if (!owns()) return;
+      toast({ title: "Salary assigned" });
+      setSalaryForm({ structure_id: "", ctc: "", basic: "", hra: "", effective_from: "" });
+      qc.invalidateQueries({ queryKey: ["employee-salary-history", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not assign salary",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  useEffect(() => {
+    if (employeeFetching) return;
+    if (!editing) { initializedEdit.current=""; return; }
+    if (!emp || initializedEdit.current === String(id)) return;
+    initializedEdit.current=String(id);
+    setEditVersion(emp.profile_version);
+    setEditForm({
+      first_name: emp.first_name || "",
+      middle_name: emp.middle_name || "",
+      last_name: emp.last_name || "",
+      personal_email: emp.personal_email || "",
+      phone_number: emp.phone_number || "",
+      phone_number_country_code: emp.phone_number_country_code || (emp.phone_number ? "" : "+91"),
+      alternate_phone: emp.alternate_phone || "",
+      alternate_phone_country_code: emp.alternate_phone_country_code || (emp.alternate_phone ? "" : "+91"),
+      branch_id: emp.branch_id ?? "",
+      department_id: emp.department_id ?? "",
+      work_categories: emp.work_categories || [],
+      designation_id: emp.designation_id ?? "",
+      reporting_manager_id: emp.reporting_manager_id ?? "",
+      employment_type: emp.employment_type || "Full-time",
+      status: emp.status || "Active",
+      work_location: emp.work_location || "Office",
+      date_of_joining: emp.date_of_joining || "",
+      date_of_confirmation: emp.date_of_confirmation || "",
+      emergency_contact_name: emp.emergency_contact_name || "",
+      emergency_contact_number: emp.emergency_contact_number || "",
+      emergency_contact_number_country_code: emp.emergency_contact_number_country_code || (emp.emergency_contact_number ? "" : "+91"),
+      emergency_contact_relation: emp.emergency_contact_relation || "",
+      present_address: emp.present_address || "",
+      present_city: emp.present_city || "",
+      present_state: emp.present_state || "",
+      present_pincode: emp.present_pincode || "",
+      bank_name: emp.bank_name || "",
+      bank_branch: emp.bank_branch || "",
+      account_number: emp.account_number || "",
+      ifsc_code: emp.ifsc_code || "",
+      pan_number: emp.pan_number || "",
+      aadhaar_number: emp.aadhaar_number || "",
+      uan_number: emp.uan_number || "",
+      pf_number: emp.pf_number || "",
+      esic_number: emp.esic_number || "",
+      bio: emp.bio || "",
+      interests: emp.interests || "",
+      research_work: emp.research_work || "",
+      family_information: emp.family_information || "",
+      health_information: emp.health_information || "",
+    });
+  }, [!!emp, editing, id, employeeFetching]);
+
+  useEffect(() => {
+    if (employeeFetching || !emp) return;
+    setSelectedUserId(emp.user_id ? String(emp.user_id) : "");
+    setAccountForm((current) => ({
+      ...current,
+      email: current.email || emp.work_email || emp.personal_email || "",
+    }));
+  }, [emp, employeeFetching]);
+
+  if (isLoading || employeeFetching) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-48 skeleton rounded" />
+        <div className="h-32 w-full skeleton rounded-xl" />
+        <div className="h-64 w-full skeleton rounded-xl" />
+      </div>
+    );
+  }
+
+  if (employeeError) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 p-6">
+          <Button variant="ghost" size="sm" onClick={closeDetails}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Employees
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">Employee profile could not be loaded</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{getApiErrorMessage(employeeError)}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!emp) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 p-6">
+          <Button variant="ghost" size="sm" onClick={closeDetails}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Employees
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">Employee not found</h2>
+            <p className="mt-1 text-sm text-muted-foreground">This profile may have been removed or you may not have access.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const initials = getInitials(`${emp.first_name} ${emp.last_name}`);
+  const linkedUser = (userOptions.data || []).find((user) => user.id === emp.user_id);
+
+  const loginAccountCard = (
+    <Card>
+      <CardHeader><CardTitle>Set up employee login</CardTitle><p className="text-sm text-muted-foreground">Create a login or link an existing account here to unlock the complete profile.</p></CardHeader>
+      <CardContent className="space-y-4">
+        {canChangeRole && <AccountAdminLink className="inline-flex rounded border px-3 py-2 text-sm" to={`/hrms/users?search=${encodeURIComponent(linkedUser?.email || emp.employee_id)}`}>Manage login, password and access</AccountAdminLink>}
+        <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+          <p className="font-medium">Current login</p>
+          <p className="mt-1 text-muted-foreground">
+            {emp.user_id
+              ? `${linkedUser?.email || `User #${emp.user_id}`} is linked to this employee.`
+              : "No login user is linked to this employee yet."}
+          </p>
+        </div>
+
+        {canChangeRole && !emp.user_id && (
+          <SmartCreateSection title="Create employee login"><CompactForm
+            className="rounded-lg border p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createUserAccountMutation.mutate({
+                email: accountForm.email,
+                password: accountForm.password,
+              });
+            }}
+          >
+            <div className="grid gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="employee-login-email">Login Email</Label>
+                <Input
+                  id="employee-login-email"
+                  type="email"
+                  value={accountForm.email}
+                  onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
+                  placeholder="employee@company.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-login-password">Temporary Password</Label>
+                <Input
+                  id="employee-login-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={accountForm.password}
+                  onChange={(event) => setAccountForm((form) => ({ ...form, password: event.target.value }))}
+                  minLength={8}
+                  maxLength={72}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8 || new TextEncoder().encode(accountForm.password).length>72}
+              >
+                <User className="mr-2 h-4 w-4" />
+                {createUserAccountMutation.isPending ? "Creating..." : "Create Login"}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Creates an active employee user account and links it to this employee.
+            </p>
+          </CompactForm></SmartCreateSection>
+        )}
+
+        {userOptions.isError && <p role="alert" className="text-sm text-destructive">Could not load login accounts. <button type="button" className="underline" onClick={() => { void userOptions.refetch(); }}>Retry accounts</button></p>}
+        {canChangeRole && (
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+          <div className="space-y-2">
+            <Label htmlFor="employee-login-user">Link an existing login account</Label>
+            <NativeSelect loading={userOptions.isFetching} error={userOptions.isError}
+              id="employee-login-user"
+              value={selectedUserId}
+              onChange={(event) => setSelectedUserId(event.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              disabled={userOptions.isLoading || userOptions.isError}
+            >
+              <option value="">No linked user</option>
+              {(userOptions.data || []).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}{user.role ? ` (${user.role})` : ""}{user.employee_id ? " - current" : ""}
+                </option>
+              ))}
+            </NativeSelect>
+            <p className="text-xs text-muted-foreground">
+              Choose an active account that is not linked to another employee.
+            </p>
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={() => linkUserMutation.mutate(selectedUserId ? Number(selectedUserId) : null)}
+              disabled={!selectedUserId || selectedUserId === String(emp.user_id || "") || linkUserMutation.isPending || userOptions.isLoading || userOptions.isError}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              {linkUserMutation.isPending ? "Saving..." : "Link Account"}
+            </Button>
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSelectedUserId("");
+                linkUserMutation.mutate(null);
+              }}
+              disabled={!emp.user_id || linkUserMutation.isPending}
+            >
+              <Unlink className="mr-2 h-4 w-4" />
+              Unlink
+            </Button>
+          </div>
+        </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      <ConversationLauncher module="HRMS" context={{type:"employee",id:Number(id)}}/>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={closeDetails}>
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Employees
+        </Button>
+      </div>
+
+      {activeTab !== "schedule" || scheduleActionsOpen ? <EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/> : (
+        <Card><CardContent className="p-4"><Button variant="outline" onClick={() => setScheduleActionsOpen(true)}>Employee actions</Button></CardContent></Card>
+      )}
+      {/* Profile header */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <SuiteAvatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_photo_url} kind="employee" size={80}/>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs hover:bg-muted">
+              <Camera className="h-3.5 w-3.5" />
+              Photo
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) photoMutation.mutate(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-2xl font-bold">
+                  {emp.first_name} {emp.last_name}
+                </h2>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(emp.status)}`}>
+                  {emp.status}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">{emp.employee_id}</p>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                {emp.personal_email && <span>✉ {emp.personal_email}</span>}
+                {emp.phone_number && <span>📞 <PhoneActions value={emp.phone_number} record={emp} field="phone_number" /></span>}
+                <span>Joined {formatDate(emp.date_of_joining)}</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <AskAiButton
+                module="HRMS"
+                relatedEntityType="employee"
+                relatedEntityId={id}
+                defaultAgentCode="hrms_letter_drafting"
+                defaultPrompt="Help me prepare HR action or summary for this employee."
+              />
+              {canEditProfile && activeTab !== "profile" && activeTab !== "verification" && activeTab !== "history" && activeTab !== "schedule" && <Button variant="outline" size="sm" onClick={() => {
+                if (!editing && activeTab === "360") setActiveTab("personal");
+                setParams(editing ? {} : { edit: "true" });
+              }}>
+                {editing ? "Cancel Edit" : "Edit"}
+              </Button>}
+              <Badge variant="outline">{emp.employment_type}</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <ActionToolbar label="Employee contact actions" actions={[
+        {id:"email",kind:"email",prominent:true,tooltip:"Compose email to this employee",disabled:!emp.work_email && !emp.personal_email,disabledReason:!emp.work_email && !emp.personal_email ? "No employee email address is recorded" : undefined,href:`mailto:${emp.work_email || emp.personal_email || ""}`},
+        {id:"call",kind:"call",prominent:true,tooltip:"Call this employee",disabled:!emp.phone_number,disabledReason:!emp.phone_number ? "No employee phone number is recorded" : undefined,href:`tel:${emp.phone_number_country_code || ""}${emp.phone_number || ""}`},
+        {id:"profile",kind:"profile",prominent:true,onSelect:()=>setActiveTab("profile")},
+      ]}/>
+      {!editing && <CrmFieldsReadOnly entity="employees" recordId={Number(id)}/>}
+      {/* Tabs */}
+      <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
+        {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Personal", sections:TABS.filter(t=>["personal","family","health","bank"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Work", sections:TABS.filter(t=>(t.id !== "history" || canEditProfile) && ["job","schedule","education","experience","skills","certifications","documents","verification","history"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Pay & access", sections:TABS.filter(t=>["payroll","account"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+      ]}/>
+
+
+      {saveConflict && <div role="alert" className="rounded border border-amber-400 p-4"><p>This profile changed while you were editing. Your draft has been retained and has not overwritten the newer values.</p><Button variant="outline" onClick={async()=>{await qc.refetchQueries({queryKey:["employee",id]});setSaveConflict(false);setParams({});}}>Discard draft and review latest profile</Button></div>}
+      {editing && (
+        <Card>
+          <CardHeader><CardTitle>Edit {TABS.find((tab) => tab.id === activeTab)?.label || "Employee"}</CardTitle></CardHeader>
+          <CardContent>
+            {EDIT_FIELDS[activeTab] && (
+              <CompactForm
+                className="grid gap-4 sm:grid-cols-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if(updateMutation.isPending)return;
+                  const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key).filter((key) => !emp.restricted_fields?.includes(key) && (key !== "role_id" || (canChangeRole && !!emp.user_id)));
+                  const issues:Record<string,string>={};
+                  for(const key of allowedFields){
+                    const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
+                    if(message)issues[key]=message;
+                  }
+                  setEditErrors(issues);
+                  if(Object.keys(issues).length){document.getElementById('edit-'+Object.keys(issues)[0])?.focus();return;}
+                  const payload = allowedFields.reduce<Record<string, any>>((acc, key) => {
+                    if (key === "role_id" && !editForm[key]) return acc;
+                    if(phoneFields.has(key)){const codeKey=key+'_country_code';if(editForm[key]===emp[key]&&editForm[codeKey]===(emp[codeKey]||''))return acc;acc[codeKey]=editForm[codeKey]||null;}
+                    acc[key] = editForm[key] === "" ? (key === "last_name" ? "" : null) : key.endsWith("_id") ? Number(editForm[key]) : editForm[key];
+                    return acc;
+                  }, {});
+                  updateMutation.mutate(payload);
+                }}
+              >
+                <div className="sm:col-span-2"><CrmRecordFields state={customFieldForm}/>{activeTab==="personal"&&<EmployeeDuplicateWarning excludeId={Number(id)} values={{personal_email:editForm.personal_email,work_email:editForm.work_email,phone_number:editForm.phone_number,phone_number_country_code:editForm.phone_number_country_code}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>}</div>
+                {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
+                  <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
+                    <Label htmlFor={`edit-${key}`}>{label}</Label>
+                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{emp[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "categories" ? <EmployeeCategories create value={editForm.work_categories || []} onChange={value=>setEditForm(form=>({...form,work_categories:value}))}/> : type === "select" ? (
+                      <NativeSelect id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? (key === "role_id" ? userOptions.data?.find((user) => user.id === emp.user_id)?.role_id : "") ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <option value="">Unassigned</option>
+                        {(key === "role_id" ? accountRoles : jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                      </NativeSelect>
+                    ) : type === "textarea" ? (
+                      <textarea id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined}
+                        value={editForm[key] ?? ""}
+                        onBlur={()=>validateEdit(key)} onChange={(e)=>changeEdit(key,e.target.value)}
+                        rows={3}
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                    ) : (
+                      <Input id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined}
+                        type={type === "date" ? "date" : "text"}
+                        value={editForm[key] ?? ""}
+                        onBlur={()=>validateEdit(key)} onChange={(e)=>changeEdit(key,e.target.value)}
+                      />
+                    )}
+                    {editErrors[key]&&!phoneFields.has(key)&&<p id={`edit-${key}-error`} role="alert" className="text-sm text-destructive">{editErrors[key]}</p>}
+                  </div>
+                ))}
+                <div className="sm:col-span-2 flex justify-end">
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </CompactForm>
+            )}
+
+            {activeTab === "education" && (
+              <AddRecordForm
+                fields={[
+                  ["degree", "Degree *"],
+                  ["specialization", "Specialization"],
+                  ["institution", "Institution"],
+                  ["board_university", "Board / University"],
+                  ["pass_year", "Pass Year", "number"],
+                  ["percentage_cgpa", "Percentage / CGPA", "number"],
+                ]}
+                form={educationForm}
+                setForm={setEducationForm}
+                onSubmit={(payload) => educationMutation.mutate(payload)}
+                saving={educationMutation.isPending}
+                submitLabel={editingRecord?.section === "education" ? "Save Education" : "Add Education"}
+                onCancelEdit={editingRecord?.section === "education" ? () => {setEditingRecord(null); setEducationForm({});} : undefined}
+                requiredFields={["degree"]}
+              />
+            )}
+
+            {activeTab === "experience" && (
+              <AddRecordForm
+                fields={[
+                  ["company_name", "Company Name *"],
+                  ["designation", "Designation"],
+                  ["from_date", "From Date", "date"],
+                  ["to_date", "To Date", "date"],
+                  ["is_current", "Current Employment", "checkbox"],
+                  ["responsibilities", "Responsibilities", "textarea"],
+                ]}
+                form={experienceForm}
+                setForm={setExperienceForm}
+                onSubmit={(payload) => experienceMutation.mutate(payload)}
+                saving={experienceMutation.isPending}
+                submitLabel={editingRecord?.section === "experience" ? "Save Experience" : "Add Experience"}
+                onCancelEdit={editingRecord?.section === "experience" ? () => {setEditingRecord(null); setExperienceForm({});} : undefined}
+                requiredFields={["company_name"]}
+              />
+            )}
+
+            {activeTab === "skills" && (
+              <AddRecordForm
+                fields={[
+                  ["skill_name", "Skill Name *"],
+                  ["proficiency", "Proficiency"],
+                  ["years_experience", "Years Experience", "number"],
+                ]}
+                form={skillForm}
+                setForm={setSkillForm}
+                onSubmit={(payload) => skillMutation.mutate(payload)}
+                saving={skillMutation.isPending}
+                submitLabel={editingRecord?.section === "skills" ? "Save Skill" : "Add Skill"}
+                onCancelEdit={editingRecord?.section === "skills" ? () => {setEditingRecord(null); setSkillForm({});} : undefined}
+                requiredFields={["skill_name"]}
+              />
+            )}
+
+            {activeTab === "certifications" && (
+              <AddRecordForm
+                fields={[["certification_name", "Certification Name *"], ["issuing_body", "Issuing Body"], ["certification_type", "Certification Type"], ["certificate_number", "Certificate Number"], ["issue_date", "Issue Date", "date"], ["expiry_date", "Expiry Date", "date"], ["is_renewable", "Renewable", "checkbox"], ["score_grade", "Score / Grade"], ["verification_url", "Verification URL", "url"], ["document_url", "Document URL", "url"]]}
+                form={certificationForm} setForm={setCertificationForm}
+                onSubmit={payload => certificationMutation.mutate(payload)} saving={certificationMutation.isPending}
+                submitLabel={editingRecord?.section === "certifications" ? "Save Certification" : "Add Certification"}
+                requiredFields={["certification_name"]}
+                onCancelEdit={editingRecord?.section === "certifications" ? () => {setEditingRecord(null);setCertificationForm({});} : undefined}
+              />
+            )}
+
+            {activeTab === "documents" && (
+              <p className="text-sm text-muted-foreground">
+                Document upload is managed from the Documents section for this employee.
+              </p>
+            )}
+
+            {activeTab === "account" && (
+              <p className="text-sm text-muted-foreground">
+                User login mapping can be managed from the Account tab below.
+              </p>
+            )}
+
+            {activeTab === "payroll" && (
+              <p className="text-sm text-muted-foreground">
+                Salary assignment is managed from the Payroll tab below.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab content */}
+      {activeTab === "history" && <EmployeeReliabilityPanel employeeId={Number(id)}/>}
+      {activeTab === "verification" && <EmployeeVerificationPanel key={id} employeeId={Number(id)}/>}
+      {activeTab === "schedule" && <EmployeePlannedServices employeeId={Number(id)}/>}
+      {activeTab === "profile" && (emp.user_id ? <SharedProfilePage key={emp.user_id} employeeId={Number(id)} accountActions={loginAccountCard} /> : loginAccountCard)}
+      {activeTab === "360" && <Employee360Panel key={id} employeeId={Number(id)} onOpenTab={setActiveTab} isOwnProfile={ownEmployeeId === Number(id)} />}
+
+      {activeTab === "personal" && (
+        <Card>
+          <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                ["Full Name", `${emp.first_name} ${emp.middle_name || ""} ${emp.last_name}`.trim()],
+                ["Gender", emp.gender],
+                ["Date of Birth", formatDate(emp.date_of_birth)],
+                ["Marital Status", emp.marital_status],
+                ["Blood Group", emp.blood_group],
+                ["Nationality", emp.nationality],
+                ["Category", emp.category],
+                ["Emergency Contact", emp.emergency_contact_name],
+                ["Emergency Phone", emp.emergency_contact_number],
+                ["Interests", emp.interests],
+                ["Research / Publications", emp.research_work],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                  <dd className="text-sm mt-1">{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Present Address</h4>
+                <p className="text-sm">{emp.present_address || "—"}</p>
+                {emp.present_city && <p className="text-sm">{emp.present_city}, {emp.present_state} {emp.present_pincode}</p>}
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Permanent Address</h4>
+                <p className="text-sm">{emp.permanent_address || "—"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "family" && (
+        <Card>
+          <CardHeader><CardTitle>Family Information</CardTitle></CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{emp.family_information || "No family information added"}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "health" && (
+        <Card>
+          <CardHeader><CardTitle>Health Information</CardTitle></CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{emp.health_information || "No health information added"}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "job" && (
+        <Card>
+          <CardHeader><CardTitle>Job Information</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                ["Employee ID", emp.employee_id],
+                ["Employment Type", emp.employment_type],
+                ["Employee categories", (emp.work_categories || []).join(", ") || "Unassigned"],
+                ...([ ["branch_id", "Branch"], ["department_id", "Department"], ["designation_id", "Designation / Job Role"], ["reporting_manager_id", "Reporting Manager / Intern Supervisor"] ].map(([key, label]) => [label, jobOptions?.[key]?.find((option) => option.id === emp[key])?.name || (emp[key] ? `#${emp[key]}` : "Unassigned")])),
+                ["Status", emp.status],
+                ["Work Location", emp.work_location],
+                ["Date of Joining", formatDate(emp.date_of_joining)],
+                ["Date of Confirmation", formatDate(emp.date_of_confirmation)],
+                ["Probation Period", emp.probation_period_months ? `${emp.probation_period_months} months` : "—"],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                  <dd className="text-sm mt-1">{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "education" && (
+        <Card>
+          <CardHeader><CardTitle>Education</CardTitle></CardHeader>
+          <CardContent>
+            {!emp.educations?.length ? (
+              <p className="text-muted-foreground text-sm">No education records</p>
+            ) : (
+              <div className="space-y-4">
+                {emp.educations?.map((edu: { id: number; degree: string; institution?: string; board_university?: string; specialization?: string; pass_year?: number; percentage_cgpa?: number }) => (
+                  <div key={edu.id} className="flex items-start gap-4 p-4 rounded-lg border">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{edu.degree}</p>
+                      {edu.specialization && <p className="text-sm text-muted-foreground">{edu.specialization}</p>}
+                      <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                      {edu.board_university && <p className="text-sm text-muted-foreground">{edu.board_university}</p>}
+                      <p className="text-xs text-muted-foreground">{[edu.pass_year, edu.percentage_cgpa != null ? `Percentage / CGPA: ${edu.percentage_cgpa}` : null].filter(value => value != null).join(" · ")}</p>
+                      {recordActions("education", edu, setEducationForm)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "experience" && (
+        <Card>
+          <CardHeader><CardTitle>Experience</CardTitle></CardHeader>
+          <CardContent>
+            {!emp.experiences?.length ? (
+              <p className="text-muted-foreground text-sm">No experience records</p>
+            ) : (
+              <div className="space-y-4">
+                {emp.experiences?.map((exp: { id: number; company_name: string; designation?: string; from_date?: string; to_date?: string; is_current?: boolean; responsibilities?: string }) => (
+                  <div key={exp.id} className="rounded-lg border p-4">
+                    <p className="font-medium">{exp.company_name}</p>
+                    {exp.designation && <p className="text-sm text-muted-foreground">{exp.designation}</p>}
+                    <p className="text-xs text-muted-foreground">
+                      {exp.from_date ? formatDate(exp.from_date) : "—"} - {exp.is_current ? "Present" : exp.to_date ? formatDate(exp.to_date) : "—"}
+                    </p>
+                    {exp.responsibilities && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{exp.responsibilities}</p>}
+                    {recordActions("experience", exp, setExperienceForm)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "skills" && (
+        <Card>
+          <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {!emp.skills?.length ? (
+                <p className="text-muted-foreground text-sm">No skills added</p>
+              ) : (
+                emp.skills?.map((skill: { id: number; skill_name: string; proficiency?: string; years_experience?: number | string }) => (
+                  <div key={skill.id} className="rounded-lg border p-3"><Badge variant="secondary" className="text-sm">
+                    {skill.skill_name}
+                    {skill.proficiency && <span className="ml-1 text-xs opacity-70">· {skill.proficiency}</span>}
+                  </Badge>
+                  {skill.years_experience != null && <p className="mt-2 text-sm">{skill.years_experience} years of experience</p>}
+                  {recordActions("skills", skill, setSkillForm)}</div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "certifications" && (
+        <Card><CardHeader><CardTitle>Certifications</CardTitle></CardHeader><CardContent className="space-y-4">
+          {!emp.certifications?.length ? <p className="text-sm text-muted-foreground">No certifications added</p> : emp.certifications.map((cert: Record<string, any>) => (
+            <div key={cert.id} className="rounded-lg border p-4 break-words">
+              <p className="font-medium">{cert.certification_name}</p>
+              {[["Issuing Body", cert.issuing_body], ["Type", cert.certification_type], ["Certificate Number", cert.certificate_number], ["Issued", cert.issue_date ? formatDate(cert.issue_date) : null], ["Expires", cert.expiry_date ? formatDate(cert.expiry_date) : "No expiry"], ["Renewable", cert.is_renewable ? "Yes" : "No"], ["Score / Grade", cert.score_grade]].filter(([, value]) => value != null && value !== "").map(([label, value]) => <p key={label} className="text-sm text-muted-foreground">{label}: {value}</p>)}
+              {[["Verification", cert.verification_url], ["Document", cert.document_url]].filter(([, url]) => /^https?:\/\//i.test(url || "")).map(([label, url]) => <a key={label} href={url} target="_blank" rel="noopener noreferrer" className="mr-3 text-sm underline">{label}</a>)}
+              {recordActions("certifications", cert, setCertificationForm)}
+            </div>
+          ))}
+        </CardContent></Card>
+      )}
+
+      {activeTab === "documents" && <EmployeeDocumentsPanel profileVersion={emp.profile_version} employeeId={Number(id)} documents={emp.documents||[]} canVerify={canEditProfile&&!emp.restricted_fields?.includes("documents")} canUpload={(canEditProfile||ownEmployeeId===Number(id))&&!emp.restricted_fields?.includes("documents")}/>}
+
+      {activeTab === "account" && <>{loginAccountCard}<EmployeeCRMWorkspaceAccess key={emp.user_id || "unlinked"} userId={emp.user_id}/></>}
+
+      {activeTab === "bank" && (
+        <Card>
+          <CardHeader><CardTitle>Bank & Tax Details</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                ["Bank Name", emp.bank_name],
+                ["Account Number", emp.account_number ? `****${emp.account_number.slice(-4)}` : "—"],
+                ["IFSC Code", emp.ifsc_code],
+                ["Account Type", emp.account_type],
+                ["PAN Number", emp.pan_number ? `****${emp.pan_number.slice(-4)}` : "—"],
+                ["UAN Number", emp.uan_number],
+                ["PF Number", emp.pf_number],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                  <dd className="text-sm mt-1">{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "payroll" && (
+        <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
+          <Card>
+            <CardHeader><CardTitle>Assign Salary</CardTitle></CardHeader>
+            <CardContent>
+              <CompactForm
+                className="grid gap-4 sm:grid-cols-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const ctc = Number(salaryForm.ctc);
+                  if (!salaryForm.effective_from || !Number.isFinite(ctc) || ctc <= 0) {
+                    toast({
+                      title: "CTC and effective date are required",
+                      description: "Enter annual CTC and the date from which this salary applies.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const payload: Record<string, any> = {
+                    employee_id: Number(id),
+                    ctc: salaryForm.ctc,
+                    effective_from: salaryForm.effective_from,
+                  };
+                  if (salaryForm.structure_id) payload.structure_id = Number(salaryForm.structure_id);
+                  if (salaryForm.basic) payload.basic = salaryForm.basic;
+                  if (salaryForm.hra) payload.hra = salaryForm.hra;
+                  salaryMutation.mutate(payload);
+                }}
+              >
+                <div className="space-y-2">
+                  <Label>Salary Structure</Label>
+                  <NativeSelect loading={salaryStructures.isFetching} error={salaryStructures.isError}
+                    value={salaryForm.structure_id}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, structure_id: event.target.value }))}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">No structure</option>
+                    {(salaryStructures.data || []).map((structure) => (
+                      <option key={structure.id} value={structure.id}>
+                        {structure.name}{structure.version ? ` v${structure.version}` : ""}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <div className="space-y-2">
+                  <Label>Annual CTC *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.ctc}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, ctc: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly Basic</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.basic}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, basic: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly HRA</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.hra}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, hra: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Effective From *</Label>
+                  <Input
+                    type="date"
+                    value={salaryForm.effective_from}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, effective_from: event.target.value }))}
+                  />
+                </div>
+                <div className="flex items-end justify-end sm:col-span-2">
+                  <Button type="submit" disabled={salaryMutation.isPending}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {salaryMutation.isPending ? "Saving..." : "Save Salary"}
+                  </Button>
+                </div>
+              </CompactForm>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Salary History</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {salaryHistory.isLoading ? (
+                <div className="h-24 skeleton rounded" />
+              ) : salaryHistory.data?.length ? (
+                salaryHistory.data.map((salary) => (
+                  <div key={salary.id} className="rounded-lg border p-3 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{formatCurrency(Number(salary.ctc || 0), emp.salary_currency || "INR")}</p>
+                        <p className="text-xs text-muted-foreground">From {formatDate(salary.effective_from)}</p>
+                      </div>
+                      <Badge variant={salary.is_active ? "success" : "secondary"}>{salary.is_active ? "Active" : "Closed"}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Basic</p>
+                        <p className="font-medium">{salary.basic ? formatCurrency(Number(salary.basic), emp.salary_currency || "INR") : "Auto"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">HRA</p>
+                        <p className="font-medium">{salary.hra ? formatCurrency(Number(salary.hra), emp.salary_currency || "INR") : "Auto"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No salary assignment yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type EmployeeSalaryRow = {
+  id: number;
+  ctc: number | string;
+  basic?: number | string | null;
+  hra?: number | string | null;
+  effective_from: string;
+  is_active: boolean;
+};
+
+type SalaryStructureOption = {
+  id: number;
+  name: string;
+  version?: string | null;
+};
+
+function AddRecordForm({
+  fields,
+  form,
+  setForm,
+  onSubmit,
+  saving,
+  submitLabel,
+  requiredFields = [],
+  onCancelEdit,
+}: {
+  fields: Array<[string, string, string?]>;
+  form: Record<string, any>;
+  setForm: (form: Record<string, any>) => void;
+  onSubmit: (payload: Record<string, any>) => void;
+  saving: boolean;
+  submitLabel: string;
+  requiredFields?: string[];
+  onCancelEdit?: () => void;
+}) {
+  return (
+    <CompactForm
+      className="grid gap-4 sm:grid-cols-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if(saving)return;
+        const payload = { ...form };
+        Object.keys(payload).forEach((key) => {
+          if (payload[key] === "") payload[key] = null;
+          if (["pass_year", "years_experience", "percentage_cgpa"].includes(key) && payload[key] != null) payload[key] = Number(payload[key]);
+        });
+        if (payload.is_current) payload.to_date = null;
+        const missingField = requiredFields.find((key) => !String(payload[key] || "").trim());
+        if (missingField) {
+          const label = fields.find(([key]) => key === missingField)?.[1]?.replace(" *", "") || "Required field";
+          toast({
+            title: `${label} is required`,
+            description: "Please fill the required field before saving.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const invalidNumber = ["pass_year", "years_experience", "percentage_cgpa"].find((key) => Number.isNaN(payload[key]));
+        if (invalidNumber) {
+          const label = fields.find(([key]) => key === invalidNumber)?.[1] || "Number";
+          toast({
+            title: `${label} is invalid`,
+            description: "Please enter a valid number.",
+            variant: "destructive",
+          });
+          return;
+        }
+        for (const [key, value] of Object.entries(payload)) {
+          if (typeof value === "string") payload[key] = value.trim() || null;
+        }
+        if ((payload.from_date && payload.to_date && payload.to_date < payload.from_date) || (payload.issue_date && payload.expiry_date && payload.expiry_date < payload.issue_date)) {
+          toast({title: "End date must be on or after start date", variant: "destructive"}); return;
+        }
+        onSubmit(payload);
+      }}
+    >
+      {fields.map(([key, label, type]) => (
+        <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
+          <Label htmlFor={`profile-${key}`}>{label}</Label>
+          {type === "checkbox" ? <input id={`profile-${key}`} type="checkbox" checked={!!form[key]} onChange={e => setForm({...form, [key]: e.target.checked})}/> : type === "textarea" ? (
+            <textarea id={`profile-${key}`}
+              value={form[key] ?? ""}
+              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              required={requiredFields.includes(key)} rows={3}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          ) : (
+            <Input id={`profile-${key}`}
+              type={type === "date" || type === "number" || type === "url" ? type : "text"}
+              required={requiredFields.includes(key)}
+              min={type === "number" ? (key === "pass_year" ? 1900 : 0) : undefined}
+              max={key === "pass_year" ? 2200 : key === "percentage_cgpa" ? 100 : key === "years_experience" ? 999.9 : undefined}
+              step={type === "number" ? (key === "pass_year" ? "1" : key === "percentage_cgpa" ? "0.01" : "0.1") : undefined}
+              value={form[key] ?? ""}
+              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+            />
+          )}
+        </div>
+      ))}
+      <div className="sm:col-span-2 flex justify-end gap-2">
+        {onCancelEdit && <Button type="button" variant="outline" disabled={saving} onClick={onCancelEdit}>Cancel record edit</Button>}
+        <Button type="submit" disabled={saving}>
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving..." : submitLabel}
+        </Button>
+      </div>
+    </CompactForm>
+  );
+}

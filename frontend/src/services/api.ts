@@ -3,6 +3,7 @@ import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import { startRecordSync, finishRecordSync, confirmRecoveredSync } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
+import { identityReadTransport } from '@/lib/identity-read-transport';
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
 import { progress as operationProgress, operationId, type ProgressOperation } from "@/lib/async-progress";
@@ -47,6 +48,8 @@ export const api = axios.create({
   // Allow the first serverless request to finish a cold start.
   timeout: 60000,
 });
+
+api.defaults.adapter = identityReadTransport(axios.getAdapter(api.defaults.adapter), config => api.getUri(config));
 
 // Request interceptor: attach access token
 api.interceptors.request.use(async (config) => {

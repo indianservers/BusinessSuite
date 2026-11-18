@@ -1,0 +1,397 @@
+import {useMobile} from "@/components/mobile/useMobile";
+import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
+import "./shift-roster-mobile.css";
+import GridTable from "@/shared/data-grid/GridTable";
+import { NativeSelect } from "@/components/ui/native-select";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
+import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
+import {HR,errorText} from "../../workbench/shared";
+import { useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CalendarDays, Copy, Loader2, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { api, attendanceApi, companyApi, employeeApi, shiftRosterApi } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { cn } from "@/lib/utils";
+
+type Shift = {
+  id: number;
+  name: string;
+  code?: string;
+  start_time?: string;
+  end_time?: string;
+  working_hours?: number | string;
+};
+
+type EmployeeRow = {
+  id: number;
+  employeeId?: string;
+  employee_id?: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  departmentId?: number;
+  department_id?: number;
+  departmentName?: string;
+};
+
+type Roster = {
+  id: number;
+  employeeId: number;
+  shiftId: number;
+  rosterDate: string;
+  status: string;
+  shift?: { id: number; name: string; code?: string; startTime?: string; endTime?: string; workingHours?: number };
+  conflicts?: string[];
+};
+
+type Department = { id: number; name: string };
+
+const shiftColors = ["bg-blue-50 text-blue-800 border-blue-200", "bg-green-50 text-green-800 border-green-200", "bg-amber-50 text-amber-800 border-amber-200", "bg-violet-50 text-violet-800 border-violet-200", "bg-rose-50 text-rose-800 border-rose-200"];
+
+function toIsoDate(value: Date) {
+  const copy = new Date(value);
+  copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+  return copy.toISOString().slice(0, 10);
+}
+
+function startOfWeek(value: Date) {
+  const copy = new Date(value);
+  const day = copy.getDay() || 7;
+  copy.setDate(copy.getDate() - day + 1);
+  return copy;
+}
+
+function employeeName(employee: EmployeeRow) {
+  return employee.name || `${employee.first_name || ""} ${employee.last_name || ""}`.trim() || employee.employee_id || employee.employeeId || `Employee #${employee.id}`;
+}
+
+export default function ShiftRosterPage() {
+  usePageTitle("Shift Roster");
+  const phone=useMobile(480);
+  const qc = useQueryClient();
+  const [rosterReview,setRosterReview]=useState<any>();
+  const [reviewError,setReviewError]=useState("");
+  const [weekStart, setWeekStart] = useState(toIsoDate(startOfWeek(new Date())));
+  const [departmentId, setDepartmentId] = useState("");
+  const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
+  const [bulkShiftId, setBulkShiftId] = useState("");
+  const [weeklyOffShiftId, setWeeklyOffShiftId] = useState("");
+  const [weeklyOffDay, setWeeklyOffDay] = useState("6");
+  const [lastConflicts, setLastConflicts] = useState<Array<{ employeeId?: number; rosterDate?: string; messages?: string[] }>>([]);
+
+  const weekDays = useMemo(() => {
+    const start = new Date(`${weekStart}T00:00:00`);
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(start);
+      day.setDate(start.getDate() + index);
+      return { date: toIsoDate(day), label: day.toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short" }) };
+    });
+  }, [weekStart]);
+  const params = { from: weekDays[0].date, to: weekDays[6].date, departmentId: departmentId || undefined };
+
+  const shifts = useQuery({ queryKey: ["shift-roster-shifts"], queryFn: () => attendanceApi.listShifts().then((r) => r.data as Shift[]) });
+  const departments = useQuery({ queryKey: ["shift-roster-departments"], queryFn: () => companyApi.listDepartments().then((r) => r.data as Department[]) });
+  const roster = useQuery({
+    queryKey: ["shift-roster", params],
+    queryFn: () => shiftRosterApi.list(params).then((r) => r.data as { employees: EmployeeRow[]; rosters: Roster[] }),
+  });
+  const weeklyOffs = useQuery({
+    queryKey: ["shift-weekly-offs", weeklyOffShiftId],
+    queryFn: () => attendanceApi.weeklyOffs({ shift_id: weeklyOffShiftId || undefined }).then((r) => r.data as Array<{ id: number; shift_id: number; weekday: number; week_number?: number; is_active: boolean }>),
+  });
+  const employeesFallback = useQuery({
+    queryKey: ["shift-roster-employees-fallback", departmentId],
+    queryFn: () => employeeApi.list({ department_id: departmentId || undefined, limit: 100, per_page: 100 }).then((r) => r.data),
+    enabled: !roster.data?.employees?.length,
+  });
+
+  const employees: EmployeeRow[] = roster.data?.employees?.length
+    ? roster.data.employees
+    : Array.isArray(employeesFallback.data) ? employeesFallback.data : employeesFallback.data?.items || employeesFallback.data?.data || [];
+
+  const rosterByCell = useMemo(() => {
+    const map = new Map<string, Roster>();
+    for (const item of roster.data?.rosters || []) {
+      map.set(`${item.employeeId}:${item.rosterDate.slice(0, 10)}`, item);
+    }
+    return map;
+  }, [roster.data]);
+
+  const reviewRoster=async(payload:any)=>{const r=await api.post(`${HR}/roster/preview`,payload);return {payload,preview:r.data};};
+  const assign = useMutation({
+    mutationFn: ({employeeId,shiftId,date}:{employeeId:number;shiftId:number;date:string})=>reviewRoster({shift_id:shiftId,employee_ids:[employeeId],from_date:date,to_date:date}),
+    onSuccess:review=>{setRosterReview(review);setReviewError("");},onError:error=>toast({title:"Roster preview unavailable",description:errorText(error),variant:"destructive"})
+  });
+  const bulkAssign = useMutation({
+    mutationFn:()=>reviewRoster({shift_id:Number(bulkShiftId),from_date:weekDays[0].date,to_date:weekDays[6].date,department_id:departmentId?Number(departmentId):null}),
+    onSuccess:review=>{setRosterReview(review);setReviewError("");},onError:error=>toast({title:"Roster preview unavailable",description:errorText(error),variant:"destructive"})
+  });
+  const applyReview=useMutation({mutationFn:()=>api.post(`${HR}/roster/apply`,{...rosterReview.payload,preview_version:rosterReview.preview.version}),onSuccess:response=>{setRosterReview(undefined);qc.invalidateQueries({queryKey:["shift-roster"]});toast({title:"Reviewed draft roster saved",description:`${response.data.assigned} employee-days saved; ${response.data.exceptions.length} blocked days unchanged`});},onError:error=>setReviewError(errorText(error))});
+
+  const copyWeek = useMutation({
+    mutationFn: () => {
+      const source = new Date(`${weekStart}T00:00:00`);
+      source.setDate(source.getDate() - 7);
+      return shiftRosterApi.copyWeek({
+        sourceWeekStart: toIsoDate(source),
+        targetWeekStart: weekStart,
+        departmentId: departmentId ? Number(departmentId) : undefined,
+        status: "draft",
+      });
+    },
+    onSuccess: (response) => {
+      setLastConflicts(response.data.conflicts || []);
+      toast({ title: "Previous week copied", description: `${response.data.copied} assignments copied.` });
+      qc.invalidateQueries({ queryKey: ["shift-roster"] });
+    },
+    onError: () => toast({ title: "Could not copy previous week", variant: "destructive" }),
+  });
+
+  const publish = useMutation({
+    mutationFn: () => shiftRosterApi.publish({
+      fromDate: weekDays[0].date,
+      toDate: weekDays[6].date,
+      departmentId: departmentId ? Number(departmentId) : undefined,
+    }),
+    onSuccess: (response) => {
+      toast({ title: "Roster published", description: `${response.data.published} assignments published to ESS.` });
+      qc.invalidateQueries({ queryKey: ["shift-roster"] });
+    },
+    onError: () => toast({ title: "Could not publish roster", variant: "destructive" }),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: number) => shiftRosterApi.delete(id),
+    onSuccess: () => {
+      toast({ title: "Roster cell cleared" });
+      qc.invalidateQueries({ queryKey: ["shift-roster"] });
+    },
+  });
+
+  const createWeeklyOff = useMutation({
+    mutationFn: () => attendanceApi.createWeeklyOff({
+      shift_id: Number(weeklyOffShiftId),
+      weekday: Number(weeklyOffDay),
+      week_number: null,
+      is_active: true,
+    }),
+    onSuccess: () => {
+      toast({ title: "Weekly off saved" });
+      qc.invalidateQueries({ queryKey: ["shift-weekly-offs"] });
+    },
+    onError: () => toast({ title: "Could not save weekly off", variant: "destructive" }),
+  });
+
+  const shiftDrag = useRef<{ id:number; x:number; y:number; moved:boolean } | null>(null);
+  const suppressShiftClick = useRef(false);
+  const [hoverCell,setHoverCell] = useState("");
+  const [shiftGhost,setShiftGhost] = useState<{id:number;x:number;y:number}|null>(null);
+  function shiftCell(x:number,y:number) { return document.elementFromPoint(x,y)?.closest<HTMLElement>("td[data-roster-date]"); }
+  function endShiftDrag(x:number,y:number) {
+    const active=shiftDrag.current;shiftDrag.current=null;setHoverCell("");setShiftGhost(null);
+    if(!active?.moved)return;
+    suppressShiftClick.current=true;
+    window.setTimeout(()=>{suppressShiftClick.current=false;},0);
+    const target=shiftCell(x,y);
+    if(target)dropShift(Number(target.dataset.employeeId),target.dataset.rosterDate!,String(active.id));
+  }
+  function dropShift(employeeId: number, date: string, data: string) {
+    const shiftId = Number(data || selectedShiftId);
+    if (!shiftId) return;
+    assign.mutate({ employeeId, shiftId, date });
+  }
+
+  return (
+    <div className="hrms-shift-roster-page space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="page-title">Shift Roster</h1>
+          <p className="page-description">Build, validate, and publish weekly shift assignments for teams.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label>Week start</Label>
+            <Input aria-label="Roster week start" type="date" value={weekStart} onChange={(event) => setWeekStart(toIsoDate(startOfWeek(new Date(`${event.target.value}T00:00:00`))))} />
+          </div>
+          <div className="space-y-1">
+            <Label>Department</Label>
+            <NativeSelect aria-label="Roster department" loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
+              <option value="">All departments</option>
+              {(departments.data || []).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </NativeSelect>
+          </div>
+          <div className="space-y-1">
+            <Label>Bulk shift</Label>
+            <NativeSelect loading={shifts.isFetching} error={shifts.isError} aria-label="Bulk shift" className="h-10 rounded-md border bg-background px-3 text-sm" value={bulkShiftId} onChange={(event) => setBulkShiftId(event.target.value)}>
+              <option value="">Select shift</option>
+              {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
+            </NativeSelect>
+          </div>
+        </div>
+      </div>
+
+      {phone&&[roster,shifts,departments,weeklyOffs,employeesFallback].some(query=>query.isError)&&<p role="alert" className="text-sm text-destructive">Roster information could not load. <Button variant="outline" onClick={()=>{for(const query of [roster,shifts,departments,weeklyOffs,employeesFallback])if(query.isError)void query.refetch();}}>Retry roster information</Button></p>}
+      <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Shift Palette</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {(shifts.data || []).map((shift, index) => (
+              <button
+                key={shift.id}
+                type="button"
+                disabled={assign.isPending || applyReview.isPending}
+                style={{touchAction:"none",userSelect:"none"}}
+                onPointerDown={event=>{if(event.button!==0)return;shiftDrag.current={id:shift.id,x:event.clientX,y:event.clientY,moved:false};event.currentTarget.setPointerCapture(event.pointerId);}}
+                onPointerMove={event=>{const active=shiftDrag.current;if(!active)return;if(Math.hypot(event.clientX-active.x,event.clientY-active.y)<6&&!active.moved)return;active.moved=true;const target=shiftCell(event.clientX,event.clientY);setHoverCell(target?.dataset.rosterCell||"");setShiftGhost({id:active.id,x:event.clientX,y:event.clientY});}}
+                onPointerUp={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);endShiftDrag(event.clientX,event.clientY);}}
+                onPointerCancel={()=>{shiftDrag.current=null;setHoverCell("");setShiftGhost(null);}}
+                onClick={()=>{if(suppressShiftClick.current){suppressShiftClick.current=false;return;}setSelectedShiftId(shift.id);}}
+                title="Drag onto an employee/date slot, or click then select a slot"
+                className={cn("w-full rounded-md border p-3 text-left text-sm", shiftColors[index % shiftColors.length], selectedShiftId === shift.id && "ring-2 ring-primary")}
+              >
+                <p className="font-semibold">{shift.name}</p>
+                <p className="text-xs opacity-80">{shift.code || "SHIFT"} - {String(shift.start_time || "").slice(0, 5)} to {String(shift.end_time || "").slice(0, 5)}</p>
+              </button>
+            ))}
+            {!shifts.isLoading && (!phone||!shifts.isError) && !shifts.data?.length && <p className="text-sm text-muted-foreground">Create shifts in HRMS settings before building a roster.</p>}
+            <div className="flex flex-col gap-2 pt-3">
+              <Button variant="outline" onClick={() => copyWeek.mutate()} disabled={copyWeek.isPending}>
+                {copyWeek.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />} Copy Previous Week
+              </Button>
+              <Button variant="outline" onClick={() => bulkAssign.mutate()} disabled={!bulkShiftId || bulkAssign.isPending}>
+                <CalendarDays className="h-4 w-4" /> Bulk Assign Week
+              </Button>
+              <Button onClick={() => publish.mutate()} disabled={publish.isPending}>
+                {publish.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish Roster
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <MobileDisclosure title="Weekly off setup" maxWidth={480}><Card>
+          <CardHeader><CardTitle className="text-base">Weekly Off Setup</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label>Shift</Label>
+              <NativeSelect aria-label="Weekly off shift" loading={shifts.isFetching} error={shifts.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
+                <option value="">Select shift</option>
+                {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
+              </NativeSelect>
+            </div>
+            <div className="space-y-1">
+              <Label>Weekly off day</Label>
+              <NativeSelect aria-label="Weekly off day" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((label, index) => (
+                  <option key={label} value={index}>{label}</option>
+                ))}
+              </NativeSelect>
+            </div>
+            <Button className="w-full" variant="outline" onClick={() => createWeeklyOff.mutate()} disabled={!weeklyOffShiftId || createWeeklyOff.isPending}>
+              Save Weekly Off
+            </Button>
+            <div className="space-y-2 text-sm">
+              {(phone?weeklyOffs.data||[]:(weeklyOffs.data || []).slice(0, 6)).map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-md border p-2">
+                  <span>Shift #{item.shift_id}</span>
+                  <Badge variant="outline">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][item.weekday] || item.weekday}</Badge>
+                </div>
+              ))}
+              {!weeklyOffs.isLoading && weeklyOffShiftId && !weeklyOffs.data?.length && <p className="text-muted-foreground">No weekly offs configured for this shift.</p>}
+            </div>
+          </CardContent>
+        </Card></MobileDisclosure>
+
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">Weekly Roster</CardTitle>
+              <Badge variant="outline">{employees.length} employees</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {phone&&roster.isError&&!roster.data?<p role="status">Waiting for roster information.</p>:roster.isLoading ? <div className="h-64 animate-pulse rounded bg-muted" /> : (
+              <div className="overflow-x-auto rounded-lg border">
+                <GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-1" className="w-full min-w-[980px] text-sm">
+                  <thead className="bg-muted/60">
+                    <tr>
+                      <th data-business-field="employee" className="sticky left-0 z-10 w-56 bg-muted px-3 py-3 text-left">Employee</th>
+                      {weekDays.map((day) => <th key={day.date} className="px-3 py-3 text-left">{day.label}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((employee) => (
+                      <tr {...recordPreviewProps(employee)} key={employee.id} className="border-t">
+                        <td className="sticky left-0 z-10 bg-background px-3 py-3">
+                          <p className="font-medium">{employeeName(employee)}</p>
+                          <p className="text-xs text-muted-foreground">{employee.employeeId || employee.employee_id || employee.id} {employee.departmentName ? `- ${employee.departmentName}` : ""}</p>
+                        </td>
+                        {weekDays.map((day) => {
+                          const cell = rosterByCell.get(`${employee.id}:${day.date}`);
+                          const shiftIndex = shifts.data?.findIndex((shift) => shift.id === cell?.shiftId) ?? 0;
+                          return (
+                            <td
+                              key={day.date}
+                              data-roster-date={day.date}
+                              data-employee-id={employee.id}
+                              data-roster-cell={`${employee.id}:${day.date}`}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={(event) => dropShift(employee.id, day.date, event.dataTransfer.getData("shiftId"))}
+                              onClick={() => selectedShiftId && dropShift(employee.id, day.date, String(selectedShiftId))}
+                              className={`h-24 min-w-32 cursor-pointer border-l p-2 align-top hover:bg-muted/30 ${hoverCell===`${employee.id}:${day.date}`?"ring-2 ring-inset ring-primary bg-primary/10":""}`}
+                            >
+                              {cell ? (
+                                <div className={cn("rounded-md border p-2", shiftColors[Math.max(shiftIndex, 0) % shiftColors.length])}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <p className="font-medium">{cell.shift?.code || cell.shift?.name || "Shift"}</p>
+                                      <p className="text-xs">{String(cell.shift?.startTime || "").slice(0, 5)}-{String(cell.shift?.endTime || "").slice(0, 5)}</p>
+                                    </div>
+                                    <button type="button" className="text-xs opacity-70 hover:opacity-100" disabled={phone&&remove.isPending} onClick={(event) => { event.stopPropagation(); remove.mutate(cell.id); }}>Clear</button>
+                                  </div>
+                                  <Badge className="mt-2 capitalize" variant={cell.status === "published" ? "outline" : "secondary"}>{cell.status}</Badge>
+                                  {!!cell.conflicts?.length && <AlertTriangle className="mt-2 h-4 w-4 text-amber-600" />}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Drop shift</span>
+                              )}
+                              {phone&&<Button type="button" className="hrms-roster-cell-assign mt-2" size="sm" variant="outline" aria-label={`Assign selected shift to ${employeeName(employee)} on ${day.date}`} disabled={!selectedShiftId||assign.isPending||applyReview.isPending} onClick={event=>{event.stopPropagation();dropShift(employee.id,day.date,String(selectedShiftId));}}>Assign shift</Button>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    {!employees.length && (
+                      <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No employees available for this filter.</td></tr>
+                    )}
+                  </tbody>
+                </GridTable>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {shiftGhost && <div aria-hidden="true" className="fixed z-50 rounded-lg border bg-primary px-3 py-2 text-xs text-primary-foreground shadow-xl" style={{left:shiftGhost.x+12,top:shiftGhost.y+12,pointerEvents:"none"}}>{shifts.data?.find(shift=>shift.id===shiftGhost.id)?.name}</div>}
+      {!!lastConflicts.length && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base text-amber-900"><AlertTriangle className="h-5 w-5" /> Conflict Warnings</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm text-amber-900">
+            {(phone?lastConflicts:lastConflicts.slice(0, 8)).map((item, index) => (
+              <div key={index} className="rounded-md border border-amber-200 bg-background/70 p-2">
+                <p className="font-medium">{item.employeeId ? `Employee #${item.employeeId}` : "Roster warning"} {item.rosterDate ? `on ${item.rosterDate}` : ""}</p>
+                {(item.messages || []).map((message) => <p key={message}>{message}</p>)}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className={phone?"mobile-experience-sheet hrms-roster-review":"max-h-[90vh] max-w-5xl overflow-y-auto"}><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-2" className="w-full text-left text-xs"><thead><tr><th data-business-field="employee" className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr {...recordPreviewProps(person)} className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></GridTable></div>{reviewError&&<p role="alert">{reviewError} <Button type="submit" variant="outline" className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(review=>{setRosterReview(review);if(phone)setReviewError("");}).catch(e=>setReviewError(errorText(e)))}>Refresh preview</Button></p>}<Button className={phone?"hrms-roster-apply":undefined} disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
+    </div>
+  );
+}

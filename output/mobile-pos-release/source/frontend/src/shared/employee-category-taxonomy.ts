@@ -1,0 +1,12 @@
+import {useEffect} from 'react';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {api} from '@/services/api';
+import {useRecordScope} from '@/lib/record-scope';
+export type CategoryChild={id:string;name:string;active:boolean;value:string;parent_value:string};
+export type EmployeeCategory={id:string;name:string;active:boolean;value:string;children:CategoryChild[];legacy?:boolean};
+export type EmployeeTaxonomy={version:number;categories:EmployeeCategory[];items:string[];can_manage:boolean};
+export const taxonomyUrl='/access/services/employee-categories';
+export function useEmployeeTaxonomy(){const scope=useRecordScope();const query=useQuery({queryKey:['employee-category-taxonomy',scope],queryFn:({signal})=>api.get<EmployeeTaxonomy>(taxonomyUrl,{signal,progress:false,recordCache:false}).then(r=>r.data),retry:false,refetchOnWindowFocus:true,staleTime:15000});useEffect(()=>{const channel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('suite-employee-categories'):null;const refresh=()=>{void query.refetch();};if(channel)channel.onmessage=refresh;window.addEventListener('suite:employee-categories-changed',refresh);return()=>{channel?.close();window.removeEventListener('suite:employee-categories-changed',refresh);};},[]);return query;}
+export function useTaxonomyChanged(){const client=useQueryClient();return ()=>{void client.invalidateQueries({queryKey:['employee-category-taxonomy']});void client.invalidateQueries({queryKey:['employee-work-categories']});window.dispatchEvent(new Event('suite:employee-categories-changed'));const channel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('suite-employee-categories'):null;channel?.postMessage('updated');channel?.close();};}
+export function parseCategorySelections(value:string|string[]|undefined):string[]{if(Array.isArray(value))return [...new Set(value.filter(Boolean))];if(!value)return [];try{const parsed=JSON.parse(value);if(Array.isArray(parsed))return [...new Set(parsed.filter(v=>typeof v==='string'&&v))];}catch{/* Preserve older comma-separated drafts. */}return [...new Set(value.split(',').map(x=>x.trim()).filter(Boolean))];}
+export function effectiveEmployeeCategories(categories:string,subcategories:string){const parents=parseCategorySelections(categories),children=parseCategorySelections(subcategories);return [...new Set(parents.flatMap(parent=>{const selected=children.filter(child=>child.startsWith(parent+' > '));return selected.length?selected:[parent];}))];}

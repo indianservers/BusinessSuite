@@ -1,0 +1,206 @@
+[
+  {
+    "control": "Document edit and linked task",
+    "status": [
+      "Saved version 2"
+    ],
+    "alerts": [],
+    "revisions": [
+      "Load revision 2",
+      "Load revision 1"
+    ]
+  },
+  {
+    "control": "Restore older document revision without replacing history",
+    "result": [
+      "Saved version 3"
+    ]
+  },
+  {
+    "control": "Document persistence",
+    "result": [
+      "Version 3 · Updated by admin@suiteqa.example.com · No unsaved changes · 4 words"
+    ]
+  },
+  {
+    "control": "CRM report includes all 12 authorized target rows",
+    "counts": [
+      "12 matching records",
+      "11 matching records"
+    ],
+    "rows": 13
+  },
+  {
+    "control": "Report grid filters remain separate",
+    "counts": [
+      "1 matching records",
+      "11 matching records"
+    ]
+  },
+  {
+    "control": "Rapid search clear and page-size change",
+    "counts": [
+      "12 matching records",
+      "11 matching records"
+    ],
+    "input": ""
+  },
+  {
+    "control": "Report pagination includes earlier months",
+    "rows": [
+      "Period TypePeriod StartPeriod EndTarget Owner TypeTarget Owner IdTarget AmountCurrency",
+      "monthly2026-02-012026-02-28user1₹2,000INR",
+      "monthly2026-01-012026-01-31user1₹1,000INR"
+    ]
+  },
+  {
+    "control": "Failed first publish does not claim draft creation",
+    "alerts": [
+      "String should have at least 1 character"
+    ],
+    "status": [
+      ""
+    ]
+  },
+  {
+    "control": "Internal form publication",
+    "status": [
+      "Published · Internal response page is ready",
+      ""
+    ],
+    "alerts": []
+  },
+  {
+    "control": "Manage follow-ups",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "Activities & Planning",
+      "Customer follow-ups"
+    ]
+  },
+  {
+    "control": "Open lead workbench",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "Lead workbench 4"
+    ]
+  },
+  {
+    "control": "Configure approvals",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "CRM approval rules",
+      "Approval Settings"
+    ]
+  },
+  {
+    "control": "Manage webhooks",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "CRM webhooks",
+      "Webhook Settings"
+    ]
+  },
+  {
+    "control": "Manage response rules",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "Communication Center",
+      "Auto-response rules"
+    ]
+  },
+  {
+    "control": "Configure pipelines",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "CRM pipelines",
+      "Pipeline Settings"
+    ]
+  },
+  {
+    "control": "Open workflow studio",
+    "reached": true,
+    "alerts": [],
+    "error": false,
+    "headings": [
+      "Automation Studio",
+      "Workflow Registry"
+    ]
+  },
+  {
+    "control": "Branch-safe internal submission",
+    "confirmation": 1,
+    "alerts": []
+  },
+  {
+    "control": "Response review and export",
+    "alerts": [],
+    "reviewed": 1
+  },
+  {
+    "control": "Workflow execution rejects invalid context after verification",
+    "feedback": "Enter valid JSON field values for the execution context."
+  },
+  {
+    "control": "Explicit workflow run",
+    "result": "Workflow actions completed; optional record ID left blank"
+  },
+  {
+    "control": "PMS status-change rule fires from delivery table",
+    "rows": [
+      "Confirm requirementsBS001-1Unassigned2026-11-03UrgentBacklogTo DoIn ProgressIn ReviewBlockedDoneCancelled"
+    ],
+    "alerts": []
+  },
+  {
+    "control": "PMS duplicate, pause and filters",
+    "result": "Rules · 2\nAll rules (2)\nActive (0)\nPaused (2)\nMark review work urgent (copy)\n\nBusinessSuite Website Redesign · Status changed when In Review → priority Urgent\n\nPaused\nEdit\nDuplicate paused\nEnable Mark review work urgent (copy)"
+  },
+  {
+    "control": "PMS execution history",
+    "result": "Recent executions\nRefresh executions\nMark review work urgent: set_priority on BS001-1\n\n11/7/2026, 7:40:59 AM · automation.executed"
+  },
+  {
+    "control": "Editing a paused rule preserves paused state",
+    "result": "Review priority — paused copy\n\nBusinessSuite Website Redesign · Status changed when In Review → priority Urgent\n\nPaused\nEdit\nDuplicate paused\nEnable Review priority — paused copy"
+  },
+  {
+    "control": "Successful workflow logs cannot be retried",
+    "buttons": [
+      {
+        "disabled": true
+      },
+      {
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "control": "Workflow controls at 390px",
+    "result": {
+      "documentWidth": 390,
+      "error": false,
+      "width": 390
+    }
+  },
+  {
+    "control": "CRM automation hub at 390px",
+    "result": {
+      "documentWidth": 384,
+      "error": false,
+      "width": 390
+    }
+  }
+]

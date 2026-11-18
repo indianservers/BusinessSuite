@@ -1,0 +1,5 @@
+Added 3 DEMO HRMS parent categories and 9 child categories to Indian Servers company 1 using canonical taxonomy validation and permissions. Existing categories and employee assignments preserved.
+Parents: DEMO Technical Services; DEMO Consulting; DEMO Maintenance.
+Live besterp.app Add Service verified via temporary non-superuser QA account: multiple parents and children, relevant children only, pagination for six children, no pagination for three children, stale child selection removed when parent removed. Live viewport checks: 320x568 (Essentials and Optional settings), 360x640, 390x844, 430x932. No page overflow, scroll containers or clipped form controls. Final screenshot: sample-hrms-live-390.jpg.
+Local production-source fixture with persisted production taxonomy snapshot passed 320x568, 360x640, 390x844, 430x932, 767x1024. Both pages, child cleanup, multiselect, conditional pagination, footer bounds checked. API responses otherwise mocked; no service saved.
+Temporary QA user 208 disabled and sessions revoked. Remote and local generated credentials removed.

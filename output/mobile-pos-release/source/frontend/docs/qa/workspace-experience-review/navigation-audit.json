@@ -1,0 +1,1047 @@
+{
+  "scope": "Page-level navigation smoke audit; deeper interaction checks are listed separately. Not an exhaustive test of every existing action or integration.",
+  "pmsEntries": [
+    "/pms",
+    "/pms/dashboards",
+    "/pms/command-center",
+    "/pms/overview",
+    "/pms/products-services",
+    "/pms/my-work",
+    "/pms/tasks",
+    "/pms/projects",
+    "/pms/workspaces",
+    "/pms/product-launch",
+    "/pms/work-hub",
+    "/pms/software",
+    "/pms/tasks-follow-ups",
+    "/pms/gantt",
+    "/pms/workload",
+    "/pms/backlog",
+    "/pms/risk-register",
+    "/pms/calendar",
+    "/pms/goals",
+    "/pms/roadmap",
+    "/pms/members",
+    "/pms/people",
+    "/pms/teams",
+    "/pms/live",
+    "/pms/notes",
+    "/pms/files",
+    "/pms/time-tracking",
+    "/pms/client-portal",
+    "/pms/messages",
+    "/pms/team-communication",
+    "/pms/docs",
+    "/pms/project-financials",
+    "/pms/reports",
+    "/pms/portfolio",
+    "/pms/enterprise-engine",
+    "/pms/forms",
+    "/pms/templates",
+    "/pms/automation",
+    "/pms/audit-logs",
+    "/pms/settings",
+    "/pms/admin",
+    "/pms/custom-fields",
+    "/pms/task-types",
+    "/pms/tags",
+    "/pms/admin/workspaces",
+    "/pms/recovery",
+    "/pms/operator",
+    "/pms/import-data",
+    "/pms/management"
+  ],
+  "crmEntries": [
+    "/crm",
+    "/crm/meetings",
+    "/crm/calls",
+    "/crm/product-customers",
+    "/crm/customer-follow-ups",
+    "/crm/greetings",
+    "/crm/potential-clients",
+    "/crm/leads",
+    "/crm/contacts",
+    "/crm/records",
+    "/crm/customers",
+    "/crm/companies",
+    "/crm/vendors",
+    "/crm/lead-scoring",
+    "/crm/duplicates",
+    "/crm/territories",
+    "/crm/customer-360",
+    "/crm/payment-requests",
+    "/crm/deals",
+    "/crm/products-services",
+    "/crm/quotations",
+    "/crm/my-approvals",
+    "/crm/follow-ups",
+    "/crm/communication-hub",
+    "/crm/whatsapp-communication",
+    "/crm/files",
+    "/crm/reports",
+    "/crm/settings",
+    "/crm/import-data",
+    "/crm/tasks",
+    "/crm/sales-home?view=pipeline&scope=team",
+    "/crm/sales-home?view=unassigned&scope=all",
+    "/crm/sales-home?view=overdue&scope=all",
+    "/crm/targets"
+  ],
+  "pmsObservations": [
+    {
+      "path": "/pms",
+      "headings": [
+        "Portfolio acceptance workspaceActive"
+      ],
+      "problem": false,
+      "tail": "ords only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 4\nPrevious\nNext\nOne shared source of truth. Every view stays in sync.\nWorkspace tools\nAutomation\nOpen Gantt\nMore\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/dashboards",
+      "headings": [
+        "Dashboards"
+      ],
+      "problem": false,
+      "tail": "lete view of your projects, teams, and progress.\n\n\n\nNew dashboard\nAll\nMine\nOrganization\nPrivate\nShared with me\nFavorites\nRecent\nArchive\nTrash\n\nLoading dashboards…\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/command-center",
+      "headings": [
+        "Workspace tools"
+      ],
+      "problem": false,
+      "tail": " task completion. Templates and authenticated intake forms create tasks in your workspace.\n\nBack to workspace\nWorkspace\nChoose workspace\n\nLoading workspace tools…\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/overview",
+      "headings": [
+        "Project overview",
+        "Workflows",
+        "Projects",
+        "BusinessSuite Website Redesign",
+        "CRM Lead Management Rollout",
+        "Sales Pipeline Automation",
+        "Customer Self-Service Portal",
+        "WhatsApp Customer Support",
+        "Inventory Barcode Implementation"
+      ],
+      "problem": false,
+      "tail": "tory Barcode Implementation\n\nBS006\n\nDraft\n\nCoordinate delivery, project ownership, and launch readiness with the project team.\n\n\n\nProgress\n0%\nDue: 11/8/2026\nView >\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/products-services",
+      "headings": [
+        "Products & services"
+      ],
+      "problem": false,
+      "tail": "s your suite\nExport\nAll items\nProducts\nServices\n0 matching items\nActive\nArchived\nAll statuses\nName\nPrice\nCategory\nCode\n\nLoading catalog…\n\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/my-work",
+      "headings": [
+        "My Work"
+      ],
+      "problem": false,
+      "tail": "spaces\nNo data found\nAll projects\nAll assignees\nAll statuses\nAll priorities\nDue on / before\nMore filters\n0 tasks\n10 per page\n25 per page\n50 per page\n100 per page\n1\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/tasks",
+      "headings": [
+        "Task workspace0 tasks"
+      ],
+      "problem": false,
+      "tail": "reated\nFilters\nArrange tasks on this page\n\tTask⌃⌄\tProject⌃⌄\tPriority⌃⌄\tAssignee⌃⌄\tDue Date⌃⌄\tStatus⌃⌄\tProgress⌃⌄\tLabels⌃⌄\tActions\nLoading tasks…\nRows\n8\n16\n24\n48\n100\nPrevious\n1\nNext"
+    },
+    {
+      "path": "/pms/projects",
+      "headings": [
+        "Projects"
+      ],
+      "problem": false,
+      "tail": "rity\nLow\nMedium\nHigh\nCritical\nClient\nNo data found\nMore filters\nLast updated\nProject name\nDue date\nProgress\nLoading your project portfolio…\n0 projects\nPreviousNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/workspaces",
+      "headings": [
+        "Portfolio acceptance workspaceActive"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "ords only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 4\nPrevious\nNext\nOne shared source of truth. Every view stays in sync.\nWorkspace tools\nAutomation\nOpen Gantt\nMore\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/product-launch",
+      "headings": [
+        "New Product Launch"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "1\nTo Do\nIn Progress\nBlocked\nDone\nDP\nMaya Nair\nDev Patel\nIsha Rao\nNora Khan\nRahul Shah\nCurrent User\nLead gen\nGo to market\nProduct\nDesign\nEnablement\nAnalytics\nCreate\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/work-hub",
+      "headings": [
+        "Work Hub / Impact",
+        "Backlog0",
+        "To Do0",
+        "In Progress0",
+        "In Review0",
+        "Blocked0",
+        "Done0",
+        "Cancelled0"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "ogress\n0\n\nDrop here\n\nIn Review\n0\n\nDrop here\n\nBlocked\n0\n\nDrop here\n\nDone\n0\n\nDrop here\n\nCancelled\n0\n\nDrop here\n\nShowing up to 200 accessible tasks for this project.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/software",
+      "headings": [
+        "Software Delivery",
+        "Goals",
+        "Request Forms",
+        "Project Templates",
+        "Issue Navigator",
+        "Backlog",
+        "Gantt dependency reschedule warning",
+        "Create CSV import mapping screen",
+        "Selected",
+        "Client portal approval workflow",
+        "Automation rule: notify owner when task blocked",
+        "In Progress",
+        "Submit milestone for client approval",
+        "Calendar drag moves milestone by one day in IST",
+        "In Review",
+        "Blocked task count not updating after drag",
+        "Done",
+        "Add saved filters for project risk views",
+        "Backlog and Sprint Planning",
+        "Roadmap and Releases",
+        "Reports",
+        "Automation",
+        "DevOps and Integrations",
+        "Components",
+        "Work Types and Workflows",
+        "Security and Notifications",
+        "Advanced Planning"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "acity by 18%\nDependency map: KAR-104 blocked by KAR-103\nScenario planning: v2.3 slips 4 days if QA stays fixed\nCross-project roadmap: Project release dates overlap\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/tasks-follow-ups",
+      "headings": [
+        "Tasks & Follow-ups"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "coming\nCompleted\nAll accessible work\nSource \nAll sources\nPMS tasks\nTask follow-ups\nService follow-ups\nCRM tasks\nCRM follow-ups\nCRM meetings\nRefresh\n\nLoading work…\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/gantt",
+      "headings": [
+        "Gantt",
+        "Dependencies",
+        "Schedule Checks"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "chedule focus\n\nPrioritized from blocked status, dependency pressure, warnings, and due dates.\n\nNo blocked, warning, or dependency-heavy tasks in the current view.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/workload",
+      "headings": [
+        "Workload",
+        "Filters"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "city weeks\n\n0\n\nFilters\nProject\nAll projects\nNo data found\nSprint\nAll sprints\nNo data found\nTeam\nAll teams\nNo data found\nBasis\nHours\nStory points\nTask count\nFrom\nTo\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/backlog",
+      "headings": [
+        "Backlog"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "Management Upgrade - Phase 4\nPurchase Approval Workflow - Phase 4\nFinance & Accounting Integration - Phase 4\nSEARCH\nSORT BACKLOG\nRank\nPriority\nCreated date\nRefresh\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/risk-register",
+      "headings": [
+        "Risk Register",
+        "Risk Matrix",
+        "Register"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "ers\nNo data found\nSEVERITY\nAll severities\nHigh\nMedium\nLow\n\nOpen high risks\n\n0\n\nTotal risks\n\n0\n\nAverage score\n\n0\n\nRisk Matrix\nP1\nP2\nP3\nP4\nP5\nI5\nI4\nI3\nI2\nI1\nRegister\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/calendar",
+      "headings": [
+        "Planner",
+        "Priorities",
+        "People",
+        "Assigned to me",
+        "Today & overdue",
+        "Backlog",
+        "November 2026"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "ch this section.\n\nDrag editable tasks onto a date, or open one to schedule it.\n\nNovember 2026\nToday\nEvent / focus\nMonth\nWeek\nDay\nList\nFilters\nLoading your planner…\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/goals",
+      "headings": [
+        "Workspace tools"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": " task completion. Templates and authenticated intake forms create tasks in your workspace.\n\nBack to workspace\nWorkspace\nChoose workspace\n\nLoading workspace tools…\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/roadmap",
+      "headings": [
+        "Roadmap",
+        "Roadmap filters"
+      ],
+      "problem": false,
+      "loading": true,
+      "tail": "h\nWeek\nRefresh\nRoadmap filters\nProject\nAll projects\nNo data found\nOwner\nAll owners\nNo data found\nStatus\nAll statuses\nNo data found\nFrom\nTo\n\n0 epics\n\n0 unscheduled\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/members",
+      "headings": [
+        "Members & invitations",
+        "Portfolio acceptance workspace · Workspace members (2)",
+        "Add from directory",
+        "Workspace invitations"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "s expire after 7 days. After acceptance, add them to a project above.\n\nInvite by email\nInvitation role\nMember\nGuest\nSend workspace invitation\n\nNo invitations yet.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/people",
+      "headings": [
+        "People directory",
+        "Destinations"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "of 2\nReasonReview add (0 members)\n\nOnly authorized destinations are available. Transfers and removals preserve open work by requiring handover first.\n\nTeam and batch administration"
+    },
+    {
+      "path": "/pms/teams",
+      "headings": [
+        "People directory",
+        "Admin · Portfolio acceptance workspace",
+        "Employee · Portfolio acceptance workspace",
+        "Hr"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "om\nPortfolio acceptance workspace\nAdd to workspace / project\nView profile\nEmail\nHr\nActive\nhr · hr@suiteqa.example.com\nAdd to workspace / project\nView profile\nEmail\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/live",
+      "headings": [
+        "Live Work Management",
+        "Backlog0",
+        "To Do5",
+        "In Progress0",
+        "In Review0",
+        "Blocked0",
+        "Done0",
+        "Cancelled0"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "ogress\n0\n\nDrop here\n\nIn Review\n0\n\nDrop here\n\nBlocked\n0\n\nDrop here\n\nDone\n0\n\nDrop here\n\nCancelled\n0\n\nDrop here\n\nShowing up to 200 accessible tasks for this project.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/notes",
+      "headings": [
+        "My Notes",
+        "All Notes",
+        "No notes here yet",
+        "Your next idea starts here"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "et place for meeting notes, project plans,\nand the thoughts you want to keep.\n\nCreate a note\nMeeting notes\nProject plan\nResearch\nDaily journal\nBrowse all templates\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/files",
+      "headings": [
+        "Files",
+        "Unfiled0"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "er. You can also use the Move menu or focus a handle and press Space, arrow keys, then Space.\n\nUnfiled\n0\n\nDrop here\n\nShowing the latest 100 files in this project.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/time-tracking",
+      "headings": [
+        "Time tracking",
+        "Track time",
+        "Log time",
+        "Backend time logs"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "rance\nBS001-5 - Launch checklist\nDATE\nDURATION (MINUTES OR 3H 20M)\nSTART TIME\nEND TIME\nBILLABLE\nBillable\nDESCRIPTION\nLog time\nBackend time logs\nNo time logs found.\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/client-portal",
+      "headings": [
+        "Client portal",
+        "Milestone approvals",
+        "Shared files"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "shboards\nPipeline\nChannel\nView\nClient portal\n\nClient-safe project progress, approvals, and shared deliverables.\n\nVisible projects\n\n36\n\nApproval items\n\n0\n\nShared files\n\n0\n\nMilestone approvals\nShared files\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/team-communication",
+      "headings": [
+        "Team communication",
+        "Conversations ",
+        "Project Team"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "te Redesign · Internal discussion\n\nDetails\nCanonical API rejected action (HTTP 500) (Reference: ff735d18-8747-4580-937d-0c4ecbe79a1e)Retry\nSend reminder\nShare task\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/docs",
+      "headings": [
+        "Docs"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": " · No unsaved changes · 0 words\n\nNormal\nTitle\nHeading 1\nHeading 2\nHeading 3\nInter\nArial\nGeorgia\nTimes New Roman\nCourier New\n12\n14\n16\n18\n20\n24\n32\n40\n\n\n\n\n0 / 200,000\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/project-financials",
+      "headings": [
+        "Project Financials",
+        "Budget, Cost & Billing Readiness"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "\nReady\nAutomation Rules\n₹16,00,000\n₹12,20,000\n₹1,90,000\n12%\nBlocked\n4 matching records\nLoaded records only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/reports",
+      "headings": [
+        "PMS reports",
+        "Tasks by status",
+        "Priority distribution"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "\n\n92\n\nCompletion\n\n49 %\n\nDistribution\nBurndown\nVelocity\nFlow\nCycle Time\nTime in Status\nHealth\nTeam\nTasks by status\nTo Do\nDone\n0\n25\n50\n75\n100\nPriority distribution\nAsk AI Assistant\n0"
+    },
+    {
+      "path": "/pms/portfolio",
+      "headings": [
+        "Portfolio",
+        "Project health distribution",
+        "Tasks by status",
+        "Overdue trend",
+        "Project progress over time",
+        "Projects"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "\n5\n0\n0\nNo sprint\n18/10/2026\n08/11/2026\n$100,000\nZenith Solutions\n36 matching records\nLoaded records only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant\n9"
+    },
+    {
+      "path": "/pms/enterprise-engine",
+      "headings": [
+        "Workspace tools",
+        "Project planning and reports",
+        "n8n workflows · Prepared"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "ents\n\nCustom workflow builders, marketplace connections, and enterprise identity provisioning require separate integrations. This page shows saved workspace data.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/forms",
+      "headings": [
+        "Forms",
+        "Create your first form"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": " BusinessSuite modules.\n\nSearch forms\n0 forms · PMS\nCreate your first form\n\nBuild a form, preview it and publish a public link to collect responses.\n\nCreate form →\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/templates",
+      "headings": [
+        "Blueprints",
+        "Blueprints",
+        "Start with a proven plan",
+        "New employee onboarding",
+        "Hiring a new role",
+        "Internship launch",
+        "Employee offboarding",
+        "Performance review cycle",
+        "Learning workshop",
+        "Employee engagement pulse",
+        "Internal role transfer",
+        "Mentorship program",
+        "Team wellbeing action plan",
+        "Feature delivery",
+        "Production bug fix"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": " regression check\n\n6 editable tasks · built-in blueprint\n\nPreview and customize\nProduction bug fix\nShow more blueprints (108 remaining)\nManage workspace blueprints\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/automation",
+      "headings": [
+        "Task automation",
+        "Create a rule",
+        "1. Trigger and condition",
+        "2. Action",
+        "Rules · 0",
+        "Recent executions"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "sed (0)\n\nNo rules yet. Save a rule above to automate task events.\n\nRecent executions\nRefresh executions\n\nNo executions yet. Matching task events will appear here.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/audit-logs",
+      "headings": [
+        "Audit & diagnostic logs"
+      ],
+      "problem": false,
+      "loading": false,
+      "tail": "is reported separately and may be unverified. Request bodies, passwords, tokens, raw query strings, and exception messages are not recorded by the request logger.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/settings",
+      "headings": [
+        "PMS configuration",
+        "Settings",
+        "KaryaFlow settings",
+        "Development integrations"
+      ],
+      "problem": false,
+      "tail": "tHub\nGitLab\nProject\nNo data found\nOwner / group\nRepository\nAccess token\nWebhook secret\nLink repository\n\nNo repositories linked yet.\n\nView company change history"
+    },
+    {
+      "path": "/pms/admin",
+      "headings": [
+        "PMS management home"
+      ],
+      "problem": false,
+      "tail": "e\n\t\nLow\nMedium\nHigh\nUrgent\n\t\n\tOpen side panel\n\nOpen classic project cards and custom columns\n\nWorking hours, leave & dated capacity\nDanger area\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/custom-fields",
+      "headings": [
+        "Custom fields, built around your work.",
+        "Field library 0",
+        "Make room for your firm's details"
+      ],
+      "problem": false,
+      "tail": "100%)\nMake room for your firm's details\n\nStart with Financial Year, or create a custom column for the way your team works.\n\nCreate custom field\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/task-types",
+      "headings": [
+        "Task Types",
+        "TaskDefault",
+        "Story",
+        "Bug",
+        "Feature",
+        "Improvement",
+        "Research",
+        "Documentation",
+        "Epic",
+        "Sub-task",
+        "Create task type",
+        "Recommended types",
+        "Milestone",
+        "Form Response",
+        "Item",
+        "Meeting Note",
+        "Account",
+        "Asset",
+        "Campaign",
+        "Content",
+        "Deal",
+        "Goal",
+        "Initiative",
+        "Key Result",
+        "Lead",
+        "Objective",
+        "Person",
+        "Project",
+        "Request",
+        "Resource",
+        "User Story",
+        "VAT Return",
+        "Audit Engagement",
+        "Transfer Pricing",
+        "Client Query",
+        "Review Sign-off",
+        "Billing Follow-up"
+      ],
+      "problem": false,
+      "tail": "ctice\n\nAdd\nReview Sign-off\n\nTrack reviewer approval work. · Practice\n\nAdd\nBilling Follow-up\n\nCoordinate billing follow-up work. · Practice\n\nAdd\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/tags",
+      "headings": [
+        "Tag Manager",
+        "No records match",
+        "Create tag"
+      ],
+      "problem": false,
+      "tail": "t\n\nNo tags match this view.\n\nCreate tag\nName\nColor\nSave tag\n\nRenaming or recoloring a tag updates it wherever it is used in this organization.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/admin/workspaces",
+      "headings": [
+        "Danger area: Workspace reset & restore",
+        "Reset all 1 active workspaces"
+      ],
+      "problem": false,
+      "tail": "rganizations are excluded.\n\nConfirm reset\nReset all workspaces\nRefresh preview\nPortfolio acceptance workspace\n\nOwner: No current owner\n\nActive\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/recovery",
+      "headings": [
+        "Backup & recovery",
+        "Your task history",
+        "Workspace savepoints",
+        "Full BusinessSuite backups · system admin"
+      ],
+      "problem": false,
+      "tail": "server. No successful automatic backup yet\n\npython scripts/data_recovery.py --restore PATH_TO_ARCHIVE --target-directory NEW_OFFLINE_DIRECTORY\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/operator",
+      "headings": [
+        "AI task operator",
+        "Local reasoning assistant",
+        "Select tasks · 0 / 25",
+        "Recent commands"
+      ],
+      "problem": false,
+      "tail": "arts only when you choose Dictate. Review and edit the transcript before submitting.\n\nProject setup, capacity and goal monitors\nRecent commands\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/import-data",
+      "headings": [
+        "Import into PMS",
+        "What would you like to import?",
+        "Import from a spreadsheet"
+      ],
+      "problem": false,
+      "tail": "ired\nImport from a spreadsheet\n\nDrop an Excel or CSV file here. Up to 5,000 rows and 3 MB per import.\n\nChoose spreadsheet\nDownload sample Excel\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/management",
+      "headings": [
+        "PMS management home"
+      ],
+      "problem": false,
+      "tail": "e\n\t\nLow\nMedium\nHigh\nUrgent\n\t\n\tOpen side panel\n\nOpen classic project cards and custom columns\n\nWorking hours, leave & dated capacity\nDanger area\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/client-portal",
+      "headings": [
+        "Client portal",
+        "Milestone approvals",
+        "Shared files"
+      ],
+      "problem": false,
+      "tail": "nt-safe project progress, approvals, and shared deliverables.\n\nVisible projects\n\n36\n\nApproval items\n\n0\n\nShared files\n\n0\n\nMilestone approvals\nShared files\nAsk AI Assistant"
+    },
+    {
+      "path": "/pms/messages",
+      "headings": [
+        "Messages",
+        "Messages",
+        "Workspace chat",
+        "Channels",
+        "Direct messages",
+        "Groups",
+        "Your team, in one place."
+      ],
+      "problem": false,
+      "tail": "ct messages\nGroups\nYour team, in one place.\n\nChoose a channel or start a direct conversation to discuss work, share files and keep follow-ups connected.\n\nAsk AI Assistant"
+    }
+  ],
+  "crmObservations": [
+    {
+      "path": "/crm",
+      "headings": [
+        "CRM Dashboard",
+        "Follow-ups needing attention",
+        "Risk-aware pipeline",
+        "Priority deals",
+        "Smart briefing",
+        "Today"
+      ],
+      "problem": false,
+      "tail": "cus\nToday\nCalendar\n05:30 AM\nExpected close: Acme Enterprises · Platform implementation\ndeal - Owner #1\nOpen\nLead source analysis\nExplore CRM workflows\nAsk AI Assistant\n₹0"
+    },
+    {
+      "path": "/crm/meetings",
+      "headings": [
+        "Meetings"
+      ],
+      "problem": false,
+      "tail": "me\n\n0 matching meetings · Times shown in Asia/Calcutta\n\nNo meetings match this view. Change the filters or add a conversation.\n\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/calls",
+      "headings": [
+        "Calls"
+      ],
+      "problem": false,
+      "tail": "ed to me\n\n0 matching calls · Times shown in Asia/Calcutta\n\nNo calls match this view. Change the filters or add a conversation.\n\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/product-customers",
+      "headings": [
+        "Customers & Pipeline by Product / Service",
+        "Pipeline by Product / Service",
+        "Top Products / Services by relationships",
+        "Relationship Trend"
+      ],
+      "problem": false,
+      "tail": "\n10\n25\n50\n100\n200\nPage 1 of 2\nPrevious\nNext\nPermission-aware shared CRM & catalog data\nUpdated 03:31 AM · Analytics follow the same filters as the grid\nAsk AI Assistant\n4"
+    },
+    {
+      "path": "/crm/customer-follow-ups",
+      "headings": [
+        "Lead & customer follow-ups"
+      ],
+      "problem": false,
+      "tail": "orded\nNo follow-up scheduled\nadmin@suiteqa.example.com\n18 matching records\nFull filtered dataset\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/greetings",
+      "headings": [
+        "Customer greetings",
+        "No records match",
+        "No relationships match these filters",
+        "Write a greeting"
+      ],
+      "problem": false,
+      "tail": "\nWhatsApp\nSMS\nSubject\nMessage\n\nPersonalize with {{name}}, {{company}}, {{product}}, or {{sender}}. 130/4000 characters.\n\nPreview greetings for 0 selected\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/potential-clients",
+      "headings": [
+        "Potential Clients 0",
+        "No matching potential clients"
+      ],
+      "problem": false,
+      "tail": "g potential clients\n\nAdjust your filters, add a lead or import an Excel workbook.\n\nReset filters\n0 matching leads · 40 per page\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/leads",
+      "headings": [
+        "Lead workbench 4"
+      ],
+      "problem": false,
+      "tail": "\n4 matching records\nLoaded records only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\n4 matching leads · 40 per page\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/contacts",
+      "headings": [
+        "Contacts"
+      ],
+      "problem": false,
+      "tail": "No contacts match the current search or filters.\nShowing 0 to 0 of 0 contacts\n10 rows\n25 rows\n50 rows\n100 rows\n1 / 1\nSelect a contact to inspect details.\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/records",
+      "headings": [
+        "Relationship Hub",
+        "No contacts match this view"
+      ],
+      "problem": false,
+      "tail": "ew\n\nCreate a contact or link existing business records from the more actions menu.\n\nLink existing business records\n0 contacts · Page 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/customers",
+      "headings": [
+        "Customers"
+      ],
+      "problem": false,
+      "tail": "pany\nNo contact details\nCustomer\n—\n0\n0\n—\nIndia\nActive\n—\n4 matching records\nFull filtered dataset\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/companies",
+      "headings": [
+        "Companies"
+      ],
+      "problem": false,
+      "tail": "tail\nNo contact details\nCustomer\n—\n0\n0\n—\nIndia\nActive\n—\n4 matching records\nFull filtered dataset\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/vendors",
+      "headings": [
+        "Vendors",
+        "No records match"
+      ],
+      "problem": false,
+      "tail": "Industry\nStatus\nTags\nNo records match\n\nTry a different search or clear your filters.\n\n0 matching records\nFull filtered dataset\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/lead-scoring",
+      "headings": [
+        "Lead scoring"
+      ],
+      "problem": false,
+      "tail": "scoring\n\nRules for lead qualification and scoring.\n\nPermissions apply to every change\nAll settings\nEntire company · Changes apply within this scope\n\nLoading configuration…\n\nView company change history"
+    },
+    {
+      "path": "/crm/duplicates",
+      "headings": [
+        "Duplicate Management"
+      ],
+      "problem": false,
+      "tail": "View\nDuplicate Management\n\nDetect and review duplicate CRM leads, contacts, and accounts.\n\nScan all\nLead\nContact\nAccount\n0 duplicate group(s)\nNo duplicate groups found for this scope.\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/territories",
+      "headings": [
+        "Sales territories"
+      ],
+      "problem": false,
+      "tail": "ries\n\nSales territory definitions and assignments.\n\nPermissions apply to every change\nAll settings\nEntire company · Changes apply within this scope\n\nLoading configuration…\n\nView company change history"
+    },
+    {
+      "path": "/crm/customer-360",
+      "headings": [
+        "Customers"
+      ],
+      "problem": false,
+      "tail": "e\n—\nNova Retail\nBusiness / company\nNo contact details\nCustomer\n—\n0\n0\n—\nIndia\nActive\n—\n4 matching records\nFull filtered dataset\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/payment-requests",
+      "headings": [
+        "Payment requests"
+      ],
+      "problem": false,
+      "tail": "ex Tech · Customer success expansion\nVertex Tech · Workflow automation\nNova Retail · Platform implementation\nNova Retail · Customer success expansion\nNova Retail · Workflow automation\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/deals",
+      "headings": [
+        "Deals"
+      ],
+      "problem": false,
+      "tail": "n\nNot scheduled\n12 matching records\nFull filtered dataset\nINR Sum ₹22,20,000.00 · Average ₹1,85,000.00\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nCalculation definitions\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/products-services",
+      "headings": [
+        "Products & services"
+      ],
+      "problem": false,
+      "tail": " customer follow-ups\nCustomer greetings\nAll items\nProducts\nServices\n0 matching items\nActive\nArchived\nAll statuses\nName\nPrice\nCategory\nCode\n\nLoading catalog…\n\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/quotations",
+      "headings": [
+        "Quotations",
+        "Quotations Grid"
+      ],
+      "problem": false,
+      "tail": "ions\nExport Quotations\nQuotations Grid\nExport Grid\n\nNo CRM records found\nShowing 0-0 of 0\n10 rows\n25 rows\n50 rows\n100 rows\nPrevious\nPage 1 / 1\nNext\nSelect a record to inspect details.\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/my-approvals",
+      "headings": [
+        "My Approvals"
+      ],
+      "problem": false,
+      "tail": "provals\nTeam workspace\nOverview\nLeads\nDeals\nPipeline\nActivities\nChannel\nView\nMy Approvals\n\nReview CRM approvals assigned to you and record decisions.\n\nNo approvals are waiting on you.\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/follow-ups",
+      "headings": [
+        "Customer follow-ups",
+        "No records match"
+      ],
+      "problem": false,
+      "tail": "ecords only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nNo follow-ups match these filters. Schedule a customer commitment to get started.\nPrevious\n0 records · Page 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/communication-hub",
+      "headings": [
+        "Communication Center",
+        "Start with the conversations that need you.",
+        "Keep work moving"
+      ],
+      "problem": false,
+      "tail": " message.\n\nConnect customer records\n\nReview exact phone matches and resolve duplicate customer records.\n\nBuild a campaign\n\nChoose an audience, preview messages and review exclusions.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/whatsapp-communication",
+      "headings": [
+        "WhatsApp Communication",
+        "Contacts",
+        "ContactsCustomers",
+        "Select a contact",
+        "Configure Payment Reminder",
+        "WhatsApp PreviewCustomer View"
+      ],
+      "problem": false,
+      "tail": "e the payment by {{due_date}}.\n\nThank you for your business!\nPreview only\n\nSelect a contact to preview personalization.\n\n0 recipients · 0 attachments\nSend now\nOpen Queue\nReview & Send\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/files",
+      "headings": [
+        "CRM Files",
+        "Unfiled0"
+      ],
+      "problem": false,
+      "tail": "Drag a handle to move or reorder. You can also use the Move menu or focus a handle and press Space, arrow keys, then Space.\n\nUnfiled\n0\n\nDrop here\n\nShowing up to 200 accessible files.\n\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/reports",
+      "headings": [
+        "Reports and insights",
+        "Sales performance",
+        "Sales funnel",
+        "Lost opportunity analysis",
+        "Forecast and quota",
+        "Sales targets",
+        "Lead statistics",
+        "Deal statistics",
+        "Customer product audiences",
+        "Follow-up commitments",
+        "Delivery logs",
+        "Lead-to-cash",
+        "Win/Loss Analysis",
+        "Win Rate by Month",
+        "Revenue Won Trend",
+        "Win/Loss by Source",
+        "Conversion Funnel by Stage",
+        "By Owner",
+        "By Pipeline",
+        "Lost Reasons",
+        "Closed Deals"
+      ],
+      "problem": false,
+      "tail": "s expansion\nWon\nUnknown\nadmin@suiteqa.example.com\nGrowth opportunities\n₹2,30,000\n-\n2 matching records\nLoaded records only\nRows per page\n10\n25\n50\n100\n200\nPage 1 of 1\nPrevious\nNext\nAsk AI Assistant\n2.25"
+    },
+    {
+      "path": "/crm/settings",
+      "headings": [
+        "CRM configuration"
+      ],
+      "problem": false,
+      "tail": "CRM configuration\n\nCustom fields and CRM defaults.\n\nPermissions apply to every change\nAll settings\nEntire company · Changes apply within this scope\n\nLoading configuration…\n\nView company change history"
+    },
+    {
+      "path": "/crm/import-data",
+      "headings": [
+        "Import into CRM",
+        "What would you like to import?",
+        "Import from a spreadsheet"
+      ],
+      "problem": false,
+      "tail": "lds · 1 required\nDeals\n6 fields · 4 required\nImport from a spreadsheet\n\nDrop an Excel or CSV file here. Up to 5,000 rows and 3 MB per import.\n\nChoose spreadsheet\nDownload sample Excel\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/tasks",
+      "headings": [
+        "CRM tasks"
+      ],
+      "problem": false,
+      "tail": "hing tasks · Dates use Asia/Calcutta\n\nSelect open tasks on this page\n0 selected\nComplete selected\n\nNo tasks match this view. Reset filters or create a task.\n\nPrevious\nPage 1 of 1\nNext\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/sales-home?view=pipeline&scope=team",
+      "headings": [
+        "Who should I contact next?"
+      ],
+      "problem": false,
+      "tail": "ipeline\nNo next action\nManager exceptions\nQuotations\nLead workbench\nTargets\nFilter worklist\n\nNo records match this worklist. Adjust the scope or filters.\n\nExplore CRM\nNavigation guide\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/sales-home?view=unassigned&scope=all",
+      "headings": [
+        "Who should I contact next?"
+      ],
+      "problem": false,
+      "tail": "ipeline\nNo next action\nManager exceptions\nQuotations\nLead workbench\nTargets\nFilter worklist\n\nNo records match this worklist. Adjust the scope or filters.\n\nExplore CRM\nNavigation guide\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/sales-home?view=overdue&scope=all",
+      "headings": [
+        "Who should I contact next?"
+      ],
+      "problem": false,
+      "tail": "ew\n\nFollow-up overdue by 1 hours · No contact logged yet\n\nNext: 11/7/2026, 3:29:27 AM\n\nRecord details\nLog outcome & next step\nMore\nactions for Avery Quinn\nExplore CRM\nNavigation guide\nAsk AI Assistant"
+    },
+    {
+      "path": "/crm/targets",
+      "headings": [
+        "Sales Targets",
+        "Targets",
+        "Target Performance"
+      ],
+      "problem": false,
+      "tail": "ers.\nTarget Performance\nTARGET OWNER TYPE\tTARGET OWNER ID\tTARGET AMOUNT\tACHIEVED AMOUNT\tACHIEVEMENT PERCENT\tINVOICED AMOUNT\tCOLLECTION PERCENT\nNo report rows for the selected filters.\nAsk AI Assistant"
+    }
+  ],
+  "interactionChecks": [
+    "Catalogue search and selection",
+    "Project board status persistence after reload, then restored",
+    "Gantt fit, zoom and owner/status grouping",
+    "Calendar month and agenda switching",
+    "Lead gallery and timezone-correct follow-up dates",
+    "Unnamed saved-view buttons disabled; table columns hidden outside Table",
+    "Embedded task channel resolves to Start conversation",
+    "Created a 13-widget dashboard in disposable QA",
+    "CRM opportunity board and unified Timeline"
+  ],
+  "responsiveChecks": [
+    {
+      "width": 320,
+      "pageOverflow": false,
+      "scheduleFitOverflow": false
+    },
+    {
+      "width": 390,
+      "pageOverflow": false
+    },
+    {
+      "width": 1024,
+      "pageOverflow": false
+    },
+    {
+      "width": 1680,
+      "pageOverflow": false
+    }
+  ],
+  "notes": [
+    "Initial PMS channel error was caused by the disposable QA server lock; corrected its nested-ASGI handling and verified lookup returns 200.",
+    "Some smoke observations record initial loading UI; core workflows received subsequent rendered-state checks.",
+    "All records are isolated QA fixtures; no external messages sent."
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "view": "Board",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  },
+  {
+    "view": "Gallery",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  },
+  {
+    "view": "Gantt",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  },
+  {
+    "view": "Timeline",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  },
+  {
+    "view": "Calendar",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  },
+  {
+    "view": "Table",
+    "alerts": [],
+    "error": false,
+    "overflow": false
+  }
+]

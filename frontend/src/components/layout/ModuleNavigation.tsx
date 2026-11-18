@@ -76,7 +76,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const displayLabel = (item: {to:string;label:string}) => preferences.menuItems?.[item.to.split(/[?#]/)[0]]?.label || (customItems ? menuLabel(item) : routeLabel(item.to, menuLabel(item)));
   const items = query.trim() ? available.filter(item => menuMatches(item, query) || displayLabel(item).toLowerCase().includes(query.trim().toLowerCase())) : consolidated;
   const directItems = moduleKey === "srm" && !query.trim() ? [] : items.filter(item => landing.direct.some(link => link.to === item.to));
-  const groupedItems = items.filter(item => !landing.direct.some(link => link.to === item.to)
+  const groupedItems = items.filter(item => (moduleKey!=="srm" || navigationOperationPath(item.to)!=="/srm/pos/terminal") && !landing.direct.some(link => link.to === item.to)
     && (query.trim() || !([`/${moduleKey}`, `/${moduleKey}/dashboard`].includes(item.to))));
   if (moduleKey === "srm") groupedItems.forEach(item => { item.group = "More"; });
   const groups = [...new Set(groupedItems.map(item => item.group || "Workspace"))];
@@ -110,6 +110,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
+    {moduleKey==='srm' && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser) && <nav className="module-menu-pos-primary" aria-label="Primary Sales action"><Link to={workspacePageHref('/srm/pos/terminal',location.search,workspaceId)} onClick={onNavigate} aria-label="POS" aria-current={isCurrent('/srm/pos/terminal')?'page':undefined} title="POS · Billing & point of sale"><ShoppingCart size={22}/>{!collapsed&&<span><strong>POS</strong><small>Billing & point of sale</small></span>}</Link><MenuQuickAdd actions={createActions} paths={['/srm/pos/terminal','/srm/pos']} label="POS" onNavigate={onNavigate}/></nav>}
     {!collapsed && <>
       <label className="module-menu-search"><Search size={16} /><input type="search" aria-label="Search menu items" placeholder="Search menu items..." value={query}
         onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
@@ -123,7 +124,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
     {!query.trim() && ['srm', 'crm'].includes(moduleKey) && <nav aria-label="Sticky shortcuts" className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border bg-sidebar p-2">
       {!collapsed && <p className="px-2 pb-1 text-xs font-semibold">Quick access</p>}
       {(moduleKey === 'srm' ? [
-        ['/srm/pos/terminal', 'POS'], ['/srm/appointments', 'Appointments'],
+        ['/srm/appointments', 'Appointments'],
         ['/srm/service-scheduling?view=schedule', 'Scheduling'], ['/srm/customers', term('customer', true)],
         ['/srm/invoices', 'Transactions'], ['/srm/reports', 'Reports'],
       ] : [

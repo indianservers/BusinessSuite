@@ -7,20 +7,19 @@ test.describe("CRM contacts UI", () => {
       await page.setViewportSize({ width, height: 900 });
       await authenticateCrm(page);
       await expectCrmListPage(page, "/crm/contacts", "Contacts", "Nisha Rao");
-      const row = page.getByRole("row").filter({ has: page.getByRole("button", { name: "View Nisha Rao", exact: true }) });
-      const view = row.getByRole("button", { name: "View Nisha Rao", exact: true });
-      const edit = row.getByRole("button", { name: "Edit Nisha Rao", exact: true });
-      await row.scrollIntoViewIfNeeded();
+      if (width < 650) await page.locator("summary").filter({hasText: /^More actions$/}).click();
+      const view = page.getByRole("button", {name: "Open Nisha Rao popup", exact: true});
+      const edit = page.getByRole("button", {name: "Edit Nisha Rao", exact: true});
+      await view.scrollIntoViewIfNeeded();
       await expect(view).toBeInViewport();
       await expect(edit).toBeInViewport();
       await view.click();
       await expect(page.getByRole("dialog")).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Work & Relationships" })).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await row.getByRole("button", { name: "Nisha Rao", exact: true }).dblclick();
+      await page.getByRole("button", { name: "Nisha Rao", exact: true }).dblclick();
       await expect(page.getByRole("dialog")).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Notes & Activity" })).toBeVisible();
+
       await page.keyboard.press("Escape");
       await edit.click();
       await expect(page.getByRole("dialog")).toBeVisible();

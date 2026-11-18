@@ -5,6 +5,7 @@ import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import PageWorkTools from "@/components/app/PageWorkTools";
+import MobilePortalDock from "@/components/mobile/MobilePortalDock";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -31,12 +32,13 @@ function PortalShell({ type, children }: { type: "customer" | "partner"; childre
             <p className="text-sm uppercase text-muted-foreground">Business Suite Portal</p>
             <h1 className="text-2xl font-semibold">{type === "customer" ? "Customer Portal" : "Partner Portal"}</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden flex-wrap gap-2 md:flex">
             {nav.map(([label, to]) => <span key={to} className="inline-flex items-center gap-1"><Button asChild variant="outline" size="sm"><Link to={to}>{label}</Link></Button>{to === "/portal/partner/leads" && capabilities.data?.permissions?.includes("submit_lead") && <Button asChild variant="outline" size="icon" className="h-8 w-8"><Link to={`${to}#new-record`} aria-label="Create partner lead" title="Submit a lead"><Plus size={14}/></Link></Button>}</span>)}
           </div>
         </div>
       </header>
-      <main className="px-4 py-6 sm:px-6 lg:px-8"><PageWorkTools portalScope={`portal:${type}:${tokenScope}`}/>{children}</main>
+      <main className="portal-mobile-content px-4 py-6 sm:px-6 lg:px-8"><PageWorkTools portalScope={`portal:${type}:${tokenScope}`}/>{children}</main>
+      <MobilePortalDock type={type} links={nav} sessionScope={tokenScope} canSubmitLead={!!capabilities.data?.permissions?.includes("submit_lead")}/>
     </div>
   );
 }

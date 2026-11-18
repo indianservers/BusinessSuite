@@ -1,0 +1,11 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import FAMWorkspacePage from '../../src/apps/fam/FAMWorkspacePage';
+import {useAuthStore} from '../../src/store/authStore';
+import {Toaster} from '../../src/components/ui/toaster';
+import '../../src/index.css';
+const params=new URLSearchParams(location.search),detail=params.has('detail'),expense=params.has('expense');
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,email:'finance@example.test',role:'fam_accountant',is_superuser:false}});
+const entry=expense?'/fam/expenses/new':detail?'/fam/purchase-bills/51':'/fam/purchase-bills/new';
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={[entry]}><main style={{padding:12}}><Routes><Route path={detail?'/fam/purchase-bills/:id':'*'} element={<FAMWorkspacePage kind={expense?'expenseNew':detail?'purchaseBillDetail':'purchaseBillNew'}/>}/></Routes></main><Toaster/></MemoryRouter></QueryClientProvider>);

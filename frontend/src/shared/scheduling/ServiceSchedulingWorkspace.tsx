@@ -2,7 +2,7 @@ import IndustryOperationsPage from '@/apps/srm/industry/IndustryOperationsPage';
 import type { BookingSlot } from './PrebookingFields';
 import { Info } from 'lucide-react';
 import SchedulingFrame, { schedulingIcons } from './SchedulingFrame';
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -32,6 +32,8 @@ function Workspace({ scope }: { scope: string }) {
   const initial = new URLSearchParams(location.search).get('view');
   const [view, setView] = useState(initial === 'schedule' || initial === 'availability' ? initial : initial === 'guide' ? 'guide' : 'schedule');
   const [panelOpen, setPanelOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
+  useEffect(()=>{if(new URLSearchParams(location.search).has('focus_booking')){setView('schedule');setPanelOpen(false);}},[location.search]);
+  useEffect(()=>{const open=(event:KeyboardEvent)=>{if(event.altKey&&event.shiftKey&&event.key.toLowerCase()==='b'){event.preventDefault();setView('schedule');setPanelOpen(true);}};window.addEventListener('keydown',open);return()=>window.removeEventListener('keydown',open);},[]);
   const [prefill, setPrefill] = useState<BookingSlot>();
   const module = location.pathname.startsWith('/hrms') ? 'hrms' : location.pathname.startsWith('/crm') ? 'crm' : 'srm';
   const appointments = `/${module === 'crm' ? 'crm' : 'srm'}/appointments`;

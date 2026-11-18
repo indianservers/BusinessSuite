@@ -1,0 +1,1565 @@
+import { commonRouteContext, commonNavigationHref, commonModules, commonEntities, commonEntityModules, commonPagePath, moduleContextPath, commercialEntities, isCommercialEntity, type CommonModule, type CommonEntity } from "./common-routes";
+import { useAuthStore } from "@/store/authStore";
+import { canUseFeature } from "./feature-access";
+import { canExplorePeopleDirectory } from "./people-directory-access";
+import { categorizeNavigation } from "./navigation-categories";
+import { selectedPackContext } from './pack-context';
+import { showRestaurantKitchen, showAccountsPeriods, allowConstructionNavigation } from './business-pack-navigation';
+import type { BusinessPackDiscovery } from './business-pack-types';
+import {
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  Code2,
+  DatabaseBackup,
+  Download,
+  Inbox,
+  KeyRound,
+  LockKeyhole,
+  RefreshCw,
+  RotateCcw,
+  Timer,
+  DollarSign,
+  FileText,
+  FileCheck2,
+  FileSearch,
+  GitBranch,
+  GitMerge,
+  Globe2,
+  GraduationCap,
+  Gauge,
+  HelpCircle,
+  HeartPulse,
+  Landmark,
+  Layers3,
+  LayoutDashboard,
+  LayoutGrid,
+  ListChecks,
+  LogOut,
+  Megaphone,
+  Gift,
+  MessageCircle,
+  Network,
+  Package,
+  Receipt,
+  ScrollText,
+  Search,
+  Send,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Smartphone,
+  Phone,
+  Store,
+  TableProperties,
+  Target,
+  Trophy,
+  Upload,
+  UserRound,
+  Users,
+  Webhook,
+  Workflow,
+} from "lucide-react";
+import { getInstalledAppKeys, isFrontendModuleEnabled } from "@/appRegistry";
+
+export type RoleKey = "admin" | "ceo" | "hr" | "manager" | "employee";
+function centralModuleForPath(access: { modules: { key: string; route: string; navigationPaths?: string[] }[] }, pathname: string) {
+  return access.modules.flatMap(module => (module.navigationPaths || [module.route]).map(path => ({ path, module }))).sort((a,b) => b.path.length-a.path.length).find(item => pathname === item.path || pathname.startsWith(item.path + "/"))?.module;
+}
+export function effectiveModuleDisplayRole(pathname: string, user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>) {
+  pathname = moduleContextPath(pathname);
+  const primary = user.primary_role === undefined ? user.role : user.primary_role;
+  if (!user.access?.managed || user.is_superuser) return primary;
+  const module = centralModuleForPath(user.access, pathname);
+  const grant = module ? user.access.grants[module.key] : undefined;
+  if (!module || !grant?.enabled) return primary;
+  const role = (grant.role || "").toLowerCase();
+  const level = ["viewer","contributor","editor","manager","admin"].includes(role) ? role : grant.actions.includes("configure") ? "admin" : grant.actions.includes("assign") ? "manager" : grant.actions.includes("edit") ? "editor" : "viewer";
+  const aliases: Record<string,Record<string,string>> = {
+    crm:{admin:"crm_org_admin",manager:"crm_sales_manager",editor:"crm_sales_executive",contributor:"crm_sales_executive",viewer:"crm_viewer"},
+    project_management:{admin:"pms_org_admin",manager:"pms_project_manager",editor:"pms_team_member",contributor:"pms_team_member",viewer:"pms_viewer"},
+    fam:{admin:"fam_admin",manager:"finance_manager",editor:"accountant",contributor:"accountant",viewer:"fam_viewer"},
+    srm:{admin:"srm_admin",manager:"srm_sales_manager",editor:"srm_sales_executive",contributor:"srm_sales_executive",viewer:"srm_viewer"},
+    hrms:{admin:"hr_admin",manager:"hr_manager",editor:"hr",contributor:"employee",viewer:"employee"},
+  };
+  const native = module.key === "crm" ? isCrmRole(grant.role,false) : module.key === "project_management" ? isProjectManagementRole(grant.role,false) : module.key === "fam" ? isFamRole(grant.role,false) : module.key === "srm" ? isSrmRole(grant.role,false) : module.key === "hrms" ? isHrmsRole(grant.role,false) : false;
+  if (native && !["viewer","manager","editor","contributor","admin","super_admin"].includes(role)) return grant.role;
+  return aliases[module.key]?.[level] || primary;
+}
+
+export type RoleNavItem = {
+  label: string;
+  icon: React.ElementType;
+  to: string;
+  badge?: string;
+  group?: string;
+  exact?: boolean;
+};
+
+export function getRoleKey(role?: string | null, isSuperuser = false): RoleKey {
+  const value = (role || "").toLowerCase().replace(/\s+/g, "_");
+  if (isSuperuser || ["super_admin", "admin"].includes(value)) return "admin";
+  if (["hr_manager", "hr_admin", "hr", "hr_company_admin", "hr_workflow_admin", "hr_custom_field_admin"].includes(value)) return "hr";
+  if (["ceo", "founder", "director", "executive"].includes(value)) return "ceo";
+  if (["manager", "team_lead", "department_head"].includes(value)) return "manager";
+  return "employee";
+}
+
+export function getRoleLabel(role?: string | null, isSuperuser = false) {
+  const normalizedRole = normalizeRole(role);
+  const crmLabels: Record<string, string> = {
+    crm_super_admin: "CRM Super Admin",
+    crm_org_admin: "CRM Admin",
+    crm_sales_manager: "Sales Manager",
+    crm_sales_executive: "Sales Executive",
+    crm_support_agent: "Support Agent",
+    crm_marketing_user: "Marketing User",
+    crm_viewer: "CRM Viewer",
+  };
+  const projectLabels: Record<string, string> = {
+    pms_super_admin: "PM Super Admin",
+    pms_org_admin: "PM Admin",
+    pms_project_manager: "Project Manager",
+    pms_team_member: "Team Member",
+    pms_client: "Client Portal",
+    pms_viewer: "Project Viewer",
+  };
+  if (crmLabels[normalizedRole]) return crmLabels[normalizedRole];
+  if (projectLabels[normalizedRole]) return projectLabels[normalizedRole];
+  const srmLabels: Record<string, string> = {
+    srm_admin: "SRM Admin",
+    srm_sales_manager: "SRM Sales Manager",
+    srm_sales_executive: "SRM Sales Executive",
+    srm_finance_manager: "Finance Manager",
+    srm_revenue_manager: "Revenue Manager",
+    srm_collection_executive: "Collection Executive",
+    srm_business_owner: "Business Owner",
+    srm_viewer: "SRM Viewer",
+  };
+  if (srmLabels[normalizedRole]) return srmLabels[normalizedRole];
+  const famLabels: Record<string, string> = {
+    fam_admin: "FAM Admin",
+    accountant: "Accountant",
+    finance_manager: "Finance Manager",
+    fam_finance_manager: "Finance Manager",
+    auditor: "Auditor",
+    fam_auditor: "Auditor",
+    business_owner: "Business Owner",
+    fam_business_owner: "Business Owner",
+    fam_viewer: "FAM Viewer",
+    non_fam_employee: "Non-FAM Employee",
+  };
+  if (famLabels[normalizedRole]) return famLabels[normalizedRole];
+
+  const key = getRoleKey(role, isSuperuser);
+  const labels: Record<RoleKey, string> = {
+    admin: "Admin Console",
+    ceo: "CEO Console",
+    hr: "HR Admin Console",
+    manager: "Manager Workspace",
+    employee: "Employee Self Service",
+  };
+  return labels[key];
+}
+
+function normalizeRole(role?: string | null) {
+  return (role || "").toLowerCase().replace(/\s+/g, "_");
+}
+
+function isAutomationAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isCustomizationRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin", "srm_business_owner", "ceo"].includes(normalizeRole(role));
+}
+
+function isCustomizationAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isAnalyticsRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "super_admin",
+    "admin",
+    "crm_super_admin",
+    "crm_org_admin",
+    "crm_sales_manager",
+    "crm_sales_executive",
+    "crm_viewer",
+    "crm_marketing_user",
+    "srm_finance_manager",
+    "srm_revenue_manager",
+    "srm_business_owner",
+    "ceo",
+  ].includes(normalizeRole(role));
+}
+
+function isAnalyticsFinancialRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin", "srm_finance_manager", "srm_revenue_manager", "srm_business_owner", "ceo"].includes(normalizeRole(role));
+}
+
+function isAiCopilotRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "super_admin",
+    "admin",
+    "crm_super_admin",
+    "crm_org_admin",
+    "crm_sales_manager",
+    "crm_sales_executive",
+    "crm_viewer",
+    "pms_super_admin",
+    "pms_org_admin",
+    "pms_project_manager",
+    "pms_team_member",
+    "srm_admin",
+    "srm_sales_manager",
+    "srm_sales_executive",
+    "srm_finance_manager",
+    "srm_revenue_manager",
+    "srm_collection_executive",
+    "srm_business_owner",
+    "srm_viewer",
+    "fam_admin",
+    "accountant",
+    "finance_manager",
+    "fam_finance_manager",
+    "auditor",
+    "fam_auditor",
+    "business_owner",
+    "fam_business_owner",
+    "fam_viewer",
+    "ceo",
+  ].includes(normalizeRole(role));
+}
+
+function isAiCopilotAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin", "srm_admin"].includes(normalizeRole(role));
+}
+
+function isAiCopilotActionLogRole(role?: string | null, isSuperuser = false) {
+  if (isAiCopilotAdminRole(role, isSuperuser)) return true;
+  return ["crm_sales_manager", "srm_finance_manager", "srm_business_owner", "ceo"].includes(normalizeRole(role));
+}
+
+function canAccessAiCopilotPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isAiCopilotRole(role, isSuperuser)) return false;
+  if (pathname.startsWith("/ai/provider-settings") || pathname.startsWith("/ai/prompt-templates")) return isAiCopilotAdminRole(role, isSuperuser);
+  if (pathname.startsWith("/ai/action-log")) return isAiCopilotActionLogRole(role, isSuperuser);
+  return true;
+}
+
+function isSaaSAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isDeveloperHubRole(role?: string | null, isSuperuser = false) {
+  if (isSaaSAdminRole(role, isSuperuser)) return true;
+  return ["ceo", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+function isMobileCrmRole(role?: string | null, isSuperuser = false) {
+  if (isSaaSAdminRole(role, isSuperuser)) return true;
+  return ["crm_sales_manager", "crm_sales_executive", "crm_viewer"].includes(normalizeRole(role));
+}
+
+function canAccessSaaSPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/admin/signup-requests") return isSuperuser;
+  if (pathname.startsWith("/mobile")) return isMobileCrmRole(role, isSuperuser);
+  if (pathname.startsWith("/developer")) return isDeveloperHubRole(role, isSuperuser);
+  if (pathname.startsWith("/marketplace")) return isDeveloperHubRole(role, isSuperuser);
+  if (pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) {
+    return isSaaSAdminRole(role, isSuperuser) || normalizeRole(role) === "ceo";
+  }
+  return false;
+}
+
+const adminSecurityPaths = [
+  "/admin/security",
+  "/admin/profiles",
+  "/admin/roles",
+  "/admin/field-security",
+  "/admin/record-sharing",
+  "/admin/data-sharing",
+  "/admin/ip-restrictions",
+  "/admin/audit-logs",
+  "/admin/import",
+  "/admin/duplicates",
+  "/admin/export-control",
+  "/admin/backups",
+  "/admin/compliance",
+  "/admin/data-retention",
+];
+
+const adminSecurityReadOnlyPaths = ["/admin/security", "/admin/audit-logs", "/admin/compliance"];
+
+function isAdminSecurityPath(pathname: string) {
+  return adminSecurityPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+function isAdminSecurityAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isAdminSecurityViewerRole(role?: string | null, isSuperuser = false) {
+  if (isAdminSecurityAdminRole(role, isSuperuser)) return true;
+  return ["ceo"].includes(normalizeRole(role));
+}
+
+function canAccessAdminSecurityPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isAdminSecurityPath(pathname)) return false;
+  if (isAdminSecurityAdminRole(role, isSuperuser)) return true;
+  return isAdminSecurityViewerRole(role, isSuperuser) && adminSecurityReadOnlyPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+function canAccessAnalyticsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isAnalyticsRole(role, isSuperuser)) return false;
+  if (pathname.startsWith("/analytics/profitability") || pathname.startsWith("/analytics/collections")) {
+    return isAnalyticsFinancialRole(role, isSuperuser);
+  }
+  return true;
+}
+
+function isHrmsRole(role?: string | null, isSuperuser = false) {
+  const value = normalizeRole(role);
+  return isSuperuser || [
+    "super_admin",
+    "admin",
+    "hr_manager",
+    "hr_admin",
+    "hr",
+    "hr_company_admin",
+    "hr_workflow_admin",
+    "hr_custom_field_admin",
+    "ceo",
+    "founder",
+    "director",
+    "executive",
+    "manager",
+    "team_lead",
+    "department_head",
+    "employee",
+  ].includes(value);
+}
+
+function hasOptionalHrPermission(role: string | null | undefined, permission: "hr.company_admin" | "hr.workflow_admin" | "hr.custom_field_admin") {
+  const value = normalizeRole(role);
+  const permissionRoles: Record<string, string[]> = {
+    "hr.company_admin": ["hr_company_admin"],
+    "hr.workflow_admin": ["hr_workflow_admin"],
+    "hr.custom_field_admin": ["hr_custom_field_admin"],
+  };
+  return permissionRoles[permission].includes(value);
+}
+
+function isCrmRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "crm_super_admin",
+    "crm_org_admin",
+    "crm_sales_manager",
+    "crm_sales_executive",
+    "crm_support_agent",
+    "crm_marketing_user",
+    "crm_viewer",
+  ].includes(normalizeRole(role));
+}
+
+function isCrmAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isCrmManagerRole(role?: string | null, isSuperuser = false) {
+  if (isCrmAdminRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "crm_sales_manager";
+}
+
+const crmAdminOnlyPaths = [
+  "/crm/admin",
+  "/crm/settings",
+  "/crm/approval-settings",
+  "/crm/webhooks",
+  "/crm/feature-checklist",
+];
+
+const crmManagerOnlyPaths = [
+  "/crm/import-export",
+  "/crm/lead-scoring",
+  "/crm/pipeline-settings",
+  "/crm/territories",
+];
+
+function canAccessCrmPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isCrmRole(role, isSuperuser)) return false;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/crm";
+  if (crmAdminOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isCrmAdminRole(role, isSuperuser);
+  }
+  if (crmManagerOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isCrmManagerRole(role, isSuperuser);
+  }
+  return true;
+}
+
+function getCrmNavForRole(role?: string | null, isSuperuser = false) {
+  return crmNav.filter((item) => !item.to.startsWith("/crm") || canAccessCrmPath(item.to, role, isSuperuser));
+}
+
+function isProjectManagementRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "admin", "super_admin", "hr", "hr_admin", "hr_manager", "hr_company_admin",
+    "pms_super_admin",
+    "pms_org_admin",
+    "pms_project_manager",
+    "pms_team_member",
+    "pms_client",
+    "pms_viewer",
+  ].includes(normalizeRole(role));
+}
+
+function isPmsAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "pms_super_admin", "pms_org_admin"].includes(normalizeRole(role));
+}
+
+function isPmsManagerRole(role?: string | null, isSuperuser = false) {
+  if (isPmsAdminRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "pms_project_manager";
+}
+
+function isPmsDeliveryRole(role?: string | null, isSuperuser = false) {
+  if (isPmsManagerRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "pms_team_member";
+}
+
+const pmsAdminOnlyPaths = [
+  "/pms/audit-logs",
+  "/pms/admin",
+  "/pms/settings",
+  "/pms/security",
+  "/pms/apps",
+  "/pms/workflows",
+  "/pms/blueprints",
+  "/pms/components",
+  "/pms/templates",
+  "/pms/forms",
+];
+
+const pmsManagerOnlyPaths = [
+  "/pms/projects/new",
+  "/pms/command-center",
+  "/pms/enterprise-engine",
+  "/pms/product-launch",
+  "/pms/portfolio",
+  "/pms/dependency-management",
+  "/pms/resource-planning",
+  "/pms/agile-execution",
+  "/pms/project-financials",
+  "/pms/resource-utilization",
+  "/pms/reports",
+  "/pms/dashboards",
+];
+
+const pmsDeliveryOnlyPaths = [
+  "/pms/backlog",
+  "/pms/backlog-grooming",
+  "/pms/issues",
+  "/pms/tasks",
+  "/pms/navigator",
+  "/pms/issue-navigator-pro",
+  "/pms/risk-register",
+  "/pms/risks",
+  "/pms/goals",
+  "/pms/roadmap",
+  "/pms/timeline-plus",
+  "/pms/dependencies",
+  "/pms/releases",
+  "/pms/calendar",
+  "/pms/gantt",
+  "/pms/sprints",
+  "/pms/sprint-lifecycle",
+  "/pms/files",
+  "/pms/time-tracking",
+  "/pms/timesheets",
+  "/pms/workload",
+  "/pms/capacity",
+  "/pms/automation",
+  "/pms/automation-ai",
+  "/pms/software",
+  "/pms/live",
+  "/pms/teams-live",
+  "/pms/work-hub",
+  "/pms/ai-planner",
+  "/pms/projects",
+];
+
+function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname.replace(/\/$/, "") === "/pms/team-communication") return true;
+  if (["/pms/management", "/pms/my-work", "/pms/tasks-follow-ups"].includes(pathname) || /^\/pms\/(?:follow-ups(?:\/[^/]+)?|customers\/\d+\/360)$/.test(pathname)) return true;
+  if (["/pms/projects", "/pms/tasks", "/pms/products-services", "/pms/products"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
+  if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
+  if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (pathname.replace(/\/$/, "") === "/pms/notes" || /^\/pms\/projects\/\d+\/notes\/?$/.test(pathname)) return true;
+  // Workspace membership is enforced by the API, independently of company roles.
+  if (["/pms/batches", "/pms/batch-tasks", "/pms/my-assignments", "/pms/assignment-controls", "/pms/reviews", "/pms/recovery", "/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (/^\/pms\/projects\/\d+\/(gantt|reports)\/?$/.test(pathname)) return true;
+  if (!isProjectManagementRole(role, isSuperuser)) return false;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedPath === "/pms" || normalizedPath === "/pms/profile") return true;
+  if (normalizedPath === "/pms/client-portal" || normalizedPath.startsWith("/pms/client-portal/")) {
+    return true;
+  }
+  if (normalizedRole === "pms_client") return false;
+
+  if (pmsAdminOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsAdminRole(role, isSuperuser);
+  }
+  if (pmsManagerOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsManagerRole(role, isSuperuser);
+  }
+  if (pmsDeliveryOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsDeliveryRole(role, isSuperuser) || normalizedRole === "pms_viewer";
+  }
+  return isPmsManagerRole(role, isSuperuser);
+}
+
+function getPmsNavForRole(role?: string | null, isSuperuser = false) {
+  return projectManagementNav.filter((item) => !item.to.startsWith("/pms") || canAccessPmsPath(item.to, role, isSuperuser));
+}
+
+function isSrmRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "srm_admin",
+    "srm_sales_manager",
+    "srm_sales_executive",
+    "srm_finance_manager",
+    "srm_revenue_manager",
+    "srm_collection_executive",
+    "srm_business_owner",
+    "srm_viewer",
+  ].includes(normalizeRole(role));
+}
+
+function isSrmAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "srm_admin"].includes(normalizeRole(role));
+}
+
+function isSrmFinanceRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_finance_manager", "srm_revenue_manager", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+function isSrmCollectionRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_collection_executive", "srm_finance_manager", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+function isSrmSalesRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_sales_manager", "srm_sales_executive", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
+const srmCollectionOnlyPaths = ["/srm/collections"];
+const srmSalesOnlyPaths = ["/srm/appointments", "/srm/salon", "/srm/construction", "/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
+
+function businessPackNavigation(show: typeof showRestaurantKitchen) {
+  try {
+    const access = useAuthStore.getState().user?.access as unknown as { businessPacks?: BusinessPackDiscovery } | undefined;
+    return show(access?.businessPacks, sessionStorage.getItem('suite-branch'), selectedPackContext());
+  } catch { return false; }
+}
+
+function restaurantKitchenNavigation() { return businessPackNavigation(showRestaurantKitchen); }
+function accountsPeriodsNavigation() { return businessPackNavigation(showAccountsPeriods); }
+function constructionNavigation() { return businessPackNavigation(allowConstructionNavigation); }
+
+function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isSrmRole(role, isSuperuser)) return false;
+  if (/^\/srm\/forms(?:\/|$)/.test(pathname)) return true;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
+  if (normalizedPath === '/srm/construction' && !constructionNavigation()) return false;
+  if (normalizedPath === '/srm/restaurant-kitchen') return restaurantKitchenNavigation();
+  if (normalizedPath === '/srm/accounts-periods') return accountsPeriodsNavigation();
+  const normalizedRole = normalizeRole(role);
+  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction"].includes(normalizedPath)) {
+    return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  }
+  if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
+  if (normalizedPath === "/srm/settings") return true;
+  if (normalizedPath === "/srm/reports") return isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  if (srmCollectionOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmCollectionRole(role, isSuperuser);
+  }
+  if (srmFinanceOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmFinanceRole(role, isSuperuser);
+  }
+  if (srmSalesOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmSalesRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  }
+  return isSrmAdminRole(role, isSuperuser);
+}
+
+function getSrmNavForRole(role?: string | null, isSuperuser = false) {
+  return srmNav.filter((item) => !item.to.startsWith("/srm") || canAccessSrmPath(item.to, role, isSuperuser));
+}
+
+function isFamRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "fam_admin",
+    "accountant",
+    "finance_manager",
+    "fam_finance_manager",
+    "auditor",
+    "fam_auditor",
+    "business_owner",
+    "fam_business_owner",
+    "fam_viewer",
+  ].includes(normalizeRole(role));
+}
+
+function isFamAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "fam_admin"].includes(normalizeRole(role));
+}
+
+function isFamOperationalRole(role?: string | null, isSuperuser = false) {
+  if (isFamAdminRole(role, isSuperuser)) return true;
+  return ["accountant", "finance_manager", "fam_finance_manager"].includes(normalizeRole(role));
+}
+
+function isFamAuditRole(role?: string | null, isSuperuser = false) {
+  if (isFamAdminRole(role, isSuperuser)) return true;
+  return ["auditor", "fam_auditor"].includes(normalizeRole(role));
+}
+
+function isFamReadOnlyRole(role?: string | null, isSuperuser = false) {
+  if (isFamOperationalRole(role, isSuperuser) || isFamAuditRole(role, isSuperuser)) return true;
+  return ["business_owner", "fam_business_owner", "fam_viewer"].includes(normalizeRole(role));
+}
+
+function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isFamRole(role, isSuperuser)) return false;
+  if (/^\/fam\/forms(?:\/|$)/.test(pathname)) return true;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/fam";
+  if (normalizedPath === "/fam" || normalizedPath === "/fam/dashboard" || normalizedPath === "/fam/profile") return true;
+  if (normalizedPath === "/fam/settings") return isFamAdminRole(role, isSuperuser);
+  if (["/fam/vouchers/new", "/fam/purchase-bills/new", "/fam/expenses/new"].includes(normalizedPath)) return isFamOperationalRole(role, isSuperuser);
+  if (normalizedPath === "/fam/audit") return isFamAuditRole(role, isSuperuser);
+  if (normalizedPath === "/fam/financial-statements") return isFamReadOnlyRole(role, isSuperuser);
+  if (normalizedPath === "/fam/recurring-purchases") return isFamReadOnlyRole(role, isSuperuser);
+  if (normalizedPath === "/fam/bank-rules") return isFamReadOnlyRole(role, isSuperuser);
+  if (normalizedPath === "/fam/inventory" || normalizedPath.startsWith("/fam/inventory/")) {
+    return isFamReadOnlyRole(role, isSuperuser);
+  }
+  if (["/fam/vouchers", "/fam/vouchers/new", "/fam/journal"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
+  }
+  if (["/fam/day-book", "/fam/ledger-entries"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`)) || /^\/fam\/ledgers\/[^/]+\/entries$/.test(normalizedPath)) {
+    return isFamReadOnlyRole(role, isSuperuser);
+  }
+  if (["/fam/parties", "/fam/customers", "/fam/vendors", "/fam/ar", "/fam/ap", "/fam/bill-references", "/fam/bill-allocations", "/fam/integrations/srm", "/fam/posting-jobs", "/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges", "/fam/transaction-locking", "/fam/uae-tax", "/fam/gst", "/fam/gst/settings", "/fam/gst/registrations", "/fam/gst/rates", "/fam/gst/hsn-sac", "/fam/gst/sales-register", "/fam/gst/purchase-register", "/fam/gst/gstr1", "/fam/gst/gstr3b", "/fam/gst/reconciliation", "/fam/gst/einvoice", "/fam/gst/ewaybill", "/fam/purchases", "/fam/purchase-bills", "/fam/expenses", "/fam/tds", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables/dashboard"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
+  }
+  if (normalizedPath === "/fam/posting-rules" || normalizedPath.startsWith("/fam/posting-rules/")) return isFamAdminRole(role, isSuperuser) || ["finance_manager", "fam_finance_manager"].includes(normalizeRole(role));
+  if (normalizedPath === "/fam/voucher-types" || normalizedPath.startsWith("/fam/voucher-types/")) return isFamAdminRole(role, isSuperuser);
+  if (["/fam/gantt", "/fam/financial-years", "/fam/ledger-groups", "/fam/ledgers", "/fam/opening-balances", "/fam/cost-centers", "/fam/branches"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
+  }
+  if (normalizedPath === "/fam/chart-of-accounts" || normalizedPath.startsWith("/fam/chart-of-accounts/")) return isFamReadOnlyRole(role, isSuperuser);
+  return isFamAdminRole(role, isSuperuser);
+}
+
+function getFamNavForRole(role?: string | null, isSuperuser = false) {
+  return famNav.filter((item) => !item.to.startsWith("/fam") || canAccessFamPath(item.to, role, isSuperuser));
+}
+
+const hrNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
+  { label: "HR Home", icon: LayoutDashboard, to: "/hr-home", group: "Core HR", exact: true },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
+  { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
+  { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
+  { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
+  { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
+  { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
+  { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
+  { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
+  { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
+  { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
+  { label: "F&F Settlement", icon: FileText, to: "/fnf-settlements", group: "Payroll & Finance" },
+  { label: "Benefits", icon: HeartPulse, to: "/benefits", group: "Payroll & Finance" },
+  { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Talent" },
+  { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
+  { label: "LMS", icon: GraduationCap, to: "/lms", group: "Talent" },
+  { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Talent" },
+  { label: "Statutory Compliance", icon: Landmark, to: "/statutory-compliance", group: "Compliance" },
+  { label: "BGV", icon: ShieldCheck, to: "/background-verification", group: "Compliance" },
+  { label: "Helpdesk", icon: HelpCircle, to: "/helpdesk", group: "Compliance" },
+  { label: "Reports", icon: BarChart3, to: "/reports", group: "Platform" },
+  { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Platform", badge: "AI" },
+  { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Platform" },
+  { label: "Onboarding", icon: ClipboardCheck, to: "/onboarding", group: "Platform" },
+  { label: "Documents", icon: FileText, to: "/documents", group: "Platform" },
+  { label: "Letters & Certificates", icon: FileText, to: "/letters-certificates", group: "Platform" },
+  { label: "Assets", icon: Package, to: "/assets", group: "Platform" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Platform" },
+  { label: "Exit", icon: LogOut, to: "/exit", group: "Platform" },
+  { label: "WhatsApp ESS", icon: MessageCircle, to: "/whatsapp-ess", group: "Platform" },
+  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
+  { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Platform" },
+];
+
+const adminNav: RoleNavItem[] = [
+ {label:"Employee birthdays",icon:CalendarDays,to:"/hrms/birthdays",group:"Core HR"},
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
+  { label: "Admin Home", icon: ShieldCheck, to: "/admin-home", group: "Core HR", exact: true },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
+  { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
+  { label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Core HR" },
+  { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
+  { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
+  { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
+  { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
+  { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
+  { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
+  { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
+  { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
+  { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
+  { label: "F&F Settlement", icon: FileText, to: "/fnf-settlements", group: "Payroll & Finance" },
+  { label: "Benefits", icon: HeartPulse, to: "/benefits", group: "Payroll & Finance" },
+  { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Talent" },
+  { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
+  { label: "LMS", icon: GraduationCap, to: "/lms", group: "Talent" },
+  { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Talent" },
+  { label: "Statutory Compliance", icon: Landmark, to: "/statutory-compliance", group: "Compliance" },
+  { label: "BGV", icon: ShieldCheck, to: "/background-verification", group: "Compliance" },
+  { label: "Helpdesk", icon: HelpCircle, to: "/helpdesk", group: "Compliance" },
+  { label: "Company", icon: Building2, to: "/company", group: "Platform" },
+  { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Platform" },
+  { label: "Settings", icon: Settings, to: "/settings", group: "Platform" },
+  { label: "Logs", icon: ScrollText, to: "/logs", group: "Platform" },
+  { label: "WhatsApp ESS", icon: MessageCircle, to: "/whatsapp-ess", group: "Platform" },
+  { label: "Custom Fields", icon: SlidersHorizontal, to: "/custom-fields", group: "Platform" },
+  { label: "Enterprise", icon: Network, to: "/enterprise", group: "Platform" },
+  { label: "Automation Studio", icon: GitBranch, to: "/admin/automation/workflows", group: "Platform" },
+  { label: "Customization Studio", icon: SlidersHorizontal, to: "/admin/customization/modules", group: "Platform" },
+  { label: "Reports", icon: BarChart3, to: "/reports", group: "Platform" },
+  { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Platform", badge: "AI" },
+  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
+  { label: "Onboarding", icon: ClipboardCheck, to: "/onboarding", group: "Platform" },
+  { label: "Documents", icon: FileText, to: "/documents", group: "Platform" },
+  { label: "Letters & Certificates", icon: FileText, to: "/letters-certificates", group: "Platform" },
+  { label: "Assets", icon: Package, to: "/assets", group: "Platform" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Platform" },
+  { label: "Exit", icon: LogOut, to: "/exit", group: "Platform" },
+  { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Platform" },
+];
+
+const ceoNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
+  { label: "Executive Home", icon: LayoutDashboard, to: "/executive-home", group: "Core HR", exact: true },
+  { label: "Executive Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
+  { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
+  { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
+  { label: "Reports", icon: BarChart3, to: "/reports", group: "Finance" },
+  { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Finance", badge: "AI" },
+  { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Finance" },
+  { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Finance" },
+  { label: "F&F Settlement", icon: FileText, to: "/fnf-settlements", group: "Finance" },
+  { label: "Benefits", icon: HeartPulse, to: "/benefits", group: "Finance" },
+  { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
+  { label: "LMS", icon: GraduationCap, to: "/lms", group: "Talent" },
+  { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Talent" },
+  { label: "Employees", icon: Users, to: "/employees", group: "Organisation" },
+  { label: "Probation", icon: Timer, to: "/probation", group: "Organisation" },
+  { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Organisation" },
+  { label: "Company", icon: Building2, to: "/company", group: "Organisation" },
+  { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Organisation" },
+  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Insights" },
+  { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Insights" },
+];
+
+const managerNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
+  { label: "Team Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "My Team", icon: Users, to: "/manager-dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
+  { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
+  { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
+  { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
+  { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
+  { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
+  { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
+  { label: "Leave Approvals", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
+  { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Core HR" },
+  { label: "Assets", icon: Package, to: "/assets", group: "Core HR" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Core HR" },
+  { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
+  { label: "LMS", icon: GraduationCap, to: "/lms", group: "Talent" },
+  { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Talent" },
+  { label: "Helpdesk", icon: HelpCircle, to: "/helpdesk", group: "Insights" },
+  { label: "Reports", icon: BarChart3, to: "/reports", group: "Insights" },
+  { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Insights", badge: "AI" },
+  { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Insights" },
+  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Insights" },
+  { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Insights" },
+];
+
+const employeeNav: RoleNavItem[] = [
+ {label:"My PMS Assignments",icon:ListChecks,to:"/my-assignments",group:"Work"},
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
+  { label: "ESS Dashboard", icon: LayoutDashboard, to: "/ess", group: "Self Service", exact: true },
+  { label: "My Profile", icon: UserRound, to: "/profile", group: "Self Service" },
+  { label: "My Attendance", icon: Clock, to: "/my-attendance", group: "Self Service" },
+  { label: "My Leave", icon: CalendarDays, to: "/leave", group: "Self Service" },
+  { label: "Service scheduling", icon: CalendarDays, to: "/hrms/service-scheduling", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Self Service" },
+  { label: "My Payslips", icon: DollarSign, to: "/my-payslips", group: "Self Service" },
+  { label: "My Documents", icon: FileText, to: "/documents", group: "Self Service" },
+  { label: "My Approvals", icon: FileCheck2, to: "/approval-os", group: "Home" },
+  { label: "My Requests", icon: Inbox, to: "/workflow", group: "Home" },
+];
+
+const crmNav: RoleNavItem[] = [
+  { label: "Service setup & availability", icon: CalendarDays, to: "/crm/service-scheduling", group: "Sales" },
+  { label: "Appointment Scheduler", icon: CalendarDays, to: "/crm/appointments", group: "Sales" },
+ {label:"Send reminders",icon:MessageCircle,to:"/crm/send-reminders",group:"Communication"},
+ {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
+  { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
+  { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
+  { label: "Potential Clients", icon: Users, to: "/crm/potential-clients", group: "Customers & leads" },
+  { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
+  { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
+  { label: "Relationship Hub", icon: TableProperties, to: "/crm/records", group: "Core" },
+  { label: "Customers", icon: UserRound, to: "/crm/customers", group: "Core" },
+  { label: "Companies", icon: Building2, to: "/crm/companies", group: "Core" },
+  { label: "Vendors", icon: Users, to: "/crm/vendors", group: "Core" },
+  { label: "Payment requests", icon: DollarSign, to: "/crm/payment-requests", group: "Sales" },
+  { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
+  { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },
+  { label: "Templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
+  { label: "Forecasting", icon: BarChart3, to: "/crm/forecasting", group: "Sales", badge: "Quota" },
+  { label: "Activities", icon: Clock, to: "/crm/activities", group: "Sales" },
+  { label: "Meetings", icon: CalendarDays, to: "/crm/meetings", group: "Sales" },
+  { label: "Calls", icon: Phone, to: "/crm/calls", group: "Sales" },
+  { label: "Tasks", icon: ClipboardCheck, to: "/crm/tasks", group: "Sales" },
+  { label: "Follow-Ups", icon: ClipboardCheck, to: "/crm/follow-ups", group: "Sales" },
+  { label: "Calendar", icon: CalendarDays, to: "/crm/calendar", group: "Sales" },
+  { label: "Calendar Integrations", icon: CalendarDays, to: "/crm/calendar-integrations", group: "Sales" },
+  { label: "Communication Hub", icon: MessageCircle, to: "/crm/communication-hub", group: "Growth" },
+  { label: "Email Templates", icon: FileText, to: "/crm/email-templates", group: "Growth" },
+  { label: "Emails", icon: MessageCircle, to: "/crm/emails", group: "Growth" },
+  { label: "Webforms", icon: Users, to: "/crm/webforms", group: "Growth" },
+  { label: "Campaigns", icon: Megaphone, to: "/crm/campaigns", group: "Growth" },
+  { label: "Consents", icon: ShieldCheck, to: "/crm/consents", group: "Growth" },
+  { label: "WhatsApp Communication", icon: MessageCircle, to: "/crm/whatsapp-communication", group: "Growth" },
+  { label: "WhatsApp", icon: MessageCircle, to: "/crm/whatsapp", group: "Growth" },
+  { label: "Auto Responses", icon: Send, to: "/crm/auto-responses", group: "Growth" },
+  { label: "Delivery Logs", icon: ScrollText, to: "/crm/delivery-logs", group: "Growth" },
+  { label: "Communication Timeline", icon: TableProperties, to: "/crm/communication-timeline", group: "Growth" },
+  { label: "By product / service", icon: Package, to: "/crm/product-customers", group: "Customer growth" },
+  { label: "Lead & customer follow-ups", icon: CalendarDays, to: "/crm/customer-follow-ups", group: "Customer growth" },
+  { label: "Customer greetings", icon: Gift, to: "/crm/greetings", group: "Customer growth" },
+  { label: "Products & Services", icon: Package, to: "/crm/products-services", group: "Growth" },
+  { label: "Quotations", icon: FileText, to: "/crm/quotations", group: "Growth" },
+  { label: "My Approvals", icon: FileCheck2, to: "/crm/my-approvals", group: "Growth" },
+  { label: "Lead Scoring", icon: Gauge, to: "/crm/lead-scoring", group: "Growth" },
+  { label: "Duplicates", icon: GitMerge, to: "/crm/duplicates", group: "Growth" },
+  { label: "Territories", icon: Globe2, to: "/crm/territories", group: "Growth" },
+  { label: "Files", icon: FileText, to: "/crm/files", group: "Support" },
+  { label: "Customer 360", icon: Users, to: "/crm/customer-360", group: "Support" },
+  { label: "Reports", icon: BarChart3, to: "/crm/reports", group: "Insights" },
+  { label: "Automation", icon: Sparkles, to: "/crm/automation", group: "Insights" },
+  { label: "Import & Export", icon: Upload, to: "/crm/import-export", group: "Insights" },
+  { label: "Custom Fields", icon: SlidersHorizontal, to: "/crm/settings", group: "Insights" },
+  { label: "Approval Settings", icon: FileCheck2, to: "/crm/approval-settings", group: "Insights" },
+  { label: "Webhooks", icon: MessageCircle, to: "/crm/webhooks", group: "Insights" },
+  { label: "CRM Admin", icon: ShieldCheck, to: "/crm/admin", group: "Admin" },
+];
+
+const projectManagementNav: RoleNavItem[] = [
+  { label: "Workspace board", icon: LayoutDashboard, to: "/pms", group: "Projects & tasks", exact: true },
+  { label: "Enterprise Engine", icon: ShieldCheck, to: "/pms/enterprise-engine", group: "Settings & administration", badge: "Pro" },
+  { label: "Product Launch", icon: Package, to: "/pms/product-launch", group: "Projects & tasks", badge: "Launch" },
+  { label: "Dependency Management", icon: Network, to: "/pms/dependency-management", group: "Planning & delivery", badge: "Path" },
+  { label: "Resource Planning", icon: Users, to: "/pms/resource-planning", group: "Planning & delivery", badge: "Load" },
+  { label: "Agile Execution", icon: Timer, to: "/pms/agile-execution", group: "Planning & delivery", badge: "Sprint" },
+  { label: "Project Financials", icon: DollarSign, to: "/pms/project-financials", group: "Reports & finances", badge: "Cost" },
+  { label: "Risk Register", icon: ShieldAlert, to: "/pms/risk-register", group: "Planning & delivery", badge: "RAID" },
+  { label: "Impact Work Hub", icon: Target, to: "/pms/work-hub", group: "Projects & tasks", badge: "AI" },
+  { label: "Live Work", icon: Gauge, to: "/pms/live", group: "Projects & tasks", badge: "Realtime" },
+  { label: "Software Delivery", icon: GitBranch, to: "/pms/software", group: "Planning & delivery", badge: "Agile" },
+  { label: "Backlog", icon: Inbox, to: "/pms/backlog", group: "Planning & delivery", badge: "Drag" },
+  { label: "Tasks", icon: ListChecks, to: "/pms/tasks", group: "Projects & tasks" },
+  { label: "Tasks & Follow-ups", icon: Clock, to: "/pms/tasks-follow-ups", group: "Projects & tasks" },
+  { label: "My Notes", icon: FileText, to: "/pms/notes", group: "Collaboration" },
+  { label: "Issue Navigator", icon: Search, to: "/pms/navigator", group: "Projects & tasks" },
+  { label: "Dashboards", icon: BarChart3, to: "/pms/dashboards", group: "Reports & finances" },
+  { label: "Workspaces", icon: Briefcase, to: "/pms/workspaces", group: "Projects & tasks" },
+  { label: "Projects", icon: Briefcase, to: "/pms/projects", group: "Projects & tasks" },
+  { label: "Products & Services", icon: Package, to: "/pms/products-services", group: "Projects & tasks" },
+  { label: "Goals", icon: Trophy, to: "/pms/goals", group: "Planning & delivery" },
+  { label: "Roadmap", icon: CalendarDays, to: "/pms/roadmap", group: "Planning & delivery" },
+  { label: "Timeline Plus", icon: CalendarDays, to: "/pms/timeline-plus", group: "Planning & delivery", badge: "Deps" },
+  { label: "Forms", icon: FileText, to: "/pms/forms", group: "Settings & administration" },
+  { label: "Templates", icon: BookOpen, to: "/pms/templates", group: "Settings & administration" },
+  { label: "Calendar", icon: CalendarDays, to: "/pms/calendar", group: "Planning & delivery" },
+  { label: "Gantt", icon: GitMerge, to: "/pms/gantt", group: "Planning & delivery" },
+  { label: "Sprints", icon: Timer, to: "/pms/sprints", group: "Planning & delivery" },
+  { label: "Project workflows", icon: GitBranch, to: "/pms/workflow-schemes", group: "Settings & administration" },
+  { label: "Transition approvals", icon: CheckCircle2, to: "/pms/transition-approvals", group: "Planning & delivery" },
+  { label: "Blueprints", icon: Workflow, to: "/pms/blueprints", group: "Settings & administration" },
+  { label: "Teams Live", icon: Users, to: "/pms/teams-live", group: "People & access", badge: "Drag" },
+  { label: "Files", icon: FileText, to: "/pms/files", group: "Collaboration" },
+  { label: "Time Tracking", icon: Clock, to: "/pms/time-tracking", group: "Collaboration" },
+  { label: "Team Analytics", icon: Users, to: "/pms/analytics/team", group: "Reports & finances" },
+  { label: "Project Analytics", icon: BarChart3, to: "/pms/analytics/projects", group: "Reports & finances" },
+  { label: "Reports", icon: BarChart3, to: "/pms/reports", group: "Reports & finances" },
+  { label: "Automation AI", icon: Sparkles, to: "/pms/automation", group: "Settings & administration", badge: "AI" },
+  { label: "Client Portal", icon: Users, to: "/pms/client-portal", group: "Collaboration" },
+  { label: "Audit Logs", icon: ShieldCheck, to: "/pms/audit-logs", group: "Settings & administration" },
+  { label: "PM Settings", icon: Settings, to: "/pms/settings", group: "Settings & administration" },
+  { label: "PM Admin", icon: ShieldCheck, to: "/pms/admin", group: "Settings & administration" },
+  { label: "Members & invitations", icon: Users, to: "/pms/members", group: "People & access" },
+  { label: "People directory", icon: Users, to: "/pms/people", group: "People & access" },
+  { label: "Teams", icon: Users, to: "/pms/teams", group: "People & access" },
+  { label: "Messages", icon: MessageCircle, to: "/pms/messages", group: "Collaboration" },
+  { label: "Team Communication", icon: MessageCircle, to: "/pms/team-communication", group: "Collaboration" },
+  { label: "Docs", icon: FileText, to: "/pms/docs", group: "Collaboration" },
+  { label: "Timesheets", icon: Clock, to: "/pms/timesheets", group: "Collaboration" },
+  { label: "Workload", icon: Users, to: "/pms/workload", group: "Planning & delivery" },
+  { label: "Custom fields", icon: SlidersHorizontal, to: "/pms/custom-fields", group: "Settings & administration" },
+  { label: "Task types", icon: ListChecks, to: "/pms/task-types", group: "Settings & administration" },
+  { label: "Tags", icon: FileText, to: "/pms/tags", group: "Settings & administration" },
+  { label: "Workspace reset & restore", icon: RefreshCw, to: "/pms/admin/workspaces", group: "Settings & administration" },
+  { label: "Backup & recovery", icon: DatabaseBackup, to: "/pms/recovery", group: "Settings & administration" },
+  { label: "Trash", icon: Inbox, to: "/pms/trash", group: "Settings & administration" },
+  { label: "AI Operator", icon: Sparkles, to: "/pms/operator", group: "Projects & tasks" },
+  { label: "Workspace tools", icon: LayoutGrid, to: "/pms/workspace-tools", group: "Projects & tasks" },
+  { label: "Overview", icon: LayoutDashboard, to: "/pms/overview", group: "Overview" },
+  { label: "Portfolio", icon: Briefcase, to: "/pms/portfolio", group: "Reports & finances" },
+].sort((a, b) => {
+  const groups = ["Overview", "Projects & tasks", "People & access", "Planning & delivery", "Collaboration", "Reports & finances", "Settings & administration", "AI Agents"];
+  const rank = (item: { to: string }) => item.to === "/pms/members" ? -2 : item.to === "/pms/people" ? -1 : 0;
+  return groups.indexOf(a.group) - groups.indexOf(b.group) || rank(a) - rank(b);
+});
+const srmNav: RoleNavItem[] = [
+  {label:"Customers",icon:Users,to:"/srm/customers",group:"Business relationships"},
+ {label:"Vendors",icon:Users,to:"/srm/vendors",group:"Business relationships"},
+  {label:"Suppliers",icon:Users,to:"/srm/suppliers",group:"Business relationships"},
+  {label:"Companies",icon:Users,to:"/srm/companies",group:"Business relationships"},
+  { label: "Forms", icon: FileText, to: "/srm/forms", group: "Workspace" },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Inventory", exact: true },
+  { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Inventory" },
+  { label: "Source Sales Docs", icon: FileText, to: "/srm/sales-inventory/source", group: "Sales & Inventory" },
+  { label: "Contracts", icon: FileCheck2, to: "/srm/contracts", group: "Sales & Inventory" },
+  { label: "Gantt", icon: CalendarDays, to: "/srm/gantt", group: "Sales & Inventory" },
+  { label: "Procurement Gantt", icon: CalendarDays, to: "/srm/inventory/gantt", group: "Sales & Inventory" },
+  { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Inventory" },
+  { label: "Follow-Ups", icon: ClipboardCheck, to: "/srm/follow-ups", group: "Sales & Inventory" },
+  { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
+  { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
+  { label: "Appointment Scheduler", icon: CalendarDays, to: "/srm/appointments", group: "Industry operations" },
+  { label: "Service setup & availability", icon: CalendarDays, to: "/srm/service-scheduling", group: "Industry operations" },
+  { label: "Scheduled Services", icon: CalendarDays, to: "/srm/scheduled-services", group: "Industry operations" },
+  { label: "Restaurant kitchen", icon: ClipboardCheck, to: "/srm/restaurant-kitchen", group: "Industry operations" },
+  { label: "Client service periods", icon: ClipboardCheck, to: "/srm/accounts-periods", group: "Industry operations" },
+  { label: "Construction operations", icon: Briefcase, to: "/srm/construction", group: "Industry operations" },
+  { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
+  { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },
+  { label: "POS Returns", icon: RotateCcw, to: "/srm/pos/returns", group: "Sales & Inventory" },
+  { label: "Billing Plans", icon: CalendarDays, to: "/srm/billing-plans", group: "Billing" },
+  { label: "Invoice Drafts", icon: FileText, to: "/srm/invoice-drafts", group: "Billing" },
+  { label: "Invoices", icon: DollarSign, to: "/srm/invoices", group: "Billing" },
+  { label: "Payment requests", icon: DollarSign, to: "/srm/payment-requests", group: "Billing" },
+  { label: "Collections", icon: Landmark, to: "/srm/collections", group: "Collections" },
+  { label: "Revenue Recognition", icon: CheckCircle2, to: "/srm/revenue-recognition", group: "Revenue" },
+  { label: "Profitability", icon: BarChart3, to: "/srm/profitability", group: "Revenue" },
+  { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
+  { label: "Inventory Dashboard", icon: Package, to: "/srm/inventory/dashboard", group: "Sales & Inventory" },
+  { label: "Products & Services", icon: Package, to: "/srm/products-services", group: "Sales & Inventory" },
+  { label: "Price Lists", icon: Receipt, to: "/srm/inventory/price-lists", group: "Sales & Inventory" },
+  { label: "Warehouses", icon: Building2, to: "/srm/inventory/warehouses", group: "Sales & Inventory" },
+  { label: "Stock Summary", icon: BookOpen, to: "/srm/inventory/stock-summary", group: "Sales & Inventory" },
+  { label: "Opening Stock", icon: Upload, to: "/srm/inventory/opening-stock", group: "Sales & Inventory" },
+  { label: "Delivery Notes", icon: FileText, to: "/srm/inventory/delivery-notes", group: "Sales & Inventory" },
+  { label: "Stock Transfers", icon: RefreshCw, to: "/srm/inventory/stock-transfers", group: "Sales & Inventory" },
+  { label: "Batches & Serials", icon: ShieldCheck, to: "/srm/inventory/batches", group: "Sales & Inventory" },
+  { label: "Purchase Orders", icon: Receipt, to: "/srm/inventory/purchase-orders", group: "Sales & Inventory" },
+  { label: "Manufacturing", icon: Layers3, to: "/srm/inventory/manufacturing", group: "Sales & Inventory" },
+  { label: "Reorder Alerts", icon: Bell, to: "/srm/inventory/reorder-alerts", group: "Sales & Inventory" },
+  { label: "Inventory Margin", icon: BarChart3, to: "/srm/inventory/gross-margin", group: "Sales & Inventory" },
+  { label: "Inventory Reconciliation", icon: ShieldCheck, to: "/srm/inventory/reconciliation", group: "Sales & Inventory" },
+  { label: "Complete Inventory Reports", icon: BarChart3, to: "/srm/inventory/reports/complete", group: "Sales & Inventory" },
+  { label: "Inventory & POS Source", icon: FileSearch, to: "/srm/inventory/source", group: "Sales & Inventory" },
+  { label: "Reports", icon: BarChart3, to: "/srm/reports", group: "Insights" },
+  { label: "Settings", icon: Settings, to: "/srm/settings", group: "Admin" },
+];
+
+const famNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/fam/forms", group: "Workspace" },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/fam/dashboard", group: "Finance & Accounting", exact: true },
+  { label: "Company Settings", icon: Settings, to: "/fam/settings", group: "Foundation" },
+  { label: "Financial Years", icon: CalendarDays, to: "/fam/financial-years", group: "Foundation" },
+  { label: "Gantt", icon: CalendarDays, to: "/fam/gantt", group: "Foundation" },
+  { label: "Chart of Accounts", icon: GitBranch, to: "/fam/chart-of-accounts", group: "Chart of Accounts" },
+  { label: "Ledger Groups", icon: Layers3, to: "/fam/ledger-groups", group: "Chart of Accounts" },
+  { label: "Ledgers", icon: FileText, to: "/fam/ledgers", group: "Chart of Accounts" },
+  { label: "Opening Balances", icon: DollarSign, to: "/fam/opening-balances", group: "Books Setup" },
+  { label: "Voucher Types", icon: ScrollText, to: "/fam/voucher-types", group: "Voucher Engine" },
+  { label: "Vouchers", icon: BookOpen, to: "/fam/vouchers", group: "Voucher Engine" },
+  { label: "Journal", icon: FileText, to: "/fam/journal", group: "Voucher Engine" },
+  { label: "Day Book", icon: CalendarDays, to: "/fam/day-book", group: "Books" },
+  { label: "Ledger Entries", icon: ScrollText, to: "/fam/ledger-entries", group: "Books" },
+  { label: "Parties", icon: Users, to: "/fam/parties", group: "Parties" },
+  { label: "Customers", icon: Users, to: "/fam/customers", group: "Parties" },
+  { label: "Vendors", icon: Users, to: "/fam/vendors", group: "Parties" },
+  { label: "AR Aging", icon: DollarSign, to: "/fam/ar/aging", group: "Receivables" },
+  { label: "AR Outstanding", icon: DollarSign, to: "/fam/ar/outstanding", group: "Receivables" },
+  { label: "AP Aging", icon: Landmark, to: "/fam/ap/aging", group: "Payables" },
+  { label: "AP Outstanding", icon: Landmark, to: "/fam/ap/outstanding", group: "Payables" },
+  { label: "Purchases", icon: Landmark, to: "/fam/purchases", group: "Purchases" },
+  { label: "Purchase Bills", icon: FileText, to: "/fam/purchase-bills", group: "Purchases" },
+  { label: "Expenses", icon: DollarSign, to: "/fam/expenses", group: "Purchases" },
+  { label: "TDS", icon: ShieldCheck, to: "/fam/tds", group: "Purchases" },
+  { label: "Purchase Register", icon: BookOpen, to: "/fam/purchase-register", group: "Purchases" },
+  { label: "Expense Register", icon: BookOpen, to: "/fam/expense-register", group: "Purchases" },
+  { label: "Vendor Payments", icon: Landmark, to: "/fam/vendor-payments", group: "Payables" },
+  { label: "Payables Dashboard", icon: BarChart3, to: "/fam/payables/dashboard", group: "Payables" },
+  { label: "Bill References", icon: FileText, to: "/fam/bill-references", group: "Bill-wise" },
+  { label: "Bill Allocations", icon: ScrollText, to: "/fam/bill-allocations", group: "Bill-wise" },
+  { label: "SRM Integration", icon: GitBranch, to: "/fam/integrations/srm", group: "SRM Accounting" },
+  { label: "Posting Jobs", icon: RefreshCw, to: "/fam/posting-jobs", group: "SRM Accounting" },
+  { label: "Posting Rules", icon: Settings, to: "/fam/posting-rules", group: "SRM Accounting" },
+  { label: "Banking", icon: Landmark, to: "/fam/banking", group: "Banking" },
+  { label: "Bank Accounts", icon: Landmark, to: "/fam/bank-accounts", group: "Banking" },
+  { label: "Payment Modes", icon: DollarSign, to: "/fam/payment-modes", group: "Banking" },
+  { label: "Bank Statements", icon: FileText, to: "/fam/bank-statements", group: "Banking" },
+  { label: "Reconciliation", icon: ShieldCheck, to: "/fam/bank-reconciliation", group: "Banking" },
+  { label: "Bank Book", icon: BookOpen, to: "/fam/bank-book", group: "Banking" },
+  { label: "Cash Book", icon: BookOpen, to: "/fam/cash-book", group: "Banking" },
+  { label: "Contra", icon: RefreshCw, to: "/fam/contra", group: "Banking" },
+  { label: "Bank Charges", icon: DollarSign, to: "/fam/bank-charges", group: "Banking" },
+  { label: "India GST", icon: ShieldCheck, to: "/fam/gst", group: "GST" },
+  { label: "UAE tax", icon: ShieldCheck, to: "/fam/uae-tax", group: "GST" },
+  { label: "Transaction locking", icon: LockKeyhole, to: "/fam/transaction-locking", group: "Accounting" },
+  { label: "Financial statements", icon: BookOpen, to: "/fam/financial-statements", group: "Accounting" },
+  { label: "Recurring bills & expenses", icon: RefreshCw, to: "/fam/recurring-purchases", group: "Purchases" },
+  { label: "Bank transaction rules", icon: Settings, to: "/fam/bank-rules", group: "Banking" },
+  { label: "GST Settings", icon: Settings, to: "/fam/gst/settings", group: "GST" },
+  { label: "Registrations", icon: Landmark, to: "/fam/gst/registrations", group: "GST" },
+  { label: "GST Rates", icon: DollarSign, to: "/fam/gst/rates", group: "GST" },
+  { label: "HSN/SAC", icon: FileText, to: "/fam/gst/hsn-sac", group: "GST" },
+  { label: "Sales Register", icon: BookOpen, to: "/fam/gst/sales-register", group: "GST" },
+  { label: "Purchase Register", icon: BookOpen, to: "/fam/gst/purchase-register", group: "GST" },
+  { label: "GSTR-1", icon: FileText, to: "/fam/gst/gstr1", group: "GST" },
+  { label: "GSTR-3B", icon: FileText, to: "/fam/gst/gstr3b", group: "GST" },
+  { label: "GST Reconciliation", icon: ShieldCheck, to: "/fam/gst/reconciliation", group: "GST" },
+  { label: "E-Invoice", icon: FileText, to: "/fam/gst/einvoice", group: "GST" },
+  { label: "E-Way Bill", icon: FileText, to: "/fam/gst/ewaybill", group: "GST" },
+  { label: "Cost Centers", icon: Building2, to: "/fam/cost-centers", group: "Dimensions" },
+  { label: "Branches", icon: Landmark, to: "/fam/branches", group: "Dimensions" },
+  { label: "Audit", icon: ScrollText, to: "/fam/audit", group: "Governance" },
+];
+
+const aiAgentsNav: RoleNavItem[] = [
+  { label: "Dashboard", icon: Sparkles, to: "/ai-agents", group: "AI Agents", exact: true },
+  { label: "Chat", icon: MessageCircle, to: "/ai-agents", group: "AI Agents" },
+  { label: "Approvals", icon: FileCheck2, to: "/ai-agents/approvals", group: "AI Agents" },
+  { label: "Analytics", icon: BarChart3, to: "/ai-agents/analytics", group: "AI Agents" },
+  { label: "Usage", icon: Gauge, to: "/ai-agents/usage", group: "AI Agents" },
+  { label: "Security", icon: ShieldCheck, to: "/ai-agents/security", group: "AI Agents" },
+  { label: "Permissions", icon: SlidersHorizontal, to: "/ai-agents/security/permissions", group: "AI Agents" },
+  { label: "Feedback", icon: HeartPulse, to: "/ai-agents/feedback", group: "AI Agents" },
+  { label: "Handoff Notes", icon: Inbox, to: "/ai-agents/handoff", group: "AI Agents" },
+  { label: "Configuration", icon: Settings, to: "/ai-agents/config", group: "AI Agents" },
+  { label: "Logs", icon: ScrollText, to: "/ai-agents/logs", group: "AI Agents" },
+  { label: "CRM", icon: Briefcase, to: "/crm", group: "Applications", exact: true },
+  { label: "PMS", icon: Target, to: "/pms", group: "Applications", exact: true },
+  { label: "SRM", icon: Receipt, to: "/srm", group: "Applications", exact: true },
+  { label: "FAM", icon: Landmark, to: "/fam", group: "Applications", exact: true },
+  { label: "HRMS", icon: Building2, to: "/hrms", group: "Applications", exact: true },
+];
+
+const aiCopilotNav: RoleNavItem[] = [
+  { label: "Copilot", icon: Sparkles, to: "/ai/copilot", group: "AI Copilot", exact: true },
+  { label: "Record Summary", icon: FileText, to: "/ai/record-summary", group: "AI Copilot" },
+  { label: "Deal Coach", icon: Target, to: "/ai/deal-coach", group: "AI Copilot" },
+  { label: "Forecast", icon: Gauge, to: "/ai/forecast", group: "AI Copilot" },
+  { label: "Collection Risk", icon: ShieldCheck, to: "/ai/collection-risk", group: "AI Copilot" },
+  { label: "Workflow Draft", icon: GitBranch, to: "/ai/workflow-builder", group: "AI Copilot" },
+  { label: "Report Explainer", icon: BarChart3, to: "/ai/report-explainer", group: "AI Copilot" },
+  { label: "Prompt Templates", icon: FileText, to: "/ai/prompt-templates", group: "Admin" },
+  { label: "Provider Settings", icon: Settings, to: "/ai/provider-settings", group: "Admin" },
+  { label: "Action Log", icon: ScrollText, to: "/ai/action-log", group: "Admin" },
+  { label: "CRM", icon: Briefcase, to: "/crm", group: "Applications", exact: true },
+  { label: "PMS", icon: Target, to: "/pms", group: "Applications", exact: true },
+  { label: "SRM", icon: Receipt, to: "/srm", group: "Applications", exact: true },
+  { label: "FAM", icon: Landmark, to: "/fam", group: "Applications", exact: true },
+];
+
+const saasNav: RoleNavItem[] = [
+  { label: "Mobile CRM", icon: Smartphone, to: "/mobile", group: "Mobile", exact: true },
+  { label: "Check-In", icon: CheckCircle2, to: "/mobile/check-in", group: "Mobile" },
+  { label: "Developer Hub", icon: Code2, to: "/developer", group: "Developer", exact: true },
+  { label: "API Keys", icon: KeyRound, to: "/developer/api-keys", group: "Developer" },
+  { label: "Webhooks", icon: Webhook, to: "/developer/webhooks", group: "Developer" },
+  { label: "API Logs", icon: ScrollText, to: "/developer/api-logs", group: "Developer" },
+  { label: "Docs", icon: FileText, to: "/developer/docs", group: "Developer" },
+  { label: "Marketplace", icon: Store, to: "/marketplace/apps", group: "Marketplace" },
+  { label: "Installed Apps", icon: Package, to: "/marketplace/installed", group: "Marketplace" },
+  { label: "Sandbox", icon: ShieldCheck, to: "/admin/sandbox", group: "SaaS Admin" },
+  { label: "Company Settings", icon: Settings, to: "/admin/company-settings", group: "SaaS Admin" },
+  { label: "Feature Flags", icon: SlidersHorizontal, to: "/admin/feature-flags", group: "SaaS Admin" },
+  { label: "Subscription", icon: Landmark, to: "/admin/subscription", group: "SaaS Admin" },
+  { label: "Usage", icon: Gauge, to: "/admin/usage", group: "SaaS Admin" },
+];
+
+const adminSecurityNav: RoleNavItem[] = [
+  { label: "Security Center", icon: ShieldCheck, to: "/admin/security", group: "Admin Governance", exact: true },
+  { label: "Profiles", icon: Users, to: "/admin/profiles", group: "Admin Governance" },
+  { label: "Roles", icon: KeyRound, to: "/admin/roles", group: "Admin Governance" },
+  { label: "Field Security", icon: LockKeyhole, to: "/admin/field-security", group: "Data Governance" },
+  { label: "Record Sharing", icon: Network, to: "/admin/record-sharing", group: "Data Governance" },
+  { label: "Data Sharing", icon: SlidersHorizontal, to: "/admin/data-sharing", group: "Data Governance" },
+  { label: "IP Restrictions", icon: ShieldCheck, to: "/admin/ip-restrictions", group: "Security" },
+  { label: "Audit Logs", icon: ScrollText, to: "/admin/audit-logs", group: "Security" },
+  { label: "Import Wizard", icon: Upload, to: "/admin/import", group: "Data Operations" },
+  { label: "Duplicates", icon: GitMerge, to: "/admin/duplicates", group: "Data Operations" },
+  { label: "Export Control", icon: Download, to: "/admin/export-control", group: "Data Operations" },
+  { label: "Backups", icon: DatabaseBackup, to: "/admin/backups", group: "Compliance" },
+  { label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", group: "Compliance" },
+  { label: "Retention", icon: RefreshCw, to: "/admin/data-retention", group: "Compliance" },
+];
+
+function withPrefix(items: RoleNavItem[], prefix: string) {
+  return items.filter(item => item.to !== "/settings").map((item) => ({
+    ...item,
+    to: item.to === "/company" ? "/settings/company-profile" : item.to === prefix || item.to.startsWith(prefix + "/") || item.to.startsWith("/ai-agents") || item.to.startsWith("/admin/") || item.to === "/analytics" ? item.to : `${prefix}${item.to}`,
+  }));
+}
+
+export function getActiveModule(pathname: string) {
+  pathname = moduleContextPath(pathname);
+  const normalizedPathname = pathname.toLowerCase();
+  if (pathname === "/" || pathname === "" || pathname === "/analytics" || pathname.startsWith("/analytics/")) return "suite";
+  if (isAdminSecurityPath(pathname)) return "admin_security";
+  if (pathname === "/admin/signup-requests") return "saas";
+  if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return "saas";
+  if (pathname.startsWith("/ai/")) return "ai_copilot";
+  if (pathname.startsWith("/ai-agents")) return "ai_agents";
+  if (pathname.startsWith("/crm")) return "crm";
+  if (pathname.startsWith("/pms")) return "project_management";
+  if (pathname.startsWith("/srm")) return "srm";
+  if (pathname.startsWith("/fam")) return "fam";
+  return "hrms";
+}
+
+function getHrmsNavForRole(key: RoleKey) {
+  if (key === "admin") return adminNav;
+  if (key === "ceo") return ceoNav;
+  if (key === "manager") return managerNav;
+  if (key === "employee") return employeeNav;
+  return hrNav;
+}
+
+function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
+  const items: RoleNavItem[] = [];
+  if (hasOptionalHrPermission(role, "hr.company_admin")) {
+    items.push({ label: "Company", icon: Building2, to: "/company", group: "Delegated Admin" });
+  }
+  if (hasOptionalHrPermission(role, "hr.workflow_admin")) {
+    items.push({ label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Delegated Admin" });
+  }
+  if (hasOptionalHrPermission(role, "hr.custom_field_admin")) {
+    items.push({ label: "Custom Fields", icon: SlidersHorizontal, to: "/custom-fields", group: "Delegated Admin" });
+  }
+  return items;
+}
+
+export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  pathname = moduleContextPath(pathname);
+  const available = [...getAvailableRoleNav(role, isSuperuser, pathname)];
+  const root = pathname.split("/")[1];
+  if (["crm", "srm", "hrms", "pms", "fam"].includes(root) && available.length && canAccessRoute(`/${root}`, role, isSuperuser)) {
+    available.push({label:"Import data",icon:Upload,to:`/${root}/import-data`,group:"Settings & administration"});
+    if (canAccessRoute(`/${root}/connectors`, role, isSuperuser)) {
+      available.push({label:"Connectors & authorization",icon:KeyRound,to:`/${root}/connectors`,group:"Settings & administration"});
+    }
+  }
+  const categorized = categorizeNavigation(available, getActiveModule(pathname));
+  if (!commonModules.includes(root as CommonModule)) return categorized;
+  const module = root as CommonModule;
+  const shared = categorized.map(item => {
+    const to = commonNavigationHref(item.to, module);
+    const context = commonRouteContext(to);
+    return { ...item, to, ...(context && isCommercialEntity(context.entity) ? { label: context.definition.label, group: "Commercial documents" } : {}) };
+  });
+  const icons = { employees: Users, teams: Users, vendors: Building2, tasks: ListChecks, notes: FileText, contacts: Users, customers: Users, leads: Target, calendar: CalendarDays, "follow-ups": Clock, catalog: Package, quotations: FileText, contracts: FileCheck2, "purchase-orders": Receipt, "sales-orders": Receipt, invoices: DollarSign, "invoice-drafts": FileText, "billing-plans": CalendarDays, collections: DollarSign, engagements: FileCheck2, "payment-requests": DollarSign };
+  for (const entity of Object.keys(commonEntities) as CommonEntity[]) {
+    const to = commonPagePath(entity, module);
+    if (commonEntityModules[entity].includes(module) && canAccessRoute(to, role, isSuperuser) && !shared.some(item => commonRouteContext(item.to)?.entity === entity)) {
+      shared.push({ to, label: commonEntities[entity].label, icon: icons[entity], group: isCommercialEntity(entity) ? "Commercial documents" : "Shared workspace" });
+    }
+  }
+  const unique = shared.filter((item, index) => shared.findIndex(candidate => candidate.to === item.to) === index);
+  return [...unique.filter(item => item.group !== "Commercial documents"), ...commercialEntities.flatMap(entity => unique.filter(item => commonRouteContext(item.to)?.entity === entity))];
+}
+
+function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return [
+    {label:"Dashboard",to:"/admin/control/dashboard",icon:Building2},
+    {label:"Organizations",to:"/admin/control/organizations",icon:Building2},
+    {label:"Users & Access",to:"/admin/access",icon:Users},
+    {label:"Roles & Permissions",to:"/admin/access?tab=Roles",icon:ShieldCheck},
+    {label:"Module Management",to:"/admin/control/modules",icon:Building2},
+    {label:"Security Center",to:"/admin/control/security",icon:ShieldCheck},
+    {label:"Audit Logs",to:"/admin/control/audit",icon:ShieldCheck},
+    {label:"Statistics Audit",to:"/admin/control/statistics",icon:ShieldCheck},
+    ...[["Executive Overview","overview"],["Business Insights","analytics"],["Action Center","actions"],["Subscriptions & Licensing","licensing"],["Feature Management","flags"],["Branding","branding"],["Health Monitor","health"],["Error Center","errors"],["Backup & Recovery","backups"],["Data Governance","governance"],["Support Center","support"],["Module Coverage","coverage"]].map(([label,path])=>({label,to:`/admin/control/enterprise/${path}`,icon:Building2,group:"Enterprise operations"})).filter(item=>!item.to.endsWith("/backups")||isSuperuser),
+    {label:"AI Security",to:"/admin/control/ai-security",icon:ShieldCheck,group:"AI Management"},
+    {label:"Shared Services",to:"/admin/control/services/services",icon:Building2,group:"Shared platform"},
+    {label:"Workflow Builder",to:"/admin/control/services/workflows",icon:Building2,group:"Workflows"},
+    {label:"Execution History",to:"/admin/control/services/executions",icon:ShieldCheck,group:"Workflows"},
+    {label:"Connected Applications",to:"/admin/control/services/connections",icon:Building2,group:"Integrations"},
+    {label:"Delivery Logs",to:"/admin/control/services/delivery",icon:ShieldCheck,group:"Communications"},
+    {label:"Documents & Storage",to:"/admin/control/services/documents",icon:Building2,group:"Data & Configuration"},
+    {label:"Global Settings",to:"/admin/control/services/settings",icon:ShieldCheck,group:"Data & Configuration"},
+  ].filter(item => canAccessRoute(item.to,role,isSuperuser));
+  const access = useAuthStore.getState().user?.access;
+  if (access?.managed && !isSuperuser) {
+    const module = centralModuleForPath(access, pathname);
+    if (module) {
+      if (!access.grants[module.key]?.enabled) return [];
+      const nav = module.key === "crm" ? crmNav : module.key === "project_management" ? projectManagementNav : module.key === "srm" ? srmNav : module.key === "fam" ? famNav : module.key === "hrms" ? adminNav : module.key === "ai" ? [...aiCopilotNav,...aiAgentsNav] : module.key === "security" ? adminSecurityNav : module.key === "saas" ? saasNav : [];
+      return (module.key === "hrms" ? withPrefix(nav, "/hrms") : nav).filter(item => canAccessRoute(item.to, role, isSuperuser));
+    }
+  }
+  const installedApps = getInstalledAppKeys();
+  const key = getRoleKey(role, isSuperuser);
+  const activeModule = getActiveModule(pathname);
+
+  if (activeModule === "crm") {
+    return installedApps.includes("crm") && isCrmRole(role, isSuperuser) ? getCrmNavForRole(role, isSuperuser) : [];
+  }
+
+  if (activeModule === "project_management") {
+    if (!installedApps.includes("project_management")) return [];
+    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => ["/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/tasks-follow-ups", "/pms/notes", "/pms/members", "/pms/people"].includes(item.to) && canAccessRoute(item.to, role, isSuperuser));
+  }
+
+  if (activeModule === "srm") {
+    return installedApps.includes("srm") && isSrmRole(role, isSuperuser) ? getSrmNavForRole(role, isSuperuser) : [];
+  }
+
+  if (activeModule === "fam") {
+    return installedApps.includes("fam") && isFamRole(role, isSuperuser) ? getFamNavForRole(role, isSuperuser) : [];
+  }
+
+  if (activeModule === "ai_agents") {
+    return key === "employee" ? [] : aiAgentsNav;
+  }
+
+  if (activeModule === "ai_copilot") {
+    return canAccessAiCopilotPath(pathname, role, isSuperuser)
+      ? aiCopilotNav.filter((item) => canAccessAiCopilotPath(item.to, role, isSuperuser) || ["Applications"].includes(item.group || ""))
+      : [];
+  }
+
+  if (activeModule === "saas") {
+    return saasNav.filter((item) => canAccessSaaSPath(item.to, role, isSuperuser));
+  }
+
+  if (activeModule === "admin_security") {
+    return adminSecurityNav.filter((item) => canAccessAdminSecurityPath(item.to, role, isSuperuser));
+  }
+
+  if (activeModule === "suite") {
+    const suiteNav: RoleNavItem[] = [];
+    if (canAccessAnalyticsPath("/analytics", role, isSuperuser)) {
+      suiteNav.push({ label: "Business Analytics", icon: BarChart3, to: "/analytics", group: "Suite tools" });
+    }
+    if (installedApps.includes("hrms") && isHrmsRole(role, isSuperuser)) {
+      suiteNav.push({ label: "AI HRMS", icon: Building2, to: "/hrms", group: "Applications", exact: true });
+    }
+    if (installedApps.includes("crm") && isCrmRole(role, isSuperuser)) {
+      suiteNav.push({ label: "VyaparaCRM", icon: Briefcase, to: "/crm", group: "Applications", exact: true });
+    }
+    if (installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser)) {
+      suiteNav.push({ label: "KaryaFlow", icon: Target, to: "/pms", group: "Applications", exact: true });
+    }
+    if (installedApps.includes("srm") && isSrmRole(role, isSuperuser)) {
+      suiteNav.push({ label: "Sales & Inventory", icon: Receipt, to: "/srm", group: "Applications", exact: true });
+    }
+    if (installedApps.includes("fam") && isFamRole(role, isSuperuser)) {
+      suiteNav.push({ label: "FinanceFlow", icon: Landmark, to: "/fam", group: "Applications", exact: true });
+    }
+    if (key !== "employee") {
+      suiteNav.push({ label: "Business OS", icon: Network, to: "/business-os", group: "Applications", exact: true });
+    }
+    if (key === "admin" || isSuperuser) {
+      suiteNav.push({ label: "Business OS Admin", icon: Network, to: "/admin/business-os/modules", group: "Applications", exact: true });
+    }
+    if (key !== "employee") {
+      suiteNav.push({ label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "Applications", badge: "AI", exact: true });
+    }
+    if (isAiCopilotRole(role, isSuperuser)) {
+      suiteNav.push({ label: "AI Copilot", icon: Sparkles, to: "/ai/copilot", group: "Applications", badge: "AI", exact: true });
+    }
+    if (isMobileCrmRole(role, isSuperuser)) {
+      suiteNav.push({ label: "Mobile CRM", icon: Smartphone, to: "/mobile", group: "Applications", exact: true });
+    }
+    if (isDeveloperHubRole(role, isSuperuser)) {
+      suiteNav.push({ label: "Developer Hub", icon: Code2, to: "/developer", group: "Applications", exact: true });
+      suiteNav.push({ label: "Marketplace", icon: Store, to: "/marketplace/apps", group: "Applications", exact: true });
+    }
+    return suiteNav;
+  }
+
+  if (installedApps.includes("hrms") && ["pms_project_manager","pms_org_admin"].includes(normalizeRole(role))) return [{label:"Intern Management",icon:GraduationCap,to:"/hrms/interns",group:"Core HR"}];
+  if (!installedApps.includes("hrms") || !isHrmsRole(role, isSuperuser)) return [];
+  const nav = key === "hr" ? [...getHrmsNavForRole(key), ...getDelegatedHrNav(role)] : getHrmsNavForRole(key);
+  return withPrefix(nav, "/hrms");
+}
+
+const routeAccess: Record<string, RoleKey[]> = {
+ "/my-assignments":["admin","hr","manager","employee"],
+  "/interns": ["admin", "hr", "manager"],
+  "/daily-work": ["admin", "ceo", "hr", "manager", "employee"],
+  "/role-home": ["admin", "ceo", "hr", "manager"],
+  "/admin-home": ["admin"],
+  "/hr-home": ["admin", "hr"],
+  "/executive-home": ["admin", "ceo"],
+  "/dashboard": ["admin", "ceo", "hr", "manager"],
+  "/manager-dashboard": ["admin", "hr", "manager"],
+  "/ess": ["admin", "ceo", "hr", "manager", "employee"],
+  "/profile": ["admin", "ceo", "hr", "manager", "employee"],
+  "/profile-management": ["admin", "hr", "manager"],
+  "/workflow/admin": ["admin", "hr", "manager"],
+  "/approval-os": ["admin", "ceo", "hr", "manager", "employee"],
+  "/workflow": ["admin", "ceo", "hr", "manager", "employee"],
+  "/workflow-designer": ["admin"],
+  "/notifications": ["admin", "ceo", "hr", "manager"],
+  "/attendance/shift-roster": ["admin", "hr", "manager"],
+  "/attendance": ["admin", "hr", "manager"],
+  "/my-attendance": ["admin", "hr", "manager", "employee"],
+  "/my-roster": ["admin", "hr", "manager", "employee"],
+  "/timesheets": ["admin", "ceo", "hr", "manager"],
+  "/leave": ["admin", "hr", "manager", "employee"],
+  "/payroll": ["admin", "ceo", "hr"],
+  "/my-payslips": ["admin", "hr", "employee"],
+  "/investment-declaration": ["admin", "ceo", "hr"],
+  "/fnf-settlements": ["admin", "ceo", "hr"],
+  "/benefits": ["admin", "ceo", "hr"],
+  "/performance": ["admin", "ceo", "hr", "manager"],
+  "/lms": ["admin", "ceo", "hr", "manager"],
+  "/statutory-compliance": ["admin", "ceo", "hr"],
+  "/background-verification": ["admin", "hr"],
+  "/whatsapp-ess": ["admin", "hr"],
+  "/custom-fields": ["admin"],
+  "/enterprise": ["admin"],
+  "/engagement": ["admin", "ceo", "hr", "manager"],
+  "/helpdesk": ["admin", "hr", "manager", "employee"],
+  "/documents": ["admin", "hr", "employee"],
+  "/letters-certificates": ["admin", "hr"],
+  "/employee-directory": ["admin", "ceo", "hr", "manager"],
+  "/employees/new": ["admin", "hr"],
+  "/employees": ["admin", "ceo", "hr", "manager"],
+  "/probation": ["admin", "ceo", "hr", "manager"],
+  "/reports": ["admin", "ceo", "hr", "manager"],
+  "/advanced-analytics": ["admin", "ceo", "hr", "manager"],
+  "/logs": ["admin"],
+  "/recruitment": ["admin", "hr", "manager"],
+  "/company": ["admin", "ceo"],
+  "/org-chart": ["admin", "ceo", "hr", "manager"],
+  "/settings": ["admin"],
+  "/assets": ["admin", "hr", "manager"],
+  "/expenses": ["admin", "ceo", "hr", "manager", "employee"],
+  "/onboarding": ["admin", "hr"],
+  "/exit": ["admin", "hr"],
+  "/ai-assistant": ["admin", "ceo", "hr", "manager"],
+  "/ai-agents": ["admin", "ceo", "hr", "manager"],
+  "/crm": ["admin", "ceo", "hr", "manager"],
+  "/pms": ["admin", "ceo", "hr", "manager", "employee"],
+  "/srm": ["admin", "ceo", "hr", "manager"],
+  "/fam": ["admin", "ceo", "hr", "manager"],
+};
+
+export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false): boolean {
+  if (pathname.startsWith("/common/")) {
+    const context = commonRouteContext(pathname);
+    return Boolean(context && canAccessRoute(context.contextPath, role, isSuperuser) && canAccessRoute(context.nativePath, role, isSuperuser));
+  }
+  pathname = pathname.split(/[?#]/)[0];
+  if (pathname.replace(/\/+$/, '') === '/srm/restaurant-kitchen' && !restaurantKitchenNavigation()) return false;
+  if (pathname.replace(/\/+$/, '') === '/srm/accounts-periods' && !accountsPeriodsNavigation()) return false;
+  if (pathname.replace(/\/+$/, '') === '/srm/construction' && !constructionNavigation()) return false;
+  if (pathname === "/employee-directory") pathname = "/hrms/employee-directory";
+  const directoryRoute = ["/hrms/employee-directory", "/employee-directory"].includes(pathname);
+  const directoryIdentity = useAuthStore.getState().user;
+  // Module display aliases are presentation roles; the directory API uses the
+  // authenticated account role. Preserve explicit role checks for other actors.
+  const directoryRole = directoryIdentity && directoryIdentity.role === role && directoryIdentity.primary_role !== undefined
+    ? directoryIdentity.primary_role : role;
+  if (directoryRoute && !canExplorePeopleDirectory(directoryRole, isSuperuser)) return false;
+  const featureUser={access:useAuthStore.getState().user?.access,is_superuser:isSuperuser};
+  if(/^\/crm\/(?:communication-hub|send-reminders|emails|webforms|campaigns|consents|whatsapp|auto-responses|delivery-logs|communication-timeline)(?:\/|$)/.test(pathname) && !canUseFeature(featureUser,"communication"))return false;
+  if(/^\/(?:(?:crm|srm|hrms|pms|fam)\/)?connectors\/?$/.test(pathname) && !canUseFeature(featureUser,"power_apps","power_apps_view"))return false;
+  if (/^\/(crm|srm|hrms|fam)\/workspaces\/?$/.test(pathname)) return canAccessRoute("/" + pathname.split("/")[1], role, isSuperuser);
+  if (pathname === "/connectors") return true;
+  if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
+  if (pathname === "/admin/signup-requests") return Boolean(isSuperuser);
+  if (/^\/(crm|srm|hrms|pms|fam)\/import-data\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
+  if (["/dashboard", "/account", "/notifications", "/help"].includes(pathname.split(/[?#]/)[0])) return true;
+  const access = useAuthStore.getState().user?.access;
+  if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return isSuperuser || Boolean(access?.isAccessAdmin);
+  if (pathname === "/power-apps" || pathname.startsWith("/power-apps/")) {
+    if (access?.companyDisabledModules?.includes("power_apps")) return false;
+    const grant = access?.grants.power_apps;
+    return isSuperuser || Boolean(grant?.enabled && grant.permissions.includes("power_apps_view"));
+  }
+  const companyModule = access ? centralModuleForPath(access, pathname) : undefined;
+  if (companyModule && access?.companyDisabledModules?.includes(companyModule.key)) return false;
+  if (access?.managed && !isSuperuser) {
+    const module = centralModuleForPath(access, pathname);
+    if (module) return Boolean(access.grants[module.key]?.enabled) && (!["hrms","crm","project_management","srm","fam","ai"].includes(module.key) || isFrontendModuleEnabled(module.key));
+  }
+  if (directoryRoute) return true;
+  if (["/pms/people", "/pms/directory"].includes(pathname)) return isSuperuser || ["admin", "ceo", "hr", "manager"].includes(getRoleKey(role)) || normalizeRole(role) === "pms_org_admin";
+  // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
+  if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;
+  const lowercasePathname = pathname.toLowerCase();
+  if (pathname === "/") return true;
+  if (pathname === "/company-admin") return true;
+  if (pathname.startsWith("/crm") && !isFrontendModuleEnabled("crm")) return false;
+  if (pathname.startsWith("/pms") && !isFrontendModuleEnabled("project_management")) return false;
+  if (pathname.startsWith("/srm") && !isFrontendModuleEnabled("srm")) return false;
+  if (pathname.startsWith("/fam") && !isFrontendModuleEnabled("fam")) return false;
+  if (pathname.startsWith("/hrms") && !isFrontendModuleEnabled("hrms")) return false;
+  if ((pathname === "/ai" || pathname.startsWith("/ai/") || pathname.startsWith("/ai-agents")) && !isFrontendModuleEnabled("ai")) return false;
+  if (/^\/(pms|crm|srm|hrms|fam)\/forms(?:\/|$)/.test(pathname)) {
+    const key=pathname.split("/")[1];
+    return key==="pms" ? true : key==="crm" ? isCrmRole(role,isSuperuser) : key==="srm" ? isSrmRole(role,isSuperuser) : key==="fam" ? isFamRole(role,isSuperuser) : isHrmsRole(role,isSuperuser);
+  }
+  if (isAdminSecurityPath(pathname)) return canAccessAdminSecurityPath(pathname, role, isSuperuser);
+  if (pathname === "/business-os" || pathname.startsWith("/business-os/")) return getRoleKey(role, isSuperuser) !== "employee";
+  if (pathname === "/admin/automation" || pathname.startsWith("/admin/automation/")) return isAutomationAdminRole(role, isSuperuser);
+  if (pathname.startsWith("/admin/business-os")) return isSuperuser || ["super_admin", "admin", "fam_admin", "crm_org_admin", "crm_super_admin"].includes(normalizeRole(role));
+  if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return canAccessSaaSPath(pathname, role, isSuperuser);
+  if (pathname === "/ai" || pathname.startsWith("/ai/")) return canAccessAiCopilotPath(pathname === "/ai" ? "/ai/copilot" : pathname, role, isSuperuser);
+  if (pathname === "/admin/customization" || pathname.startsWith("/admin/customization/")) {
+    if (!isCustomizationRole(role, isSuperuser)) return false;
+    if (normalizeRole(role) === "srm_business_owner" || normalizeRole(role) === "ceo") {
+      return pathname === "/admin/customization" || pathname === "/admin/customization/modules";
+    }
+    return isCustomizationAdminRole(role, isSuperuser);
+  }
+  if (pathname === "/analytics" || pathname.startsWith("/analytics/")) return canAccessAnalyticsPath(pathname, role, isSuperuser);
+  // Self-service entry; every suite API still enforces ai_assistant and domain
+  // permissions. Keep administrative AI pages under their existing role gate.
+  if (pathname === "/ai-agents/operator") return true;
+  if (pathname.startsWith("/ai-agents")) return getRoleKey(role, isSuperuser) !== "employee";
+  if (pathname === "/hrms") return isHrmsRole(role, isSuperuser);
+  if (pathname.startsWith("/crm")) return canAccessCrmPath(pathname, role, isSuperuser);
+  if (pathname.startsWith("/pms")) return canAccessPmsPath(pathname, role, isSuperuser);
+  if (pathname.startsWith("/srm")) return canAccessSrmPath(pathname, role, isSuperuser);
+  if (pathname.startsWith("/fam")) return canAccessFamPath(pathname, role, isSuperuser);
+  if (/^\/hrms\/interns(?:\/|$)/.test(pathname) && ["pms_project_manager","pms_org_admin"].includes(normalizeRole(role))) return true;
+  if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
+  const normalizedPathname = pathname.startsWith("/hrms/")
+    ? pathname.replace(/^\/hrms/, "")
+    : pathname;
+  const key = getRoleKey(role, isSuperuser);
+  const match = Object.keys(routeAccess)
+    .sort((a, b) => b.length - a.length)
+    .find((path) => normalizedPathname === path || normalizedPathname.startsWith(`${path}/`));
+  if (!match) return key === "admin" || isSuperuser;
+  if (key === "hr") {
+    if (match === "/company") return hasOptionalHrPermission(role, "hr.company_admin");
+    if (match === "/workflow-designer") return hasOptionalHrPermission(role, "hr.workflow_admin");
+    if (match === "/custom-fields") return hasOptionalHrPermission(role, "hr.custom_field_admin");
+  }
+  return routeAccess[match].includes(key);
+}
+
+export function getRequiredPermissionForPath(pathname: string) {
+  const lowercasePathname = pathname.toLowerCase();
+  const normalizedPathname = pathname.startsWith("/hrms/")
+    ? pathname.replace(/^\/hrms/, "")
+    : pathname;
+  const match = Object.keys(routeAccess)
+    .sort((a, b) => b.length - a.length)
+    .find((path) => normalizedPathname === path || normalizedPathname.startsWith(`${path}/`));
+
+  if (match === "/company") return "hr.company_admin or Admin";
+  if (match === "/approval-os") return "Approval OS";
+  if (match === "/workflow-designer") return "hr.workflow_admin or Admin";
+  if (match === "/custom-fields") return "hr.custom_field_admin or Admin";
+  if (match === "/workflow/admin") return "Approval Administration";
+  if (match === "/payroll") return "Payroll Operations";
+  if (match === "/attendance") return "Attendance Register";
+  if (match === "/attendance/shift-roster") return "Shift Roster Administration";
+  if (match) return routeAccess[match].map((role) => role.toUpperCase()).join(", ");
+  if (pathname === "/ai" || pathname.startsWith("/ai/")) return "AI Copilot Access";
+  if (pathname.startsWith("/ai-agents")) return "AI Agents Access";
+  if (pathname.startsWith("/business-os")) return "Business OS Access";
+  if (pathname.startsWith("/admin/business-os")) return "Business OS Admin";
+  if (pathname.startsWith("/srm")) return "SRM Access";
+  if (pathname.startsWith("/fam")) return "FAM Access";
+  if (isAdminSecurityPath(pathname)) return "Enterprise Admin Security";
+  return "Admin";
+}
+
+export function getSearchPlaceholder(role?: string | null, isSuperuser = false) {
+  const key = getRoleKey(role, isSuperuser);
+  if (key === "ceo") return "Search KPIs, payroll, reports...";
+  if (key === "manager") return "Search team, leave, goals...";
+  if (key === "employee") return "Search payslips, policies, tickets...";
+  return "Search employees, documents, payroll...";
+}
+
+
+

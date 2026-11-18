@@ -1,0 +1,16 @@
+/* Business group colors apply only when a row has no explicit priority tint. */
+[data-record-group-tone=blue] { --record-group-accent:#2866bc; --record-group-bg:#f0f6ff; --record-group-hover:#e3eeff; }
+[data-record-group-tone=purple] { --record-group-accent:#7150bf; --record-group-bg:#f7f2ff; --record-group-hover:#ede3ff; }
+[data-record-group-tone=green] { --record-group-accent:#21845b; --record-group-bg:#eefaf3; --record-group-hover:#dff3e8; }
+[data-record-group-tone=amber] { --record-group-accent:#986309; --record-group-bg:#fffaeb; --record-group-hover:#fff0cf; }
+[data-record-group-tone=red] { --record-group-accent:#c03444; --record-group-bg:#fff2f4; --record-group-hover:#ffe2e7; }
+[data-record-group-tone=pink] { --record-group-accent:#bb1762; --record-group-bg:#fff2f8; --record-group-hover:#ffe1ef; }
+[data-record-group-tone=brown] { --record-group-accent:#946f60; --record-group-bg:#faf4f0; --record-group-hover:#f1e5dc; }
+[data-record-group-tone=gray] { --record-group-accent:#626977; --record-group-bg:#f5f6f8; --record-group-hover:#e9ecf1; }
+[data-record-group-tone][data-record-group-field][data-record-group-value]:not([data-priority-row="true"][data-priority]),
+[data-record-group-tone][data-record-group-field][data-record-group-value]:not([data-priority-row="true"][data-priority]) > :is(td,th,[role=gridcell],[role=cell]) { background:var(--record-group-bg)!important; }
+[data-record-group-tone][data-record-group-field][data-record-group-value]:not([data-priority-row="true"][data-priority]):hover,
+[data-record-group-tone][data-record-group-field][data-record-group-value]:not([data-priority-row="true"][data-priority]):hover > :is(td,th,[role=gridcell],[role=cell]) { background:var(--record-group-hover)!important; }
+[data-record-group-tone][data-record-group-field][data-record-group-value]:not([data-priority-row="true"][data-priority]) > :is(td,[role=gridcell]):first-child { box-shadow:inset 3px 0 var(--record-group-accent); }
+[data-record-group-tone][aria-selected=true], [data-record-group-tone]:has(>td:first-child input:checked) { outline:2px solid #8856d9; outline-offset:-2px; }
+.dark [data-record-group-tone][data-record-group-field] { --record-group-bg:color-mix(in srgb,var(--record-group-accent) 14%,hsl(var(--card))); --record-group-hover:color-mix(in srgb,var(--record-group-accent) 24%,hsl(var(--card))); }

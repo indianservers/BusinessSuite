@@ -1,0 +1,892 @@
+{
+  "stock": [
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P01",
+      "id": 17,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P02",
+      "id": 18,
+      "received": "10",
+      "sold": "4.50",
+      "expected": "5.50",
+      "actual": "5.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P03",
+      "id": 19,
+      "received": "10",
+      "sold": "8",
+      "expected": "2",
+      "actual": "2.0",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P04",
+      "id": 20,
+      "received": "10",
+      "sold": "2.50",
+      "expected": "7.50",
+      "actual": "7.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P05",
+      "id": 21,
+      "received": "10",
+      "sold": "6",
+      "expected": "4",
+      "actual": "4.0",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P06",
+      "id": 22,
+      "received": "10",
+      "sold": "6.50",
+      "expected": "3.50",
+      "actual": "3.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P07",
+      "id": 23,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P08",
+      "id": 24,
+      "received": "10",
+      "sold": "6.50",
+      "expected": "3.50",
+      "actual": "3.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P09",
+      "id": 25,
+      "received": "10",
+      "sold": "8.50",
+      "expected": "1.50",
+      "actual": "1.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P10",
+      "id": 26,
+      "received": "10",
+      "sold": "4.50",
+      "expected": "5.50",
+      "actual": "5.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P11",
+      "id": 27,
+      "received": "10",
+      "sold": "6.50",
+      "expected": "3.50",
+      "actual": "3.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P12",
+      "id": 28,
+      "received": "10",
+      "sold": "8.50",
+      "expected": "1.50",
+      "actual": "1.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P13",
+      "id": 29,
+      "received": "10",
+      "sold": "4.50",
+      "expected": "5.50",
+      "actual": "5.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P14",
+      "id": 30,
+      "received": "10",
+      "sold": "6.50",
+      "expected": "3.50",
+      "actual": "3.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P15",
+      "id": 31,
+      "received": "10",
+      "sold": "8.50",
+      "expected": "1.50",
+      "actual": "1.5",
+      "low_stock": true
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P16",
+      "id": 32,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P17",
+      "id": 33,
+      "received": "10",
+      "sold": "4.50",
+      "expected": "5.50",
+      "actual": "5.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P18",
+      "id": 34,
+      "received": "10",
+      "sold": "5.50",
+      "expected": "4.50",
+      "actual": "4.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P19",
+      "id": 35,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P20",
+      "id": 36,
+      "received": "10",
+      "sold": "4.50",
+      "expected": "5.50",
+      "actual": "5.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P21",
+      "id": 37,
+      "received": "10",
+      "sold": "5.50",
+      "expected": "4.50",
+      "actual": "4.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P22",
+      "id": 38,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P23",
+      "id": 39,
+      "received": "10",
+      "sold": "2.50",
+      "expected": "7.50",
+      "actual": "7.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P24",
+      "id": 40,
+      "received": "10",
+      "sold": "5",
+      "expected": "5",
+      "actual": "5.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P25",
+      "id": 41,
+      "received": "10",
+      "sold": "1.50",
+      "expected": "8.50",
+      "actual": "8.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P26",
+      "id": 42,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P27",
+      "id": 43,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P28",
+      "id": 44,
+      "received": "10",
+      "sold": "3",
+      "expected": "7",
+      "actual": "7.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P29",
+      "id": 45,
+      "received": "10",
+      "sold": "2.50",
+      "expected": "7.50",
+      "actual": "7.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P30",
+      "id": 46,
+      "received": "10",
+      "sold": "5",
+      "expected": "5",
+      "actual": "5.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P31",
+      "id": 47,
+      "received": "10",
+      "sold": "1.50",
+      "expected": "8.50",
+      "actual": "8.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P32",
+      "id": 48,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P33",
+      "id": 49,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P34",
+      "id": 50,
+      "received": "10",
+      "sold": "3",
+      "expected": "7",
+      "actual": "7.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P35",
+      "id": 51,
+      "received": "10",
+      "sold": "2.50",
+      "expected": "7.50",
+      "actual": "7.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P36",
+      "id": 52,
+      "received": "10",
+      "sold": "5",
+      "expected": "5",
+      "actual": "5.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P37",
+      "id": 53,
+      "received": "10",
+      "sold": "1.50",
+      "expected": "8.50",
+      "actual": "8.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P38",
+      "id": 54,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P39",
+      "id": 55,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P40",
+      "id": 56,
+      "received": "10",
+      "sold": "3",
+      "expected": "7",
+      "actual": "7.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P41",
+      "id": 57,
+      "received": "10",
+      "sold": "2.50",
+      "expected": "7.50",
+      "actual": "7.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P42",
+      "id": 58,
+      "received": "10",
+      "sold": "5",
+      "expected": "5",
+      "actual": "5.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P43",
+      "id": 59,
+      "received": "10",
+      "sold": "1.50",
+      "expected": "8.50",
+      "actual": "8.5",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P44",
+      "id": 60,
+      "received": "10",
+      "sold": "4",
+      "expected": "6",
+      "actual": "6.0",
+      "low_stock": false
+    },
+    {
+      "sku": "QA-LIVE-20261118-STOCK-P45",
+      "id": 61,
+      "received": "10",
+      "sold": "3.50",
+      "expected": "6.50",
+      "actual": "6.5",
+      "low_stock": false
+    }
+  ],
+  "low_stock_count": 12,
+  "reports": {
+    "context": {
+      "organization_id": 1,
+      "timezone": "Asia/Kolkata",
+      "as_of": "2026-11-18T13:25:43.181690+00:00",
+      "business_date": "2026-11-18",
+      "cache_policy": "no-store",
+      "period": "current snapshot"
+    },
+    "currency_policy": "No conversion; unlike or unknown currencies have no scalar total. Latest profitability snapshot per engagement only.",
+    "sales_order_report": {
+      "count": 60
+    },
+    "contract_report": {
+      "count": 0
+    },
+    "invoice_register": {
+      "count": 60,
+      "total": 195.0,
+      "by_currency": [
+        {
+          "currency": "INR",
+          "amount": "195.00"
+        }
+      ]
+    },
+    "recurring_invoice_details": [],
+    "invoice_aging": [],
+    "collection_aging": [],
+    "customer_outstanding": {
+      "total_outstanding": 0.0,
+      "by_currency": [
+        {
+          "currency": "INR",
+          "amount": "0"
+        }
+      ],
+      "customers": []
+    },
+    "engagement_profitability": [],
+    "project_profitability": [],
+    "customer_profitability": [],
+    "lead_to_cash_report": {
+      "definition": "Independent scoped record volumes; these are not matched cohort conversion rates",
+      "crm_won_to_sales_order": 60,
+      "sales_order_to_engagement": 0,
+      "engagement_to_invoice": 60,
+      "invoice_to_collection": 60
+    },
+    "sales_to_delivery_margin": {
+      "gross_margin_total": 0.0,
+      "by_currency": []
+    },
+    "cash_margin_report": {
+      "collected_total": 195.0,
+      "collected_by_currency": [
+        {
+          "currency": "INR",
+          "amount": "195.00"
+        }
+      ],
+      "cash_margin_total": 0.0,
+      "by_currency": []
+    }
+  },
+  "register": {
+    "session": {
+      "id": 3,
+      "organization_id": 1,
+      "session_number": "POS-000003",
+      "status": "open",
+      "branch": "Main",
+      "register_name": "QA-LIVE-20261118-STOCK",
+      "cashier_user_id": 1,
+      "opening_cash": 0.0,
+      "expected_cash": 0.0,
+      "counted_cash": 0.0,
+      "cash_variance": 0.0,
+      "opened_at": "2026-11-18T13:04:13.994100+00:00",
+      "closed_at": null,
+      "notes": "TEST ONLY; no physical cash collected; QA-LIVE-20261118-STOCK",
+      "metadata_json": {
+        "cash_currency": "INR"
+      },
+      "created_by": 1,
+      "created_at": "2026-11-18T13:04:13.994100+00:00",
+      "updated_at": null,
+      "deleted_at": null
+    },
+    "cash_intent_version": 119,
+    "sales_count": 60,
+    "cash_sales": 195.0,
+    "cash_in": 0.0,
+    "cash_out": 0.0,
+    "expected_cash": 195.0,
+    "cash_currency": "INR",
+    "cash_by_currency": {
+      "INR": 195.0
+    },
+    "unattributed_cash_count": 0,
+    "reconciliation_required": false,
+    "movements": [],
+    "closing": null
+  },
+  "valuation": {
+    "items": [
+      {
+        "id": 17,
+        "sku": "QA-LIVE-20261118-STOCK-P01",
+        "item_name": "QA-LIVE-20261118-STOCK Product 01",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 18,
+        "sku": "QA-LIVE-20261118-STOCK-P02",
+        "item_name": "QA-LIVE-20261118-STOCK Product 02",
+        "currency": "INR",
+        "current_quantity": 5.5,
+        "stock_value": 2.75
+      },
+      {
+        "id": 19,
+        "sku": "QA-LIVE-20261118-STOCK-P03",
+        "item_name": "QA-LIVE-20261118-STOCK Product 03",
+        "currency": "INR",
+        "current_quantity": 2.0,
+        "stock_value": 1.0
+      },
+      {
+        "id": 20,
+        "sku": "QA-LIVE-20261118-STOCK-P04",
+        "item_name": "QA-LIVE-20261118-STOCK Product 04",
+        "currency": "INR",
+        "current_quantity": 7.5,
+        "stock_value": 3.75
+      },
+      {
+        "id": 21,
+        "sku": "QA-LIVE-20261118-STOCK-P05",
+        "item_name": "QA-LIVE-20261118-STOCK Product 05",
+        "currency": "INR",
+        "current_quantity": 4.0,
+        "stock_value": 2.0
+      },
+      {
+        "id": 22,
+        "sku": "QA-LIVE-20261118-STOCK-P06",
+        "item_name": "QA-LIVE-20261118-STOCK Product 06",
+        "currency": "INR",
+        "current_quantity": 3.5,
+        "stock_value": 1.75
+      },
+      {
+        "id": 23,
+        "sku": "QA-LIVE-20261118-STOCK-P07",
+        "item_name": "QA-LIVE-20261118-STOCK Product 07",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 24,
+        "sku": "QA-LIVE-20261118-STOCK-P08",
+        "item_name": "QA-LIVE-20261118-STOCK Product 08",
+        "currency": "INR",
+        "current_quantity": 3.5,
+        "stock_value": 1.75
+      },
+      {
+        "id": 25,
+        "sku": "QA-LIVE-20261118-STOCK-P09",
+        "item_name": "QA-LIVE-20261118-STOCK Product 09",
+        "currency": "INR",
+        "current_quantity": 1.5,
+        "stock_value": 0.75
+      },
+      {
+        "id": 26,
+        "sku": "QA-LIVE-20261118-STOCK-P10",
+        "item_name": "QA-LIVE-20261118-STOCK Product 10",
+        "currency": "INR",
+        "current_quantity": 5.5,
+        "stock_value": 2.75
+      },
+      {
+        "id": 27,
+        "sku": "QA-LIVE-20261118-STOCK-P11",
+        "item_name": "QA-LIVE-20261118-STOCK Product 11",
+        "currency": "INR",
+        "current_quantity": 3.5,
+        "stock_value": 1.75
+      },
+      {
+        "id": 28,
+        "sku": "QA-LIVE-20261118-STOCK-P12",
+        "item_name": "QA-LIVE-20261118-STOCK Product 12",
+        "currency": "INR",
+        "current_quantity": 1.5,
+        "stock_value": 0.75
+      },
+      {
+        "id": 29,
+        "sku": "QA-LIVE-20261118-STOCK-P13",
+        "item_name": "QA-LIVE-20261118-STOCK Product 13",
+        "currency": "INR",
+        "current_quantity": 5.5,
+        "stock_value": 2.75
+      },
+      {
+        "id": 30,
+        "sku": "QA-LIVE-20261118-STOCK-P14",
+        "item_name": "QA-LIVE-20261118-STOCK Product 14",
+        "currency": "INR",
+        "current_quantity": 3.5,
+        "stock_value": 1.75
+      },
+      {
+        "id": 31,
+        "sku": "QA-LIVE-20261118-STOCK-P15",
+        "item_name": "QA-LIVE-20261118-STOCK Product 15",
+        "currency": "INR",
+        "current_quantity": 1.5,
+        "stock_value": 0.75
+      },
+      {
+        "id": 32,
+        "sku": "QA-LIVE-20261118-STOCK-P16",
+        "item_name": "QA-LIVE-20261118-STOCK Product 16",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 33,
+        "sku": "QA-LIVE-20261118-STOCK-P17",
+        "item_name": "QA-LIVE-20261118-STOCK Product 17",
+        "currency": "INR",
+        "current_quantity": 5.5,
+        "stock_value": 2.75
+      },
+      {
+        "id": 34,
+        "sku": "QA-LIVE-20261118-STOCK-P18",
+        "item_name": "QA-LIVE-20261118-STOCK Product 18",
+        "currency": "INR",
+        "current_quantity": 4.5,
+        "stock_value": 2.25
+      },
+      {
+        "id": 35,
+        "sku": "QA-LIVE-20261118-STOCK-P19",
+        "item_name": "QA-LIVE-20261118-STOCK Product 19",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 36,
+        "sku": "QA-LIVE-20261118-STOCK-P20",
+        "item_name": "QA-LIVE-20261118-STOCK Product 20",
+        "currency": "INR",
+        "current_quantity": 5.5,
+        "stock_value": 2.75
+      },
+      {
+        "id": 37,
+        "sku": "QA-LIVE-20261118-STOCK-P21",
+        "item_name": "QA-LIVE-20261118-STOCK Product 21",
+        "currency": "INR",
+        "current_quantity": 4.5,
+        "stock_value": 2.25
+      },
+      {
+        "id": 38,
+        "sku": "QA-LIVE-20261118-STOCK-P22",
+        "item_name": "QA-LIVE-20261118-STOCK Product 22",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 39,
+        "sku": "QA-LIVE-20261118-STOCK-P23",
+        "item_name": "QA-LIVE-20261118-STOCK Product 23",
+        "currency": "INR",
+        "current_quantity": 7.5,
+        "stock_value": 3.75
+      },
+      {
+        "id": 40,
+        "sku": "QA-LIVE-20261118-STOCK-P24",
+        "item_name": "QA-LIVE-20261118-STOCK Product 24",
+        "currency": "INR",
+        "current_quantity": 5.0,
+        "stock_value": 2.5
+      },
+      {
+        "id": 41,
+        "sku": "QA-LIVE-20261118-STOCK-P25",
+        "item_name": "QA-LIVE-20261118-STOCK Product 25",
+        "currency": "INR",
+        "current_quantity": 8.5,
+        "stock_value": 4.25
+      },
+      {
+        "id": 42,
+        "sku": "QA-LIVE-20261118-STOCK-P26",
+        "item_name": "QA-LIVE-20261118-STOCK Product 26",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 43,
+        "sku": "QA-LIVE-20261118-STOCK-P27",
+        "item_name": "QA-LIVE-20261118-STOCK Product 27",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 44,
+        "sku": "QA-LIVE-20261118-STOCK-P28",
+        "item_name": "QA-LIVE-20261118-STOCK Product 28",
+        "currency": "INR",
+        "current_quantity": 7.0,
+        "stock_value": 3.5
+      },
+      {
+        "id": 45,
+        "sku": "QA-LIVE-20261118-STOCK-P29",
+        "item_name": "QA-LIVE-20261118-STOCK Product 29",
+        "currency": "INR",
+        "current_quantity": 7.5,
+        "stock_value": 3.75
+      },
+      {
+        "id": 46,
+        "sku": "QA-LIVE-20261118-STOCK-P30",
+        "item_name": "QA-LIVE-20261118-STOCK Product 30",
+        "currency": "INR",
+        "current_quantity": 5.0,
+        "stock_value": 2.5
+      },
+      {
+        "id": 47,
+        "sku": "QA-LIVE-20261118-STOCK-P31",
+        "item_name": "QA-LIVE-20261118-STOCK Product 31",
+        "currency": "INR",
+        "current_quantity": 8.5,
+        "stock_value": 4.25
+      },
+      {
+        "id": 48,
+        "sku": "QA-LIVE-20261118-STOCK-P32",
+        "item_name": "QA-LIVE-20261118-STOCK Product 32",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 49,
+        "sku": "QA-LIVE-20261118-STOCK-P33",
+        "item_name": "QA-LIVE-20261118-STOCK Product 33",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 50,
+        "sku": "QA-LIVE-20261118-STOCK-P34",
+        "item_name": "QA-LIVE-20261118-STOCK Product 34",
+        "currency": "INR",
+        "current_quantity": 7.0,
+        "stock_value": 3.5
+      },
+      {
+        "id": 51,
+        "sku": "QA-LIVE-20261118-STOCK-P35",
+        "item_name": "QA-LIVE-20261118-STOCK Product 35",
+        "currency": "INR",
+        "current_quantity": 7.5,
+        "stock_value": 3.75
+      },
+      {
+        "id": 52,
+        "sku": "QA-LIVE-20261118-STOCK-P36",
+        "item_name": "QA-LIVE-20261118-STOCK Product 36",
+        "currency": "INR",
+        "current_quantity": 5.0,
+        "stock_value": 2.5
+      },
+      {
+        "id": 53,
+        "sku": "QA-LIVE-20261118-STOCK-P37",
+        "item_name": "QA-LIVE-20261118-STOCK Product 37",
+        "currency": "INR",
+        "current_quantity": 8.5,
+        "stock_value": 4.25
+      },
+      {
+        "id": 54,
+        "sku": "QA-LIVE-20261118-STOCK-P38",
+        "item_name": "QA-LIVE-20261118-STOCK Product 38",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 55,
+        "sku": "QA-LIVE-20261118-STOCK-P39",
+        "item_name": "QA-LIVE-20261118-STOCK Product 39",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      },
+      {
+        "id": 56,
+        "sku": "QA-LIVE-20261118-STOCK-P40",
+        "item_name": "QA-LIVE-20261118-STOCK Product 40",
+        "currency": "INR",
+        "current_quantity": 7.0,
+        "stock_value": 3.5
+      },
+      {
+        "id": 57,
+        "sku": "QA-LIVE-20261118-STOCK-P41",
+        "item_name": "QA-LIVE-20261118-STOCK Product 41",
+        "currency": "INR",
+        "current_quantity": 7.5,
+        "stock_value": 3.75
+      },
+      {
+        "id": 58,
+        "sku": "QA-LIVE-20261118-STOCK-P42",
+        "item_name": "QA-LIVE-20261118-STOCK Product 42",
+        "currency": "INR",
+        "current_quantity": 5.0,
+        "stock_value": 2.5
+      },
+      {
+        "id": 59,
+        "sku": "QA-LIVE-20261118-STOCK-P43",
+        "item_name": "QA-LIVE-20261118-STOCK Product 43",
+        "currency": "INR",
+        "current_quantity": 8.5,
+        "stock_value": 4.25
+      },
+      {
+        "id": 60,
+        "sku": "QA-LIVE-20261118-STOCK-P44",
+        "item_name": "QA-LIVE-20261118-STOCK Product 44",
+        "currency": "INR",
+        "current_quantity": 6.0,
+        "stock_value": 3.0
+      },
+      {
+        "id": 61,
+        "sku": "QA-LIVE-20261118-STOCK-P45",
+        "item_name": "QA-LIVE-20261118-STOCK Product 45",
+        "currency": "INR",
+        "current_quantity": 6.5,
+        "stock_value": 3.25
+      }
+    ],
+    "total": 45,
+    "valuation_basis": "warehouse_balance_average_cost",
+    "totals_by_currency": [
+      {
+        "currency": "INR",
+        "total_inventory_value": 127.5
+      }
+    ],
+    "unpriced_currency_items": 0,
+    "currency": "INR",
+    "total_inventory_value": 127.5
+  },
+  "expected_sales_total": "195.00",
+  "api_sales_count": 60,
+  "verified_at": "2026-11-18T18:56:13.798418+05:30"
+}

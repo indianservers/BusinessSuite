@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, Loader2, Plus, Search, X } from "lucide-react";
 import "./smart-record-picker.css";
 
-export type RecordSuggestion<T> = { id: string; label: string; description?: string; searchText?: string; record: T };
+export type RecordSuggestion<T> = { id: string; label: string; description?: string; details?: {label:string;value:string}[]; searchText?: string; record: T };
 export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId, placeholder, emptyMessage }: {
   emptyMessage?: string; placeholder?: string; inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
   items: RecordSuggestion<T>[]; selected?: RecordSuggestion<T>; onSelect: (record: T) => void; onClear: () => void;
@@ -11,7 +11,7 @@ export default function SmartRecordPicker<T>({ name, value, search, onSearch, it
   const [open, setOpen] = useState(false), [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null), id = useId();
   const term = search.trim().toLocaleLowerCase();
-  const matches = items.filter(item => !term || `${item.label} ${item.description || ""} ${item.searchText || ""}`.toLocaleLowerCase().includes(term));
+  const matches = items.filter(item => !term || `${item.label} ${item.description || ""} ${(item.details||[]).map(d=>d.value).join(" ")} ${item.searchText || ""}`.toLocaleLowerCase().includes(term));
   const ranked = [...matches].sort((a, b) => Number(b.label.toLocaleLowerCase().startsWith(term)) - Number(a.label.toLocaleLowerCase().startsWith(term)));
   const activeIndex = Math.min(active, Math.max(0, ranked.length - 1));
   useEffect(() => {
@@ -38,12 +38,13 @@ export default function SmartRecordPicker<T>({ name, value, search, onSearch, it
       {value && <button type="button" aria-label={`Clear ${name.toLowerCase()}`} onClick={event => { event.preventDefault(); onClear(); onSearch(""); setOpen(false); }}><X size={15}/></button>}
       <button type="button" aria-label={`Show ${name.toLowerCase()} suggestions`} onClick={event => { event.preventDefault(); setOpen(!open); if (!open) input.current?.focus(); }}><ChevronDown size={15}/></button>
     </div>
+    <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{open&&!loading?`${ranked.length} ${name.toLowerCase()} suggestions available${hasMore?'; more results can be loaded':''}.`:null}</span>
     {open && <div className="smart-record-results">
       <div className="smart-record-result-header">{loading ? <><Loader2 size={13} className="animate-spin"/> Searching…</> : `${ranked.length} suggestion${ranked.length === 1 ? "" : "s"}`}{selected && <small>Selected: {selected.label}</small>}</div>
       <div role="listbox" id={`${id}-list`} aria-label={`${name} suggestions`} aria-busy={!!loading}>
         {ranked.map((item, index) => <button type="button" role="option" id={`${id}-option-${index}`} key={item.id} aria-selected={item.id === value}
           className={index === activeIndex ? "is-active" : ""} onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActive(index)} onClick={event => { event.preventDefault(); choose(item); }}>
-          <span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>{item.id === value && <Check size={16}/>}
+          <span><strong>{item.label}</strong>{item.details?.length?<span className="smart-record-detail-grid">{item.details.map(detail=><small key={detail.label}><span>{detail.label}</span><b>{detail.value}</b></small>)}</span>:item.description && <small>{item.description}</small>}</span>{item.id === value && <Check size={16}/>}
         </button>)}
       </div>
       {!loading && !ranked.length && !error && <p role="status">{emptyMessage || `No matching ${name.toLowerCase()} found. Try another name, email or phone.`}</p>}

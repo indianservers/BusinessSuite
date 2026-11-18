@@ -1,0 +1,1 @@
+import{j as t}from"./ui-BNdrAFmB.js";import{ai as a}from"./index-ig5_J9DB.js";function o({title:r,description:s,children:e}){return t.jsxs(a,{nested:!0,title:r,size:"compact",trigger:e,children:[t.jsx("p",{className:"text-sm text-muted-foreground",children:s||"Create this record using the current page’s selected values and settings."}),e]})}export{o as S};

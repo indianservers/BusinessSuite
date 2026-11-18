@@ -106,13 +106,22 @@ class SRMPOSReturnLineCreate(BaseModel):
     warehouse_id: int | None = None
     item_code: str | None = None
     description: str | None = None
-    quantity: Decimal = Decimal("1")
+    quantity: Decimal = Field(default=Decimal("1"), gt=0, allow_inf_nan=False)
     unit_price: Decimal = Decimal("0")
     tax_amount: Decimal = Decimal("0")
     line_total: Decimal | None = None
-    condition: str = "sellable"
+    condition: str = Field(default="sellable", min_length=1, max_length=80)
     restock: bool = True
     metadata_json: dict[str, Any] | None = None
+
+    @model_validator(mode='after')
+    def validate_return_disposition(self):
+        self.condition = self.condition.strip().lower()
+        if not self.condition:
+            raise ValueError('Return condition is required')
+        if self.restock and self.condition != 'sellable':
+            raise ValueError('Only sellable goods may be added back to available stock')
+        return self
 
 
 class SRMPOSReturnCreate(BaseModel):

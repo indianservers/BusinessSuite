@@ -49,7 +49,15 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
     if (!data || typeof data !== 'object') return;
     const keys = provenance.get(data) || new Set<string>(); keys.add(key); provenance.set(data, keys);
     const view = splitView(data);
-    if (view) provenance.set(view.rows, keys);
+    if (view) {
+      provenance.set(view.rows, keys);
+      // Derived queries can concatenate pages into a new array (POS does this).
+      // Keep each authorized row linked to its source view as well.
+      for (const row of view.rows) if (row && typeof row === 'object') {
+        const rowKeys = provenance.get(row) || new Set<string>();
+        rowKeys.add(key); provenance.set(row, rowKeys);
+      }
+    }
   };
   const keysFor = (data: unknown, seen = new WeakSet<object>(), depth = 0): Set<string> | undefined => {
     if (!data || typeof data !== 'object' || seen.has(data) || depth > 4) return;
@@ -69,7 +77,13 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
   });
   const changed = (change: Change) => {
     for (const query of client.getQueryCache().getAll()) if (dependencies.get(query.queryHash)?.has(change.key)) {
-      client.setQueryData(query.queryKey, (data: unknown) => replace(data, change.old, change.data));
+      if (provenance.get(query.state.data as object)?.has(change.key)) {
+        client.setQueryData(query.queryKey, (data: unknown) => replace(data, change.old, change.data));
+      } else {
+        // Recompute projections and merged pages from the updated local views,
+        // including totals/order/removals. Do not patch only their visible rows.
+        void client.invalidateQueries({ queryKey: query.queryKey, exact: true, refetchType: 'active' });
+      }
     }
     window.dispatchEvent(new CustomEvent('suite:records-updated', { detail: change }));
   };

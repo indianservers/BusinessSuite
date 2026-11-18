@@ -5,6 +5,17 @@ The suite and Interns Hub are built from the same Git revision. One API worker
 preserves the current in-process WebSocket behavior. Allow enough RAM and disk
 for both frontend builds and retained releases.
 
+## Amazon SES disabled — 18 November 2026
+
+Amazon SES delivery is disabled in the active BestERP runtime configuration.
+`EMAIL_PROVIDER=smtp`, `COMMUNICATION_EMAIL_PROVIDER=smtp`, and
+`INTERN_HUB_SES_ENABLED=false`; dedicated site, shared SES, and Interns Hub
+SES SMTP endpoints and credentials are cleared from the active environment.
+No alternate `MAIL_SERVER` is configured, so outgoing email is paused and the
+shared outbox worker leaves queued messages pending. Do not restore SES settings
+from historical deployment instructions or backups without owner authorization.
+A private pre-change environment backup is retained on the production server.
+
 ## Current BestERP host
 
 As of 9 November 2026, `https://besterp.app` serves the suite from
@@ -322,3 +333,261 @@ is retained; inspect the error and restart it and timers once fixed. After schem
 changes prefer a forward fix: code-only rollback may be incompatible. Restoring
 the pre-deployment database loses newer writes, so keep traffic stopped and choose
 a matching database/files/code recovery point.
+
+
+## Mobile POS and scheduling preview — 17 November 2026
+
+BestERP now serves `suite-builds/mobile-pos-20261117-173930-v4`. This is a scoped
+frontend release based on production revision `513a38555e12`, with mobile POS
+pagination, a dedicated compact terminal, POS-first Sales/Create navigation,
+removal of the home Continue working section, and the appointments POS label.
+The current production checkout and scheduling API behavior is retained.
+No backend restart or schema migration was performed.
+
+Rollback target and uploaded source/build archives are retained in
+`shared/mobile-pos-20261117-173930`; the original frontend target is recorded in
+`previous-frontend.txt`. Runtime app-config.js, the model mount, and previous
+hashed assets remain available. Verification covered seven mobile viewports,
+appointment cart pagination, Products search/filters, full AppLayout, TypeScript,
+production builds, live geometry and public health.
+
+At the user's request, 20 explicitly labeled DEMO Calendar bookings were created
+through the application API for Indian Servers / Main, on 18–23 November 2026.
+The demo setup contains one customer, two staff and two linked provider resources;
+there are no demo payments, invoices or PMS tasks. Record IDs and dates are kept
+in `shared/mobile-pos-20261117-173930/demo-calendar-records.json`.
+
+
+## Mobile Appointments and Calendar — 17 November 2026
+
+The active suite frontend is `suite-builds/mobile-bookings-20261117-v2`, retaining
+the preceding POS/home/Create changes. Mobile appointments keep native record
+actions and date controls while paging complete records. Calendar uses a compact
+day agenda and All bookings view, with adaptive record pagination and a filter
+dialog. Setup navigation and duplicate page headers no longer occupy the first
+mobile record page. Desktop booking views and all backend operations are retained.
+
+The five-viewport regression traverses all 20 records in each view, checks complete
+card bounds and absence of scroll containers, and verifies that single-record
+pagination is absent. Source/build archives and the prior frontend target are in
+`shared/mobile-bookings-20261117`. Deployment required no backend restart or schema
+changes. The 20 demo bookings created previously were reused without alteration.
+
+
+## Mobile booking workflows — 18 November 2026
+
+The active frontend is `suite-builds/mobile-booking-workflows-20261117`.
+New appointment and ordinary/grouped rescheduling use dedicated mobile surfaces;
+visit/payment details and calendar details use adaptive steps when content exceeds
+the available screen. Native field state, validation, request identity, scheduling
+revision checks and submit handlers remain in place. Short forms have no step bar.
+
+Five-size workflow verification covers draft preservation, invalid-field focus,
+reschedule request payloads, 18-receipt traversal and absence of scrolling/clipped
+controls. The 20-record appointment/calendar regression also passes all five sizes.
+Rollback target, build/source archives and live verification are retained in
+`shared/mobile-booking-workflows-20261117`. No API restart, schema change or demo
+booking change was required for this frontend deployment.
+
+## Mobile appointment mockups — 18 November 2026
+
+BestERP serves `suite-builds/appointments-mobile-20261118-v4`. This release builds
+on the deployed POS and mobile booking workflow baseline, adding the mobile
+Schedule calendar/week strip, physical Resources view, and New appointment sheet.
+The appointments route bypasses the generic SRM mobile wrapper to avoid duplicate
+headers. Working hours containing seconds are normalized before calendar placement.
+
+Required scheduling API compatibility updates include resource editing, prebooking
+availability/choices, customer context, and draft/workflow support. They use existing
+records and permissions; no database migration was performed. The API restart retained
+the existing socket. Source/build archives, the original backend files (`before/`),
+and activation records are retained in `shared/appointments-mobile-20261117`.
+The prior frontend `suite-builds/mobile-booking-workflows-20261117` remains available.
+
+Validation: TypeScript and production build passed; 28 targeted backend tests passed
+and one was skipped. Fixture checks covered 360/390/430px mobile and 1024/1586px
+larger screens, availability failure/retry, booking conflict and successful booking.
+Live browser verification used a temporary session and existing demo records; no
+customer, appointment, payment, or physical resource was created during verification.
+Live screenshots and the verification report are under `output/appointments-mobile-live`.
+Live acceptance passed all three states at 360, 390 and 430px, with four existing
+18 November bookings, correct time placement, resource filtering and editor access,
+customer/service selection, draft-sheet close, no browser/API errors, and no page
+overflow. This branch currently has no physical assets and the selected service has
+no eligible employees; confirmation correctly remains unavailable. The temporary
+verification session was revoked after testing.
+
+
+## Appointment identity — 18 November 2026
+
+The active frontend is `suite-builds/appointment-service-customer-20261118`.
+Appointment entry no longer asks for a Title. Cards and visit headings identify
+appointments by service and customer; an internal compatibility label is generated
+from the selected names when creating a booking. Other record types retain their
+own name/title inputs. Existing appointment data is unchanged.
+
+The five-size workflow and 20-record mobile regressions pass. TypeScript and the
+production build passed. Build/source archives and the prior frontend target are
+retained in `shared/appointment-service-customer-20261118`. No backend or database
+changes were made.
+
+### Mobile Create Customer — 2026-11-18
+Deployed customer-mobile-20261118. Fixed viewport customer editor with pinned Cancel/Save & new/Save buttons and adaptive steps within sections. Verified five mobile sizes (320x568 through 767x1024), reduced keyboard viewport, optional address/bank rows, retained drafts and mocked save. Shared appointment workflow regression, TypeScript and Vite build passed. Live 390x844 verified all four tabs and seven section pages: no scroll containers or clipped controls; short Legal & tax has no steps. No live customer was saved. Rollback: restore frontend/dist symlink to /srv/business-suite/suite-builds/appointment-service-customer-20261118.
+
+
+## Reference mobile appointments with demo data — 18 November 2026
+
+The verified appointment release is `appointments-mobile-demo-20261118-v11`.
+Schedule, Resources, and New appointment use the supplied white/lavender/violet
+mobile composition. The latest customer editor and service/customer naming changes
+are retained. Mobile filters use compact sheets, resource cards report actual booked
+time, and the appointment sheet retains a fixed confirmation action and compact summary.
+
+Configured two existing demo HRMS staff (169 and 170) as eligible for System Repair
+(service 9), without changing policy 1 or its 30-minute duration. Added three physical
+assets in Indian Servers / Main: DEMO Mobile Chair 01 (32), DEMO Mobile Room 01 (33),
+and DEMO Mobile Equipment Kit (34). Employees remain separate from physical asset CRUD.
+
+A mobile UI POST created appointment 35 for DEMO Calendar Customer on 19 November
+2026, 09:00–09:30 Asia/Kolkata, using employee 169 / provider 10 and equipment 34.
+The actual service estimate is INR 333. No invoice, PMS task, or confirmation channels
+were attached. All 20 earlier appointments retain their original status, revision,
+timing and data; the branch has 21 appointments after this test.
+
+Live testing exposed and resolved missing capacity/draft conflict-check compatibility,
+optional waitlist inputs blocking the parent appointment form across timezone rollover,
+and null customer phone values crashing the confirmation view. Original request replay
+returns booking 35 without duplication; a different request for its occupied interval
+is rejected with HTTP 409. Independent workflow form ownership prevents hidden optional
+inputs from blocking appointment confirmation. The null-contact case has a helper regression.
+
+TypeScript, production build, phone/message/calendar utility checks, two targeted backend
+suites (33 passed with one skipped; 33 passed), and mobile fixture checks passed. Live
+verification covers 360/390/430px, confirmation/recovery, persistence after reload, all
+three schedule views, real resource categories, and absence of viewport overflow and
+browser/API errors. Evidence is in `output/appointments-mobile-full-flow`; final
+three-screen captures are in `output/appointments-mobile-live`.
+
+Source/build archives and backend rollback files are retained in
+`shared/appointments-mobile-20261117`. No schema migration was required. Retained
+identical hashed assets were hard-linked to recover 2,342,145,874 bytes while preserving
+all releases; subsequent appointment activations reuse identical assets by hard link.
+
+### Mobile Add Product / Add Service — 2026-11-18
+Deployed catalog-mobile-20261118. Catalog creation uses a fixed mobile viewport, pinned Cancel/Save actions (including Save and configure scheduling), and measured steps while keeping original controls mounted. Product/service titles now match the selected type. Verified both types at 320x568, 360x640, 390x844, 430x932, 767x1024 plus keyboard viewport; expanded follow-ups, pricing rows, image and custom fields, invalid-field reveal, retained values, and mocked save/configure payloads passed. TypeScript and production Vite build passed. Live product and service each traversed five pages at 390x844: no page/dialog scrolling, scroll containers, clipped controls or action buttons. No live catalog records saved. API health healthy. Rollback: restore frontend/dist symlink to /srv/business-suite/suite-builds/customer-mobile-20261118.
+
+
+### Two-page mobile Product / Service — 2026-11-18
+Deployed catalog-two-pages-20261118. Replaced automatic catalog pagination with exactly Essentials and Optional settings. Both use two fields per row. Essentials has all required inputs and Save; services include booking mode/duration, employee categories/subcategories, recurrence, tags and product subcategory. Optional settings share page two through a settings picker and single-row editors for repeatable values. Mobile Save also writes the native service booking policy after saving the catalog item; an interrupted policy save retains the item ID so retry updates it without creating a duplicate. Subcategory metadata is preserved in catalog custom fields. No backend or database changes deployed. Five mobile sizes plus reduced keyboard viewport, expanded optional follow-ups, pricing/images/custom fields, first-page save and policy retry passed with mocked APIs. Separate optional-settings checks passed at 320x568. TypeScript and production build passed. Live 390x844 checks confirmed two steps, no scroll containers or clipped controls in both Essentials forms and six optional setting groups. No live catalog record was saved. Health healthy. Rollback: restore frontend/dist symlink to /srv/business-suite/suite-builds/catalog-mobile-20261118.
+
+
+
+### Standard SRM navigation and local data — 18 November 2026
+
+The appointments, service scheduling and POS routes use AppLayout's standard navigation.
+Appointment/resource switches remain local page controls. Customer picker options show
+labeled mobile, email and record ID values from the authorized response and retain
+listbox/keyboard behavior. Product creation exposes essentials directly, with native
+expandable optional sections and a pinned save action; existing service scheduling setup
+is preserved. Invalid optional inputs expand their section before focus.
+
+Browser record caching now mirrors server-approved persistent snapshots to SQLite WASM
+in an OPFS worker. SQLite startup runs in the background; an existing IndexedDB snapshot
+can render immediately. IndexedDB also remains the cross-tab invalidation fence and
+fallback for unavailable storage or a second tab without the OPFS pool. Existing
+user/session/company/branch/permission scoping, no-store rules, limits and server
+transaction validation remain in force. This is a bounded read cache, not a full database
+replica or an offline financial authority.
+
+Favorites refresh when stale on revisit/focus instead of polling every 30 seconds.
+Automatic record synchronization skips inactive views and checks stable reference data
+every two minutes; explicit refresh and permission checks retain their behavior.
+POS held bills poll only while open, native catalog refresh uses the shared cache, and
+optional product follow-up/workspace/medicine options load on demand. POS catalog startup
+loads at most one 200-row page; search is debounced and runs on the server, and Load more
+explicitly requests additional pages. Checkout retains selected cart product information
+and authoritative server validation.
+
+Candidate source, deployment guard and regression evidence are retained under
+`.local/srm-speed-20261118`. Live screenshots and verification are written to
+`output/srm-standard-fast`. No backend or database schema change is included.
+
+### HRMS employee hierarchy and mobile selectors — 2026-11-18
+Deployed employee-taxonomy-20261118-v4 with scoped backend patches against downloaded production sources. New HRMS management: /hrms/employee-categories, linked from Employees and category assignment controls. Stores company-owned, versioned categories/children in existing suite_service_policies; no schema migration. Existing employee category names remain available. Existing managed names are immutable; archive instead of renaming/removing them. Updates require native employee_update permission or platform superuser authority, deny read-only writes, retain edit-version checks through background refresh, and produce access audits. Operational dropdowns use this registry, support multiple selections, filter active children by selected parents, and clear irrelevant selections after parent removal. Native service filters match parent categories to their HRMS children and exact selected child rules. The catalog remains two pages with two fields per row. Menu results use search and four-option pages only when needed. No live taxonomy/catalog records were saved during verification.
+Validation: 14 backend tests; product and service flow checks across five mobile sizes (including filtering, multi-select, cleanup, search/pagination, popup bounds, saved native policy values and no duplicate retry); HRMS management across five sizes, including optimistic-conflict handling; TypeScript and production build passed. Live source-backed dropdown checked at 390x844; expanded HRMS management checked at 320x568, with zero editor overflow/clipped controls and both action buttons clear of mobile navigation. API health healthy.
+Rollback: restore frontend/dist to the target in /srv/business-suite/shared/employee-taxonomy-20261118/previous-frontend.txt. Restore the six backend source files from backend-original.tar.gz in that directory, then restart business-suite.service. Existing settings records need no migration or removal. Final source and verification artifacts are retained alongside the backup.
+
+
+Fast cached form startup also exposed an initial mount race in SmartCreationProvider.
+Its identity cleanup now runs only after an actual identity change, preserving a child
+dialog opened during the first effect pass. A regression checks that immediate creation
+remains open and that changing the actor still clears it. Held bills revalidate on opening
+and then poll while visible.
+
+Final isolated checks use actual production APIs and cover all four routes at 360, 390
+and 430 px. A separate 65-second idle check observed three maintenance reads (access,
+setup readiness and notifications), no favorites/catalog/held-bill polling, and a stable
+open product form. The user selected this chat's standard-menu version as the final frontend; see the deployment result below.
+
+
+Final production release: `srm-standard-fast-20261118-v12` (18 November 2026).
+Published with employee taxonomy v4 and stock alerts/reports v2 functional additions
+retained. All 1,496 backend Python files match the pre-publication combined baseline.
+The appointment modal footer avoids the standard dock offset, and the POS workspace
+reserves the standard header/navigation area without clipping product names, prices or
+purchase controls. All four requested routes passed production browser checks at
+360/390/430 px; resource and populated appointment-form captures are included.
+The 65-second idle check retained the product form and excluded favorites polling.
+Existing booking request replay and conflict prevention passed; the original 20 bookings
+and demo booking 35 remain unchanged. Temporary verification credentials were revoked.
+Final evidence: `output/srm-standard-fast/verification.json` and adjacent reports/screenshots.
+
+
+## Catalog category selection — 18 November 2026
+
+Deployed `catalog-categories-20261118T135859` to BestERP. Product and service
+editors use selection-only category and subcategory controls, with multiple
+categories per item. Manage categories provides create, rename, and delete
+operations; assigned choices must be unassigned before deletion. Existing
+category names remain selectable. Stable IDs and category labels are stored in
+product metadata, and the company taxonomy uses the existing versioned service
+policy table. No schema migration was required. Renames update assigned labels;
+filtering and grouped/list/card views include multiple category assignments.
+
+Validation: shared catalog tests (26), taxonomy and selected business-pack tests
+(57), six product/service browser scenarios at 320px, 390px, and desktop widths,
+TypeScript, and the scoped production Vite build passed. The API health check
+passed after restart, and SES remains disabled. Previous frontend:
+`/srv/business-suite/suite-builds/pos-booking-qa-20261118-v4`. Scoped source backups,
+activation manifest, and rollback information are retained under
+`/srv/business-suite/shared/catalog-categories-20261118T135859`.
+
+
+## Service scheduling and employee-category assignments — 18 November 2026
+
+Deployed `service-category-scheduling-20261118T142409`, preserving the
+`mobile-speed-sync-20261118-v1` performance release. Service editors keep base
+pricing and optional additional prices in Basic details; Scheduling contains
+appointment mode, duration, and eligible employee categories/subcategories.
+New services save their item and scheduling policy atomically. Existing-item
+revision conflicts roll back the item edit as well as scheduling changes.
+
+HRMS Employee categories now displays and edits the services assigned to each
+category/subcategory using the same branch/context-scoped booking policy.
+Category and subcategory create, edit, archive and delete operations are
+available. Names used by employees or services must be unassigned before being
+renamed or deleted. Taxonomy and service-link changes commit together, with
+both HRMS and scheduling permissions enforced. No schema migration is required.
+Services configured for no booking remain saleable without an appointment,
+while attempted bookings are rejected.
+
+Validation passed 53 taxonomy/catalog/scheduling-options tests, 89 selected-pack
+and checkout tests, the final five atomic scheduling regressions, desktop/mobile
+CRUD workflows, TypeScript and the scoped production build. Production API
+imports and health passed after restart; SES remains disabled. Scoped source
+backups and activation metadata are retained under
+`/srv/business-suite/shared/service-category-scheduling-20261118T142409`.
+
+Live browser verification passed for service pricing/scheduling and desktop/mobile
+HRMS category-service management. No catalog records were modified. The temporary
+verification session was revoked and its credentials removed.

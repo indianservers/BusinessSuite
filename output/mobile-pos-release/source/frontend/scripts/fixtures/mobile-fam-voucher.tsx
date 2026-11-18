@@ -1,0 +1,11 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import FAMWorkspacePage from '../../src/apps/fam/FAMWorkspacePage';
+import {useAuthStore} from '../../src/store/authStore';
+import {Toaster} from '../../src/components/ui/toaster';
+import '../../src/index.css';
+const params=new URLSearchParams(location.search),readonly=params.has('readonly'),creator=params.has('creator'),detail=params.has('detail'),journal=params.has('journal');
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,email:'finance@example.test',role:'fam_accountant',is_superuser:false,access:{managed:true,companyId:1,memberships:[1],isAccessAdmin:false,isGlobalAdmin:false,modules:[{key:'fam',route:'/fam',label:'Finance'}],grants:{fam:{enabled:true,role:'fam_accountant',scope:'company',actions:readonly?['view']:creator?['view','create','edit']:['view','create','edit','approve'],permissions:readonly?[]:creator?['fam_vouchers_create']:['fam_vouchers_create','fam_vouchers_post','fam_vouchers_cancel','fam_vouchers_reverse']}}}}});
+const entry=detail?'/fam/vouchers/41':journal?'/fam/journal':'/fam/vouchers/new';
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={[entry]}><main style={{padding:12}}><Routes><Route path={detail?'/fam/vouchers/:id':'*'} element={<FAMWorkspacePage kind={detail?'voucherDetail':journal?'journal':'voucherNew'}/>}/></Routes></main><Toaster/></MemoryRouter></QueryClientProvider>);

@@ -1,0 +1,346 @@
+.dt-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0f172a88;
+  backdrop-filter: blur(3px);
+  z-index: 2400;
+}
+.dt-dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(1000px, 96vw);
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  box-shadow: 0 24px 90px #0004;
+  z-index: 2401;
+  font-size: 14px;
+}
+.dt-heading {
+  padding: 22px 24px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.dt-heading h2 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+.dt-heading p {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  margin-top: 4px;
+}
+.dt-heading > button {
+  margin-left: auto;
+  align-self: flex-start;
+  padding: 5px;
+}
+.dt-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: #6366f115;
+  color: #6366f1;
+}
+.dt-steps {
+  display: flex;
+  gap: 18px;
+  padding: 16px 24px;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+.dt-steps span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dt-steps b {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 50%;
+}
+.dt-steps .active {
+  color: #6366f1;
+}
+.dt-steps .active b {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+.dt-body {
+  overflow: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dt-body h3 {
+  font-weight: 600;
+  font-size: 15px;
+}
+.dt-upload {
+  border: 1.5px dashed #818cf866;
+  border-radius: 13px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  background: #6366f106;
+  text-align: center;
+}
+.dt-upload > svg {
+  color: #6366f1;
+}
+.dt-upload > span,
+.dt-muted {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.dt-muted,
+.dt-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dt-upload > div {
+  display: flex;
+  gap: 8px;
+}
+.dt-file-settings {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.dt-file-settings label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dt-dialog select {
+  padding: 8px 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 7px;
+  background: hsl(var(--background));
+  color: inherit;
+  max-width: 100%;
+  min-width: 0;
+}
+.dt-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dt-mapping {
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  overflow: clip;
+}
+.dt-map-row,
+.dt-map-head {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+}
+.dt-map-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: hsl(var(--muted) / 0.5);
+  color: hsl(var(--muted-foreground));
+}
+.dt-map-row + .dt-map-row {
+  border-top: 1px solid hsl(var(--border));
+}
+.dt-map-row label {
+  font-weight: 550;
+}
+.dt-map-row small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+  margin-top: 3px;
+}
+.dt-required {
+  color: #e11d48;
+}
+.dt-sample {
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: hsl(var(--muted-foreground));
+}
+.dt-warning {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f59e0b15;
+  color: #b7790c;
+}
+.dt-error {
+  padding: 10px;
+  border-radius: 8px;
+  background: #ef444410;
+  color: #dc2626;
+  overflow-wrap: anywhere;
+}
+.dt-error-list {
+  padding: 14px;
+  background: #ef444408;
+  border: 1px solid #ef444430;
+  border-radius: 10px;
+}
+.dt-error-list > p {
+  font-size: 12px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.dt-preview {
+  overflow: auto;
+  max-height: 330px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+}
+.dt-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.dt-preview th {
+  position: sticky;
+  top: 0;
+  background: hsl(var(--muted));
+  text-align: left;
+  font-weight: 550;
+}
+.dt-preview td,
+.dt-preview th {
+  padding: 10px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dt-preview tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.3);
+}
+.dt-footer {
+  padding: 16px 24px;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.dt-footer > span {
+  flex: 1;
+}
+.dt-complete {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px;
+}
+.dt-complete > svg,
+.dt-success {
+  color: #10b981;
+}
+.dt-export {
+  width: min(760px, 96vw);
+}
+.dt-formats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.dt-formats button {
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+}
+.dt-formats button[aria-pressed="true"] {
+  border-color: #6366f1;
+  background: #6366f108;
+  color: #6366f1;
+}
+.dt-formats small {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+}
+.dt-export-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dt-export-columns label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dt-dialog button:focus-visible,
+.dt-dialog select:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .dt-heading,
+  .dt-body,
+  .dt-footer {
+    padding: 16px;
+  }
+  .dt-steps {
+    gap: 10px;
+    padding: 12px;
+    font-size: 10px;
+  }
+  .dt-steps span {
+    gap: 4px;
+  }
+  .dt-map-row,
+  .dt-map-head {
+    grid-template-columns: 1fr 1.2fr;
+    gap: 8px;
+    padding: 10px;
+  }
+  .dt-map-head > span:last-child {
+    display: none;
+  }
+  .dt-sample {
+    grid-column: 2;
+  }
+  .dt-formats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dt-export-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

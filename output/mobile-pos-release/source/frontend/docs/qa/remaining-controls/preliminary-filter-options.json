@@ -1,0 +1,3328 @@
+[
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Every goal",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Connect",
+    "result": "passed",
+    "evidence": "Selected value Connect"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Qualify",
+    "result": "passed",
+    "evidence": "Selected value Qualify"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Reconnect",
+    "result": "passed",
+    "evidence": "Selected value Reconnect"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Onboard",
+    "result": "passed",
+    "evidence": "Selected value Onboard"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Review",
+    "result": "passed",
+    "evidence": "Selected value Review"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Appreciate",
+    "result": "passed",
+    "evidence": "Selected value Appreciate"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Renew",
+    "result": "passed",
+    "evidence": "Selected value Renew"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Coordinate",
+    "result": "passed",
+    "evidence": "Selected value Coordinate"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Progress",
+    "result": "passed",
+    "evidence": "Selected value Progress"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Decide",
+    "result": "passed",
+    "evidence": "Selected value Decide"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Handoff",
+    "result": "passed",
+    "evidence": "Selected value Handoff"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Propose",
+    "result": "passed",
+    "evidence": "Selected value Propose"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Clarify",
+    "result": "passed",
+    "evidence": "Selected value Clarify"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Revise",
+    "result": "passed",
+    "evidence": "Selected value Revise"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Unblock",
+    "result": "passed",
+    "evidence": "Selected value Unblock"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Complete",
+    "result": "passed",
+    "evidence": "Selected value Complete"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Prepare",
+    "result": "passed",
+    "evidence": "Selected value Prepare"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Recap",
+    "result": "passed",
+    "evidence": "Selected value Recap"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Reschedule",
+    "result": "passed",
+    "evidence": "Selected value Reschedule"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Invite",
+    "result": "passed",
+    "evidence": "Selected value Invite"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Educate",
+    "result": "passed",
+    "evidence": "Selected value Educate"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Follow up",
+    "result": "passed",
+    "evidence": "Selected value Follow up"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Acknowledge",
+    "result": "passed",
+    "evidence": "Selected value Acknowledge"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Update",
+    "result": "passed",
+    "evidence": "Selected value Update"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Resolve",
+    "result": "passed",
+    "evidence": "Selected value Resolve"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Notification",
+    "result": "passed",
+    "evidence": "Selected value Notification"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Invitation",
+    "result": "passed",
+    "evidence": "Selected value Invitation"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Follow-up",
+    "result": "passed",
+    "evidence": "Selected value Follow-up"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Product Promotion",
+    "result": "passed",
+    "evidence": "Selected value Product Promotion"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Celebration",
+    "result": "passed",
+    "evidence": "Selected value Celebration"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery goal",
+    "option": "Basic",
+    "result": "passed",
+    "evidence": "Selected value Basic"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Every category",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Basic",
+    "result": "passed",
+    "evidence": "Selected value Basic"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Celebration",
+    "result": "passed",
+    "evidence": "Selected value Celebration"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Invitation",
+    "result": "passed",
+    "evidence": "Selected value Invitation"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Follow-up",
+    "result": "passed",
+    "evidence": "Selected value Follow-up"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Product Promotion",
+    "result": "passed",
+    "evidence": "Selected value Product Promotion"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery category",
+    "option": "Notification",
+    "result": "passed",
+    "evidence": "Selected value Notification"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Every layout",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Minimal",
+    "result": "passed",
+    "evidence": "Selected value minimal"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Spotlight",
+    "result": "passed",
+    "evidence": "Selected value spotlight"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Editorial",
+    "result": "passed",
+    "evidence": "Selected value editorial"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Two-column digest",
+    "result": "passed",
+    "evidence": "Selected value digest"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter gallery layout",
+    "option": "Formal letter",
+    "result": "passed",
+    "evidence": "Selected value formal"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "All modules",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Leads",
+    "result": "passed",
+    "evidence": "Selected value lead"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Contacts",
+    "result": "passed",
+    "evidence": "Selected value contact"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Accounts",
+    "result": "passed",
+    "evidence": "Selected value account"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Deals",
+    "result": "passed",
+    "evidence": "Selected value deal"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Quotations",
+    "result": "passed",
+    "evidence": "Selected value quotation"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Tasks",
+    "result": "passed",
+    "evidence": "Selected value task"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Meetings",
+    "result": "passed",
+    "evidence": "Selected value meeting"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Calls",
+    "result": "passed",
+    "evidence": "Selected value call"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Campaigns",
+    "result": "passed",
+    "evidence": "Selected value campaign"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Support tickets",
+    "result": "passed",
+    "evidence": "Selected value ticket"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter saved template module",
+    "option": "Invoices",
+    "result": "passed",
+    "evidence": "Selected value invoice"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter document type",
+    "option": "All document types",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter document type",
+    "option": "Email",
+    "result": "passed",
+    "evidence": "Selected value email"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Filter folder",
+    "option": "All folders",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/delivery-logs",
+    "control": "Delivery status filter",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/delivery-logs",
+    "control": "Delivery status filter",
+    "option": "Needs attention",
+    "result": "passed",
+    "evidence": "Selected value issues"
+  },
+  {
+    "page": "crm/products",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active"
+  },
+  {
+    "page": "crm/products",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived"
+  },
+  {
+    "page": "crm/products",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort catalog",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort catalog",
+    "option": "Price",
+    "result": "passed",
+    "evidence": "Selected value price"
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort catalog",
+    "option": "Category",
+    "result": "passed",
+    "evidence": "Selected value category"
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort catalog",
+    "option": "Code",
+    "result": "passed",
+    "evidence": "Selected value code"
+  },
+  {
+    "page": "crm/services",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active"
+  },
+  {
+    "page": "crm/services",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived"
+  },
+  {
+    "page": "crm/services",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "crm/services",
+    "control": "Sort catalog",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "crm/services",
+    "control": "Sort catalog",
+    "option": "Price",
+    "result": "passed",
+    "evidence": "Selected value price"
+  },
+  {
+    "page": "crm/services",
+    "control": "Sort catalog",
+    "option": "Category",
+    "result": "passed",
+    "evidence": "Selected value category"
+  },
+  {
+    "page": "crm/services",
+    "control": "Sort catalog",
+    "option": "Code",
+    "result": "passed",
+    "evidence": "Selected value code"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "All permitted employees",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "admin@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 1"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "employee@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 2"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "hr@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 4"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "due at",
+    "result": "passed",
+    "evidence": "Selected value due_at"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "customer name",
+    "result": "passed",
+    "evidence": "Selected value customer_name"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "priority",
+    "result": "passed",
+    "evidence": "Selected value priority"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "assigned to",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Group by",
+    "option": "No grouping",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Group by",
+    "option": "Group by status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Group by",
+    "option": "Group by employee",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "crm/admin",
+    "control": "Rows per page",
+    "option": "10 rows",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "crm/admin",
+    "control": "Rows per page",
+    "option": "25 rows",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "crm/admin",
+    "control": "Rows per page",
+    "option": "50 rows",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "crm/admin",
+    "control": "Rows per page",
+    "option": "100 rows",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Employee filter",
+    "option": "All permitted employees",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Employee filter",
+    "option": "admin@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 1"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Employee filter",
+    "option": "employee@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 2"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Employee filter",
+    "option": "hr@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 4"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Sort by",
+    "option": "due at",
+    "result": "passed",
+    "evidence": "Selected value due_at"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Sort by",
+    "option": "customer name",
+    "result": "passed",
+    "evidence": "Selected value customer_name"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Sort by",
+    "option": "priority",
+    "result": "passed",
+    "evidence": "Selected value priority"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Sort by",
+    "option": "status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Sort by",
+    "option": "assigned to",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Group by",
+    "option": "No grouping",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Group by",
+    "option": "Group by status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Group by",
+    "option": "Group by employee",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort catalog",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort catalog",
+    "option": "Price",
+    "result": "passed",
+    "evidence": "Selected value price"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort catalog",
+    "option": "Category",
+    "result": "passed",
+    "evidence": "Selected value category"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort catalog",
+    "option": "Code",
+    "result": "passed",
+    "evidence": "Selected value code"
+  },
+  {
+    "page": "pms/products",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active"
+  },
+  {
+    "page": "pms/products",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived"
+  },
+  {
+    "page": "pms/products",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort catalog",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort catalog",
+    "option": "Price",
+    "result": "passed",
+    "evidence": "Selected value price"
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort catalog",
+    "option": "Category",
+    "result": "passed",
+    "evidence": "Selected value category"
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort catalog",
+    "option": "Code",
+    "result": "passed",
+    "evidence": "Selected value code"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "Backlog",
+    "result": "fixed-and-passed",
+    "evidence": "Rechecked owner/status composition and compatible view changes in updated build."
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "To Do",
+    "result": "passed",
+    "evidence": "Selected value To Do"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "In Progress",
+    "result": "passed",
+    "evidence": "Selected value In Progress"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "In Review",
+    "result": "passed",
+    "evidence": "Selected value In Review"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "Blocked",
+    "result": "passed",
+    "evidence": "Selected value Blocked"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter status",
+    "option": "Done",
+    "result": "passed",
+    "evidence": "Selected value Done"
+  },
+  {
+    "page": "pms/management",
+    "control": "Filter health",
+    "option": "All health",
+    "result": "disabled-by-design",
+    "evidence": "Health is disabled in task views;available for project views."
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Activity filter",
+    "option": "All activity",
+    "result": "passed",
+    "evidence": "Selected value all"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Activity filter",
+    "option": "Active in last 15 min",
+    "result": "passed",
+    "evidence": "Selected value recent"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Activity filter",
+    "option": "No recent activity",
+    "result": "passed",
+    "evidence": "Selected value quiet"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Sort analytics",
+    "option": "Open tasks",
+    "result": "passed",
+    "evidence": "Selected value workload"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Sort analytics",
+    "option": "Tracked time",
+    "result": "passed",
+    "evidence": "Selected value time"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Sort analytics",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "pms/analytics/projects",
+    "control": "Sort analytics",
+    "option": "Open tasks",
+    "result": "passed",
+    "evidence": "Selected value workload"
+  },
+  {
+    "page": "pms/analytics/projects",
+    "control": "Sort analytics",
+    "option": "Tracked time",
+    "result": "passed",
+    "evidence": "Selected value time"
+  },
+  {
+    "page": "pms/analytics/projects",
+    "control": "Sort analytics",
+    "option": "Name",
+    "result": "passed",
+    "evidence": "Selected value name"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "All permitted employees",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "admin@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 1"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "employee@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 2"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Employee filter",
+    "option": "hr@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Selected value 4"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "due at",
+    "result": "passed",
+    "evidence": "Selected value due_at"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "customer name",
+    "result": "passed",
+    "evidence": "Selected value customer_name"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "priority",
+    "result": "passed",
+    "evidence": "Selected value priority"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Sort by",
+    "option": "assigned to",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Group by",
+    "option": "No grouping",
+    "result": "passed",
+    "evidence": "Selected value "
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Group by",
+    "option": "Group by status",
+    "result": "passed",
+    "evidence": "Selected value status"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Group by",
+    "option": "Group by employee",
+    "result": "passed",
+    "evidence": "Selected value assigned_to"
+  },
+  {
+    "page": "pms/risks",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risks",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risks",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risks",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risks",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Status",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Draft",
+    "result": "passed",
+    "evidence": "Selected value Draft; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Planned",
+    "result": "passed",
+    "evidence": "Selected value Planned; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "On Hold",
+    "result": "passed",
+    "evidence": "Selected value On Hold; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Completed",
+    "result": "passed",
+    "evidence": "Selected value Completed; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Cancelled",
+    "result": "passed",
+    "evidence": "Selected value Cancelled; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter owner",
+    "option": "Owner",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter priority",
+    "option": "Priority",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter priority",
+    "option": "Low",
+    "result": "passed",
+    "evidence": "Selected value Low; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter priority",
+    "option": "Medium",
+    "result": "passed",
+    "evidence": "Selected value Medium; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter priority",
+    "option": "High",
+    "result": "passed",
+    "evidence": "Selected value High; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter priority",
+    "option": "Critical",
+    "result": "passed",
+    "evidence": "Selected value Critical; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter client",
+    "option": "Client",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter client",
+    "option": "Acme Enterprises",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter client",
+    "option": "Zenith Solutions",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter client",
+    "option": "Vertex Tech",
+    "result": "passed",
+    "evidence": "Selected value 3; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Filter client",
+    "option": "Nova Retail",
+    "result": "passed",
+    "evidence": "Selected value 4; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Sort projects",
+    "option": "Last updated",
+    "result": "passed",
+    "evidence": "Selected value updated; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Sort projects",
+    "option": "Project name",
+    "result": "passed",
+    "evidence": "Selected value name; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Sort projects",
+    "option": "Due date",
+    "result": "passed",
+    "evidence": "Selected value due; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Sort projects",
+    "option": "Progress",
+    "result": "passed",
+    "evidence": "Selected value progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "All accessible projects",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "BusinessSuite Website Redesign",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "BusinessSuite Website Redesign - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "BusinessSuite Website Redesign - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 19; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "BusinessSuite Website Redesign - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 28; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "CRM Lead Management Rollout",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "CRM Lead Management Rollout - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 11; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "CRM Lead Management Rollout - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 20; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "CRM Lead Management Rollout - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 29; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Customer Self-Service Portal",
+    "result": "passed",
+    "evidence": "Selected value 4; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Customer Self-Service Portal - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 13; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Customer Self-Service Portal - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 22; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Customer Self-Service Portal - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 31; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Finance & Accounting Integration",
+    "result": "passed",
+    "evidence": "Selected value 9; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Finance & Accounting Integration - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 18; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Finance & Accounting Integration - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 27; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Finance & Accounting Integration - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 36; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Inventory Barcode Implementation",
+    "result": "passed",
+    "evidence": "Selected value 6; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Inventory Barcode Implementation - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 15; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Inventory Barcode Implementation - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 24; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Inventory Barcode Implementation - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 33; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Purchase Approval Workflow",
+    "result": "passed",
+    "evidence": "Selected value 8; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Purchase Approval Workflow - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 17; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Purchase Approval Workflow - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 26; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Purchase Approval Workflow - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 35; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Sales Pipeline Automation",
+    "result": "passed",
+    "evidence": "Selected value 3; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Sales Pipeline Automation - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 12; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Sales Pipeline Automation - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 21; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Sales Pipeline Automation - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 30; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Warehouse Management Upgrade",
+    "result": "passed",
+    "evidence": "Selected value 7; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Warehouse Management Upgrade - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 16; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Warehouse Management Upgrade - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "Warehouse Management Upgrade - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 34; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "WhatsApp Customer Support",
+    "result": "passed",
+    "evidence": "Selected value 5; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "WhatsApp Customer Support - Phase 2",
+    "result": "passed",
+    "evidence": "Selected value 14; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "WhatsApp Customer Support - Phase 3",
+    "result": "passed",
+    "evidence": "Selected value 23; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Financial project",
+    "option": "WhatsApp Customer Support - Phase 4",
+    "result": "passed",
+    "evidence": "Selected value 32; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Backlog",
+    "result": "superseded-by-recheck",
+    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.selectOption failed for selector internal:role=combobox[name=\"Filter status\"s]\nLocator diagnostics: {\"kind\":\"action_failed\",\"action\":\"selectOption\",\"locator\":\"internal:role=combobox[name=\\\"Filter status\\\"s]\",\"matchCount\":1,\"matches\":[{\"aria Rechecked after waiting for correct view options to render;allavailablechoicespassed."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter health",
+    "result": "disabled-in-current-state",
+    "evidence": "Native control disabled; no selection attempted."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "superseded-by-recheck",
+    "evidence": "Selected value 1; this check does not assert server-side filtering. Rechecked after waiting for correct view options to render;allavailablechoicespassed."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "Draft",
+    "result": "superseded-by-recheck",
+    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.selectOption failed for selector internal:role=combobox[name=\"Filter status\"s]\nLocator diagnostics: {\"kind\":\"action_failed\",\"action\":\"selectOption\",\"locator\":\"internal:role=combobox[name=\\\"Filter status\\\"s]\",\"matchCount\":1,\"matches\":[{\"aria Rechecked after waiting for correct view options to render;allavailablechoicespassed."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter health",
+    "option": "All health",
+    "result": "superseded-by-recheck",
+    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.selectOption failed for selector internal:role=combobox[name=\"Filter health\"s]\nLocator diagnostics: {\"kind\":\"action_failed\",\"action\":\"selectOption\",\"locator\":\"internal:role=combobox[name=\\\"Filter health\\\"s]\",\"matchCount\":1,\"matches\":[{\"aria Rechecked after waiting for correct view options to render;allavailablechoicespassed."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Status",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Draft",
+    "result": "passed",
+    "evidence": "Selected value Draft; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Planned",
+    "result": "passed",
+    "evidence": "Selected value Planned; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "On Hold",
+    "result": "passed",
+    "evidence": "Selected value On Hold; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Completed",
+    "result": "passed",
+    "evidence": "Selected value Completed; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Cancelled",
+    "result": "passed",
+    "evidence": "Selected value Cancelled; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter status",
+    "option": "Archived",
+    "result": "passed",
+    "evidence": "Selected value Archived; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter owner",
+    "option": "Owner",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter priority",
+    "option": "Priority",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter priority",
+    "option": "Low",
+    "result": "passed",
+    "evidence": "Selected value Low; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter priority",
+    "option": "Medium",
+    "result": "passed",
+    "evidence": "Selected value Medium; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter priority",
+    "option": "High",
+    "result": "passed",
+    "evidence": "Selected value High; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter priority",
+    "option": "Critical",
+    "result": "passed",
+    "evidence": "Selected value Critical; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter client",
+    "option": "Client",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter client",
+    "option": "Acme Enterprises",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter client",
+    "option": "Zenith Solutions",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter client",
+    "option": "Vertex Tech",
+    "result": "passed",
+    "evidence": "Selected value 3; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Filter client",
+    "option": "Nova Retail",
+    "result": "passed",
+    "evidence": "Selected value 4; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Sort projects",
+    "option": "Last updated",
+    "result": "passed",
+    "evidence": "Selected value updated; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Sort projects",
+    "option": "Project name",
+    "result": "passed",
+    "evidence": "Selected value name; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Sort projects",
+    "option": "Due date",
+    "result": "passed",
+    "evidence": "Selected value due; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Sort projects",
+    "option": "Progress",
+    "result": "passed",
+    "evidence": "Selected value progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter applies to",
+    "option": "Tasks & projects",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter applies to",
+    "option": "Tasks",
+    "result": "passed",
+    "evidence": "Selected value task; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter applies to",
+    "option": "Projects",
+    "result": "passed",
+    "evidence": "Selected value project; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "All field types",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Text",
+    "result": "passed",
+    "evidence": "Selected value text; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Text area (long text)",
+    "result": "passed",
+    "evidence": "Selected value long_text; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Dropdown",
+    "result": "passed",
+    "evidence": "Selected value dropdown; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Radio buttons",
+    "result": "passed",
+    "evidence": "Selected value radio; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Searchable combobox",
+    "result": "passed",
+    "evidence": "Selected value combobox; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Number",
+    "result": "passed",
+    "evidence": "Selected value number; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Money (amount)",
+    "result": "passed",
+    "evidence": "Selected value money; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Date",
+    "result": "passed",
+    "evidence": "Selected value date; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Checkbox",
+    "result": "passed",
+    "evidence": "Selected value checkbox; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Email",
+    "result": "passed",
+    "evidence": "Selected value email; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Phone",
+    "result": "passed",
+    "evidence": "Selected value phone; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Website",
+    "result": "passed",
+    "evidence": "Selected value website; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Rating (0–5)",
+    "result": "passed",
+    "evidence": "Selected value rating; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Filter custom field type",
+    "option": "Progress (0–100%)",
+    "result": "passed",
+    "evidence": "Selected value progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Workspace filter",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Workspace filter",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Team filter",
+    "option": "All teams",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Role filter",
+    "option": "All roles",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Role filter",
+    "option": "Super Admin",
+    "result": "passed",
+    "evidence": "Selected value Super Admin; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Role filter",
+    "option": "employee",
+    "result": "passed",
+    "evidence": "Selected value employee; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Role filter",
+    "option": "hr",
+    "result": "passed",
+    "evidence": "Selected value hr; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/org-chart",
+    "control": "Filter chart by team",
+    "option": "All teams",
+    "result": "passed",
+    "evidence": "Selected value 0; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Filter by tag",
+    "result": "passed-after-recheck",
+    "evidence": "Scoped native select is unique;All tagsselected;No data found optiondisabledbecausefixturehasnotags."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Last edited",
+    "result": "passed",
+    "evidence": "Selected value modified; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Date created",
+    "result": "passed",
+    "evidence": "Selected value created; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Title A–Z",
+    "result": "passed",
+    "evidence": "Selected value title; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Filter tag location",
+    "option": "All accessible locations",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Sort tags",
+    "option": "Name A–Z",
+    "result": "passed",
+    "evidence": "Selected value name; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Sort tags",
+    "option": "Most used",
+    "result": "passed",
+    "evidence": "Selected value usage; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Sort tags",
+    "option": "Newest first",
+    "result": "passed",
+    "evidence": "Selected value newest; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Filter capability tier",
+    "option": "All tiers",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Filter capability tier",
+    "option": "Core",
+    "result": "passed",
+    "evidence": "Selected value Core; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Filter capability tier",
+    "option": "Business",
+    "result": "passed",
+    "evidence": "Selected value Business; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Filter capability tier",
+    "option": "Business Plus",
+    "result": "passed",
+    "evidence": "Selected value Business Plus; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Filter capability tier",
+    "option": "Enterprise",
+    "result": "passed",
+    "evidence": "Selected value Enterprise; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Backlog",
+    "result": "passed-after-recheck",
+    "evidence": "Settled option:checked was observed;alladminfilterchoicesrechecked."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "To Do",
+    "result": "passed",
+    "evidence": "Selected value To Do; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "In Progress",
+    "result": "passed",
+    "evidence": "Selected value In Progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "In Review",
+    "result": "passed",
+    "evidence": "Selected value In Review; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Blocked",
+    "result": "passed",
+    "evidence": "Selected value Blocked; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Done",
+    "result": "passed",
+    "evidence": "Selected value Done; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter health",
+    "result": "disabled-in-current-state",
+    "evidence": "Native control disabled; no selection attempted."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Draft",
+    "result": "passed",
+    "evidence": "Selected value Draft; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Planned",
+    "result": "passed",
+    "evidence": "Selected value Planned; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Active",
+    "result": "passed",
+    "evidence": "Selected value Active; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "On Hold",
+    "result": "passed",
+    "evidence": "Selected value On Hold; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Completed",
+    "result": "passed",
+    "evidence": "Selected value Completed; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter status",
+    "option": "Cancelled",
+    "result": "passed",
+    "evidence": "Selected value Cancelled; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter health",
+    "option": "All health",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter health",
+    "option": "Good",
+    "result": "passed",
+    "evidence": "Selected value Good; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter health",
+    "option": "At Risk",
+    "result": "passed",
+    "evidence": "Selected value At Risk; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Filter health",
+    "option": "Critical",
+    "result": "passed",
+    "evidence": "Selected value Critical; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "10",
+    "result": "passed",
+    "evidence": "Selected value 10; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "25",
+    "result": "passed",
+    "evidence": "Selected value 25; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "50",
+    "result": "passed",
+    "evidence": "Selected value 50; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "100",
+    "result": "passed",
+    "evidence": "Selected value 100; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=projects",
+    "control": "Rows per page",
+    "option": "200",
+    "result": "passed",
+    "evidence": "Selected value 200; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "Backlog",
+    "result": "passed",
+    "evidence": "Selected value Backlog; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "To Do",
+    "result": "passed",
+    "evidence": "Selected value To Do; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "In Progress",
+    "result": "passed",
+    "evidence": "Selected value In Progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "In Review",
+    "result": "passed",
+    "evidence": "Selected value In Review; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "Blocked",
+    "result": "passed",
+    "evidence": "Selected value Blocked; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter status",
+    "option": "Done",
+    "result": "passed",
+    "evidence": "Selected value Done; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/management?view=tasks",
+    "control": "Filter health",
+    "result": "disabled-in-current-state",
+    "evidence": "Native control disabled; no selection attempted."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter workspace",
+    "option": "All workspaces",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter workspace",
+    "option": "Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "All owners / assignees",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "Admin",
+    "result": "passed",
+    "evidence": "Selected value 1; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter owner",
+    "option": "Employee",
+    "result": "passed",
+    "evidence": "Selected value 2; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "All statuses",
+    "result": "passed",
+    "evidence": "Selected value ; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Backlog",
+    "result": "passed",
+    "evidence": "Selected value Backlog; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "To Do",
+    "result": "passed",
+    "evidence": "Selected value To Do; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "In Progress",
+    "result": "passed",
+    "evidence": "Selected value In Progress; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "In Review",
+    "result": "passed",
+    "evidence": "Selected value In Review; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Blocked",
+    "result": "passed",
+    "evidence": "Selected value Blocked; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter status",
+    "option": "Done",
+    "result": "passed",
+    "evidence": "Selected value Done; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/admin",
+    "control": "Filter health",
+    "result": "disabled-in-current-state",
+    "evidence": "Native control disabled; no selection attempted."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Filter by tag",
+    "result": "passed-after-recheck",
+    "evidence": "Scoped native select is unique;All tagsselected;No data found optiondisabledbecausefixturehasnotags."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Last edited",
+    "result": "passed",
+    "evidence": "Selected value modified; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Date created",
+    "result": "passed",
+    "evidence": "Selected value created; this check does not assert server-side filtering."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Sort notes",
+    "option": "Title A–Z",
+    "result": "passed",
+    "evidence": "Selected value title; this check does not assert server-side filtering."
+  }
+]

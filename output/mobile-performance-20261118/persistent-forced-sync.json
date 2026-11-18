@@ -1,0 +1,13 @@
+{
+  "started": "2026-11-18T13:39:55.995Z",
+  "scope": "Explicit suite:record-push sync event for existing inventory cache; no server writes",
+  "initial": {
+    "key": "201534fe2960a5970679e7c8ecbf1190895b42bf3b74690fb935437f254b74b5:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+    "checked": 1795009257377,
+    "rows": 52
+  },
+  "status": "inconclusive",
+  "error": "TypeError: Cannot read properties of undefined (reading 'evaluate')",
+  "finished": "2026-11-18T13:41:01.515Z",
+  "note": "Audit probe assumed a SQLite worker was available. It aborted before dispatching the explicit sync event; this is not evidence that explicit sync fails."
+}

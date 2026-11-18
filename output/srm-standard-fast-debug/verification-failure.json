@@ -1,0 +1,7 @@
+{
+  "release": "srm-standard-fast-20261118-v8",
+  "results": [],
+  "errors": [],
+  "apiFailures": [],
+  "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: \"srm-standard-fast-20261118-v8\"\nReceived: \"employee-taxonomy-20261118-v3\""
+}

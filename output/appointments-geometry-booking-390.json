@@ -1,0 +1,92 @@
+{
+  ".appointment-reference-topbar": {
+    "x": 0,
+    "y": 0,
+    "width": 390,
+    "height": 70,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-breadcrumb": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-page-heading": null,
+  ".resource-statistics": null,
+  ".resource-filters": null,
+  ".resource-table-scroll": null,
+  ".resource-pagination": null,
+  ".resource-editor header": null,
+  ".resource-editor form>fieldset": null,
+  ".resource-editor form>footer": null,
+  ".appointment-reference-datebar": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-filters": {
+    "x": 12,
+    "y": 284,
+    "width": 366,
+    "height": 56,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-views": {
+    "x": 12,
+    "y": 224,
+    "width": 366,
+    "height": 50,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-gantt-scroll": null,
+  ".appointment-reference-upcoming": {
+    "x": 12,
+    "y": 610,
+    "width": 366,
+    "height": 142,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".prebooking-reference-modal": null,
+  ".prebooking-reference-header": {
+    "x": 16,
+    "y": 46,
+    "width": 358,
+    "height": 61,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".reference-appointment-form": {
+    "x": 25,
+    "y": 116,
+    "width": 340,
+    "height": 729.5625,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".booking-reference-summary": {
+    "x": 25,
+    "y": 729.5625,
+    "width": 340,
+    "height": 116,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".reference-appointment-form>.prebooking-footer": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  }
+}

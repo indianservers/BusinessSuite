@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -14,7 +15,7 @@ export default function EmployeeCategories({value, onChange, create = false, opt
     queryFn: ({signal}) => api.get<{items:string[]}>('/employees/work-category-options', {signal}).then(response=>response.data)});
   const names = [...new Set([...(options || query.data?.items || []), ...value])].sort((a,b)=>a.localeCompare(b));
   return <fieldset className="min-w-0 space-y-2" disabled={disabled}>
-    <legend className="text-sm font-medium">Employee categories</legend>
+    <legend className="text-sm font-medium">Employee categories</legend>{create&&<Link to="/hrms/employee-categories" target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Manage categories &amp; subcategories in HRMS</Link>}
     <p className="text-xs text-muted-foreground">Select multiple work categories maintained in HRMS.{create ? ' Add a category here, then save the employee to make it available throughout the suite.' : ''}</p>
     {query.isError && options === undefined && <p role="alert">Unable to load employee categories. <Button type="button" variant="outline" onClick={()=>void query.refetch()}>Retry</Button></p>}
     <div className="flex flex-wrap gap-3">{names.map(category=><label key={category} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.includes(category)} onChange={event=>onChange(event.target.checked?[...value,category]:value.filter(name=>name!==category))}/>{category}</label>)}</div>

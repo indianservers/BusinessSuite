@@ -1,0 +1,23 @@
+{
+  "name": "pos-booking-qa-20261118-v4",
+  "previous_frontend": "/srv/business-suite/suite-builds/stock-report-preview-20261118-v3",
+  "candidate": {},
+  "checks": [
+    "Verified v12 source baseline with scoped booking UI and role comparison changes",
+    "Six security stamp regression assertions passed",
+    "16 sample service/mobile viewport combinations passed using persisted production eligibility responses",
+    "Compact booking regression passed nine screen sizes",
+    "Vite production build passed",
+    "TypeScript check passed",
+    "Short live mobile booking spacing corrected after 39 real slots loaded",
+    "Full application shell tests: visible unclipped cart rows and conditional pagination at 320, 390, 430px",
+    "Latest stock-report-preview v3 source retained; only POS mobile CSS differs from that release"
+  ],
+  "changed_files": [
+    "frontend/src/lib/security-auth-stamp.ts",
+    "frontend/src/apps/srm/industry/POSServiceScheduling.tsx",
+    "frontend/src/apps/srm/industry/POSAvailableTimes.tsx",
+    "frontend/src/apps/srm/industry/pos-service-booking.css",
+    "frontend/src/apps/srm/pages/pos-mobile-reference.css"
+  ]
+}

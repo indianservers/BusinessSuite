@@ -1,0 +1,47 @@
+@media(max-width:480px){
+ .fam-mobile-voucher-page,.fam-mobile-voucher{min-width:0;max-width:100%;overflow-wrap:anywhere}
+ .fam-mobile-voucher-page>.suite-page-heading{padding:12px;gap:8px;flex-wrap:wrap}
+ .fam-mobile-voucher-page .suite-heading-identity{gap:10px;min-width:0}
+ .fam-mobile-voucher-page .suite-heading-icon{width:36px;height:36px;min-width:36px;border-radius:10px}
+ .fam-mobile-voucher-page .suite-heading-identity h1{font-size:22px;line-height:1.3}
+ .fam-mobile-voucher-page .suite-heading-description{font-size:13px;line-height:1.5}
+ .fam-mobile-voucher-page .suite-heading-actions button{min-height:44px}
+ .fam-mobile-voucher :is(input:not([type=checkbox]):not([type=radio]),select,textarea,[contenteditable=true]){font-size:16px;min-height:44px;min-width:0;max-width:100%}
+ .fam-mobile-voucher :is(button,[role=button]){min-height:44px}
+ .fam-mobile-voucher [role=tablist]{padding:6px;gap:4px}
+ .fam-mobile-voucher [role=tab]{font-size:12px;line-height:1.4;padding:8px 5px}
+ .fam-voucher-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .fam-voucher-overview>div{min-width:0}
+ .fam-voucher-overview>div:nth-child(n+3){grid-column:1/-1}
+ .fam-voucher-lines-card>div:first-child{padding:14px 14px 10px}
+ .fam-voucher-lines-card>div:last-child{padding:0 14px 14px;min-width:0}
+ .fam-voucher-line-table{max-height:min(440px,65dvh);max-width:100%;min-width:0;overflow:auto;overscroll-behavior:contain}
+ .fam-voucher-line-table>.udg-native{overflow:visible}
+ .fam-voucher-line-table table thead{position:sticky;top:0;z-index:3;background:hsl(var(--card))}
+ .fam-voucher-line-table input{min-width:120px}
+ .fam-voucher-line-table:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
+ .fam-mobile-voucher .fam-voucher-scroll-help{font-size:12px;color:hsl(var(--muted-foreground))}
+ .fam-voucher-totals{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .fam-voucher-totals>div>div{padding:12px}
+ .fam-voucher-totals .text-lg{font-size:17px;line-height:1.4}
+ .fam-mobile-voucher>.suite-action-toolbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:10;padding:8px;background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:12px;box-shadow:0 3px 14px rgb(0 0 0 / .08)}
+ .fam-mobile-voucher>.suite-action-toolbar:empty{display:none}
+ .fam-voucher-line-editor{display:grid;gap:10px;min-width:0}
+ .fam-voucher-line-editor>p{font-size:13px;line-height:1.5;padding-right:18px}
+ .fam-voucher-line-editor>label,.fam-voucher-line-pair>label{display:grid;gap:5px;font-size:14px;min-width:0}
+ .fam-voucher-line-editor :is(input,select){font-size:16px;min-height:44px;min-width:0;width:100%;max-width:100%}
+ .fam-voucher-line-editor button{min-height:44px;height:auto;min-width:0;white-space:normal}
+ .fam-voucher-line-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .fam-voucher-line-navigation{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+ .fam-voucher-line-navigation>button{padding:8px}
+ .fam-voucher-line-navigation>span{font-size:12px}
+ .mobile-experience-sheet:has(.fam-voucher-line-editor){max-height:calc(var(--mobile-viewport-height,100dvh) - 20px - env(safe-area-inset-bottom));bottom:calc(10px + env(safe-area-inset-bottom) + max(0px,100dvh - var(--mobile-viewport-height,100dvh)))}
+}
+@media(max-width:480px){
+ .fam-voucher-line-table .suite-collection-counts{padding:8px;gap:8px}
+ .fam-voucher-line-table .suite-collection-counts>div{flex:0 1 auto;min-width:0;min-height:40px;padding:6px 8px;gap:6px}
+ .fam-voucher-line-table .suite-collection-counts>div>span:not(.suite-count-icon){flex-direction:row;align-items:center;gap:8px}
+ .fam-voucher-line-table .suite-collection-counts .suite-count-icon{width:26px;height:26px}
+ .fam-voucher-line-table .suite-collection-counts .suite-count-icon svg{width:16px;height:16px}
+ .fam-voucher-line-table .suite-collection-counts strong{font-size:16px}
+}

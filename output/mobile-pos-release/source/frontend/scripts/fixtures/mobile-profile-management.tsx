@@ -1,0 +1,12 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import {ProfileManagement,type ProfileRequest} from "@/features/profiles/UnifiedProfile";
+import {api} from "@/services/api";
+import {useAuthStore} from "@/store/authStore";
+import "@/index.css";
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"manager@example.test",role:"hr",is_superuser:false,employee_id:1}});
+Object.assign(window,{__setProfilePhotoActor:(id:number)=>{const user=useAuthStore.getState().user;if(user)useAuthStore.setState({user:{...user,id}});}});
+const request:ProfileRequest=async(path,options)=>(await api.request({url:path,method:options?.method||"GET",data:options?.body})).data;
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={["/hrms/profile-management"]}><main id="suite-main" style={{padding:12}}><ProfileManagement request={request}/></main></MemoryRouter></QueryClientProvider>);

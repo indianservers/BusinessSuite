@@ -1,0 +1,38 @@
+{
+  ".appointment-reference-sidebar": {
+    "x": 0,
+    "y": 0,
+    "width": 248,
+    "height": 992,
+    "font": "",
+    "color": "rgb(255, 255, 255)"
+  },
+  ".appointment-reference-topbar": {
+    "x": 248,
+    "y": 0,
+    "width": 1338,
+    "height": 62,
+    "font": "",
+    "color": "rgb(22, 13, 41)"
+  },
+  ".appointment-gantt-scroll": null,
+  ".appointment-reference-upcoming": null,
+  ".resource-table-scroll": {
+    "x": 270,
+    "y": 421,
+    "width": 912,
+    "height": 424,
+    "font": "",
+    "color": "rgb(22, 13, 41)"
+  },
+  ".resource-editor": {
+    "x": 1202,
+    "y": 62,
+    "width": 384,
+    "height": 930,
+    "font": "",
+    "color": "rgb(22, 13, 41)"
+  },
+  ".prebooking-reference-modal": null,
+  ".booking-reference-summary": null
+}

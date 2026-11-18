@@ -1,0 +1,45 @@
+{
+  "started": "2026-11-18T13:24:23.206Z",
+  "events": [
+    {
+      "at": 1795008285207,
+      "status": 200,
+      "mode": "full",
+      "cache": "memory",
+      "query": "?source=srm&entity_kind=all&search=&page=1&per_page=50"
+    },
+    {
+      "at": 1795008285834,
+      "status": 200,
+      "mode": "full",
+      "cache": "memory",
+      "query": "?source=srm&entity_kind=all&search=DEMO+Calendar&page=1&per_page=50"
+    },
+    {
+      "at": 1795008423276,
+      "status": 200,
+      "mode": "full",
+      "cache": "memory",
+      "query": "?source=srm&entity_kind=all&search=DEMO+Calendar&page=1&per_page=50"
+    }
+  ],
+  "initial_sql": [],
+  "customer_storage_policy": "memory",
+  "cached_lookup_ms": 26,
+  "lookup_with_network_blocked": true,
+  "blocked_attempts": 0,
+  "repeat_sql": [],
+  "sqlite_get_confirmed": false,
+  "server_change_at": "2026-11-18T13:25:21.900Z",
+  "automatic_sync_ms": 101813,
+  "updated_visible": true,
+  "updated_sql": [],
+  "status": "passed",
+  "demo_restored": true,
+  "finished": "2026-11-18T13:27:08.357Z",
+  "scope": "Customer picker memory cache and automatic server refresh; customer endpoint is not approved for disk persistence",
+  "observed_sync_transport": "full snapshot",
+  "cached_lookup_timing_valid": false,
+  "lookup_blocking_proof_valid": false,
+  "lookup_probe_limitation": "The 26 ms observation preceded the debounced search; the lookup route block was removed too early. It is excluded from performance and offline-cache conclusions. Customer automatic refresh and guarded demo restoration remain valid."
+}

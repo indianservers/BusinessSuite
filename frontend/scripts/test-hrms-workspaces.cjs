@@ -7,7 +7,7 @@ const html = `<html><meta charset="utf-8"><body><div id="root"></div><script typ
   const browser = await chromium.launch();
   fs.mkdirSync('../.tmp/hrms-workspaces', { recursive: true });
   try {
-    for (const width of [1440, 390]) for (const screen of ['team', 'assets', 'expenses', 'payroll', 'reports']) {
+    for (const width of [1440, 390]) for (const screen of (process.env.HRMS_QA_SCREENS || 'team,assets,expenses,payroll,reports').split(',')) {
       const page = await browser.newPage({ viewport: { width, height: 1000 } });
       const errors = []; page.on('pageerror', e => errors.push(e.message));
       let reviewed = false, returned = false, assigned = false, paid = false, runStatus = 'calculated', batch = false, schedule = false, scheduleStatus = 'Active', follow = false, complete = false;
@@ -23,6 +23,7 @@ const html = `<html><meta charset="utf-8"><body><div id="root"></div><script typ
         if (path === '/reports/my-team/followups') { follow = true; return json({ id: 5 }); }
         if (path.includes('/followups/5/complete')) { complete = true; return json({}); }
         if (path === '/assets/capabilities') return json({ can_manage: true });
+        if (path === '/assets/summary') return json({ total: 1, returned: returned ? 1 : 0, statuses: { Available: assigned ? 0 : 1, Assigned: assigned && !returned ? 1 : 0, 'Under Repair': returned ? 1 : 0 }, categories: [{ category_id: 1, count: 1 }] });
         if (path === '/assets/categories') return json([{ id: 1, name: 'Bike' }, { id: 2, name: 'Laptop' }]);
         if (path === '/assets/employees' || path === '/expenses/employees') { latestSearch = url.searchParams.get('search'); return json([{ id: 150, name: 'Zebra Findable', employee_code: 'EMP-150' }, { id: 7, name: 'My Employee', employee_code: 'EMP-7' }]); }
         if (path === '/assets/') return json([{ id: 1, name: 'Honda company bike', asset_tag: 'BIKE-001', serial_number: 'TS09AB1234', status: returned ? 'Under Repair' : assigned ? 'Assigned' : 'Available', category_id: 1 }].filter(a => !url.searchParams.get('status') || a.status === url.searchParams.get('status')));
@@ -33,7 +34,7 @@ const html = `<html><meta charset="utf-8"><body><div id="root"></div><script typ
         if (path.startsWith('/expenses/statements/')) return json({ employee_id: 7, employee_name: 'My Employee', can_submit: false, can_manager_review: true, can_finance_review: true, totals: [{ currency: 'INR', claimed: '1000.25', approved: '900.50', outstanding: '900.50', paid: '0', pending_review: '99.75', rejected: '0' }, { currency: 'USD', claimed: '10.25', approved: '10.25', outstanding: '0', paid: '10.25', pending_review: '0', rejected: '0' }], claims: [{ id: 1, claim_number: 'EXP-ONE', claim_type: 'Travel', expense_date: '2026-10-20', amount: '1000.25', approved_amount: '900.50', currency: 'INR', status: 'finance_approved', payroll_run_id: 9, payroll_reimbursement_id: 1, reimbursed_at: null, reimbursement_reference: null, remarks: 'Receipt verified', receipt_url: null }] });
         if (path === '/payroll/runs') return json([{ id: 9, month: 10, year: 2026, status: runStatus }]);
         if (path.endsWith('/9/variance')) return json([{ id: 1, employee_id: 7, previous_net: 90, current_net: 100, net_delta_percent: 11.11, severity: 'Medium' }]);
-        if (path.endsWith('/9/guided') && req.method() === 'GET') return json({ id: 9, status: runStatus, reviewed, blocked: false, can_process: true, can_approve: true, issues: [], blockers: [], records: [{ id: 1, employee_id: 7, employee_name: 'My Employee', gross: '110', deductions: '10', net: '100' }], batches: batch ? [{ id: 3, status: paid ? 'Paid' : 'Generated', total: '100', file_url: '/uploads/test.csv', lines: [{ employee_id: 7, payroll_record_id: 1, status: paid ? 'Paid' : 'Pending', utr: paid ? 'BANK-001' : null, failure_reason: null }] }] : [] });
+        if (path.endsWith('/9/guided') && req.method() === 'GET') return json({ id: 9, status: runStatus, reviewed, blocked: false, can_process: true, can_review: true, can_approve: true, issues: [], blockers: [], records: [{ id: 1, employee_id: 7, employee_name: 'My Employee', gross: '110', deductions: '10', net: '100' }], batches: batch ? [{ id: 3, status: paid ? 'Paid' : 'Generated', total: '100', file_url: '/uploads/test.csv', lines: [{ employee_id: 7, payroll_record_id: 1, status: paid ? 'Paid' : 'Pending', utr: paid ? 'BANK-001' : null, failure_reason: null }] }] : [] });
         if (path.endsWith('/9/guided')) { if (body.action === 'review') reviewed = true; if (body.action === 'approve') runStatus = 'approved'; if (body.action === 'lock') runStatus = 'locked'; if (body.action === 'pay') batch = true; if (body.action === 'reconcile') { assert(paid); runStatus = 'paid'; } return json({}); }
         if (path.endsWith('/3/status-import')) { assert.equal(body.lines[0].utr_number, 'BANK-001'); paid = true; return json({ updated: 1 }); }
         if (path === '/reports/definitions') return json([{ id: 1, name: 'People report' }]);
@@ -50,10 +51,12 @@ const html = `<html><meta charset="utf-8"><body><div id="root"></div><script typ
         await page.getByLabel('Decision reason').fill('Receipt checked');
         await page.getByRole('button', { name: 'Save decision' }).click();
         await page.getByText('No matching pending requests.').waitFor();
+        await page.getByRole('button', { name: 'Create team follow-up', exact: true }).click();
         await page.getByLabel('Team member').selectOption('150');
         await page.getByLabel('Follow-up task').fill('Review equipment handover');
         await page.getByLabel('Due date').fill('2026-11-01');
-        await page.getByRole('button', { name: 'Add follow-up' }).click();
+        await page.locator('[data-smart-create-footer]').getByRole('button', { name: 'Add follow-up' }).click();
+        await page.getByRole('dialog', { name: 'Create team follow-up', exact: true }).waitFor({ state: 'hidden' });
         await page.getByRole('button', { name: 'Mark complete' }).click();
         await page.getByText('No open follow-ups.').waitFor();
       } else if (screen === 'assets') {
@@ -88,9 +91,10 @@ const html = `<html><meta charset="utf-8"><body><div id="root"></div><script typ
         await page.getByRole('button', { name: 'Reconcile & close payroll' }).click();
         await page.getByText('Payments reconciled', { exact: true }).waitFor();
       } else {
+        await page.getByRole('button', { name: 'Create report schedule', exact: true }).click();
         await page.getByLabel('Saved report', { exact: true }).selectOption('1');
         await page.getByLabel('Schedule name').fill('Weekly people review');
-        await page.getByRole('button', { name: 'Create report schedule' }).click();
+        await page.locator('[data-smart-create-footer]').getByRole('button', { name: 'Create report schedule' }).click();
         await page.getByRole('button', { name: 'Pause schedule' }).click();
         await page.getByText('Paused', { exact: true }).waitFor();
         await page.getByRole('button', { name: 'View delivery audit' }).click();

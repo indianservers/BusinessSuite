@@ -1,0 +1,12 @@
+@media(max-width:480px){
+ section.transition-approval-controls{min-width:0;padding:12px}
+ .transition-approval-controls h3{font-size:16px;line-height:1.4}
+ .transition-approval-controls button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+ .transition-approval-controls select,.transition-approval-controls textarea{font-size:16px;min-height:44px;max-width:100%}
+ .transition-approval-controls fieldset{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .transition-approval-controls fieldset>label{min-width:0}
+ .transition-approval-controls p,.transition-approval-controls li{overflow-wrap:anywhere}
+ .transition-approval-controls li>span{display:flex;margin:8px 0 0;gap:8px;flex-wrap:wrap}
+ .transition-approval-controls li>span>button{flex:1 1 100px}
+ .transition-approval-controls textarea{min-height:88px}
+}

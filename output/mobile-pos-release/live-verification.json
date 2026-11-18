@@ -1,0 +1,68 @@
+{
+  "release": "mobile-pos-20261117-173930-v4",
+  "origin": "https://besterp.app",
+  "mobile_pos": {
+    "viewports": [
+      [
+        320,
+        568
+      ],
+      [
+        360,
+        640
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        426,
+        640
+      ],
+      [
+        430,
+        932
+      ],
+      [
+        767,
+        1024
+      ],
+      [
+        430,
+        1280
+      ]
+    ],
+    "document_matches_viewport": true,
+    "scroll_y": 0,
+    "extra_pos_tabs": 0,
+    "visible_scrollbars": 0,
+    "cart_content_fits": true,
+    "pagination_verified": {
+      "320x568": "shown for two service rows; next page works",
+      "390x844": "hidden when both service rows fit"
+    }
+  },
+  "home_continue_working": "absent",
+  "appointments_pos_label": "POS",
+  "appointments_create_order": [
+    "POS",
+    "Add product",
+    "Add service",
+    "Sales order"
+  ],
+  "demo_calendar": {
+    "verified_bookings": 20,
+    "company": "Indian Servers",
+    "branch": "Main",
+    "dates": [
+      "2026-11-18",
+      "2026-11-19",
+      "2026-11-20",
+      "2026-11-21",
+      "2026-11-23"
+    ],
+    "calendar_shows": "20 bookings loaded",
+    "selected_day": "2026-11-18"
+  },
+  "health": "healthy"
+}

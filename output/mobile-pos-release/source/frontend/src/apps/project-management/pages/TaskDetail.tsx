@@ -1,0 +1,1937 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import { useInitialLoading } from "@/hooks/use-initial-loading";
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm from "@/components/forms/CompactForm";
+import TaskExecutionPanel from "../components/TaskExecutionPanel";
+import { ManagePersonButton } from "../components/people/PersonIdentity";
+import { useRefreshableEffect } from "@/lib/page-refresh";
+import { ConversationLauncher, TaskConversationSource } from "@/shared/communication";
+import TaskLinkedNotes from "../components/TaskLinkedNotes";
+import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import { insertRichMention } from "@/components/rich-text/content";
+import WorkReviewPanel from "../components/WorkReviewPanel";
+import RecordActions from "../components/RecordActions";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import TaskPropertyStrip from "../components/TaskPropertyStrip";
+import TaskDateControl from "../components/TaskDateControl";
+import TaskStatusControl from "../components/TaskStatusControl";
+import { useModuleAction } from "@/hooks/use-module-action";
+import {useMobileDraftGuard} from "@/components/mobile/useMobileDraftGuard";
+import UnsavedTaskDialog from "../components/UnsavedTaskDialog";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bold,
+  CalendarDays,
+  CheckSquare,
+  Code2,
+  Clock,
+  Download,
+  Edit3,
+  Eye,
+  File as FileIcon,
+  FileArchive,
+  FileText,
+  GitBranch,
+  GripVertical,
+  Heading,
+  Image as ImageIcon,
+  Italic,
+  Link2,
+  List,
+  MessageSquare,
+  Paperclip,
+  Plus,
+  Save,
+  Timer,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import AssigneePicker from "../components/AssigneePicker";
+import RunningTimer from "../components/RunningTimer";
+import PriorityPicker from "../components/PriorityPicker";
+import TaskCustomFields from "../components/TaskCustomFields";
+import AskAiButton from "@/components/ai-agents/AskAiButton";
+import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
+import { commentsAPI, filesAPI, planningAPI, projectsAPI, tagsAPI, tasksAPI, timeLogsAPI, sprintsAPI, pmsUsersAPI } from "../services/api";
+import { taskAssignees, workspaceError } from "./workspaceTypes";
+import { usePMSRealtime } from "../realtime";
+import type {
+  PMSActivity,
+  PMSChecklistItem,
+  PMSComment,
+  PMSDevLink,
+  PMSEpic,
+  PMSFileAsset,
+  PMSProject,
+  PMSSprint,
+  PMSTag,
+  PMSTask,
+  PMSTaskDependency,
+  PMSTimeLog,
+  PMSMentionUser,
+  TaskPriority,
+  TaskStatus,
+} from "../types";
+
+type TabKey = "notes" | "work" | "comments" | "activity" | "time" | "files" | "links" | "development" | "history";
+type ActivityFilter = "all" | "comments" | "changes" | "time" | "files";
+type ActivitySort = "desc" | "asc";
+
+const taskStatuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done", "Cancelled"];
+const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
+const taskDraftFields = ["title", "description", "estimated_hours", "story_points"] as const;
+const checklistCloseGuardConfig = {
+  warnOnIncompleteBeforeClose: false,
+};
+const tabs: { key: TabKey; label: string; icon: ReactNode }[] = [
+  { key: "work", label: "Submissions & Reviews", icon: <CheckSquare className="h-4 w-4" /> },
+  { key: "comments", label: "Comments", icon: <MessageSquare className="h-4 w-4" /> },
+  { key: "activity", label: "Activity", icon: <GitBranch className="h-4 w-4" /> },
+  { key: "time", label: "Time Logs", icon: <Timer className="h-4 w-4" /> },
+  { key: "notes", label: "Notes", icon: <FileText className="h-4 w-4" /> },
+  { key: "files", label: "Files", icon: <Paperclip className="h-4 w-4" /> },
+  { key: "links", label: "Linked Tasks", icon: <Link2 className="h-4 w-4" /> },
+  { key: "development", label: "Development", icon: <Code2 className="h-4 w-4" /> },
+  { key: "history", label: "History", icon: <Clock className="h-4 w-4" /> },
+];
+
+function shouldPreventClosingTask(nextStatus: string, checklist: PMSChecklistItem[]) {
+  if (!checklistCloseGuardConfig.warnOnIncompleteBeforeClose) return false;
+  return nextStatus === "Done" && checklist.some((item) => !item.is_completed);
+}
+
+export default function TaskDetail() {
+  const scope = useRecordScope();
+  const {projectId,taskId} = useParams<{projectId:string;taskId:string}>();
+  return <ScopedTaskDetail key={`${scope}:${projectId||""}:${taskId||""}`}/>;
+}
+
+function ScopedTaskDetail() {
+  const allowTaskEdit = useModuleAction("edit");
+  const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
+  const navigate = useNavigate();
+  const [task, setTask] = useState<PMSTask | null>(null);
+  const taskRef = useRef(task);
+  taskRef.current = task;
+  const savedTask = useRef<PMSTask|null>(null);
+  const [remoteChange, setRemoteChange] = useState(false);
+  const [editConflict, setEditConflict] = useState<{changes:Partial<PMSTask>;latest?:PMSTask}|null>(null);
+  const [reviewingConflict, setReviewingConflict] = useState(false);
+  const [statusChoicesRevision,setStatusChoicesRevision]=useState(0);
+  const [project, setProject] = useState<PMSProject | null>(null);
+  const [sprints, setSprints] = useState<PMSSprint[]>([]);
+  const [epics, setEpics] = useState<PMSEpic[]>([]);
+  const [comments, setComments] = useState<PMSComment[]>([]);
+  const [activity, setActivity] = useState<PMSActivity[]>([]);
+  const [files, setFiles] = useState<PMSFileAsset[]>([]);
+  const [timeLogs, setTimeLogs] = useState<PMSTimeLog[]>([]);
+  const [checklist, setChecklist] = useState<PMSChecklistItem[]>([]);
+  const [subtasks, setSubtasks] = useState<PMSTask[]>([]);
+  const [links, setLinks] = useState<PMSTaskDependency[]>([]);
+  const [devLinks, setDevLinks] = useState<PMSDevLink[]>([]);
+  const [tags, setTags] = useState<PMSTag[]>([]);
+  const [availableTags, setAvailableTags] = useState<PMSTag[]>([]);
+  const [activeTab, setActiveTab] = useState<TabKey>("comments");
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [activitySort, setActivitySort] = useState<ActivitySort>("desc");
+  const [comment, setComment] = useState("");
+  const [commentSaving,setCommentSaving]=useState(false);
+  const [commentError,setCommentError]=useState("");
+  const commentPending=useRef(false);
+  const [commentMentions, setCommentMentions] = useState<PMSMentionUser[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [editingChecklistId, setEditingChecklistId] = useState<number | null>(null);
+  const [editingChecklistText, setEditingChecklistText] = useState("");
+  const [draggedChecklistId, setDraggedChecklistId] = useState<number | null>(null);
+  const [checklistError, setChecklistError] = useState<string | null>(null);
+  const [newTag, setNewTag] = useState("");
+  const [tagCompletionRevision, setTagCompletionRevision] = useState(0);
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagError, setTagError] = useState("");
+  const [subtaskPeople, setSubtaskPeople] = useState<PMSMentionUser[]>([]);
+  const [subtaskSearch, setSubtaskSearch] = useState("");
+  const [subtaskFilter, setSubtaskFilter] = useState("all");
+  const [subtaskSaving, setSubtaskSaving] = useState(false);
+  const [newSubtaskAssignees, setNewSubtaskAssignees] = useState<number[]>([]);
+  const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
+  useRefreshableEffect(() => {
+    let active = true;
+    const id = task?.project_id || Number(projectId);
+    if (id) pmsUsersAPI.search({ q: "", projectId: id }).then(people => { if (active) setSubtaskPeople(people); }).catch(() => { if (active) setSubtaskPeople([]); });
+    return () => { active = false; };
+  }, [projectId, task?.project_id]);
+  const [newSubtask, setNewSubtask] = useState("");
+  const [newSubtaskPriority, setNewSubtaskPriority] = useState<TaskPriority>("Medium");
+  const [newSubtaskDueDate, setNewSubtaskDueDate] = useState("");
+  const [newSubtaskStoryPoints, setNewSubtaskStoryPoints] = useState("");
+  const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
+  const [editingSubtask, setEditingSubtask] = useState<Partial<PMSTask>>({});
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [attachmentDragActive, setAttachmentDragActive] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [newDependencyId, setNewDependencyId] = useState("");
+  const [dependencyError, setDependencyError] = useState<string | null>(null);
+  const [timeDate, setTimeDate] = useState(new Date().toISOString().slice(0, 10));
+  const [timeStart, setTimeStart] = useState("");
+  const [timeEnd, setTimeEnd] = useState("");
+  const [timeMinutes, setTimeMinutes] = useState("30");
+  const [timeDescription, setTimeDescription] = useState("");
+  const [timeBillable, setTimeBillable] = useState(false);
+  const [editingTimeLogId, setEditingTimeLogId] = useState<number | null>(null);
+  const [timeLogError, setTimeLogError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
+  const [error, setError] = useState<string | null>(null);
+  const [discardAction,setDiscardAction]=useState<(()=>void)|null>(null);
+  const requestLeave=useMobileDraftGuard({guardHistory:true,enabled:!!task,dirty:!!editConflict||!!(task&&savedTask.current&&taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]))||!!richTextPlainText(comment).trim(),draftKey:JSON.stringify([task?.id,...taskDraftFields.map(field=>task?.[field]),editConflict?.changes,comment]),pending:()=>saving||reviewingConflict||commentPending.current,onDiscard:()=>{if(savedTask.current)setTask(savedTask.current);setEditConflict(null);setComment("");setCommentMentions([]);},message:"Discard your unsaved task changes and comment?",confirmDiscard:confirm=>setDiscardAction(()=>confirm)});
+
+  const numericTaskId = Number(taskId);
+  const effectiveProjectId = task?.project_id || Number(projectId);
+  const hasProjectRoute = Boolean(projectId);
+
+  const loadTaskData = useCallback((active = true) => {
+    if (!numericTaskId) return;
+    setLoading(true);
+    setError(null);
+    tasksAPI
+      .get(numericTaskId)
+      .then(async (taskResponse) => {
+        if (!active) return;
+        const current = taskRef.current;
+        const hasDraft = current && savedTask.current && taskDraftFields.some(field=>current[field]!==savedTask.current?.[field]);
+        if (hasDraft) {
+          if (taskResponse.updated_at!==savedTask.current?.updated_at) setRemoteChange(true);
+        } else {
+          savedTask.current=taskResponse;
+          setTask(taskResponse);
+        }
+        const [
+          projectResponse,
+          sprintResponse,
+          epicResponse,
+          commentResponse,
+          activityResponse,
+          fileResponse,
+          timeResponse,
+          checklistResponse,
+          subtaskResponse,
+          linkResponse,
+          devLinkResponse,
+          tagResponse,
+          availableTagResponse,
+        ] = await Promise.all([
+          projectsAPI.get(taskResponse.project_id).catch(() => null),
+          sprintsAPI.list(taskResponse.project_id).catch(() => []),
+          planningAPI.listEpics(taskResponse.project_id).catch(() => []),
+          commentsAPI.listForTask(taskResponse.id).catch(() => []),
+          tasksAPI.listActivity(taskResponse.id).catch(() => []),
+          tasksAPI.listAttachments(taskResponse.id).catch(() => []),
+          tasksAPI.listTimeLogs(taskResponse.id).catch(() => []),
+          tasksAPI.listChecklists(taskResponse.id).catch(() => []),
+          tasksAPI.listSubtasks(taskResponse.id).catch(() => []),
+          tasksAPI.listLinks(taskResponse.id).catch(() => []),
+          tasksAPI.listDevLinks(taskResponse.id).catch(() => []),
+          tasksAPI.listTags(taskResponse.id).catch(() => []),
+          tagsAPI.list().catch(() => []),
+        ]);
+        if (!active) return;
+        setProject(projectResponse);
+        setSprints(sprintResponse);
+        setEpics(epicResponse);
+        setComments(commentResponse);
+        setActivity(activityResponse);
+        setFiles(fileResponse);
+        setTimeLogs(timeResponse);
+        setChecklist(checklistResponse);
+        setSubtasks(subtaskResponse);
+        setLinks(linkResponse);
+        setDevLinks(devLinkResponse);
+        setTags(tagResponse);
+        setAvailableTags(availableTagResponse);
+      })
+      .catch((err) => {
+        if (active) setError(workspaceError(err));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+  }, [numericTaskId]);
+
+  useRefreshableEffect(() => {
+    let active = true;
+    loadTaskData(active);
+    return () => {
+      active = false;
+    };
+  }, [loadTaskData]);
+
+  usePMSRealtime({
+    projectId: effectiveProjectId || undefined,
+    taskId: numericTaskId || undefined,
+    onEvent: (event) => {
+      if (
+        event.taskId === numericTaskId ||
+        event.type === "task.comment_added" ||
+        event.type === "task.attachment_added" ||
+        event.type === "task.updated" ||
+        event.type === "task.status_changed" ||
+        event.type === "task.assignee_changed"
+      ) {
+        loadTaskData(true);
+      }
+    },
+    onFallbackPoll: () => loadTaskData(true),
+    showToast: false,
+  });
+
+  const selectedSprint = useMemo(() => sprints.find((item) => item.id === task?.sprint_id), [sprints, task?.sprint_id]);
+  const selectedEpic = useMemo(() => epics.find((item) => item.id === task?.epic_id), [epics, task?.epic_id]);
+  const checklistDone = checklist.filter((item) => item.is_completed).length;
+  const checklistProgress = checklist.length ? Math.round((checklistDone / checklist.length) * 100) : 0;
+  const totalLoggedMinutes = timeLogs.reduce((total, item) => total + Number(item.duration_minutes || 0), 0);
+  const billableMinutes = timeLogs.filter((item) => item.is_billable).reduce((total, item) => total + Number(item.duration_minutes || 0), 0);
+  const nonBillableMinutes = totalLoggedMinutes - billableMinutes;
+  const completedSubtasks = subtasks.filter((item) => item.status === "Done").length;
+  const subtaskProgress = subtasks.length ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
+  const canNavigateBoard = hasProjectRoute && Boolean(effectiveProjectId);
+
+  if (initialLoading) return <div className="skeleton h-96 rounded-lg" />;
+  if (error && !task) return <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}<Button type="button" variant="outline" onClick={()=>loadTaskData(true)}>Retry loading task</Button></div>;
+  if (!task) return <div className="rounded-lg border p-8 text-center text-muted-foreground">Task not found.</div>;
+
+  const refreshActivity = () => tasksAPI.listActivity(task.id).then(setActivity).catch(() => undefined);
+
+  const updateTask = async (data: Partial<PMSTask>, reviewed?:PMSTask) => {
+    if(!allowTaskEdit||project?.can_manage_tasks!==true)return;
+    if (discardAction || editConflict && !reviewed) return;
+    if(!reviewed&&savedTask.current&&Object.entries(data).every(([field,value])=>JSON.stringify(value)===JSON.stringify((savedTask.current as any)[field])))return;
+    const submitted = taskRef.current || task;
+    setSaving(true);
+    try {
+      const updated = await tasksAPI.update(task.id, {...data,expected_updated_at:(reviewed||submitted).updated_at??null} as any);
+      savedTask.current=updated;
+      // Preserve fields outside this save and edits made while the request ran.
+      const current=taskRef.current;
+      const retained:Partial<PMSTask>={};
+      if(current) for(const field of taskDraftFields){
+        if(current[field]!==submitted[field] || ((field in data)?current[field]!==data[field]:current[field]!==updated[field])) (retained as any)[field]=current[field];
+      }
+      setTask({...updated,...retained});
+      setEditConflict(null);
+      setRemoteChange(false);
+      setError(null);
+      refreshActivity();
+    } catch (err: any) {
+      setError(workspaceError(err));
+      if(err?.response?.status===409 && typeof err.response.data?.detail==="string" && err.response.data.detail.startsWith("This task changed while you were editing.")) setEditConflict({changes:data});
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reviewLatestTask = async () => {
+    if(!editConflict) return;
+    setReviewingConflict(true);
+    try { const latest=await tasksAPI.get(task.id);setEditConflict(current=>current?{...current,latest}:null);setError(null); }
+    catch(err){setError(workspaceError(err));}
+    finally{setReviewingConflict(false);}
+  };
+
+  const addComment = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!richTextPlainText(comment).trim()||commentPending.current||discardAction) return;
+    commentPending.current=true;setCommentSaving(true);setCommentError("");
+    const submitted=comment;
+    try{
+    const created = await commentsAPI.addToTask(task.id, {
+      body: comment.trim(),
+      body_format: "markdown",
+      is_internal: true,
+      mentioned_user_ids: commentMentions.map((user) => user.id),
+    });
+    setComments((items) => [created, ...items.filter(item=>item.id!==created.id)]);
+    setComment(current=>current===submitted?"":current);
+    setCommentMentions([]);
+    refreshActivity();
+    }catch(err){setCommentError(workspaceError(err));}
+    finally{commentPending.current=false;setCommentSaving(false);}
+  };
+
+  const addChecklistItem = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newChecklistItem.trim()) return;
+    setChecklistError(null);
+    const title = newChecklistItem.trim();
+    const tempItem: PMSChecklistItem = {
+      id: -Date.now(),
+      task_id: task.id,
+      title,
+      is_completed: false,
+      position: checklist.length,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setChecklist((items) => [...items, tempItem]);
+    setNewChecklistItem("");
+    try {
+      const item = await tasksAPI.addChecklistItem(task.id, { title, is_completed: false, position: tempItem.position });
+      setChecklist((items) => items.map((current) => current.id === tempItem.id ? item : current));
+      refreshActivity();
+    } catch (err: any) {
+      setChecklist((items) => items.filter((current) => current.id !== tempItem.id));
+      setChecklistError(err?.response?.data?.detail || "Unable to add checklist item.");
+    }
+  };
+
+  const toggleChecklistItem = async (item: PMSChecklistItem) => {
+    setChecklistError(null);
+    const previous = checklist;
+    const nextCompleted = !item.is_completed;
+    setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, is_completed: nextCompleted } : current));
+    try {
+      const updated = await tasksAPI.updateChecklistItem(item.id, { is_completed: nextCompleted });
+      setChecklist((items) => items.map((current) => current.id === item.id ? updated : current));
+      refreshActivity();
+    } catch (err: any) {
+      setChecklist(previous);
+      setChecklistError(err?.response?.data?.detail || "Unable to update checklist item.");
+    }
+  };
+
+  const startEditingChecklistItem = (item: PMSChecklistItem) => {
+    setEditingChecklistId(item.id);
+    setEditingChecklistText(item.title);
+  };
+
+  const saveChecklistText = async (item: PMSChecklistItem) => {
+    const title = editingChecklistText.trim();
+    setEditingChecklistId(null);
+    if (!title || title === item.title) return;
+    setChecklistError(null);
+    const previous = checklist;
+    setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, title } : current));
+    try {
+      const updated = await tasksAPI.updateChecklistItem(item.id, { title });
+      setChecklist((items) => items.map((current) => current.id === item.id ? updated : current));
+      refreshActivity();
+    } catch (err: any) {
+      setChecklist(previous);
+      setChecklistError(err?.response?.data?.detail || "Unable to rename checklist item.");
+    }
+  };
+
+  const handleChecklistKeyDown = (event: KeyboardEvent<HTMLInputElement>, item: PMSChecklistItem) => {
+    if (event.key === "Enter") {
+      event.currentTarget.blur();
+    }
+    if (event.key === "Escape") {
+      setEditingChecklistId(null);
+      setEditingChecklistText(item.title);
+    }
+  };
+
+  const deleteChecklistItem = async (item: PMSChecklistItem) => {
+    setChecklistError(null);
+    const previous = checklist;
+    setChecklist((items) => items.filter((current) => current.id !== item.id));
+    try {
+      await tasksAPI.deleteChecklistItem(item.id);
+      refreshActivity();
+    } catch (err: any) {
+      setChecklist(previous);
+      setChecklistError(err?.response?.data?.detail || "Unable to delete checklist item.");
+    }
+  };
+
+  const reorderChecklist = async (targetItemId: number) => {
+    if (!draggedChecklistId || draggedChecklistId === targetItemId) return;
+    setChecklistError(null);
+    const previous = checklist;
+    const fromIndex = checklist.findIndex((item) => item.id === draggedChecklistId);
+    const toIndex = checklist.findIndex((item) => item.id === targetItemId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const reordered = [...checklist];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    const withPositions = reordered.map((item, index) => ({ ...item, position: index }));
+    setChecklist(withPositions);
+    setDraggedChecklistId(null);
+    try {
+      const saved = await tasksAPI.reorderChecklist(task.id, withPositions.map((item) => item.id));
+      setChecklist(saved);
+      refreshActivity();
+    } catch (err: any) {
+      setChecklist(previous);
+      setChecklistError(err?.response?.data?.detail || "Unable to reorder checklist.");
+    }
+  };
+
+  const handleChecklistDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const addTag = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newTag.trim() || tagSaving) return;
+    setTagSaving(true); setTagError("");
+    try {
+      const created = availableTags.find(item => item.name.toLowerCase() === newTag.trim().toLowerCase()) || await tagsAPI.create({ name: newTag.trim() });
+      setAvailableTags(items => items.some(item => item.id === created.id) ? items : [...items, created].sort((a,b)=>a.name.localeCompare(b.name)));
+      const tag = await tasksAPI.addTagById(task.id, created.id);
+      setTags(items => items.some(item => item.id === tag.id) ? items : [...items, tag].sort((a,b)=>a.name.localeCompare(b.name)));
+      setNewTag(""); setTagCompletionRevision(value=>value+1); refreshActivity();
+    } catch (cause: any) { setTagError(typeof cause?.response?.data?.detail === "string" ? cause.response.data.detail : "Could not add this tag. Your entered name is retained."); }
+    finally { setTagSaving(false); }
+  };
+
+  const attachExistingTag = async (tagId: number) => {
+    if (!tagId || tags.some((tag) => tag.id === tagId)) return;
+    const tag = await tasksAPI.addTagById(task.id, tagId);
+    setTags((items) => items.some((item) => item.id === tag.id) ? items : [...items, tag].sort((a, b) => a.name.localeCompare(b.name)));
+    refreshActivity();
+  };
+
+  const removeTag = async (tag: PMSTag) => {
+    const previous = tags;
+    setTags((items) => items.filter((item) => item.id !== tag.id));
+    try {
+      await tasksAPI.removeTag(task.id, tag.id);
+      refreshActivity();
+    } catch (err: any) {
+      setTags(previous);
+      setError(err?.response?.data?.detail || "Unable to remove tag.");
+    }
+  };
+
+  const saveStoryPoints = () => {
+    const points = task.story_points ?? 0;
+    if (!Number.isInteger(points) || points < 0) {
+      setError("Story points must be a non-negative whole number.");
+      setTask({ ...task, story_points: Math.max(0, Math.floor(points || 0)) });
+      return;
+    }
+    updateTask({ story_points: points } as any);
+  };
+
+  const uploadAttachments = async (selectedFiles: FileList | File[]) => {
+    const uploads = Array.from(selectedFiles);
+    if (!uploads.length) return;
+    setAttachmentError(null);
+    setAttachmentUploading(true);
+    try {
+      const created = await Promise.all(uploads.map((file) => filesAPI.uploadToTask(task.id, file)));
+      setFiles((items) => [...created, ...items]);
+      refreshActivity();
+    } catch (err: any) {
+      setAttachmentError(err?.response?.data?.detail || "Unable to upload attachment.");
+    } finally {
+      setAttachmentUploading(false);
+      setAttachmentDragActive(false);
+    }
+  };
+
+  const deleteAttachment = async (file: PMSFileAsset) => {
+    const previous = files;
+    setFiles((items) => items.filter((item) => item.id !== file.id));
+    try {
+      await filesAPI.deleteAttachment(file.id);
+      refreshActivity();
+    } catch (err: any) {
+      setFiles(previous);
+      setAttachmentError(err?.response?.data?.detail || "Unable to delete attachment.");
+    }
+  };
+
+  const logTime = async (event: FormEvent) => {
+    event.preventDefault();
+    const minutes = Number(timeMinutes);
+    if (!minutes || minutes <= 0) {
+      setTimeLogError("Duration must be greater than zero.");
+      return;
+    }
+    setTimeLogError(null);
+    const payload = {
+      project_id: task.project_id,
+      task_id: task.id,
+      log_date: timeDate,
+      start_time: timeStart ? `${timeDate}T${timeStart}:00` : undefined,
+      end_time: timeEnd ? `${timeDate}T${timeEnd}:00` : undefined,
+      duration_minutes: minutes,
+      description: timeDescription.trim() || undefined,
+      is_billable: timeBillable,
+    };
+    try {
+      if (editingTimeLogId) {
+        const updated = await timeLogsAPI.update(editingTimeLogId, payload);
+        setTimeLogs((items) => items.map((item) => item.id === updated.id ? updated : item));
+      } else {
+        const created = await tasksAPI.addTimeLog(task.id, payload);
+        setTimeLogs((items) => [created, ...items]);
+      }
+      setEditingTimeLogId(null);
+      setTimeStart("");
+      setTimeEnd("");
+      setTimeBillable(false);
+      setTimeDescription("");
+      setTimeMinutes("30");
+      refreshActivity();
+    } catch (err: any) {
+      setTimeLogError(err?.response?.data?.detail || "Unable to save time log.");
+    }
+  };
+
+  const editTimeLog = (log: PMSTimeLog) => {
+    setEditingTimeLogId(log.id);
+    setTimeDate(log.log_date);
+    setTimeStart(log.start_time ? log.start_time.slice(11, 16) : "");
+    setTimeEnd(log.end_time ? log.end_time.slice(11, 16) : "");
+    setTimeMinutes(String(log.duration_minutes));
+    setTimeDescription(log.description || "");
+    setTimeBillable(log.is_billable);
+    setTimeLogError(null);
+    setActiveTab("time");
+  };
+
+  const cancelTimeLogEdit = () => {
+    setEditingTimeLogId(null);
+    setTimeDate(new Date().toISOString().slice(0, 10));
+    setTimeStart("");
+    setTimeEnd("");
+    setTimeMinutes("30");
+    setTimeDescription("");
+    setTimeBillable(false);
+    setTimeLogError(null);
+  };
+
+  const deleteTimeLog = async (log: PMSTimeLog) => {
+    const previous = timeLogs;
+    setTimeLogs((items) => items.filter((item) => item.id !== log.id));
+    try {
+      await timeLogsAPI.delete(log.id);
+      refreshActivity();
+    } catch (err: any) {
+      setTimeLogs(previous);
+      setTimeLogError(err?.response?.data?.detail || "Unable to delete time log.");
+    }
+  };
+
+  const addSubtask = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newSubtask.trim() || subtaskSaving) return;
+    setSubtaskError(null);
+    const points = newSubtaskStoryPoints === "" ? undefined : Number(newSubtaskStoryPoints);
+    if (points !== undefined && (!Number.isInteger(points) || points < 0)) {
+      setSubtaskError("Story points must be a non-negative whole number.");
+      return;
+    }
+    try {
+      setSubtaskSaving(true);
+      const created = await tasksAPI.createSubtask(task.id, {
+        title: newSubtask.trim(),
+        description: newSubtaskDescription,
+        status: "To Do",
+        priority: newSubtaskPriority,
+        assignee_user_ids: newSubtaskAssignees,
+        due_date: newSubtaskDueDate || undefined,
+        story_points: points,
+      });
+      setSubtasks((items) => [...items, created]);
+      setTask((current) => current ? { ...current, subtask_count: (current.subtask_count || 0) + 1 } : current);
+      setNewSubtask("");
+      setNewSubtaskDescription("");
+      setNewSubtaskAssignees([]);
+      setNewSubtaskDueDate("");
+      setNewSubtaskStoryPoints("");
+      setNewSubtaskPriority("Medium");
+      refreshActivity();
+    } catch (err: any) {
+      setSubtaskError(err?.response?.data?.detail || "Unable to add sub-task.");
+    } finally { setSubtaskSaving(false); }
+  };
+
+  const moveSubtask = async (item: PMSTask, direction: number) => {
+    const ids = subtasks.map(child => child.id);
+    const index = ids.indexOf(item.id), target = index + direction;
+    if (target < 0 || target >= ids.length || subtaskSaving) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    setSubtaskSaving(true); setSubtaskError(null);
+    try { setSubtasks(await tasksAPI.reorderSubtasks(task.id, ids)); refreshActivity(); }
+    catch (err: any) { setSubtaskError(err?.response?.data?.detail || "Unable to reorder subtasks. Refresh and retry."); }
+    finally { setSubtaskSaving(false); }
+  };
+  const promoteSubtask = async (item: PMSTask) => {
+    if (!window.confirm(`Move ${item.title} out of this parent into the project?`)) return;
+    try {
+      await tasksAPI.update(item.id, { parent_task_id: null } as any);
+      setSubtasks(items => items.filter(child => child.id !== item.id)); refreshActivity();
+    } catch (err: any) { setSubtaskError(err?.response?.data?.detail || "Unable to promote subtask."); }
+  };
+
+  const startEditingSubtask = (item: PMSTask) => {
+    setEditingSubtaskId(item.id);
+    setEditingSubtask({
+      title: item.title,
+      description: item.description || "",
+      status: item.status,
+      priority: item.priority,
+      assignee_user_ids: taskAssignees(item),
+      due_date: item.due_date,
+      story_points: item.story_points,
+    });
+    setSubtaskError(null);
+  };
+
+  const saveSubtask = async (item: PMSTask) => {
+    setSubtaskError(null);
+    if (!editingSubtask.title?.trim()) { setSubtaskError("Subtask title is required."); return; }
+    const points = editingSubtask.story_points;
+    if (points !== undefined && points !== null && (!Number.isInteger(Number(points)) || Number(points) < 0)) {
+      setSubtaskError("Story points must be a non-negative whole number.");
+      return;
+    }
+    try {
+      const updated = await tasksAPI.update(item.id, editingSubtask as any);
+      setSubtasks((items) => items.map((current) => current.id === updated.id ? updated : current));
+      setEditingSubtaskId(null);
+      setEditingSubtask({});
+      refreshActivity();
+    } catch (err: any) {
+      setSubtaskError(err?.response?.data?.detail || "Unable to update sub-task.");
+    }
+  };
+
+  const completeSubtask = async (item: PMSTask) => {
+    setSubtaskError(null);
+    const nextStatus = item.status === "Done" ? "To Do" : "Done";
+    const previous = subtasks;
+    setSubtasks((items) => items.map((current) => current.id === item.id ? { ...current, status: nextStatus as TaskStatus } : current));
+    try {
+      const updated = await tasksAPI.updateStatus(item.id, nextStatus);
+      setSubtasks((items) => items.map((current) => current.id === updated.id ? updated : current));
+      setTask((current) => current ? {
+        ...current,
+        completed_subtask_count: subtasks.filter((subtask) => subtask.id === item.id ? nextStatus === "Done" : subtask.status === "Done").length,
+      } : current);
+      refreshActivity();
+    } catch (err: any) {
+      setSubtasks(previous);
+      setSubtaskError(err?.response?.data?.detail || "Unable to complete sub-task.");
+    }
+  };
+
+  const deleteSubtask = async (item: PMSTask) => {
+    setSubtaskError(null);
+    const previous = subtasks;
+    setSubtasks((items) => items.filter((current) => current.id !== item.id));
+    try {
+      await tasksAPI.delete(item.id);
+      setTask((current) => current ? {
+        ...current,
+        subtask_count: Math.max((current.subtask_count || 1) - 1, 0),
+        completed_subtask_count: Math.max((current.completed_subtask_count || 0) - (item.status === "Done" ? 1 : 0), 0),
+      } : current);
+      refreshActivity();
+    } catch (err: any) {
+      setSubtasks(previous);
+      setSubtaskError(err?.response?.data?.detail || "Unable to delete sub-task.");
+    }
+  };
+
+  const addDependency = async (event: FormEvent) => {
+    event.preventDefault();
+    const dependsOnTaskId = Number(newDependencyId);
+    if (!dependsOnTaskId || dependsOnTaskId === task.id) {
+      setDependencyError("Enter a different task ID to link as a blocker.");
+      return;
+    }
+    setDependencyError(null);
+    try {
+      await tasksAPI.addDependency(task.id, dependsOnTaskId);
+      const updatedLinks = await tasksAPI.listLinks(task.id);
+      setLinks(updatedLinks);
+      setNewDependencyId("");
+      refreshActivity();
+    } catch (err: any) {
+      setDependencyError(err?.response?.data?.detail || "Unable to link task.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <UnsavedTaskDialog onDiscard={discardAction} onKeep={()=>setDiscardAction(null)}/>
+      {remoteChange && !editConflict && <p role="status" className="rounded-lg border p-3 text-sm">This task changed elsewhere. Your local fields are retained. Saving will check for conflicts.</p>}
+      {!remoteChange && !editConflict && savedTask.current && taskDraftFields.some(field=>task[field]!==savedTask.current?.[field]) && <p role="status" className="text-sm text-muted-foreground">You have unsaved task fields. Use Save to keep your changes.</p>}
+      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p><p>Your current task fields are still available below. Review the error before retrying.</p><Button type="button" variant="outline" onClick={()=>setError(null)}>Dismiss error</Button></div>}
+      {editConflict && <section aria-label="Review task conflict" className="space-y-3 rounded-lg border border-amber-300 bg-background p-4">
+        <h2 className="font-semibold">Review changes before saving</h2>
+        <p className="text-sm">Your attempted changes and local editor are retained. Load the latest task to compare before choosing what to keep.</p>
+        <Button type="button" variant="outline" disabled={reviewingConflict||saving} onClick={reviewLatestTask}>{reviewingConflict?"Loading latest task…":"Review latest task"}</Button>
+        {editConflict.latest && <><div className="space-y-3">{Object.entries(editConflict.changes).map(([field,value])=>{
+          const label=field.replace(/_user_ids?$/, "s").replace(/_/g," ").replace(/^./,letter=>letter.toUpperCase());
+          const display=(item:unknown)=>item==null||item===""?"Not set":Array.isArray(item)?item.map(id=>subtaskPeople.find(person=>person.id===id)?.name||`Person #${id}`).join(", ")||"Unassigned":String(item);
+          return <div key={field} className="min-w-0 rounded border p-3"><h3 className="text-sm font-semibold">{label}</h3><div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2"><div className="min-w-0 break-words"><p className="text-xs text-muted-foreground">Latest saved value</p>{field==="description"?<RichTextContent value={String(editConflict.latest?.description||"")}/>:<p>{display((editConflict.latest as any)[field])}</p>}</div><div className="min-w-0 break-words"><p className="text-xs text-muted-foreground">Your attempted value</p>{field==="description"?<RichTextContent value={String(value||"")}/>:<p>{display(value)}</p>}</div></div></div>;
+        })}</div><div className="flex flex-wrap gap-2"><Button type="button" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onClick={()=>updateTask(editConflict.changes,editConflict.latest)}>Apply reviewed changes</Button><Button type="button" variant="outline" disabled={saving} onClick={()=>{savedTask.current=editConflict.latest!;setTask(editConflict.latest!);setEditConflict(null);setRemoteChange(false);setError(null);}}>Discard local changes and use latest</Button></div><p className="text-xs text-muted-foreground">Apply saves only the attempted fields shown above. Further changes on the server will require another review.</p></>}
+      </section>}
+      <div className="flex flex-wrap items-center gap-3"><ConversationLauncher module="PMS" context={{type:"task",id:numericTaskId}}/><TaskConversationSource taskId={numericTaskId}/></div>
+      <Button variant="ghost" onClick={() => {const leave=()=>navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks");if(requestLeave(leave))leave();}}>
+        <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
+      </Button>
+
+
+      <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card data-priority-row data-priority={task.priority}>
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{task.task_key || `Task #${task.id}`}</Badge>{menu}
+                <span className="text-sm text-muted-foreground">{project?.name || `Project #${task.project_id}`}</span>
+                {selectedSprint ? <Badge variant="secondary">{selectedSprint.name}</Badge> : null}
+                {selectedEpic ? <Badge variant="secondary">{selectedEpic.epic_key}</Badge> : null}
+              </div>
+              <Input
+                aria-label="Task title"
+                readOnly={!allowTaskEdit||project?.can_manage_tasks!==true}
+                value={task.title}
+                onChange={(event) => setTask({ ...task, title: event.target.value })}
+                onBlur={() => updateTask({ title: task.title })}
+                className="h-auto border-0 px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
+              />
+
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <details className="rounded-lg border px-3 py-2 text-sm"><summary className="cursor-pointer" data-action-tooltip="Open AI task tools">AI assistant</summary><div className="mt-3 flex flex-wrap gap-2">              <Link className="inline-flex items-center rounded-md border px-3 py-2 text-sm" to={`/pms/operator?project=${task.project_id}&task=${task.id}`}>AI operator · voice / text</Link>
+              <AskAiButton
+                module="PMS"
+                relatedEntityType="task"
+                relatedEntityId={task.id}
+                defaultAgentCode="pms_deadline_risk"
+                defaultPrompt="Analyze deadline risk for this task/project."
+                buttonLabel="Analyze risk"
+              />
+              <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Summarize task" defaultPrompt="Summarize this task using accessible task data. Include progress, blockers and outstanding work. Clearly identify missing information. Do not modify the task." />
+              <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
+</div></details>
+              <ActionToolbar label="Task record actions" actions={[
+                {id:"save",kind:"save",available:allowTaskEdit&&project?.can_manage_tasks===true,prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description,estimated_hours:task.estimated_hours,story_points:task.story_points})},
+                {id:"comment",kind:"sms",label:"Comment",tooltip:"Add a comment to this task",prominent:true,onSelect:()=>setActiveTab("comments")},
+                {id:"file",kind:"upload",label:"Attach File",prominent:true,onSelect:()=>setActiveTab("files")},
+                {id:"time",kind:"time",label:"Log Time",tooltip:"Record time spent on this task",onSelect:()=>setActiveTab("time")},
+                {id:"checklist",kind:"review",label:"Add Checklist",onSelect:()=>document.getElementById("add-checklist-item")?.focus()},
+                {id:"subtask",kind:"task",label:"Add Sub-task",onSelect:()=>document.getElementById("add-subtask")?.focus()},
+              ]}/>
+
+            </div>
+          </div>
+          <TaskPropertyStrip className="mt-4"
+ status={<TaskStatusControl taskId={task.id} version={task.updated_at} refreshKey={statusChoicesRevision} value={task.status} disabled={saving||!!editConflict||!allowTaskEdit||project?.can_manage_tasks!==true}
+                  onSave={(value) => {
+                    const nextStatus = value as TaskStatus;
+                    if (shouldPreventClosingTask(nextStatus, checklist)) {
+                      setChecklistError("Complete all checklist items before closing this task.");
+                      return;
+                    }
+                    return updateTask({ status: nextStatus });
+                  }}/>}
+ assignees={<AssigneePicker projectId={task.project_id} people={subtaskPeople} value={taskAssignees(task)} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={ids=>updateTask({assignee_user_ids:ids})}/>}
+ priority={<PriorityPicker value={task.priority} disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} onChange={priority=>updateTask({priority})}/>}
+ estimate={<Input aria-label="Task estimated hours" type="number" min="0" step="0.5" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.estimated_hours??""} onChange={event=>setTask({...task,estimated_hours:Number(event.target.value||0)})} onBlur={()=>updateTask({estimated_hours:task.estimated_hours} as any)}/>}
+ start={<TaskDateControl label="Task start date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.start_date} onSave={start_date=>updateTask({start_date} as any)}/>}
+ due={<TaskDateControl label="Task due date" disabled={saving||!allowTaskEdit||project?.can_manage_tasks!==true} value={task.due_date} onSave={due_date=>updateTask({due_date} as any)}/>}
+/>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <DetailMetric label="Checklist" value={`${checklistDone}/${checklist.length}`} hint={`${checklistProgress}% complete`} />
+            <DetailMetric label="Sub-tasks" value={`${completedSubtasks}/${subtasks.length}`} hint={`${subtaskProgress}% complete`} />
+            <DetailMetric label="Time logged" value={formatMinutes(totalLoggedMinutes)} hint={`${formatMinutes(billableMinutes)} billable`} />
+            <DetailMetric label="Files" value={String(files.length)} hint="attachments" />
+            <DetailMetric label="Links" value={String(links.length)} hint="dependencies" />
+          </div>
+        </CardContent>
+      </Card>}</RecordActions>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-6">
+          <TaskExecutionPanel taskId={task.id} refreshKey={`${task.updated_at||""}:${task.status}`} onApprovalsLoaded={()=>setStatusChoicesRevision(current=>current+1)} onChanged={()=>void loadTaskData(true)} />
+          <RunningTimer key={`timer-${task.id}`} projects={project ? [project] : []} fixedTask={task} onSaved={() => { void tasksAPI.listTimeLogs(task.id).then(setTimeLogs).catch(() => setError("Time saved, but time logs could not be refreshed. Reload to retry.")); refreshActivity(); }} />
+          <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Description</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <RichTextEditor value={task.description || ""} readOnly={!allowTaskEdit||project?.can_manage_tasks!==true} onChange={value => setTask({ ...task, description: value })} onBlur={() => updateTask({ description: task.description })} label="Task description" placeholder="Add requirements, acceptance criteria, context, or implementation notes."/>
+              {!task.description ? <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">No description yet.</div> : null}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><CheckSquare className="h-5 w-5" />Checklist</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{checklistDone}/{checklist.length} completed</span>
+                    <span className="text-muted-foreground">{checklistProgress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${checklistProgress}%` }} />
+                  </div>
+                </div>
+                {checklistError ? <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">{checklistError}</div> : null}
+                {checklist.map((item) => (
+                  <div
+                    key={item.id}
+                    draggable={item.id > 0}
+                    onDragStart={() => setDraggedChecklistId(item.id)}
+                    onDragOver={handleChecklistDragOver}
+                    onDrop={() => reorderChecklist(item.id)}
+                    className={cn("flex items-center gap-2 rounded-md border px-2 py-2 text-sm transition hover:bg-muted/40", draggedChecklistId === item.id && "opacity-60")}
+                  >
+                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
+                    <input type="checkbox" checked={item.is_completed} onChange={() => toggleChecklistItem(item)} className="shrink-0" />
+                    {editingChecklistId === item.id ? (
+                      <Input
+                        autoFocus
+                        value={editingChecklistText}
+                        onChange={(event) => setEditingChecklistText(event.target.value)}
+                        onBlur={() => saveChecklistText(item)}
+                        onKeyDown={(event) => handleChecklistKeyDown(event, item)}
+                        className="h-8"
+                      />
+                    ) : (
+                      <button type="button" onClick={() => startEditingChecklistItem(item)} className={cn("min-w-0 flex-1 truncate text-left", item.is_completed && "line-through text-muted-foreground")}>
+                        {item.title}
+                      </button>
+                    )}
+                    <Button type="button" variant="ghost" size="icon" onClick={() => deleteChecklistItem(item)} disabled={item.id < 0} aria-label={`Delete checklist item ${item.title}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {!checklist.length ? <EmptyLine>No checklist items yet.</EmptyLine> : null}
+                <SmartCreateSection title="Add checklist item"><CompactForm onSubmit={addChecklistItem} className="flex gap-2">
+                  <Input required id="add-checklist-item" value={newChecklistItem} onChange={(event) => setNewChecklistItem(event.target.value)} placeholder="Add checklist item" />
+                  <Button data-save-action type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
+                </CompactForm></SmartCreateSection>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Tags</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <Badge key={tag.id} variant="outline" className="gap-1">
+                      {tag.name}
+                      <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag.name}`}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {!tags.length ? <EmptyLine>No tags yet.</EmptyLine> : null}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <NativeSelect
+                    value=""
+                    onChange={(event) => attachExistingTag(Number(event.target.value))}
+                    className="h-10 rounded-md border bg-background px-3 text-sm"
+                  >
+                    <option value="">Select existing tag</option>
+                    {availableTags.filter((tag) => !tags.some((item) => item.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+                  </NativeSelect>
+                </div>
+                <SmartCreateSection title="Add tag" closeOnRecordSaved={false} completionRevision={tagCompletionRevision}><CompactForm onSubmit={addTag} className="flex flex-wrap gap-2">{tagError && <p role="alert" className="basis-full text-sm text-destructive">{tagError}</p>}
+                  <Input aria-label="New tag name" required maxLength={100} disabled={tagSaving} value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
+                  <Button data-save-action disabled={tagSaving} type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
+                </CompactForm></SmartCreateSection>
+
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle>Sub-tasks</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{completedSubtasks}/{subtasks.length} completed</span>
+                  <span className="text-muted-foreground">{subtaskProgress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted">
+                  <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${subtaskProgress}%` }} />
+                </div>
+              </div>
+              {subtaskError ? <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">{subtaskError}</div> : null}
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Input aria-label="Search subtasks" placeholder="Search subtasks" value={subtaskSearch} onChange={e => setSubtaskSearch(e.target.value)} />
+                  <NativeSelect aria-label="Filter subtasks" value={subtaskFilter} onChange={e => setSubtaskFilter(e.target.value)} className="rounded-md border bg-background p-2">
+                    <option value="all">All subtasks</option><option value="open">Open</option><option value="done">Completed</option>
+                  </NativeSelect>
+                </div>
+                {subtasks.filter(item => `${item.title} ${item.task_key}`.toLowerCase().includes(subtaskSearch.toLowerCase()) && (subtaskFilter === "all" || (subtaskFilter === "done" ? item.status === "Done" : item.status !== "Done"))).map((item) => (
+                  <SubtaskRow
+                    key={item.id}
+                    task={item}
+                    people={subtaskPeople}
+                    moveUp={() => moveSubtask(item, -1)}
+                    moveDown={() => moveSubtask(item, 1)}
+                    promote={() => promoteSubtask(item)}
+                    busy={subtaskSaving}
+                    first={subtasks[0]?.id === item.id}
+                    last={subtasks[subtasks.length - 1]?.id === item.id}
+                    editing={editingSubtaskId === item.id}
+                    draft={editingSubtask}
+                    setDraft={setEditingSubtask}
+                    startEditing={startEditingSubtask}
+                    cancelEditing={() => {
+                      setEditingSubtaskId(null);
+                      setEditingSubtask({});
+                    }}
+                    saveSubtask={saveSubtask}
+                    completeSubtask={completeSubtask}
+                    deleteSubtask={deleteSubtask}
+                    openSubtask={() => {const leave=()=>navigate(`/pms/projects/${item.project_id}/tasks/${item.id}`);if(requestLeave(leave))leave();}}
+                  />
+                ))}
+                {!subtasks.length ? <EmptyLine>No sub-tasks yet.</EmptyLine> : null}
+              </div>
+              <SmartCreateSection title="Create subtask"><CompactForm onSubmit={addSubtask} className="rounded-md border p-3">
+                <div className="grid gap-2 md:grid-cols-2">
+                  <Input aria-label="Subtask title" maxLength={220} required id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
+                  <NativeSelect aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
+                    {priorities.map((item) => <option key={item}>{item}</option>)}
+                  </NativeSelect>
+                  <Input aria-label="Subtask due date" type="date" value={newSubtaskDueDate} onChange={(event) => setNewSubtaskDueDate(event.target.value)} />
+                  <Input aria-label="Subtask story points" type="number" min="0" step="1" value={newSubtaskStoryPoints} onChange={(event) => setNewSubtaskStoryPoints(event.target.value)} placeholder="Pts" />
+                  <Button data-save-action aria-label="Add subtask" disabled={subtaskSaving} type="submit" size="sm"><Plus className="h-4 w-4" />{subtaskSaving ? "Adding..." : "Add"}</Button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <Label>Subtask assignees</Label>
+                  <AssigneePicker projectId={task.project_id} people={subtaskPeople} value={newSubtaskAssignees} onChange={setNewSubtaskAssignees} label="New subtask assignees" />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
+                  <RichTextField data-legacy-format="markdown" aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
+                </div>
+              </CompactForm></SmartCreateSection>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <RecordSectionNav value={activeTab} onChange={value => setActiveTab(value as TabKey)} label="Task information" groups={[
+                {label:"Work", sections:tabs.filter(t=>["work","links","development"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Discussion", sections:tabs.filter(t=>["comments","notes"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Time & files", sections:tabs.filter(t=>["time","files"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Activity", sections:tabs.filter(t=>["activity","history"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+              ]}/>
+
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {activeTab === "notes" ? <TaskLinkedNotes projectId={task.project_id} taskId={task.id}/> : null}
+              {activeTab === "work" ? <WorkReviewPanel taskId={task.id} onReviewed={() => { refreshActivity(); }} /> : null}
+              {activeTab === "comments" ? (
+                <CommentsTab
+                  taskId={task.id}
+                  projectId={task.project_id}
+                  comments={comments}
+                  comment={comment}
+                  setComment={setComment}
+                  mentions={commentMentions}
+                  setMentions={setCommentMentions}
+                  addComment={addComment}
+                  busy={commentSaving}
+                  error={commentError}
+                />
+              ) : null}
+              {activeTab === "activity" ? <ActivityList items={activity} filter={activityFilter} setFilter={setActivityFilter} sort={activitySort} setSort={setActivitySort} /> : null}
+              {activeTab === "history" ? <ActivityList items={activity.filter((item) => item.action.includes("updated") || item.action.includes("changed") || item.action.includes("created"))} filter={activityFilter} setFilter={setActivityFilter} sort={activitySort} setSort={setActivitySort} /> : null}
+              {activeTab === "time" ? (
+                <TimeTab
+                  logs={timeLogs}
+                  totalMinutes={totalLoggedMinutes}
+                  billableMinutes={billableMinutes}
+                  nonBillableMinutes={nonBillableMinutes}
+                  date={timeDate}
+                  setDate={setTimeDate}
+                  start={timeStart}
+                  setStart={setTimeStart}
+                  end={timeEnd}
+                  setEnd={setTimeEnd}
+                  minutes={timeMinutes}
+                  setMinutes={setTimeMinutes}
+                  description={timeDescription}
+                  setDescription={setTimeDescription}
+                  billable={timeBillable}
+                  setBillable={setTimeBillable}
+                  editingId={editingTimeLogId}
+                  error={timeLogError}
+                  logTime={logTime}
+                  editTimeLog={editTimeLog}
+                  deleteTimeLog={deleteTimeLog}
+                  cancelEdit={cancelTimeLogEdit}
+                />
+              ) : null}
+              {activeTab === "files" ? (
+                <FilesTab
+                  files={files}
+                  uploading={attachmentUploading}
+                  dragActive={attachmentDragActive}
+                  setDragActive={setAttachmentDragActive}
+                  error={attachmentError}
+                  uploadAttachments={uploadAttachments}
+                  deleteAttachment={deleteAttachment}
+                />
+              ) : null}
+              {activeTab === "links" ? (
+                <LinksTab
+                  links={links}
+                  currentTaskId={task.id}
+                  dependencyId={newDependencyId}
+                  setDependencyId={setNewDependencyId}
+                  dependencyError={dependencyError}
+                  addDependency={addDependency}
+                />
+              ) : null}
+              {activeTab === "development" ? <DevelopmentTab links={devLinks} /> : null}
+            </CardContent>
+          </Card>
+        </div>
+
+        <aside className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>People</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <PersonRow label="Assignee" value={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} /><div className="flex flex-wrap gap-2">{taskAssignees(task).map(uid => <ManagePersonButton key={uid} userId={uid} projectId={task.project_id} label={`Manage ${userLabel(uid, `Member ${uid}`)}`} />)}</div>
+              <PersonRow label="Reporter" value={userLabel(task.reporter_user_id, "No reporter")} />
+              <Property label="Watchers" value="Not configured" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Properties</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <Field label="Sprint">
+                <NativeSelect value={task.sprint_id || ""} onChange={(event) => updateTask({ sprint_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                  <option value="">No sprint</option>
+                  {sprints.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label="Epic">
+                <NativeSelect value={task.epic_id || ""} onChange={(event) => updateTask({ epic_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                  <option value="">No epic</option>
+                  {epics.map((item) => <option key={item.id} value={item.id}>{item.epic_key} - {item.name}</option>)}
+                </NativeSelect>
+              </Field>
+
+
+              <Field label="Story points"><Input type="number" min="0" step="1" value={task.story_points ?? ""} onChange={(event) => setTask({ ...task, story_points: Number(event.target.value || 0) })} onBlur={saveStoryPoints} /></Field>
+              <Field label="Created">{formatDateTime(task.created_at || null)}</Field>
+              <Field label="Updated">{formatDateTime(task.updated_at || null)}</Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Custom Fields</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <Property label="Work type" value={task.work_type} />
+              <Property label="Component" value={task.component || "-"} />
+              <Property label="Severity" value={task.severity || "-"} />
+              <Property label="Fix version" value={task.fix_version || "-"} />
+              <Property label="Security" value={task.security_level} />
+              <Property label="Build" value={task.development_build} />
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function QuickAnchor({ label, target, setActiveTab }: { label: string; target: TabKey; setActiveTab: (tab: TabKey) => void }) {
+  return <Button variant="outline" onClick={() => setActiveTab(target)}>{label}</Button>;
+}
+
+function Avatar({ label }: { label: string }) {
+  const initials = label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "?";
+  return <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{initials}</span>;
+}
+
+function DetailMetric({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-md border bg-muted/30 p-3 text-sm">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+function PersonRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex min-w-0 items-center gap-2 font-medium">
+        <Avatar label={value} />
+        <span className="truncate">{value}</span>
+      </span>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="space-y-2"><Label className="text-xs uppercase text-muted-foreground">{label}</Label><div className="text-sm">{children}</div></div>;
+}
+
+function Property({ label, value }: { label: string; value: ReactNode }) {
+  return <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium">{value}</span></div>;
+}
+
+function EmptyLine({ children }: { children: ReactNode }) {
+  return <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">{children}</p>;
+}
+
+function SubtaskRow({
+  moveUp, moveDown, promote, busy, first, last, people,
+  task,
+  editing,
+  draft,
+  setDraft,
+  startEditing,
+  cancelEditing,
+  saveSubtask,
+  completeSubtask,
+  deleteSubtask,
+  openSubtask,
+}: {
+  moveUp: () => void; moveDown: () => void; promote: () => void; busy: boolean; first: boolean; last: boolean;
+  people: PMSMentionUser[];
+  task: PMSTask;
+  editing: boolean;
+  draft: Partial<PMSTask>;
+  setDraft: (value: Partial<PMSTask>) => void;
+  startEditing: (task: PMSTask) => void;
+  cancelEditing: () => void;
+  saveSubtask: (task: PMSTask) => void;
+  completeSubtask: (task: PMSTask) => void;
+  deleteSubtask: (task: PMSTask) => void;
+  openSubtask: () => void;
+}) {
+  if (editing) {
+    return (
+      <div className="rounded-md border bg-muted/20 p-3 text-sm">
+        <div className="grid gap-2 md:grid-cols-2">
+          <Input value={draft.title || ""} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+          <NativeSelect value={draft.status || task.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })} className="h-10 rounded-md border bg-background px-3 text-sm">
+            {taskStatuses.map((item) => <option key={item}>{item}</option>)}
+          </NativeSelect>
+          <NativeSelect value={draft.priority || task.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })} className="h-10 rounded-md border bg-background px-3 text-sm">
+            {priorities.map((item) => <option key={item}>{item}</option>)}
+          </NativeSelect>
+          <Input type="date" value={draft.due_date || ""} onChange={(event) => setDraft({ ...draft, due_date: event.target.value || (null as any) })} />
+          <Input type="number" min="0" step="1" value={draft.story_points ?? ""} onChange={(event) => setDraft({ ...draft, story_points: event.target.value === "" ? undefined : Number(event.target.value) })} />
+        </div>
+        <AssigneePicker projectId={draft.project_id} people={people} value={draft.assignee_user_ids || []} onChange={ids => setDraft({ ...draft, assignee_user_ids: ids })} label="Edit subtask assignees" />
+        <RichTextField data-legacy-format="markdown"
+          value={draft.description || ""}
+          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+          placeholder="Sub-task description"
+          className="mt-2 min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        />
+        <div className="mt-2 flex flex-wrap justify-end gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={cancelEditing}>Cancel</Button>
+          <Button type="button" size="sm" onClick={() => saveSubtask(task)}>Save</Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div data-priority-row data-priority={task.priority} className="rounded-md border px-3 py-2 text-sm">
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-primary">{task.task_key}</span>
+            <Badge className={statusColor(task.status)}>{task.status}</Badge>
+            <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
+            {task.story_points !== undefined && task.story_points !== null ? <span className="text-xs text-muted-foreground">{task.story_points} pts</span> : null}
+          </div>
+          <button type="button" onClick={openSubtask} className="mt-1 line-clamp-2 text-left font-medium hover:text-primary">
+            {task.title}
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} / Due {formatDate(task.due_date || null)}
+          </p>
+        </div>
+        <CompactActions className="flex shrink-0 flex-wrap gap-2">
+          <Button type="button" size="sm" variant="ghost" disabled={busy || first} onClick={moveUp} aria-label={`Move ${task.title} up`}>Up</Button>
+          <Button type="button" size="sm" variant="ghost" disabled={busy || last} onClick={moveDown} aria-label={`Move ${task.title} down`}>Down</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={promote}>Promote</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => completeSubtask(task)}>
+            {task.status === "Done" ? "Reopen" : "Complete"}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => startEditing(task)}>Edit</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={openSubtask}>Open{task.subtask_count ? ` (${task.subtask_count} children)` : " / add nested"}</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => deleteSubtask(task)} aria-label={`Delete ${task.title}`}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </CompactActions>
+      </div>
+    </div>
+  );
+}
+
+function CommentsTab({
+  taskId,
+  projectId,
+  comments,
+  comment,
+  setComment,
+  mentions,
+  setMentions,
+  addComment,
+  busy,
+  error,
+}: {
+  taskId: number;
+  projectId: number;
+  comments: PMSComment[];
+  comment: string;
+  setComment: (value: string) => void;
+  mentions: PMSMentionUser[];
+  setMentions: (users: PMSMentionUser[]) => void;
+  addComment: (event: FormEvent) => void;
+  busy:boolean;
+  error:string;
+}) {
+  return (
+    <>
+      <CompactForm aria-label="Task comment composer" onSubmit={addComment} className="space-y-3 rounded-md border p-3">
+        <MentionMarkdownTextarea taskId={taskId} projectId={projectId} value={comment} onChange={setComment} mentions={mentions} onMentionsChange={setMentions} disabled={busy}/>
+        {error&&<p role="alert" className="text-sm text-destructive">{error} Your comment draft is retained.</p>}
+        {mentions.length ? (
+          <div className="flex flex-wrap gap-2">
+            {mentions.map((user) => <Badge key={user.id} variant="outline">@{user.name || user.email}</Badge>)}
+          </div>
+        ) : <p className="text-xs text-muted-foreground">Type @ to mention a project teammate.</p>}
+        <div className="flex justify-end">
+          <Button type="submit" aria-label="Post task comment" disabled={busy||!richTextPlainText(comment).trim()}>{busy?"Posting…":"Comment"}</Button>
+        </div>
+      </CompactForm>
+      {comments.map((item) => (
+        <div key={item.id} className="rounded-md border p-3 text-sm">
+          <MarkdownView value={item.body} />
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{formatDateTime(item.created_at)}</span>
+            {item.is_edited ? <Badge variant="outline">Edited</Badge> : null}
+            {item.mentions?.map((mention) => mention.user ? <Badge key={mention.id} variant="outline">@{mention.user.name || mention.user.email}</Badge> : null)}
+          </div>
+        </div>
+      ))}
+      {!comments.length ? <EmptyLine>No comments yet.</EmptyLine> : null}
+    </>
+  );
+}
+
+export function MentionMarkdownTextarea({
+  taskId,
+  projectId,
+  value,
+  onChange,
+  mentions,
+  onMentionsChange,
+  disabled=false,
+}: {
+  taskId: number;
+  projectId: number;
+  value: string;
+  onChange: (value: string) => void;
+  mentions: PMSMentionUser[];
+  onMentionsChange: (users: PMSMentionUser[]) => void;
+  disabled?:boolean;
+}) {
+  const [suggestions, setSuggestions] = useState<PMSMentionUser[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [token, setToken] = useState("");
+
+  const updateValue = (next: string) => {
+    onChange(next);
+    const match = richTextPlainText(next).match(/@([\w.\-+]*)$/);
+    if (match) {
+      const query = match[1] || "";
+      setToken(query);
+      setShowSuggestions(true);
+      pmsUsersAPI.search({ q: query, taskId, projectId }).then(setSuggestions).catch(() => setSuggestions([]));
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const insertMention = (user: PMSMentionUser) => {
+    const next = insertRichMention(value, user.name || user.email);
+    onChange(next);
+    if (!mentions.some((item) => item.id === user.id)) onMentionsChange([...mentions, user]);
+    setShowSuggestions(false);
+  };
+
+  return (
+    <div className="relative">
+      <RichTextEditor value={value} onChange={updateValue} disabled={disabled} label="Comment" variant="compact" placeholder="Write a comment. Use @ to mention a teammate."/>
+      {showSuggestions ? (
+        <div className="absolute left-2 top-12 z-20 w-72 rounded-md border bg-background p-1 shadow-lg">
+          {suggestions.length ? suggestions.map((user) => (
+            <button key={user.id} type="button" disabled={disabled} onClick={() => insertMention(user)} className="block w-full rounded px-2 py-2 text-left text-sm hover:bg-muted">
+              <span className="font-medium">{user.name || user.email}</span>
+              <span className="block text-xs text-muted-foreground">{user.email}</span>
+            </button>
+          )) : <p className="px-2 py-2 text-xs text-muted-foreground">{token ? "No matching users" : "Search teammates"}</p>}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MarkdownView({ value, className }: { value: string; className?: string }) {
+  return <RichTextContent value={value} className={className}/>;
+}
+
+const activityFilters: Array<{ key: ActivityFilter; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "comments", label: "Comments" },
+  { key: "changes", label: "Changes" },
+  { key: "time", label: "Time logs" },
+  { key: "files", label: "Files" },
+];
+
+function ActivityList({ items, filter, setFilter, sort, setSort }: { items: PMSActivity[]; filter: ActivityFilter; setFilter: (filter: ActivityFilter) => void; sort: ActivitySort; setSort: (sort: ActivitySort) => void }) {
+  const visibleItems = items
+    .filter((item) => activityMatchesFilter(item, filter))
+    .sort((a, b) => {
+      const first = new Date(a.created_at).getTime();
+      const second = new Date(b.created_at).getTime();
+      return sort === "desc" ? second - first : first - second;
+    });
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {activityFilters.map((item) => (
+            <Button key={item.key} type="button" size="sm" variant={filter === item.key ? "default" : "outline"} onClick={() => setFilter(item.key)}>
+              {item.label}
+            </Button>
+          ))}
+        </div>
+        <NativeSelect value={sort} onChange={(event) => setSort(event.target.value as ActivitySort)} className="h-9 rounded-md border bg-background px-3 text-sm">
+          <option value="desc">Newest first</option>
+          <option value="asc">Oldest first</option>
+        </NativeSelect>
+      </div>
+      <div className="space-y-3">
+        {visibleItems.map((item) => <ActivityTimelineItem key={item.id} item={item} />)}
+        {!visibleItems.length ? <EmptyLine>No activity found for this filter.</EmptyLine> : null}
+      </div>
+    </div>
+  );
+}
+
+function ActivityTimelineItem({ item }: { item: PMSActivity }) {
+  const metadata = parseActivityMetadata(item.metadata_json);
+  const Icon = activityIcon(item.action);
+  return (
+    <div className="relative flex gap-3 rounded-md border p-3 text-sm">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold">{activityTitle(item)}</span>
+          <Badge variant="outline">{item.action}</Badge>
+        </div>
+        <p className="mt-1 text-muted-foreground">{item.summary}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {item.actor_user_id ? `User #${item.actor_user_id}` : "System"} / {formatDateTime(item.created_at)}
+        </p>
+        {metadata ? <ActivityMetadata metadata={metadata} /> : null}
+      </div>
+    </div>
+  );
+}
+
+function ActivityMetadata({ metadata }: { metadata: Record<string, unknown> }) {
+  const field = String(metadata.field || "");
+  const oldValue = metadata.old_value ?? metadata.oldValue;
+  const newValue = metadata.new_value ?? metadata.newValue;
+  if (field && (oldValue !== undefined || newValue !== undefined)) {
+    return (
+      <div className="mt-3 grid gap-2 rounded-md bg-muted/50 p-2 text-xs md:grid-cols-2">
+        <div><span className="text-muted-foreground">Old {field}: </span>{formatActivityValue(oldValue)}</div>
+        <div><span className="text-muted-foreground">New {field}: </span>{formatActivityValue(newValue)}</div>
+      </div>
+    );
+  }
+  if (Array.isArray(metadata.changed_fields) && metadata.changed_fields.length) {
+    return <p className="mt-2 text-xs text-muted-foreground">Changed: {metadata.changed_fields.join(", ")}</p>;
+  }
+  if (metadata.body_preview) {
+    return <p className="mt-2 rounded-md bg-muted/50 p-2 text-xs">{String(metadata.body_preview)}</p>;
+  }
+  if (metadata.duration_minutes) {
+    return <p className="mt-2 text-xs text-muted-foreground">Duration: {formatMinutes(Number(metadata.duration_minutes))}</p>;
+  }
+  if (metadata.file_name || metadata.subtask_key) {
+    return <p className="mt-2 text-xs text-muted-foreground">{String(metadata.file_name || metadata.subtask_key)}</p>;
+  }
+  return null;
+}
+
+function activityMatchesFilter(item: PMSActivity, filter: ActivityFilter) {
+  if (filter === "all") return true;
+  if (filter === "comments") return item.action.startsWith("comment.");
+  if (filter === "time") return item.action.startsWith("time.");
+  if (filter === "files") return item.action.startsWith("attachment.") || item.entity_type === "file";
+  return item.action.includes("changed") || item.action === "task.updated" || item.action === "task.created" || item.action === "subtask.created" || item.action.startsWith("dependency.") || item.action.startsWith("checklist.");
+}
+
+function activityIcon(action: string) {
+  if (action.startsWith("comment.")) return MessageSquare;
+  if (action.startsWith("time.")) return Timer;
+  if (action.startsWith("attachment.")) return Paperclip;
+  if (action.startsWith("checklist.")) return CheckSquare;
+  if (action.startsWith("dependency.")) return Link2;
+  if (action.includes("date")) return CalendarDays;
+  return GitBranch;
+}
+
+function activityTitle(item: PMSActivity) {
+  return item.action
+    .split(".")
+    .map((part) => part.replace(/_/g, " "))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function parseActivityMetadata(value?: string) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatActivityValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+type TimeTabProps = {
+  logs: PMSTimeLog[];
+  totalMinutes: number;
+  billableMinutes: number;
+  nonBillableMinutes: number;
+  date: string;
+  setDate: (value: string) => void;
+  start: string;
+  setStart: (value: string) => void;
+  end: string;
+  setEnd: (value: string) => void;
+  minutes: string;
+  setMinutes: (value: string) => void;
+  description: string;
+  setDescription: (value: string) => void;
+  billable: boolean;
+  setBillable: (value: boolean) => void;
+  editingId: number | null;
+  error: string | null;
+  logTime: (event: FormEvent) => void;
+  editTimeLog: (log: PMSTimeLog) => void;
+  deleteTimeLog: (log: PMSTimeLog) => void;
+  cancelEdit: () => void;
+};
+
+function TimeTab({
+  logs,
+  totalMinutes,
+  billableMinutes,
+  nonBillableMinutes,
+  date,
+  setDate,
+  start,
+  setStart,
+  end,
+  setEnd,
+  minutes,
+  setMinutes,
+  description,
+  setDescription,
+  billable,
+  setBillable,
+  editingId,
+  error,
+  logTime,
+  editTimeLog,
+  deleteTimeLog,
+  cancelEdit,
+}: TimeTabProps) {
+  return (
+    <>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <TimeTotal label="Total logged" value={totalMinutes} />
+        <TimeTotal label="Billable" value={billableMinutes} />
+        <TimeTotal label="Non-billable" value={nonBillableMinutes} />
+      </div>
+      {error ? <div className="rounded-md border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div> : null}
+      <CompactForm onSubmit={logTime} className="rounded-md border p-3">
+        <div className="grid gap-3 md:grid-cols-[9rem_8rem_8rem_8rem_1fr]">
+          <Field label="Date"><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></Field>
+          <Field label="Start"><Input type="time" value={start} onChange={(event) => setStart(event.target.value)} /></Field>
+          <Field label="End"><Input type="time" value={end} onChange={(event) => setEnd(event.target.value)} /></Field>
+          <Field label="Duration"><Input type="number" min="1" value={minutes} onChange={(event) => setMinutes(event.target.value)} required /></Field>
+          <Field label="Description"><Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What did you work on?" /></Field>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={billable} onChange={(event) => setBillable(event.target.checked)} />
+            Billable
+          </label>
+          <div className="flex gap-2">
+            {editingId ? <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button> : null}
+            <Button type="submit">{editingId ? "Save time log" : "Log time"}</Button>
+          </div>
+        </div>
+      </CompactForm>
+      <div className="space-y-2">
+        {logs.map((item) => (
+          <div key={item.id} className="rounded-md border p-3 text-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{formatMinutes(item.duration_minutes)}</span>
+                  <Badge variant={item.is_billable ? "default" : "outline"}>{item.is_billable ? "Billable" : "Non-billable"}</Badge>
+                  <Badge variant="outline">{item.approval_status}</Badge>
+                </div>
+                <div className="mt-2 text-muted-foreground"><RichTextContent value={item.description || "No description"}/></div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {formatDate(item.log_date)}
+                  {item.start_time ? ` / ${formatTime(item.start_time)}` : ""}
+                  {item.end_time ? ` - ${formatTime(item.end_time)}` : ""}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => editTimeLog(item)}>Edit</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => deleteTimeLog(item)}>Delete</Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {!logs.length ? <EmptyLine>No time logged yet.</EmptyLine> : null}
+    </>
+  );
+}
+
+function TimeTotal({ label, value }: { label: string; value: number }) {
+  return <div className="rounded-md bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{formatMinutes(value)}</p></div>;
+}
+
+export function FilesTab({
+  files,
+  canManage = true,
+  uploading,
+  dragActive,
+  setDragActive,
+  error,
+  uploadAttachments,
+  deleteAttachment,
+}: {
+  files: PMSFileAsset[];
+  canManage?: boolean;
+  uploading: boolean;
+  dragActive: boolean;
+  setDragActive: (value: boolean) => void;
+  error: string | null;
+  uploadAttachments: (files: FileList | File[]) => void;
+  deleteAttachment: (file: PMSFileAsset) => void;
+}) {
+  const [previewFile, setPreviewFile] = useState<PMSFileAsset | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewText, setPreviewText] = useState("");
+  const [fileError, setFileError] = useState("");
+
+  useRefreshableEffect(() => {
+    let objectUrl: string | null = null;
+    let disposed = false;
+    if (!previewFile) {
+      setPreviewUrl(null);
+      setPreviewText("");
+      setPreviewLoading(false);
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewText("");
+    setFileError("");
+    filesAPI.downloadBlob(previewFile.id)
+      .then(async (blob) => {
+        const text = (previewFile.mime_type || "").startsWith("text/") ? (await blob.text()).slice(0, 100000) : "";
+        if (disposed) return;
+        setPreviewText(text);
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+      })
+      .catch(error => { if (!disposed) { setPreviewUrl(null); setFileError(error instanceof Error ? error.message : "Could not load attachment. Please retry."); } })
+      .finally(() => { if (!disposed) setPreviewLoading(false); });
+    return () => {
+      disposed = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [previewFile]);
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    uploadAttachments(event.dataTransfer.files);
+  };
+
+  const openAttachment = async (file: PMSFileAsset) => {
+    setFileError("");
+    try {
+    const blob = await filesAPI.downloadBlob(file.id);
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch(error) {setFileError(error instanceof Error ? error.message : "Could not open attachment.");}
+  };
+
+  const downloadAttachment = async (file: PMSFileAsset) => {
+    setFileError("");
+    try {
+    const blob = await filesAPI.downloadBlob(file.id);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = file.original_name || file.file_name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch(error) {setFileError(error instanceof Error ? error.message : "Could not download attachment.");}
+  };
+
+  const canPreview = (file: PMSFileAsset) => {
+    const type = file.mime_type || "";
+    return type.startsWith("image/") || type.startsWith("video/") || type.startsWith("text/") || type === "application/pdf";
+  };
+
+  return (
+    <div className="space-y-4">
+      {canManage && <label
+        className={cn(
+          "flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-6 text-center transition-colors",
+          dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 bg-muted/20",
+          uploading ? "pointer-events-none opacity-70" : ""
+        )}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+      >
+        <Upload className="mb-3 h-7 w-7 text-muted-foreground" />
+        <span className="font-medium">{uploading ? "Uploading attachments..." : "Drop files here or choose files"}</span>
+        <span className="mt-1 text-xs text-muted-foreground">Images, MP4/WebM video, PDFs, Office docs, logs, CSV, and ZIP. Hosted file limit: 3 MB; self-hosted limits may differ.</span>
+        <Input
+          type="file"
+          multiple
+          className="hidden"
+          disabled={uploading}
+          onChange={(event) => {
+            if (event.target.files) uploadAttachments(event.target.files);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>}
+      {(error || fileError) ? <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error || fileError}</p> : null}
+      <div className="space-y-2">
+        {files.map((item) => (
+          <div key={item.id} className="rounded-md border p-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="flex min-w-0 gap-3">
+                <FileTypeIcon mimeType={item.mime_type} />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{item.original_name || item.file_name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.mime_type || "Unknown type"} - {formatBytes(item.size_bytes)} - Uploaded by {item.uploaded_by_name || userLabel(item.uploaded_by_user_id, "Unknown")} - {formatDateTime(item.created_at)}
+                  </p>
+                </div>
+              </div>
+              <CompactActions className="flex flex-wrap gap-2">
+                {canPreview(item) ? (
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPreviewFile((current) => current?.id === item.id ? null : item)}>
+                    <Eye className="h-4 w-4" />Preview
+                  </Button>
+                ) : null}
+                <Button type="button" size="sm" variant="outline" onClick={() => openAttachment(item)}>
+                  <FileIcon className="h-4 w-4" />Open
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => downloadAttachment(item)}>
+                  <Download className="h-4 w-4" />Download
+                </Button>
+                {canManage && <Button type="button" size="sm" variant="ghost" onClick={() => deleteAttachment(item)}>
+                  <Trash2 className="h-4 w-4" />Delete
+                </Button>}
+              </CompactActions>
+            </div>
+            {previewFile?.id === item.id ? (
+              <div className="mt-3 overflow-hidden rounded-md border bg-muted/20">
+                {previewLoading ? <div className="p-4 text-sm text-muted-foreground">Loading preview...</div> : null}
+                {!previewLoading && previewUrl && (item.mime_type || "").startsWith("image/") ? <img src={previewUrl} alt={item.original_name} className="max-h-96 w-full object-contain" /> : null}
+                {!previewLoading && previewUrl && (item.mime_type || "").startsWith("video/") ? <video controls preload="metadata" src={previewUrl} className="max-h-96 w-full"/> : null}
+                {!previewLoading && (item.mime_type || "").startsWith("text/") ? <pre className="max-h-96 overflow-auto whitespace-pre-wrap p-4 text-xs">{previewText}{item.size_bytes > 100000 ? "\nPreview limited to the first 100,000 characters. Download for the full file." : ""}</pre> : null}
+                {!previewLoading && previewUrl && item.mime_type === "application/pdf" ? <iframe title={item.original_name} src={previewUrl} className="h-96 w-full" /> : null}
+                {!previewLoading && !previewUrl ? <div className="p-4 text-sm text-muted-foreground">Preview unavailable.</div> : null}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {!files.length ? <EmptyLine>No files attached yet.</EmptyLine> : null}
+    </div>
+  );
+}
+
+function FileTypeIcon({ mimeType }: { mimeType?: string }) {
+  const className = "mt-0.5 h-5 w-5 shrink-0 text-muted-foreground";
+  if ((mimeType || "").startsWith("image/")) return <ImageIcon className={className} />;
+  if (mimeType === "application/pdf" || (mimeType || "").startsWith("text/")) return <FileText className={className} />;
+  if ((mimeType || "").includes("zip")) return <FileArchive className={className} />;
+  return <FileIcon className={className} />;
+}
+
+function LinksTab({
+  links,
+  currentTaskId,
+  dependencyId,
+  setDependencyId,
+  dependencyError,
+  addDependency,
+}: {
+  links: PMSTaskDependency[];
+  currentTaskId: number;
+  dependencyId: string;
+  setDependencyId: (value: string) => void;
+  dependencyError: string | null;
+  addDependency: (event: FormEvent) => void;
+}) {
+  return (
+    <>
+      <CompactForm onSubmit={addDependency} className="rounded-md border p-3">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+          <Input type="number" min="1" value={dependencyId} onChange={(event) => setDependencyId(event.target.value)} placeholder="Link blocker by task ID" />
+          <Button type="submit"><Link2 className="h-4 w-4" />Add blocker</Button>
+        </div>
+        {dependencyError ? <p className="mt-2 text-sm text-red-600">{dependencyError}</p> : null}
+      </CompactForm>
+      {links.map((item) => {
+        const isBlockedBy = item.task_id === currentTaskId;
+        return (
+          <TimelineCard
+            key={item.id}
+            title={isBlockedBy ? `${item.depends_on_task_key || `Task #${item.depends_on_task_id}`} blocks this task` : `This task blocks ${item.task_key || `Task #${item.task_id}`}`}
+            meta={isBlockedBy ? item.depends_on_task_title || item.dependency_type : item.task_title || item.dependency_type}
+          />
+        );
+      })}
+      {!links.length ? <EmptyLine>No linked tasks yet.</EmptyLine> : null}
+    </>
+  );
+}
+
+function DevelopmentTab({ links }: { links: PMSDevLink[] }) {
+  const grouped = {
+    branch: links.filter((item) => item.link_type === "branch"),
+    commit: links.filter((item) => item.link_type === "commit"),
+    pr: links.filter((item) => item.link_type === "pr"),
+    mr: links.filter((item) => item.link_type === "mr"),
+  };
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <DevMetric label="Branches" value={grouped.branch.length} />
+        <DevMetric label="Commits" value={grouped.commit.length} />
+        <DevMetric label="PRs" value={grouped.pr.length} />
+        <DevMetric label="MRs" value={grouped.mr.length} />
+      </div>
+      {(["pr", "mr", "commit", "branch"] as PMSDevLink["link_type"][]).map((kind) => (
+        <div key={kind} className="space-y-2">
+          <h3 className="text-sm font-semibold uppercase text-muted-foreground">{kind === "pr" ? "Pull requests" : kind === "mr" ? "Merge requests" : kind === "commit" ? "Commits" : "Branches"}</h3>
+          {grouped[kind].map((item) => (
+            <a key={item.id} href={item.url || "#"} target="_blank" rel="noreferrer" className="block rounded-md border p-3 hover:bg-muted/50">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-primary">{item.provider} / {item.link_type} / {item.external_id}</p>
+                  <h4 className="font-medium">{item.title || item.external_id}</h4>
+                </div>
+                <Badge variant="outline">{item.status || "linked"}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{item.author || "Unknown author"} / {formatDateTime(item.updated_at || item.created_at)}</p>
+            </a>
+          ))}
+        </div>
+      ))}
+      {!links.length ? <EmptyLine>No development activity linked yet. Configure a GitHub or GitLab repository in PMS settings and include this task key in branches, commits, PRs, or MRs.</EmptyLine> : null}
+    </div>
+  );
+}
+
+function DevMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-muted/50 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function TimelineCard({ title, meta }: { title: ReactNode; meta: ReactNode }) {
+  return <div className="rounded-md border p-3 text-sm"><p>{title}</p><p className="mt-2 text-xs text-muted-foreground">{meta}</p></div>;
+}
+
+function userLabel(userId: number | undefined, fallback: string) {
+  return userId ? `User #${userId}` : fallback;
+}
+
+function formatMinutes(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (!hours) return `${mins}m`;
+  return `${hours}h ${mins}m`;
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

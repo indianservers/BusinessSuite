@@ -21,7 +21,8 @@ from app.apps.srm.models import SRMInvoice
 
 pytestmark=pytest.mark.skipif(os.environ.get('WHATSAPP_HUB_BROWSER')!='1',reason='Opt-in browser integration test')
 
-def test_real_chat_workflows(client,db,customer_thread,middleware_database,monkeypatch):
+@pytest.mark.parametrize('width',[1440,390])
+def test_real_chat_workflows(client,db,customer_thread,middleware_database,monkeypatch,width):
     headers,actor,branch,record,contact,messages,recipient,reply=customer_thread
     company=CRMCompany(organization_id=1,branch_id=branch.id,name='Sandbox account')
     pipeline=CRMPipeline(organization_id=1,name='Sandbox sales')
@@ -76,7 +77,7 @@ def test_real_chat_workflows(client,db,customer_thread,middleware_database,monke
             super().handle_error(request,client_address)
     server=Bridge(('127.0.0.1',0),Handler)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
-    env={**os.environ,'WHATSAPP_QA_BRIDGE':f'http://127.0.0.1:{server.server_port}','WHATSAPP_QA_FIXTURE':json.dumps({'campaignId':campaign.json()['id'],'recipientId':recipient.id,'contactId':contact.id,'personId':record.id,'pipelineId':pipeline.id,'stageId':stage.id,'userId':actor.id,'branchId':branch.id,'token':headers['Authorization'].split(' ',1)[1]})}
+    env={**os.environ,'WHATSAPP_QA_BRIDGE':f'http://127.0.0.1:{server.server_port}','WHATSAPP_QA_FIXTURE':json.dumps({'width':width,'campaignId':campaign.json()['id'],'recipientId':recipient.id,'contactId':contact.id,'personId':record.id,'pipelineId':pipeline.id,'stageId':stage.id,'userId':actor.id,'branchId':branch.id,'token':headers['Authorization'].split(' ',1)[1]})}
     root=Path(__file__).resolve().parents[2]
     try:
         result=subprocess.run(['node',str(root/'qa/whatsapp_hub_api_browser.cjs')],cwd=root,env=env,text=True,capture_output=True,timeout=240,encoding='utf-8')

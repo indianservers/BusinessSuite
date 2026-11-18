@@ -1,0 +1,197 @@
+/* Measured against the supplied 1586 × 992 references. */
+@font-face{font-family:AppointmentRoboto;src:url('/fonts/roboto/roboto-400.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:AppointmentRoboto;src:url('/fonts/roboto/roboto-500.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:AppointmentRoboto;src:url('/fonts/roboto/roboto-600.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:AppointmentRoboto;src:url('/fonts/roboto/roboto-700.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+.appointment-reference-shell,.resource-editor,.prebooking-reference-modal,.prebooking-drawer{font-family:AppointmentRoboto,Arial,sans-serif;color:#160d29}
+.appointment-reference-shell{background:linear-gradient(110deg,#fcfaff,#fcfbff)}
+.appointment-reference-sidebar{background:linear-gradient(115deg,#2c103c,#200a2f)}
+.appointment-reference-brand strong{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.appointment-reference-brand small{font-size:15px}
+.appointment-reference-sidebar nav :is(a,button){font-size:16px;font-weight:400}
+.appointment-reference-sidebar nav .is-active{font-weight:600}
+.appointment-reference-topbar .suite-branch-label{display:none}
+.appointment-reference-topbar .suite-branch-select{font-family:inherit;font-size:16px;font-weight:600}
+.appointment-reference-topbar>button[aria-label='Open command palette']>span{font-size:16px}
+.appointment-reference-profile strong{font-size:16px;font-weight:600}
+.appointment-reference-breadcrumb{font-size:16px;line-height:20px;height:40px}
+.appointment-reference-content{padding-left:20px;padding-right:14px}
+.reference-native-field{position:relative;display:inline-flex;align-items:center;gap:12px;min-width:0;height:40px;width:100%;border:1px solid #d0c8df;border-radius:8px;background:#fefeff;padding:0 12px;font-size:16px;font-weight:400;color:#180f2b}
+.reference-native-field>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reference-native-field>svg{flex:none;color:#514964}
+.reference-native-field>input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0!important;margin:0!important;padding:0!important;cursor:pointer;z-index:1}
+.reference-native-field:focus-within{outline:2px solid #7625dc;outline-offset:2px}
+.reference-native-field[data-disabled=true]{opacity:.5}
+.appointment-date-navigation>.reference-native-field{width:178px;height:35px;text-align:center;font-size:16px;font-weight:600;border-radius:6px}
+.appointment-date-navigation>.appointment-select-date{width:154px;margin-left:12px;font-size:14px;font-weight:400}
+.appointment-reference-datebar{padding-top:8px;padding-bottom:8px;gap:15px;flex-wrap:nowrap}
+.appointment-date-navigation{gap:0;flex:none}
+.appointment-date-navigation>button{width:40px;padding:0;border-radius:6px}
+.appointment-date-navigation>button:nth-of-type(3){width:68px;margin-left:8px;font-size:14px}
+.appointment-reference-counts{gap:13px;justify-content:flex-end;font-size:14px}
+.appointment-reference-counts>span{gap:7px;padding-right:13px;border-color:#d2cbdf}
+.appointment-reference-counts>span:last-child{border:0}
+.appointment-reference-actions>button:not(:first-child){display:none}
+.appointment-reference-actions>button:first-child{height:36px;font-size:14px;padding:0 16px;border-radius:7px}
+.appointment-reference-filters{padding-top:11px;padding-bottom:11px;grid-template-columns:1.42fr .96fr .99fr 1fr 1fr;gap:14px}
+.appointment-reference-filters :is(label,select){height:34px;font-size:14px;border-radius:7px}
+.appointment-reference-views{height:41px;margin-top:4px;margin-bottom:9px}
+.appointment-reference-views button{font-size:14px;height:33px}
+.appointment-gantt-scroll{max-height:410px;scrollbar-width:none}
+.appointment-gantt-scroll::-webkit-scrollbar{display:none}
+.appointment-gantt-hours{height:34px}
+.appointment-reference-gantt h3{height:26px;padding:5px 15px;font-size:13px;line-height:16px}
+.appointment-gantt-row{min-height:48px}
+.appointment-gantt-name{font-size:16px;gap:8px}
+.appointment-gantt-name strong{font-weight:600}
+.appointment-gantt-event{font-size:14px;padding:3px 10px;border-radius:6px}
+.appointment-gantt-event small{font-size:13px}
+.appointment-reference-upcoming{margin-top:18px}
+.appointment-reference-upcoming h2{font-size:22px;line-height:25px;padding:9px 16px}
+.appointment-reference-upcoming table{font-size:14px}
+.appointment-reference-upcoming :is(td,th){height:37px;padding:3px 20px}
+.appointment-reference-upcoming th{height:31px;font-weight:600}
+.appointment-reference-upcoming footer{height:46px;padding:12px 16px;font-size:14px}
+.appointment-reference-upcoming .appointment-avatar{width:32px;height:32px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-topbar{height:62px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-breadcrumb{height:48px;padding-top:18px;padding-left:27px}
+.is-resources{padding-left:22px;padding-right:20px}
+.resource-page-heading{margin-top:16px;margin-bottom:36px;height:65px;gap:15px}
+.resource-page-heading h1{font-size:32px;line-height:38px;letter-spacing:-.6px;font-weight:700}
+.resource-page-heading p{font-size:16px;line-height:22px}
+.resource-heading-icon{width:56px;height:56px}
+.resource-statistics{gap:14px;margin-bottom:36px}
+.resource-statistics>div{padding:17px 15px;height:92px}
+.resource-statistics strong{font-size:30px;font-weight:700}
+.resource-statistics p{font-size:16px;margin-top:5px}
+.resource-filters{margin-bottom:26px;gap:14px;grid-template-columns:1.88fr .98fr 1.06fr 1fr}
+.resource-filters :is(label,select){font-size:16px;height:40px}
+.resource-table-scroll{height:424px;min-height:424px}
+.resource-table{font-size:14px}
+.resource-table th{font-size:14px;padding:12px 13px;height:41px}
+.resource-table td{height:63px;padding:10px 14px}
+.resource-table td:first-child strong{font-size:16px;font-weight:600}
+.resource-table td:first-child{padding-left:15px}
+.resource-icon{margin-right:12px}
+.resource-availability{font-size:14px}
+.resource-status{font-size:14px;padding:4px 10px}
+.resource-action-menu{width:210px}
+.resource-action-menu button{font-size:14px;padding:10px 14px}
+.resource-pagination{margin-top:74px;height:72px;padding-top:14px;font-size:14px}
+.resource-editor{height:calc(100dvh - 62px)!important;background:#fdfcff!important}
+.resource-editor header{height:98px;padding:24px 23px 15px;display:grid;grid-template-columns:23px 1fr;gap:11px 15px;align-items:center}
+.resource-editor header>div{display:contents}
+.resource-editor header h2{font-size:22px;line-height:26px;font-weight:700}
+.resource-editor header p{grid-column:1/-1;margin:0;font-size:16px;line-height:20px;color:#4c425e}
+.resource-editor form{height:calc(100% - 98px);min-height:0}
+.resource-editor form>fieldset{padding:18px 23px;gap:22px 16px}
+.resource-editor label,.resource-editor legend{font-size:14px;font-weight:600;line-height:18px}
+.resource-editor :is(input,select){font-family:inherit;font-size:16px;height:40px;margin-top:8px}
+.resource-editor .reference-native-field{margin-top:8px;font-size:16px}
+.resource-editor .reference-native-field>span{font-size:16px}
+.resource-editor .resource-hours{gap:12px;min-width:0}
+.resource-hours>.reference-native-field{flex:1;width:0}
+.resource-weekdays button{font-size:14px;width:calc((100% - 24px)/7);height:36px}
+.resource-toggle-row strong{font-size:14px}
+.resource-toggle-row small{font-size:14px}
+.resource-editor .resource-advanced{font-size:11px}
+.resource-editor form>footer{height:83px;min-height:83px;padding:15px 23px 20px;gap:12px}
+.resource-editor form>footer>button{height:46px;min-height:46px;font-size:16px}
+.resource-editor input[type=number]::-webkit-inner-spin-button{opacity:1}
+.reference-service-icon{display:none}
+.reference-appointment-form .prebooking-service-picker[data-reference=true]{position:relative}
+.reference-appointment-form .prebooking-service-picker[data-reference=true]>.reference-service-icon{display:block;position:absolute;left:12px;top:7px;padding:9px;box-sizing:content-box;background:#f3edff;border-radius:50%;color:#241338;pointer-events:none;z-index:2}
+.reference-appointment-form .prebooking-service-picker[data-reference=true] .smart-record-input{min-height:54px;padding-left:75px;position:relative;border-color:#cbc2db;border-radius:9px}
+.reference-appointment-form .prebooking-service-picker[data-reference=true] .smart-record-input>svg{display:none}
+.reference-appointment-form .prebooking-service-picker[data-reference=true] .smart-record-input>input{font-size:16px;font-weight:600;padding:0;height:25px;align-self:flex-start;margin-top:5px}
+.reference-appointment-form .prebooking-service-picker[data-reference=true]:not([data-selected=true]) .smart-record-input>input{align-self:center;margin-top:0}
+.reference-service-price{position:absolute;left:76px;top:29px;pointer-events:none;font-size:16px!important;line-height:19px;color:#625573;white-space:nowrap}
+.reference-employee-select,.reference-physical-select{display:block;position:relative;margin-top:7px}
+.reference-employee-select select,.reference-physical-select select{height:54px!important;margin-top:0!important;padding-left:77px!important;font-size:16px;font-weight:600}
+.reference-employee-select select{padding-bottom:17px!important}
+.reference-person-avatar{position:absolute;top:7px;left:12px;width:40px;height:40px;display:grid!important;place-items:center;border-radius:50%;background:#efe5ff;font-size:13px;color:#6928ad;pointer-events:none}
+.reference-employee-select>small{position:absolute;bottom:7px;left:77px;font-size:14px;font-weight:400;color:#5e516e;pointer-events:none}
+.reference-employee-select:after{position:absolute;content:'';top:17px;left:62px;width:9px;height:9px;border-radius:50%;background:#3aca55}
+.reference-physical-select>svg{position:absolute;left:18px;top:15px;pointer-events:none}
+.reference-physical-select select{padding-left:59px!important}
+.reference-appointment-form .reference-employee-resource{grid-template-columns:1.05fr 1fr;gap:46px}
+.reference-appointment-form .reference-employee-resource:nth-child(2){grid-template-columns:1.1fr 1fr;gap:32px}
+.reference-appointment-form .reference-employee-resource label{font-size:14px;font-weight:600;line-height:18px}
+.reference-appointment-form .reference-employee-resource label>span:not(.reference-native-field):not(.reference-employee-select):not(.reference-physical-select){font-size:14px;font-weight:400}
+.reference-appointment-form .reference-employee-resource .reference-native-field{margin-top:7px;font-size:16px;font-weight:500}
+.reference-appointment-form .reference-employee-resource label>.reference-native-field>span{font-size:16px;font-weight:500}
+.reference-appointment-form .reference-employee-resource:nth-child(2) select{height:38px;font-size:16px}
+.reference-start-times{gap:10px;flex-wrap:nowrap}
+.reference-start-times button{flex:1;min-width:0!important;font-size:14px!important;padding:0 9px;height:35px}
+.reference-start-times button:disabled{text-decoration:line-through;background:#e9e7ee;color:#9991a6;border-color:#e9e7ee;opacity:1}
+.reference-booking-fields p[data-availability-state=available]{font-size:14px;display:flex;align-items:center;gap:12px;background:#d9f2d9;color:#006a18;min-height:36px}
+.reference-custom-time>summary{font-size:10px;color:#8a759f}
+.reference-appointment-notes{font-size:14px!important}
+.reference-appointment-notes textarea{font-size:16px!important;line-height:22px}
+.booking-reference-summary{background:linear-gradient(115deg,#f6efff,#f7f2fe);padding:16px 18px}
+.booking-reference-summary h2{font-size:20px;line-height:24px;font-weight:700}
+.booking-reference-summary dl>div{font-size:14px!important;grid-template-columns:125px 1fr!important}
+.booking-reference-summary small{font-size:14px}
+.booking-reference-summary dl{gap:11px!important}
+.booking-reference-summary dt{gap:14px}
+.booking-reference-summary dd strong{font-weight:600}
+.booking-summary-total{padding:11px 0;font-size:16px}
+.booking-summary-total b{font-size:20px}
+.booking-reference-summary h3{font-size:14px}
+.booking-summary-meter-times,.booking-summary-meter-legend{font-size:11px}
+.booking-summary-channel{font-size:14px;padding:8px 10px}
+.booking-summary-confirmation>small{font-size:10px}
+@media(min-width:1000px) and (min-height:900px){
+  .prebooking-reference-modal{top:calc(50% + 24px)!important;height:834px!important;max-height:calc(100dvh - 48px)!important;overflow-y:auto;border-radius:18px!important;background:#fefefe!important}
+  .prebooking-reference-header{height:85px!important;min-height:85px;padding:16px 27px!important;border-bottom:1px solid #ddd5e8}
+  .prebooking-reference-header strong{font-size:24px;line-height:29px}
+  .prebooking-reference-header p{font-size:16px;line-height:20px}
+  .prebooking-reference-header>svg{width:24px;height:24px;padding:12px}
+  .prebooking-reference-modal .prebooking-shortcuts{top:57px;font-size:9px}
+  .prebooking-reference-modal .reference-appointment-form{height:749px;padding:17px 25px 0!important;grid-template-columns:minmax(0,1fr) 310px;grid-template-rows:minmax(0,1fr) 51px 70px;gap:17px 23px}
+  .reference-appointment-form>fieldset{padding-top:4px;gap:14px}
+  .reference-appointment-form .prebooking-section-heading{margin-bottom:8px}
+  .reference-appointment-form .prebooking-section-heading h3{font-size:14px;line-height:18px}
+  .reference-appointment-form .prebooking-person-card{height:55px;min-height:55px}
+  .reference-appointment-form .prebooking-person-card strong{font-size:16px}
+  .reference-appointment-form .prebooking-person-card small{font-size:16px;line-height:20px}
+  .reference-appointment-form>.booking-reference-summary{grid-row:1/span 2;height:640px;min-height:640px;max-height:640px}
+  .reference-appointment-form>.reference-more-options{margin:0;min-height:51px;max-height:none;align-self:start}
+  .reference-appointment-form>.prebooking-footer{height:70px;min-height:70px;padding:12px 18px;align-self:end}
+  .reference-appointment-form>.prebooking-footer button{height:42px;font-size:16px}
+  .reference-footer-zone{font-size:14px}
+}
+@media(max-width:1250px){.appointment-reference-counts{gap:6px;font-size:12px}.appointment-select-date{display:none}.resource-statistics p{font-size:14px}.resource-table{min-width:900px}}
+@media(max-width:1000px){.appointment-reference-datebar{flex-wrap:wrap}.appointment-reference-counts{justify-content:flex-start}.appointment-date-navigation>.appointment-select-date{display:none}.reference-appointment-form .reference-employee-resource{gap:18px}}
+@media(max-width:760px){.appointment-reference-topbar>button[aria-label='Open command palette']>span{font-size:13px}.appointment-reference-topbar .suite-branch-select{font-size:13px}.appointment-reference-breadcrumb{font-size:14px}.appointment-reference-datebar{gap:9px}.appointment-date-navigation>.reference-native-field{width:170px;font-size:14px}.appointment-reference-filters{grid-template-columns:1fr 1fr;gap:8px}.appointment-reference-content{padding-left:10px;padding-right:10px}.resource-page-heading{height:auto;min-height:65px}.resource-page-heading h1{font-size:25px;line-height:30px}.resource-page-heading p{font-size:13px}.resource-statistics>div{height:80px}.resource-statistics p{font-size:12px}.resource-statistics strong{font-size:25px}.resource-filters{grid-template-columns:1fr 1fr;gap:8px}.resource-filters :is(label,select){font-size:14px}.resource-editor{height:100dvh!important}.resource-editor form{height:calc(100% - 98px)}.resource-editor .reference-native-field{height:44px}.reference-start-times{flex-wrap:wrap}.reference-start-times button{flex:none;width:calc((100% - 20px)/3);font-size:13px!important}.reference-appointment-form .reference-employee-resource,.reference-appointment-form .reference-employee-resource:nth-child(2){gap:12px;grid-template-columns:1fr 1fr}.reference-employee-select select{padding-left:12px!important}.reference-person-avatar,.reference-employee-select:after{display:none!important}.reference-employee-select>small{left:12px;font-size:11px}.reference-physical-select select{padding-left:36px!important}.reference-physical-select>svg{width:18px;left:10px}.reference-appointment-form .reference-employee-resource label>span{font-size:12px}.reference-service-price{font-size:13px!important}.booking-reference-summary dl>div{grid-template-columns:125px 1fr!important}.reference-native-field{font-size:14px;padding:0 10px;gap:8px}.resource-pagination{margin-top:30px;font-size:12px}}
+
+.reference-appointment-form .reference-employee-resource label>.reference-native-field{display:flex!important}.reference-appointment-form .reference-employee-resource label>.reference-employee-select,.reference-appointment-form .reference-employee-resource label>.reference-physical-select{display:block!important}
+
+/* Column anchors: 284 / 486 / 581 / 710 / 830 / 971 / 1102. */
+.resource-table{table-layout:fixed;min-width:0}.resource-table th:nth-child(1){width:22.2%}.resource-table th:nth-child(2){width:10.4%}.resource-table th:nth-child(3){width:14%}.resource-table th:nth-child(4){width:13%}.resource-table th:nth-child(5){width:15.5%}.resource-table th:nth-child(6){width:14.5%}.resource-table th:nth-child(7){width:10.4%}.resource-table td:first-child strong{font-size:14px}.resource-table td:first-child{padding-left:15px;padding-right:6px}.resource-actions{gap:8px}.resource-actions>button,.resource-actions summary{min-width:27px}.resource-editor header{height:97px}.resource-editor form{height:calc(100% - 97px)}.resource-editor input[aria-label='Resource name']{margin-top:6px}.resource-editor .resource-field-full:has(.resource-toggle-row){margin-top:3px}
+.appointment-reference-topbar .suite-branch-control{width:248px;max-width:300px;flex:none}.appointment-reference-topbar .suite-branch-field{width:248px}.appointment-reference-topbar .suite-branch-control .suite-branch-select{width:100%;max-width:none;min-width:0}.appointment-reference-topbar>button[aria-label='Open command palette']{margin-right:75px}.appointment-reference-shell:has(.is-resources) .appointment-reference-topbar>button[aria-label='Open command palette']{max-width:515px;margin-right:84px}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-topbar>button[aria-label='Open command palette']{display:none}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .suite-branch-label{display:inline}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .suite-branch-control,.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .suite-branch-field{width:310px;max-width:310px}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile>strong,.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile>svg{display:none}
+.appointment-gantt-name{width:206px;white-space:nowrap;font-size:14px}.appointment-gantt-hours>span{width:206px}.appointment-gantt-group[data-physical=false]>.appointment-gantt-row:last-child{min-height:50px!important}.appointment-gantt-group[data-physical=true]>.appointment-gantt-row{min-height:44px!important;height:44px}.appointment-gantt-group[data-physical=true] .appointment-avatar{background:transparent;width:32px;height:30px;color:#231337}.appointment-gantt-group[data-physical=true] .appointment-gantt-name{gap:9px}.appointment-gantt-event{white-space:nowrap}.appointment-reference-upcoming h2{height:41px;line-height:24px;padding:8px 16px}.appointment-reference-upcoming td{height:37px;padding:2px 20px}.appointment-reference-upcoming footer{height:52px}.reference-footer-zone{display:flex;align-items:center;gap:8px}.booking-reference-summary dt{gap:17px}.booking-reference-summary dl>div{grid-template-columns:131px 1fr!important}
+@media(min-width:1000px) and (min-height:900px){.prebooking-reference-modal .reference-appointment-form{padding-left:28px!important;padding-right:16px!important;grid-template-columns:minmax(0,1fr) 312px;column-gap:36px}.reference-appointment-form>.booking-reference-summary{width:312px}.reference-appointment-form>.prebooking-footer{margin-left:-28px;margin-right:-16px}.reference-appointment-form>.prebooking-footer>div{gap:12px}.reference-appointment-form>.prebooking-footer button[type=submit]{min-width:234px}.reference-appointment-form>.prebooking-footer button[type=button]{min-width:106px}.reference-appointment-form>fieldset{min-height:0}.prebooking-reference-header{padding-left:29px!important}}
+@media(max-width:1250px){.appointment-reference-topbar>button[aria-label='Open command palette'],.appointment-reference-shell:has(.is-resources) .appointment-reference-topbar>button[aria-label='Open command palette']{margin-right:15px}.resource-table{min-width:900px}}
+@media(max-width:760px){.appointment-reference-topbar .suite-branch-control,.appointment-reference-topbar .suite-branch-field{width:auto;max-width:195px}.resource-table{min-width:900px}.reference-footer-zone{display:none}.booking-reference-summary dl>div{grid-template-columns:125px 1fr!important}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .suite-branch-control,.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .suite-branch-field{width:auto;max-width:195px}}
+
+.appointment-reference-shell{background:linear-gradient(115deg,#faf8fe,#f9f7fe)}.appointment-reference-body:has(.is-schedule) .appointment-reference-breadcrumb{background:#f7f5fe}.appointment-reference-topbar kbd{border:1px solid #dbd3e7;border-radius:4px;background:#fff;padding:1px 4px;top:8px!important;right:11px!important;font-family:inherit;font-size:12px}.appointment-reference-filters .appointment-filter-select{position:relative;display:flex;gap:11px;padding:0 12px}.appointment-filter-select>svg{flex:none}.appointment-reference-filters .appointment-filter-select select{padding:0;border:0;background:transparent;height:32px;flex:1}.appointment-reference-shell .appointment-reference-sidebar nav{gap:7px}.appointment-reference-shell:has(.is-schedule) .appointment-reference-brand{padding-bottom:20px}.appointment-reference-shell:has(.is-resources) .appointment-reference-brand{padding-bottom:20px}.appointment-reference-shell .appointment-reference-sidebar nav :is(a,button){min-height:48px;padding-top:12px;padding-bottom:12px}.appointment-reference-shell .appointment-reference-sidebar nav .is-active{background:linear-gradient(110deg,#8320d9,#7128ce)}
+.reference-appointment-form .prebooking-service-row{margin-top:-5px}.reference-appointment-form .reference-employee-resource:nth-child(2){margin-top:5px}.reference-start-times{margin-top:4px}.reference-booking-fields p[data-availability-state=available]{height:36px;min-height:36px;padding:7px 12px;border:0;line-height:20px}.reference-appointment-form .reference-appointment-notes{margin-top:-9px}.reference-appointment-notes textarea{margin-top:9px}.reference-more-options .reference-custom-time{padding:8px 0;font-size:13px}.reference-more-options .reference-custom-time>summary{font-size:13px}.reference-more-options .reference-custom-time label{margin-top:8px}.booking-reference-summary h2{margin-bottom:15px!important}.booking-reference-summary small{line-height:20px;margin-top:0}.booking-reference-summary dl{gap:10px!important}.booking-reference-summary dl>div:nth-child(-n+3){margin-bottom:-4px}.booking-summary-meter-track{margin-top:19px}.booking-reference-summary{background:linear-gradient(115deg,#f4effd,#f7f2fe)}
+@media(min-width:1000px) and (min-height:900px){.prebooking-reference-modal .reference-appointment-form{row-gap:22px}.reference-appointment-form>.reference-more-options{min-height:51px}.reference-appointment-form>.reference-more-options>summary{font-size:14px}.reference-appointment-form>.reference-more-options>summary:after{font-size:14px}.reference-appointment-form>.booking-reference-summary{height:640px;min-height:640px;max-height:640px}.reference-appointment-form>.prebooking-footer{align-self:end}}
+@media(max-width:760px){.appointment-reference-filters .appointment-filter-select{grid-column:auto}.reference-appointment-form .reference-appointment-notes{margin-top:0}.reference-appointment-form .prebooking-service-row{margin-top:0}.reference-start-times{margin-top:0}.reference-booking-fields p[data-availability-state=available]{height:auto}.appointment-reference-shell .appointment-reference-sidebar nav :is(a,button){font-size:15px}}
+
+.reference-person-avatar>img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}.resource-editor .reference-native-field>input::-webkit-calendar-picker-indicator,.reference-employee-resource .reference-native-field>input::-webkit-calendar-picker-indicator{width:100%;height:100%;opacity:0;position:absolute;inset:0}
+
+.appointment-reference-views{margin-bottom:10px}.appointment-gantt-scroll{max-height:409px}.appointment-gantt-hours{height:33px}.appointment-date-navigation{margin-left:3px}.appointment-date-navigation>.appointment-select-date{margin-left:14px;gap:8px}.appointment-reference-actions>button:first-child{min-width:176px}.appointment-reference-actions{margin-right:4px}.appointment-reference-counts{justify-content:space-between;padding-left:50px;padding-right:20px}.appointment-reference-upcoming table{table-layout:fixed}.appointment-reference-upcoming th:nth-child(1){width:18.6%}.appointment-reference-upcoming th:nth-child(2){width:13.4%}.appointment-reference-upcoming th:nth-child(3){width:16.25%}.appointment-reference-upcoming th:nth-child(4){width:15.7%}.appointment-reference-upcoming th:nth-child(5){width:16%}.appointment-reference-upcoming th:nth-child(6){width:15.25%}.appointment-reference-upcoming th:nth-child(7){width:4.8%}.appointment-reference-upcoming :is(td,th){padding-left:22px;padding-right:8px}.appointment-upcoming-icon{display:flex;align-items:center;gap:11px;white-space:nowrap}.appointment-upcoming-icon>svg{flex:none}.appointment-status-pill{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;text-transform:none}.appointment-gantt-event small{text-transform:none}.appointment-state-icon[data-status=booked]{color:#0059ea}.appointment-state-icon[data-status=checked_in],.appointment-state-icon[data-status=completed]{color:#008c2c}.appointment-state-icon[data-status=pending]{color:#cc8400}.appointment-reference-upcoming td:last-child button{justify-content:center;width:100%}
+@media(max-width:1250px){.appointment-reference-counts{padding:0;justify-content:flex-start}.appointment-reference-upcoming table{min-width:1100px}}
+@media(max-width:760px){.appointment-reference-actions>button:first-child{min-width:160px}.appointment-date-navigation{margin-left:0}.appointment-reference-upcoming :is(td,th){padding-left:12px}.appointment-upcoming-icon{gap:8px}.appointment-reference-counts{font-size:11px}}
+
+/* Colors sampled from flat interior regions, excluding glyphs and borders. */
+.appointment-reference-actions>button:first-child,.appointment-reference-views button[aria-pressed=true]{background:linear-gradient(110deg,#570cc9,#4b0ab6)!important;border-color:#5911bd!important;box-shadow:none!important;color:#fff!important}.resource-page-heading>.reference-primary{background:linear-gradient(110deg,#7b23d2,#6527be);border-color:#7221c8}.resource-editor form>footer>.reference-primary{background:linear-gradient(110deg,#7923cb,#621dbd);border-color:#7221c8}.appointment-reference-shell:has(.is-resources) .appointment-reference-sidebar nav .is-active{background:linear-gradient(110deg,#7c28cb,#6b25ba)}.appointment-reference-shell:has(.is-schedule) .appointment-reference-sidebar nav .is-active{background:linear-gradient(110deg,#7d2bdd,#682fd0)}.resource-table th{background:#ebe5fd}.resource-page-heading h1{letter-spacing:-.3px}.reference-start-times button[aria-pressed=true],.reference-appointment-form>.prebooking-footer button[type=submit]{background:linear-gradient(110deg,#6522dc,#5b1dcd)!important;border-color:#6220d5!important;box-shadow:none!important}.booking-reference-summary{background:linear-gradient(115deg,#f3eefc,#f7f3fe)}.reference-appointment-form .reference-employee-resource label>.reference-employee-select{margin-left:0}.reference-employee-select>small{left:77px}.reference-appointment-form .reference-employee-resource label>.reference-physical-select{margin-left:0}
+@media(max-width:760px){.reference-employee-select>small{left:12px}}
+
+.reference-booking-error{grid-column:1/-1;margin:0;padding:10px 14px;border:1px solid #fecdd3;border-radius:8px;background:#fff1f2;color:#a11631;font-size:14px}
+@media(min-width:1000px) and (min-height:900px){.prebooking-reference-modal:has(.reference-more-options[open]) .reference-appointment-form,.prebooking-reference-modal:has(.prebooking-fields:not(.reference-booking-fields)) .reference-appointment-form,.prebooking-reference-modal:has(.reference-booking-error) .reference-appointment-form{height:auto!important;min-height:749px;grid-template-rows:auto auto auto 70px!important}.reference-appointment-form:has(.reference-more-options[open])>.booking-reference-summary,.reference-appointment-form:has(.prebooking-fields:not(.reference-booking-fields))>.booking-reference-summary{grid-row:1;align-self:start}.reference-appointment-form:has(.reference-booking-error)>.reference-booking-error{grid-row:3}.reference-appointment-form:has(.reference-booking-error)>.prebooking-footer{grid-row:4}}
+@media(max-width:760px){.reference-booking-error{order:3}.reference-appointment-form:has(.reference-booking-error)>.prebooking-footer{order:4}}
+
+@media(min-width:1400px) and (min-height:900px){.resource-editor-open .resource-statistics{grid-template-columns:224px repeat(3,minmax(0,1fr))}}

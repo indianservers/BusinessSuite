@@ -1,0 +1,181 @@
+/* Reference assets and the remaining desktop details. Mobile keeps its dedicated workspace. */
+.scheduling-avatar{position:relative;flex-shrink:0;overflow:hidden;isolation:isolate}
+.scheduling-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;background:#fff}
+.appointment-profile-avatar{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#e8dcf7;color:#6324a8;font-size:12px}
+.appointment-modal-dashboard,.appointment-calendar-heading,.scheduling-brand-compact{display:none!important}
+.scheduling-brand-mark{display:block;filter:drop-shadow(0 1px 1px #f7d4ff55)}
+.reference-field-info{display:inline-block;vertical-align:middle;margin-left:6px;color:#6a607b;flex:none}
+.reference-duration-select{display:block;position:relative;margin-top:7px}
+.reference-duration-select>svg{position:absolute;left:13px;top:9px;color:#504364;pointer-events:none}
+.reference-duration-select>select{padding-left:48px!important;margin-top:0!important}
+.reference-appointment-form .reference-employee-resource label>.reference-duration-select{display:block!important}
+.reference-appointment-form .prebooking-person-card button[aria-label^='Change']:after{content:none}
+.booking-summary-busy{position:absolute;top:0;bottom:0;background:#d7d4de;border-left:1px solid #e8e5ee;border-right:1px solid #e8e5ee}
+.booking-confirmation-disclosure{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.appointment-gantt-unavailable{position:absolute;top:3px;height:41px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #d7d3db;border-radius:5px;background:repeating-linear-gradient(130deg,#eeecef 0,#eeecef 4px,#dedce1 4px,#dedce1 5px);color:#21172f;font-size:14px;overflow:hidden}
+.appointment-gantt-event[data-conflict=true]{background:linear-gradient(110deg,#fff1f5,#ffdee8)!important;border:1px solid #ff2a79!important;color:#38182d!important;z-index:6}
+.appointment-status-pill[data-status=pending]{background:#fff0bf;color:#a66a00}
+.appointment-state-icon[data-status=checked_in]{fill:#02ac3a;color:#fff;stroke-width:2.5}
+.appointment-gantt-event[data-status=pending]{background:linear-gradient(110deg,#fdfbff,#eadbff);border-color:#cfb2ff}
+.appointment-status-pill[data-status=pending] svg{color:#d18500}
+.reference-more-options>summary::marker{font-size:0}
+.reference-more-options>summary{position:relative;padding-left:34px!important;list-style:none}
+.reference-more-options>summary:before{content:'';position:absolute;left:6px;top:12px;width:9px;height:9px;border-right:2px solid #241432;border-bottom:2px solid #241432;transform:rotate(45deg)}
+.reference-more-options>summary:after{margin-left:0!important}
+.reference-more-options[open]>summary:before{transform:rotate(225deg);top:16px}
+@media(min-width:768px){
+  .appointment-reference-topbar>a[href='/srm/pos/terminal'],.appointment-reference-topbar>.suite-new-trigger{display:none}
+  .appointment-reference-sidebar>.appointment-reference-settings{display:none}
+  .appointment-reference-brand>span{width:40px;height:40px;flex:none;background:linear-gradient(135deg,#982ee8,#681ecb);border-radius:10px}
+  .appointment-reference-shell:has(.is-schedule) .appointment-reference-brand>span{background:transparent;padding:0;width:38px}
+  .appointment-reference-shell:has(.is-schedule) .scheduling-brand-mark{color:#fff;stroke:#fff;filter:drop-shadow(0 0 3px #ea32ea);width:31px;height:36px}
+  .appointment-reference-profile{gap:10px}
+  .appointment-reference-profile .scheduling-avatar{width:36px;height:36px}
+  .appointment-gantt-name .scheduling-avatar{width:39px;height:39px}
+  .appointment-reference-upcoming .scheduling-avatar{width:32px;height:32px}
+  .reference-appointment-form .prebooking-initials{width:44px;height:44px;min-width:44px;background:#f0e9fb}
+  .reference-appointment-form .reference-person-avatar{width:40px;height:40px}
+  .reference-appointment-form .prebooking-person-card button.reference-new-customer{font-weight:500}
+  .prebooking-service-picker[data-reference=true] .smart-record-input button[aria-label^='Clear']{opacity:0;width:0;min-width:0;pointer-events:none;overflow:hidden}
+  .prebooking-service-picker[data-reference=true] .smart-record-input:focus-within button[aria-label^='Clear']{opacity:1;width:28px;min-width:28px;pointer-events:auto}
+  .reference-appointment-form>.prebooking-footer button[type=button]>svg{display:none}
+  .reference-appointment-form>.prebooking-footer button[type=submit]>svg{display:block}
+  .reference-appointment-form>.prebooking-footer button[type=submit]{gap:12px}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-modal-dashboard{display:flex!important}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-settings{display:flex}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .scheduling-brand-mark{display:none}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .scheduling-brand-compact{display:block!important;color:#8d48d0}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand>span{background:transparent}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile{border:0;padding-left:0}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile>.scheduling-avatar{background:#7131bd;color:transparent;font-size:0}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile>.scheduling-avatar img{display:none}
+  .appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile:after{content:attr(data-company-initials);position:absolute;right:38px;color:#dfcbf4;font-size:14px;pointer-events:none}
+  .appointment-reference-shell:has(.appointment-timeline[data-view=Calendar]) .appointment-reference-breadcrumb{display:none}
+  .appointment-reference-shell:has(.appointment-timeline[data-view=Calendar]) .appointment-calendar-heading{display:flex!important;align-items:center;gap:14px;height:72px;padding:17px 3px 17px;color:#1a102f}
+  .appointment-calendar-heading h1{font-size:27px;font-weight:700;line-height:34px}
+  .appointment-reference-body:has(.appointment-timeline[data-view=Calendar]) .appointment-reference-content{position:relative;padding-left:16px;padding-right:10px}
+  .appointment-timeline[data-view=Calendar]{border:1px solid #d7cfe5;border-radius:10px;overflow:hidden;background:#fcfbff}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-filters,.appointment-timeline[data-view=Calendar] .appointment-reference-counts,.appointment-timeline[data-view=Calendar] .appointment-timeline-toolbar,.appointment-timeline[data-view=Calendar] .appointment-reference-upcoming{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-views{position:absolute;top:16px;right:14px;width:312px;height:36px;margin:0;border-radius:7px;padding:0;background:#f9f6ff}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-views>div:last-child{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-views>div:first-child{width:100%;gap:0}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-views button{flex:1;height:35px;gap:8px;padding:0 15px;background:transparent!important;color:#4b405d!important;border:0!important;font-size:14px}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-views button[aria-pressed=true]{background:#e9dcfb!important;border:1px solid #bd9fdf!important;color:#67279a!important}
+  .appointment-timeline[data-view=Calendar] .appointment-reference-datebar{height:72px;padding:19px 9px 16px;border-bottom:1px solid #ddd4ea;background:#fcfbff}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-scroll{max-height:758px;scrollbar-width:none}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-scroll::-webkit-scrollbar{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-columns{grid-template-columns:84px repeat(4,minmax(150px,1fr))!important}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-header{height:59px;padding:10px 15px;font-size:16px;background:#fdfbff;gap:13px}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-header:first-child{font-size:0}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-header:first-child svg{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-header>strong:before{content:'';display:inline-block;background:#43c556;width:10px;height:10px;border-radius:50%;margin-right:9px}
+  .appointment-timeline[data-view=Calendar] .appointment-time-axis{background:#fcfaff}
+  .appointment-timeline[data-view=Calendar] .appointment-time-axis>span:nth-child(even){display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-time-axis>span{font-size:14px;left:20px;transform:translateY(12px)}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-lane{background:repeating-linear-gradient(to bottom,transparent 0,transparent 33.2px,#e6e0ed 33.2px,#e6e0ed 34.2px)}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-booking{border-radius:6px;border-left-width:8px;margin-left:5px;width:calc(100% - 20px)!important;left:5px!important;padding:5px 10px;font-size:14px;gap:4px}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-booking>strong,.appointment-timeline[data-view=Calendar] .appointment-timeline-booking>small{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-booking>span:nth-of-type(2){order:-1;font-size:13px}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-booking>span:nth-of-type(2)>svg{display:none}
+  .appointment-timeline[data-view=Calendar] .appointment-timeline-booking>span:nth-of-type(1){font-weight:600}
+  .prebooking-reference-modal .prebooking-shortcuts{top:auto!important;bottom:8px!important;right:27px!important;opacity:0}
+  .prebooking-reference-modal .prebooking-shortcuts:focus-visible{opacity:1}
+  .reference-field-info{vertical-align:-3px}
+}
+@media(max-width:767px){.reference-duration-select>svg{width:18px;left:9px}.reference-duration-select>select{padding-left:34px!important}.scheduling-avatar img{object-fit:cover}}
+
+.appointment-booking-help{display:none}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-booking-help{display:flex;align-items:center;justify-content:center;width:24px}.appointment-reference-profile{position:relative}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-profile:after{right:8px}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand{padding-bottom:30px!important}
+
+@media(min-width:768px){.appointment-timeline[data-view=Calendar] .appointment-timeline-booking[data-status=draft]{background:#ead6ff;border-color:#8d2de3;border-width:1px;border-left-width:8px}.appointment-timeline[data-view=Calendar] .appointment-timeline-booking[data-status=draft]>span{font-weight:600}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-body:has(.appointment-timeline[data-view=Calendar]) .appointment-reference-content{padding-left:16px}}
+
+@media(min-width:768px){.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-timeline[data-view=Calendar] .appointment-reference-actions{visibility:hidden}}
+@media(min-width:768px){
+.appointment-reference-sidebar{padding-top:14px}
+.appointment-reference-brand strong{display:block;line-height:26px}
+.appointment-reference-brand small{line-height:20px;margin-top:0;font-weight:400}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-brand{padding-bottom:37px}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-sidebar nav{gap:1px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-brand{padding-bottom:31px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-sidebar nav{gap:8px}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand{padding-bottom:41px!important}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand strong,.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand small{line-height:16px}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-sidebar nav{gap:6px}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-sidebar nav :is(a,button){min-height:44px}
+.appointment-gantt-name{gap:11px}.appointment-gantt-name strong{font-size:16px}
+.appointment-gantt-group[data-physical=true] .appointment-gantt-name{gap:16px}.appointment-gantt-group[data-physical=true] .appointment-gantt-name strong{font-size:14px}
+.reference-appointment-form>.reference-more-options:not([open]){height:51px;min-height:51px}
+.reference-appointment-form>.reference-more-options:not([open])>summary{padding-top:6px;padding-bottom:6px}
+.booking-summary-total{padding-top:7px;padding-bottom:7px}
+.booking-summary-meter-track{margin-top:15px}
+.booking-summary-meter-legend{justify-content:flex-start;gap:28px}
+}
+.resource-pagination button[aria-current=page]{background:linear-gradient(120deg,#8121da,#6716c9);color:white;border-color:#731acc}.resource-pagination div{gap:8px}
+@media(min-width:768px){.prebooking-reference-modal .reference-appointment-form>.prebooking-footer{position:relative;bottom:auto}}
+@media(min-width:768px){.appointment-reference-sidebar{background:#200c30}.appointment-reference-shell:has(.is-resources) .appointment-reference-sidebar{background:linear-gradient(170deg,#2a0d3c,#240939)}.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-sidebar{background:linear-gradient(#200d30,#1f0c2f)}.appointment-gantt-group h3{background:#eeeaFD}.appointment-reference-upcoming{background:#faf9fe}.resource-table th{background:linear-gradient(110deg,#eee8fc,#eae4fc)}.resource-table tr[data-selected=true]{background:linear-gradient(110deg,#eae0fc,#eee8fc)}.resource-editor{background:#fbfafe!important}}
+@media(min-width:768px){
+.appointment-reference-upcoming h2{font-size:21px}
+.prebooking-reference-header strong{font-size:25.5px;position:relative;top:-1px}
+.booking-reference-summary h2{position:relative;top:-2px}
+.reference-appointment-form .prebooking-section-heading h3,.reference-appointment-form .reference-employee-resource>label,.resource-editor label,.resource-editor legend{font-size:14.5px}
+.reference-employee-select select,.reference-physical-select select,.reference-appointment-form .reference-native-field{color:#140d26!important}
+.reference-appointment-form .reference-native-field{font-weight:500}
+.booking-reference-summary dl>div{grid-template-columns:125px 1fr!important}
+.booking-reference-summary h3{font-size:14.5px}
+.booking-summary-meter{margin-top:13px}
+.booking-summary-meter-times{font-size:12px}
+.booking-summary-meter-legend{font-size:12px}
+.booking-summary-confirmation h3{font-size:16px}
+.booking-summary-channel{height:33px}
+.appointment-timeline[data-view=Calendar] .appointment-timeline-booking{transform:translateY(20px)}
+.appointment-gantt-event[data-status=booked]{background:linear-gradient(110deg,#d2ecff,#b1d9ff);border-color:#a4d3ff}
+.appointment-gantt-event[data-status=checked_in]{background:linear-gradient(110deg,#edddff,#dac6fb);border-color:#ceb4ff}
+.appointment-gantt-event[data-status=completed]{background:linear-gradient(110deg,#d0f3e8,#afe8df);border-color:#b4ebdf}
+.appointment-upcoming-pagination{display:flex;gap:11px}.appointment-upcoming-pagination button{border:1px solid #cfc6e1;border-radius:7px;background:#fdfcff;width:34px;height:31px;display:grid;place-items:center}.appointment-upcoming-pagination button:disabled{opacity:.55}
+}
+.resource-stat-compact{display:none}
+@media(max-width:767px){.resource-stat-full{display:none}.resource-stat-compact{display:inline}}
+@media(min-width:768px){
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-brand{gap:14px}
+.appointment-reference-shell:has(.is-schedule) .scheduling-brand-mark{width:35px}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-sidebar nav :is(a,button){gap:21px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-sidebar nav :is(a,button){gap:13px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-topbar{padding-left:24px}
+.appointment-reference-shell:has(.is-resources) .suite-branch-field{width:259px}
+.resource-statistics>div{gap:20px}.resource-statistics>div>span{transform:translateY(-3px)}
+.resource-statistics strong{font-size:28px}.resource-statistics p{margin-top:5px}
+.resource-editor form>fieldset{padding-right:17px}
+.resource-editor form>footer{padding-right:15px}.resource-editor form>footer>button:first-child{flex:.74}.resource-editor form>footer>button:last-child{flex:1}
+.resource-toggle-row>.reference-switch{align-self:flex-start}
+.reference-appointment-form .reference-employee-resource:nth-child(2){margin-top:9px}
+.reference-start-times{margin-top:0}
+.reference-booking-fields p[data-availability-state]{margin-top:3px}
+.reference-appointment-form .reference-appointment-notes{margin-top:-3px}
+.reference-appointment-notes textarea{margin-top:3px}
+}
+.appointment-brand-trademark{font-size:9px;vertical-align:super;margin-left:1px}.appointment-reference-shell:has(.is-resources) .appointment-brand-trademark{display:none}
+.booking-summary-meter-times{position:relative;height:18px}.booking-summary-meter-times>span{position:absolute;white-space:nowrap}
+@media(min-width:768px){.appointment-reference-shell:has(.is-schedule) .appointment-reference-topbar kbd{display:none}.appointment-reference-topbar .suite-notification-bell>span{font-size:0;width:8px;height:8px;min-width:8px;padding:0;border-radius:50%;background:#6907cf;position:absolute;right:2px;top:0}.appointment-reference-topbar .suite-notification-bell{position:relative}}
+@media(min-width:768px){
+.prebooking-drawer-overlay{background:rgba(23,14,52,.44)}
+.prebooking-reference-modal{box-shadow:0 24px 90px #18063140}
+.prebooking-reference-modal .reference-appointment-form,.prebooking-reference-modal .prebooking-reference-header{background:#fefdfE}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-sidebar nav :is(a,button){height:44px;min-height:44px;padding:9px 14px;gap:14px}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-brand{padding-bottom:39px!important}
+.appointment-modal-dashboard>svg{margin-left:0!important}
+.appointment-reference-shell:has(.prebooking-reference-modal[data-state=open]) .appointment-reference-settings{margin-bottom:26px}
+.resource-editor button[aria-label='Close dialog'] svg{width:22px;height:22px;color:#3f3653}
+.prebooking-reference-header button[aria-label='Close appointment']{margin-right:-12px}.prebooking-reference-header button[aria-label='Close appointment'] svg{width:22px;height:22px}
+}
+@media(max-width:767px){.appointment-reference-shell>.mobile-module-dock{z-index:50}.appointment-reference-shell .appointment-reference-actions{bottom:calc(112px + env(safe-area-inset-bottom,0px))}}
+@media(min-width:768px){.appointment-gantt-scroll{background:#fdfdfe}.appointment-gantt-hours{background:#fbfbfd}.appointment-gantt-name{background:#fcfbfe}.appointment-reference-upcoming{background:#fefefe}.appointment-reference-upcoming h2{background:#f8f8fc}.appointment-reference-upcoming th{background:#f8f7fc}.appointment-reference-upcoming footer{background:#faf9fe}}
+@media(min-width:768px){
+.resource-page-heading>.reference-primary{font-size:16px;width:166px;min-width:166px;height:43px;margin-right:4px;padding:10px 16px}
+.resource-page-heading p{margin-top:2px}.resource-page-heading h1{position:relative;top:2px}.resource-heading-icon{transform:translate(2px,1px)}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-topbar{height:53px}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-breadcrumb{height:41px}
+.appointment-reference-shell:has(.is-schedule) .appointment-reference-topbar>*{transform:translateY(-1px)}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-topbar>button[aria-label='Open command palette']>span{height:40px}
+.appointment-reference-shell:has(.is-resources) .appointment-reference-profile .scheduling-avatar{width:40px;height:40px}
+.appointment-reference-upcoming h2{height:40px}.appointment-reference-upcoming th{height:30px}.appointment-reference-upcoming tbody tr:last-child td{height:45px}.appointment-reference-upcoming footer{height:46px}
+.resource-editor button[aria-label='Close dialog'] svg{width:20px;height:20px}
+}

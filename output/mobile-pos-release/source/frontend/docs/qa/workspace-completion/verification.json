@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-07",
+  "environment": "Disposable loopback QA fixture, isolated from deployment messaging credentials",
+  "route_audit": {
+    "desktop": {
+      "visited": 192,
+      "rendered": 192,
+      "visible_error_alerts": 0,
+      "page_horizontal_overflow": 0
+    },
+    "mobile": {
+      "visited": 192,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "visible_error_alerts": 0,
+      "page_horizontal_overflow": 0
+    }
+  },
+  "interaction_scenarios": {
+    "passed": 112,
+    "failed": 0,
+    "details": "interactions.json"
+  },
+  "regressions_fixed": [
+    "First-party signed file redirects now preserve the requesting origin; external provider URLs retain their signatures.",
+    "Attachment preview ignores completed requests after a selection changes or unmounts and releases its object URLs.",
+    "Rapid task-filter changes compose instead of losing earlier query updates.",
+    "Task actions wait for query refresh so embedded/full-page discussions reflect reactions and resolution immediately.",
+    "Clipboard permission prompts are bounded so export cannot remain busy indefinitely."
+  ],
+  "validation": {
+    "attachment_task_storage_tests": 39,
+    "shared_grid_crm_pipeline_tests": 58,
+    "clipboard_regression_scenarios": 4,
+    "typescript": "passed",
+    "changed_component_lint": "passed",
+    "production_build": "passed"
+  },
+  "browser_evidence": [
+    "Attachment Preview, Open and actual downloaded bytes verified against the original failing task.",
+    "Text, image decode and rendered PDF previews verified with disposable files.",
+    "CSV, XLSX and PDF exports downloaded; clipboard export completed and re-enabled Export.",
+    "Task creation, inline editing and persistence, grouping, filters, pagination, bulk updates, checklist/subtasks/comments and timer save verified."
+  ],
+  "scope_limits": [
+    "Route and layout checks cover all 192 static CRM/PMS routes, including aliases. Dynamic records were sampled through the recorded workflow scenarios.",
+    "112 interaction scenarios exercise shared control implementations; the inventory does not claim execution of every individual record button or every possible input combination.",
+    "Live provider sends, OAuth/security grants, financial transactions, permanent deletions and destructive administration actions were not executed."
+  ]
+}

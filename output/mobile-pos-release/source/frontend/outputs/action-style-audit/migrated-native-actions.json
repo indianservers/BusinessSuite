@@ -1,0 +1,2884 @@
+[
+  {
+    "file": "apps/analytics/AnalyticsOverview.tsx",
+    "buttons": [
+      {
+        "line": 111,
+        "label": "Open",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/center/EngagementInbox.tsx",
+    "buttons": [
+      {
+        "line": 83,
+        "label": "Copy",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/center/SendReminders.tsx",
+    "buttons": [
+      {
+        "line": 30,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/whatsapp/Analytics.tsx",
+    "buttons": [
+      {
+        "line": 21,
+        "label": "Refresh analytics",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/WhatsAppCloudPanel.tsx",
+    "buttons": [
+      {
+        "line": 42,
+        "label": "New message",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "buttons": [
+      {
+        "line": 238,
+        "label": "Save",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 246,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 260,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 290,
+        "label": "Refresh status",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CrmFilesPage.tsx",
+    "buttons": [
+      {
+        "line": 129,
+        "label": "Create folder",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 166,
+        "label": "Download",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMRecordPanel.tsx",
+    "buttons": [
+      {
+        "line": 14,
+        "label": "Call",
+        "tag": "a",
+        "hasHandler": true
+      },
+      {
+        "line": 15,
+        "label": "Open quotation builder",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMReferenceDashboard.tsx",
+    "buttons": [
+      {
+        "line": 277,
+        "label": "Create",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMSalesHome.tsx",
+    "buttons": [
+      {
+        "line": 37,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 41,
+        "label": "Call",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMTasksWorkspace.tsx",
+    "buttons": [
+      {
+        "line": 151,
+        "label": "New task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 154,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 168,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 168,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 171,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMWorkspacePage.tsx",
+    "buttons": [
+      {
+        "line": 3806,
+        "label": "Email",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 7017,
+        "label": "Open stage",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/deals/DealCatalogSelect.tsx",
+    "buttons": [
+      {
+        "line": 27,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/deals/EnterpriseDealsPage.tsx",
+    "buttons": [
+      {
+        "line": 601,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1274,
+        "label": "Open complete deal",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/EngagementFollowUp.tsx",
+    "buttons": [
+      {
+        "line": 16,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/EngagementWorkspace.tsx",
+    "buttons": [
+      {
+        "line": 218,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 222,
+        "label": "Create follow-up",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 233,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/leads/LeadManagementPage.tsx",
+    "buttons": [
+      {
+        "line": 634,
+        "label": "Save current view",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 646,
+        "label": "Save personal view",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/leads/MobileLeadDetails.tsx",
+    "buttons": [
+      {
+        "line": 51,
+        "label": "Open lead actions",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 61,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 64,
+        "label": "Follow-up",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 64,
+        "label": "Add Task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 65,
+        "label": "Schedule Follow-up",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 65,
+        "label": "Add Note / Update",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/product-customers/ProductCustomersPage.tsx",
+    "buttons": [
+      {
+        "line": 84,
+        "label": "Follow Up",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 109,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 115,
+        "label": "Follow Up",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/product-customers/RelationshipDetail.tsx",
+    "buttons": [
+      {
+        "line": 19,
+        "label": "Schedule follow-up",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 19,
+        "label": "Email",
+        "tag": "a",
+        "hasHandler": true
+      },
+      {
+        "line": 19,
+        "label": "Email",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 27,
+        "label": "Open this deal",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 27,
+        "label": "Open deal workspace",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/TaskSavedViews.tsx",
+    "buttons": [
+      {
+        "line": 30,
+        "label": "Save view",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/templates/TemplateGallery.tsx",
+    "buttons": [
+      {
+        "line": 35,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/templates/TemplateStudio.tsx",
+    "buttons": [
+      {
+        "line": 179,
+        "label": "Create template",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 181,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 185,
+        "label": "Open",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 210,
+        "label": "Duplicate",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 216,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 216,
+        "label": "Export complete merged copies",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 220,
+        "label": "Add line item",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/UniversalContactsPage.tsx",
+    "buttons": [
+      {
+        "line": 323,
+        "label": "Add relationship tag",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 345,
+        "label": "Call",
+        "tag": "a",
+        "hasHandler": true
+      },
+      {
+        "line": 345,
+        "label": "Edit contact",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/fam/BankRulesPage.tsx",
+    "buttons": [
+      {
+        "line": 53,
+        "label": "Open voucher",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/components/EmployeeSearchSelect.tsx",
+    "buttons": [
+      {
+        "line": 21,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/attendance/MyAttendancePage.tsx",
+    "buttons": [
+      {
+        "line": 74,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/attendance/ShiftRosterPage.tsx",
+    "buttons": [
+      {
+        "line": 388,
+        "label": "Refresh preview",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/compliance/BackgroundVerificationPage.tsx",
+    "buttons": [
+      {
+        "line": 48,
+        "label": "Open in employee profile",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/compliance/EmployeeVerificationPanel.tsx",
+    "buttons": [
+      {
+        "line": 62,
+        "label": "Open document",
+        "tag": "a",
+        "hasHandler": true
+      },
+      {
+        "line": 63,
+        "label": "Open certificate",
+        "tag": "a",
+        "hasHandler": true
+      },
+      {
+        "line": 76,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 86,
+        "label": "Open letter",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/compliance/VerificationCasePanel.tsx",
+    "buttons": [
+      {
+        "line": 57,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/dashboard/TeamAvailability.tsx",
+    "buttons": [
+      {
+        "line": 21,
+        "label": "Open review",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/dashboard/TeamWorkspace.tsx",
+    "buttons": [
+      {
+        "line": 47,
+        "label": "Open employee expense statements",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/documents/DocumentStudioPage.tsx",
+    "buttons": [
+      {
+        "line": 643,
+        "label": "Open preview in a new tab",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/employees/EmployeeReliabilityPanel.tsx",
+    "buttons": [
+      {
+        "line": 17,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 20,
+        "label": "Open employee documents",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/employees/EmployeesPage.tsx",
+    "buttons": [
+      {
+        "line": 311,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 337,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/exit/ExitPage.tsx",
+    "buttons": [
+      {
+        "line": 150,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/interns/InternManagementPage.tsx",
+    "buttons": [
+      {
+        "line": 929,
+        "label": "Open Review Queue →",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 1614,
+        "label": "Open in PMS",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 1792,
+        "label": "Open →",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/lms/CourseCurriculum.tsx",
+    "buttons": [
+      {
+        "line": 88,
+        "label": "Add section",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 124,
+        "label": "Add lesson",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/onboarding/TemplateSteps.tsx",
+    "buttons": [
+      {
+        "line": 48,
+        "label": "Add step",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "buttons": [
+      {
+        "line": 55,
+        "label": "Open correction workspace",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 61,
+        "label": "Download bank payment file",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/recruitment/HiringCandidateDetails.tsx",
+    "buttons": [
+      {
+        "line": 16,
+        "label": "Create employee handoff",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 18,
+        "label": "Create employee",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+    "buttons": [
+      {
+        "line": 332,
+        "label": "Add candidate",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/workbench/EmployeeActions.tsx",
+    "buttons": [
+      {
+        "line": 62,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 62,
+        "label": "Open",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 62,
+        "label": "Open final settlement",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/workbench/HRDailyWork.tsx",
+    "buttons": [
+      {
+        "line": 42,
+        "label": "Open configured approval workflows",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 42,
+        "label": "Open original request",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalComponents.tsx",
+    "buttons": [
+      {
+        "line": 383,
+        "label": "Approve",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 709,
+        "label": "Add comment",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalDesigner.tsx",
+    "buttons": [
+      {
+        "line": 436,
+        "label": "Add approval stage",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 456,
+        "label": "Save version",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 798,
+        "label": "Add request field",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "buttons": [
+      {
+        "line": 133,
+        "label": "Create delegation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 302,
+        "label": "New request",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/AutomationEditorPage.tsx",
+    "buttons": [
+      {
+        "line": 145,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/AutomationList.tsx",
+    "buttons": [
+      {
+        "line": 134,
+        "label": "New automation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 185,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 340,
+        "label": "…",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 344,
+        "label": "Open workflow",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 354,
+        "label": "Duplicate",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 386,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 434,
+        "label": "Create automation",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/AutomationRuntimePage.tsx",
+    "buttons": [
+      {
+        "line": 370,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 996,
+        "label": "Save trigger policy",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1098,
+        "label": "Export sanitized report",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/AutomationBuilder.tsx",
+    "buttons": [
+      {
+        "line": 1407,
+        "label": "Save draft",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1430,
+        "label": "Create with AI",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1457,
+        "label": "Duplicate saved automation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1472,
+        "label": "Save current work as a copy",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1481,
+        "label": "Export definition JSON",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1497,
+        "label": "Save as separate copy",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1845,
+        "label": "Add your first node",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1914,
+        "label": "Add sticky note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1922,
+        "label": "Add annotation block",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2314,
+        "label": "Delete annotation",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/ConfigurationPanel.tsx",
+    "buttons": [
+      {
+        "line": 324,
+        "label": "Open referenced workflow",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 560,
+        "label": "Duplicate",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 564,
+        "label": "Delete node",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/ConnectionEditor.tsx",
+    "buttons": [
+      {
+        "line": 135,
+        "label": "Delete connection",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "buttons": [
+      {
+        "line": 318,
+        "label": "Approve and apply proposal",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 570,
+        "label": "Add transformation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 728,
+        "label": "Save mapping preset",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 865,
+        "label": "Export portable workflow",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 987,
+        "label": "Export documentation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1090,
+        "label": "Export debug report",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1377,
+        "label": "Duplicate block",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1485,
+        "label": "Edit block draft",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1504,
+        "label": "Duplicate selected block",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/LogicEditors.tsx",
+    "buttons": [
+      {
+        "line": 175,
+        "label": "Add rule",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 195,
+        "label": "Add nested group",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 315,
+        "label": "Add named branch",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/StudioNode.tsx",
+    "buttons": [
+      {
+        "line": 64,
+        "label": "…",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/ConnectorNodeEditor.tsx",
+    "buttons": [
+      {
+        "line": 109,
+        "label": "Refresh connections",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "buttons": [
+      {
+        "line": 226,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/PowerAppsPage.tsx",
+    "buttons": [
+      {
+        "line": 358,
+        "label": "Open application",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/AssigneePicker.tsx",
+    "buttons": [
+      {
+        "line": 47,
+        "label": "Add existing person",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/CalendarEventEditor.tsx",
+    "buttons": [
+      {
+        "line": 359,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/CalendarSettings.tsx",
+    "buttons": [
+      {
+        "line": 312,
+        "label": "Refresh calendar accounts",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 369,
+        "label": "Export calendar (.ics)",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 719,
+        "label": "Export calendar (.ics)",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 737,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/CalendarTaskChip.tsx",
+    "buttons": [
+      {
+        "line": 107,
+        "label": "Open task",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/NoteConnections.tsx",
+    "buttons": [
+      {
+        "line": 16,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/people/AddPeopleMemberships.tsx",
+    "buttons": [
+      {
+        "line": 70,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 92,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/people/DirectoryDestinations.tsx",
+    "buttons": [
+      {
+        "line": 73,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 75,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/people/DirectoryDialogs.tsx",
+    "buttons": [
+      {
+        "line": 393,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 527,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/people/DirectoryGroupsPanel.tsx",
+    "buttons": [
+      {
+        "line": 134,
+        "label": "New team",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 163,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 210,
+        "label": "New batch",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 235,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 365,
+        "label": "Assign task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 374,
+        "label": "Edit team & members",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 385,
+        "label": "Open InternHub management",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 536,
+        "label": "Assign selected people",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/people/PersonMembershipEditor.tsx",
+    "buttons": [
+      {
+        "line": 36,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/PMSAssistant.tsx",
+    "buttons": [
+      {
+        "line": 413,
+        "label": "Open your assistant workspace Plans, memory, playbooks & delivery insights",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 416,
+        "label": "Open suite AI operator HR, CRM, sales, finance & projects · Gemini",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 458,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 563,
+        "label": "Edit proposal",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 640,
+        "label": "Export authorized rows (CSV)",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 655,
+        "label": "Download PDF",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 732,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 870,
+        "label": "Add invoice line",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/ProjectCommunication.tsx",
+    "buttons": [
+      {
+        "line": 133,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/ProjectDetailHeader.tsx",
+    "buttons": [
+      {
+        "line": 63,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/ProjectOverview.tsx",
+    "buttons": [
+      {
+        "line": 40,
+        "label": "+ Add Task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 44,
+        "label": "Add Task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 44,
+        "label": "Add Member",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 44,
+        "label": "More",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 48,
+        "label": "Open board",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/ProjectPreviewDetails.tsx",
+    "buttons": [
+      {
+        "line": 57,
+        "label": "Add milestone",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 57,
+        "label": "Save private note",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/RecordActions.tsx",
+    "buttons": [
+      {
+        "line": 624,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/SmartTagsInput.tsx",
+    "buttons": [
+      {
+        "line": 104,
+        "label": "Add",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/TaskAssignmentPanel.tsx",
+    "buttons": [
+      {
+        "line": 557,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/TaskLinkedNotes.tsx",
+    "buttons": [
+      {
+        "line": 9,
+        "label": "New note",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/WorkMovementPage.tsx",
+    "buttons": [
+      {
+        "line": 111,
+        "label": "Add task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 112,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/components/WorkReviewPanel.tsx",
+    "buttons": [
+      {
+        "line": 204,
+        "label": "Download opened evidence",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/dashboard/WidgetContent.tsx",
+    "buttons": [
+      {
+        "line": 529,
+        "label": "Open sprints to configure commitments →",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/AIOperatorPage.tsx",
+    "buttons": [
+      {
+        "line": 174,
+        "label": "Open the assistant workspace → Plans, memory, agents and insights",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/AssistantStudio.tsx",
+    "buttons": [
+      {
+        "line": 165,
+        "label": "Approve project creation",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 177,
+        "label": "Add action",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 181,
+        "label": "Approve this exact plan",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 181,
+        "label": "Edit before approval",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 186,
+        "label": "Assign selected",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 187,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 188,
+        "label": "Save current task plan",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 188,
+        "label": "Open in editor",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 190,
+        "label": "Submit corrected plan",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 190,
+        "label": "Edit the expected actions",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 190,
+        "label": "Export reviewed examples",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 190,
+        "label": "Approve example",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 191,
+        "label": "Save evaluation case",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 192,
+        "label": "Save policy & calendar",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/DashboardsPage.tsx",
+    "buttons": [
+      {
+        "line": 689,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 695,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 785,
+        "label": "Duplicate privately",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 796,
+        "label": "Delete permanently",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 809,
+        "label": "Move to trash",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 907,
+        "label": "Export PNG",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 911,
+        "label": "Export CSV",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 931,
+        "label": "Duplicate privately",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 945,
+        "label": "Move to trash",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1021,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1075,
+        "label": "Export widget CSV",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1095,
+        "label": "Duplicate widget",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1606,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/KanbanBoard.tsx",
+    "buttons": [
+      {
+        "line": 51,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 54,
+        "label": "New pipeline",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 62,
+        "label": "Create pipeline",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ManagementHomePage.tsx",
+    "buttons": [
+      {
+        "line": 54,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 70,
+        "label": "Open classic project cards and custom columns",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 71,
+        "label": "Edit your working schedule in Calendar settings",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 72,
+        "label": "Open workspace reset & restore controls",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 73,
+        "label": "Open full task",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/MemberManagementPage.tsx",
+    "buttons": [
+      {
+        "line": 111,
+        "label": "Open workspaces",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/MyWorkPage.tsx",
+    "buttons": [
+      {
+        "line": 547,
+        "label": "Add Task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 555,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 689,
+        "label": "Save view",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 739,
+        "label": "Save on this browser",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 867,
+        "label": "Assign people / groups",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 881,
+        "label": "Export",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 884,
+        "label": "Delete selected",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1032,
+        "label": "Add Task",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/NotesPage.tsx",
+    "buttons": [
+      {
+        "line": 102,
+        "label": "Download draft",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 110,
+        "label": "Create a note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 114,
+        "label": "Create a note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 116,
+        "label": "Duplicate note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 116,
+        "label": "Export Markdown",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 116,
+        "label": "Export PDF",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 116,
+        "label": "Copy note link",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 116,
+        "label": "Import Markdown",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 126,
+        "label": "Save note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 132,
+        "label": "Open note",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 136,
+        "label": "Save folder",
+        "tag": "button",
+        "hasHandler": false
+      },
+      {
+        "line": 139,
+        "label": "Save visibility",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/PeopleDirectoryProfile.tsx",
+    "buttons": [
+      {
+        "line": 115,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 141,
+        "label": "Edit profile & access",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 172,
+        "label": "Compose email",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/PeopleManagementDirectory.tsx",
+    "buttons": [
+      {
+        "line": 111,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 358,
+        "label": "Add Person",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 397,
+        "label": "Import",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 404,
+        "label": "Export",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 488,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 556,
+        "label": "Copy filtered link",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 750,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 761,
+        "label": "Assign task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 767,
+        "label": "Export selected",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 844,
+        "label": "Open full profile",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 844,
+        "label": "Assign to destination",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 916,
+        "label": "Save view",
+        "tag": "button",
+        "hasHandler": false
+      },
+      {
+        "line": 926,
+        "label": "Delete view",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/PlannerPage.tsx",
+    "buttons": [
+      {
+        "line": 852,
+        "label": "Add priority",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1206,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1331,
+        "label": "Add task",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/PlansPage.tsx",
+    "buttons": [
+      {
+        "line": 22,
+        "label": "Open existing tools",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectBillingPage.tsx",
+    "buttons": [
+      {
+        "line": 535,
+        "label": "Open in SRM",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectCommunicationPage.tsx",
+    "buttons": [
+      {
+        "line": 18,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 22,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectDashboard.tsx",
+    "buttons": [
+      {
+        "line": 61,
+        "label": "Add existing person",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectFinancials.tsx",
+    "buttons": [
+      {
+        "line": 25,
+        "label": "Open reports",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 26,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 27,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectQuickTask.tsx",
+    "buttons": [
+      {
+        "line": 32,
+        "label": "Open full task form",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/ProjectsList.tsx",
+    "buttons": [
+      {
+        "line": 230,
+        "label": "Open",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 231,
+        "label": "Add task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 233,
+        "label": "Copy link",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 234,
+        "label": "Duplicate",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1415,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TaskListPage.tsx",
+    "buttons": [
+      {
+        "line": 559,
+        "label": "Trash",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 699,
+        "label": "+ Add custom column",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TasksReferencePage.tsx",
+    "buttons": [
+      {
+        "line": 523,
+        "label": "New",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 590,
+        "label": "Add Task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 635,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 658,
+        "label": "Save current view",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 659,
+        "label": "Import tasks",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 662,
+        "label": "Export current page",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1195,
+        "label": "Add Task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1207,
+        "label": "Import Tasks",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1391,
+        "label": "New import",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1513,
+        "label": "Save view",
+        "tag": "button",
+        "hasHandler": false
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TaskStudioPage.tsx",
+    "buttons": [
+      {
+        "line": 320,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1040,
+        "label": "Save Draft",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1482,
+        "label": "Add existing person",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1797,
+        "label": "Download",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1916,
+        "label": "Add check",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1960,
+        "label": "Delete task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1970,
+        "label": "Open activity, conversations, subtasks, and advanced tools",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 2024,
+        "label": "Add more",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2118,
+        "label": "Copy from existing Use a similar task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2142,
+        "label": "Create subtasks Break into smaller tasks",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2179,
+        "label": "Save Draft",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2223,
+        "label": "Move to Trash",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 2274,
+        "label": "Close",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TaskWorkspacePage.tsx",
+    "buttons": [
+      {
+        "line": 398,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 454,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 486,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 609,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 714,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 716,
+        "label": "Open attachment",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1073,
+        "label": "Edit",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1084,
+        "label": "Delete",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1118,
+        "label": "Add",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1210,
+        "label": "Create subtask",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1211,
+        "label": "Create subtask",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 1285,
+        "label": "Approve & complete",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TeamCommunicationPage.tsx",
+    "buttons": [
+      {
+        "line": 31,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WhatsAppTasksPage.tsx",
+    "buttons": [
+      {
+        "line": 186,
+        "label": "New Task",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 330,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 619,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1234,
+        "label": "Add",
+        "tag": "button",
+        "hasHandler": false
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceActivity.tsx",
+    "buttons": [
+      {
+        "line": 30,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 33,
+        "label": "Open task",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceBoardChrome.tsx",
+    "buttons": [
+      {
+        "line": 14,
+        "label": "Create new workspace",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 18,
+        "label": "Add existing person",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceCalendar.tsx",
+    "buttons": [
+      {
+        "line": 284,
+        "label": "+ Create task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 433,
+        "label": "Export CSV",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 434,
+        "label": "Export iCalendar",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceCollaboration.tsx",
+    "buttons": [
+      {
+        "line": 59,
+        "label": "Open channels, messages & threads ↗",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 64,
+        "label": "Open private messages",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspacesPage.tsx",
+    "buttons": [
+      {
+        "line": 262,
+        "label": "Create workspace",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 288,
+        "label": "Create project",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 295,
+        "label": "Copy link",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceWork.tsx",
+    "buttons": [
+      {
+        "line": 112,
+        "label": "Save view",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 117,
+        "label": "Add",
+        "tag": "button",
+        "hasHandler": false
+      },
+      {
+        "line": 117,
+        "label": "Add task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 130,
+        "label": "Create your first task",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 132,
+        "label": "Export filtered people",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 132,
+        "label": "Copy member ID",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 167,
+        "label": "Open full task details",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/ProjectManagementHomePage.tsx",
+    "buttons": [
+      {
+        "line": 115,
+        "label": "New Project",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 232,
+        "label": "Create Your First Project",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/srm/components/SalesPipeline.tsx",
+    "buttons": [
+      {
+        "line": 32,
+        "label": "New pipeline",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 32,
+        "label": "Edit stages",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/srm/pages/SharedInvoicePage.tsx",
+    "buttons": [
+      {
+        "line": 82,
+        "label": "Open originating project",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 237,
+        "label": "Open Accounting vouchers",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/srm/pages/SRMCommercialDetailPage.tsx",
+    "buttons": [
+      {
+        "line": 168,
+        "label": "Open generated invoice",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/srm/pages/SRMPOSPage.tsx",
+    "buttons": [
+      {
+        "line": 751,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 835,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/ai-agents/AIWorkspacePanel.tsx",
+    "buttons": [
+      {
+        "line": 53,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/ai-agents/OperatorProviderSettings.tsx",
+    "buttons": [
+      {
+        "line": 72,
+        "label": "Open AI operator",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/ai-agents/SuiteOperatorPage.tsx",
+    "buttons": [
+      {
+        "line": 83,
+        "label": "Save memory",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 87,
+        "label": "New request",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 87,
+        "label": "Create Deadline Radar",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 93,
+        "label": "Approve these exact actions",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/auth/LoginPage.tsx",
+    "buttons": [
+      {
+        "line": 660,
+        "label": "New here? Request a software trial",
+        "tag": "Link",
+        "hasHandler": true
+      },
+      {
+        "line": 722,
+        "label": "retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/ModuleIndexPage.tsx",
+    "buttons": [
+      {
+        "line": 39,
+        "label": "Open application",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/BranchLifecycleSettings.tsx",
+    "buttons": [
+      {
+        "line": 24,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 39,
+        "label": "Move to Trash",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 39,
+        "label": "Delete from trash",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 61,
+        "label": "Cancel",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/BranchMembershipSettings.tsx",
+    "buttons": [
+      {
+        "line": 25,
+        "label": "Save branch memberships",
+        "tag": "button",
+        "hasHandler": false
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/BranchSettings.tsx",
+    "buttons": [
+      {
+        "line": 26,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/HomepageBannerSettings.tsx",
+    "buttons": [
+      {
+        "line": 45,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/SettingsEditorFrame.tsx",
+    "buttons": [
+      {
+        "line": 57,
+        "label": "Save changes",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 66,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/settings/StarterValuesSettings.tsx",
+    "buttons": [
+      {
+        "line": 37,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 54,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/SettingsHubPage.tsx",
+    "buttons": [
+      {
+        "line": 109,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 178,
+        "label": "Retry",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/SuiteNotificationsPage.tsx",
+    "buttons": [
+      {
+        "line": 116,
+        "label": "Refresh",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 160,
+        "label": "Open update",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  }
+]

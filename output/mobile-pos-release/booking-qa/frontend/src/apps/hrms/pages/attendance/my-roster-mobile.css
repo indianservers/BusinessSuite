@@ -1,0 +1,10 @@
+@media(max-width:480px){
+ .hrms-my-roster-page{min-width:0;font-size:14px;}
+ .hrms-my-roster-page .page-title{font-size:22px;line-height:1.25;}
+ .hrms-my-roster-page .kf-card{min-width:0;}
+ .hrms-my-roster-page .kf-card>div{padding:12px;}
+ .hrms-my-roster-page .kf-card>div:first-child>.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .hrms-my-roster-page :is(input,select){font-size:16px;min-height:44px;min-width:0;max-width:100%;}
+ .hrms-my-roster-page :is(button,summary){min-height:44px;}
+ .hrms-my-roster-page :is(p,span){overflow-wrap:anywhere;}
+}

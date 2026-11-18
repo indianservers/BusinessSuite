@@ -1,0 +1,14 @@
+@media (max-width: 480px) {
+ .hrms-bgv-case { min-width: 0; padding: 12px; }
+ .hrms-bgv-case :is(p, h3, strong, a, pre, summary) { overflow-wrap: anywhere; }
+ .hrms-bgv-case :is(button, a, summary), .hrms-bgv-add-check button { min-height: 44px; height: auto; white-space: normal; }
+ .hrms-bgv-case a { display: inline-flex; align-items: center; }
+ .hrms-bgv-case :is(input, select, textarea), .hrms-bgv-add-check input { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-bgv-case label { min-width: 0; }
+ .hrms-bgv-case .mobile-disclosure { padding: 0 10px; margin: 0; }
+ .hrms-bgv-case .mobile-disclosure > div { padding-bottom: 10px; }
+ .hrms-bgv-check { padding: 10px; }
+ .hrms-bgv-check-form, .hrms-bgv-case-owner { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+ .hrms-bgv-check-form > :is(label:nth-of-type(3), label:nth-of-type(4)), .hrms-bgv-case-owner > :is(label:first-of-type,label:nth-of-type(4),label:nth-of-type(5),p) { grid-column: 1 / -1; }
+ .hrms-bgv-add-check [data-save-action] { display: none; }
+}

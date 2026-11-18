@@ -1,0 +1,32 @@
+{
+  "environment": "Isolated SQLite FastAPI integration test; synthetic customers and products seeded directly; not deployed UI or PostgreSQL",
+  "test": "tests/test_pos_bulk_stock_reports.py::test_55_customers_60_sales_45_products_stock_and_reports",
+  "customers": 55,
+  "products": 45,
+  "completed_sales": 60,
+  "lines_per_sale": 2,
+  "stock_receipts": 45,
+  "received_units": 4500,
+  "result": "FAIL: daily report HTTP 504",
+  "verified": [
+    "Every checkout returned HTTP 201",
+    "Each invoice total and paid amount matched independent calculations",
+    "Every invoice balance was zero",
+    "Six duplicate retries returned the original checkout",
+    "Product and warehouse balances matched expected quantities after every sale",
+    "Stock projection matched all 45 final product balances"
+  ],
+  "unverified": [
+    "Daily report sales, tax, collection and movement totals: report returned HTTP 504 before assertions",
+    "Final database invoice and receipt count assertions occur after the report and were not reached"
+  ],
+  "additional_findings": [
+    "Customer creation under the Retail context rejected with HTTP 503: no audited operation adapter registered",
+    "Audit persistence RuntimeError messages logged during the bulk run; cause not investigated"
+  ],
+  "bulk_runtime_seconds": 592.14,
+  "supporting_regression_tests": 48,
+  "supporting_regression_result": "all passed",
+  "production_changes": "none",
+  "note": "Summary transcribed from completed pytest results. No per-product evidence file was written in the initial run because the report assertion failed first. Test now saves that evidence before the report assertion on future runs."
+}

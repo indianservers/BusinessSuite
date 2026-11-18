@@ -1,0 +1,71 @@
+@media (max-width: 480px) {
+ .hrms-profile-security { min-width: 0; }
+ .hrms-profile-security-header { padding: 12px; }
+ .hrms-profile-security-header > p:first-child { display: none; }
+ .hrms-profile-security-header h1 { margin-top: 0; font-size: 20px; }
+ .hrms-profile-security-nav { display: flex; gap: 6px; }
+ .hrms-profile-security-nav button { flex: 1; min-width: 0; padding: 8px; }
+ .hrms-profile-security[data-section]:not([data-section="profile"]) > :is(.hrms-profile-security-overview,.hrms-profile-security-change),
+ .hrms-profile-security[data-section]:not([data-section="files"]) > .hrms-profile-security-files,
+ .hrms-profile-security[data-section]:not([data-section="security"]) > :is(.hrms-profile-security-auth,.hrms-profile-security-sessions),
+ .hrms-profile-security[data-section]:not([data-section="reviews"]) > .hrms-profile-security-reviews { display: none; }
+ .hrms-profile-security[data-security-view]:not([data-security-view="authenticator"]) .hrms-profile-security-auth > :first-child,
+ .hrms-profile-security[data-security-view]:not([data-security-view="events"]) .hrms-profile-security-auth > :last-child,
+ .hrms-profile-security[data-security-view]:not([data-security-view="devices"]) > .hrms-profile-security-sessions { display: none; }
+ .hrms-profile-security[data-security-view="devices"] .hrms-profile-security-auth { display: none; }
+ .hrms-profile-security-overview .relative.h-20 { flex-shrink: 0; }
+ .hrms-profile-security > .grid { gap: 12px; }
+ .hrms-profile-security .kf-card > div { padding: 12px; min-width: 0; }
+ .hrms-profile-security :is(p,span,a) { overflow-wrap: anywhere; }
+ .hrms-profile-security :is(button,a,summary,label[for="profile-photo"]) { min-height: 44px; height: auto; }
+ .hrms-profile-security button { white-space: normal; }
+ .hrms-profile-security :is(input,textarea,select) { min-height: 44px; font-size: 16px; max-width: 100%; }
+ .hrms-profile-security .overflow-x-auto { max-width: 100%; }
+ .hrms-profile-security .grid > * { min-width: 0; }
+ .hrms-profile-security-overview > :last-child .grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .hrms-profile-security-files .flex > div { min-width: 0; }
+ .hrms-profile-security-files .flex > a { flex-shrink: 0; }
+}
+
+@media (max-width:480px) {
+ :is(.hrms-profile-change-form,.hrms-profile-document-form) { min-width: 0; }
+ :is(.hrms-profile-change-form,.hrms-profile-document-form) :is(input,select,textarea) { font-size:16px; min-height:44px; max-width:100%; }
+ :is(.hrms-profile-change-form,.hrms-profile-document-form) :is(button,summary) { min-height:44px; }
+ :is(.hrms-profile-change-form,.hrms-profile-document-form) .grid > * { min-width:0; overflow-wrap:anywhere; }
+ :is(.hrms-profile-change-form,.hrms-profile-document-form) [role="alert"] { color:hsl(var(--destructive)); font-size:14px; }
+}
+
+@media (max-width:480px) {
+ .hrms-profile-change-form .suite-auto-form-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+ .smart-create-phone-sheet :is(.hrms-profile-change-form,.hrms-profile-document-form) button[type="submit"] { display:none; }
+ .smart-create-phone-sheet:has(.hrms-profile-change-form) .kf-card { border:0; box-shadow:none; }
+ .smart-create-phone-sheet:has(.hrms-profile-change-form) .kf-card > div { padding:12px; }
+ .smart-create-phone-sheet:has(.hrms-profile-change-form) .kf-card h3 { display:none; }
+}
+
+@media(max-width:480px) {
+ .hrms-profile-review-actions { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .hrms-profile-review-actions > input { grid-column:1/-1; }
+ .hrms-profile-review [role="alert"], .hrms-profile-security-sessions [role="alert"] { margin-top:10px; color:hsl(var(--destructive)); font-size:14px; }
+}
+
+@media(max-width:480px) {
+ .hrms-profile-review-diff > :is(.hrms-profile-review-diff-header,.hrms-profile-review-diff-row) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .hrms-profile-review-diff-header > span:first-child { display:none; }
+ .hrms-profile-review-diff-row > span:first-child { grid-column:1/-1; }
+}
+
+@media(max-width:480px) {
+ .hrms-profile-mfa { min-width:0; display:grid; gap:12px; }
+ .hrms-profile-mfa :is(button,summary) { min-height:44px; height:auto; white-space:normal; }
+ .hrms-profile-mfa input:not([type="checkbox"]) { font-size:16px; min-height:44px; }
+ .hrms-profile-mfa :is(p,span,code) { overflow-wrap:anywhere; }
+ .hrms-profile-mfa [role="alert"] { color:hsl(var(--destructive)); font-size:14px; }
+ .hrms-profile-mfa label:has(input[type="checkbox"]) { min-height:44px; }
+ .hrms-profile-mfa input[type="checkbox"] { width:20px; height:20px; flex-shrink:0; }
+}
+
+@media(max-width:480px) {
+ .hrms-profile-security-overview > .kf-card:first-child .flex.items-center.gap-4 { align-items:flex-start; }
+ .hrms-profile-security-overview > .kf-card:first-child [role="alert"] { color:hsl(var(--destructive)); }
+}

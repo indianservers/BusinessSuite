@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": "sample-hrms-technical-20261118",
+      "name": "DEMO Technical Services",
+      "active": true,
+      "children": [
+        {
+          "id": "sample-hrms-technical-1-20261118",
+          "name": "Computer Repair",
+          "active": true,
+          "value": "DEMO Technical Services > Computer Repair",
+          "parent_value": "DEMO Technical Services"
+        },
+        {
+          "id": "sample-hrms-technical-2-20261118",
+          "name": "Network Support",
+          "active": true,
+          "value": "DEMO Technical Services > Network Support",
+          "parent_value": "DEMO Technical Services"
+        },
+        {
+          "id": "sample-hrms-technical-3-20261118",
+          "name": "Device Setup",
+          "active": true,
+          "value": "DEMO Technical Services > Device Setup",
+          "parent_value": "DEMO Technical Services"
+        }
+      ],
+      "value": "DEMO Technical Services"
+    },
+    {
+      "id": "sample-hrms-consulting-20261118",
+      "name": "DEMO Consulting",
+      "active": true,
+      "children": [
+        {
+          "id": "sample-hrms-consulting-1-20261118",
+          "name": "Business Consultation",
+          "active": true,
+          "value": "DEMO Consulting > Business Consultation",
+          "parent_value": "DEMO Consulting"
+        },
+        {
+          "id": "sample-hrms-consulting-2-20261118",
+          "name": "Tax Consultation",
+          "active": true,
+          "value": "DEMO Consulting > Tax Consultation",
+          "parent_value": "DEMO Consulting"
+        },
+        {
+          "id": "sample-hrms-consulting-3-20261118",
+          "name": "IT Advisory",
+          "active": true,
+          "value": "DEMO Consulting > IT Advisory",
+          "parent_value": "DEMO Consulting"
+        }
+      ],
+      "value": "DEMO Consulting"
+    },
+    {
+      "id": "sample-hrms-maintenance-20261118",
+      "name": "DEMO Maintenance",
+      "active": true,
+      "children": [
+        {
+          "id": "sample-hrms-maintenance-1-20261118",
+          "name": "Routine Inspection",
+          "active": true,
+          "value": "DEMO Maintenance > Routine Inspection",
+          "parent_value": "DEMO Maintenance"
+        },
+        {
+          "id": "sample-hrms-maintenance-2-20261118",
+          "name": "Equipment Servicing",
+          "active": true,
+          "value": "DEMO Maintenance > Equipment Servicing",
+          "parent_value": "DEMO Maintenance"
+        },
+        {
+          "id": "sample-hrms-maintenance-3-20261118",
+          "name": "Safety Checks",
+          "active": true,
+          "value": "DEMO Maintenance > Safety Checks",
+          "parent_value": "DEMO Maintenance"
+        }
+      ],
+      "value": "DEMO Maintenance"
+    },
+    {
+      "id": "legacy-c852fbaa8c736ca117c7d066",
+      "name": "Demo Consultants",
+      "active": true,
+      "children": [],
+      "legacy": true,
+      "value": "Demo Consultants"
+    },
+    {
+      "id": "legacy-e1845e9817ad723dd97bc0f2",
+      "name": "Demo Service Team",
+      "active": true,
+      "children": [],
+      "legacy": true,
+      "value": "Demo Service Team"
+    },
+    {
+      "id": "legacy-662610360fada7dd8cc62f09",
+      "name": "Demo Stylists",
+      "active": true,
+      "children": [],
+      "legacy": true,
+      "value": "Demo Stylists"
+    },
+    {
+      "id": "legacy-3693e4489c27e30021e9d0d4",
+      "name": "Service support",
+      "active": true,
+      "children": [],
+      "legacy": true,
+      "value": "Service support"
+    }
+  ],
+  "items": [
+    "Demo Consultants",
+    "DEMO Consulting",
+    "DEMO Consulting > Business Consultation",
+    "DEMO Consulting > IT Advisory",
+    "DEMO Consulting > Tax Consultation",
+    "DEMO Maintenance",
+    "DEMO Maintenance > Equipment Servicing",
+    "DEMO Maintenance > Routine Inspection",
+    "DEMO Maintenance > Safety Checks",
+    "Demo Service Team",
+    "Demo Stylists",
+    "DEMO Technical Services",
+    "DEMO Technical Services > Computer Repair",
+    "DEMO Technical Services > Device Setup",
+    "DEMO Technical Services > Network Support",
+    "Service support"
+  ],
+  "can_manage": true
+}

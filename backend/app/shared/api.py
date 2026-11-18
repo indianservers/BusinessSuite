@@ -7,7 +7,7 @@ import hashlib
 import uuid
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Query
 from pydantic import Field
 from sqlalchemy.orm import Session
 from app.access.api import (
@@ -1091,3 +1091,29 @@ def download(
             "Content-Security-Policy": "sandbox",
         },
     )
+
+
+@router.get('/employee-categories')
+def employee_category_options(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.employee_category_taxonomy import options
+    return options(db, actor)
+
+
+from app.shared.employee_category_taxonomy import TaxonomyInput as EmployeeCategoryInput
+
+@router.put('/employee-categories')
+def save_employee_categories(data: EmployeeCategoryInput, request: Request,
+                             db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.employee_category_taxonomy import save
+    from app.apps.srm.services.commercial import tenant
+    company_access(db, actor, tenant(actor))
+    return save(db, actor, data, request)
+
+
+@router.get('/employee-category-services')
+def employee_category_services(search: str = Query('',max_length=180),page: int = Query(1,ge=1),
+        db: Session = Depends(get_db),actor: User = Depends(get_current_user)):
+    from app.apps.srm.services.commercial import tenant
+    from app.shared.service_category_links import service_choices
+    company_access(db,actor,tenant(actor))
+    return service_choices(db,actor,search,page)

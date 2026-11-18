@@ -3,10 +3,10 @@ export function createGroup(label: string, module: string): CreateGroup {
   if (/field|tag|dashboard|view list|whiteboard|asset|form/i.test(label)) return "Configuration";
   if (/conversation|invitation|workspace|space/i.test(label)) return "Collaboration";
   if (/document|page|note|sheet|artifact|clip|folder|letter/i.test(label)) return "Content";
-  return module === "hrms" ? "People & requests" : module === "crm" ? "Sales" : "Work";
+  return module === "hrms" ? "People & requests" : ["crm","srm"].includes(module) ? "Sales" : "Work";
 }
 export function createPriority(label: string, module: string, employee = false) {
-  const order = module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
+  const order = module === "srm" ? ["POS", "Add product", "Add service", "Sales order", "Customer", "Invoice draft", "Contract", "Engagement", "Billing plan", "Vendor"] : module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
   const index = order.indexOf(label);
   return index < 0 ? 100 : index;
 }

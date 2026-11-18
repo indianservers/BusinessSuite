@@ -1,3 +1,9 @@
+import {loadPOSCatalog} from "../pos-catalog-pages";
+import POSBookingSettings, {type POSBookingPresentation} from '../components/POSBookingSettings';
+import ModuleNewMenu from "@/components/app/ModuleNewMenu";
+import NewMenu from "@/components/app/NewMenu";
+import POSMobileCatalogue from "../components/POSMobileCatalogue";
+import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import POSCustomerIdentity from "../components/POSCustomerIdentity";
 import { BookingSummary } from "@/shared/scheduling/BookingUX";
 import PrebookingPOSVisit from '../industry/PrebookingPOSVisit';
@@ -46,6 +52,13 @@ import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { phoneLinks } from "@/components/PhoneActions";
 import {
+  FileText,
+  Tag,
+  ArrowLeft,
+  ArrowRight,
+  Split,
+  ShoppingBag,
+  Stethoscope,
   Banknote,
   Calculator,
   CalendarDays,
@@ -462,6 +475,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const queryClient = useQueryClient();
   useSrmRealtimeInvalidation(queryClient);
   const [activeProfileId, setActiveProfileId] = usePersistedState(storage("profile"), defaultStoreProfile.id);
+  const [bookingPresentation,setBookingPresentation]=usePersistedState<POSBookingPresentation>(storage("service-booking-layout"),"cart");
   const [tileDensity, setTileDensity] = usePersistedState<"comfortable" | "compact">(storage("density"), "comfortable");
   const [productView, setProductView] = usePersistedState<ProductViewMode>(storage("product-view"), "tiles");
   const activeStoreProfile = useMemo(() => posStoreProfiles.find((profile) => profile.id === activeProfileId) || defaultStoreProfile, [activeProfileId]);
@@ -488,7 +502,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     toast({ title: "Customer added", description: `${record.name} is selected for this sale and its follow-ups.` });
   }
   const [query, setQuery] = useState("");
+  const [catalogSearch,setCatalogSearch]=useState(""),[catalogPages,setCatalogPages]=useState(1);
+  useEffect(()=>{const timer=setTimeout(()=>{setCatalogSearch(query);setCatalogPages(1)},250);return()=>clearTimeout(timer)},[query]);
   const [scanFeedback,setScanFeedback] = useState('');
+  const [phoneNotice,setPhoneNotice] = useState(false);
+  useEffect(()=>{if(!scanFeedback){setPhoneNotice(false);return;}setPhoneNotice(true);const timer=window.setTimeout(()=>setPhoneNotice(false),2500);return()=>window.clearTimeout(timer);},[scanFeedback]);
   const [highlighted,setHighlighted] = useState<number|null>(null);
   const [undo,setUndo] = useState<{lines:CartLine[];message:string}|null>(null);
   const [confirmClear,setConfirmClear] = useState(false);
@@ -506,6 +524,40 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [category, setCategory] = useState("All");
   const [cart, setCart] = usePersistedState<CartLine[]>(storage("cart"), []);
+  const [phonePanel,setPhonePanel] = useState<'sessions'|'actions'|'customer'|'discounts'|null>(null);
+  const [phoneLineId,setPhoneLineId] = useState<string|null>(null);
+  const phoneLine=cart.find(line=>line.lineId===phoneLineId);
+  const phonePaginationAnchor=useRef<string|null>(null);
+  const [phonePage,setPhonePage] = useState(0);
+  const [phonePageSize,setPhonePageSize] = useState(1);
+  const [phoneWidth,setPhoneWidth] = useState(()=>window.innerWidth);
+  useLayoutEffect(()=>{
+    const resize=()=>setPhoneWidth(window.innerWidth);
+    window.addEventListener('resize',resize);
+    const node=cartScrollRef.current;
+    const observer=new ResizeObserver(()=>{
+      if(!node||!node.clientWidth||window.innerWidth>767)return;
+      // Measure hidden pages without unmounting their scheduling/availability state.
+      const heights=Array.from(node.querySelectorAll<HTMLElement>('.pos-cart-line')).map(row=>{
+        if(getComputedStyle(row).display!=='none')return row.getBoundingClientRect().height;
+        const copy=row.cloneNode(true) as HTMLElement;
+        copy.dataset.phoneHidden='false';copy.setAttribute('aria-hidden','true');
+        Object.assign(copy.style,{position:'absolute',visibility:'hidden',pointerEvents:'none',width:`${node.clientWidth-18}px`,left:'-10000px'});
+        row.parentElement!.append(copy);const height=copy.getBoundingClientRect().height;copy.remove();return height;
+      });
+      const needed=Math.max(0,...heights.filter((_,index)=>index%2===0).map((height,index)=>height+(heights[index*2+1]||0)))+4;
+      const pager=workspaceRef.current?.querySelector<HTMLElement>('.pos-phone-pagination');
+      const reclaimed=cart.length<=2&&pager&&getComputedStyle(pager).display!=='none'?pager.offsetHeight+6:0;
+      setPhonePageSize(node.clientHeight+reclaimed>=needed?2:1);
+    });
+    if(node){observer.observe(node);node.querySelectorAll('.pos-cart-line').forEach(row=>observer.observe(row));}
+    return()=>{observer.disconnect();window.removeEventListener('resize',resize);};
+  },[cart]);
+  useLayoutEffect(()=>{const index=cart.findIndex(line=>line.lineId===phonePaginationAnchor.current);if(index>=0)setPhonePage(Math.floor(index/phonePageSize));},[phonePageSize,cart]);
+  const phonePages=Math.max(1,Math.ceil(cart.length/phonePageSize));
+  const safePhonePage=Math.min(phonePage,phonePages-1);
+  useEffect(()=>{setPhonePage(page=>Math.min(page,phonePages-1));},[phonePages]);
+
   const [localHeldBills, setLocalHeldBills] = usePersistedState<HeldBill[]>(storage("held"), []);
   const [sales, setSales] = usePersistedState<Sale[]>(storage("sales"), []);
   const [billDiscount, setBillDiscount] = usePersistedState(storage("bill-discount"), 0);
@@ -517,20 +569,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [lastSale, setLastSale] = useState<Sale | null>(null);
   const [closingCash, setClosingCash] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  const productsQuery = useQuery({ queryKey: ["srm", "inventoryItems", "pos", scope], queryFn: async () => {
-    if(selectedPOS) {
-      const items:SRMRecord[]=[];let after:number|null=0;let features:POSFeatures|undefined;
-      while(after!==null){const data:{items:SRMRecord[];next:number|null;features:POSFeatures}=(await api.get("/srm/pos/catalog",{params:{after},progress:false,recordCache:false})).data;items.push(...data.items);features=data.features;after=data.next;}
-      return {items,total:items.length,features};
-    }
-    const items:SRMRecord[]=[];let page=1,total=Infinity;
-    while(items.length<total){const response=await api.get("/srm/inventory/items",{params:{page,per_page:200},progress:false});items.push(...response.data.items);total=response.data.total;if(!response.data.items.length)break;page++;}
-    return {items,total,features:undefined as POSFeatures|undefined};
-  }, refetchInterval: 45000, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const productsQuery = useQuery({queryKey:["srm","inventoryItems","pos",scope,catalogSearch,catalogPages],queryFn:({signal})=>loadPOSCatalog(api,!!selectedPOS,catalogSearch,catalogPages,signal),refetchInterval:selectedPOS?45000:false,refetchIntervalInBackground:false,refetchOnWindowFocus:false});
   const posFeatures = productsQuery.data?.features;
-  const heldBillsQuery = useQuery({ enabled:!selectedPOS, queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: 30000, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const heldBillsQuery = useQuery({ enabled:!selectedPOS, queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: activeModal === "held" ? 30000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
 
-  const followUpOptions = useQuery({enabled:!selectedPOS,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
+  useEffect(()=>{if(!selectedPOS&&activeModal==="held")void heldBillsQuery.refetch()},[activeModal,selectedPOS]);
+  const followUpOptions = useQuery({enabled:!selectedPOS&&cart.length>0,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
   const [checkoutKey, setCheckoutKey] = usePersistedState(storage("checkout-key"), crypto.randomUUID());
   const intentKey = financialIntentKey("checkout");
   const [recovery] = useState(() => readPOSCheckoutIntent<CheckoutAttempt>(intentKey));
@@ -559,9 +603,14 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const customer = customers.find((item) => item.id === customerId) || customers[0];
   const serverHeldBills = useMemo(() => listItems(heldBillsQuery.data).map(heldBillFromRecord).filter(bill=>bill.cart.length>0&&bill.cart.every(line=>line.draftScope===draftScope)), [heldBillsQuery.data,draftScope]);
   const heldBills = useMemo(() => selectedPOS ? [] : [...serverHeldBills, ...localHeldBills], [selectedPOS, localHeldBills, serverHeldBills]);
-  const dbProducts = useMemo(() => listItems(productsQuery.data).map(productFromRecord).filter((item) => item.active !== false), [productsQuery.data]);
-  const productSource = dbProducts;
-  const storeProducts = productSource;
+  const currentProducts=useMemo(()=>listItems(productsQuery.data).map(productFromRecord).filter(item=>item.active!==false),[productsQuery.data]);
+  const knownProducts=useRef<{scope:string;items:Map<number,Product>}>({scope,items:new Map()});
+  if(knownProducts.current.scope!==scope)knownProducts.current={scope,items:new Map()};
+  for(const item of currentProducts)knownProducts.current.items.set(item.id,item);
+  for(const id of knownProducts.current.items.keys()){if(knownProducts.current.items.size<=1000)break;if(!cart.some(line=>line.id===id))knownProducts.current.items.delete(id);}
+  const dbProducts=[...knownProducts.current.items.values()];
+  const productSource=currentProducts;
+  const storeProducts=productSource;
   const [catalogTab, setCatalogTab] = useState("All");
   const [catalogSort, setCatalogSort] = useState("name");
   const [usageCounts,setUsageCounts] = usePersistedState<Record<string,number>>(storage("catalog-usage"), {});
@@ -639,10 +688,20 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     if (line.booking && cartBookingConflict(cart,line.lineId,line.booking,line.resourceCapacities)) readiness.push({id:`overlap-${line.lineId}`,lineId:line.lineId,text:`${line.name}: employee or resource capacity overlaps another appointment in this basket.`});
   }
   function reviewIssue(issue:{id:string;lineId?:string}) {
-    if (issue.id==='register') setSessionDetailsOpen(true);
+    if (issue.id==='register') {if(phoneWidth<=767)setPhonePanel('sessions');else setSessionDetailsOpen(true);}
     if (issue.id==='catalog') void productsQuery.refetch();
+    if (issue.id==='customer' && phoneWidth<=767) {setPhonePanel('customer');return;}
     if (issue.id==='customer') document.querySelector<HTMLButtonElement>('[aria-label="Change sale customer"]')?.click();
-    if (issue.lineId) {setMobileView('cart');requestAnimationFrame(()=>{const row=document.getElementById(`pos-line-${issue.lineId}`);row?.querySelectorAll('details').forEach(details=>details.open=true);row?.scrollIntoView({block:'center',behavior:'smooth'});});}
+    if (issue.lineId) {setPhonePage(Math.floor(cart.findIndex(line=>line.lineId===issue.lineId)/phonePageSize));setReadinessOpen(false);setMobileView('cart');requestAnimationFrame(()=>{const row=document.getElementById(`pos-line-${issue.lineId}`);row?.querySelectorAll('details').forEach(details=>details.open=true);row?.scrollIntoView({block:'center',behavior:'smooth'});});}
+  }
+  async function openRegister() {
+    if(locked||!owns()||opening||!online)return;
+    setOpening(true);
+    try {
+      await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});
+      if(owns()){await activeRegister.refetch();setPhonePanel(null);}
+    } catch(error) {if(owns())toast({title:'Register not opened',description:dealError(error),variant:'destructive'});}
+    finally {if(owns())setOpening(false);}
   }
   function removeLine(lineId:string) {
     if(locked)return;
@@ -668,9 +727,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     if(product.trackInventory && already>=product.stock){setScanFeedback(`${product.name}: only ${product.stock} in stock; no more added.`);return;}
     setUsageCounts(counts=>({...counts,[product.id]:(counts[product.id] || 0)+1}));
     setHighlighted(product.id);setScanFeedback(`${product.name} added to cart.`);
+    const addedLine = buildCartLine(product);
     setCart((current) => {
       const existing = current.find((line) => line.id === product.id && !line.serialTracking && !isService(line));
-      if (!existing) return [...current, buildCartLine(product)];
+      phonePaginationAnchor.current = existing?.lineId || addedLine.lineId;
+      if (!existing) return [...current, addedLine];
       return current.map((line) => line.lineId === existing.lineId ? { ...line, qty: line.trackInventory ? Math.min(line.stock, line.qty + 1) : line.qty + 1 } : line);
     });
   }
@@ -957,15 +1018,16 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     <div ref={workspaceRef} className={`srm-pos pos-booking-workspace srm-pos-view-${mobileView} min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950`}>
       <header className="pos-shell-header relative z-30 border-b border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
-          <div className="pos-workspace-identity flex min-w-0 items-center gap-3">
+          <div className="pos-workspace-identity flex min-w-0 items-center gap-3"><button className="pos-phone-back" type="button" aria-label="Back to sales" onClick={()=>navigate("/srm")}><ArrowLeft size={23}/></button>
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[#6d49d7] text-white shadow-sm">
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-6 w-6 text-white" />
             </span>
             <div className="min-w-0">
               <span className="pos-workspace-eyebrow">Sales workspace</span>
-              <h1 className="truncate text-xl font-semibold">{presentation.title}</h1>
-              <p className="text-sm text-slate-500">{branchName} / {register?.register_name || "Register not open"} / Session {register?.session_number || (register ? `#${register.id}` : "not open")}</p>
+              <h1 className="truncate text-xl font-semibold" title={presentation.title}>{phoneWidth<=767?"Billing & POS":presentation.title}</h1>
+              <p className="text-sm text-slate-500">{branchName} · {register?.register_name || "Register not open"} · {register?.session_number || (register ? `#${register.id}` : "Not open")}</p>
             </div>
+            <div className="pos-phone-header-tools"><ModuleNewMenu>{actions=><NewMenu actions={[...actions,{label:'Register setup',description:'Open or manage the billing register',icon:Calculator,group:'POS tools',onSelect:()=>setPhonePanel('sessions')},{label:'Bill tools',description:'Customer, cash drawer, receipts and held bills',icon:Settings,group:'POS tools',onSelect:()=>setPhonePanel('actions')}]} iconOnly/>}</ModuleNewMenu><SuiteNotificationBell/><Link to="/srm/profile" aria-label="My profile" className="pos-phone-profile">{(authUser?.name || cashierName || "User").split(" ").slice(0,2).map(word=>word[0]).join("")}</Link></div>
           </div>
           <div className="pos-header-actions">
             <nav aria-label="Sales and scheduling" className="pos-workspace-links">
@@ -987,7 +1049,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             {!register && <><label className="text-xs">Opening cash<Input aria-label="POS opening cash" className="w-28 border-slate-200 bg-slate-50 text-slate-950" type="number" min="0" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={opening||activeRegister.isFetching} onClick={async()=>{if(locked||!owns())return;setOpening(true);try{await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});if(owns())await activeRegister.refetch();}catch(error){if(owns())toast({title:"Register not opened",description:dealError(error),variant:"destructive"});}finally{if(owns())setOpening(false);}}}>Open POS register</Button></>}
             {activeRegister.isError && <Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("cash")}><Banknote className="h-4 w-4" />Cash drawer</Button>
-            <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("profile")}><Settings className="h-4 w-4" />Template</Button>
+            <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("profile")}><Settings className="h-4 w-4" />Settings</Button>
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => window.print()}><Printer className="h-4 w-4" />Print</Button>
             <Button variant="destructive" onClick={() => setActiveModal("close")}><DoorClosed className="h-4 w-4" />Close</Button>
           </CompactActions>
@@ -1046,20 +1108,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       </header>
 
 
-      <nav className="pos-phone-navigation" aria-label="Mobile POS navigation">
-        <button type="button" aria-current="page" onClick={()=>setMobileView('cart')}><ShoppingCart size={20}/>POS</button>
-        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><CalendarDays size={20}/>Sessions</button>
-        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><Settings size={20}/>Actions</button>
-      </nav>
-      <div className="pos-phone-feedback" role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
-      <div className="pos-phone-bill"><Receipt size={28}/><div><strong>Current Bill</strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={16}/>Clear</Button></div>
-      <div className="pos-phone-customer">
-        <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
-        <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
-      </div>
+      <div className="pos-phone-feedback" data-notice={phoneNotice} role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
+      <div className="pos-phone-bill"><button type="button" className="pos-phone-bill-customer" aria-label="Change sale customer" onClick={()=>setPhonePanel("customer")}><FileText size={27}/></button><div><strong>Current Bill <button className="pos-phone-customer-compact" aria-label={`Customer: ${customer.name}`} type="button" onClick={()=>setPhonePanel("customer")}>Customer ›</button></strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button className="pos-phone-trash" variant="outline" aria-label="Clear bill items" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={18}/></Button><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}>Clear</Button></div>
+      <button className="pos-phone-customer-button" aria-label="Change sale customer" type="button" onClick={()=>setPhonePanel('customer')}>Customer: {customer.name}<span>Change ›</span></button>
       <div className="pos-guidance px-4 py-2 space-y-2">
         <ol className="flex flex-wrap gap-3 text-xs" aria-label="POS startup progress"><li>1. {branchName}</li><li>2. {register?.id ? `Register ${register.session_number || register.id} open` : 'Register not open'}</li><li>3. {register?.id ? `Opening cash ${currency(Number(register.opening_cash || 0))}` : 'Set opening cash'}</li><li>{register?.id && online ? 'Ready for billing' : 'Setup required'}</li></ol>
-        {!register?.id && <Button variant="outline" size="sm" onClick={()=>setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
+        {!register?.id && <Button variant="outline" size="sm" onClick={()=>phoneWidth<=767?setPhonePanel('sessions'):setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
         <p className="text-xs">Customer: <strong>{customer.name}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
         {!online && <p role="alert">Offline. Your basket is retained; reconnect to check availability and take payment.</p>}
         <p role="status" aria-live="polite" className="text-xs">{scanFeedback}</p>
@@ -1070,10 +1124,20 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       </div>
       <nav className="srm-pos-mobile-tabs" aria-label="POS workspace">
         <button type="button" aria-pressed={mobileView === "products"} onClick={() => setMobileView("products")}><LayoutGrid size={18} />Products</button>
-        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart ({cart.length})</button>
+        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart <span className="pos-cart-count">{cart.length}</span></button>
       </nav>
       <main className="grid min-h-[calc(100vh-13.5rem)] gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <section aria-label="Products and services catalogue" className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
+          {productsQuery.data?.hasMore&&<div className="flex items-center justify-between gap-2 text-xs"><span>Showing {currentProducts.length} items. Search the catalog or load more.</span><Button type="button" variant="outline" disabled={productsQuery.isFetching} onClick={()=>setCatalogPages(value=>value+1)}>Load more items</Button></div>}
+          {phoneWidth<=767 ? <POSMobileCatalogue products={filteredProducts}
+            counts={{All:storeProducts.length,Products:storeProducts.filter(product=>!isService(product)).length,Services:storeProducts.filter(isService).length}}
+            cart={cart} query={query} onQuery={setQuery} searchInputRef={searchRef} onScan={scanSearch}
+            category={category} categories={categories} onCategory={setCategory} tab={catalogTab} onTab={setCatalogTab} sort={catalogSort} onSort={setCatalogSort}
+            favorites={favoriteIds} onFavorite={id=>setFavoriteIds(ids=>ids.includes(id)?ids.filter(value=>value!==id):[...ids,id])}
+            onAdd={addProduct} isService={isService} formatMoney={currency} loading={productsQuery.isLoading} error={productsQuery.isError} onRetry={()=>void productsQuery.refetch()} locked={locked}
+            canCreate={!!(authUser?.is_superuser || (authUser?.access?.grants.srm?.enabled && authUser.access.grants.srm.actions.includes('create')) || (!authUser?.access?.managed && ['admin','srm_admin','srm_sales_manager','srm_sales_executive'].includes(String(authUser?.role).toLowerCase())))}/>
+          : <>
+
           <div className="srm-pos-stock-summary grid gap-3 md:grid-cols-3">
             <StatusTile label="Products" value={String(storeProducts.length)} detail={`${filteredProducts.length} visible`} />
             <StatusTile label="Low stock" value={String(lowStockCount)} detail="Reorder watch" />
@@ -1199,6 +1263,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               })}
             </div>
           )}
+          </>}
         </section>
 
         <aside className="srm-pos-cart space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
@@ -1215,15 +1280,15 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
 
 </div>
-          <Card ref={cartScrollRef} role="region" tabIndex={0} aria-label="Sale items, scroll for more" className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
+          <Card ref={cartScrollRef} role="region" tabIndex={0} aria-label={phoneWidth<=767 ? "Sale items, paginated" : "Sale items, scroll for more"} className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
 
             <CardContent className="space-y-3">
 
-              {cart.length ? cart.map((line) => (
-                <div key={line.lineId} id={`pos-line-${line.lineId}`} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
+              {cart.length ? cart.map((line,lineIndex) => (
+                <div key={line.lineId} id={`pos-line-${line.lineId}`} onFocusCapture={()=>{phonePaginationAnchor.current=line.lineId;}} data-phone-hidden={lineIndex < safePhonePage*phonePageSize || lineIndex >= (safePhonePage+1)*phonePageSize} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
                   <div className="pos-compact-cart-row">
-                    <div className="pos-phone-line-icon" aria-hidden="true">{isService(line) ? <CalendarDays size={27}/> : <ShoppingCart size={27}/>}</div><div className="pos-line-identity"><strong>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : `Product · ${line.sku}`}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
-                    <div className="pos-inline-quantity"><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
+                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} price and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">Product · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
+                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
                     <strong className="pos-line-amount">{currency(operationalPackKey==='pharma' && line.lotAllocation==='fefo' ? pharmaCheckoutQuote([{quantity:String(line.qty),price:line.rate.toFixed(2),discount:lineDiscount(line).toFixed(2),taxRate:String(line.taxRate)}],'0.00')?.grandTotal ?? lineTotal(line) : lineTotal(line))}</strong>
                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
                   </div>
@@ -1231,7 +1296,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
 </div>                  <label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
 </details>
-                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? 'Booking details' : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};setCart(current=>[...current,next]);}}>Add another appointment</Button></>}
+                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling presentation={bookingPresentation==='dialog'?'dialog':'cart'} onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? (phoneWidth<=767 ? 'Edit' : 'Booking details') : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" aria-label="Add another appointment" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};phonePaginationAnchor.current=next.lineId;setPhonePage(Math.floor(cart.length/phonePageSize));setCart(current=>[...current,next]);setMobileView('cart');}}>Add another appointment</Button></>}
 
 
                 </div>
@@ -1245,12 +1310,13 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             </CardContent>
           </Card>
 
+          <nav className="pos-phone-pagination" data-single-page={phonePages===1} aria-label="Cart pages"><Button variant="outline" aria-label="Previous cart page" disabled={safePhonePage===0} onClick={()=>{phonePaginationAnchor.current=null;setPhonePage(safePhonePage-1);}}><ArrowLeft size={16}/></Button><span role="status">{cart.length ? safePhonePage*phonePageSize+1 : 0}–{Math.min((safePhonePage+1)*phonePageSize,cart.length)} of {cart.length} · {safePhonePage+1}/{phonePages}</span><Button variant="outline" aria-label="Next cart page" disabled={safePhonePage>=phonePages-1} onClick={()=>{phonePaginationAnchor.current=null;setPhonePage(safePhonePage+1);}}><ArrowRight size={16}/></Button></nav>
           <p className="pos-cart-scroll-hint">Scroll for more sale items ↓</p>
           <Card className="pos-bill-summary overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
             <CardContent className="space-y-3 p-4">
               <SummaryLine label="Subtotal" value={currency(totals.subtotal)} />
               <SummaryLine label="Tax" value={currency(totals.tax)} />
-              <details><summary>Tax, discounts &amp; coupon</summary><div className="space-y-3 py-2">
+              <button className="pos-phone-discounts" type="button" onClick={()=>setPhonePanel("discounts")}><Tag size={15}/>Discounts &amp; Coupons<span>›</span></button><details className="pos-desktop-discounts"><summary>Tax, discounts &amp; coupon</summary><div className="space-y-3 py-2">
               <SummaryLine label="Line discount" value={currency(totals.lineDiscount)} />
               <div className="grid grid-cols-[1fr_8rem] items-center gap-3 text-sm">
                 <span className="text-slate-500">Bill discount</span>
@@ -1277,20 +1343,27 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 </details>            </CardContent>
           </Card>
       <footer ref={checkoutFooterRef} className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
-        <p id="pos-checkout-reason" className="pos-checkout-reason" role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
-        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Calculator size={16}/> : <CreditCard size={16}/>} {method}</Button>)}</div>
+        <p id="pos-checkout-reason" className="pos-checkout-reason" data-blocked={!online||locked||readiness.length>0} role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
+        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Split size={16}/> : method === "UPI" ? <svg className="pos-upi-icon" width="20" height="22" viewBox="0 0 20 24" aria-hidden="true"><path fill="#f28b13" d="M8 1 18 12 2 23Z"/><path fill="#15944c" d="m12 1 8 11-14 11Z"/></svg> : <CreditCard size={16}/>} {method}</Button>)}</div>
         <FooterMetric label="Items" value={String(cart.length)} />
         <FooterMetric label="Quantity" value={String(totals.qty)} />
         <FooterMetric label="Payable" value={operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo") && !Number.isInteger(totals.grandTotal) ? currency(totals.grandTotal) : shortCurrency(totals.grandTotal)} />
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={() => setActiveModal("held")}><RotateCcw className="h-4 w-4" />Recall</Button>
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={!sales.some(sale=>!!sale.checkoutId) && !lastSale?.checkoutId} onClick={() => printReceipt()}><Printer className="h-4 w-4" />Print Last</Button>
-        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & book` : `Collect ${currency(totals.grandTotal)}`}</Button>
+        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & Book` : `Collect ${currency(totals.grandTotal)}`}<ArrowRight className="pos-collect-arrow" size={21}/></Button>
       </footer>
         </aside>
       </main>
 
 
 
+      {phoneLine && <Overlay title={`Edit ${phoneLine.name}`} onClose={()=>setPhoneLineId(null)}><div className="space-y-3"><label className="block">Rate<Input type="number" min="0" value={phoneLine.rate} onChange={event=>updateLine(phoneLine.lineId,{rate:Math.max(0,Number(event.target.value)||0)})}/></label><label className="block">Discount %<Input type="number" min="0" max="50" value={phoneLine.discount} onChange={event=>updateLine(phoneLine.lineId,{discount:Math.min(50,Math.max(0,Number(event.target.value)||0))})}/></label><label className="block">Line note<Input value={phoneLine.note} onChange={event=>updateLine(phoneLine.lineId,{note:event.target.value})}/></label>{phoneLine.booking&&<p>Quantity is fixed at one per appointment. Use Add another appointment for a second booking.</p>}<Button onClick={()=>setPhoneLineId(null)}>Done</Button></div></Overlay>}
+      {phonePanel && <Overlay title={phonePanel==='sessions'?'Register session':phonePanel==='actions'?'POS actions':phonePanel==='customer'?'Sale customer':'Discounts & coupons'} onClose={()=>setPhonePanel(null)}>
+        {phonePanel==='sessions' && <div className="pos-phone-session space-y-3"><p>{branchName} · {register?.register_name || activeStoreProfile.register}</p><p>Cashier: {cashierName}</p>{register?.id?<><p>Session {register.session_number || register.id} · Open</p><p>Opening cash {currency(Number(register.opening_cash||0))}</p><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('close');}}>Close session</Button></>:<form className="space-y-3" onSubmit={event=>{event.preventDefault();void openRegister();}}><p className="text-sm">Open the register before collecting payment.</p><label className="block text-sm">Opening cash<Input aria-label="Mobile POS opening cash" required type="number" min="0" step="0.01" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button type="submit" disabled={locked||opening||!online||activeRegister.isFetching}>{opening?'Opening register…':'Open POS register'}</Button></form>}{activeRegister.isError&&<Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}</div>}
+        {phonePanel==='actions' && <div className="grid grid-cols-2 gap-3"><Button onClick={()=>setPhonePanel("customer")}>Sale customer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('profile');}}>Register settings</Button><Button disabled={!lastSale?.checkoutId&&!sales.some(sale=>!!sale.checkoutId)} onClick={()=>printReceipt()}>Print last receipt</Button><Button disabled={selectedPOS} onClick={()=>{setPhonePanel(null);setActiveModal('held');}}>Recall held bill</Button><Button onClick={()=>{setPhonePanel(null);setReadinessOpen(true);}}>Review bill</Button><Button disabled={!cart.length} onClick={()=>{setPhonePanel(null);setConfirmClear(true);}}>Clear bill</Button></div>}
+        {phonePanel==='customer' && <div className="space-y-3"><POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/><POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/><Button disabled={selectedPOS&&!posFeatures?.customers_register} onClick={()=>{setPhonePanel(null);setQuickAddOpen(true);}}>New customer</Button><Button variant="outline" onClick={()=>setPhonePanel(null)}>Done</Button></div>}
+        {phonePanel==='discounts' && <div className="space-y-4"><label className="block">Bill discount<Input aria-label="Mobile bill discount" type="number" min="0" value={billDiscount} onChange={event=>setBillDiscount(Math.max(0,Number(event.target.value)||0))}/></label><label className="block">Coupon code<Input aria-label="Mobile coupon code" value={coupon} onChange={event=>setCoupon(event.target.value)}/></label><SummaryLine label="Discount" value={currency(totals.lineDiscount+totals.couponDiscount)}/><SummaryLine label="Amount payable" value={currency(totals.grandTotal)}/><Button onClick={()=>setPhonePanel(null)}>Apply & close</Button></div>}
+      </Overlay>}
       {quickAddOpen && (selectedPOS&&posFeatures?<POSQuickAddCustomer features={posFeatures} onClose={()=>setQuickAddOpen(false)} onCreated={customerCreated}/>:!selectedPOS?<QuickAddCustomer onClose={() => setQuickAddOpen(false)} onCreated={customerCreated}/>:null)}
       {activeModal === "payment" ? (
         <Overlay title="Complete Payment" onClose={() => {if(!nativeBusy)setActiveModal(null);}} wide>
@@ -1442,13 +1515,15 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       ) : null}
 
       {activeModal === "profile" ? (
-        <Overlay title="POS Templates & Layout" onClose={() => setActiveModal(null)} wide>
+        <Overlay title="POS Settings & Layout" onClose={() => setActiveModal(null)} wide>
           <ProfileSettingsPanel
             activeProfile={activeStoreProfile}
             profiles={posStoreProfiles}
             tileDensity={tileDensity}
             onProfileChange={switchProfile}
             onDensityChange={setTileDensity}
+            bookingPresentation={bookingPresentation}
+            onBookingPresentationChange={setBookingPresentation}
           />
         </Overlay>
       ) : null}
@@ -1629,12 +1704,16 @@ function ProfileSettingsPanel({
   tileDensity,
   onProfileChange,
   onDensityChange,
+  bookingPresentation,
+  onBookingPresentationChange,
 }: {
   activeProfile: PosStoreProfile;
   profiles: PosStoreProfile[];
   tileDensity: "comfortable" | "compact";
   onProfileChange: (profileId: string) => void;
   onDensityChange: (density: "comfortable" | "compact") => void;
+  bookingPresentation:POSBookingPresentation;
+  onBookingPresentationChange:(value:POSBookingPresentation)=>void;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
@@ -1675,7 +1754,8 @@ function ProfileSettingsPanel({
           </div>
         </div>
         <div>
-          <span className="text-xs uppercase text-slate-400">Cashier layout</span>
+          <POSBookingSettings value={bookingPresentation} onChange={onBookingPresentationChange}/>
+          <span className="mt-4 block text-xs uppercase text-slate-400">Cashier layout</span>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Button type="button" variant={tileDensity === "comfortable" ? "default" : "outline"} onClick={() => onDensityChange("comfortable")}>Comfort</Button>
             <Button type="button" variant={tileDensity === "compact" ? "default" : "outline"} onClick={() => onDensityChange("compact")}>Compact</Button>

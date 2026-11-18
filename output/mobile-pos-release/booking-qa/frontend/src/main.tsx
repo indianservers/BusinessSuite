@@ -1,0 +1,99 @@
+import BrowserDraftRecovery from "./shared/record-sync/BrowserDraftRecovery";
+import { installRecordSync } from "./shared/record-sync/store";
+import { cacheVisitedAssets } from "./lib/visited-assets";
+import RecordSyncItems from "./shared/record-sync/RecordSyncItems";
+import ErrorBoundary from "@/components/app/ErrorBoundary";
+import "./shared/priority/priority.css";
+import { navigationViews } from "./lib/navigation-views";
+import "./pages/settings/settingsNavigationGuard";
+import "./components/forms/compact-forms.css";
+import RecordQuickPreview from "./components/RecordQuickPreview";
+import React from "react";
+import SaveShortcut from "./components/app/SaveShortcut";
+import { installRecordListRefresh } from "./lib/record-changes";
+import { recoverChunkLoad } from "./lib/chunk-recovery";
+import ReactDOM from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, useLocation } from "react-router-dom";
+import App from "./App.tsx";
+import PlatformApp from "./platform/PlatformApp";
+import { api } from "./services/api";
+import { installRecordCache } from "./lib/smart-cache/integration";
+import CacheDiagnostics from "./lib/smart-cache/CacheDiagnostics";
+import {useAuthStore} from "./store/authStore";
+import {securityAuthStamp} from "./lib/security-auth-stamp";
+import AsyncProgress from "./components/app/AsyncProgress";
+import "./index.css";
+import "./design-system/premium.css";
+import "./shared/data-grid/suite-list-surface.css";
+import { applyTheme, useThemeStore } from "./store/themeStore.ts";
+
+const { theme } = useThemeStore.getState();
+applyTheme(theme);
+
+window.addEventListener("vite:preloadError", (event: Event & { payload?: unknown }) => {
+  if (recoverChunkLoad(event.payload)) event.preventDefault();
+});
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (useThemeStore.getState().theme === "system") {
+    applyTheme("system");
+  }
+});
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes
+      gcTime: 1000 * 60 * 60, // Keep visited-page data ready for an hour; stale views refresh in the background.
+      retry: (failureCount, error: unknown) => {
+        if ((error as { response?: { status?: number } })?.response?.status === 401) return false;
+        return failureCount < 1;
+      },
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+installRecordCache(api, queryClient);
+installRecordListRefresh(queryClient);
+installRecordSync(queryClient);
+
+// Statistics caches must not survive an identity, tenant or permission-context switch.
+const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,securityAuthStamp(u)])};
+let activeStatisticsContext=statisticsContext();
+useAuthStore.subscribe(()=>{const next=statisticsContext();if(next!==activeStatisticsContext){activeStatisticsContext=next;navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()}});
+window.addEventListener("suite:organization-changed",()=>{navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()});
+let statisticsRefresh:number|undefined;
+window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statisticsRefresh);statisticsRefresh=window.setTimeout(()=>{void queryClient.invalidateQueries({predicate:query=>/dashboard|headcount|statistics|stats|summary|metrics|count|overview|portfolio|analytics|notification|people-workspace|report|approval|hr-work/i.test(JSON.stringify(query.queryKey))})},180)});
+
+function PortalRoot() {
+  const {pathname} = useLocation();
+  if (pathname.startsWith("/platform")) return <PlatformApp/>;
+  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      {/* Commit the destination and its loading state together for lazy pages. */}
+      <BrowserRouter useTransitions={false}>
+        <ErrorBoundary><PortalRoot /></ErrorBoundary>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </React.StrictMode>
+);
+
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => cacheVisitedAssets(navigator.serviceWorker.controller));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js?v=6", { updateViaCache: "none" }).then((registration) => {
+      registration.update().catch(() => undefined);
+      cacheVisitedAssets(navigator.serviceWorker.controller || registration.active);
+      void navigator.serviceWorker.ready.then(ready => cacheVisitedAssets(ready.active));
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    }).catch(() => undefined);
+  });
+}

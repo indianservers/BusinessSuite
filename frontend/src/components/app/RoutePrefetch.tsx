@@ -1,5 +1,5 @@
 import { Children, isValidElement, useEffect } from "react";
-import { matchRoutes } from "react-router-dom";
+import { matchRoutes, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
@@ -18,6 +18,18 @@ function loaders(element: unknown): Preload[] {
 }
 /** Code-only intent prefetch. No records, forms, permissions, or hidden pages are mounted. */
 export default function RoutePrefetch({ routes }: { routes: FrontendRoute[] }) {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const user = useAuthStore.getState().user;
+    if (!user || !canAccessRoute(pathname, user.role, user.is_superuser)) return;
+    const matches = matchRoutes(routes, pathname);
+    const route = matches?.[matches.length - 1]?.route;
+    if (route) {
+      // This is the destination, not speculative prefetch. Download its code
+      // while the preferences gate is fetching, without mounting any forms.
+      void Promise.all(loaders(route.element).map(load => load())).catch(() => undefined);
+    }
+  }, [pathname, routes]);
   useEffect(() => {
     let stopped = false;
     const queued = new Map<string, ReturnType<typeof setTimeout>>();

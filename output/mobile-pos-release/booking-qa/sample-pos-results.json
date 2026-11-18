@@ -1,0 +1,130 @@
+[
+  {
+    "service": "DEMO Booking Technical Visit",
+    "width": 320,
+    "height": 568,
+    "matchingEmployees": 4,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Computer Repair",
+    "width": 320,
+    "height": 568,
+    "matchingEmployees": 2,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Tax Consultation",
+    "width": 320,
+    "height": 568,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Routine Inspection",
+    "width": 320,
+    "height": 568,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Technical Visit",
+    "width": 360,
+    "height": 640,
+    "matchingEmployees": 4,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Computer Repair",
+    "width": 360,
+    "height": 640,
+    "matchingEmployees": 2,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Tax Consultation",
+    "width": 360,
+    "height": 640,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Routine Inspection",
+    "width": 360,
+    "height": 640,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Technical Visit",
+    "width": 390,
+    "height": 844,
+    "matchingEmployees": 4,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Computer Repair",
+    "width": 390,
+    "height": 844,
+    "matchingEmployees": 2,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Tax Consultation",
+    "width": 390,
+    "height": 844,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Routine Inspection",
+    "width": 390,
+    "height": 844,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Technical Visit",
+    "width": 430,
+    "height": 932,
+    "matchingEmployees": 4,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Computer Repair",
+    "width": 430,
+    "height": 932,
+    "matchingEmployees": 2,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Tax Consultation",
+    "width": 430,
+    "height": 932,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  },
+  {
+    "service": "DEMO Booking Routine Inspection",
+    "width": 430,
+    "height": 932,
+    "matchingEmployees": 1,
+    "noScroll": true,
+    "noClippedButtons": true
+  }
+]

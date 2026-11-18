@@ -1,0 +1,69 @@
+{
+  "origin": "https://besterp.app",
+  "release": "appointments-mobile-demo-20261118-v11",
+  "results": [
+    {
+      "width": 360,
+      "records": 4,
+      "geometry": {
+        "viewport": 360,
+        "page": 360,
+        "dock": {
+          "x": 0,
+          "y": 782,
+          "width": 360,
+          "height": 62,
+          "top": 782,
+          "right": 360,
+          "bottom": 844,
+          "left": 0
+        }
+      },
+      "errors": [],
+      "failed": [],
+      "status": "passed"
+    },
+    {
+      "width": 390,
+      "records": 4,
+      "geometry": {
+        "viewport": 390,
+        "page": 390,
+        "dock": {
+          "x": 0,
+          "y": 782,
+          "width": 390,
+          "height": 62,
+          "top": 782,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        }
+      },
+      "errors": [],
+      "failed": [],
+      "status": "passed"
+    },
+    {
+      "width": 430,
+      "records": 4,
+      "geometry": {
+        "viewport": 430,
+        "page": 430,
+        "dock": {
+          "x": 0,
+          "y": 870,
+          "width": 430,
+          "height": 62,
+          "top": 870,
+          "right": 430,
+          "bottom": 932,
+          "left": 0
+        }
+      },
+      "errors": [],
+      "failed": [],
+      "status": "passed"
+    }
+  ]
+}

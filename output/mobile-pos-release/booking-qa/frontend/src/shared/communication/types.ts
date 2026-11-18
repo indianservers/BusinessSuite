@@ -1,0 +1,9 @@
+export type CommunicationModule = "PMS" | "CRM" | "HRMS" | "InternHub" | "Sales" | "Finance" | "Support" | "Administration";
+export type CommunicationContext = { type: "project" | "task" | "lead" | "deal" | "account" | "employee" | "invoice"; id: number };
+export type CommunicationFeatures = Partial<Record<"channels" | "directMessages" | "groupChats" | "threads" | "followUps" | "files" | "meetings" | "aiAssistant", boolean>>;
+export type CommunicationWorkspaceProps = { module?: CommunicationModule; workspaceId?: number; context?: CommunicationContext; features?: CommunicationFeatures };
+export type Participant = { id: number; email: string };
+export type CommunicationFile = { id: number; name: string; size: number; mime: string };
+export type Message = { id: number; body: string; reply_count?: number; attachments?: CommunicationFile[] };
+export type FollowUp = { id: number; title: string; description: string; message_id: number; assignee_id: number; created_by: number; status: string; priority: string; due_at: string | null; task_id: number | null; task_key: string | null; source_url: string };
+export type Collaboration = { read_states?: {user_id:number;read_id:number;history_after:number}[]; reactions: { message_id: number; emoji: string; count: number; mine: boolean }[]; pins: Message[]; saved_ids: number[]; followups: FollowUp[]; before: number | null; files: CommunicationFile[]; contexts: { module: string; entity_type: string; entity_id: number }[] };

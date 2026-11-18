@@ -7,11 +7,13 @@ from fastapi import HTTPException
 
 def find_choices(db, actor, service_id, day, minutes, *, eligibility_id=None, resource_ids=None,
                  starts_at=None, auto_resources=False, employee_offset=0, resource_offset=0,
-                 search_days=1, selected=None):
+                 search_days=1, selected=None, window_from=None, window_until=None, priority='earliest', preferred_employee_id=None):
     from app.apps.srm.service_checkout_options import service_options, scheduling_availability, _providers, _authority
     company, branch, scope = _authority(db,actor,selected)
     if starts_at and starts_at.utcoffset() is None:
         raise HTTPException(422,'Discovery time needs a timezone offset')
+    if bool(window_from) != bool(window_until) or window_from and (window_from.utcoffset() is not None or window_until.utcoffset() is not None or window_until <= window_from):
+        raise HTTPException(422,'Choose a local time window with an end after its start')
     options = service_options(db,actor,service_id,selected=selected,offset=employee_offset)
     if not options['policy'] or not options['policy']['active']:
         raise HTTPException(409,'Choose a service with an active scheduling policy')
@@ -26,8 +28,10 @@ def find_choices(db, actor, service_id, day, minutes, *, eligibility_id=None, re
     required = set(options['policy'].get('required_resource_types') or [])
     fixed = [i for i in ids if not auto_resources or next(r['resource_type'] for r in resources if r['id']==i) not in required]
     missing = required - {r['resource_type'] for r in resources if r['id'] in fixed}
-    groups = [[r['id'] for r in resources if r['resource_type']==kind][resource_offset:resource_offset+8] for kind in sorted(missing)]
+    groups = [[r['id'] for r in sorted(resources,key=lambda r:r['id'] not in ids) if r['resource_type']==kind][resource_offset:resource_offset+8] for kind in sorted(missing)]
     combinations = [fixed+list(extra) for extra in islice(product(*groups),32)] if groups else [fixed]
+    if not (required - {r['resource_type'] for r in resources if r['id'] in ids}):
+        combinations = [ids, *[c for c in combinations if c != ids]]
     choices, checked, errors = [], 0, 0
     for person in people:
         for offset in range(search_days):
@@ -45,8 +49,10 @@ def find_choices(db, actor, service_id, day, minutes, *, eligibility_id=None, re
                     if error.status_code not in (409,422): raise
                     errors+=1
                     continue
-                possible = ([{'starts_at':at.isoformat()}] if at and state['selection_available'] else state['slots'])
+                possible = ([{'starts_at':at.isoformat()}, *[slot for slot in state['slots'] if datetime.fromisoformat(slot['starts_at']) != at]] if at and state['selection_available'] else state['slots'])
                 possible = [slot for slot in possible if not starts_at or datetime.fromisoformat(slot['starts_at'])>=starts_at]
+                if window_from:
+                    possible = [slot for slot in possible if (lambda local: local.time().replace(tzinfo=None)>=window_from and (local+timedelta(minutes=minutes)).date()==local.date() and (local+timedelta(minutes=minutes)).time().replace(tzinfo=None)<=window_until)(datetime.fromisoformat(slot['starts_at']).astimezone(ZoneInfo(person['timezone'])))]
                 for slot in possible[:2]:
                     choices.append({'eligibility_id':person['eligibility_id'],'employee_id':person['employee_id'],
                         'employee_name':person['employee_name'],'timezone':person['timezone'],
@@ -57,7 +63,11 @@ def find_choices(db, actor, service_id, day, minutes, *, eligibility_id=None, re
                 if possible: break
             if any(c['eligibility_id']==person['eligibility_id'] for c in choices) or checked>=128: break
         if checked>=128: break
-    choices.sort(key=lambda c:(datetime.fromisoformat(c['starts_at']), c['eligibility_id']!=eligibility_id, c['changed_resources'],c['employee_name']))
+    def rank(choice):
+        at=datetime.fromisoformat(choice['starts_at'])
+        other=choice['employee_id']!=preferred_employee_id if preferred_employee_id else choice['eligibility_id']!=eligibility_id
+        return ((other,at,choice['changed_resources']) if priority=='same_employee' else (choice['changed_resources'],other,at) if priority=='fewest_changes' else (at,other,choice['changed_resources']))+(choice['employee_name'],)
+    choices.sort(key=rank)
     return {'choices':choices[:8],'checked_combinations':checked,'partial':checked>=128 or bool(options.get('has_more_resources')) or (not eligibility_id and (options['has_more'] or len(options['specialists'])>len(people))) or any(len([r for r in resources if r['resource_type']==kind])>resource_offset+8 for kind in missing) or len(choices)>8,
         'failed_checks':errors,'next_employee_offset':employee_offset+len(people) if not eligibility_id and (options['has_more'] or len(options['specialists'])>len(people)) else None,
         'next_resource_offset':resource_offset+8 if any(len([r for r in resources if r['resource_type']==kind])>resource_offset+8 for kind in missing) else None,

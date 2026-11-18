@@ -23,6 +23,7 @@ const authStorage = createJSONStorage(() => ({
 }));
 
 export interface AuthUser {
+  avatar_url?: string;
   id: number;
   email: string;
   name?: string | null;

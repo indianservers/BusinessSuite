@@ -7,6 +7,7 @@ This module installs no record boundary and enables no runtime pack support.
 """
 from contextlib import contextmanager
 from enum import Enum
+from functools import lru_cache
 import re
 
 from fastapi import HTTPException
@@ -166,15 +167,27 @@ _ADMIN_ROUTES = (
 _SETTINGS_KEYS = frozenset(('business-packs', 'business-profile', 'files-storage', 'shared-companies', 'appearance', 'account', 'preferences', 'company-profile', 'branches', 'departments', 'designations', 'shifts', 'holidays', 'leaveTypes', 'salaryComponents', 'internships', 'documents', 'users', 'security', 'audit', 'modules', 'connections', 'communication', 'global', 'pms', 'task-packs', 'crm', 'sales', 'finance', 'ai'))
 
 def _administration_route(method, path):
-    for verb, template in _ADMIN_ROUTES:
-        if verb != method: continue
+    return _matches_administration_route(method, path, _administration_patterns(_ADMIN_ROUTES))
+
+
+@lru_cache(maxsize=4)
+def _administration_patterns(routes):
+    patterns=[]
+    for verb, template in routes:
         pattern = re.escape(template)
         for key in re.findall(r"\{([a-z_]+)\}", template):
             allowed = r"[1-9][0-9]*"
             if key == "kind": allowed = r"(?:branches|departments)"
             if key == "module_key": allowed = r"[a-z][a-z0-9_]{0,63}"
             pattern = pattern.replace(re.escape("{" + key + "}"), allowed)
-        if re.fullmatch(pattern, path): return True
+        patterns.append((verb,re.compile(pattern)))
+    return tuple(patterns)
+
+
+def _matches_administration_route(method, path, patterns):
+    for verb, pattern in patterns:
+        if verb != method: continue
+        if pattern.fullmatch(path): return True
     prefix = "/api/v1/access/settings/"
     if method == "GET" and path.startswith(prefix):
         tail = path[len(prefix):]

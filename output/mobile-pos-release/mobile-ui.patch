@@ -1,0 +1,682 @@
+diff --git a/frontend/src/apps/srm/pages/SRMPOSPage.tsx b/frontend/src/apps/srm/pages/SRMPOSPage.tsx
+index d0bf306a0..a302a337d 100644
+--- a/frontend/src/apps/srm/pages/SRMPOSPage.tsx
++++ b/frontend/src/apps/srm/pages/SRMPOSPage.tsx
+@@ -1,3 +1,7 @@
++import ModuleNewMenu from "@/components/app/ModuleNewMenu";
++import NewMenu from "@/components/app/NewMenu";
++import POSMobileCatalogue from "../components/POSMobileCatalogue";
++import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
+ import POSCustomerIdentity from "../components/POSCustomerIdentity";
+ import { BookingSummary } from "@/shared/scheduling/BookingUX";
+ import PrebookingPOSVisit from '../industry/PrebookingPOSVisit';
+@@ -46,6 +50,13 @@ import { canAccessRoute } from "@/lib/roles";
+ import { useAuthStore } from "@/store/authStore";
+ import { phoneLinks } from "@/components/PhoneActions";
+ import {
++  FileText,
++  Tag,
++  ArrowLeft,
++  ArrowRight,
++  Split,
++  ShoppingBag,
++  Stethoscope,
+   Banknote,
+   Calculator,
+   CalendarDays,
+@@ -489,6 +500,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+   }
+   const [query, setQuery] = useState("");
+   const [scanFeedback,setScanFeedback] = useState('');
++  const [phoneNotice,setPhoneNotice] = useState(false);
++  useEffect(()=>{if(!scanFeedback){setPhoneNotice(false);return;}setPhoneNotice(true);const timer=window.setTimeout(()=>setPhoneNotice(false),2500);return()=>window.clearTimeout(timer);},[scanFeedback]);
+   const [highlighted,setHighlighted] = useState<number|null>(null);
+   const [undo,setUndo] = useState<{lines:CartLine[];message:string}|null>(null);
+   const [confirmClear,setConfirmClear] = useState(false);
+@@ -506,6 +519,40 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
+   const [category, setCategory] = useState("All");
+   const [cart, setCart] = usePersistedState<CartLine[]>(storage("cart"), []);
++  const [phonePanel,setPhonePanel] = useState<'sessions'|'actions'|'customer'|'discounts'|null>(null);
++  const [phoneLineId,setPhoneLineId] = useState<string|null>(null);
++  const phoneLine=cart.find(line=>line.lineId===phoneLineId);
++  const phonePaginationAnchor=useRef<string|null>(null);
++  const [phonePage,setPhonePage] = useState(0);
++  const [phonePageSize,setPhonePageSize] = useState(1);
++  const [phoneWidth,setPhoneWidth] = useState(()=>window.innerWidth);
++  useLayoutEffect(()=>{
++    const resize=()=>setPhoneWidth(window.innerWidth);
++    window.addEventListener('resize',resize);
++    const node=cartScrollRef.current;
++    const observer=new ResizeObserver(()=>{
++      if(!node||!node.clientWidth||window.innerWidth>767)return;
++      // Measure hidden pages without unmounting their scheduling/availability state.
++      const heights=Array.from(node.querySelectorAll<HTMLElement>('.pos-cart-line')).map(row=>{
++        if(getComputedStyle(row).display!=='none')return row.getBoundingClientRect().height;
++        const copy=row.cloneNode(true) as HTMLElement;
++        copy.dataset.phoneHidden='false';copy.setAttribute('aria-hidden','true');
++        Object.assign(copy.style,{position:'absolute',visibility:'hidden',pointerEvents:'none',width:`${node.clientWidth-18}px`,left:'-10000px'});
++        row.parentElement!.append(copy);const height=copy.getBoundingClientRect().height;copy.remove();return height;
++      });
++      const needed=Math.max(0,...heights.filter((_,index)=>index%2===0).map((height,index)=>height+(heights[index*2+1]||0)))+4;
++      const pager=workspaceRef.current?.querySelector<HTMLElement>('.pos-phone-pagination');
++      const reclaimed=cart.length<=2&&pager&&getComputedStyle(pager).display!=='none'?pager.offsetHeight+6:0;
++      setPhonePageSize(node.clientHeight+reclaimed>=needed?2:1);
++    });
++    if(node){observer.observe(node);node.querySelectorAll('.pos-cart-line').forEach(row=>observer.observe(row));}
++    return()=>{observer.disconnect();window.removeEventListener('resize',resize);};
++  },[cart]);
++  useLayoutEffect(()=>{const index=cart.findIndex(line=>line.lineId===phonePaginationAnchor.current);if(index>=0)setPhonePage(Math.floor(index/phonePageSize));},[phonePageSize,cart]);
++  const phonePages=Math.max(1,Math.ceil(cart.length/phonePageSize));
++  const safePhonePage=Math.min(phonePage,phonePages-1);
++  useEffect(()=>{setPhonePage(page=>Math.min(page,phonePages-1));},[phonePages]);
++
+   const [localHeldBills, setLocalHeldBills] = usePersistedState<HeldBill[]>(storage("held"), []);
+   const [sales, setSales] = usePersistedState<Sale[]>(storage("sales"), []);
+   const [billDiscount, setBillDiscount] = usePersistedState(storage("bill-discount"), 0);
+@@ -639,10 +686,20 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+     if (line.booking && cartBookingConflict(cart,line.lineId,line.booking,line.resourceCapacities)) readiness.push({id:`overlap-${line.lineId}`,lineId:line.lineId,text:`${line.name}: employee or resource capacity overlaps another appointment in this basket.`});
+   }
+   function reviewIssue(issue:{id:string;lineId?:string}) {
+-    if (issue.id==='register') setSessionDetailsOpen(true);
++    if (issue.id==='register') {if(phoneWidth<=767)setPhonePanel('sessions');else setSessionDetailsOpen(true);}
+     if (issue.id==='catalog') void productsQuery.refetch();
++    if (issue.id==='customer' && phoneWidth<=767) {setPhonePanel('customer');return;}
+     if (issue.id==='customer') document.querySelector<HTMLButtonElement>('[aria-label="Change sale customer"]')?.click();
+-    if (issue.lineId) {setMobileView('cart');requestAnimationFrame(()=>{const row=document.getElementById(`pos-line-${issue.lineId}`);row?.querySelectorAll('details').forEach(details=>details.open=true);row?.scrollIntoView({block:'center',behavior:'smooth'});});}
++    if (issue.lineId) {setPhonePage(Math.floor(cart.findIndex(line=>line.lineId===issue.lineId)/phonePageSize));setReadinessOpen(false);setMobileView('cart');requestAnimationFrame(()=>{const row=document.getElementById(`pos-line-${issue.lineId}`);row?.querySelectorAll('details').forEach(details=>details.open=true);row?.scrollIntoView({block:'center',behavior:'smooth'});});}
++  }
++  async function openRegister() {
++    if(locked||!owns()||opening||!online)return;
++    setOpening(true);
++    try {
++      await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});
++      if(owns()){await activeRegister.refetch();setPhonePanel(null);}
++    } catch(error) {if(owns())toast({title:'Register not opened',description:dealError(error),variant:'destructive'});}
++    finally {if(owns())setOpening(false);}
+   }
+   function removeLine(lineId:string) {
+     if(locked)return;
+@@ -668,9 +725,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+     if(product.trackInventory && already>=product.stock){setScanFeedback(`${product.name}: only ${product.stock} in stock; no more added.`);return;}
+     setUsageCounts(counts=>({...counts,[product.id]:(counts[product.id] || 0)+1}));
+     setHighlighted(product.id);setScanFeedback(`${product.name} added to cart.`);
++    const addedLine = buildCartLine(product);
+     setCart((current) => {
+       const existing = current.find((line) => line.id === product.id && !line.serialTracking && !isService(line));
+-      if (!existing) return [...current, buildCartLine(product)];
++      phonePaginationAnchor.current = existing?.lineId || addedLine.lineId;
++      if (!existing) return [...current, addedLine];
+       return current.map((line) => line.lineId === existing.lineId ? { ...line, qty: line.trackInventory ? Math.min(line.stock, line.qty + 1) : line.qty + 1 } : line);
+     });
+   }
+@@ -957,15 +1016,16 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+     <div ref={workspaceRef} className={`srm-pos pos-booking-workspace srm-pos-view-${mobileView} min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950`}>
+       <header className="pos-shell-header relative z-30 border-b border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
+         <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+-          <div className="pos-workspace-identity flex min-w-0 items-center gap-3">
++          <div className="pos-workspace-identity flex min-w-0 items-center gap-3"><button className="pos-phone-back" type="button" aria-label="Back to sales" onClick={()=>navigate("/srm")}><ArrowLeft size={23}/></button>
+             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[#6d49d7] text-white shadow-sm">
+-              <ShoppingCart className="h-6 w-6" />
++              <ShoppingCart className="h-6 w-6 text-white" />
+             </span>
+             <div className="min-w-0">
+               <span className="pos-workspace-eyebrow">Sales workspace</span>
+-              <h1 className="truncate text-xl font-semibold">{presentation.title}</h1>
+-              <p className="text-sm text-slate-500">{branchName} / {register?.register_name || "Register not open"} / Session {register?.session_number || (register ? `#${register.id}` : "not open")}</p>
++              <h1 className="truncate text-xl font-semibold" title={presentation.title}>{phoneWidth<=767?"Billing & POS":presentation.title}</h1>
++              <p className="text-sm text-slate-500">{branchName} · {register?.register_name || "Register not open"} · {register?.session_number || (register ? `#${register.id}` : "Not open")}</p>
+             </div>
++            <div className="pos-phone-header-tools"><ModuleNewMenu>{actions=><NewMenu actions={[...actions,{label:'Register setup',description:'Open or manage the billing register',icon:Calculator,group:'POS tools',onSelect:()=>setPhonePanel('sessions')},{label:'Bill tools',description:'Customer, cash drawer, receipts and held bills',icon:Settings,group:'POS tools',onSelect:()=>setPhonePanel('actions')}]} iconOnly/>}</ModuleNewMenu><SuiteNotificationBell/><Link to="/srm/profile" aria-label="My profile" className="pos-phone-profile">{(authUser?.name || cashierName || "User").split(" ").slice(0,2).map(word=>word[0]).join("")}</Link></div>
+           </div>
+           <div className="pos-header-actions">
+             <nav aria-label="Sales and scheduling" className="pos-workspace-links">
+@@ -1046,20 +1106,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+       </header>
+ 
+ 
+-      <nav className="pos-phone-navigation" aria-label="Mobile POS navigation">
+-        <button type="button" aria-current="page" onClick={()=>setMobileView('cart')}><ShoppingCart size={20}/>POS</button>
+-        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><CalendarDays size={20}/>Sessions</button>
+-        <button type="button" onClick={()=>setSessionDetailsOpen(value=>!value)} aria-expanded={sessionDetailsOpen}><Settings size={20}/>Actions</button>
+-      </nav>
+-      <div className="pos-phone-feedback" role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
+-      <div className="pos-phone-bill"><Receipt size={28}/><div><strong>Current Bill</strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={16}/>Clear</Button></div>
+-      <div className="pos-phone-customer">
+-        <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
+-        <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
+-      </div>
++      <div className="pos-phone-feedback" data-notice={phoneNotice} role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
++      <div className="pos-phone-bill"><button type="button" className="pos-phone-bill-customer" aria-label="Change sale customer" onClick={()=>setPhonePanel("customer")}><FileText size={27}/></button><div><strong>Current Bill <button className="pos-phone-customer-compact" aria-label={`Customer: ${customer.name}`} type="button" onClick={()=>setPhonePanel("customer")}>Customer ›</button></strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button className="pos-phone-trash" variant="outline" aria-label="Clear bill items" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={18}/></Button><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}>Clear</Button></div>
++      <button className="pos-phone-customer-button" aria-label="Change sale customer" type="button" onClick={()=>setPhonePanel('customer')}>Customer: {customer.name}<span>Change ›</span></button>
+       <div className="pos-guidance px-4 py-2 space-y-2">
+         <ol className="flex flex-wrap gap-3 text-xs" aria-label="POS startup progress"><li>1. {branchName}</li><li>2. {register?.id ? `Register ${register.session_number || register.id} open` : 'Register not open'}</li><li>3. {register?.id ? `Opening cash ${currency(Number(register.opening_cash || 0))}` : 'Set opening cash'}</li><li>{register?.id && online ? 'Ready for billing' : 'Setup required'}</li></ol>
+-        {!register?.id && <Button variant="outline" size="sm" onClick={()=>setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
++        {!register?.id && <Button variant="outline" size="sm" onClick={()=>phoneWidth<=767?setPhonePanel('sessions'):setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
+         <p className="text-xs">Customer: <strong>{customer.name}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
+         {!online && <p role="alert">Offline. Your basket is retained; reconnect to check availability and take payment.</p>}
+         <p role="status" aria-live="polite" className="text-xs">{scanFeedback}</p>
+@@ -1070,10 +1122,19 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+       </div>
+       <nav className="srm-pos-mobile-tabs" aria-label="POS workspace">
+         <button type="button" aria-pressed={mobileView === "products"} onClick={() => setMobileView("products")}><LayoutGrid size={18} />Products</button>
+-        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart ({cart.length})</button>
++        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart <span className="pos-cart-count">{cart.length}</span></button>
+       </nav>
+       <main className="grid min-h-[calc(100vh-13.5rem)] gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
+         <section aria-label="Products and services catalogue" className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
++          {phoneWidth<=767 ? <POSMobileCatalogue products={filteredProducts}
++            counts={{All:storeProducts.length,Products:storeProducts.filter(product=>!isService(product)).length,Services:storeProducts.filter(isService).length}}
++            cart={cart} query={query} onQuery={setQuery} searchInputRef={searchRef} onScan={scanSearch}
++            category={category} categories={categories} onCategory={setCategory} tab={catalogTab} onTab={setCatalogTab} sort={catalogSort} onSort={setCatalogSort}
++            favorites={favoriteIds} onFavorite={id=>setFavoriteIds(ids=>ids.includes(id)?ids.filter(value=>value!==id):[...ids,id])}
++            onAdd={addProduct} isService={isService} formatMoney={currency} loading={productsQuery.isLoading} error={productsQuery.isError} onRetry={()=>void productsQuery.refetch()} locked={locked}
++            canCreate={!!(authUser?.is_superuser || (authUser?.access?.grants.srm?.enabled && authUser.access.grants.srm.actions.includes('create')) || (!authUser?.access?.managed && ['admin','srm_admin','srm_sales_manager','srm_sales_executive'].includes(String(authUser?.role).toLowerCase())))}/>
++          : <>
++
+           <div className="srm-pos-stock-summary grid gap-3 md:grid-cols-3">
+             <StatusTile label="Products" value={String(storeProducts.length)} detail={`${filteredProducts.length} visible`} />
+             <StatusTile label="Low stock" value={String(lowStockCount)} detail="Reorder watch" />
+@@ -1199,6 +1260,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+               })}
+             </div>
+           )}
++          </>}
+         </section>
+ 
+         <aside className="srm-pos-cart space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
+@@ -1215,15 +1277,15 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+ <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
+ 
+ </div>
+-          <Card ref={cartScrollRef} role="region" tabIndex={0} aria-label="Sale items, scroll for more" className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
++          <Card ref={cartScrollRef} role="region" tabIndex={0} aria-label={phoneWidth<=767 ? "Sale items, paginated" : "Sale items, scroll for more"} className="pos-cart-items overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
+ 
+             <CardContent className="space-y-3">
+ 
+-              {cart.length ? cart.map((line) => (
+-                <div key={line.lineId} id={`pos-line-${line.lineId}`} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
++              {cart.length ? cart.map((line,lineIndex) => (
++                <div key={line.lineId} id={`pos-line-${line.lineId}`} onFocusCapture={()=>{phonePaginationAnchor.current=line.lineId;}} data-phone-hidden={lineIndex < safePhonePage*phonePageSize || lineIndex >= (safePhonePage+1)*phonePageSize} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
+                   <div className="pos-compact-cart-row">
+-                    <div className="pos-phone-line-icon" aria-hidden="true">{isService(line) ? <CalendarDays size={27}/> : <ShoppingCart size={27}/>}</div><div className="pos-line-identity"><strong>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : `Product · ${line.sku}`}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
+-                    <div className="pos-inline-quantity"><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
++                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} price and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">Product · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
++                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
+                     <strong className="pos-line-amount">{currency(operationalPackKey==='pharma' && line.lotAllocation==='fefo' ? pharmaCheckoutQuote([{quantity:String(line.qty),price:line.rate.toFixed(2),discount:lineDiscount(line).toFixed(2),taxRate:String(line.taxRate)}],'0.00')?.grandTotal ?? lineTotal(line) : lineTotal(line))}</strong>
+                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
+                   </div>
+@@ -1231,7 +1293,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
+ </div>                  <label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
+ </details>
+-                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? 'Booking details' : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};setCart(current=>[...current,next]);}}>Add another appointment</Button></>}
++                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? (phoneWidth<=767 ? 'Edit' : 'Booking details') : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" aria-label="Add another appointment" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};phonePaginationAnchor.current=next.lineId;setPhonePage(Math.floor(cart.length/phonePageSize));setCart(current=>[...current,next]);setMobileView('cart');}}>Add another appointment</Button></>}
+ 
+ 
+                 </div>
+@@ -1245,12 +1307,13 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+             </CardContent>
+           </Card>
+ 
++          <nav className="pos-phone-pagination" data-single-page={phonePages===1} aria-label="Cart pages"><Button variant="outline" aria-label="Previous cart page" disabled={safePhonePage===0} onClick={()=>{phonePaginationAnchor.current=null;setPhonePage(safePhonePage-1);}}><ArrowLeft size={16}/></Button><span role="status">{cart.length ? safePhonePage*phonePageSize+1 : 0}–{Math.min((safePhonePage+1)*phonePageSize,cart.length)} of {cart.length} · {safePhonePage+1}/{phonePages}</span><Button variant="outline" aria-label="Next cart page" disabled={safePhonePage>=phonePages-1} onClick={()=>{phonePaginationAnchor.current=null;setPhonePage(safePhonePage+1);}}><ArrowRight size={16}/></Button></nav>
+           <p className="pos-cart-scroll-hint">Scroll for more sale items ↓</p>
+           <Card className="pos-bill-summary overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
+             <CardContent className="space-y-3 p-4">
+               <SummaryLine label="Subtotal" value={currency(totals.subtotal)} />
+               <SummaryLine label="Tax" value={currency(totals.tax)} />
+-              <details><summary>Tax, discounts &amp; coupon</summary><div className="space-y-3 py-2">
++              <button className="pos-phone-discounts" type="button" onClick={()=>setPhonePanel("discounts")}><Tag size={15}/>Discounts &amp; Coupons<span>›</span></button><details className="pos-desktop-discounts"><summary>Tax, discounts &amp; coupon</summary><div className="space-y-3 py-2">
+               <SummaryLine label="Line discount" value={currency(totals.lineDiscount)} />
+               <div className="grid grid-cols-[1fr_8rem] items-center gap-3 text-sm">
+                 <span className="text-slate-500">Bill discount</span>
+@@ -1277,20 +1340,27 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
+ </details>            </CardContent>
+           </Card>
+       <footer ref={checkoutFooterRef} className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
+-        <p id="pos-checkout-reason" className="pos-checkout-reason" role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
+-        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Calculator size={16}/> : <CreditCard size={16}/>} {method}</Button>)}</div>
++        <p id="pos-checkout-reason" className="pos-checkout-reason" data-blocked={!online||locked||readiness.length>0} role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
++        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Split size={16}/> : method === "UPI" ? <svg className="pos-upi-icon" width="20" height="22" viewBox="0 0 20 24" aria-hidden="true"><path fill="#f28b13" d="M8 1 18 12 2 23Z"/><path fill="#15944c" d="m12 1 8 11-14 11Z"/></svg> : <CreditCard size={16}/>} {method}</Button>)}</div>
+         <FooterMetric label="Items" value={String(cart.length)} />
+         <FooterMetric label="Quantity" value={String(totals.qty)} />
+         <FooterMetric label="Payable" value={operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo") && !Number.isInteger(totals.grandTotal) ? currency(totals.grandTotal) : shortCurrency(totals.grandTotal)} />
+         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={() => setActiveModal("held")}><RotateCcw className="h-4 w-4" />Recall</Button>
+         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={!sales.some(sale=>!!sale.checkoutId) && !lastSale?.checkoutId} onClick={() => printReceipt()}><Printer className="h-4 w-4" />Print Last</Button>
+-        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & book` : `Collect ${currency(totals.grandTotal)}`}</Button>
++        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & Book` : `Collect ${currency(totals.grandTotal)}`}<ArrowRight className="pos-collect-arrow" size={21}/></Button>
+       </footer>
+         </aside>
+       </main>
+ 
+ 
+ 
++      {phoneLine && <Overlay title={`Edit ${phoneLine.name}`} onClose={()=>setPhoneLineId(null)}><div className="space-y-3"><label className="block">Rate<Input type="number" min="0" value={phoneLine.rate} onChange={event=>updateLine(phoneLine.lineId,{rate:Math.max(0,Number(event.target.value)||0)})}/></label><label className="block">Discount %<Input type="number" min="0" max="50" value={phoneLine.discount} onChange={event=>updateLine(phoneLine.lineId,{discount:Math.min(50,Math.max(0,Number(event.target.value)||0))})}/></label><label className="block">Line note<Input value={phoneLine.note} onChange={event=>updateLine(phoneLine.lineId,{note:event.target.value})}/></label>{phoneLine.booking&&<p>Quantity is fixed at one per appointment. Use Add another appointment for a second booking.</p>}<Button onClick={()=>setPhoneLineId(null)}>Done</Button></div></Overlay>}
++      {phonePanel && <Overlay title={phonePanel==='sessions'?'Register session':phonePanel==='actions'?'POS actions':phonePanel==='customer'?'Sale customer':'Discounts & coupons'} onClose={()=>setPhonePanel(null)}>
++        {phonePanel==='sessions' && <div className="pos-phone-session space-y-3"><p>{branchName} · {register?.register_name || activeStoreProfile.register}</p><p>Cashier: {cashierName}</p>{register?.id?<><p>Session {register.session_number || register.id} · Open</p><p>Opening cash {currency(Number(register.opening_cash||0))}</p><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('close');}}>Close session</Button></>:<form className="space-y-3" onSubmit={event=>{event.preventDefault();void openRegister();}}><p className="text-sm">Open the register before collecting payment.</p><label className="block text-sm">Opening cash<Input aria-label="Mobile POS opening cash" required type="number" min="0" step="0.01" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button type="submit" disabled={locked||opening||!online||activeRegister.isFetching}>{opening?'Opening register…':'Open POS register'}</Button></form>}{activeRegister.isError&&<Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}</div>}
++        {phonePanel==='actions' && <div className="grid grid-cols-2 gap-3"><Button onClick={()=>setPhonePanel("customer")}>Sale customer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('profile');}}>Register settings</Button><Button disabled={!lastSale?.checkoutId&&!sales.some(sale=>!!sale.checkoutId)} onClick={()=>printReceipt()}>Print last receipt</Button><Button disabled={selectedPOS} onClick={()=>{setPhonePanel(null);setActiveModal('held');}}>Recall held bill</Button><Button onClick={()=>{setPhonePanel(null);setReadinessOpen(true);}}>Review bill</Button><Button disabled={!cart.length} onClick={()=>{setPhonePanel(null);setConfirmClear(true);}}>Clear bill</Button></div>}
++        {phonePanel==='customer' && <div className="space-y-3"><POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/><POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/><Button disabled={selectedPOS&&!posFeatures?.customers_register} onClick={()=>{setPhonePanel(null);setQuickAddOpen(true);}}>New customer</Button><Button variant="outline" onClick={()=>setPhonePanel(null)}>Done</Button></div>}
++        {phonePanel==='discounts' && <div className="space-y-4"><label className="block">Bill discount<Input aria-label="Mobile bill discount" type="number" min="0" value={billDiscount} onChange={event=>setBillDiscount(Math.max(0,Number(event.target.value)||0))}/></label><label className="block">Coupon code<Input aria-label="Mobile coupon code" value={coupon} onChange={event=>setCoupon(event.target.value)}/></label><SummaryLine label="Discount" value={currency(totals.lineDiscount+totals.couponDiscount)}/><SummaryLine label="Amount payable" value={currency(totals.grandTotal)}/><Button onClick={()=>setPhonePanel(null)}>Apply & close</Button></div>}
++      </Overlay>}
+       {quickAddOpen && (selectedPOS&&posFeatures?<POSQuickAddCustomer features={posFeatures} onClose={()=>setQuickAddOpen(false)} onCreated={customerCreated}/>:!selectedPOS?<QuickAddCustomer onClose={() => setQuickAddOpen(false)} onCreated={customerCreated}/>:null)}
+       {activeModal === "payment" ? (
+         <Overlay title="Complete Payment" onClose={() => {if(!nativeBusy)setActiveModal(null);}} wide>
+diff --git a/frontend/src/apps/srm/pages/pos-mobile-reference.css b/frontend/src/apps/srm/pages/pos-mobile-reference.css
+index 0f52af315..0174e629a 100644
+--- a/frontend/src/apps/srm/pages/pos-mobile-reference.css
++++ b/frontend/src/apps/srm/pages/pos-mobile-reference.css
+@@ -1,33 +1,147 @@
+-.pos-phone-navigation,.pos-phone-feedback,.pos-phone-bill,.pos-phone-line-icon{display:none}
++/* Mobile POS follows the supplied compact billing reference. Desktop is unchanged. */
++.pos-phone-feedback,.pos-phone-bill,.pos-phone-line-icon,
++.pos-phone-pagination,.pos-phone-back,.pos-phone-header-tools,.pos-phone-customer-button,
++.pos-phone-customer-compact,.pos-phone-discounts,.pos-collect-arrow{display:none}
+ @media(max-width:767px){
+-body:has(.pos-booking-workspace){overflow:hidden}
+-.pos-booking-workspace{display:flex;flex-direction:column;height:100dvh!important;min-height:0!important;overflow:hidden;padding:0 12px!important;background:#f5f1ff!important;gap:8px}
+-.pos-booking-workspace .pos-shell-header{flex-shrink:0;margin:0 -12px;padding:12px 18px 18px!important;border:0;border-radius:0 0 24px 24px;background:radial-gradient(ellipse at top right,#9224b6,transparent 65%),linear-gradient(120deg,#30206b,#59148f)!important;color:white}
+-.pos-booking-workspace .pos-workspace-eyebrow,.pos-booking-workspace .pos-header-actions{display:none}
+-.pos-booking-workspace .pos-workspace-identity h1{font-size:21px;color:white}.pos-booking-workspace .pos-workspace-identity p{font-size:11px;color:#eee1ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+-.pos-booking-workspace .pos-workspace-identity>span{border-radius:50%;background:linear-gradient(135deg,#a02ef5,#5d15b5)}
+-.pos-phone-navigation{display:grid;grid-template-columns:repeat(3,1fr);flex-shrink:0;border:1px solid #e1daed;border-radius:12px;background:#f0ebf8;min-height:40px}.pos-phone-navigation button{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:650;border-radius:11px}.pos-phone-navigation [aria-current]{color:white;background:linear-gradient(120deg,#b32cf6,#6506b4)}
+-.pos-phone-feedback{display:flex;flex-shrink:0;align-items:center;gap:8px;padding:7px 10px;min-height:32px;border:1px solid #c6ecdc;border-radius:10px;background:#e1faef;font-size:11px}.pos-phone-feedback>svg{color:#20a444;flex-shrink:0}.pos-phone-feedback span{flex:1}
+-.pos-phone-bill{display:flex;flex-shrink:0;align-items:center;gap:12px;padding:8px 10px;border:1px solid #e4deee;border-radius:13px;background:#ffffffb5}.pos-phone-bill>svg{color:#7520b2;background:#eee7fa;box-sizing:content-box;padding:8px;border-radius:10px}.pos-phone-bill>div{flex:1}.pos-phone-bill strong{display:block;font-size:17px}.pos-phone-bill span{display:block;font-size:11px;color:#6e6479}.pos-phone-bill .kf-button{min-height:32px;height:32px;font-size:11px;color:#7a16b8}
+-.pos-booking-workspace .pos-guidance{display:none}.pos-booking-workspace:has(.srm-pos-session-details.is-open) .pos-header-actions{display:block}
+-.pos-booking-workspace .srm-pos-mobile-tabs{flex-shrink:0;padding:0;background:transparent;gap:8px}.pos-booking-workspace .srm-pos-mobile-tabs button{padding:7px;min-height:38px;border-radius:12px;font-size:13px;border-color:#fff;background:#ffffffb5}.pos-booking-workspace .srm-pos-mobile-tabs [aria-pressed=true]{background:linear-gradient(120deg,#ac23ec,#6207ad);color:white}
+-.pos-booking-workspace>main{display:flex;flex:1;min-height:0!important;height:auto!important;padding:0!important;overflow:hidden}
+-.pos-booking-workspace .srm-pos-cart{display:flex!important;flex:1;flex-direction:column;gap:8px!important;min-height:0;padding:0!important;background:transparent;border:0;box-shadow:none;overflow:hidden!important}.pos-booking-workspace .srm-pos-cart>*{margin-top:0!important}.pos-booking-workspace .srm-pos-cart>div:first-child,.pos-booking-workspace .pos-sale-customer,.pos-booking-workspace .pos-extra-bill{display:none!important}
+-.pos-booking-workspace.srm-pos-view-products .srm-pos-cart{display:contents!important}
+-.pos-booking-workspace .pos-cart-items{flex:1;min-height:0!important;max-height:none;height:auto!important;padding:4px 10px!important;overflow:auto!important;border:1px solid white;border-radius:15px;background:#ffffffb8;scrollbar-width:none}.pos-booking-workspace ::-webkit-scrollbar{display:none}
+-.pos-booking-workspace .pos-cart-line{border:0;border-bottom:1px solid #eee8f4;border-radius:0;background:transparent;padding:8px 0!important}
+-.pos-booking-workspace .pos-compact-cart-row{grid-template-columns:42px minmax(0,1fr) 82px 22px;gap:7px;position:relative}.pos-phone-line-icon{display:grid;place-items:center;grid-row:1/3;width:42px;height:46px;border-radius:10px;background:linear-gradient(135deg,#f3edff,#e9ddfa);color:#8f26c8}
+-.pos-booking-workspace .pos-line-identity{grid-column:2;padding:0}.pos-booking-workspace .pos-line-identity strong{font-size:12px}.pos-booking-workspace .pos-line-identity small{font-size:10px;margin-top:1px}.pos-booking-workspace .pos-inline-quantity{grid-column:3;grid-row:1/3;border:1px solid #e1d8eb;border-radius:9px;overflow:hidden;gap:0}.pos-booking-workspace .pos-inline-quantity button{width:25px;min-height:28px;height:28px}.pos-booking-workspace .pos-inline-quantity input{width:28px;min-height:28px;height:28px;font-size:12px;padding:0;border-radius:0}.pos-booking-workspace .pos-line-amount{grid-column:2;grid-row:2;justify-self:start;font-size:12px}.pos-booking-workspace .pos-compact-cart-row>.kf-button:last-child{position:static;grid-column:4;grid-row:1/3;width:22px;min-height:28px}
+-.pos-booking-workspace .pos-cart-line>details>summary{font-size:9px;min-height:18px!important}.pos-booking-workspace .pos-line-booking:has(.booking-summary-lines){padding:6px 8px;background:#efe7fb;border-radius:10px;margin-top:4px}.pos-booking-workspace .booking-summary-lines{font-size:10px}.pos-booking-workspace .pos-repeat-booking{display:flex;margin:5px auto 0;border:1px solid #ba7fda;border-radius:20px;color:#8513bd}
+-.pos-booking-workspace .pos-bill-summary{flex-shrink:0;border-radius:14px;border:1px solid white;background:#ffffffc9!important;padding:8px 10px}.pos-booking-workspace .pos-bill-summary>div{display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:repeat(3,auto);gap:4px 12px!important;padding:0!important}.pos-booking-workspace .pos-bill-summary>div>div:not(.pos-payable-panel){grid-column:1;font-size:11px}.pos-booking-workspace .pos-bill-summary details{grid-column:1;font-size:10px}.pos-booking-workspace .pos-bill-summary details[open]{position:absolute;bottom:120px;left:12px;right:12px;background:white;padding:16px;border:1px solid #decdfc;border-radius:12px;z-index:40}.pos-booking-workspace .pos-bill-summary .pos-payable-panel{grid-column:2;grid-row:1/4;display:flex;flex-direction:column;justify-content:center;min-height:66px;padding:8px!important;border-radius:10px;background:linear-gradient(120deg,#f8f0ff,#e9d8fa);color:#710aa8}.pos-booking-workspace .pos-payable-panel span{font-size:10px}.pos-booking-workspace .pos-payable-panel strong{font-size:25px;line-height:1.3}
+-.pos-booking-workspace .srm-pos-checkout{position:static!important;display:flex!important;flex-direction:column;flex-shrink:0;gap:8px;padding:0 0 max(8px,env(safe-area-inset-bottom))!important;background:transparent;border:0}.pos-booking-workspace .pos-checkout-reason{position:absolute;width:1px!important;height:1px;overflow:hidden;clip-path:inset(50%)}.pos-booking-workspace .pos-tender-shortcuts{display:grid;grid-template-columns:repeat(4,1fr);width:100%;gap:7px}.pos-booking-workspace .pos-tender-shortcuts .kf-button{min-height:35px;height:35px;padding:4px;font-size:12px;color:#7d16b3;border:1px solid #ded5e9;border-radius:10px;background:#ffffffa8;gap:6px}.pos-booking-workspace .srm-pos-checkout>button:last-child{flex:auto;width:100%;min-height:44px;border-radius:28px;background:linear-gradient(115deg,#b027f0,#590aa4);font-size:15px}
+-.pos-booking-workspace .srm-pos-catalog{width:100%;min-height:0;overflow:auto;padding:10px!important;scrollbar-width:none}
++  body:has(.pos-booking-workspace){overflow:hidden}
++  .pos-booking-workspace{--phone-space:clamp(7px,1.35dvh,14px);position:fixed!important;inset:0;z-index:40;display:flex;flex-direction:column;gap:var(--phone-space);height:100dvh!important;min-height:0!important;overflow:hidden;padding:0 16px!important;background:linear-gradient(145deg,#f6f3ff,#f7f5fd 70%,#fbfaff)!important;color:#171120;border-radius:22px 22px 0 0}
++  .pos-booking-workspace button:focus-visible{outline:2px solid #961add;outline-offset:2px}
++  .pos-booking-workspace .pos-shell-header{flex-shrink:0;isolation:isolate;overflow:hidden;margin:0 -16px;padding:10px 12px 18px!important;border:0;border-radius:0;background:linear-gradient(115deg,#30216e,#551488)!important;color:#fff;box-shadow:none;backdrop-filter:none}
++  .pos-booking-workspace .pos-shell-header::before{content:'';position:absolute;z-index:-1;pointer-events:none;width:105%;height:170%;top:-105%;left:20%;border-radius:50%;box-shadow:22px 35px 0 7px #a531b745,60px 55px 0 7px #8e27ad44;transform:rotate(-17deg)}
++  .pos-booking-workspace .pos-shell-header>div{display:block}
++  .pos-booking-workspace .pos-workspace-identity{display:flex;gap:8px;flex-wrap:nowrap}
++  .pos-phone-back{display:grid;place-items:center;flex:0 0 26px;min-height:44px;color:#fff}
++  .pos-booking-workspace .pos-workspace-identity>span{width:38px;height:38px;border-radius:50%;background:linear-gradient(130deg,#a932f3,#6417b5);box-shadow:inset 0 1px 2px #ffffff35}
++  .pos-booking-workspace .pos-workspace-identity>span svg{color:white;width:23px;height:23px}
++  .pos-booking-workspace .pos-workspace-identity>div:not(.pos-phone-header-tools){flex:1;min-width:0}
++  .pos-booking-workspace .pos-workspace-identity h1{font-size:19px;line-height:1.25;color:white;letter-spacing:-.35px;white-space:nowrap}
++  .pos-booking-workspace .pos-workspace-identity p{font-size:10px;line-height:1.5;color:#eee2ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
++  .pos-booking-workspace .pos-workspace-eyebrow,.pos-booking-workspace .pos-header-actions{display:none}
++  .pos-phone-header-tools{display:flex;align-items:center;gap:7px;flex-shrink:0}
++  .pos-phone-header-tools .suite-notification-bell{display:grid;place-items:center;position:relative;width:30px;min-height:44px;color:white}
++  .pos-phone-header-tools .suite-notification-bell>span{position:absolute;right:0;top:4px;min-width:9px;height:9px;padding:0;border-radius:50%;background:#ff514c;color:transparent;font-size:0}
++  .pos-phone-profile{display:grid;place-items:center;width:32px;height:32px;border:2px solid #fff;border-radius:50%;background:linear-gradient(135deg,#eee8f5,#c9acdc);color:#4e246d;font-size:11px;font-weight:700}
++  .pos-phone-feedback{display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 10px;min-height:32px;border:1px solid #c7ecdf;border-radius:10px;background:linear-gradient(100deg,#e4fcf0,#ddf9ef);font-size:11px}
++  .pos-phone-feedback>svg{color:#20a93e;fill:#20a93e;stroke:white;width:20px;height:20px;flex-shrink:0;border-radius:50%}
++  .pos-phone-feedback span{flex:1;min-width:0}.pos-phone-feedback button{display:grid;place-items:center;width:28px;min-height:30px;color:#52645d}
++  .pos-phone-bill{display:flex;align-items:center;gap:10px;flex-shrink:0;min-height:54px;padding:6px 10px;border:1px solid #e3ddec;border-radius:13px;background:#ffffff85;box-shadow:0 3px 6px #4b286608}
++  .pos-phone-bill-customer{display:grid;place-items:center;flex-shrink:0;width:42px;height:42px;background:linear-gradient(145deg,#f3eefb,#eae2f7);border-radius:10px;color:#6621a8}
++  .pos-phone-bill>div{flex:1;min-width:0}.pos-phone-bill strong{display:block;font-size:17px;line-height:1.3}.pos-phone-bill>div>span{display:block;color:#716779;font-size:11px;line-height:1.4}
++  .pos-booking-workspace .pos-phone-bill .kf-button{min-height:32px;height:32px;padding:4px 10px;border:1px solid #e5deed;border-radius:10px;background:#f8f4ff;color:#8021b7;font-size:12px;font-weight:700}
++  .pos-booking-workspace .pos-phone-bill .pos-phone-trash{width:34px;padding:0;color:#514064;background:transparent}
++  .pos-phone-customer-button,.pos-phone-customer-compact{display:none!important}
++  .pos-booking-workspace .pos-guidance{display:none}
++  .pos-booking-workspace .srm-pos-mobile-tabs{position:static;display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0;padding:0;background:transparent;box-shadow:none}
++  .pos-booking-workspace .srm-pos-mobile-tabs button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:38px;padding:4px;border:1px solid #fff;border-radius:13px;background:#ffffffb0;box-shadow:0 4px 8px #4426660a;font-size:14px;font-weight:700}
++  .pos-booking-workspace .srm-pos-mobile-tabs [aria-pressed=true]{background:linear-gradient(115deg,#a82ce9,#6508aa);color:#fff}
++  .pos-cart-count{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#8116ba;font-size:12px}
++  .pos-booking-workspace>main{display:flex!important;flex-direction:column!important;flex:1;min-height:0!important;height:auto!important;padding:0!important;overflow:hidden;gap:0}
++  .pos-booking-workspace .srm-pos-cart{display:flex!important;flex-direction:column;flex:1;gap:var(--phone-space)!important;min-height:0;width:100%;margin:0;padding:0!important;border:0;background:transparent;box-shadow:none;overflow:hidden!important;backdrop-filter:none}
++  .pos-booking-workspace .srm-pos-cart>*{margin-top:0!important}
++  .pos-booking-workspace .srm-pos-cart>div:first-child,.pos-booking-workspace .pos-sale-customer,.pos-booking-workspace .pos-extra-bill{display:none!important}
++  .pos-booking-workspace.srm-pos-view-products .srm-pos-cart{display:contents!important}
++  .pos-booking-workspace.srm-pos-view-products .srm-pos-cart>:not(footer){display:none!important}
++  .pos-booking-workspace .pos-cart-items{position:relative;flex:1;min-height:0!important;height:auto;max-height:none;padding:0 9px!important;overflow:hidden!important;border:1px solid #fff;border-radius:14px;background:#ffffff9e;box-shadow:0 2px 5px #4b286607;scrollbar-gutter:auto}
++  .pos-booking-workspace .pos-cart-items>div{height:100%;display:flex;flex-direction:column;justify-content:flex-start;gap:0;padding:0!important}
++  .pos-booking-workspace .pos-cart-items>div>*{margin:0!important}
++  .pos-booking-workspace .pos-cart-line[data-phone-hidden=true]{display:none!important}
++  .pos-booking-workspace .pos-cart-line{flex-shrink:0;position:relative;padding:10px 0!important;border:0;border-bottom:1px solid #eee8f4;border-radius:0;background:transparent;outline:0;box-shadow:none}
++  .pos-booking-workspace .pos-cart-line.has-appointment::before{content:'';position:absolute;top:7px;bottom:44px;left:-3px;width:2px;border-radius:2px;background:#8f13ca}
++  .pos-booking-workspace .pos-compact-cart-row{display:grid;position:relative;grid-template-columns:48px minmax(0,1fr) 88px 32px;grid-template-rows:auto auto;gap:1px 9px;align-items:center}
++  .pos-phone-line-icon{display:grid;place-items:center;grid-column:1;grid-row:1/3;width:46px;height:48px;border-radius:10px;background:linear-gradient(145deg,#f5efff,#ede3fb);color:#8a27c8}
++  .pos-phone-line-icon svg{width:32px;height:32px;filter:drop-shadow(1px 3px 2px #7310b42b)}
++  .pos-phone-line-icon svg.lucide-shopping-bag{fill:#a255dd;stroke:#7d24b7;stroke-width:1.5}
++  .pos-phone-line-icon img{width:100%;height:100%;object-fit:cover;border-radius:10px}
++  .pos-booking-workspace .pos-line-identity{grid-column:2;grid-row:1;padding:0;min-width:0}
++  .pos-booking-workspace .pos-line-identity strong{display:block;font-size:13px;font-weight:750;line-height:1.2;overflow-wrap:normal;word-break:normal}
++  .pos-booking-workspace .pos-line-identity small{display:block;margin-top:2px;font-size:10px;line-height:1.15;color:#8a8291}
++  .pos-booking-workspace .pos-line-amount{grid-column:2;grid-row:2;justify-self:start;font-size:13px;line-height:1.2;text-align:left;white-space:nowrap}
++  .pos-booking-workspace .pos-inline-quantity{grid-column:3;grid-row:1/3;display:flex;align-items:center;gap:0;width:88px;height:29px;overflow:visible;position:relative;border:1px solid #ded7e8;border-radius:9px;background:#ffffff91}
++  .pos-booking-workspace .pos-inline-quantity button{width:28px;min-width:28px;height:28px;min-height:28px;padding:0;background:transparent;border-radius:0;color:#22182d}
++  .pos-booking-workspace .pos-inline-quantity input{width:30px;height:28px;min-height:28px;padding:0;border:0;border-inline:1px solid #e8e1ee;border-radius:0;background:transparent;text-align:center;font-size:13px;font-weight:700;color:#21182e;opacity:1}
++  .pos-booking-workspace .pos-compact-cart-row>.kf-button:last-child{position:static;grid-column:4;grid-row:1/3;width:32px;height:36px;min-height:36px;margin:0;padding:0;color:#24172f}
++  .pos-booking-workspace .pos-cart-line>details{display:none}
++  .pos-booking-workspace .pos-line-booking{margin-top:5px!important}
++  .pos-booking-workspace .pos-line-booking:has(.booking-summary-lines){display:grid;grid-template-columns:minmax(0,1fr) 65px;gap:8px;align-items:center;margin-left:6px;padding:8px 9px;background:linear-gradient(115deg,#f4eefa,#eee3fa);border:0;border-radius:10px}
++  .pos-booking-workspace .booking-summary-lines{display:flex;flex-direction:column;gap:3px;font-size:10px;color:#352345;text-align:left}
++  .pos-booking-workspace .booking-summary-lines>span{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;line-height:1.3}.pos-booking-workspace .booking-summary-lines small{font-size:9px}
++  .pos-booking-workspace .pos-booking-trigger{display:flex;justify-content:center;gap:5px;min-height:30px!important;padding:3px 7px;font-size:11px;color:#861bb8;background:#ffffffc9;border:1px solid #ddcdea;border-radius:10px;box-shadow:0 2px 3px #66298a09}
++  .pos-booking-workspace .pos-line-booking:has(.booking-summary-lines) .pos-booking-trigger>svg{display:block;width:13px;height:13px}
++  .pos-booking-workspace .pos-booking-trigger>span:first-of-type{display:none}.pos-booking-workspace .pos-booking-trigger>span:last-child{display:block}
++  .pos-booking-workspace .pos-repeat-booking{display:flex;align-items:center;justify-content:center;gap:7px;width:fit-content;min-height:27px;height:27px;margin:8px auto 0!important;padding:2px 22px;font-size:11px;font-weight:700;color:#861bb8;border:1px solid #bd8bd6;border-radius:20px;background:transparent}
++  .pos-booking-workspace .pos-repeat-booking::before{content:'+';font-size:20px;font-weight:400}
++  .pos-phone-pagination{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:32px;color:#77538a;font-size:10px}
++  .pos-phone-pagination[data-single-page=true]{display:none!important}
++  .pos-phone-pagination .kf-button{min-height:32px;height:32px;width:40px;padding:0;border-radius:9px;border-color:#e1d4eb;background:#ffffffa8}
++  .pos-booking-workspace .pos-cart-scroll-hint{display:none!important}
++  .pos-booking-workspace .pos-bill-summary{flex-shrink:0;min-height:76px!important;height:auto!important;padding:6px;border:1px solid #fff;border-radius:15px;background:#ffffffc7!important;box-shadow:0 3px 8px #40235c04}
++  .pos-booking-workspace .pos-bill-summary>div{display:grid;grid-template-columns:1.12fr 1fr;grid-template-rows:19px 19px 26px;gap:0 10px!important;padding:0 5px!important;height:auto!important;min-height:0!important}
++  .pos-booking-workspace .pos-bill-summary>div>*{margin:0!important}
++  .pos-booking-workspace .pos-bill-summary>div>div:not(.pos-payable-panel){grid-column:1;font-size:11px}
++  .pos-booking-workspace .pos-bill-summary>div>div:not(.pos-payable-panel) span{opacity:1}
++  .pos-phone-discounts{display:flex;align-items:center;gap:6px;text-align:left;grid-column:1;min-height:26px;font-size:10px;white-space:nowrap}.pos-phone-discounts span{margin-left:auto;color:#8f8199;font-size:19px}
++  .pos-booking-workspace .pos-desktop-discounts{display:none}
++  .pos-booking-workspace .pos-bill-summary .pos-payable-panel{position:relative;isolation:isolate;overflow:hidden;grid-column:2;grid-row:1/4;display:flex;flex-direction:column;justify-content:center;gap:5px;min-height:64px;padding:7px 10px!important;border-radius:10px;background:linear-gradient(115deg,#f9f3ff,#ebdaf9);color:#720caa}
++  .pos-booking-workspace .pos-payable-panel::after{content:'▤';position:absolute;z-index:-1;right:5px;bottom:-14px;font-size:83px;color:#bc77e331;transform:rotate(12deg)}
++  .pos-booking-workspace .pos-payable-panel span{font-size:10px;text-transform:none;font-weight:500}
++  .pos-booking-workspace .pos-payable-panel strong{font-size:27px;font-weight:800;line-height:1.05}
++  .pos-booking-workspace .srm-pos-checkout{position:static!important;display:flex!important;flex-direction:column;flex-wrap:nowrap!important;align-items:stretch!important;flex-shrink:0;gap:10px;min-height:0;height:auto!important;width:100%!important;padding:0 0 max(10px,env(safe-area-inset-bottom))!important;border:0;background:transparent;box-shadow:none}
++  .pos-booking-workspace .pos-checkout-reason{position:absolute!important;width:1px!important;height:1px;overflow:hidden;clip-path:inset(50%);padding:0;margin:0}
++  .pos-booking-workspace .pos-tender-shortcuts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
++  .pos-booking-workspace .pos-tender-shortcuts .kf-button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;height:36px;padding:3px 4px;border:1px solid #e0d8e9;border-radius:11px;background:#ffffff96;color:#8716ba;font-size:12px;font-weight:700}
++  .pos-booking-workspace .pos-tender-shortcuts svg{width:18px;height:18px}
++  .pos-booking-workspace .srm-pos-checkout>button:last-child{display:flex;flex:none!important;align-self:stretch!important;align-items:center;justify-content:center;gap:10px;width:100%!important;max-width:none!important;min-height:46px;height:46px;margin:0!important;border-radius:28px;background:linear-gradient(115deg,#ae27ee,#6710ac);color:#fff;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 5px 10px #7122b71a}
++  .pos-collect-arrow{display:block;margin-left:3px}
++  .pos-booking-workspace .srm-pos-catalog{flex:1;min-height:0;width:100%;padding:10px!important;overflow:auto;scrollbar-width:none}
++  .pos-booking-workspace .pos-guidance:has([role=alert]),.pos-booking-workspace .pos-guidance:has(section),.pos-booking-workspace .pos-guidance:has(>div[role=status]){display:block;position:absolute;left:12px;right:12px;bottom:116px;z-index:45;max-height:45dvh;padding:12px;border:1px solid #e4d2ef;border-radius:12px;background:white;color:#30203a;box-shadow:0 5px 25px #42235722;overflow:auto}
++  .pos-booking-workspace .pos-guidance>ol,.pos-booking-workspace .pos-guidance>p:not([role=alert]){display:none}
++  .pos-booking-workspace .pos-guidance>div[role=status]{display:flex;flex-wrap:wrap;gap:8px}
++  .pos-booking-workspace ::-webkit-scrollbar,.srm-pos-dialog::-webkit-scrollbar,.pos-booking-window::-webkit-scrollbar{display:none}
++  .srm-pos-dialog{top:auto!important;bottom:0!important;left:0!important;transform:none!important;width:100%!important;max-height:90dvh!important;border-radius:22px 22px 0 0!important;scrollbar-width:none}
++  .pos-booking-window{scrollbar-width:none}.srm-pos-dialog .kf-button{min-height:44px}
++}
++@media(max-width:359px){
++  .pos-booking-workspace{padding-inline:10px!important}.pos-booking-workspace .pos-shell-header{margin-inline:-10px;padding-inline:6px!important}
++  .pos-booking-workspace .pos-workspace-identity{gap:5px}.pos-phone-back{flex-basis:20px}.pos-booking-workspace .pos-workspace-identity>span{width:30px;height:30px}.pos-booking-workspace .pos-workspace-identity h1{font-size:16px}.pos-phone-header-tools{gap:3px}.pos-phone-profile{width:27px;height:27px}.pos-phone-header-tools .suite-notification-bell{width:25px}.pos-booking-workspace .pos-workspace-identity p{font-size:8px}
++  .pos-booking-workspace .pos-compact-cart-row{grid-template-columns:38px minmax(0,1fr) 82px 28px;gap:1px 5px}.pos-phone-line-icon{width:36px;height:44px}.pos-booking-workspace .pos-inline-quantity{width:82px}.pos-booking-workspace .pos-inline-quantity button{width:26px;min-width:26px}.pos-booking-workspace .pos-inline-quantity input{width:28px}.pos-booking-workspace .pos-line-identity strong{font-size:11px}.pos-booking-workspace .pos-line-identity small{font-size:9px}.pos-booking-workspace .pos-compact-cart-row>.kf-button:last-child{width:28px}
++  .pos-booking-workspace .pos-phone-bill{gap:6px;padding-inline:7px}.pos-phone-bill strong{font-size:15px}.pos-phone-bill>div>span{font-size:10px}.pos-phone-bill-customer{width:35px;height:38px}.pos-booking-workspace .pos-phone-bill .kf-button{padding-inline:7px}
++  .pos-phone-discounts{font-size:9px;gap:3px}.pos-booking-workspace .pos-bill-summary>div{column-gap:6px!important}
++}
++@media(max-width:767px) and (max-height:700px){
++  .pos-booking-workspace{--phone-space:6px}.pos-booking-workspace .pos-shell-header{padding-block:3px 12px!important}.pos-booking-workspace .pos-workspace-identity h1{font-size:17px}
++  .pos-phone-feedback{min-height:29px;font-size:10px}
++  .pos-phone-bill{min-height:48px;padding-block:3px}.pos-phone-bill-customer{height:36px}.pos-booking-workspace .srm-pos-mobile-tabs button{min-height:34px;font-size:13px}
++  .pos-booking-workspace .pos-cart-line{padding-block:7px!important}.pos-booking-workspace .pos-line-booking:has(.booking-summary-lines){padding:5px 8px}.pos-booking-workspace .booking-summary-lines{font-size:9px;gap:2px}.pos-booking-workspace .pos-repeat-booking{margin-top:5px!important;min-height:25px;height:25px;font-size:10px}
++  .pos-booking-workspace .pos-bill-summary{min-height:66px!important;padding-block:4px}.pos-booking-workspace .pos-bill-summary>div{grid-template-rows:16px 16px 24px}.pos-booking-workspace .pos-bill-summary .pos-payable-panel{min-height:56px}.pos-booking-workspace .pos-payable-panel strong{font-size:25px}
++  .pos-booking-workspace .srm-pos-checkout{gap:7px;padding-bottom:max(7px,env(safe-area-inset-bottom))!important}.pos-booking-workspace .pos-tender-shortcuts .kf-button{min-height:33px;height:33px}.pos-booking-workspace .srm-pos-checkout>button:last-child{min-height:43px;height:43px}
++}
++@media(max-width:767px){.pos-phone-feedback button{min-height:28px!important;height:28px!important}.pos-phone-feedback{padding-block:0!important}}
++@media(max-width:767px) and (max-height:600px){.pos-booking-workspace{--phone-space:4px}.pos-booking-workspace .pos-shell-header{padding-block:0 8px!important}.pos-phone-bill{min-height:46px;padding-block:1px}.pos-phone-bill-customer{height:34px}.pos-booking-workspace .pos-phone-bill .kf-button{min-height:30px;height:30px}.pos-phone-feedback{min-height:29px}}
++@media(max-width:767px){
++  .pos-booking-workspace .pos-cart-line.has-appointment{border-left:0!important}
++  .pos-booking-workspace .pos-cart-line:last-child{border-bottom:0}
++  .pos-booking-workspace .pos-repeat-booking::before{content:none}
++  .pos-booking-workspace .pos-line-identity small{font-weight:400}
++  .pos-booking-workspace .pos-payable-panel strong{letter-spacing:-.5px}
++}
++@media(max-width:767px){
++  .pos-desktop-product-prefix{display:none}
++  .pos-booking-workspace .pos-shell-header::after{content:'';position:absolute;z-index:-1;left:0;right:0;bottom:-20px;height:30px;border-radius:27px 27px 0 0;background:#f6f3ff;pointer-events:none}
+ }
+ @media(max-width:767px){
+-.pos-booking-workspace .pos-guidance:has([role=alert]),.pos-booking-workspace .pos-guidance:has(section),.pos-booking-workspace .pos-guidance:has(button){display:block;position:absolute;left:12px;right:12px;top:155px;max-height:50dvh;overflow:auto;background:white;border:1px solid #dfc9f3;border-radius:12px;z-index:45;box-shadow:0 8px 30px #32164b22}
+-.pos-booking-workspace .pos-guidance>ol,.pos-booking-workspace .pos-guidance>p:not([role=alert]){display:none}
+-.pos-booking-workspace:has(.srm-pos-session-details.is-open) .pos-shell-header{max-height:50dvh;overflow:auto}
++  .pos-phone-profile{text-transform:uppercase}
++  .pos-booking-workspace .pos-line-booking:not(:has(.booking-summary-lines)) .pos-booking-trigger>span:first-of-type{display:block;flex:1;text-align:left}
++  .pos-booking-workspace .pos-line-booking:not(:has(.booking-summary-lines)) .pos-booking-trigger>span:last-child{display:none}
+ }
+ 
+-.pos-phone-customer{display:none}
+-@media(max-width:767px){.pos-phone-customer{display:block;flex-shrink:0;min-width:0;padding:7px 10px;border:1px solid #e4deee;border-radius:12px;background:#ffffffd9}.pos-phone-customer .pos-customer-identity{display:flex!important;flex-wrap:nowrap;gap:8px}.pos-phone-customer .pos-customer-avatar{width:32px;height:32px;font-size:13px}.pos-phone-customer .pos-customer-identity strong{font-size:12px;overflow-wrap:anywhere}.pos-phone-customer .kf-button{min-height:34px;padding:5px 10px;font-size:11px}.pos-phone-customer .pos-customer-context{font-size:10px;margin-top:4px}}
++@media(max-width:767px){
++ .pos-phone-header-tools .suite-new-trigger.is-icon-only{display:grid;place-items:center;width:28px;min-height:32px;height:32px;padding:0;background:#ffffff12;box-shadow:none;border:1px solid #ffffff28;border-radius:9px;color:white}
++ .pos-phone-session input{margin-top:6px;font-size:16px}
++ .suite-new-menu{scrollbar-width:none}.suite-new-menu::-webkit-scrollbar{display:none}
++ .pos-booking-workspace .pos-guidance>button{display:none}
++}
++@media(max-width:767px){
++ .pos-booking-workspace .pos-phone-header-tools .suite-notification-bell svg{color:white!important;stroke:currentColor}
++ .pos-booking-workspace .pos-line-identity strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
++ .pos-booking-workspace .pos-line-identity small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
++}
+diff --git a/frontend/src/apps/srm/routes.tsx b/frontend/src/apps/srm/routes.tsx
+index d7351589e..695969460 100644
+--- a/frontend/src/apps/srm/routes.tsx
++++ b/frontend/src/apps/srm/routes.tsx
+@@ -1,3 +1,4 @@
++import SRMMobileScreen from "./components/SRMMobileScreen";
+ import { lazyRoute } from "@/lib/lazy-route";
+ const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
+ import { getOperationWorkspace } from "@/lib/navigation-workspaces";
+@@ -170,5 +171,9 @@ const registeredSrmRoutes: FrontendRoute[] = [
+     .filter(path => !nativePaths.has(path)).map(inventorySourceRoute),
+ ];
+ 
+-export const srmRoutes: FrontendRoute[] = registeredSrmRoutes.map(route => getOperationWorkspace(`/${route.path}`)
+-  ? { ...route, element: <SRMRouteWorkspace route={route} routes={registeredSrmRoutes} /> } : route);
++const srmMobilePaths=registeredSrmRoutes.map(route=>`/${route.path}`);
++export const srmRoutes: FrontendRoute[] = registeredSrmRoutes.map(route => ({
++  ...route,
++  element: <SRMMobileScreen paths={srmMobilePaths} nativePath={`/${route.path}`}>{getOperationWorkspace(`/${route.path}`)
++    ? <SRMRouteWorkspace route={route} routes={registeredSrmRoutes}/> : route.element}</SRMMobileScreen>,
++}));
+diff --git a/frontend/src/components/app/ModuleNewMenu.tsx b/frontend/src/components/app/ModuleNewMenu.tsx
+index 1dad2dfe1..d2185177a 100644
+--- a/frontend/src/components/app/ModuleNewMenu.tsx
++++ b/frontend/src/components/app/ModuleNewMenu.tsx
+@@ -38,11 +38,15 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
+   const moduleKey = ({crm:"crm",hrms:"hrms",srm:"srm",fam:"fam",pms:"project_management"} as Record<string,string>)[pathname.split("/")[1]];
+   const moduleGrant = user?.access?.grants[moduleKey];
+   const notesGrant = user?.access?.grants.project_management;
++  // Opening the POS is navigation, not permission to create or collect a sale.
++  const posActions: NewAction[] = pathname.startsWith('/srm') && (!moduleGrant || moduleGrant.enabled || user?.is_superuser) && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)
++    ? [{label:'POS',description:'Open billing & point of sale',icon:Receipt,group:'Sales',menuPaths:['/srm/pos/terminal','/srm/pos'],onSelect:()=>navigate('/srm/pos/terminal')}] : [];
++
+   const noteActions: NewAction[] = !pathname.startsWith("/pms") && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser) &&
+     (user?.is_superuser || !user?.access?.managed || notesGrant?.enabled && notesGrant.actions.includes("create"))
+     ? [{ label: "Note", description: "Create a note in the shared Notes workspace", icon: FileText, menuPaths: [sharedNotesPath], onSelect: () => routerNavigate(createSharedNotePath) }] : [];
+-  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children(noteActions)}</> : <NewMenu actions={noteActions} />;
+-  const actions: NewAction[] = [...noteActions];
++  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children([...posActions,...noteActions])}</> : <NewMenu actions={[...posActions,...noteActions]} />;
++  const actions: NewAction[] = [...posActions,...noteActions];
+   const add = (label: string, description: string, icon: NewAction["icon"], path: string, allowed = true, disabled = false) => {
+     if (allowed && (!moduleGrant || user?.is_superuser || moduleGrant.actions.includes("create") || ["Apply Leave", "Support ticket", "Correct Attendance", "Generate Letter"].includes(label)) && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, menuPaths: label === "Correct Attendance" ? [] : [path.split(/[?#]/)[0].replace(/\/(new|create)$/, "")], onSelect: () => navigate(path) });
+   };
+@@ -96,7 +100,6 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
+     add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
+     add("Add product", "Create a product in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=product", manages);
+     add("Add service", "Create a service in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=service", manages);
+-    add("POS", "Start a sale in the point of sale", Receipt, "/srm/pos/terminal", manages);
+     const catalogAction = actions.find(action => action.label === "Add product");
+     if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
+   }
+diff --git a/frontend/src/components/app/NewMenu.tsx b/frontend/src/components/app/NewMenu.tsx
+index 35857f0a7..5579d3ad5 100644
+--- a/frontend/src/components/app/NewMenu.tsx
++++ b/frontend/src/components/app/NewMenu.tsx
+@@ -9,7 +9,7 @@ import "./new-menu.css";
+ import MobileCreateMenu from "@/components/mobile/MobileCreateMenu";
+ 
+ export type NewAction = { label: string; description: string; icon: LucideIcon; onSelect: () => void; disabled?: boolean; menuPaths?: string[]; group?: string; keywords?: string };
+-export default function NewMenu({ actions, disabled, floating = false }: { actions: NewAction[]; disabled?: boolean; floating?: boolean }) {
++export default function NewMenu({ actions, disabled, floating = false, iconOnly = false }: { actions: NewAction[]; disabled?: boolean; floating?: boolean; iconOnly?: boolean }) {
+   const [open, setOpen] = useState(false);
+   const selecting = useRef(false);
+   const [query, setQuery] = useState("");
+@@ -22,7 +22,7 @@ export default function NewMenu({ actions, disabled, floating = false }: { actio
+   const groups = [...new Set(filtered.map(action => action.group))];
+   if (floating) return <MobileCreateMenu actions={prepared} disabled={disabled} />;
+   if (!actions.length) return null;
+-  return <Dropdown.Root modal={false} open={open} onOpenChange={value => { setOpen(value); if (value) setQuery(""); }}><Dropdown.Trigger className="suite-new-trigger" disabled={disabled}><Plus size={16} aria-hidden="true" />Create<ChevronDown size={14} /></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content onCloseAutoFocus={event => { if (selecting.current) event.preventDefault(); selecting.current = false; }} onEscapeKeyDown={() => setOpen(false)} className="suite-new-menu" align="end" side="bottom" sideOffset={8} collisionPadding={12}>
++  return <Dropdown.Root modal={false} open={open} onOpenChange={value => { setOpen(value); if (value) setQuery(""); }}><Dropdown.Trigger className={`suite-new-trigger ${iconOnly?"is-icon-only":""}`} aria-label={iconOnly?"Add new record":undefined} disabled={disabled}><Plus size={16} aria-hidden="true" />{!iconOnly&&<>Create<ChevronDown size={14} /></>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content onCloseAutoFocus={event => { if (selecting.current) event.preventDefault(); selecting.current = false; }} onEscapeKeyDown={() => setOpen(false)} className="suite-new-menu" align="end" side="bottom" sideOffset={8} collisionPadding={12}>
+     <div className="suite-create-search"><Search size={16} aria-hidden="true"/><input ref={searchInput} aria-label="Search create actions" placeholder="Search actions…" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key !== "Escape" && event.key !== "Tab") event.stopPropagation(); if (event.key === "ArrowDown") { event.preventDefault(); event.currentTarget.closest('[role="menu"]')?.querySelector<HTMLElement>('[role="menuitem"]:not([data-disabled])')?.focus(); } }}/></div>
+     {!filtered.length && <p className="suite-create-empty" role="status">No matching actions. Try task, leave, or document.</p>}
+     {groups.map(group => <Dropdown.Group key={group}><Dropdown.Label className="suite-create-group">{group}</Dropdown.Label>{filtered.filter(action => action.group === group).map(action => <Dropdown.Item key={action.label} disabled={action.disabled} onSelect={() => {
+diff --git a/frontend/src/components/app/create-menu-model.ts b/frontend/src/components/app/create-menu-model.ts
+index 93286b5ac..f443948b2 100644
+--- a/frontend/src/components/app/create-menu-model.ts
++++ b/frontend/src/components/app/create-menu-model.ts
+@@ -3,10 +3,10 @@ export function createGroup(label: string, module: string): CreateGroup {
+   if (/field|tag|dashboard|view list|whiteboard|asset|form/i.test(label)) return "Configuration";
+   if (/conversation|invitation|workspace|space/i.test(label)) return "Collaboration";
+   if (/document|page|note|sheet|artifact|clip|folder|letter/i.test(label)) return "Content";
+-  return module === "hrms" ? "People & requests" : module === "crm" ? "Sales" : "Work";
++  return module === "hrms" ? "People & requests" : ["crm","srm"].includes(module) ? "Sales" : "Work";
+ }
+ export function createPriority(label: string, module: string, employee = false) {
+-  const order = module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
++  const order = module === "srm" ? ["POS", "Customer", "Sales order", "Add product", "Add service", "Invoice draft", "Contract", "Engagement", "Billing plan", "Vendor"] : module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
+   const index = order.indexOf(label);
+   return index < 0 ? 100 : index;
+ }
+diff --git a/frontend/src/components/layout/AppLayout.tsx b/frontend/src/components/layout/AppLayout.tsx
+index 13b67d6d6..fbaec7d53 100644
+--- a/frontend/src/components/layout/AppLayout.tsx
++++ b/frontend/src/components/layout/AppLayout.tsx
+@@ -28,7 +28,8 @@ export default function AppLayout() { return <><AppLayoutContent/><ActionBot/></
+ 
+ function AppLayoutContent() {
+   const location = useLocation();
+-  const mobileLead = useMobile() && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
++  const mobile = useMobile();
++  const mobileLead = mobile && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
+   const { user } = useAuthStore();
+   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+   const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
+@@ -47,6 +48,16 @@ function AppLayoutContent() {
+ 
+   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+ 
++  // The terminal owns its mobile header and checkout. App chrome would
++  // otherwise consume the same viewport a second time.
++  if (mobile && isPosTerminal) {
++    return <div className="srm-pos-terminal-route"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading POS"/>}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><Outlet/></FormDefaultsGate></Suspense></ErrorBoundary><SessionTimeoutWarning/></div>;
++  }
++
++  if (/^\/(srm|crm)\/appointments\/?$/.test(location.pathname)) {
++    return <div className="appointment-route-host"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary><SessionTimeoutWarning /></div>;
++  }
++
+   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
+     return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /></div>;
+   }
+diff --git a/frontend/src/components/layout/MobileModuleDock.tsx b/frontend/src/components/layout/MobileModuleDock.tsx
+index 84eec52e8..41f45c944 100644
+--- a/frontend/src/components/layout/MobileModuleDock.tsx
++++ b/frontend/src/components/layout/MobileModuleDock.tsx
+@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
+ 
+ import { Link, useLocation } from "react-router-dom";
+ 
+-import { ChevronUp, ArrowUpRight, BarChart3, BriefcaseBusiness, CalendarCheck, CheckCheck, ClipboardList, FileText, FolderKanban, Handshake, ListTodo, Receipt, Users, UserRoundPlus, Wallet, type LucideIcon } from "lucide-react";
++import { ChevronUp, ArrowUpRight, BarChart3, BriefcaseBusiness, CalendarCheck, CheckCheck, ClipboardList, FileText, FolderKanban, Handshake, ListTodo, Receipt, Users, UserRoundPlus, Wallet, ShoppingCart, type LucideIcon } from "lucide-react";
+ 
+ import { MobileSheet } from "@/components/mobile/MobilePrimitives";
+ 
+@@ -61,6 +61,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
+   ],
+ 
+   srm: [
++    item("POS", ShoppingCart, "/srm/pos/terminal", [["Start sale", "/srm/pos/terminal"], ["POS sessions", "/srm/pos/sessions"], ["POS returns", "/srm/pos/returns"]]),
+ 
+     item("Customers", Users, "/srm/customer-360", [["Customer overview", "/srm/customer-360"], ["Customer follow-ups", "/srm/follow-ups"], ["Sales history", "/srm/sales-orders"], ["Outstanding balances", "/srm/collections"]]),
+ 
+@@ -141,7 +142,7 @@ export default function MobileModuleDock() {
+ 
+   const matches = (to: string) => location.pathname === to.split("?")[0] || location.pathname.startsWith(to.split("?")[0] + "/");
+ 
+-  const aliases: Record<string, Record<string, string>> = { pms: { workspaces: "Projects", gantt: "Projects", portfolio: "Projects", reviews: "My Work", "my-assignments": "My Work", analytics: "Reports", workload: "Reports" }, crm: { contacts: "Customers", "customer-360": "Customers", accounts: "Customers", pipeline: "Deals", quotes: "Deals", quotations: "Deals", activities: "Follow-ups" }, srm: { invoices: "Payments", collections: "Payments", "invoice-drafts": "Orders", contracts: "Quotes", "products-services": "Quotes" }, hrms: { "my-attendance": "Attendance", "my-roster": "Attendance", timesheets: "Attendance", "employee-directory": "People", profile: "People", onboarding: "People", "my-payslips": "Payroll", "investment-declaration": "Payroll", "approval-os": "Leave", workflow: "Leave" } };
++  const aliases: Record<string, Record<string, string>> = { pms: { workspaces: "Projects", gantt: "Projects", portfolio: "Projects", reviews: "My Work", "my-assignments": "My Work", analytics: "Reports", workload: "Reports" }, crm: { contacts: "Customers", "customer-360": "Customers", accounts: "Customers", pipeline: "Deals", quotes: "Deals", quotations: "Deals", activities: "Follow-ups" }, srm: { pos: "POS", invoices: "Payments", collections: "Payments", "invoice-drafts": "Orders", contracts: "Quotes", "products-services": "Quotes" }, hrms: { "my-attendance": "Attendance", "my-roster": "Attendance", timesheets: "Attendance", "employee-directory": "People", profile: "People", onboarding: "People", "my-payslips": "Payroll", "investment-declaration": "Payroll", "approval-os": "Leave", workflow: "Leave" } };
+ 
+   const alias = aliases[module]?.[location.pathname.split("/")[2]] || (module === "pms" && /^\/pms\/?$/.test(location.pathname) ? "Projects" : undefined);
+ 
+diff --git a/frontend/src/components/layout/ModuleNavigation.tsx b/frontend/src/components/layout/ModuleNavigation.tsx
+index 9e1257f39..a00d97a39 100644
+--- a/frontend/src/components/layout/ModuleNavigation.tsx
++++ b/frontend/src/components/layout/ModuleNavigation.tsx
+@@ -76,7 +76,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
+   const displayLabel = (item: {to:string;label:string}) => preferences.menuItems?.[item.to.split(/[?#]/)[0]]?.label || (customItems ? menuLabel(item) : routeLabel(item.to, menuLabel(item)));
+   const items = query.trim() ? available.filter(item => menuMatches(item, query) || displayLabel(item).toLowerCase().includes(query.trim().toLowerCase())) : consolidated;
+   const directItems = moduleKey === "srm" && !query.trim() ? [] : items.filter(item => landing.direct.some(link => link.to === item.to));
+-  const groupedItems = items.filter(item => !landing.direct.some(link => link.to === item.to)
++  const groupedItems = items.filter(item => (moduleKey!=="srm" || navigationOperationPath(item.to)!=="/srm/pos/terminal") && !landing.direct.some(link => link.to === item.to)
+     && (query.trim() || !([`/${moduleKey}`, `/${moduleKey}/dashboard`].includes(item.to))));
+   if (moduleKey === "srm") groupedItems.forEach(item => { item.group = "More"; });
+   const groups = [...new Set(groupedItems.map(item => item.group || "Workspace"))];
+@@ -110,6 +110,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
+       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
+   };
+   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
++    {moduleKey==='srm' && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser) && <nav className="module-menu-pos-primary" aria-label="Primary Sales action"><Link to={workspacePageHref('/srm/pos/terminal',location.search,workspaceId)} onClick={onNavigate} aria-label="POS" aria-current={isCurrent('/srm/pos/terminal')?'page':undefined} title="POS · Billing & point of sale"><ShoppingCart size={22}/>{!collapsed&&<span><strong>POS</strong><small>Billing & point of sale</small></span>}</Link><MenuQuickAdd actions={createActions} paths={['/srm/pos/terminal','/srm/pos']} label="POS" onNavigate={onNavigate}/></nav>}
+     {!collapsed && <>
+       <label className="module-menu-search"><Search size={16} /><input type="search" aria-label="Search menu items" placeholder="Search menu items..." value={query}
+         onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
+@@ -123,7 +124,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
+     {!query.trim() && ['srm', 'crm'].includes(moduleKey) && <nav aria-label="Sticky shortcuts" className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border bg-sidebar p-2">
+       {!collapsed && <p className="px-2 pb-1 text-xs font-semibold">Quick access</p>}
+       {(moduleKey === 'srm' ? [
+-        ['/srm/pos/terminal', 'POS'], ['/srm/appointments', 'Appointments'],
++        ['/srm/appointments', 'Appointments'],
+         ['/srm/service-scheduling?view=schedule', 'Scheduling'], ['/srm/customers', term('customer', true)],
+         ['/srm/invoices', 'Transactions'], ['/srm/reports', 'Reports'],
+       ] : [
+diff --git a/frontend/src/components/layout/mobile-module-dock.css b/frontend/src/components/layout/mobile-module-dock.css
+index 366e8ef8a..c42bdc248 100644
+--- a/frontend/src/components/layout/mobile-module-dock.css
++++ b/frontend/src/components/layout/mobile-module-dock.css
+@@ -72,3 +72,5 @@
+  .mobile-dock-quick{border-color:hsl(var(--primary)/.12);box-shadow:0 3px 12px #20163a08;font-size:11px;background:hsl(var(--background)/.96)}
+ }
+ @media(prefers-reduced-motion:reduce){.mobile-dock-icon,.mobile-module-add,.mobile-module-add svg{transition:none}}
++
++@media(max-width:767px){.mobile-module-dock[aria-label="SRM mobile navigation"]{grid-template-columns:repeat(5,minmax(0,1fr))}}
+diff --git a/frontend/src/components/layout/mobile-workspaces.css b/frontend/src/components/layout/mobile-workspaces.css
+index c42c6e190..c786f7579 100644
+--- a/frontend/src/components/layout/mobile-workspaces.css
++++ b/frontend/src/components/layout/mobile-workspaces.css
+@@ -63,3 +63,9 @@ body:has([role="dialog"][data-state="open"], [role="alertdialog"][data-state="op
+   body:has(.action-bot-launcher) .pms-workspace-host > .ws-app .ws-content { margin-bottom:80px; }
+   body.mobile-keyboard-open .pms-workspace-host > .ws-app .ws-content { margin-bottom:0; }
+ }
++
++@media(max-width:767px){
++ .srm-pos-terminal-route{height:100dvh;min-height:0;overflow:hidden;background:#f6f3ff}
++ body:has(.srm-pos-terminal-route){overflow:hidden;overscroll-behavior:none}
++ body:has(.srm-pos-terminal-route) :is(.action-bot-launcher,.suite-create-result,.mobile-module-dock,.mobile-module-add){display:none!important}
++}
+diff --git a/frontend/src/components/layout/module-navigation.css b/frontend/src/components/layout/module-navigation.css
+index 2a86ae280..f2df02fc6 100644
+--- a/frontend/src/components/layout/module-navigation.css
++++ b/frontend/src/components/layout/module-navigation.css
+@@ -33,3 +33,8 @@ body:has(.module-menu[data-module=srm]) .suite-sidebar{background:linear-gradien
+ .module-menu[data-module=srm] .module-menu-toolbar{display:none}.module-menu[data-module=srm] .module-menu-search{background:#ffffff0a;color:white;border-color:#ffffff20}
+ .module-menu[data-module=srm] .module-menu-heading,.module-menu[data-module=srm] .module-menu-row a{color:inherit}
+ .module-menu[data-module=srm] .module-menu-row.is-active{background:#eedbff;color:#7900de}
++
++.module-menu-pos-primary{position:sticky;top:0;z-index:35;display:flex;align-items:center;gap:5px;margin:5px 7px 9px;padding:4px;border:1px solid #bf77ec66;border-radius:12px;background:linear-gradient(115deg,#9932d8,#6c17ad);color:#fff;box-shadow:0 3px 9px #25013a20}
++.module-menu-pos-primary>a{display:flex;align-items:center;gap:11px;flex:1;min-width:0;min-height:48px;padding:6px 10px;color:white}.module-menu-pos-primary strong{display:block;font-size:16px}.module-menu-pos-primary small{display:block;font-size:10px;color:#f0dcff}.module-menu-pos-primary .module-menu-create{width:34px;min-height:34px;color:white;background:#ffffff15;border-radius:8px}.module-menu.is-collapsed .module-menu-pos-primary{margin-inline:3px;padding:2px}.module-menu.is-collapsed .module-menu-pos-primary .module-menu-create{display:none}
++
++.module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"]{position:static}
+diff --git a/frontend/src/components/mobile/MobileCreateMenu.tsx b/frontend/src/components/mobile/MobileCreateMenu.tsx
+index a6b5fa922..ebe409967 100644
+--- a/frontend/src/components/mobile/MobileCreateMenu.tsx
++++ b/frontend/src/components/mobile/MobileCreateMenu.tsx
+@@ -1,3 +1,4 @@
++import { moduleContextPath } from "@/lib/common-routes";
+ import { useRef, useState } from "react";
+ import { useLocation } from "react-router-dom";
+ import { ArrowUpRight, ChevronDown, Plus } from "lucide-react";
+@@ -7,8 +8,9 @@ import type { NewAction } from "@/components/app/NewMenu";
+ export default function MobileCreateMenu({ actions, disabled }: { actions: NewAction[]; disabled?: boolean }) {
+   const [open, setOpen] = useState(false), [all, setAll] = useState(false), [query, setQuery] = useState("");
+   const pendingAction = useRef<(() => void) | null>(null);
+-  const { pathname } = useLocation();
+-  const ranked = [...actions].filter(action => `${action.label} ${action.description} ${action.group || ""}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => Number(!!b.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))) - Number(!!a.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))));
++  const { pathname, search } = useLocation();
++  const module=moduleContextPath(pathname,search).split("/")[1];
++  const ranked = [...actions].filter(action => `${action.label} ${action.description} ${action.group || ""}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => (module==="srm" && (a.label==="POS" || b.label==="POS") ? Number(b.label==="POS")-Number(a.label==="POS") : 0) || Number(!!b.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))) - Number(!!a.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))));
+   if (!actions.length) return null;
+   return <>
+     <button type="button" className="mobile-module-add" data-state={open ? "open" : "closed"} aria-label="Add new record" aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => { setAll(false); setQuery(""); setOpen(true); }}><Plus size={26} aria-hidden="true" /></button>

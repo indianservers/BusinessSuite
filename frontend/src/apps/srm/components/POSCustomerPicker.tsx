@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
-type Customer = {id:number; name:string; phone?:string};
+type Customer = {id:number; name:string; phone?:string;email?:string};
 export default function POSCustomerPicker({customers,value,onChange,loading,error}: {customers:Customer[];value:number;onChange:(id:number)=>void;loading?:boolean;error?:boolean}) {
   const [search,setSearch] = useState(''), [open,setOpen] = useState(false);
   const { term } = useBusinessTerms();
@@ -22,7 +22,7 @@ export default function POSCustomerPicker({customers,value,onChange,loading,erro
     <Input aria-label="Search customers" placeholder="Customer name, phone or code" value={search} onChange={event=>setSearch(event.target.value)}/>
     <Select value={String(value)} loading={loading} error={error} onValueChange={value=>{onChange(Number(value));setOpen(false);}}><SelectTrigger aria-label="Sale customer"><SelectValue/></SelectTrigger><SelectContent>
       {selected && !visible.some(customer=>customer.id===value) && <SelectItem value={String(value)}>{selected.name} (selected)</SelectItem>}
-      {visible.map(customer=><SelectItem key={customer.id} value={String(customer.id)}>{customer.name}{customer.phone ? ` - ${customer.phone}` : ''}</SelectItem>)}
+      {visible.map(customer=><SelectItem key={customer.id} value={String(customer.id)}><span className="grid gap-1 text-left"><strong>{customer.name}</strong><span className="grid grid-cols-2 gap-x-4 text-xs"><span>Mobile: {customer.phone||"Not recorded"}</span><span>ID: {customer.id}</span></span>{customer.email&&<small>{customer.email}</small>}</span></SelectItem>)}
     </SelectContent></Select>
     {!matches.length && <p role="status" className="text-xs">No customers match. Change the search or use Quick add.</p>}
     {matches.length > 50 && <p className="text-xs">Showing 50 matches. Refine your search.</p>}

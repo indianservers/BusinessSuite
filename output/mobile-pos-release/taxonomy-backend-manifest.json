@@ -1,0 +1,19 @@
+{
+  "original": {
+    "app/shared/api.py": "5aaf721610e01ca4e2571016c9381edc675cad51b2ee2202729ef4d9282b3756",
+    "app/api/v1/employees.py": "6f2be5e3bd26f21c10f832e8f24b561ba7104694a5a5ce0ed85d4edce96b2c60",
+    "app/business_packs/employee_core.py": "3dabec5d34b3c8f6f07a660ca2279472b3eda2086cdd93c762899550cd510642",
+    "app/business_packs/boundary.py": "851fbf9875cf156fc4c5051a9b0e160d825724315a9ea64587d3a038371b48f4",
+    "app/shared/employee_categories.py": "c86db8c37144ade7840f4b62a48495d208dcba69c8de9559415da62734928c12",
+    "app/apps/srm/service_checkout.py": "7f97c97fb7b7465c2abc9fc3f7d1309b74705873030c374d4376d6d8795b3a98"
+  },
+  "files": {
+    "app/business_packs/boundary.py": "8097e75193cbbab9e0d32a9f0180356a3efd6bfd90be06c55872831bfecb7776",
+    "app/business_packs/employee_core.py": "3aaaef2b3c846d03ae002b76eb4b800cdc9a24665b4af25cc488081291842cc3",
+    "app/shared/api.py": "ed2897b91cdcbc90849c88bd78e3ce714cb24081d14a7b7d6c2b3fe792c7e49d",
+    "app/shared/employee_categories.py": "2853b6f01d64154cc9997db8ea7e18392264cd509748c5bbc8ee9eabbb860973",
+    "app/shared/employee_category_taxonomy.py": "51d402d7acc24613dc1c0ec1c0f49b1748103f7bcbc2b0e79312fcf338631893",
+    "app/api/v1/employees.py": "96acb8df7051837cb58e7fa1577f1c7e88dcfd68d39801da9bc3221f9d86d72d",
+    "app/apps/srm/service_checkout.py": "d1f0f6423c5bc01ea098a1323e1fa290e077deb4d1d403d046bf7fe948060a04"
+  }
+}

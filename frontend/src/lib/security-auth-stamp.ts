@@ -10,9 +10,10 @@ export function securityAuthStamp(user: AuthUser | null | undefined) {
   const access = user?.access as unknown as Record<string, unknown> | undefined;
   const packs = access?.businessPacks as Record<string, unknown> | undefined;
   const contexts = Array.isArray(packs?.contexts) ? packs.contexts.map(item=>fields(item as Record<string,unknown>,["contextId","branchId","packKey","packVersion","role","contextRevision","grantRevision","activationRevision"])) : [];
-  return JSON.stringify(canonical(["security-v1",user?.primary_role ?? user?.role,user?.is_superuser,
+  return JSON.stringify(canonical(["security-v1",user?.primary_role === undefined ? user?.role : user.primary_role,user?.is_superuser,
     fields(source,["employee_id","permissions","disabled","is_active","readOnly","read_only"]),
     fields(access,["grants","permissions","companyDisabledModules","readOnlyModules","disabled","readOnly","read_only","managed","isAccessAdmin","isGlobalAdmin","memberships"]),
     Array.isArray(access?.modules) ? access.modules.map(item=>fields(item as Record<string,unknown>,["key","enabled","permissions","actions","readOnly"])) : null,
     packs ? [fields(packs,["state","hasMore","selectorRequired","selectedContextId","selectionState"]),contexts] : null]));
 }
+

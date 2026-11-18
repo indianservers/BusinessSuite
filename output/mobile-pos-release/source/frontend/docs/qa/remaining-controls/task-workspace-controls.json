@@ -1,0 +1,67 @@
+[
+  {
+    "control": "Open task action",
+    "result": "passed",
+    "evidence": "BS036-5 menu Open task navigated to /pms/tasks/180 and loaded matching task."
+  },
+  {
+    "control": "Watch/unwatch persistence",
+    "result": "passed",
+    "evidence": "Watch count0\u00e2\u2020\u20191; reload retained Unwatch1; reversed toWatch0."
+  },
+  {
+    "control": "Timer start/reload/stop/save",
+    "result": "passed",
+    "evidence": "Nonbillable QA timer persisted across reload; Stop and save confirmed1 minute recorded."
+  },
+  {
+    "control": "Timer discard cancel/confirm/refresh",
+    "result": "passed",
+    "evidence": "Keep tracking canceled discard; Discard time stopped second timer without log; Refresh showed idle."
+  },
+  {
+    "control": "Checklist add",
+    "result": "passed",
+    "evidence": "QA checklist control test appeared with complete/title/delete controls; initial move-up disabled."
+  },
+  {
+    "control": "Checklist completion/progress/rename/order/delete",
+    "result": "passed",
+    "evidence": "Checklist mode: completion gave100%, reload retained completion; uncheck reversed; rename and second item reorder persisted; both synthetic items deleted; returned manual progress."
+  },
+  {
+    "control": "Overview/Reviews/Files sections",
+    "result": "passed",
+    "evidence": "Selected each; matching overview, review/approval and attachment headings rendered; refresh approvals returned no requests."
+  },
+  {
+    "control": "Task attachment previews",
+    "result": "passed",
+    "evidence": "Prepared API fixtures38/39 for task180. Inline PNG complete480x240; preview toggle closed image; text preview matched69-byte content. API preparation is not an upload-button test."
+  },
+  {
+    "control": "Task attachment downloads",
+    "result": "passed",
+    "evidence": "PNG2565 bytes and text69 bytes downloaded via task cards; SHA256 matched original synthetic fixtures."
+  },
+  {
+    "control": "Task attachment Open",
+    "result": "unverified",
+    "evidence": "Open created blob image tab with480x240 title; browser protocol policy blocked content inspection. No workaround attempted."
+  },
+  {
+    "control": "Task attachment Delete",
+    "result": "unverified",
+    "evidence": "Native confirm interrupted automation; dialog bridge could not accept it. Synthetic text file remains; deletion not certified."
+  },
+  {
+    "control": "Task workspace landmarks",
+    "result": "fixed-and-passed",
+    "evidence": "Before: nested main landmarks. After: one main plus named Task workspace region; task, attachments and time summary loaded."
+  },
+  {
+    "control": "Blocker report/edit/resolve/reopen persistence",
+    "result": "passed",
+    "evidence": "Posted QA Technical/High blocker assignedAdmin with assistance; resolved\u00e2\u2020\u2019reopened\u00e2\u2020\u2019resolved; Cancel edit canceled; Save update changed body to QA blocker edited; reload retained resolved state/body/category/severity/owner."
+  }
+]

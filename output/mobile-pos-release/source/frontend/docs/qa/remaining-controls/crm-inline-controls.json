@@ -1,0 +1,97 @@
+[
+  {
+    "control": "Read-only field semantics and empty metadata",
+    "result": "fixed-and-passed",
+    "evidence": "Branch value remained visible but no inert button; empty phone-validation object hidden; no raw object text; editable full-name button retained."
+  },
+  {
+    "control": "Readable boolean",
+    "result": "passed",
+    "evidence": "Is Converted displays No."
+  },
+  {
+    "control": "Existing inline source value",
+    "result": "fixed-and-passed",
+    "evidence": "Before: Manual record opened showing Website. After: selected valueManual, labelManual Entry, full12canonical sources available."
+  },
+  {
+    "control": "Searchable inline source focus",
+    "result": "fixed-and-passed",
+    "evidence": "Opening source picker no longer blur-submits and unmounts editor; both Source and Search Source remain present."
+  },
+  {
+    "control": "Inline source Manual Entry",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Website",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Referral",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Social Media",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Email",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Phone",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Cold Call",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Email Campaign",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Event",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Partner",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source WhatsApp",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Other",
+    "result": "passed",
+    "evidence": "Visible search and pointer selection matched controlled value; only explicit save scenarios certify persistence."
+  },
+  {
+    "control": "Inline source Save/reload/restore",
+    "result": "passed",
+    "evidence": "SavedWebsite using Save Source; hard reload retainedWebsite; savedManual and hard reload retainedManual."
+  },
+  {
+    "control": "Labeled inline name save/cancel/persistence",
+    "result": "passed",
+    "evidence": "Full Name input and Save Full Name exposed proper labels. Escape canceled edit; saved QA inline detail verified, hard reload retained; restored originalQA nested form boundary, hard reload retained."
+  },
+  {
+    "control": "Invalid phone draft retention",
+    "result": "unverified",
+    "evidence": "Save rejection shown for generated invalid phone input; masked draft value prevented reliable retention assertion. No certification of this error path."
+  }
+]

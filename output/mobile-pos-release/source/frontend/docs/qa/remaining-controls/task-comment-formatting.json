@@ -1,0 +1,92 @@
+[
+  {
+    "control": "Font family Inter",
+    "result": "passed",
+    "evidence": "Inter"
+  },
+  {
+    "control": "Font family Arial",
+    "result": "passed",
+    "evidence": "Arial"
+  },
+  {
+    "control": "Font family Georgia",
+    "result": "passed",
+    "evidence": "Georgia"
+  },
+  {
+    "control": "Font family Times New Roman",
+    "result": "passed",
+    "evidence": "\"Times New Roman\""
+  },
+  {
+    "control": "Font family Courier New",
+    "result": "passed",
+    "evidence": "\"Courier New\""
+  },
+  {
+    "control": "Paragraph Normal",
+    "result": "passed",
+    "evidence": "p"
+  },
+  {
+    "control": "Paragraph Title",
+    "result": "passed",
+    "evidence": "h1"
+  },
+  {
+    "control": "Paragraph Heading 1",
+    "result": "passed",
+    "evidence": "h2"
+  },
+  {
+    "control": "Paragraph Heading 2",
+    "result": "passed",
+    "evidence": "h3"
+  },
+  {
+    "control": "Paragraph Heading 3",
+    "result": "passed",
+    "evidence": "h4"
+  },
+  {
+    "control": "Font size 12",
+    "result": "passed",
+    "evidence": "12px"
+  },
+  {
+    "control": "Font size 14",
+    "result": "passed",
+    "evidence": "14px"
+  },
+  {
+    "control": "Font size 16",
+    "result": "passed",
+    "evidence": "16px"
+  },
+  {
+    "control": "Font size 18",
+    "result": "passed",
+    "evidence": "18px"
+  },
+  {
+    "control": "Font size 20",
+    "result": "passed",
+    "evidence": "20px"
+  },
+  {
+    "control": "Font size 24",
+    "result": "passed",
+    "evidence": "24px"
+  },
+  {
+    "control": "Font size 32",
+    "result": "passed",
+    "evidence": "32px"
+  },
+  {
+    "control": "Font size 40",
+    "result": "passed",
+    "evidence": "40px"
+  }
+]

@@ -54,7 +54,7 @@ def _owned_clause(model, company, branch, scope):
         anchor.c.branch_id == branch, anchor.c.context_id == scope.context_id))
 
 
-def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, eligibility_id=None):
+def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, eligibility_id=None, target_employee_id=None):
     from app.apps.srm.industry_api import PROVIDER_TYPES
     r, e = IndustryRecord, Employee
     employee_id = cast(r.data['employee_id'].as_string(), String)
@@ -65,6 +65,8 @@ def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, 
         r.data['resource_type'].as_string().in_(PROVIDER_TYPES), e.branch_id == branch, Branch.company_id == company,
         e.deleted_at.is_(None), e.status.in_(('Active', 'Probation', 'On Leave')),
         _owned_clause(r, company, branch, scope))
+    if target_employee_id is not None:
+        statement = statement.where(e.id == target_employee_id)
     if search:
         match = '%' + search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
         statement = statement.where(or_(r.title.ilike(match, escape='\\'), e.first_name.ilike(match, escape='\\'), e.last_name.ilike(match, escape='\\'), e.employee_id.ilike(match, escape='\\')))
@@ -119,7 +121,7 @@ def provider_options(db, actor, *, selected=None, search=''):
     return {'providers': rows, 'has_more': more, 'employee_categories': sorted({name for row in rows for name in row.get('work_categories') or []}, key=str.casefold)}
 
 
-def service_options(db, actor, service_id, *, selected=None, search='', offset=0):
+def service_options(db, actor, service_id, *, selected=None, search='', offset=0, employee_id=None):
     company, branch, scope = _authority(db, actor, selected)
     if len(search) > 100:
         raise HTTPException(422, 'Search must be at most 100 characters')
@@ -144,7 +146,7 @@ def service_options(db, actor, service_id, *, selected=None, search='', offset=0
         IndustryRecord.data['resource_type'].as_string().in_(('room', 'chair', 'equipment', 'location')),
         _owned_clause(IndustryRecord, company, branch, scope)).order_by(IndustryRecord.title).limit(100)).mappings()
     resource_options = [{'id': row['id'], 'name': row['title'], 'resource_type': row['data'].get('resource_type'),
-        **{key: row['data'].get(key) for key in ('timezone', 'opens', 'closes', 'weekdays', 'capacity')}} for row in resources]
+        **{key: row['data'].get(key) for key in ('timezone', 'opens', 'closes', 'weekdays', 'capacity', 'location', 'accessibility', 'facilities')}} for row in resources]
     can_configure = False
     try:
         from app.apps.srm.service_checkout import _authority as checkout_authority
@@ -160,7 +162,7 @@ def service_options(db, actor, service_id, *, selected=None, search='', offset=0
     if policy is None:
         return {'service_id': service_id, 'policy': None, 'specialists': [], 'has_more': False, 'resources': resource_options, **details}
     _source_scope(db, scope, company, branch, model, policy['id'])
-    rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip(), offset=offset) if policy['active'] else ([], False)
+    rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip(), offset=offset, target_employee_id=employee_id) if policy['active'] else ([], False)
     from app.apps.srm.service_resource_requirements import required_types
     from types import SimpleNamespace
     requirements = sorted(required_types(SimpleNamespace(metadata_json=product.metadata_json), policy['id']))

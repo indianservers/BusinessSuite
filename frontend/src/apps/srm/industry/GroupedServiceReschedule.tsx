@@ -1,3 +1,5 @@
+import { MobileWorkflowSurface } from "../components/MobileWorkflowPages";
+import { useMobile } from "@/components/mobile/useMobile";
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -26,12 +28,12 @@ export default function GroupedServiceReschedule(props: Props) {
 }
 
 function GroupedSchedule({ row, serviceId, resources = [], saved, scope }: Props & { scope: string }) {
+  const mobile=useMobile(),[mobileOpen,setMobileOpen]=useState(false);
   const [reload, setReload] = useState(0);
   const owns = useRecordScopeOwner();
   const query = useQuery({ queryKey: ['grouped-service-schedule', scope, row.id, row.revision], retry: false,
     refetchOnWindowFocus: false, queryFn: ({ signal }) => api.get<Schedule>(`/srm/service-checkout/appointments/${row.id}/schedule`, { signal }).then(response => response.data) });
-  return <details className="rounded-md border p-3"><summary className="cursor-pointer text-sm">Reschedule</summary>
-    <div className="mt-3 space-y-3">
+  const content=(    <div className="mt-3 space-y-3">
       {query.isPending && <p role="status">Loading current service schedule…</p>}
       {query.isError && <p role="alert">{dealError(query.error)}</p>}
       {query.data && <ScheduleDraft key={reload} initial={query.data} row={row} resources={resources} saved={saved} serviceId={serviceId}/>}
@@ -39,8 +41,9 @@ function GroupedSchedule({ row, serviceId, resources = [], saved, scope }: Props
         void query.refetch().then(result => { if (owns() && result.isSuccess) setReload(value => value + 1); });
       }}>Reload current schedule</Button>
       <p className="text-xs text-muted-foreground">Reload replaces this draft with the current appointment schedule.</p>
-    </div>
-  </details>;
+    </div>);
+  if(mobile)return <><Button type="button" variant="outline" onClick={()=>setMobileOpen(true)}>Reschedule</Button>{mobileOpen&&<MobileWorkflowSurface title="Reschedule service" onClose={()=>setMobileOpen(false)}>{content}</MobileWorkflowSurface>}</>;
+  return <details className="rounded-md border p-3"><summary>Reschedule</summary>{content}</details>;
 }
 
 function ScheduleDraft({ initial, row, serviceId, resources = [], saved }: Props & { initial: Schedule }) {

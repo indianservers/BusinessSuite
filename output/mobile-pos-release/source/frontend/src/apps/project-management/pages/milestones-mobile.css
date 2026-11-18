@@ -1,0 +1,31 @@
+@media(max-width:480px){
+ .pms-milestone-source{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+ .pms-milestone-source button{min-height:44px;margin-top:8px}
+ .smart-create-phone-sheet:has(.pms-milestone-form) .pms-milestone-create-heading{display:none}
+ .smart-create-phone-sheet:has([data-smart-create-footer]) .pms-milestone-form>button{display:none}
+ .pms-milestone-create-trigger{min-height:44px;width:100%}
+ .pms-milestones{min-width:0;overflow-wrap:anywhere}
+ .pms-milestones .page-title{font-size:20px;line-height:1.3}
+ .pms-milestones .page-description{font-size:13px;line-height:1.5}
+ .pms-milestones .pms-milestone-list{gap:10px}
+ .pms-milestone-content.p-5{padding:12px}
+ .pms-milestone-heading{flex-wrap:wrap;gap:8px}
+ .pms-milestone-identity{align-items:flex-start;flex:1 1 170px;min-width:0;gap:8px}
+ .pms-milestone-identity>div:last-child{min-width:0}
+ .pms-milestone-identity>div:first-child{padding:6px;flex-shrink:0}
+ .pms-milestone-identity h2{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+ .pms-milestone-identity p{font-size:12px}
+ .pms-milestone-progress.mt-5{margin-top:10px}
+ .pms-milestone-approval.mt-4{margin-top:10px;padding:10px}
+ .pms-milestone-approval>div:first-child{align-items:flex-start;flex-wrap:wrap;gap:6px}
+ .pms-milestone-approval .pms-milestone-approval-copy{flex:1 1 150px;min-width:0}
+ .pms-milestone-approval p{overflow-wrap:anywhere;line-height:1.5}
+ .pms-milestones .pms-milestone-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .pms-milestone-actions button{min-height:44px;padding:6px;gap:4px;font-size:12px;min-width:0}
+ .pms-milestone-actions svg{flex-shrink:0}
+ .pms-milestone-create-heading{padding:12px}
+ .pms-milestone-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .pms-milestone-form .pms-milestone-name,.pms-milestone-form>button{grid-column:1/-1}
+ .pms-milestone-form input,.pms-milestone-form select{min-height:44px;font-size:16px;min-width:0;width:100%}
+ .pms-milestone-form>button{min-height:44px;position:sticky;bottom:0;z-index:1}
+}

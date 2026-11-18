@@ -354,7 +354,7 @@ def install(db,actor,scope):
         EmployeeOnboarding:and_(EmployeeOnboarding.employee_id.in_(employees),EmployeeOnboarding.template_id.in_(template_ids)),
         EmployeeOnboardingTask:EmployeeOnboardingTask.employee_onboarding_id.in_(onboardings),
         AuditLog:false(),FieldAuditEvent:false(),
-        ServicePolicy:and_(ServicePolicy.organization_id==scope.company_id,ServicePolicy.kind=='form_defaults',ServicePolicy.module_key.in_(['*','hrms']))}
+        ServicePolicy:and_(ServicePolicy.organization_id==scope.company_id,or_(ServicePolicy.kind=='form_defaults',and_(ServicePolicy.kind=='employee_categories',ServicePolicy.scope_key==f'employee-categories:company:{scope.company_id}')),ServicePolicy.module_key.in_(['*','hrms']))}
     conditions.update({BusinessUnit:BusinessUnit.company_id==scope.company_id,WorkLocation:WorkLocation.company_id==scope.company_id,
         Position:Position.company_id==scope.company_id,GradeBand:or_(GradeBand.organization_id==scope.company_id,GradeBand.organization_id.is_(None)&(scope.company_id==1)),
         CommonPerson:and_(CommonPerson.organization_id==scope.company_id,CommonPerson.source_module=='hrms',CommonPerson.source_record_type=='employee',CommonPerson.source_record_id.in_(employees),CommonPerson.user_id.in_(users)),

@@ -730,11 +730,16 @@ test('saved server conversations resume after module navigation and can be switc
  expect(await page.evaluate(()=>Object.keys(localStorage).concat(Object.keys(sessionStorage)).filter(k=>/conversation|bot-history/i.test(k)))).toEqual([]);
 });
 
-test('initial company hydration preserves replies and later company changes clear them',async({page})=>{
+test('company hydration keeps a cancelled request draft retryable and later company changes clear it',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
  const input=page.getByRole('textbox',{name:'Message action bot'});await expect(input).toBeEnabled();
  await input.fill('slow reply');await page.getByRole('button',{name:'Send bot message'}).click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__botRequests.some((r:any)=>r.path.endsWith('/commands')))).toBe(true);
  await page.evaluate(()=>(window as any).__hydrateBotCompany(1));
+ // The API rejects responses from the previous request scope, including hydration.
+ await expect(page.getByRole('alert')).toContainText('Your text is preserved');
+ await expect(input).toHaveValue('slow reply');
+ await page.getByRole('button',{name:'Send bot message'}).click();
  await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
  await page.evaluate(()=>(window as any).__hydrateBotCompany(2));
  await expect(page.getByRole('dialog',{name:'Action bot'})).toHaveCount(0);

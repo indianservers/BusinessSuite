@@ -1,0 +1,29 @@
+{
+  "origin": "https://besterp.app",
+  "appointment_id": 35,
+  "creation_http_status": 201,
+  "created_through_mobile_ui": true,
+  "day": "2026-11-19",
+  "starts_at": "2026-11-19T03:30:00Z",
+  "duration_minutes": 30,
+  "employee_id": 169,
+  "physical_resource_id": 34,
+  "checks": [
+    "Mobile-created appointment #35 exists exactly once and all 20 original bookings remain",
+    "Original request replay returns the same record; confirmation renders for a customer with null phone; no duplicate is created",
+    "A new request for the occupied employee/equipment slot is rejected with HTTP 409",
+    "Saved booking persists after reload at 360px; selected date has 5 records; List/Calendar/Gantt and viewport bounds pass",
+    "Saved booking persists after reload at 390px; selected date has 5 records; List/Calendar/Gantt and viewport bounds pass",
+    "Saved booking persists after reload at 430px; selected date has 5 records; List/Calendar/Gantt and viewport bounds pass"
+  ],
+  "errors": [],
+  "consoleErrors": [],
+  "apiFailures": [],
+  "verified_at": "2026-11-18T12:18:17.120Z",
+  "release": "stock-alerts-reports-20261118-v2",
+  "total_appointments": 21,
+  "existing_appointments_preserved": 20,
+  "conflict_status": 409,
+  "conflict_detail": "The employee or required resource is unavailable. Choose another available time.",
+  "status": "passed"
+}

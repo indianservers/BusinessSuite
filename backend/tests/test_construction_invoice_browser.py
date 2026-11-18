@@ -1,5 +1,6 @@
 """Original production invoice screen against real native HTTP and owned test DB."""
 import json
+import pytest
 import tempfile
 from pathlib import Path
 from decimal import Decimal
@@ -14,7 +15,8 @@ from tests.test_business_pack_construction import construction, scenario, catalo
 from tests.test_business_pack_http_integration import grant
 
 
-def test_actual_app_construction_invoice_collection_only_actor(client, db, construction, catalog, monkeypatch, construction_approver):
+@pytest.mark.parametrize('width', [1440, 390])
+def test_actual_app_construction_invoice_collection_only_actor(client, db, construction, catalog, monkeypatch, construction_approver, width):
     from tests.test_control_browser import test_control_center_real_browser
     actor, branch, context_id, project_id = construction
     db.add(ProjectCommercial(project_id=project_id, customer_id=101, seller_id=1, currency='INR', updated_by=actor.id))
@@ -68,7 +70,7 @@ def test_actual_app_construction_invoice_collection_only_actor(client, db, const
         auth_file = Path(temporary) / 'identity.json'
         auth_file.write_text(json.dumps({'token': headers['Authorization'].split(' ', 1)[1], 'user': user,
             'branch': str(branch), 'context': str(context_id), 'invoice': invoice['id'],
-            'invoice_number': invoice['invoice_number'], 'measurement': measured['id']}), encoding='utf-8')
+            'width': width, 'invoice_number': invoice['invoice_number'], 'measurement': measured['id']}), encoding='utf-8')
         monkeypatch.setenv('SUITE_QA_AUTH_FILE', str(auth_file))
         test_control_center_real_browser(client, db, None, manager)
     assert db.query(SRMInvoice).one().paid_amount == Decimal('7080.00')

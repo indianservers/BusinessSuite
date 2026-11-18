@@ -1,3 +1,4 @@
+import SRMMobileScreen from "./components/SRMMobileScreen";
 import { lazyRoute } from "@/lib/lazy-route";
 const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
@@ -170,5 +171,9 @@ const registeredSrmRoutes: FrontendRoute[] = [
     .filter(path => !nativePaths.has(path)).map(inventorySourceRoute),
 ];
 
-export const srmRoutes: FrontendRoute[] = registeredSrmRoutes.map(route => getOperationWorkspace(`/${route.path}`)
-  ? { ...route, element: <SRMRouteWorkspace route={route} routes={registeredSrmRoutes} /> } : route);
+const srmMobilePaths=registeredSrmRoutes.map(route=>`/${route.path}`);
+export const srmRoutes: FrontendRoute[] = registeredSrmRoutes.map(route => ({
+  ...route,
+  element: <SRMMobileScreen paths={srmMobilePaths} nativePath={`/${route.path}`}>{getOperationWorkspace(`/${route.path}`)
+    ? <SRMRouteWorkspace route={route} routes={registeredSrmRoutes}/> : route.element}</SRMMobileScreen>,
+}));

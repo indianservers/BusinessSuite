@@ -1536,6 +1536,7 @@ export function AssetRegistrationButton({
   onSaved: () => void;
   openRequest?: string;
 }) {
+  const [saveError, setSaveError] = useState("");
   const [open, setOpen] = useState(false),
     [tab, setTab] = useState("Basic details"),
     [review, setReview] = useState(false),
@@ -1548,6 +1549,7 @@ export function AssetRegistrationButton({
     user = useAuthStore((s) => s.user);
   useEffect(() => {
     if (openRequest) {
+      setSaveError("");
       setForm({});
       setReview(false);
       setCreated(null);
@@ -1579,6 +1581,7 @@ export function AssetRegistrationButton({
   );
   const save = async () => {
     setPending(true);
+    setSaveError("");
     try {
       let identity = created;
       if (!identity) {
@@ -1634,6 +1637,7 @@ export function AssetRegistrationButton({
       setOpen(false);
       toast({ title: "Asset registered" });
     } catch (e) {
+      setSaveError(message(e));
       toast({
         title: created
           ? "Asset saved; attachment needs retry"
@@ -1655,6 +1659,7 @@ export function AssetRegistrationButton({
     <>
       <Button
         onClick={() => {
+          setSaveError("");
           setForm({});
           setCustom("");
           setInvoice(null);
@@ -1699,6 +1704,7 @@ export function AssetRegistrationButton({
               }
             }}
           >
+            {saveError && <p role="alert" className="text-sm text-destructive">{saveError} Your asset details are retained; correct them or retry.</p>}
             {review ? (
               <>
                 <h3>Review before saving</h3>

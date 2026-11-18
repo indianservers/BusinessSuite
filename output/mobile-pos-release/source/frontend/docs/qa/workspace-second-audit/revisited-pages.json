@@ -1,0 +1,86 @@
+[
+  {
+    "path": "/pms/products-services",
+    "error": false,
+    "headings": [
+      "Products & services",
+      "Make room for your next offering"
+    ],
+    "overflow": false,
+    "text": "e actions\nProjects\nTasks\nDashboards\nPipeline\nChannel\nView\n\nBUSINESS SUITE / SHARED CATALOG\n\nProducts & services\n\nEverything you sell. Everything you deliver.\nEnter once. Reuse across branches, POS, Sales, CRM and PMS.\n\nProducts\nServices\nLive across your suite\nExport\nImport\nNew item\nSelect this page\n0 selected\nReuse in other branches\nShare, copy or move products and services without retyping.\nAll items\nProducts\nServices\n0 matching items\nActive\nArchived\nAll statuses\nName\nPrice\nCategory\nCode\nMake room for your next offering\n\nAdd your products and services once. Use them across sales and delivery.\n\nCreate your first item\nPrevious\nPage 1 of 1\nNext"
+  },
+  {
+    "path": "/pms/members",
+    "error": false,
+    "headings": [
+      "Members & invitations"
+    ],
+    "overflow": false,
+    "text": "KaryaFlow PMS\nMembers & invitations\nTeam workspace\nPage actions\nProjects\nTasks\nDashboards\nPipeline\nChannel\nView\nMembers & invitations\n\nAdd registered people directly. Invite new people by email and track their acceptance here.\n\nOpen people directory\nInvite by email\nWorkspace\nChoose workspace\nNo data found\nProject (optional)\nWorkspace members\nNo data found\nRefresh\n\nCreate or join a workspace to manage its members. Open workspaces"
+  },
+  {
+    "path": "/pms/settings",
+    "error": false,
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "text": "WORKSPACE SETTINGS\n\nSettings\n\nOne place for your account, company and application preferences.\n\nPermissions apply to every change\nAll settings\n\nLoading your allowed settings…"
+  },
+  {
+    "path": "/pms/impact",
+    "error": false,
+    "headings": [
+      "Work Hub / Impact",
+      "Ready for your next project"
+    ],
+    "overflow": false,
+    "text": "KaryaFlow PMS\nImpact\nTeam workspace\nPage actions\nProjects\nTasks\nDashboards\nPipeline\nChannel\nView\nDELIVERY WORKSPACE\nWork Hub / Impact\n\nSelect a project to plan its work, track delivery and collaborate with the team.\n\nProject\nLoading projects…\nNo data found\nRefresh\nBoard\nTable\nGallery\nGantt\nTimeline\nCalendar\nView\nReady for your next project\n\nCreate a project or join one to start planning real work.\n\nOpen projects"
+  },
+  {
+    "path": "/pms/teams-live",
+    "error": false,
+    "headings": [],
+    "overflow": false,
+    "text": "KaryaFlow PMS\nLive Work\nTeam workspace\nPage actions\nLoading Live Work"
+  },
+  {
+    "path": "/pms/dependencies",
+    "error": false,
+    "headings": [
+      "Roadmap",
+      "Roadmap filters"
+    ],
+    "overflow": false,
+    "text": "KaryaFlow PMS\nRoadmap\nTeam workspace\nPage actions\nProjects\nTasks\nDashboards\nPipeline\nChannel\nRoadmap\nView\nRoadmap\n\nPlan epics across projects and sprints with progress, ownership, dependencies, and schedule changes.\n\nMonth\nWeek\nRefresh\nRoadmap filters\nProject\nAll projects\nNo data found\nOwner\nAll owners\nNo data found\nStatus\nAll statuses\nNo data found\nFrom\nTo\n\n0 epics\n\n0 unscheduled"
+  },
+  {
+    "path": "/crm/products-services",
+    "error": false,
+    "headings": [
+      "Catalog",
+      "Products & services",
+      "Make room for your next offering"
+    ],
+    "overflow": false,
+    "text": "RED CATALOG\n\nProducts & services\n\nEverything you sell. Everything you deliver.\nEnter once. Reuse across branches, POS, Sales, CRM and PMS.\n\nProducts\nServices\nLive across your suite\nExport\nImport\nNew item\nCustomers & pipeline by offering\nLead & customer follow-ups\nCustomer greetings\nSelect this page\n0 selected\nReuse in other branches\nShare, copy or move products and services without retyping.\nAll items\nProducts\nServices\n0 matching items\nActive\nArchived\nAll statuses\nName\nPrice\nCategory\nCode\nMake room for your next offering\n\nAdd your products and services once. Use them across sales and delivery.\n\nCreate your first item\nPrevious\nPage 1 of 1\nNext"
+  },
+  {
+    "path": "/crm/lead-scoring",
+    "error": false,
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "text": "WORKSPACE SETTINGS\n\nSettings\n\nOne place for your account, company and application preferences.\n\nPermissions apply to every change\nAll settings\n\nLoading your allowed settings…"
+  },
+  {
+    "path": "/crm/territories",
+    "error": false,
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "text": "WORKSPACE SETTINGS\n\nSettings\n\nOne place for your account, company and application preferences.\n\nPermissions apply to every change\nAll settings\n\nLoading your allowed settings…"
+  }
+]

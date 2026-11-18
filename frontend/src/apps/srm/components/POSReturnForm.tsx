@@ -31,6 +31,7 @@ function ReturnForm({ scope }: { scope: string }) {
   const [lineId, setLineId] = useState("");
   const [search, setSearch] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [condition, setCondition] = useState("sellable"), [restock, setRestock] = useState(true);
   const [method, setMethod] = useState("cash"), [reason, setReason] = useState("");
   const [submitted, setSubmitted] = useState(false), [error, setError] = useState("");
   const term = useDebounced(search);
@@ -46,10 +47,10 @@ function ReturnForm({ scope }: { scope: string }) {
   if (!/^(?:\d+\.?\d*|\.\d+)$/.test(quantity) || !Number.isFinite(Number(quantity)) || Number(quantity) <= 0) errors.quantity = "Enter a return quantity greater than zero.";
   else if (selectedLine && Number(quantity) > Number(selectedLine.returnable_quantity)) errors.quantity = "Quantity exceeds the remaining returnable quantity.";
   if (!method.trim()) errors.method = "Enter a refund method.";
-  const resetLine = () => { setLineId(""); setQuantity("1"); setError(""); };
+  const resetLine = () => { setLineId(""); setQuantity("1"); setCondition("sellable"); setRestock(true); setError(""); };
   const create = useMutation({ mutationFn: () => {
     if (!owns() || !sale || !selectedLine) throw new Error("The sales context changed. Reopen this form.");
-    return srmApi.createPosReturn({ sales_order_id: sale.id, refund_method: method.trim(), reason: reason.trim() || undefined, lines: [{ sales_order_line_id: selectedLine.id, product_id: selectedLine.product_id || undefined, quantity: Number(quantity), restock: true, condition: "sellable" }] });
+    return srmApi.createPosReturn({ sales_order_id: sale.id, refund_method: method.trim(), reason: reason.trim() || undefined, lines: [{ sales_order_line_id: selectedLine.id, product_id: selectedLine.product_id || undefined, quantity: Number(quantity), restock: condition === "sellable" && restock, condition }] });
   }, onSuccess: result => {
     if (!owns()) return;
     toast({ title: "POS return created" }); setSale(undefined); resetLine(); setSearch(""); setReason(""); setSubmitted(false);
@@ -64,7 +65,9 @@ function ReturnForm({ scope }: { scope: string }) {
         <label className="grid gap-1 text-sm">Return quantity<Input aria-label="Return quantity" inputMode="decimal" aria-invalid={submitted && !!errors.quantity} value={quantity} onChange={event => setQuantity(event.target.value)} />{submitted && errors.quantity && <span role="alert" className="text-destructive">{errors.quantity}</span>}</label>
         <label className="grid gap-1 text-sm">Refund method<Input aria-label="Refund method" value={method} onChange={event => setMethod(event.target.value)} />{submitted && errors.method && <span role="alert" className="text-destructive">{errors.method}</span>}</label>
         <label className="grid gap-1 text-sm">Reason (optional)<Input aria-label="Reason" value={reason} onChange={event => setReason(event.target.value)} /></label>
-        <p className="text-sm text-muted-foreground">Refund value and tax come from the original sale. Returned products are restocked as sellable.</p>
+        <label className="grid gap-1 text-sm">Return condition<NativeSelect aria-label="Return condition" value={condition} onChange={event => { setCondition(event.target.value); setRestock(false); }}><option value="sellable">Sellable</option><option value="damaged">Damaged</option><option value="not_returned">Goods not returned / service refund</option></NativeSelect></label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={restock && condition === "sellable"} disabled={condition !== "sellable"} onChange={event => setRestock(event.target.checked)} />Add returned goods to sellable stock</label>
+        <p className="text-sm text-muted-foreground">Refund value and tax come from the original sale. {condition === "sellable" && restock ? "Returned goods will be added to sellable stock." : "This refund will not increase available stock."}</p>
       </fieldset>
       {error && <p role="alert" className="text-destructive">{error}</p>}
       <Button data-save-action type="submit" disabled={!canWrite || create.isPending}>{create.isPending ? "Creating…" : "Create return"}</Button>

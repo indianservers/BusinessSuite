@@ -1,0 +1,33 @@
+@media (max-width: 480px) {
+  .hrms-helpdesk-page { min-width: 0; font-size: 14px; }
+  .hrms-helpdesk-page h1 { font-size: 22px; line-height: 1.25; }
+  .hrms-helpdesk-page .grid > *, .hrms-helpdesk-page .kf-card, .hrms-helpdesk-page .flex > div { min-width: 0; }
+  .hrms-helpdesk-page :is(p, span), .hrms-helpdesk-ticket-sheet :is(p, span, a) { overflow-wrap: anywhere; }
+  .hrms-helpdesk-page :is(button, summary), .hrms-helpdesk-ticket-sheet button { min-height: 44px; }
+  .hrms-helpdesk-page button, .hrms-helpdesk-ticket-sheet button { white-space: normal; }
+  .hrms-helpdesk-page :is(input, select), .hrms-helpdesk-ticket-sheet :is(select, [contenteditable="true"]) { min-height: 44px; font-size: 16px; min-width: 0; max-width: 100%; }
+  .hrms-helpdesk-page .kf-card > div { padding: 12px; }
+  .hrms-helpdesk-page .hrms-helpdesk-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .hrms-helpdesk-kpis .kf-card > div { padding: 10px 6px; }
+  .hrms-helpdesk-kpis p.text-2xl { font-size: 21px; }
+  .hrms-helpdesk-page button[aria-label="Refresh tickets"] { min-width: 44px; }
+  .hrms-helpdesk-page [data-card-collection="apps/hrms/pages/helpdesk/HelpdeskPage:records-1"] .suite-record-star { width: 44px; min-width: 44px; height: 44px; }
+  .hrms-helpdesk-page [data-card-collection="apps/hrms/pages/helpdesk/HelpdeskPage:records-1"] .suite-record-card-shell > .suite-record-card-tools { right: 52px; top: 6px; }
+  .hrms-helpdesk-page .hrms-helpdesk-ticket-heading { padding-right: 100px; min-height: 44px; }
+  .smart-create-phone-sheet .hrms-helpdesk-create-card { border: 0; box-shadow: none; }
+  .smart-create-phone-sheet .hrms-helpdesk-create-card > div:first-child { display: none; }
+  .smart-create-phone-sheet .hrms-helpdesk-create-card > div:last-child { padding: 0; }
+  .smart-create-phone-sheet .hrms-helpdesk-create { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .smart-create-phone-sheet .hrms-helpdesk-create > * { min-width: 0; }
+  .smart-create-phone-sheet .hrms-helpdesk-create > :is(div:first-child, div:nth-child(4), .hrms-helpdesk-create-actions, .hrms-helpdesk-create-error) { grid-column: 1 / -1; }
+  .smart-create-phone-sheet .hrms-helpdesk-create :is(input, select, [contenteditable="true"]) { min-height: 44px; font-size: 16px; min-width: 0; max-width: 100%; }
+  .smart-create-phone-sheet .hrms-helpdesk-create-actions { display: none; }
+  .mobile-experience-sheet:has(.hrms-helpdesk-ticket-sheet) { display: flex; flex-direction: column; min-height: 0; }
+  .mobile-experience-sheet .hrms-helpdesk-ticket-sheet { min-height: 0; overflow: auto; border: 0; box-shadow: none; overscroll-behavior: contain; }
+  .mobile-experience-sheet .hrms-helpdesk-ticket-sheet > div { padding: 12px 0; }
+  .hrms-helpdesk-ticket-sheet .flex > div { min-width: 0; }
+  .hrms-helpdesk-ticket-sheet select[aria-label="Ticket status"] { width: 100%; }
+  .hrms-helpdesk-ticket-sheet > div:first-child > div { flex-wrap: wrap; }
+  .hrms-helpdesk-reply { position: sticky; bottom: 0; padding-block: 8px; background: hsl(var(--card)); align-items: flex-end; }
+  .hrms-helpdesk-reply > button { min-width: 44px; }
+}

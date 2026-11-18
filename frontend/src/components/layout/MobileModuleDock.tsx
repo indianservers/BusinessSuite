@@ -1,9 +1,11 @@
 import { selectedConstruction } from '@/lib/selected-construction';
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { ChevronUp, ArrowUpRight, BarChart3, BriefcaseBusiness, CalendarCheck, CheckCheck, ClipboardList, FileText, FolderKanban, Handshake, ListTodo, Receipt, Users, UserRoundPlus, Wallet, type LucideIcon } from "lucide-react";
+import { Plus, ArrowUpRight, BarChart3, BriefcaseBusiness, CalendarCheck, CheckCheck, ClipboardList, FileText, FolderKanban, Handshake, ListTodo, Receipt, Users, UserRoundPlus, Wallet, ShoppingCart, Landmark, Workflow, Layers3, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { moduleContextPath } from "@/lib/common-routes";
+import {mobileDockActionAllowed,mobileDockHref,mobileDockCreatesRecord} from "@/lib/mobile-dock-actions";
 
 import { MobileSheet } from "@/components/mobile/MobilePrimitives";
 
@@ -18,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useRecordScope } from "@/lib/record-scope";
 
-import { canAccessRoute } from "@/lib/roles";
+import { canAccessRoute, getRoleNav } from "@/lib/roles";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -30,11 +32,32 @@ import NewMenu from "@/components/app/NewMenu";
 
 type Shortcut = [string, string];
 
-type Item = { label: string; icon: LucideIcon; to: string; actions: Shortcut[] };
+type Item = { label: string; icon: LucideIcon; to: string; actions: Shortcut[]; onSelect?:()=>void; active?:boolean };
 
 const item = (label: string, icon: LucideIcon, to: string, actions: Shortcut[]): Item => ({ label, icon, to, actions });
 
 export const mobileModuleMenus: Record<string, Item[]> = {
+  "ai-agents": [
+    item("Assistant", Sparkles, "/ai-agents/operator", [["Agent overview", "/ai-agents"], ["Agent configuration", "/ai-agents/config"]]),
+    item("Approvals", ShieldCheck, "/ai-agents/approvals", [["Review approvals", "/ai-agents/approvals"], ["Handoff notes", "/ai-agents/handoff"]]),
+    item("Activity", BarChart3, "/ai-agents/analytics", [["Usage", "/ai-agents/usage"], ["Logs", "/ai-agents/logs"]]),
+  ],
+  ai: [
+    item("Copilot", Sparkles, "/ai/copilot", [["Summarize record", "/ai/record-summary"], ["Draft workflow", "/ai/workflow-builder"]]),
+    item("Insights", BarChart3, "/ai/forecast", [["Deal coach", "/ai/deal-coach"], ["Collection risk", "/ai/collection-risk"], ["Explain report", "/ai/report-explainer"]]),
+    item("Activity", ClipboardList, "/ai/action-log", [["Action log", "/ai/action-log"], ["Prompt templates", "/ai/prompt-templates"]]),
+  ],
+  fam: [
+    item("Accounts", Landmark, "/fam/ledgers", [["Ledgers", "/fam/ledgers"], ["Chart of accounts", "/fam/chart-of-accounts"], ["Opening balances", "/fam/opening-balances"]]),
+    item("Vouchers", Receipt, "/fam/vouchers", [["Create voucher", "/fam/vouchers/new"], ["Day book", "/fam/day-book"], ["Receivables", "/fam/ar"], ["Payables", "/fam/ap"]]),
+    item("Purchases", ShoppingCart, "/fam/purchase-bills", [["Create vendor bill", "/fam/purchase-bills/new"], ["Create expense", "/fam/expenses/new"], ["Recurring schedules", "/fam/recurring-purchases"], ["Vendors", "/fam/parties"]]),
+    item("Banking", Wallet, "/fam/banking", [["Bank accounts", "/fam/bank-accounts"], ["Statements", "/fam/bank-statements"], ["Reconciliation", "/fam/bank-reconciliation"], ["Financial reports", "/fam/financial-statements"]]),
+  ],
+  "power-apps": [
+    item("Apps", Layers3, "/power-apps/app-builder", [["App builder", "/power-apps/app-builder"], ["All tools", "/power-apps"]]),
+    item("Automations", Workflow, "/power-apps/automations", [["Create automation", "/power-apps/automations/new"], ["Executions", "/power-apps/automations/executions"]]),
+    item("Approvals", ShieldCheck, "/power-apps/approvals", [["Approval inbox", "/power-apps/approvals/inbox"], ["Approval designer", "/power-apps/approvals/designer"]]),
+  ],
 
   crm: [
 
@@ -61,6 +84,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
   ],
 
   srm: [
+    item("POS", ShoppingCart, "/srm/pos/terminal", [["Start sale", "/srm/pos/terminal"], ["POS sessions", "/srm/pos/sessions"], ["POS returns", "/srm/pos/returns"]]),
 
     item("Customers", Users, "/srm/customer-360", [["Customer overview", "/srm/customer-360"], ["Customer follow-ups", "/srm/follow-ups"], ["Sales history", "/srm/sales-orders"], ["Outstanding balances", "/srm/collections"]]),
 
@@ -88,28 +112,46 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
 
 
-export default function MobileModuleDock() {
+export default function MobileModuleDock({menuItems}:{menuItems?:Item[]} = {}) {
 
   const location = useLocation();
+  const navigate=useNavigate();
 
   const user = useAuthStore(state => state.user);
   const construction = selectedConstruction(user);
   const scope = useRecordScope();
+  const navigationContext=useRef({scope,key:location.key});
+  navigationContext.current={scope,key:location.key};
+  const pendingCreation=useRef<{to:string;label:string;scope:string;key:string}|null>(null);
+  const mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;pendingCreation.current=null;};},[]);
 
   const [selected, setSelected] = useState<Item | null>(null);
 
   const mobile = useMobile();
 
-  useLayoutEffect(() => setSelected(null), [location.key]);
-  useLayoutEffect(() => { if (!mobile) setSelected(null); }, [mobile]);
+  useLayoutEffect(() => {setSelected(null);pendingCreation.current=null;}, [location.key]);
+  useLayoutEffect(() => { if (!mobile) {setSelected(null);pendingCreation.current=null;} }, [mobile]);
 
-  const module = location.pathname.split("/")[1];
-
-  const menus = mobileModuleMenus[module];
+  const contextPath = moduleContextPath(location.pathname, location.search);
+  const module = contextPath.split("/")[1];
+  // Other installed modules reuse their authorized, code-owned navigation.
+  const modulePages = mobile ? getRoleNav(user?.role, user?.is_superuser, contextPath).filter(entry => entry.to.split("?")[0].startsWith(`/${module}/`) || entry.to === `/${module}`) : [];
+  const fallback = modulePages.filter((entry,index) => modulePages.findIndex(other=>other.to===entry.to)===index).slice(0,4).map(entry=>item(entry.label,entry.icon as LucideIcon,entry.to,modulePages.filter(other=>other.group===entry.group&&other.to!==entry.to).slice(0,6).map(other=>[other.label,other.to] as Shortcut)));
+  if(fallback.length && !mobileModuleMenus[module] && !menuItems){
+    for(const extra of [item("Apps",Layers3,"/dashboard",[]),item("Settings",Layers3,"/settings",[]),item("Notifications",ClipboardList,"/notifications",[])]){
+      if(fallback.length>=3)break;
+      if(!fallback.some(entry=>entry.to===extra.to)&&canAccessRoute(extra.to,user?.role,user?.is_superuser))fallback.push(extra);
+    }
+  }
+  const menus = menuItems || mobileModuleMenus[module] || (fallback.length ? fallback : undefined);
 
   const allowed = (to: string) => canAccessRoute(to.split("?")[0], user?.role, user?.is_superuser);
 
-  const actions = selected?.actions.filter(([, to]) => allowed(to)) || [];
+  const shortcutAllowed=([label,to]:Shortcut)=>mobileDockActionAllowed(user,label,to);
+  const href=(to:string,label='')=>mobileDockHref(to,{pathname:contextPath,search:location.search},label);
+  const actions = selected?.actions.filter(shortcutAllowed) || [];
+  useEffect(()=>{setSelected(null);pendingCreation.current=null;},[scope]);
   const canReadLeaveApprovals = Boolean(user?.is_superuser || (user?.access?.managed
     ? user.access.grants.hrms?.permissions.includes("leave_approve")
     : /admin|manager|hr|ceo/i.test(user?.role || "")));
@@ -128,24 +170,26 @@ export default function MobileModuleDock() {
 
       return {};
 
-    }, enabled: mobile && !!menus && !!user, staleTime: 30000, refetchInterval: 60000, retry: false,
+    }, enabled: mobile && !!menus && !!user && (module!=="srm"||menus.some(entry=>entry.label==="Follow-ups")), staleTime: 30000, refetchInterval: 60000, retry: false,
 
   });
 
-  const memoryKey = `mobile-tab:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || "default"}`;
+  const contextParams=new URLSearchParams(location.search);
+  const projectContext=contextParams.get('projectId')||contextParams.get('project')||contextPath.match(/^\/pms\/projects\/(\d+)(?:\/|$)/)?.[1]||'';
+  const memoryKey = `mobile-tab:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || "default"}:${contextParams.get('workspace')||contextParams.get('workspace_id')||''}:${projectContext}`;
 
   useEffect(() => { if (!mobile || !menus) return; const entry = menus.find(entry => entry.to === location.pathname); if (entry && !new URLSearchParams(location.search).has("new")) { try { sessionStorage.setItem(`${memoryKey}:${entry.to}`, location.pathname + location.search); } catch { /* Optional browser persistence. */ } } }, [mobile, menus, location.pathname, location.search, memoryKey]);
 
   if (!mobile) return null;
   if (!menus) return <><MobileExperience/><MobileTools/></>;
 
-  const matches = (to: string) => location.pathname === to.split("?")[0] || location.pathname.startsWith(to.split("?")[0] + "/");
+  const matches = (to: string) => contextPath === to.split("?")[0] || contextPath.startsWith(to.split("?")[0] + "/");
 
-  const aliases: Record<string, Record<string, string>> = { pms: { workspaces: "Projects", gantt: "Projects", portfolio: "Projects", reviews: "My Work", "my-assignments": "My Work", analytics: "Reports", workload: "Reports" }, crm: { contacts: "Customers", "customer-360": "Customers", accounts: "Customers", pipeline: "Deals", quotes: "Deals", quotations: "Deals", activities: "Follow-ups" }, srm: { invoices: "Payments", collections: "Payments", "invoice-drafts": "Orders", contracts: "Quotes", "products-services": "Quotes" }, hrms: { "my-attendance": "Attendance", "my-roster": "Attendance", timesheets: "Attendance", "employee-directory": "People", profile: "People", onboarding: "People", "my-payslips": "Payroll", "investment-declaration": "Payroll", "approval-os": "Leave", workflow: "Leave" } };
+  const aliases: Record<string, Record<string, string>> = { pms: { workspaces: "Projects", gantt: "Projects", portfolio: "Projects", reviews: "My Work", "my-assignments": "My Work", analytics: "Reports", workload: "Reports" }, crm: { contacts: "Customers", "customer-360": "Customers", accounts: "Customers", pipeline: "Deals", quotes: "Deals", quotations: "Deals", activities: "Follow-ups" }, srm: { pos: "POS", invoices: "Payments", collections: "Payments", "invoice-drafts": "Orders", contracts: "Quotes", "products-services": "Quotes" }, hrms: { "my-attendance": "Attendance", "my-roster": "Attendance", timesheets: "Attendance", "employee-directory": "People", profile: "People", onboarding: "People", "my-payslips": "Payroll", "investment-declaration": "Payroll", "approval-os": "Leave", workflow: "Leave" } };
 
   const alias = aliases[module]?.[location.pathname.split("/")[2]] || (module === "pms" && /^\/pms\/?$/.test(location.pathname) ? "Projects" : undefined);
 
-  const current = menus.find(entry => entry.label === alias) || menus.find(entry => matches(entry.to)) || menus.find(entry => entry.actions.some(([, to]) => matches(to))) || menus[0];
+  const current = menus.find(entry=>entry.active) || menus.find(entry => entry.label === alias) || menus.find(entry => matches(entry.to)) || menus.find(entry => entry.actions.some(([, to]) => matches(to))) || menus[0];
 
   const moduleRole = user?.access?.grants[module === "pms" ? "project_management" : module]?.role || user?.role || "";
   const personal = !user?.is_superuser && /employee|intern|self|member/i.test(moduleRole);
@@ -157,7 +201,8 @@ export default function MobileModuleDock() {
 
     let remembered: string | null = null; try { remembered = sessionStorage.getItem(`${memoryKey}:${entry.to}`); } catch { /* No saved state. */ }
 
-    return preferred && allowed(preferred) ? preferred : allowed(entry.to) ? (remembered?.split("?")[0] === entry.to ? remembered : entry.to) : entry.actions.find(([, to]) => allowed(to))?.[1];
+    const target=preferred&&allowed(preferred)?preferred:allowed(entry.to)?(remembered?.split("?")[0]===entry.to?remembered:entry.to):entry.actions.find(shortcutAllowed)?.[1];
+    return target?href(target):undefined;
 
   };
 
@@ -169,7 +214,7 @@ export default function MobileModuleDock() {
     <MobileExperience /><MobileTools onQuickActions={() => setSelected(current)} quickActionsLabel={`${current.label} shortcuts`} />
     <ModuleNewMenu>{(actions, loading) => <NewMenu key={location.key} actions={actions} disabled={loading} floating />}</ModuleNewMenu>
 
-    <nav className="mobile-module-dock" aria-label={`${module.toUpperCase()} mobile navigation`}>
+    <nav className="mobile-module-dock" style={{gridTemplateColumns:`repeat(${menus.length},minmax(0,1fr))`}} aria-label={`${module.toUpperCase()} mobile navigation`}>
 
       {menus.map(entry => {
 
@@ -183,9 +228,8 @@ export default function MobileModuleDock() {
 
         return <div className={`mobile-dock-item ${active ? "is-active" : ""}`} key={entry.label}>
 
-          {target ? <Link to={target} aria-label={entry.label} aria-describedby={count > 0 ? `mobile-count-${module}-${entry.label.replace(/\W/g, "")}` : undefined} aria-current={active ? "page" : undefined} className="mobile-dock-destination"><span className="mobile-dock-icon"><Icon size={22} strokeWidth={1.8} aria-hidden="true" />{count > 0 && <span id={`mobile-count-${module}-${entry.label.replace(/\W/g, "")}`} className="mobile-dock-badge" aria-label={`${count} need attention`}>{count > 99 ? "99+" : count}</span>}</span><span>{entry.label}</span></Link> : <span className="mobile-dock-destination" aria-disabled="true"><Icon size={22}/><span>{entry.label}</span></span>}
-
-
+          {target ? <Link to={target} onClick={entry.onSelect?event=>{event.preventDefault();entry.onSelect?.();}:undefined} aria-label={entry.label} aria-describedby={count > 0 ? `mobile-count-${module}-${entry.label.replace(/\W/g, "")}` : undefined} aria-current={active ? "page" : undefined} className="mobile-dock-destination"><span className="mobile-dock-icon"><Icon size={22} strokeWidth={1.8} aria-hidden="true" />{count > 0 && <span id={`mobile-count-${module}-${entry.label.replace(/\W/g, "")}`} className="mobile-dock-badge" aria-label={`${count} need attention`}>{count > 99 ? "99+" : count}</span>}</span><span>{entry.label}</span></Link> : <span className="mobile-dock-destination" aria-disabled="true"><Icon size={22}/><span>{entry.label}</span></span>}
+          <button type="button" className="mobile-dock-submenu" aria-label={`${entry.label} shortcuts`} aria-haspopup="dialog" aria-expanded={selected?.label===entry.label} disabled={!target&&!entry.actions.some(shortcutAllowed)} onClick={()=>setSelected(entry)}><Plus size={18} aria-hidden="true"/></button>
 
         </div>;
 
@@ -193,11 +237,15 @@ export default function MobileModuleDock() {
 
     </nav>
 
-    <MobileSheet open={!!selected} onClose={() => setSelected(null)} title={selected?.label || "Quick actions"}>
+    <MobileSheet open={!!selected} onClose={() => setSelected(null)} title={selected?.label || "Quick actions"} onClosed={()=>{
+      const action=pendingCreation.current;pendingCreation.current=null;
+      // Restore the sheet trigger before the next form mounts and traps focus.
+      if(action)requestAnimationFrame(()=>{if(mounted.current&&navigationContext.current.scope===action.scope&&navigationContext.current.key===action.key&&mobileDockActionAllowed(useAuthStore.getState().user,action.label,action.to))navigate(action.to);});
+    }}>
 
       <span className="mobile-dock-eyebrow">{module === "srm" ? "SALES" : module.toUpperCase()} · QUICK ACTIONS</span>
 
-      <div className="mobile-dock-actions">{orderedActions.map(([label, to]) => <Link key={label} to={to} onClick={() => setSelected(null)}><span>{label}</span><ArrowUpRight size={18} aria-hidden="true" /></Link>)}</div>
+      <div className="mobile-dock-actions">{selected&&destination(selected)&&<Link to={destination(selected)!} onClick={event=>{if(selected.onSelect){event.preventDefault();selected.onSelect();}setSelected(null);}}><span>Open {selected.label}</span><ArrowUpRight size={18} aria-hidden="true"/></Link>}{orderedActions.map(([label, to]) => <Link key={label} to={href(to,label)} onClick={event=>{if(mobileDockCreatesRecord(label,to)&&event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();pendingCreation.current={to:href(to,label),label,scope,key:location.key};}setSelected(null);}}><Plus size={18} aria-hidden="true"/><span>{label}</span><ArrowUpRight size={18} aria-hidden="true" /></Link>)}</div>
 
     </MobileSheet>
 

@@ -130,17 +130,19 @@ def _scope(query,model,company,branch,scope):
 def _source_scope(db,scope,company,branch,model,ident,*,master=False):
     from app.business_packs.models import PackRecordOwnership,PackMasterAvailability
     owned=PackRecordOwnership.__table__;available=PackMasterAvailability.__table__
-    if not inspect(db.connection()).has_table(owned.name):
+    batch=db.info.get('checkout_report_read_batch')
+    batch=batch if batch and batch['scope']==scope else None
+    if batch is None and not inspect(db.connection()).has_table(owned.name):
         if scope is None:return
         fail('Business Pack ownership installation is incomplete',503)
     key=str(ident)
-    proof=db.connection().execute(select(owned).where(owned.c.resource_table==model.__tablename__,owned.c.resource_key==key)).mappings().first()
+    proof=batch['pack'].get((model.__tablename__,key)) if batch is not None else db.connection().execute(select(owned).where(owned.c.resource_table==model.__tablename__,owned.c.resource_key==key)).mappings().first()
     if proof and (scope is None or proof['company_id']!=company or proof['branch_id']!=branch or proof['context_id']!=scope.context_id):
         fail('Source is outside the selected Business Pack context',403)
     if scope is not None and not proof:
-        allowed=master and db.connection().execute(select(available.c.id).where(available.c.resource_table==model.__tablename__,
+        allowed=master and ((model.__tablename__,key) in batch['available'] if batch is not None else db.connection().execute(select(available.c.id).where(available.c.resource_table==model.__tablename__,
             available.c.resource_key==key,available.c.company_id==company,available.c.branch_id==branch,
-            available.c.context_id==scope.context_id,available.c.active.is_(True))).first()
+            available.c.context_id==scope.context_id,available.c.active.is_(True))).first())
         if not allowed:fail('Source has no explicit availability in this Business Pack context',403)
 
 
@@ -219,9 +221,16 @@ def _assert_employee_category(db, employee_id, policy):
     if not policy.employee_categories:
         return
     from app.models.employee import Employee
-    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
-    wanted = {name.casefold() for name in policy.employee_categories}
-    if employee is None or not wanted.intersection(name.casefold() for name in employee.work_categories or []):
+    from sqlalchemy import select
+    from app.models.company import Branch
+    # A policy's company and branch bound this validation-only category read.
+    employee = db.connection().execute(select(Employee.work_categories).join(Branch,
+        Employee.branch_id == Branch.id).where(Employee.id == employee_id,
+        Employee.branch_id == policy.branch_id, Branch.company_id == policy.organization_id,
+        Branch.is_active.is_(True), Employee.deleted_at.is_(None),
+        Employee.status.in_(('Active', 'Probation', 'On Leave')))).first()
+    from app.shared.employee_categories import matches_categories
+    if employee is None or not matches_categories(employee.work_categories, policy.employee_categories):
         fail('Employee no longer belongs to a category allowed for this service', 409)
 
 
@@ -361,7 +370,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
             policy=None;eligibility=None
             if service:
                 policy=_scope(db.query(ServiceBookingPolicy),ServiceBookingPolicy,company,branch,scope).filter_by(service_product_id=product.id).with_for_update().first()
-                if policy and not policy.active:fail('Service booking policy is inactive',409)
+                if policy and not policy.active and (line.booking or policy.booking_required):fail('Service booking policy is inactive',409)
                 if policy and policy.booking_required and not line.booking:fail('This service requires an appointment')
             if line.booking:
                 b=line.booking
@@ -490,12 +499,18 @@ def _validate_group_sources(root,db,scope):
     from app.apps.srm.commercial_models import InvoiceContext,ReceiptContext
     from app.branches.models import BranchOwnership
     company,branch=root.organization_id,root.branch_id
+    batch=db.info.get('checkout_report_read_batch')
+    batch=batch if batch and batch['scope']==scope else None
+    def get(model,ident):
+        return batch['objects'].get((model,ident)) if batch is not None else db.get(model,ident)
+    def rows(model,field,ident):
+        return batch['children'].get((model,field,ident),[]) if batch is not None else db.query(model).filter(getattr(model,field)==ident).all()
     def native(model,ident,*,master=False):
-        item=db.get(model,ident)
+        item=get(model,ident)
         if item is None:fail('Checkout native source unavailable',409)
         org=getattr(item,'organization_id',company) or 1
         if org!=company:fail('Checkout native company identity differs',409)
-        owner=db.connection().execute(select(BranchOwnership.__table__).where(
+        owner=batch['branch'].get((model.__tablename__,str(ident))) if batch is not None else db.connection().execute(select(BranchOwnership.__table__).where(
             BranchOwnership.resource_table==model.__tablename__,BranchOwnership.resource_key==str(ident))).mappings().first()
         if not owner or (owner['company_id'],owner['branch_id'])!=(company,branch):fail('Checkout native branch identity differs',403)
         _source_scope(db,scope,company,branch,model,ident,master=master)
@@ -511,8 +526,8 @@ def _validate_group_sources(root,db,scope):
         return result
     for value in (invoice.total_amount,invoice.paid_amount,invoice.balance_amount):amount(value)
     fields=('quantity','unit_price','discount_amount','tax_amount','line_total')
-    mapped_lines=db.query(POSCheckoutLine).filter_by(checkout_id=root.id).all()
-    native_line_ids={x.id for x in db.query(SRMInvoiceLine).filter_by(invoice_id=invoice.id)}
+    mapped_lines=rows(POSCheckoutLine,'checkout_id',root.id)
+    native_line_ids={x.id for x in rows(SRMInvoiceLine,'invoice_id',invoice.id)}
     if native_line_ids!={x.invoice_line_id for x in mapped_lines} or sum((Decimal(x.line_total) for x in mapped_lines),Decimal(0))!=amount(invoice.total_amount):
         fail('Checkout group charge mapping differs from native invoice',409)
     for line in mapped_lines:
@@ -522,7 +537,7 @@ def _validate_group_sources(root,db,scope):
                 or billed.source_type!='sales_order_line' or billed.source_id!=source.id
                 or any(amount(getattr(line,key))!=amount(getattr(source,key)) or amount(getattr(line,key))!=amount(getattr(billed,key)) for key in fields)):
             fail('Checkout native line charge identity differs',409)
-    for occurrence in db.query(POSServiceOccurrence).filter_by(checkout_id=root.id):
+    for occurrence in rows(POSServiceOccurrence,'checkout_id',root.id):
         appointment=native(IndustryRecord,occurrence.appointment_id)
         _schedule_matches(appointment,occurrence)
         provider=native(IndustryRecord,occurrence.provider_resource_id,master=True)
@@ -531,17 +546,17 @@ def _validate_group_sources(root,db,scope):
                 or not isinstance(appointment.data,dict) or appointment.data.get('service_id')!=occurrence.service_product_id
                 or occurrence.provider_resource_id not in appointment.data.get('resource_ids',[])):
             fail('Checkout native appointment identity differs',409)
-    invoice_context=db.get(InvoiceContext,invoice.id)
+    invoice_context=get(InvoiceContext,invoice.id)
     seller=invoice_context.seller_id if invoice_context else company
-    for mapped in db.query(POSCheckoutPayment).filter_by(checkout_id=root.id):
+    for mapped in rows(POSCheckoutPayment,'checkout_id',root.id):
         receipt=native(SRMReceipt,mapped.receipt_id)
         if mapped.collection_session_id is not None:native(SRMPOSSession,mapped.collection_session_id,master=True)
         amount(receipt.amount);amount(receipt.unallocated_amount)
-        receipt_context=db.get(ReceiptContext,receipt.id)
+        receipt_context=get(ReceiptContext,receipt.id)
         receipt_seller=receipt_context.seller_id if receipt_context else company
         if receipt.customer_id!=root.customer_id or receipt.currency!=root.currency or seller!=receipt_seller:
             fail('Checkout native receipt identity differs',409)
-        allocations=db.query(SRMReceiptAllocation).filter_by(receipt_id=receipt.id).all()
+        allocations=rows(SRMReceiptAllocation,'receipt_id',receipt.id)
         if not allocations or any(a.invoice_id!=invoice.id for a in allocations) or not any(a.request_id==mapped.payment_key for a in allocations):
             fail('Checkout receipt allocation differs from group invoice',409)
 

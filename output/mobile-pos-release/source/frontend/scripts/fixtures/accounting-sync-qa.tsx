@@ -1,0 +1,12 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import {CustomerAccounting,ExternalInvoices,DailyAccountingReport} from "@/shared/accounting/ConnectedAccounting";
+import {AccountingSyncPanel} from "@/shared/data-transfer/AccountingSyncPanel";
+import {useAuthStore} from "@/store/authStore";
+import "@/index.css";
+sessionStorage.setItem("suite-branch","1");
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.test",role:"admin",is_superuser:true}});
+const panel=new URLSearchParams(location.search).get("panel");
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter><main className="mx-auto max-w-[1400px] space-y-5 p-4">{panel==="customer"?<CustomerAccounting kind="company" id={1}/>:panel==="invoices"?<ExternalInvoices/>:panel==="admin"?<AccountingSyncPanel/>:<DailyAccountingReport/>}</main></MemoryRouter></QueryClientProvider>);

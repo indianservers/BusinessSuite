@@ -27,6 +27,16 @@ export async function authenticateCrm(page: Page) {
     if (/\/srm\/business\/customers\/\d+\/history$/.test(path)) data = {invoices: [], projects: []};
     if (path.endsWith("/master-data/company-directory/query")) data = {rows:[{id:1,name:"Acme India",industry:"Software",status:"Active",roles:["Customer"],tags:[]}],total:1,pageTotal:1,page:1,pageSize:30,context:{canCreate:true},permissions:{edit:true,export:true,archive:true}};
     if (path.includes("/branding")) data = {values: {}};
+    if (path.includes("/accounting-sync/customer-360/")) data = {customer_id: null, balances: [], links: [], invoices: [], payments: []};
+    const record360 = path.match(/\/record-360\/(contact|lead|company|deal)\/(\d+)(?:\/(work|events))?$/);
+    if (record360) {
+      const [, kind, id, feed] = record360;
+      data = feed ? {items: [], total: 0, page: 1, per_page: 20, sections: {}} : {
+        id: Number(id), kind, name: kind === "contact" || kind === "lead" ? "Nisha Rao" : "Acme India",
+        status: "Active", fields: {email: "nisha@example.com", phone: "9876543210", phone_country_code: "+91"},
+        projects: [], allowed_actions: [], sections: {},
+      };
+    }
     await route.fulfill({json: data});
   });
   // The shared shell checks module access before rendering any CRM route.
@@ -63,6 +73,12 @@ export async function expectCrmListPage(page: Page, route: string, heading: stri
 }
 
 function crmResponse(path: string, method: Method) {
+  if (path === "/crm/deal-workspace/1/record") return {...dealDetail(), owner_user_id: 100, version: 1};
+  if (path === "/crm/deal-workspace/1/insights") return {score: 60, reasons: [], stage_name: "Proposal", pipeline_name: "Enterprise Sales"};
+  if (path === "/crm/deal-workspace/query") return {items: [deal()], total: 1, can_manage: true};
+  if (path === "/crm/deal-workspace/grid/query") return {rows: [{...deal(), owner_user_id: 100, version: 1, health: {score: 60, reasons: []}}], total: 1, pageTotal: 1, page: 1, pageSize: 25, permissions: {edit: true, export: true, archive: true, assign: true}, context: {canCreate: true, summary: {counts: {}, currencies: [], stages: [], forecast: [], breakdowns: {}, definitions: {}}}};
+  if (path === "/crm/deal-workspace/pipelines") return list([pipeline()]);
+  if (path === "/crm/deal-workspace/pipeline-stages") return list([pipelineStage(1), pipelineStage(2), pipelineStage(3)]);
   if (path === "/crm/lead-management/settings") return {
     settings: { stages: [
       { name: "New", required: [], allowedNext: ["Contacted", "Qualified", "Lost"] },

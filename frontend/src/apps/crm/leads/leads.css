@@ -72,6 +72,13 @@
   color: hsl(var(--primary));
   text-decoration: underline;
 }
+.lm-workbench-extras > summary { display:none; }
+@media(max-width:767px) {
+  .lm-workbench-extras { margin:8px 0; border:1px solid hsl(var(--border)); border-radius:10px; }
+  .lm-workbench-extras > summary { display:list-item; padding:12px; min-height:44px; cursor:pointer; font-size:12px; font-weight:600; }
+  .lm-workbench-extras > :not(summary) { margin:12px; }
+  .lm-workbench-extras .lm-links { gap:8px 16px; }
+}
 .lm-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1053,6 +1060,18 @@
 @media(max-width:640px) { .lm-personal-options > .lm-view-tools { position:fixed; left:12px; right:12px; top:25%; width:auto; max-height:60vh; overflow:auto; } }
 .lm-table-scroll .udg-adapted-cell.lm-next-action { min-width:0; }
 .lm-root .lm-toolbar select { padding-top:3px !important; padding-bottom:3px !important; line-height:normal; }
+@media(max-width:767px) {
+  .lm-header > div:first-child > p { display:none; }
+  .lm-header .lm-actions { display:flex; width:auto; }
+  .lm-header .lm-actions > button { min-height:44px; }
+  .lm-header { gap:8px; }
+  .lm-eyebrow { display:none; }
+  .lm-health-metrics { margin:8px 0; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .lm-health-metrics button { flex-direction:row; align-items:center; justify-content:space-between; gap:6px; min-height:44px; padding:8px 10px; }
+  .lm-health-metrics button > span:first-child { font-size:11px; }
+  .lm-health-metrics strong { flex-shrink:0; font-size:20px; }
+  .lm-health-metrics .lm-metric-caption { display:none; }
+}
 .lm-record-identity { display:flex; align-items:center; gap:6px; min-width:0; }
 .lm-record-identity > div { min-width:0; }
 .lm-record-identity .lm-name { display:block; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }

@@ -1,0 +1,85 @@
+{
+  ".appointment-reference-topbar": {
+    "x": 240,
+    "y": 0,
+    "width": 1346,
+    "height": 53,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-breadcrumb": {
+    "x": 240,
+    "y": 53,
+    "width": 1346,
+    "height": 41,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-page-heading": null,
+  ".resource-statistics": null,
+  ".resource-filters": null,
+  ".resource-table-scroll": null,
+  ".resource-pagination": null,
+  ".resource-editor header": null,
+  ".resource-editor form>fieldset": null,
+  ".resource-editor form>footer": null,
+  ".appointment-reference-datebar": {
+    "x": 260,
+    "y": 94,
+    "width": 1312,
+    "height": 53,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-filters": {
+    "x": 260,
+    "y": 147,
+    "width": 1312,
+    "height": 56,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-views": {
+    "x": 260,
+    "y": 207,
+    "width": 1312,
+    "height": 41,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-gantt-scroll": {
+    "x": 260,
+    "y": 258,
+    "width": 1312,
+    "height": 409,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-upcoming": {
+    "x": 260,
+    "y": 685,
+    "width": 1312,
+    "height": 274.5,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".prebooking-reference-modal": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".prebooking-reference-header": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".reference-appointment-form": null,
+  ".booking-reference-summary": null,
+  ".reference-appointment-form>.prebooking-footer": null
+}

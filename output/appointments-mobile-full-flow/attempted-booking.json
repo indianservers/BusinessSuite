@@ -1,0 +1,29 @@
+{
+  "request_id": "67a83c29-6c41-4931-a3a1-6a6f095a280c",
+  "title": "System Repair · DEMO Calendar Customer",
+  "customer_id": 7,
+  "service_id": 9,
+  "booking": {
+    "policy_id": 1,
+    "expected_policy_revision": 1,
+    "eligibility_id": 4,
+    "expected_eligibility_revision": 1,
+    "provider_resource_id": 10,
+    "employee_id": 169,
+    "starts_at": "2026-11-19T03:30:00.000Z",
+    "duration_minutes": 30,
+    "additional_resource_ids": [
+      34
+    ]
+  },
+  "resource_ids": [
+    10,
+    34
+  ],
+  "starts_at": "2026-11-19T03:30:00.000Z",
+  "duration_minutes": 30,
+  "notes": "DEMO mobile appointment creation verification, 2026-11-18. Synthetic booking using demo customer, employee and equipment. No payment, invoice, project or outbound notification.",
+  "customer_notes": "",
+  "walk_in": false,
+  "confirmation_channels": []
+}

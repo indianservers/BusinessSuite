@@ -10,7 +10,7 @@ const expect = base.configure({ timeout: 30000 });
   });
   await server.listen();
   const browser = await chromium.launch();
-  let checks = 0;
+  let checks = 0, denied = false; const writes = [];
   try {
     const page = await browser.newPage(),
       errors = [];
@@ -19,6 +19,11 @@ const expect = base.configure({ timeout: 30000 });
       const u = new URL(route.request().url()),
         p = u.pathname;
       let data = [];
+      if (route.request().method() === 'POST' && p.endsWith('/assets/')) {
+        writes.push(route.request().postDataJSON());
+        await route.fulfill(denied ? {status:403,json:{detail:'Asset registration denied'}} : {json:{id:99,...writes.at(-1)}});
+        return;
+      }
       if (p.endsWith("/capabilities")) data = { can_manage: true };
       else if (p.endsWith("/categories"))
         data = [
@@ -116,7 +121,7 @@ const expect = base.configure({ timeout: 30000 });
       await f();
       checks++;
     };
-    for (const width of [390, 768, 1280, 1720]) {
+    for (const width of [320, 390, 768, 1280, 1720]) {
       await page.setViewportSize({ width, height: 1100 });
       await page.goto(
         "http://127.0.0.1:" + server.httpServer.address().port + "/assets-qa",
@@ -131,8 +136,25 @@ const expect = base.configure({ timeout: 30000 });
           page.getByRole("button", { name: /Total assets/ }),
         ).toContainText("31"),
       );
+      if (width <= 650) {
+        await expect(page.getByLabel('Available asset', {exact:true})).toBeHidden();
+        const metrics = await page.locator('.asset-metrics').boundingBox();
+        expect(metrics.height).toBeLessThan(110);
+        const search = await page.getByLabel('Search asset register').boundingBox();
+        expect(search.y).toBeLessThan(760);
+        if (width === 390) await page.screenshot({path:path.resolve(__dirname,'../../outputs/assets-compact-mobile.png'),fullPage:true});
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.getByText('Custody actions', {exact:true}).click();
+        await expect(page.getByLabel('Available asset', {exact:true})).toBeVisible();
+        await page.getByText('Custody actions', {exact:true}).click();
+        await page.getByText('More asset actions', {exact:true}).click();
+        await expect(page.getByRole('button', {name:'Record return',exact:true})).toBeVisible();
+        await page.getByText('More asset actions', {exact:true}).click();
+        await page.getByText('Filter & sort', {exact:true}).click();
+        expect((await page.getByLabel('Filter category').boundingBox()).width).toBeGreaterThan(100);
+      }
       await check(() =>
-        expect(page.locator(".asset-table tbody tr")).toHaveCount(25),
+        expect(page.locator(".asset-table tbody tr")).toHaveCount(width <= 650 ? 8 : 25),
       );
       await check(async () => {
         await page.getByLabel("Filter category").selectOption("2");
@@ -143,7 +165,7 @@ const expect = base.configure({ timeout: 30000 });
         await page
           .getByRole("button", { name: "Next page", exact: true })
           .click();
-        await expect(page.locator(".asset-table tbody tr")).toHaveCount(6);
+        await expect(page.locator(".asset-table tbody tr")).toHaveCount(width <= 650 ? 8 : 6);
       });
       await page
         .getByRole("button", { name: "Previous page", exact: true })
@@ -152,7 +174,7 @@ const expect = base.configure({ timeout: 30000 });
         await page
           .getByRole("button", { name: "Card view", exact: true })
           .click();
-        await expect(page.locator(".asset-item-card")).toHaveCount(25);
+        await expect(page.locator(".asset-item-card")).toHaveCount(width <= 650 ? 8 : 25);
       });
       await page
         .getByRole("button", { name: "Table view", exact: true })
@@ -226,9 +248,26 @@ const expect = base.configure({ timeout: 30000 });
       ),
       fullPage: true,
     });
+    await page.setViewportSize({width:390,height:844});
+    await page.goto('http://127.0.0.1:' + server.httpServer.address().port + '/assets-qa');
+    await page.getByRole('button',{name:'Register asset',exact:true}).click();
+    const registration=page.getByRole('dialog',{name:'Register company asset',exact:true});
+    await registration.getByLabel('Asset name',{exact:true}).fill('QA work laptop');
+    await registration.getByLabel('Unique company asset tag',{exact:true}).fill('QA-LT-99');
+    await registration.getByRole('button',{name:'Review asset',exact:true}).click();
+    denied=true;
+    await registration.getByRole('button',{name:'Save asset',exact:true}).click();
+    await expect(registration.getByRole('alert')).toContainText('Asset registration denied');
+    await expect(registration).toContainText('QA-LT-99');
+    denied=false;
+    await registration.getByRole('button',{name:'Save asset',exact:true}).click();
+    await expect(page.getByRole('dialog',{name:'Register company asset',exact:true,includeHidden:true})).toHaveCount(0);
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toMatchObject({name:'QA work laptop',asset_tag:'QA-LT-99'});
+    checks += 4;
     expect(errors).toEqual([]);
     console.log(
-      "PASS: " + checks + " browser checks across four viewport sizes.",
+      "PASS: " + checks + " browser checks across five viewport sizes, compact phone sections and registration failure/retry.",
     );
   } finally {
     await browser.close();

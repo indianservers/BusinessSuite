@@ -434,7 +434,8 @@ def work_category_options(db: Session = Depends(get_db), current_user: User = De
     for (categories,) in _directory_query(db).with_entities(Employee.work_categories).all():
         for name in categories or []:
             names.setdefault(name.casefold(), name)
-    return {'items': sorted(names.values(), key=str.casefold)}
+    from app.shared.employee_category_taxonomy import options
+    return options(db, current_user, sorted(names.values(), key=str.casefold))
 
 
 @router.get("/directory", response_model=PaginatedResponse[EmployeeDirectoryItem])

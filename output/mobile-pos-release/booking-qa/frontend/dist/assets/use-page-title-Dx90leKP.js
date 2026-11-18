@@ -1,0 +1,1 @@
+import{u as e,a as n}from"./vendor-CbY1pB2i.js";import{aJ as c}from"./index-ig5_J9DB.js";function u(t){const a=e(),o=c(a.pathname);n.useEffect(()=>{document.title=`${t} - ${o.name}`},[o.name,t])}export{u};

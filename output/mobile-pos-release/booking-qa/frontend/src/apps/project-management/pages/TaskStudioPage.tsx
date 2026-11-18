@@ -1,0 +1,2299 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import { Button } from "@/components/ui/button";
+import { MobileActionBar } from "@/components/mobile/MobileActionBar";
+import {useRecordAutosave} from "@/hooks/use-record-autosave";
+import {useModuleAction} from "@/hooks/use-module-action";
+import { defaultOwner } from "@/lib/form-defaults";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm, {revealFormField} from "@/components/forms/CompactForm";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { guardTaskEnter } from "@/shared/creation/task-keyboard";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
+import {
+  ArrowLeft,
+  Sparkles,
+  Save,
+  FileText,
+  Folder,
+  Type,
+  Users,
+  UserRound,
+  GraduationCap,
+  Check,
+  Plus,
+  X,
+  Search,
+  CalendarDays,
+  Flag,
+  Circle,
+  MoreHorizontal,
+  Copy,
+  ListChecks,
+  Trash2,
+  Upload,
+  ArrowRight,
+  ChevronRight,
+} from "lucide-react";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
+import RichTextEditor from "@/components/rich-text/LazyRichText";
+import AskAiButton from "@/components/ai-agents/AskAiButton";
+import { projectsAPI, tasksAPI, filesAPI } from "../services/api";
+import {
+  CustomFieldsForm,
+  fieldPath,
+  type FieldRecord,
+  type FieldDraft,
+} from "../components/CustomFields";
+import TaskExecutionPanel from "../components/TaskExecutionPanel";
+import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
+import { ManagePersonButton } from "../components/people/PersonIdentity";
+import type {
+  PMSProject,
+  PMSTask,
+  PMSChecklistItem,
+  PMSFileAsset,
+} from "../types";
+import { workspaceError } from "./workspaceTypes";
+import "./TaskStudioPage.css";
+import "./task-studio-mobile.css";
+
+type StudioProject = Pick<
+  PMSProject,
+  "id" | "name" | "project_key" | "workspace_id"
+> & { can_manage_tasks: boolean; is_task_collection?: boolean };
+type Person = {
+  id: number;
+  name: string;
+  email: string;
+  photo_url?: string | null;
+  role?: string;
+  availability?: string;
+};
+type Group = {
+  id: number;
+  name: string;
+  member_ids: number[];
+  excluded_count: number;
+  member_count?: number;
+  population_count?: number;
+};
+type Selection = {
+  people: number[];
+  teams: number[];
+  batches: number[];
+  reviewer: number | null;
+  owner: number | null;
+  allow_partial_groups: boolean;
+  group_responsibility?: boolean;
+};
+type Options = {
+  people: Person[];
+  teams: Group[];
+  batches: Group[];
+  reviewers: number[];
+  workspace_id?: number;
+  can_edit: boolean;
+  can_add_existing: boolean;
+  batch_reason: string;
+};
+type Draft = {
+  projectId: number;
+  parent_task_id: number | null;
+  title: string;
+  description: string;
+  work_type: string;
+  priority: string;
+  status: string;
+  start_date: string;
+  due_date: string;
+  story_points: string;
+  estimated_hours?: string;
+  assignment: Selection;
+  task_key: string;
+  custom_fields: FieldDraft;
+  execution_mode?: "shared" | "individual";
+};
+type Detail = {
+  task: PMSTask;
+  assignment: Selection;
+  version: string;
+  can_edit: boolean;
+  protected_ids: number[];
+  protected_count?: number;
+  retained_people?: Person[];
+};
+const base = "/project-management/task-studio";
+const emptySelection = (): Selection => ({
+  people: [],
+  teams: [],
+  batches: [],
+  reviewer: null,
+  owner: null,
+  allow_partial_groups: false,
+  group_responsibility: true,
+});
+const dateLabel = (value: string) =>
+  value
+    ? new Date(value + "T00:00:00").toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      })
+    : "Not set";
+function Photo({ person }: { person?: Person }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [person?.photo_url]);
+  return person?.photo_url && !failed ? (
+    <img
+      src={person.photo_url}
+      alt={person.name}
+      className="ts-photo"
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <span className="ts-photo ts-initials">
+      {(person?.name || person?.email || "?")
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()}
+    </span>
+  );
+}
+function Section({
+  icon,
+  title,
+  sub,
+  children,
+  hidden = false,
+  expandable = false,
+}: {
+  hidden?: boolean;
+  expandable?: boolean;
+  icon: ReactNode;
+  title: string;
+  sub?: string;
+  children: ReactNode;
+}) {
+  const heading = <><span className="ts-section-icon">{icon}</span><div><h2>{title}</h2>{sub && <p>{sub}</p>}</div></>;
+  return expandable ? <details className="ts-section ts-expandable" hidden={hidden} data-task-tab={/Assignment/.test(title) ? 0 : 1}><summary>{heading}</summary><div className="ts-expandable-content">{children}</div></details> : <section className="ts-section" hidden={hidden} data-task-tab={title === "Basic info" ? 0 : 1}><header>{heading}</header>{children}</section>;
+}
+
+function PeoplePicker({
+  label,
+  people,
+  value,
+  onChange,
+  single = false,
+  disabled = false,
+  protectedIds = [],
+  projectId,
+  reviewers = false,
+  compact = false,
+}: {
+  label: string;
+  people: Person[];
+  value: number[];
+  onChange: (ids: number[]) => void;
+  single?: boolean;
+  disabled?: boolean;
+  protectedIds?: number[];
+  projectId: number;
+  reviewers?: boolean;
+  compact?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [pickerOpen,setPickerOpen]=useState(!single && !compact);
+  const [page, setPage] = useState(1);
+  const [remote, setRemote] = useState<{
+    items: Person[];
+    selected: Person[];
+    pages: number;
+  }>();
+  const [pickerError, setPickerError] = useState("");
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      if (projectId)
+        api
+          .get(`${base}/people`, {
+            params: {
+              project_id: projectId,
+              q,
+              page,
+              selected: value.slice(0, 100).join(","),
+              reviewers,
+            },
+          })
+          .then((r) => {
+            if (active) {
+              setRemote(r.data);
+              setPickerError("");
+            }
+          })
+          .catch((e) => {
+            if (active) setPickerError(workspaceError(e));
+          });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [projectId, q, page, value.join(","), reviewers, retry]);
+  const known = [
+    ...new Map(
+      [...people, ...(remote?.items || []), ...(remote?.selected || [])].map(
+        (p) => [p.id, p],
+      ),
+    ).values(),
+  ];
+  return (
+    <div className={`ts-picker${single?"":" ts-picker-inline"}`}>
+      <details open={pickerOpen} onToggle={event=>setPickerOpen(event.currentTarget.open)}>
+        <summary aria-label={label}>
+          <Search size={15} />
+          <span>
+            {single && value.length
+              ? known.find((p) => p.id === value[0])?.name ||
+                `Person ${value[0]}`
+              : label}
+          </span>
+          <ChevronRight size={14} />
+        </summary>
+        <div className="ts-picker-list">
+          <input
+            aria-label={`Search ${label}`}
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Name, email or role…"
+          />
+          {(remote?.items || people)
+            .filter((p) =>
+              `${p.name} ${p.email} ${p.role}`
+                .toLowerCase()
+                .includes(q.toLowerCase()),
+            )
+            .map((p) => (
+              <div className="ts-picker-row" key={p.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    disabled={disabled || protectedIds.includes(p.id)}
+                    checked={value.includes(p.id)}
+                    onChange={(e) =>
+                      onChange(
+                        e.target.checked
+                          ? single
+                            ? [p.id]
+                            : [...value, p.id]
+                          : value.filter((id) => id !== p.id),
+                      )
+                    }
+                  />
+                  <Photo person={p} />
+                  <span>
+                    <strong>{p.name}</strong>
+                    <small>
+                      {p.email} · {p.role} · {p.availability}
+                    </small>
+                    {protectedIds.includes(p.id) && (
+                      <small>Managed by Batch controls</small>
+                    )}
+                  </span>
+                </label>
+                <ManagePersonButton userId={p.id} projectId={projectId} />
+              </div>
+            ))}
+          {pickerError && (
+            <p role="alert">
+              {pickerError}
+              <Button variant="outline" type="button" onClick={() => setRetry((v) => v + 1)}>
+                Retry
+              </Button>
+            </p>
+          )}
+          {remote && remote.pages > 1 && (
+            <div>
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((v) => v - 1)}
+              >
+                Previous
+              </button>{" "}
+              Page {page} of {remote.pages}{" "}
+              <button
+                type="button"
+                disabled={page >= remote.pages}
+                onClick={() => setPage((v) => v + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {remote?.items.length === 0 && <p>No eligible people match.</p>}
+        </div>
+      </details>
+      <div className="ts-chips">
+        {value.map((id) => (
+          <span key={id}>
+            <Photo person={known.find((p) => p.id === id)} />
+            {known.find((p) => p.id === id)?.name || `Person ${id}`}
+            <button
+              type="button"
+              disabled={disabled || protectedIds.includes(id)}
+              aria-label={`Remove ${known.find((p) => p.id === id)?.name || id} from ${label}`}
+              onClick={() => onChange(value.filter((v) => v !== id))}
+            >
+              <X size={11} />
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask,keepOpen?:boolean)=>Promise<void>;onClose?:()=>void}={}) {
+  const { term: businessTerm } = useBusinessTerms();
+  const { taskId } = useParams();
+  const id = embedded?0:Number(taskId) || 0;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const { user } = useAuthStore();
+  const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowDelete=useModuleAction("delete");
+  const initial = (): Draft => ({
+    projectId: Number(params.get("projectId")) || 0,
+    parent_task_id: Number(params.get("parentTaskId")) || null,
+    title: initialTitle || params.get("title") || "",
+    description: initialDescription || params.get("description") || "",
+    work_type: params.get("workType") || params.get("work_type") || "Task",
+    priority: params.get("priority") || "Medium",
+    status: params.get("status") || "To Do",
+    start_date: params.get("start_date") || "",
+    due_date: params.get("dueDate") || params.get("due_date") || "",
+    story_points: params.get("story_points") || "",
+    estimated_hours: params.get("estimated_hours") || "",
+    assignment: {
+      ...emptySelection(),
+      ...Object.fromEntries(
+        (["people", "teams", "batches"] as const).map((kind) => [
+          kind,
+          (params.get(kind) ?? "")
+            .split(",")
+            .map(Number)
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ]),
+      ),
+    },
+    task_key: `TSK-${crypto.randomUUID().slice(0, 12)}`,
+    custom_fields: {},
+  });
+  const [formTab, setFormTab] = useState(0);
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [saved, setSaved] = useState("");
+  const [detail, setDetail] = useState<Detail>();
+  const [job, setJob] = useState<{
+    id: number;
+    task_id: number;
+    status: string;
+    total: number;
+    processed: number;
+    error?: string;
+  }>();
+  const [projects, setProjects] = useState<StudioProject[]>([]);
+  const [options, setOptions] = useState<Options>();
+  const [optionsProjectId, setOptionsProjectId] = useState<number>();
+  const defaultAssignmentApplied=useRef(false);
+  const [scopeMode, setScopeMode] = useState<"project" | "general">("project");
+  const [workspaces, setWorkspaces] = useState<{ id: number; name: string }[]>(
+    [],
+  );
+  const [generalWorkspace, setGeneralWorkspace] = useState("");
+  const [scopeBusy, setScopeBusy] = useState(false);
+  const [parents, setParents] = useState<PMSTask[]>([]);
+  const [parentSearch, setParentSearch] = useState("");
+  useEffect(() => {
+    let active = true;
+    api
+      .get("/project-management/workspaces")
+      .then((r) => {
+        if (active) setWorkspaces(r.data);
+      })
+      .catch((e) => {
+        if (active) setError(workspaceError(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!draft.projectId) {
+      setParents([]);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      tasksAPI
+        .listAll({
+          projectId: draft.projectId,
+          search: parentSearch,
+          pageSize: 30,
+        })
+        .then((r) => {
+          if (active)
+            setParents(r.items.filter((t) => t.id !== id && !t.parent_task_id));
+        })
+        .catch((e) => {
+          if (active) setError(workspaceError(e));
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [draft.projectId, parentSearch, id]);
+  useEffect(() => {
+    const location = projects.find(p => p.id === draft.projectId);
+    if (location) {
+      setScopeMode(location.is_task_collection ? "general" : "project");
+      setGeneralWorkspace(location.is_task_collection ? String(location.workspace_id) : "");
+    }
+  }, [draft.projectId, projects]);
+  async function chooseGeneralWorkspace(workspaceId: string) {
+    setGeneralWorkspace(workspaceId);
+    setScopeBusy(true);
+    setError("");
+    try {
+      const { data: collection } = await api.post<StudioProject>(
+        `${base}/general-scope`,
+        null,
+        { params: { workspace_id: Number(workspaceId) } },
+      );
+      setProjects((p) => [
+        ...p.filter((item) => item.id !== collection.id),
+        collection,
+      ]);
+      setDraft((d) => ({
+        ...d,
+        projectId: collection.id,
+        parent_task_id: null,
+        assignment: emptySelection(),
+        custom_fields: {},
+      }));
+    } catch (e) {
+      setError(workspaceError(e));
+    } finally {
+      setScopeBusy(false);
+    }
+  }
+
+  const [mode, setMode] = useState<"people" | "teams" | "batches">(
+    params.get("batches")
+      ? "batches"
+      : params.get("teams")
+        ? "teams"
+        : "people",
+  );
+  const [groupSearch, setGroupSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState(location.state?.notice || "");
+  const [busy, setBusy] = useState(false);
+  useEffect(()=>onBusyChange?.(busy),[busy,onBusyChange]);
+  const [adding, setAdding] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [loadRevision, setLoadRevision] = useState(0);
+  const [createAnother, setCreateAnother] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyTasks, setCopyTasks] = useState<PMSTask[]>([]);
+  const [copyLoading, setCopyLoading] = useState(false);
+  const copyInFlight = useRef(false);
+  const [copyError, setCopyError] = useState("");
+  const [copyLoaded, setCopyLoaded] = useState(false);
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<PMSFileAsset[]>([]);
+  const [checklist, setChecklist] = useState<PMSChecklistItem[]>([]);
+  const [checkTitle, setCheckTitle] = useState("");
+  const [checkBusy, setCheckBusy] = useState<number[]>([]);
+  const [types, setTypes] = useState([
+    "Task",
+    "Bug",
+    "Feature",
+    "Improvement",
+    "Research",
+    "Documentation",
+  ]);
+  const [extraDirty, setExtraDirty] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const created = useRef<number>();
+  const savingRef=useRef(false);
+  const uploaded = useRef(new Set<string>());
+  const allowNavigation = useRef(false);
+  const draftKey = `pms-task-studio:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || "default"}:${id || "new"}${draftScope?":"+draftScope:""}`;
+  const dirty =
+    (!!saved && saved !== JSON.stringify(draft)) ||
+    files.length > 0 ||
+    extraDirty;
+  const optionsReady = !!options && optionsProjectId === draft.projectId && !!draft.projectId;
+  // An unselected/loading project is not a permission denial. Keep location
+  // controls usable; submission still requires permission for the selected ID.
+  const membershipEdit = id ? !!detail?.can_edit : !optionsReady || !!options?.can_edit;
+  const editable=membershipEdit&&(id?allowEdit:allowCreate),deletable=membershipEdit&&allowDelete,canAddItems=membershipEdit&&allowCreate;
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+    setDraft((d) => ({ ...d, [key]: value }));
+  const assign = (changes: Partial<Selection>) =>
+    setDraft((d) => ({ ...d, assignment: { ...d.assignment, ...changes } }));
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    setDetail(undefined);
+    created.current = undefined;
+    uploaded.current.clear();
+    setFiles([]);
+    setExtraDirty(false);
+    allowNavigation.current = false;
+    Promise.all([
+      api
+        .get<StudioProject[]>(`${base}/projects`, {
+          recordCache: false,
+          params: {
+            people: params.get("people") || undefined,
+            teams: params.get("teams") || undefined,
+            batches: params.get("batches") || undefined,
+          },
+        })
+        .then((r) => r.data),
+      id
+        ? api.get<Detail>(`${base}/tasks/${id}`, {recordCache:false}).then((r) => r.data)
+        : Promise.resolve(undefined),
+      id
+        ? api.get<FieldRecord>(fieldPath("task", id), {recordCache:false}).then((r) => r.data)
+        : Promise.resolve(undefined),
+    ])
+      .then(([p, record, fieldRecord]) => {
+        if (!active) return;
+        setProjects(p);
+        let d = initial();
+        if (record) {
+          setDetail(record);
+          const t = record.task;
+          d = {
+            ...d,
+            projectId: t.project_id,
+            parent_task_id: t.parent_task_id || null,
+            title: t.title,
+            description: t.description || "",
+            work_type: t.work_type || "Task",
+            priority: t.priority,
+            status: t.status,
+            start_date: t.start_date || "",
+            due_date: t.due_date || "",
+            story_points: t.story_points == null ? "" : String(t.story_points),
+            estimated_hours: t.estimated_hours == null ? "" : String(t.estimated_hours),
+            task_key: t.task_key,
+            custom_fields: Object.fromEntries(
+              (fieldRecord?.fields || []).map((field) => [
+                String(field.id),
+                {
+                  value: field.value ?? null,
+                  country_code: field.country_code || undefined,
+                },
+              ]),
+            ),
+            assignment: { ...emptySelection(), ...record.assignment },
+          };
+          setAttachments([]);
+          void tasksAPI
+            .listAttachments(id)
+            .then(setAttachments)
+            .catch((e) => setError(workspaceError(e)));
+          void tasksAPI
+            .listChecklists(id)
+            .then(setChecklist)
+            .catch((e) => setError(workspaceError(e)));
+        } else if (!d.projectId)
+          d.projectId =
+            p.find(
+              (project) =>
+                !project.is_task_collection && project.can_manage_tasks,
+            )?.id || 0;
+        const selectedScope = p.find((item) => item.id === d.projectId);
+        setScopeMode(selectedScope?.is_task_collection ? "general" : "project");
+        setGeneralWorkspace(
+          selectedScope?.is_task_collection
+            ? String(selectedScope.workspace_id)
+            : "",
+        );
+        setDraft(d);
+        setSaved(JSON.stringify(d));
+        setDraftAvailable(!!localStorage.getItem(draftKey));
+      })
+      .catch((e) => {
+        if (active) setError(workspaceError(e));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, loadRevision]);
+  useEffect(() => {
+    if (!draft.projectId || loading) { setOptions(undefined); setOptionsProjectId(undefined); return; }
+    let active = true;
+    setOptions(undefined);
+    api
+      .get<Options>(`${base}/options`, {
+        params: { project_id: draft.projectId, compact: true },
+      })
+      .then((r) => {
+        if (active) {setOptions(r.data);setOptionsProjectId(draft.projectId);
+          if(!id&&!defaultAssignmentApplied.current&&!params.has("people")&&!params.has("teams")&&!params.has("batches")){
+            defaultAssignmentApplied.current=true;
+            const preferred=Number(defaultOwner("project_management"));
+            const person=r.data.people.find(p=>p.id===user?.id)||r.data.people.find(p=>p.id===preferred);
+            if(person)setDraft(d=>d.assignment.people.length||d.assignment.teams.length||d.assignment.batches.length?d:{...d,assignment:{...d.assignment,people:[person.id]}});
+          }
+        }
+      })
+      .catch((e) => {
+        if (active) setError(workspaceError(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, [draft.projectId, revision, loading]);
+  useEffect(() => {
+    api
+      .get("/project-management/task-types")
+      .then(({ data }) =>
+        setTypes((t) => [
+          ...new Set([
+            ...t,
+            ...(data.types || [])
+              .filter((x: { archived: boolean }) => !x.archived)
+              .map((x: { name: string }) => x.name),
+          ]),
+        ]),
+      )
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!dirty||(!id&&!files.length)) return;
+    const guard = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", guard);
+    const click = (e: MouseEvent) => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+      } catch {
+        /* Explicit Save Draft reports storage errors. */
+      }
+      const link = (e.target as HTMLElement).closest?.(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
+      if (
+        link &&
+        link.origin === window.location.origin &&
+        link.pathname !== window.location.pathname &&
+        !allowNavigation.current &&
+        !window.confirm(
+          "Leave this task with unsaved changes? Save a draft first to keep your work.",
+        )
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    document.addEventListener("click", click, true);
+    return () => {
+      window.removeEventListener("beforeunload", guard);
+      document.removeEventListener("click", click, true);
+    };
+  }, [dirty, draft, draftKey,id,files.length]);
+  useEffect(()=>{if(!id&&dirty){try{localStorage.setItem(draftKey,JSON.stringify(draft));setDraftAvailable(true);}catch{/* Save draft reports storage errors. */}}},[id,dirty,draft,draftKey]);
+  const selectedGroups = useMemo(
+    () => [
+      ...(options?.teams || []).filter((g) =>
+        draft.assignment.teams.includes(g.id),
+      ),
+      ...(options?.batches || []).filter((g) =>
+        draft.assignment.batches.includes(g.id),
+      ),
+    ],
+    [options, draft.assignment],
+  );
+  const ids = [
+    ...new Set([
+      ...draft.assignment.people,
+      ...(draft.assignment.group_responsibility
+        ? []
+        : selectedGroups.flatMap((g) => g.member_ids)),
+    ]),
+  ];
+  const excluded = draft.assignment.group_responsibility
+    ? 0
+    : selectedGroups.reduce((n, g) => n + g.excluded_count, 0);
+  const people = [
+    ...(options?.people || []),
+    ...(detail?.retained_people || []).filter(
+      (person) =>
+        !options?.people.some((existing) => existing.id === person.id),
+    ),
+  ];
+  const selectedPeople = ids
+    .map((id) => people.find((p) => p.id === id))
+    .filter((p): p is Person => !!p);
+  const project = projects.find((p) => p.id === draft.projectId);
+  function saveDraft() {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+      setDraftAvailable(true);
+      setNotice(
+        "Draft saved on this device. Attached files must be selected again after leaving.",
+      );
+    } catch {
+      setError(
+        "This browser could not save the draft. Keep this page open and retry.",
+      );
+    }
+  }
+  function restoreDraft() {
+    try {
+      const d = JSON.parse(localStorage.getItem(draftKey) || "null");
+      if (d?.title !== undefined && d?.assignment) {
+        setDraft({ ...initial(), ...d });
+        setNotice(
+          "Saved draft restored. Review the current project members before saving.",
+        );
+      }
+    } catch {
+      setError("The saved draft could not be restored.");
+    }
+  }
+  async function save(automatic=false) {
+    if(savingRef.current||!editable)return false;
+    if(embedded&&draft.execution_mode==='individual'){setError("Use a shared task when creating from chat.");return false;}
+    if (extraDirty) {
+      setError(
+        "Save or discard the execution-panel changes before saving task details.",
+      );
+      return false;
+    }
+    if (!(automatic?formRef.current?.checkValidity():formRef.current?.reportValidity())) return false;
+    if (!optionsReady || !options || !draft.projectId) {
+      setError("Choose a project and wait for assignment options to load.");
+      return false;
+    }
+    if (
+      draft.start_date &&
+      draft.due_date &&
+      draft.start_date > draft.due_date
+    ) {
+      setError("Start date cannot be after due date.");
+      return false;
+    }
+    if (
+      draft.execution_mode !== "individual" &&
+      excluded &&
+      !draft.assignment.allow_partial_groups
+    ) {
+      setError(
+        "Review excluded group members and acknowledge assigning eligible members only.",
+      );
+      return false;
+    }
+    savingRef.current=true;
+    setBusy(!automatic);
+    setError("");
+    try {
+      const task = {
+        parent_task_id: draft.parent_task_id,
+        title: draft.title.trim(),
+        description: draft.description,
+        work_type: draft.work_type,
+        task_key: draft.task_key,
+        priority: draft.priority,
+        status: draft.status,
+        start_date: draft.start_date || null,
+        due_date: draft.due_date || null,
+        story_points:
+          draft.story_points === "" ? null : Number(draft.story_points),
+        estimated_hours: draft.estimated_hours ? Number(draft.estimated_hours) : null,
+        custom_fields: draft.custom_fields,
+      };
+      if (!id && draft.execution_mode === "individual") {
+        if (!draft.assignment.reviewer || !draft.due_date)
+          throw new Error(
+            "Choose a reviewer and due date for individual assignments.",
+          );
+        if (
+          draft.assignment.teams.length ||
+          (draft.assignment.people.length && draft.assignment.batches.length)
+        )
+          throw new Error(
+            "Choose batches or individual interns. Remove other selections first.",
+          );
+        if (files.length)
+          throw new Error(
+            "Save individual assignments first, then attach evidence to the parent task.",
+          );
+        const result = (
+          await api.post(
+            "/project-management/people-workspace/individual-tasks/" +
+              draft.projectId,
+            {
+              task,
+              people: draft.assignment.people,
+              batches: draft.assignment.batches,
+              reviewer_user_id: draft.assignment.reviewer,
+              request_key: draft.task_key,
+            },
+          )
+        ).data;
+        setJob(result);
+        setSaved(JSON.stringify(draft));
+        localStorage.removeItem(draftKey);
+        setNotice(
+          "Individual assignments published. Each intern has an independent execution and review record.",
+        );
+        return false;
+      }
+      let record: Detail;
+      if (id || created.current) {
+        record = (
+          await api.put<Detail>(`${base}/tasks/${id || created.current}`, {
+            task,
+            assignment: draft.assignment,
+            version: detail?.version,
+          })
+        ).data;
+      } else {
+        record = (
+          await api.post<Detail>(`${base}/projects/${draft.projectId}/tasks`, {
+            task,
+            assignment: draft.assignment,
+          })
+        ).data;
+        created.current = record.task.id;
+      }
+      setDetail(record);
+      for (let i = 0; i < files.length; i++) {
+        const key = `${files[i].name}-${files[i].size}-${files[i].lastModified}`;
+        if (!uploaded.current.has(key)) {
+          await filesAPI.uploadToTask(record.task.id, files[i]);
+          uploaded.current.add(key);
+          const completedFile = files[i];
+          setFiles((current) =>
+            current.filter((file) => file !== completedFile),
+          );
+        }
+      }
+      if(!automatic&&onCreated)await onCreated(record.task,!embedded&&createAnother);
+      localStorage.removeItem(draftKey);
+      setDraftAvailable(false);
+      setFiles([]);
+      setSaved(JSON.stringify(draft));
+      setNotice(
+        id ? "Task and assignments updated." : "Task created successfully.",
+      );
+      if(embedded||(onCreated&&!createAnother)){allowNavigation.current=true;return true;}
+      if (!id && createAnother) {
+        const next = {
+          ...initial(),
+          projectId: draft.projectId,
+          assignment: emptySelection(),
+        };
+        setDraft(next);
+        setSaved(JSON.stringify(next));
+        setDetail(undefined);
+        created.current = undefined;
+        uploaded.current.clear();
+        window.scrollTo({ top: 0 });
+      } else if (!id) {
+        allowNavigation.current = true;
+        navigate("/pms/tasks", {
+          replace: true,
+          state: { notice: "Task created successfully." },
+        });
+      } else if(!automatic) {
+        setAttachments(await tasksAPI.listAttachments(id));
+      }
+      return true;
+    } catch (e) {
+      setError(
+        `${created.current && !id ? "Task is saved. Retry to finish without creating a duplicate. " : ""}${workspaceError(e)}`,
+      );
+      return false;
+    } finally {
+      savingRef.current=false;setBusy(false);
+    }
+  }
+  const auto=useRecordAutosave({value:draft,enabled:!!id&&editable&&!busy&&!loading&&!extraDirty&&!files.length,dirty:saved!==JSON.stringify(draft),save:()=>save(true)});
+  async function remove() {
+    if(!deletable)return;
+    setBusy(true);
+    try {
+      await tasksAPI.delete(id);
+      localStorage.removeItem(draftKey);
+      allowNavigation.current = true;
+      navigate("/pms/tasks");
+    } catch (e) {
+      setError(workspaceError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function loadCopy() {
+    setCopyOpen(true);
+    if (copyInFlight.current) return;
+    copyInFlight.current = true;
+    setCopyLoading(true);
+    setCopyError("");
+    setCopyTasks([]);
+    setCopyLoaded(false);
+    try {
+      const result = await tasksAPI.listAll({projectId: draft.projectId || undefined, pageSize: 100}, true);
+      setCopyTasks(result.items);
+      setCopyLoaded(true);
+    } catch (e) {
+      setCopyError(workspaceError(e));
+    } finally {
+      copyInFlight.current = false;
+      setCopyLoading(false);
+    }
+  }
+  function resetBlank() {
+    if (
+      dirty &&
+      !window.confirm("Replace the current draft with a blank task?")
+    )
+      return;
+    const d = { ...initial(), projectId: draft.projectId };
+    setDraft(d);
+    setFiles([]);
+    setNotice("Blank task ready.");
+  }
+  async function addCheck() {
+    if (!checkTitle.trim()) return;
+    try {
+      await tasksAPI.addChecklistItem(id, { title: checkTitle.trim() });
+      setChecklist(await tasksAPI.listChecklists(id));
+      setCheckTitle("");
+    } catch (e) {
+      setError(workspaceError(e));
+    }
+  }
+  if (loading)
+    return (
+      <main className="task-studio ts-loading" role="status">
+        Loading task workspace…
+      </main>
+    );
+  return (
+    <main className={`task-studio${embedded?" wa-embedded-task":""}`} id={embedded||onClose?undefined:"suite-main"} tabIndex={-1}>
+      <div className="ts-breadcrumb">
+        <Link to="/dashboard">All applications</Link>
+        <ChevronRight />
+        <Link to="/pms">KaryaFlow PMS</Link>
+        <ChevronRight />
+        <Link to="/pms/tasks">Tasks</Link>
+        <ChevronRight />
+        <b>{id ? "Task Details" : "Create Task"}</b>
+      </div>
+      <div className="ts-title">
+        <button
+          className="tr-button ts-back"
+          aria-label="Back to tasks"
+          onClick={() => {
+            if (onClose) { onClose(); return; }
+            if (
+              !dirty ||
+              window.confirm(
+                "Leave with unsaved changes? Save a draft to keep your work.",
+              )
+            )
+              if (!embedded) navigate("/pms/tasks");
+          }}
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div>
+          <h1>{id ? "Task Details" : "Create Task"}</h1>
+          <p>
+            {id
+              ? "Review, update, and manage this task and its members."
+              : "Create a project task or general workspace task with clear ownership and deadlines."}
+          </p>
+        </div>
+        <div className="ts-title-actions">
+          <Button type="submit" variant="outline" className="tr-button" disabled={busy} onClick={saveDraft}>
+            <Save size={17} />
+            Save Draft
+          </Button>
+          <button
+            className="tr-primary"
+            disabled={
+              busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit
+            }
+            onClick={() => void save()}
+          >
+            <Sparkles size={19} />
+            {busy ? "Saving…" : id ? "Save Changes" : "Create Task"}
+          </button>
+        </div>
+      </div>
+      {(error || notice) && (
+        <div
+          className={`tr-feedback ${error ? "error" : ""}`}
+          role={error ? "alert" : "status"}
+        >
+          {error || notice}
+          {error && (
+            <button onClick={() => setRevision((v) => v + 1)}>
+              Reload options
+            </button>
+          )}
+          <button
+            aria-label="Dismiss message"
+            onClick={() => {
+              setError("");
+              setNotice("");
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {!!id && error && (
+        <button
+          type="button"
+          className="tr-button"
+          onClick={() => {
+            saveDraft();
+            setLoadRevision((v) => v + 1);
+          }}
+        >
+          Reload latest task; keep my draft
+        </button>
+      )}
+      {draftAvailable && (
+        <div className="ts-draft-banner">
+          A saved draft is available for this {id ? "task" : "new task"}.{" "}
+          <button onClick={restoreDraft}>Restore draft</button>
+          <button
+            onClick={() => {
+              localStorage.removeItem(draftKey);
+              setDraftAvailable(false);
+            }}
+          >
+            Discard saved draft
+          </button>
+        </div>
+      )}
+      {!editable && (id ? !!detail : optionsReady) && (
+        <p className="tr-feedback">
+          Your project role allows viewing this task. Ask a project
+          administrator for editing access.
+        </p>
+      )}
+      <CompactForm compactTabs={false}
+        onKeyDown={guardTaskEnter}
+        onInvalidCapture={event => { event.preventDefault(); const field = event.target as HTMLElement; const panel = field.closest<HTMLElement>("[data-task-tab]"); if (panel) setFormTab(Number(panel.dataset.taskTab)); let node = field.parentElement; while (node) { if (node instanceof HTMLDetailsElement) node.open = true; node = node.parentElement; } requestAnimationFrame(() => field.focus()); }}
+        ref={formRef}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+        className="ts-layout"
+      >
+        <nav className="ts-compact-tabs" aria-label="Task form sections">{["Basic info", "Planning & details", "AI & tools"].map((label, index) => <button type="button" key={label} aria-pressed={formTab === index} onClick={() => setFormTab(index)}>{label}</button>)}</nav>
+        <div className="ts-fields">
+          <fieldset disabled={busy || (id ? !editable : !allowCreate)}>
+            <Section
+              icon={<FileText />}
+              title="Basic info"
+              hidden={formTab !== 0}
+              sub="Provide the essential details about the task."
+            >
+              <div className="ts-basic-pair">
+                <label className="ts-field">
+                  <Folder />
+                  <span>
+                    Task location
+                    <NativeSelect
+                      aria-label="Task location"
+                      value={scopeMode}
+                      disabled={!!id || !!created.current || scopeBusy}
+                      onChange={(e) => {
+                        const mode = e.target.value as "project" | "general";
+                        setScopeMode(mode);
+                        setGeneralWorkspace("");
+                        setDraft((d) => ({
+                          ...d,
+                          projectId:
+                            mode === "project"
+                              ? projects.find(
+                                  (p) =>
+                                    !p.is_task_collection && p.can_manage_tasks,
+                                )?.id || 0
+                              : 0,
+                          parent_task_id: null,
+                          assignment: emptySelection(),
+                          custom_fields: {},
+                        }));
+                      }}
+                    >
+                      <option value="project">Project task</option>
+                      <option value="general">General / workspace task</option>
+                    </NativeSelect>
+                    {scopeMode === "general" ? (
+                      <>
+                        <span>Workspace *</span>
+                        <NativeSelect
+                          aria-label="General task workspace"
+                          required
+                          disabled={!!id || scopeBusy}
+                          value={generalWorkspace}
+                          onChange={(e) =>
+                            void chooseGeneralWorkspace(e.target.value)
+                          }
+                        >
+                          <option value="">Choose a workspace</option>
+                          {workspaces.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                        <small>
+                          No project is required. Choose any task type below.
+                        </small>
+                      </>
+                    ) : (
+                      <>
+                        <span>Project *</span>
+                        <NativeSelect
+                          required
+                          aria-label={businessTerm('project')}
+                          value={draft.projectId || ""}
+                          disabled={!!id || !!created.current}
+                          onChange={(e) => {
+                            setDraft((d) => ({
+                              ...d,
+                              projectId: Number(e.target.value),
+                              parent_task_id: null,
+                              assignment: emptySelection(),
+                              custom_fields: {},
+                            }));
+                            setNotice(
+                              "Project changed. Assignment selections were cleared to protect access boundaries.",
+                            );
+                          }}
+                        >
+                          <option value="">{`Choose a ${businessTerm('project').toLowerCase()}`}</option>
+                          {projects
+                            .filter((p) => !p.is_task_collection)
+                            .map((p) => (
+                              <option
+                                key={p.id}
+                                value={p.id}
+                                disabled={!id && !p.can_manage_tasks}
+                              >
+                                {p.name} {p.project_key}
+                              </option>
+                            ))}
+                        </NativeSelect>
+                      </>
+                    )}
+                  </span>
+                </label>
+                <label className="ts-field">
+                  <Type />
+                  <span>
+                    Task Title <b>*</b>
+                    <input
+                      aria-label="Task Title"
+                      required
+                      maxLength={220}
+                      placeholder="What needs to be done?"
+                      value={draft.title}
+                      onChange={(e) => set("title", e.target.value)}
+                    />
+                    <small>
+                      Be clear and specific about what needs to be done.
+                    </small>
+                  </span>
+                </label>
+                <label className="ts-field"><Folder /><span>                    <span>Parent task (optional)</span>
+                    <input
+                      aria-label="Search parent tasks"
+                      placeholder="Find a parent task in this location"
+                      value={parentSearch}
+                      onChange={(e) => setParentSearch(e.target.value)}
+                      disabled={!draft.projectId || scopeBusy}
+                    />
+                    <NativeSelect
+                      aria-label="Parent task"
+                      value={draft.parent_task_id || ""}
+                      disabled={!draft.projectId || scopeBusy}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          parent_task_id: Number(e.target.value) || null,
+                          work_type: e.target.value
+                            ? "Sub-task"
+                            : d.work_type === "Sub-task"
+                              ? "Task"
+                              : d.work_type,
+                        }))
+                      }
+                    >
+                      <option value="">Top-level task</option>
+                      {draft.parent_task_id &&
+                        !parents.some((p) => p.id === draft.parent_task_id) && (
+                          <option value={draft.parent_task_id}>
+                            Selected parent task
+                          </option>
+                        )}
+                      {parents.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title} ({p.task_key})
+                        </option>
+                      ))}
+                    </NativeSelect>
+</span></label>
+              <div className="ts-field ts-worktype">
+                <FileText />
+                <div>
+                  <label>
+                    Work item type <b>*</b>
+                  </label>
+                  <NativeSelect aria-label="Work item type" value={draft.work_type} onChange={event => set("work_type", event.target.value)}>{types.filter(type => id || type !== "Sub-task" || draft.parent_task_id).map(type => <option key={type}>{type}</option>)}</NativeSelect>
+                </div>
+              </div>
+              </div>
+              <div className="ts-essential-planning">                <label>
+                  Due date
+                  <input
+                    type="date"
+                    aria-label="Due date"
+                    value={draft.due_date}
+                    min={draft.start_date || undefined}
+                    onChange={(e) => set("due_date", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Priority
+                  <NativeSelect
+                    aria-label="Priority"
+                    value={draft.priority}
+                    onChange={(e) => set("priority", e.target.value)}
+                  >
+                    {["Low", "Medium", "High", "Urgent"].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </NativeSelect>
+                </label>
+<div className="ts-essential-assignees" ref={pickerRef}>
+                  <div className="ts-assignee-heading"><label>Assignees</label>
+                  {user && people.some(person => person.id === user.id) && <label className="ts-assign-self"><input type="checkbox" aria-label="Assign to me" checked={draft.assignment.people.includes(user.id)} disabled={!editable || detail?.protected_ids.includes(user.id)} onChange={event => assign({ people: event.target.checked ? [...new Set([...draft.assignment.people, user.id])] : draft.assignment.people.filter(id => id !== user.id) })} />Assign to me</label>}</div>
+                  <details className="ts-assignee-combo"><summary aria-label="Choose assignees"><Users size={15}/><span>{[...selectedPeople.map(person => person.name), ...selectedGroups.map(group => group.name)].join(", ") || "Select people, teams or interns batches"}</span><ChevronRight size={14}/></summary>
+                  <div className="ts-assignee-dropdown">                <div className="ts-assignment-cards" role="tablist" aria-label="Assignee type" onKeyDown={event => { if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return; const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')); const index = tabs.indexOf(document.activeElement as HTMLButtonElement); const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length; event.preventDefault(); tabs[next]?.click(); tabs[next]?.focus(); }}>
+                  {[
+                    {
+                      key: "people" as const,
+                      title: "Person",
+                      sub: "Assign to individual team members",
+                      icon: UserRound,
+                    },
+                    {
+                      key: "teams" as const,
+                      title: "Team",
+                      sub: "Assign to an existing team",
+                      icon: Users,
+                    },
+                    {
+                      key: "batches" as const,
+                      title: "Interns Batch",
+                      sub: "Assign to a batch of interns",
+                      icon: GraduationCap,
+                    },
+                  ].map((m) => (
+                    <button
+                      type="button"
+                      key={m.key}
+                      role="tab"
+                      tabIndex={mode === m.key ? 0 : -1}
+                      aria-selected={mode === m.key}
+                      aria-controls="task-assignee-options"
+                      id={`task-assignee-tab-${m.key}`}
+                      aria-pressed={mode === m.key}
+                      className={mode === m.key ? "selected" : ""}
+                      onClick={() => { setMode(m.key); setGroupSearch(""); }}
+                    >
+                      <span>
+                        <m.icon />
+                      </span>
+                      <div>
+                        <strong>{m.title}</strong>
+                        <small>{m.sub}</small>
+                      </div>
+                      {mode === m.key && <Check size={15} />}
+                    </button>
+                  ))}
+                </div>
+                <div className="ts-assignment-body" role="tabpanel" id="task-assignee-options" aria-labelledby={`task-assignee-tab-${mode}`}>
+                  <div>
+                    <label>
+                      {mode === "people"
+                        ? "Select assignees"
+                        : "Select " +
+                          (mode === "teams" ? "teams" : "intern batches")}{" "}
+                      <b>*</b>
+                    </label>
+
+                    {!options ? (
+                      <p role="status">Loading assignment options…</p>
+                    ) : mode === "people" ? (
+                      <PeoplePicker label="Select assignees" people={people} value={draft.assignment.people} protectedIds={detail?.protected_ids} disabled={!editable} projectId={draft.projectId} onChange={value => assign({ people: value })} />
+                    ) : (
+                      <div className="ts-group-picker">
+                        <label className="ts-group-search">
+                          <Search size={15} />
+                          <input
+                            aria-label="Search groups"
+                            placeholder="Search and select multiple groups…"
+                            value={groupSearch}
+                            onChange={(e) => setGroupSearch(e.target.value)}
+                          />
+                        </label>
+                        {options[mode]
+                          .filter((g) =>
+                            g.name
+                              .toLowerCase()
+                              .includes(groupSearch.toLowerCase()),
+                          )
+                          .map((g) => (
+                            <label key={g.id} className="ts-group-row">
+                              <input
+                                type="checkbox"
+                                checked={draft.assignment[mode].includes(g.id)}
+                                disabled={
+                                  draft.execution_mode === "individual" &&
+                                  mode === "batches"
+                                    ? !g.population_count
+                                    : !g.member_ids.length
+                                }
+                                onChange={(e) =>
+                                  assign({
+                                    [mode]: e.target.checked
+                                      ? [...draft.assignment[mode], g.id]
+                                      : draft.assignment[mode].filter(
+                                          (v) => v !== g.id,
+                                        ),
+                                  })
+                                }
+                              />
+                              <span>
+                                <strong>{g.name}</strong>
+                                <small>
+                                  {g.member_count ?? g.member_ids.length}{" "}
+                                  eligible · {g.excluded_count} excluded
+                                  (missing access, inactive account, or outside
+                                  your scope)
+                                </small>
+                              </span>
+                            </label>
+                          ))}
+                        {options[mode].length > 0 && !options[mode].some(group => group.name.toLowerCase().includes(groupSearch.toLowerCase())) && <p role="status">No matching {mode === "teams" ? "teams" : "interns batches"}. Try another search.</p>}
+                        {!options[mode].length && (
+                          <p>
+                            {mode === "batches"
+                              ? options.batch_reason
+                              : "No teams in this workspace. Create a team from workspace management."}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="ts-group-chips">
+                      {options &&
+                        (["teams", "batches"] as const).flatMap((kind) =>
+                          draft.assignment[kind]
+                            .filter(
+                              (id) => !options[kind].some((g) => g.id === id),
+                            )
+                            .map((id) => (
+                              <span key={`missing-${kind}-${id}`}>
+                                Unavailable{" "}
+                                {kind === "teams" ? "team" : "batch"} #{id}
+                                <button
+                                  type="button"
+                                  aria-label={`Remove unavailable ${kind} ${id}`}
+                                  onClick={() =>
+                                    assign({
+                                      [kind]: draft.assignment[kind].filter(
+                                        (v) => v !== id,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <X size={11} />
+                                </button>
+                              </span>
+                            )),
+                        )}
+                      {["teams", "batches"].map((kind) =>
+                        (options?.[kind as "teams" | "batches"] || [])
+                          .filter((g) =>
+                            draft.assignment[
+                              kind as "teams" | "batches"
+                            ].includes(g.id),
+                          )
+                          .map((g) => (
+                            <span key={`${kind}-${g.id}`}>
+                              {g.name}
+                              <button
+                                type="button"
+                                aria-label={`Remove group ${g.name}`}
+                                onClick={() =>
+                                  assign({
+                                    [kind]: draft.assignment[
+                                      kind as "teams" | "batches"
+                                    ].filter((v) => v !== g.id),
+                                  })
+                                }
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          )),
+                      )}
+                    </div>
+                    <Button variant="default"
+                      type="button"
+                      className="ts-add-person"
+                      onClick={() => setAdding(true)}
+                      disabled={!draft.projectId || !options?.can_add_existing}
+                      title={
+                        !options?.can_add_existing
+                          ? "Only a workspace or project administrator can add existing people."
+                          : "Add an existing person immediately"
+                      }
+                    >
+                      <Plus size={13} />
+                      Add existing person
+                    </Button>
+                    {!!selectedGroups.length && (
+                      <small className="ts-snapshot-note">
+                        {draft.assignment.group_responsibility
+                          ? "Groups own this task collectively. Select people explicitly for individual responsibility; future membership changes do not create individual assignments."
+                          : "Legacy group assignments retain their member snapshot. Future membership changes do not silently change this task."}
+                      </small>
+                    )}
+                    {excluded > 0 && (
+                      <label className="ts-exclusion">
+                        <input
+                          type="checkbox"
+                          checked={draft.assignment.allow_partial_groups}
+                          onChange={(e) =>
+                            assign({ allow_partial_groups: e.target.checked })
+                          }
+                        />
+                        I reviewed {excluded} excluded group memberships. Assign
+                        eligible members only.
+                      </label>
+                    )}
+                  </div>
+                </div>
+</div></details>
+                </div></div>
+              <div className="ts-field ts-description">
+                <FileText />
+                <div>
+                  <label>Description</label>
+                  <RichTextEditor
+                    label="Task description"
+                    value={draft.description}
+                    onChange={(v) => set("description", v)}
+                    variant="compact"
+                    placeholder="Add details, context, or acceptance criteria…"
+                    onAttach={() => fileRef.current?.click()}
+                  />
+                </div>
+              </div>
+            <div>
+              <Section
+                icon={<Users />}
+                title="Assignment details"
+                expandable
+                sub="Assign this task to a person, team, or interns batch."
+              >
+                {!id && (
+                  <div className="ts-execution-choice">
+                    <label>
+                      Execution mode
+                      <NativeSelect
+                        aria-label="Execution mode"
+                        value={draft.execution_mode || "shared"}
+                        onChange={(e) =>
+                          set(
+                            "execution_mode",
+                            e.target.value as "shared" | "individual",
+                          )
+                        }
+                      >
+                        <option value="shared">
+                          Shared task: one task for selected collaborators
+                        </option>
+                        <option value="individual" disabled={embedded}>
+                          Individual intern assignments: separate progress,
+                          submission and review
+                        </option>
+                      </NativeSelect>
+                    </label>
+                    <p>
+                      {draft.execution_mode === "individual"
+                        ? "Choose linked intern batches or individual interns, a deadline and reviewer. Large batches are processed in resumable chunks of 500."
+                        : draft.assignment.group_responsibility ? "Choose individual collaborators or assign collective responsibility to teams and batches." : "Share this task with up to 100 collaborators. Groups use a snapshot of their eligible members."}
+                    </p>
+                  </div>
+                )}
+                {job && (
+                  <div className="ts-job" role="status">
+                    <strong>
+                      {job.status}: {job.processed} of {job.total} assignments
+                    </strong>
+                    <progress max={job.total} value={job.processed} />
+                    {job.error && <p role="alert">{job.error}</p>}
+                    {job.status !== "Completed" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            setJob(
+                              (
+                                await api.post(
+                                  `/project-management/people-workspace/assignment-jobs/${job.id}/continue`,
+                                )
+                              ).data,
+                            );
+                          } catch (e) {
+                            setError(workspaceError(e));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {job.status === "Failed"
+                          ? "Retry failed chunk"
+                          : "Continue next 500"}
+                      </button>
+                    )}
+                    <Link
+                      to={`/pms/tasks/${job.task_id}/classic`}
+                      onClick={() => {
+                        allowNavigation.current = true;
+                      }}
+                    >
+                      Open task and individual progress
+                    </Link>
+                    <Link
+                      to="/hrms/interns/tasks"
+                      onClick={() => {
+                        allowNavigation.current = true;
+                      }}
+                    >
+                      Open Intern Hub tracking
+                    </Link>
+                    <small>
+                      Committed chunks remain saved if you leave. Pending chunks
+                      are handled by the existing distribution worker or the
+                      Continue action.
+                    </small>
+                  </div>
+                )}
+                {(detail?.protected_count || 0) > 100 && (
+                  <p role="status">
+                    {detail?.protected_count} managed individual assignments.
+                    Edit task details here; use the execution panel or Batch
+                    controls for recipient progress and membership.
+                  </p>
+                )}
+                <div className="ts-assignment-body">
+                  <div>
+                    <label>
+                      Reviewer <small>(optional)</small>
+                    </label>
+                    <PeoplePicker
+                      label="Select reviewer"
+                      reviewers
+                      people={people.filter((p) =>
+                        options?.reviewers.includes(p.id),
+                      )}
+                      value={
+                        draft.assignment.reviewer
+                          ? [draft.assignment.reviewer]
+                          : []
+                      }
+                      single
+                      projectId={draft.projectId}
+                      onChange={(v) => assign({ reviewer: v[0] || null })}
+                    />
+                  </div>
+                </div>
+                <div className="ts-owner">
+                  <label>
+                    Owner <small>(optional)</small>
+                  </label>
+                  <PeoplePicker
+                    label="Select owner"
+                    people={options?.people || []}
+                    value={
+                      draft.assignment.owner ? [draft.assignment.owner] : []
+                    }
+                    single
+                    projectId={draft.projectId}
+                    onChange={(v) => assign({ owner: v[0] || null })}
+                  />
+                </div>
+                {!!detail?.protected_ids.length && (
+                  <p className="ts-snapshot-note">
+                    Some assignments are managed by an intern program. Use Batch
+                    controls to reassign or remove them while preserving work
+                    history.
+                  </p>
+                )}
+              </Section>
+            </div>
+            </Section>
+            <Section
+              icon={<CalendarDays />}
+              title="Scheduling"
+              expandable
+              hidden={formTab !== 1}
+              sub="Set timeline, priority, and status for this task."
+            >
+              <div className="ts-schedule">
+                <label>
+                  Start date
+                  <input
+                    type="date"
+                    aria-label="Start date"
+                    value={draft.start_date}
+                    onChange={(e) => set("start_date", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Status
+                  <NativeSelect
+                    aria-label="Status"
+                    value={draft.status}
+                    onChange={(e) => set("status", e.target.value)}
+                  >
+                    {[
+                      "Backlog",
+                      "To Do",
+                      "In Progress",
+                      "In Review",
+                      ...(id ? ["Blocked"] : []),
+                      "Done",
+                      "Cancelled",
+                    ].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </NativeSelect>
+                </label>
+                <label>
+                  Estimate (hours)
+                  <input type="number" min={0} step="0.25" aria-label="Estimate (hours)" value={draft.estimated_hours || ""} onChange={e=>set("estimated_hours",e.target.value)} />
+                </label>
+                <label>
+                  Story points
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    aria-label="Story points"
+                    value={draft.story_points}
+                    onChange={(e) => set("story_points", e.target.value)}
+                  />
+                </label>
+              </div>
+            </Section>
+            <Section
+              icon={<ListChecks />}
+              title="Advanced settings & attachments"
+              expandable
+              hidden={formTab !== 1}
+              sub="Keep required project fields and supporting evidence together."
+            >
+              <CustomFieldsForm
+                placement={id?"edit":"create"}
+                entity="task"
+                projectId={draft.projectId}
+                workType={draft.work_type}
+                values={draft.custom_fields}
+                onChange={(v) => set("custom_fields", v)}
+              />
+              <label
+                className="ts-upload"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (!busy && editable)
+                    setFiles((f) => [
+                      ...f,
+                      ...Array.from(e.dataTransfer.files),
+                    ]);
+                }}
+              >
+                <Upload size={23} />
+                <span>
+                  <strong>Add supporting files</strong>
+                  <small>
+                    Choose or drop evidence, screenshots, and documents. Files
+                    upload when you save.
+                  </small>
+                </span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  multiple
+                  aria-label="Upload task attachments"
+                  onChange={(e) =>
+                    setFiles((f) => [...f, ...Array.from(e.target.files || [])])
+                  }
+                />
+              </label>
+              {files.map((f, i) => (
+                <div key={i} className="ts-file-row">
+                  {f.name}
+                  <button
+                    type="button"
+                    aria-label={`Remove pending file ${f.name}`}
+                    onClick={() =>
+                      setFiles((f) => f.filter((_, index) => index !== i))
+                    }
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {attachments.map((f) => (
+                <div key={f.id} className="ts-file-row">
+                  {f.original_name || f.file_name}
+                  <Button variant="outline"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const blob = await filesAPI.downloadBlob(f.id);
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = f.original_name || f.file_name;
+                        link.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 5000);
+                      } catch (e) {
+                        setError(workspaceError(e));
+                      }
+                    }}
+                  >
+                    Download
+                  </Button>
+                  <button
+                    type="button"
+                    aria-label={`Delete attachment ${f.original_name || f.file_name}`}
+                    onClick={async () => {
+                      if (!window.confirm("Delete this attachment?")) return;
+                      try {
+                        await filesAPI.deleteAttachment(f.id);
+                        setAttachments((v) => v.filter((x) => x.id !== f.id));
+                      } catch (e) {
+                        setError(workspaceError(e));
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </Section>
+          </fieldset>
+          {!!id && (
+            <>
+              <Section
+                icon={<ListChecks />}
+                title="5. Completion checklist"
+                sub="Add, edit, and remove the checks required for delivery."
+              >
+                {checklist.map((item) => (
+                  <div className="ts-check-row" key={item.id}>
+                    <input
+                      aria-label={`Complete ${item.title}`}
+                      type="checkbox"
+                      disabled={!editable || checkBusy.includes(item.id)}
+                      checked={item.is_completed}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setChecklist((rows) =>
+                          rows.map((row) =>
+                            row.id === item.id
+                              ? { ...row, is_completed: checked }
+                              : row,
+                          ),
+                        );
+                        setCheckBusy((ids) => [...ids, item.id]);
+                        void tasksAPI
+                          .updateChecklistItem(item.id, {
+                            is_completed: checked,
+                          })
+                          .then(() => tasksAPI.listChecklists(id))
+                          .then(setChecklist)
+                          .catch((e) => {
+                            setError(workspaceError(e));
+                            void tasksAPI.listChecklists(id).then(setChecklist);
+                          })
+                          .finally(() =>
+                            setCheckBusy((ids) =>
+                              ids.filter((value) => value !== item.id),
+                            ),
+                          );
+                      }}
+                    />
+                    <input
+                      aria-label={`Checklist title ${item.id}`}
+                      defaultValue={item.title}
+                      disabled={!editable}
+                      onBlur={async (e) => {
+                        if (e.target.value === item.title) return;
+                        try {
+                          await tasksAPI.updateChecklistItem(item.id, {
+                            title: e.target.value,
+                          });
+                          setChecklist(await tasksAPI.listChecklists(id));
+                        } catch (e) {
+                          setError(workspaceError(e));
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={!deletable}
+                      aria-label={`Delete checklist ${item.title}`}
+                      onClick={async () => {
+                        try {
+                          await tasksAPI.deleteChecklistItem(item.id);
+                          setChecklist(await tasksAPI.listChecklists(id));
+                        } catch (e) {
+                          setError(workspaceError(e));
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <SmartCreateSection title="Add checklist item" size="compact" trigger={<Button variant="default" type="button" className="tr-button" disabled={!canAddItems}>Add checklist item</Button>}><div className="ts-check-row">
+                  <input
+                    aria-label="New checklist item"
+                    disabled={!canAddItems}
+                    placeholder="Add a delivery check…"
+                    value={checkTitle}
+                    onChange={(e) => setCheckTitle(e.target.value)}
+                  />
+                  <Button variant="default"
+                    type="button"
+                    className="tr-button" data-save-action
+                    disabled={!canAddItems || !checkTitle.trim()}
+                    onClick={() => void addCheck()}
+                  >
+                    <Plus size={15} />
+                    Add check
+                  </Button>
+                </div></SmartCreateSection>
+              </Section>
+              <TaskExecutionPanel
+                taskId={id}
+                refreshKey={checklist
+                  .map(
+                    (item) => `${item.id}:${item.title}:${item.is_completed}`,
+                  )
+                  .join("|")}
+                onDirtyChange={setExtraDirty}
+                onChanged={() => {
+                  void api
+                    .get<Detail>(`${base}/tasks/${id}`)
+                    .then(({ data }) => {
+                      setDetail(data);
+                      setDraft((d) => ({ ...d, status: data.task.status }));
+                      setSaved((previous) => {
+                        const value = JSON.parse(previous);
+                        return JSON.stringify({
+                          ...value,
+                          status: data.task.status,
+                        });
+                      });
+                    })
+                    .catch((e) => setError(workspaceError(e)));
+                }}
+              />
+              <section className="ts-danger">
+                <div>
+                  <strong>Delete task</strong>
+                  <p>
+                    Move this task to Trash. Its saved history remains available
+                    for authorized recovery.
+                  </p>
+                </div>
+                <Button variant="outline"
+                  type="button"
+                  className="tr-button"
+                  disabled={!deletable || busy}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 size={16} />
+                  Delete task
+                </Button>
+              </section>
+              <Button asChild variant="outline"><Link className="ts-classic-link" to={`/pms/tasks/${id}/classic`}>
+                Open activity, conversations, subtasks, and advanced tools{" "}
+                <ArrowRight size={15} />
+              </Link></Button>
+            </>
+          )}
+          <div className="ts-bottom">
+            <span role="status">
+              {auto.message || (dirty ? "Unsaved changes" : "All task details saved")}
+            </span>
+            {!id && !embedded && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={createAnother}
+                  onChange={(e) => setCreateAnother(e.target.checked)}
+                />
+                Create another
+              </label>
+            )}
+            <Button variant="outline"
+              data-save-action
+              className="tr-primary"
+              type="submit"
+              disabled={
+                busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit
+              }
+            >
+              {id ? "Save Changes" : "Create Task"}
+            </Button>
+          </div>
+        </div>
+        <aside className="ts-right" hidden={formTab !== 2} data-task-tab="2">
+          <section className="ts-summary">
+            <header>
+              <span className="ts-section-icon">
+                <Users />
+              </span>
+              <div>
+                <h2>Assignment Summary</h2>
+                <small>
+                  {draft.execution_mode === "individual" &&
+                  selectedGroups.length
+                    ? "Whole batches selected; exact unique recipient count appears after publishing"
+                    : selectedGroups.some(
+                          (g) => (g.member_count || 0) > g.member_ids.length,
+                        )
+                      ? "Group preview (first 100); server validates all eligible members"
+                      : `${detail?.protected_count && detail.protected_count > 100 ? detail.protected_count : ids.length} assignees selected`}
+                </small>
+                <div className="ts-summary-photos">
+                  {selectedPeople.slice(0, 5).map((p) => (
+                    <Photo key={p.id} person={p} />
+                  ))}
+                  <Button variant="default"
+                    type="button"
+                    onClick={() => {
+                      setFormTab(0);
+                      setMode("people");
+                      const target=pickerRef.current;
+                      revealFormField(target);
+                      requestAnimationFrame(()=>{
+                        const picker=target?.querySelector("details");
+                        if(picker)picker.open=true;
+                        target?.querySelector<HTMLElement>('input[aria-label="Search Select assignees"]')?.focus();
+                      });
+                    }}
+                  >
+                    <Plus size={13} />
+                    Add more
+                  </Button>
+                </div>
+              </div>
+            </header>
+            {[
+              {
+                icon: Users,
+                label: "Assignees",
+                value:
+                  selectedPeople.map((p) => p.name).join(", ") ||
+                  "No one assigned",
+              },
+              {
+                icon: Folder,
+                label: scopeMode === "general" ? "Workspace" : "Project",
+                value: scopeMode === "general" ? workspaces.find(w => String(w.id) === generalWorkspace)?.name || "Choose a workspace" : project?.name || "Choose a project",
+              },
+              { icon: Flag, label: "Work item type", value: draft.work_type },
+              { icon: Search, label: "Priority", value: draft.priority },
+              {
+                icon: CalendarDays,
+                label: "Start date",
+                value: dateLabel(draft.start_date),
+              },
+              {
+                icon: CalendarDays,
+                label: "Due date",
+                value: dateLabel(draft.due_date),
+              },
+              { icon: Circle, label: "Status", value: draft.status },
+            ].map((row) => (
+              <div className="ts-summary-row" key={row.label}>
+                <row.icon size={15} />
+                <span>{row.label}</span>
+                <strong data-priority-badge={row.label === "Priority" || undefined} data-priority={row.label === "Priority" ? row.value : undefined}
+                  className={row.label === "Priority" ? "ts-priority" : ""}
+                >
+                  {row.value}
+                </strong>
+              </div>
+            ))}
+          </section>
+          <details className="ts-ai ts-expandable"><summary>AI assistance</summary>
+            <div>
+              <Sparkles size={20} />
+              <strong>AI Assist</strong>
+              <small>{scopeMode === "general" ? "Workspace context" : "Project context"}</small>
+            </div>
+            <h3>Suggest task details with AI</h3>
+            <p>
+              Get help with the title, description, subtasks, and acceptance
+              criteria.
+            </p>
+            <div onClickCapture={saveDraft}>
+              <AskAiButton
+                module="PMS"
+                relatedEntityType="task"
+                relatedEntityId={id || undefined}
+                defaultPrompt={`Help plan this task in ${project?.name || "my project"}: ${draft.title}`}
+                buttonLabel="Generate with AI"
+              />
+            </div>
+          </details>
+          <section className="ts-quick">
+            <header>
+              <div>
+                <h2>⚡ Quick Actions</h2>
+                <small>Save time with templates and shortcuts.</small>
+              </div>
+              <button type="button" onClick={() => void loadCopy()}>
+                View all ›
+              </button>
+            </header>
+            <div>
+              <button type="button" onClick={resetBlank} disabled={!!id}>
+                <Plus />
+                Blank task<small>Start from scratch</small>
+              </button>
+              <Button variant="outline" type="button" onClick={() => void loadCopy()}>
+                <Copy />
+                Copy from existing<small>Use a similar task</small>
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (draft.description) {
+                    setNotice(
+                      "The description already has content. Clear it before applying this template, or use Copy from existing.",
+                    );
+                    return;
+                  }
+                  set(
+                    "description",
+                    draft.description ||
+                      "Objective:\n\nAcceptance criteria:\n- \n\nDelivery evidence:\n",
+                  );
+                  setNotice("Task structure inserted into the description.");
+                }}
+              >
+                <FileText />
+                Use template<small>Structured task brief</small>
+              </button>
+              <Button variant="default"
+                type="button"
+                onClick={() => {
+                  if (!id) {
+                    setNotice(
+                      "Create the task first, then add completion checks and subtasks.",
+                    );
+                    return;
+                  }
+                  navigate(
+                    `/pms/tasks/new?projectId=${draft.projectId}&parentTaskId=${id}&workType=Sub-task`,
+                  );
+                }}
+              >
+                <ListChecks />
+                Create subtasks<small>Break into smaller tasks</small>
+              </Button>
+            </div>
+          </section>
+          <section className="ts-tips">
+            <h2>💡 Tips for creating great tasks</h2>
+            {[
+              "Use a clear and descriptive title",
+              "Add acceptance criteria in the description",
+              "Assign the right person, team, or batch",
+              "Set a realistic due date and priority",
+              "Include evidence needed for completion",
+            ].map((t) => (
+              <p key={t}>
+                <Check size={13} />
+                {t}
+              </p>
+            ))}
+          </section>
+        </aside>
+      </CompactForm>
+      {!embedded && <MobileActionBar label="Task actions">
+        <Button variant="outline" type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</Button>
+        <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
+      </MobileActionBar>}
+      <AddExistingPeopleDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        projectId={draft.projectId}
+        personIds={draft.assignment.people}
+        workspaceId={options?.workspace_id}
+        onAdded={(ids) => {
+          setRevision((v) => v + 1);
+          assign({
+            people: [...new Set([...draft.assignment.people, ...ids])],
+          });
+        }}
+      />
+      <Dialog.Root
+        open={deleteOpen}
+        onOpenChange={(v) => {
+          if (!busy) setDeleteOpen(v);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="ts-modal-overlay" />
+          <Dialog.Content
+            className="ts-modal"
+            aria-describedby="ts-delete-description"
+          >
+            <Dialog.Title>Delete this task?</Dialog.Title>
+            <p>
+              {draft.task_key} · {draft.title}
+            </p>
+            <Dialog.Description id="ts-delete-description">
+              This removes the task from active views and moves its saved
+              details to Trash.
+            </Dialog.Description>
+            <button
+              className="tr-button"
+              type="button"
+              disabled={busy}
+              onClick={() => setDeleteOpen(false)}
+            >
+              Keep task
+            </button>
+            <Button variant="outline"
+              className="tr-primary"
+              type="button"
+              disabled={busy||!deletable}
+              onClick={() => void remove()}
+            >
+              Move to Trash
+            </Button>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={copyOpen} onOpenChange={setCopyOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="ts-modal-overlay" />
+          <Dialog.Content className="ts-modal">
+            <Dialog.Title>Copy task details</Dialog.Title>
+            <Dialog.Description>
+              Copy a title, work type, description, and priority. Members and
+              dates stay under your control.
+            </Dialog.Description>
+            {copyLoading && <p role="status">Loading existing tasks...</p>}
+            {copyError && <p role="alert">{copyError}</p>}
+            {copyLoaded && !copyTasks.length && <p role="status">No accessible tasks found{draft.projectId ? " in this project" : ""}.</p>}
+            {copyTasks.map((t) => (
+              <button
+                type="button"
+                key={t.id}
+                onClick={() => {
+                  setDraft((d) => ({
+                    ...d,
+                    title: `Copy of ${t.title}`,
+                    description: t.description || "",
+                    work_type: t.work_type || "Task",
+                    priority: t.priority,
+                  }));
+                  setCopyOpen(false);
+                }}
+              >
+                {t.task_key} · {t.title}
+              </button>
+            ))}
+            {!copyTasks.length && (
+              <button
+                type="button"
+                className="tr-button"
+                disabled={copyLoading}
+                onClick={() => void loadCopy()}
+              >
+                {copyLoading ? "Loading..." : copyError ? "Retry loading tasks" : "Load existing tasks"}
+              </button>
+            )}
+            <Button variant="outline"
+              type="button"
+              className="tr-button"
+              onClick={() => setCopyOpen(false)}
+            >
+              Close
+            </Button>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </main>
+  );
+}

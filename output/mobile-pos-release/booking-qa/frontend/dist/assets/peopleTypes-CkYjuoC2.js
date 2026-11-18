@@ -1,0 +1,1 @@
+import{af as o}from"./index-ig5_J9DB.js";const p="/project-management/people-management",t=o(e=>({context:void 0,open:n=>e({context:n}),close:()=>e({context:void 0})}));function s(e){t.getState().open(e)}function c(){window.dispatchEvent(new Event("pms:people-changed"))}export{c as a,s as o,p,t as u};

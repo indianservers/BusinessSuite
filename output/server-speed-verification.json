@@ -1,0 +1,138 @@
+{
+  "site": "https://besterp.app",
+  "company": "Indian Servers",
+  "branch": "Main",
+  "date": "2026-11-18",
+  "frontend_release": "server-speed-20261118-v4",
+  "backend_releases": [
+    "company-rule-plans-20261118-v1",
+    "static-route-actions-20261118-v2",
+    "route-index-speed-20261118-v5"
+  ],
+  "browser_full_reload_with_data_seconds": {
+    "POS": 4.827,
+    "reports": 4.671,
+    "stock": 3.587
+  },
+  "browser_reports_navigation_seconds": 2.623,
+  "before_concurrent_requests": [
+    {
+      "path": "/auth/me",
+      "status": 200,
+      "seconds": 2.068,
+      "bytes": 17096
+    },
+    {
+      "path": "/access/me",
+      "status": 200,
+      "seconds": 1.673,
+      "bytes": 52340
+    },
+    {
+      "path": "/srm/industry/capabilities",
+      "status": 200,
+      "seconds": 3.422,
+      "bytes": 416
+    },
+    {
+      "path": "/srm/inventory/items?page=1&per_page=200",
+      "status": 200,
+      "seconds": 2.786,
+      "bytes": 59221
+    },
+    {
+      "path": "/srm/reports",
+      "status": 200,
+      "seconds": 4.33,
+      "bytes": 1208
+    },
+    {
+      "path": "/srm/inventory/reports/stock-summary",
+      "status": 200,
+      "seconds": 1.936,
+      "bytes": 12827
+    },
+    {
+      "path": "/srm/inventory/reports/reorder",
+      "status": 200,
+      "seconds": 2.684,
+      "bytes": 3182
+    }
+  ],
+  "after_concurrent_requests": [
+    {
+      "path": "/auth/me",
+      "status": 200,
+      "seconds": 1.715,
+      "bytes": 17096
+    },
+    {
+      "path": "/access/me",
+      "status": 200,
+      "seconds": 2.3,
+      "bytes": 52340
+    },
+    {
+      "path": "/srm/industry/capabilities",
+      "status": 200,
+      "seconds": 2.735,
+      "bytes": 416
+    },
+    {
+      "path": "/srm/inventory/items?page=1&per_page=200",
+      "status": 200,
+      "seconds": 2.409,
+      "bytes": 59589
+    },
+    {
+      "path": "/srm/reports",
+      "status": 200,
+      "seconds": 2.449,
+      "bytes": 1208
+    },
+    {
+      "path": "/srm/inventory/reports/stock-summary",
+      "status": 200,
+      "seconds": 1.48,
+      "bytes": 12827
+    },
+    {
+      "path": "/srm/inventory/reports/reorder",
+      "status": 200,
+      "seconds": 1.61,
+      "bytes": 3182
+    }
+  ],
+  "functional_verification": {
+    "sales": 61,
+    "invoices": 61,
+    "invoice_total": 295.0,
+    "collections": 295.0,
+    "qa_products": 45,
+    "qa_quantity": 265.0,
+    "qa_low": 11
+  },
+  "tests": {
+    "passed": 179,
+    "skipped": 1,
+    "frontend_transport_regressions": "passed",
+    "typescript": "passed",
+    "production_build": "passed"
+  },
+  "changes": [
+    "Bounded immutable company SQL expression plans; fresh membership/active company and SQL ownership checks remain",
+    "Static route action metadata reused; registrations and removals invalidate by contents",
+    "Canonical route index retains aliases and revalidates actual server route/method/path; nested route changes invalidate the index",
+    "Compiled administration route patterns retain exact allowlist semantics",
+    "Only simultaneous identical identity GET requests share transport; no results cached, all identity headers separate, cancellation independent",
+    "Timing-only nginx logs restricted to fixed read route paths; no request bodies, headers, query parameters or user identifiers"
+  ],
+  "temporary_qa_session": "revoked; subsequent request returned401",
+  "notes": [
+    "Another production catalog release landed during this task; frontend rebased on it before activation",
+    "One additional live100 INR sale appeared during verification; reports correctly show61 sales295 INR",
+    "Original45 QA stock products remain265 units, with11 low-stock alerts",
+    "First requests after an API restart were slower while process and rule plans warmed; measured browser values are after health-ready warm-up",
+    "No new sales or stock mutations were performed as part of this performance task"
+  ]
+}

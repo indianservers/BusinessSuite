@@ -1,0 +1,2 @@
+import {defineConfig} from 'playwright/test';
+export default defineConfig({testDir:'../playwright',testMatch:'location-grouping.spec.ts',timeout:60000,expect:{timeout:10000},use:{baseURL:'http://127.0.0.1:5199',viewport:{width:1600,height:1100},trace:'retain-on-failure'},webServer:{command:'npx vite --host 127.0.0.1 --port 5199 --strictPort',url:'http://127.0.0.1:5199',reuseExistingServer:true,timeout:120000}});

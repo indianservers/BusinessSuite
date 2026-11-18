@@ -1,0 +1,27 @@
+[
+  {
+    "control": "Bulleted list",
+    "result": "fixed-and-passed",
+    "evidence": "Selected entire paragraph; first click created one block, second restored exact original paragraph without extra empty blocks."
+  },
+  {
+    "control": "Numbered list",
+    "result": "fixed-and-passed",
+    "evidence": "Selected entire paragraph; first click created one block, second restored exact original paragraph without extra empty blocks."
+  },
+  {
+    "control": "Checklist",
+    "result": "fixed-and-passed",
+    "evidence": "Selected entire paragraph; first click created one block, second restored exact original paragraph without extra empty blocks."
+  },
+  {
+    "control": "Block quote",
+    "result": "fixed-and-passed",
+    "evidence": "Selected entire paragraph; first click created one block, second restored exact original paragraph without extra empty blocks."
+  },
+  {
+    "control": "Code block",
+    "result": "fixed-and-passed",
+    "evidence": "Selected entire paragraph; first click created one block, second restored exact original paragraph without extra empty blocks."
+  }
+]

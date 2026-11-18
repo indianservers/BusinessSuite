@@ -1,0 +1,67 @@
+.note-block-drag-layer {
+  position: relative;
+}
+.note-block-handle {
+  position: absolute;
+  left: -23px;
+  width: 22px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9b8eaf;
+  border-radius: 4px;
+  cursor: grab;
+  opacity: 0;
+  background: #f5f1fb;
+  z-index: 5;
+}
+.note-block-drag-layer:hover .note-block-handle,
+.note-block-handle:focus-visible {
+  opacity: 1;
+}
+.note-block-handle:active {
+  cursor: grabbing;
+}
+.note-block-drag-layer.dragging {
+  outline: 2px dashed #b69ae8;
+  outline-offset: 7px;
+}
+.note-block-insertion {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #8550e4;
+  z-index: 7;
+  pointer-events: none;
+}
+.note-block-insertion::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #8550e4;
+  border-radius: 50%;
+  background: #fff;
+}
+.note-block-handle {
+  touch-action: none;
+}
+.note-block-drag-layer.dragging .note-block-handle {
+  opacity: 1;
+}
+@media (hover: none) {
+  .note-block-handle {
+    opacity: 1;
+    left: -15px;
+    width: 25px;
+    min-height: 30px;
+    background: #eee7fa;
+  }
+}
+.suite-rte .note-block-drag-layer {
+  margin-left: 24px;
+}

@@ -1,3 +1,5 @@
+import MobileWorkflowPages from "@/apps/srm/components/MobileWorkflowPages";
+import "./company-editor-mobile.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { toast } from "@/hooks/use-toast";
 import BusinessProfileFields, {profileText} from "./BusinessProfileFields";
@@ -28,6 +30,8 @@ type Row=Record<string,string>;
 const values=(record?:Company,seedName='')=>({services_offered:profileText(record?.services_offered),business_types:profileText(record?.business_types),name:record?.name||seedName,email:record?.email||'',phone:record?.phone||'',phone_country_code:record?.phone_country_code||(record?'':defaultText('phone_country_code')),website:record?.website||'',industry:record?.industry||'',country:record?countryIso(record.country):defaultText("country"),legalName:record?.legalName||record?.name||seedName,tradeName:record?.tradeName||'',businessType:canonicalBusinessType(record?.businessType),notes:record?.notes||'',status:record?.status||'Active',vendorClassification:record?.vendorClassification||'',paymentTerms:record?.paymentTerms||(record?'Due on receipt':defaultPaymentTerms())});
 
 export function CompanyQuickCreate({placement="create",allowSaveNew=true,source='crm',initial,seedName='',roles=['Prospect'],recordLabel='company',defaultEntityKind='Company',onClose,onSaved}:Props){
+  const dialogRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const viewport=window.visualViewport;const measure=()=>{dialogRef.current?.style.setProperty('--customer-viewport-height',`${viewport?.height||window.innerHeight}px`);dialogRef.current?.style.setProperty('--customer-viewport-top',`${viewport?.offsetTop||0}px`);};measure();viewport?.addEventListener('resize',measure);viewport?.addEventListener('scroll',measure);window.addEventListener('resize',measure);return()=>{viewport?.removeEventListener('resize',measure);viewport?.removeEventListener('scroll',measure);window.removeEventListener('resize',measure);};},[]);
   const { term } = useBusinessTerms();
   const qc=useQueryClient(),formRef=useRef<HTMLFormElement>(null),nameRef=useRef<HTMLInputElement>(null);
   const [record,setRecord]=useState(initial),[form,setForm]=useState(()=>values(initial,seedName));
@@ -82,10 +86,10 @@ export function CompanyQuickCreate({placement="create",allowSaveNew=true,source=
   useEffect(()=>{if(record&&!customFieldForm.loading&&savedSnapshot.current===undefined)savedSnapshot.current=JSON.stringify(draftValue);},[record,customFieldForm.loading,draftValue]);
   const auto=useRecordAutosave({value:draftValue,enabled:!!record&&!busy&&!customFieldForm.loading&&!newContact,dirty:savedSnapshot.current!==undefined&&savedSnapshot.current!==JSON.stringify(draftValue),save:()=>save(false,true)});
   const vendor=businessRoles.some(r=>r==='Vendor'||r==='Supplier');
-  return <Dialog open onOpenChange={open=>{if(!open&&!busy)onClose();}}><DialogContent className="md-quick-dialog md-company-editor" overlayClassName="md-suboverlay"><DialogHeader className="md-editor-header"><DialogTitle><Building2 size={18}/>{initial?'Edit':'Create'} {recordLabel}</DialogTitle><p>Basic details are enough to save. Add optional information when available.</p></DialogHeader>
+  return <Dialog open onOpenChange={open=>{if(!open&&!busy)onClose();}}><DialogContent ref={dialogRef} className="md-quick-dialog md-company-editor" overlayClassName="md-suboverlay"><DialogHeader className="md-editor-header"><DialogTitle><Building2 size={18}/>{initial?'Edit':'Create'} {recordLabel}</DialogTitle><p>Basic details are enough to save. Add optional information when available.</p></DialogHeader>
     <nav className="md-editor-tabs" role="tablist" aria-label="Company form sections">{tabs.map((title,i)=><button key={title} type="button" role="tab" id={`company-tab-${i}`} aria-controls={`company-panel-${i}`} aria-selected={tab===i} tabIndex={tab===i?0:-1} onClick={()=>setTab(i)} onKeyDown={e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();const next=(i+(e.key==='ArrowRight'?1:3))%4;setTab(next);document.getElementById(`company-tab-${next}`)?.focus();}}}>{title}</button>)}</nav>
     <form ref={formRef} onSubmit={e=>{e.preventDefault();void save();}} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();void save();}}} onInvalidCapture={e=>{e.preventDefault();const input=e.target as HTMLInputElement;const index=Number(input.closest<HTMLElement>('[data-company-section]')?.dataset.companySection||0);setTab(index);setError(input.validationMessage);setTimeout(()=>input.focus(),0);}}>
-      <fieldset disabled={busy} className="md-editor-body"><CrmRecordFields state={customFieldForm}/>
+      <MobileWorkflowPages resetKey={tab}><fieldset disabled={busy} className="md-editor-body"><CrmRecordFields state={customFieldForm}/>
         <section role="tabpanel" id="company-panel-0" aria-labelledby="company-tab-0" data-company-section="0" hidden={tab!==0}>
           <div className="md-form-grid">
             <div className="md-span"></div>
@@ -123,7 +127,7 @@ export function CompanyQuickCreate({placement="create",allowSaveNew=true,source=
         {(!record||form.phone!==(record.phone||'')||form.email!==(record.email||'')||form.phone_country_code!==(record.phone_country_code||'+91'))&&<SharedNumberConfirmation source={source} phone={form.phone} countryCode={form.phone_country_code} email={form.email} confirmed={confirmed} reason={reason} onChange={(checked,next)=>{setConfirmed(checked);setReason(next);}} onSelect={match=>{if(match.kind==='company')void selectExisting(match.id);else{setPrimaryId(String(match.id));setTab(2);}}}/>}
         {!!matches.length&&<div className="md-warning">{matches.filter(m=>m.kind==='company').map(m=><button type="button" key={m.id} onClick={()=>void selectExisting(m.id)}>Use existing {m.name||'company'}</button>)}</div>}
         {error&&<p className="md-error" role="alert">{error}</p>}{notice&&<p className="md-message" role="status">{notice}</p>}
-      </fieldset>
+      </fieldset></MobileWorkflowPages>
       <footer className="md-dialog-footer"><span role="status">{record?auto.message:"Draft saved automatically"}</span><Button variant="outline" type="button" disabled={busy} onClick={onClose}>Cancel</Button>{!initial&&allowSaveNew&&<Button variant="outline" type="button" disabled={busy||customFieldForm.loading||(newContact&&contactFields.loading)||!form.name.trim()} onClick={()=>void save(true)}>Save & new</Button>}<Button type="submit" data-save-action disabled={busy||auto.saving||customFieldForm.loading||(newContact&&contactFields.loading)||!form.name.trim()}>{busy?'Saving…':`Save ${recordLabel}`}</Button></footer>
     </form>
   </DialogContent></Dialog>;

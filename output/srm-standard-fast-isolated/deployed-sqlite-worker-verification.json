@@ -1,0 +1,9 @@
+{
+  "origin": "https://besterp.app",
+  "asset": "sqlite.worker-VrTvwDl3.js",
+  "engine": "sqlite-opfs",
+  "persisted_across_reload": true,
+  "scope_clear": true,
+  "server_data_written": false,
+  "status": "passed"
+}

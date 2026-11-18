@@ -1,0 +1,45 @@
+export type Tier = "Core" | "Business" | "Business Plus" | "Enterprise";
+export type Capability = { name: string; status: "Available" | "Partial" | "Not implemented"; detail: string; href?: string };
+export const capabilityTiers: { name: Tier; description: string; features: Capability[] }[] = [
+  { name: "Core", description: "Task execution and everyday collaboration", features: [
+    { name: "Custom fields and task types", status: "Partial", detail: "Project field management and organization-scoped task type definitions exist. Formula, file, relationship and signature fields are pending.", href: "/pms/custom-fields" },
+    { name: "Storage and workspace hierarchy", status: "Partial", detail: "Workspaces, projects and files exist. Unlimited storage and a Space/Folder/List hierarchy are not implemented.", href: "/pms/workspaces" },
+    { name: "Forms", status: "Partial", detail: "Versioned form builder, conditional questions, typed validation, publishing, task routing, duplicate-submission protection and response exports exist. Public intake and unlimited usage are not established.", href: "/pms/forms" },
+    { name: "Gantt charts", status: "Available", detail: "Manual schedules and dependencies remain available. Opt-in project-calendar dependency previews/apply, critical path/slack, retained baselines and variance exports are implemented and locally exercised. Resource leveling, HR leave integration and deployed acceptance remain open.", href: "/pms/gantt" },
+    { name: "Chat", status: "Partial", detail: "Channels, one-to-one/group messages, threads, durable unread state, in-app notifications, safe attachments, and permission-scoped message search are implemented and locally exercised. Production migration/worker rollout and PostgreSQL acceptance remain unverified.", href: "/pms/messages" },
+    { name: "Contextual AI Assistant", status: "Partial", detail: "Floating assistant, private history, guided/model tool proposals, expiring approvals, real project/task actions and authoritative invoice/PDF/issue/send/payment flows. Advanced multi-step orchestration, expense/quotation/custom-field writes and live provider acceptance remain pending.", href: "/pms/operator" },
+    { name: "Project workflows", status: "Partial", detail: "Project defaults and work-type overrides, required-field checks, ordered shared-engine approval routes, stale-review protection and single-use application are implemented. Local PostgreSQL workflow acceptance is recorded in the gap-closure ledger. Custom statuses, draft publication and authenticated deployed acceptance remain open.", href: "/pms/workflow-schemes" },
+    { name: "Task automation", status: "Partial", detail: "Nested AND/OR conditions, creation/status triggers, daily schedules and due-date offsets, priority, assignee and guarded absolute due-date actions, rule editing and paused duplication. Filtered, paginated execution reports show before/after values and skip reasons. Clock runs retain replay protection and current-access checks. External-action retry queues and monthly usage accounting remain open.", href: "/pms/automation" },
+  ] },
+  { name: "Business", description: "Visibility, integrations and resource planning", features: [
+    { name: "Connected project billing", status: "Partial", detail: "Shared CRM customers/contacts/teams, authoritative SRM invoices, partial time billing, mapped milestones, PDF/delivery and payments are integrated. Production migration/provider and PostgreSQL acceptance remain pending; expense billing is unsupported.", href: "/srm/invoices" },
+    { name: "Advanced dashboards", status: "Partial", detail: "Saved widget dashboards, layout editing, revisions, sharing and portfolio reports exist. Historical forecasting requires baseline snapshots; production acceptance remains separate.", href: "/pms/dashboards" },
+    { name: "Webhooks and automation integrations", status: "Partial", detail: "GitHub/GitLab webhooks and an n8n event-feed integration exist. Generic action webhooks, delivery retries and connector management are pending.", href: "/pms/settings" },
+    { name: "Resource management", status: "Partial", detail: "Weekly workload, dated capacity, working schedules, applicable holidays and approved leave are implemented. Skill-based leveling and dependency-driven scheduling remain open.", href: "/pms/workload" },
+    { name: "Google SSO and SMS 2FA", status: "Not implemented", detail: "PMS workspace policy setup and enforcement are not verified or exposed as completed capabilities." },
+    { name: "Private views", status: "Partial", detail: "Saved task views support visibility. Equivalent private saved views across every view type are pending.", href: "/pms/tasks" },
+    { name: "Higher automation allowances", status: "Not implemented", detail: "No tier-specific monthly quotas, reset periods or usage ledger are implemented." },
+  ] },
+  { name: "Business Plus", description: "Advanced processes and team administration", features: [
+    { name: "Tag Manager", status: "Available", detail: "Organization tag search, location filters, accessible usage, rename/color editing and confirmed bulk deletion.", href: "/pms/tags" },
+    { name: "Meeting notes and recordings", status: "Partial", detail: "Shared notes and meeting outlines exist. Meeting auto-join, recording, transcription and SyncUp equivalents are pending." },
+    { name: "Advanced time tracking", status: "Partial", detail: "Time logs and timesheet flows exist. Unified timer journeys, advanced billing export and full acceptance verification remain pending.", href: "/pms/time-tracking" },
+    { name: "Advanced forms", status: "Partial", detail: "Conditional questions, typed answers and configured task routing exist. Public intake and complete attachment-question acceptance need verification.", href: "/pms/forms" },
+    { name: "Custom permissions", status: "Partial", detail: "Fixed workspace/project roles are enforced. User-defined roles, field permissions and an editable permission matrix are pending.", href: "/pms/teams" },
+    { name: "Advanced Custom Field Manager", status: "Partial", detail: "Search, grouping, project filters and editing exist. Workspace/task-type scope, field reuse, archive/restore and computed fields are pending.", href: "/pms/custom-fields" },
+    { name: "Doc wikis", status: "Partial", detail: "Project documents, Markdown/table preview, task links, revision history and conflict protection exist. Live coediting, rich-text editing, comments, nested pages and wiki permissions remain pending.", href: "/pms/docs" },
+    { name: "Scaled automation allowances", status: "Not implemented", detail: "Usage metering and tier-specific execution allowances are pending." },
+  ] },
+  { name: "Enterprise", description: "Identity, governance and operational controls", features: [
+    { name: "White labeling", status: "Not implemented", detail: "Workspace branding, custom domains and outbound-message branding controls are pending." },
+    { name: "Custom roles at scale", status: "Not implemented", detail: "Fixed roles exist; an unlimited custom role system does not." },
+    { name: "Enterprise permissions and governance", status: "Partial", detail: "Project/workspace access checks exist. Policy administration, delegated controls and access request workflows remain pending." },
+    { name: "SSO, SCIM and SAML", status: "Not implemented", detail: "Enterprise identity provisioning and workspace enforcement have not been implemented as a complete supported flow." },
+    { name: "Audit logs", status: "Partial", detail: "Task/project activities and workflow feeds exist. Comprehensive security/configuration audit coverage, export and retention are pending." },
+    { name: "Session management", status: "Not implemented", detail: "Workspace-configurable session lifetime, idle limits and session revocation administration are pending." },
+    { name: "MSA, HIPAA and data residency", status: "Not implemented", detail: "These require contractual, infrastructure and operational verification; a product setting cannot establish compliance." },
+    { name: "Enterprise API and integrations", status: "Partial", detail: "Application APIs exist. Enterprise service accounts, scoped credentials, documented rate limits and support guarantees are pending." },
+    { name: "Connected search", status: "Not implemented", detail: "Permission-aware search across external document, mail and collaboration systems is pending." },
+    { name: "Enterprise automation scale", status: "Not implemented", detail: "Queueing, execution metering and verified large-volume processing are pending." },
+  ] },
+];

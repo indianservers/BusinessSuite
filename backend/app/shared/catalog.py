@@ -45,14 +45,19 @@ from app.shared.branch_availability import BranchAvailability, resolve as resolv
 from app.business_packs.restaurant.modifiers import ModifierCatalog
 
 
+from app.shared.service_category_links import SchedulingInput
+
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    service_scheduling: SchedulingInput | None = None
     branch_availability: BranchAvailability | None = None
     follow_up: ScheduleTemplate | None = None
     kind: Kind
     name: str = Field(min_length=1, max_length=180)
     code: str = Field(min_length=1, max_length=80)
     category: str = Field(default="", max_length=120)
+    category_ids: list[Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")]] | None = Field(default=None, max_length=100)
+    categories: list[Annotated[str, Field(max_length=260)]] | None = Field(default=None, max_length=100)
     tags: list[Annotated[str, Field(min_length=1, max_length=40)]] | None = Field(default=None, max_length=20)
     description: str = Field(default="", max_length=50000)
     price: Decimal = Field(default=0, ge=0, le=9999999999, decimal_places=2)
@@ -184,7 +189,7 @@ def output(row, kind, detail):
     policy = attributes.get("catalog_branches") or {}
     availability = None if policy.get("default", True) else {"scope": "selected", "branch_ids": sorted(int(key) for key, enabled in policy.get("overrides", {}).items() if enabled)}
     return {"branch_availability": availability, "follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
-            "category": row.category_name or "", "tags": attributes.get("catalog_tags", []), "description": row.description or "", "price": float(row.sales_rate or 0),
+            "category_ids": attributes.get("catalog_category_ids"), "categories": attributes.get("catalog_categories", [row.category_name] if row.category_name else []), "category": row.category_name or "", "tags": attributes.get("catalog_tags", []), "description": row.description or "", "price": float(row.sales_rate or 0),
             "currency": attributes.get("currency", "INR"), "tax": float(row.gst_rate or 0), "unit": row.unit_code or "unit",
             "barcode": row.barcode or "", "hsn_code": row.hsn_code or "", "cost": float(row.purchase_rate or 0), "mrp": float(row.mrp or 0), "reorder_level": float(row.reorder_level or 0), "track_inventory": bool(row.track_inventory),
             "status": "Active" if row.active else "Archived", "workspace_id": detail.workspace_id if detail else None,
@@ -230,6 +235,11 @@ def save_item(db, user, source, data, ident=None):
         row.metadata_json = {**(row.metadata_json or {}), "catalog_branches": {"default": False, "overrides": {str(branch): True for branch in targets}}}
         from app.branches.service import audit
         audit(db, user, tenant(user), "catalog.branch.availability", "Update offering branch availability", {"id": ident, "before": previous_policy, "branch_ids": sorted(targets)})
+    if data.category_ids is not None:
+        from app.shared.catalog_categories import selection
+        ids, labels = selection(db, user, data.category_ids)
+        row.metadata_json = {**(row.metadata_json or {}), "catalog_category_ids":ids, "catalog_categories":labels}
+        data.category = labels[0].split(" > ")[0] if labels else ""
     row.item_name, row.category_name, row.description = data.name, data.category, data.description
     row.gst_rate, row.active = data.tax, data.status == "Active"
     row.sku, row.sales_rate, row.unit_code = data.code, data.price, data.unit
@@ -375,7 +385,7 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         model = SRMProduct
         price = func.coalesce(model.sales_rate, 0)
         code = model.sku
-        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code"), model.metadata_json["catalog_tags"].label("catalog_tags")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
+        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code"), model.metadata_json["catalog_tags"].label("catalog_tags"), model.metadata_json["catalog_categories"].label("catalog_categories")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
         query = query.where(model.product_type == "service" if selected == "service" else func.coalesce(model.product_type, "stock") != "service")
         query = query.where(availability_clause(model, selected_branch(user)))
         if not user.is_superuser and not organization_admin(user):
@@ -386,7 +396,9 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
             visible_items = _apply_record_visibility(db.query(model), catalog_resource(), user, db).with_entities(model.id).subquery()
             query = query.where(model.id.in_(select(visible_items.c.id)))
         if status != "all": query = query.where(model.active == (status == "Active"))
-        if category: query = query.where(model.category_name == category)
+        if category:
+            category_values = cast(model.metadata_json["catalog_categories"], String)
+            query = query.where(or_(model.category_name == category, category_values.contains(json.dumps(category, ensure_ascii=False), autoescape=True)))
         if workspace_id: query = query.where(CatalogDetails.workspace_id == workspace_id)
         if search: query = query.where(or_(model.item_name.icontains(search, autoescape=True), code.icontains(search, autoescape=True), model.description.icontains(search, autoescape=True)))
         if keys is not None:
@@ -413,9 +425,11 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
     if include_facets:
         facet_source = union_all(*facet_queries).subquery()
         categories, tags = set(), set()
-        for record in db.execute(select(facet_source.c.category, facet_source.c.catalog_tags).execution_options(yield_per=1000)):
+        for record in db.execute(select(facet_source.c.category, facet_source.c.catalog_tags, facet_source.c.catalog_categories).execution_options(yield_per=1000)):
             if record.category:
                 categories.add(record.category)
+            if isinstance(record.catalog_categories, list):
+                categories.update(record.catalog_categories)
             if isinstance(record.catalog_tags, list):
                 tags.update(value for value in record.catalog_tags if isinstance(value, str))
         facets = {"categories": sorted(categories), "tags": sorted(tags)}
@@ -536,6 +550,8 @@ def create_item(data: ItemInput, source: Source = "crm", db: Session = Depends(g
             result = selected_save(db,user,source,data)
         else:
             result = save_item(db, user, source, data)
+        from app.shared.service_category_links import catalog_scheduling
+        result = catalog_scheduling(db,user,data,result)
         commit(db)
         return result
     except IntegrityError:
@@ -566,6 +582,8 @@ def update_item(kind: Kind, ident: int, data: ItemInput, source: Source = "crm",
             result = selected_save(db,user,source,data,ident)
         else:
             result = save_item(db, user, source, data, ident)
+        from app.shared.service_category_links import catalog_scheduling
+        result = catalog_scheduling(db,user,data,result)
         commit(db)
         return result
     except IntegrityError:
@@ -619,7 +637,7 @@ def import_items(file: UploadFile = File(...), source: Source = "crm", db: Sessi
         if not isinstance(rows, list) or not 1 <= len(rows) <= 500: raise ValueError("Import 1 to 500 items at a time")
         inputs = []
         for row in rows:
-            for key in ("images", "custom_fields", "pricing_options"):
+            for key in ("images", "custom_fields", "pricing_options", "category_ids", "categories"):
                 if isinstance(row.get(key), str): row[key] = json.loads(row[key]) if row[key] else ([] if key != "custom_fields" else {})
             if row.get("workspace_id") == "": row["workspace_id"] = None
             inputs.append(ItemInput.model_validate(row))
@@ -724,3 +742,27 @@ def save_form_links(db, user, record, lines):
     try: payload = LinesInput.model_validate({"lines": lines})
     except ValidationError: raise HTTPException(422, "Invalid product/service lines")
     save_links(target, record.id, payload, "crm", db, user, persist=False)
+
+
+@router.get("/categories")
+def category_options(source: Source = "crm", kind: Kind = "product", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    authorize(user,source,kind,db=db)
+    from app.shared.catalog_categories import options
+    result = options(db,user)
+    try:
+        authorize(user,source,kind,True,db=db)
+        result["can_manage"] = True
+    except HTTPException:
+        result["can_manage"] = False
+    return result
+
+
+from app.shared.catalog_categories import Taxonomy
+
+@router.put("/categories")
+def update_categories(data: Taxonomy, source: Source = "crm", kind: Kind = "product", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    authorize(user,source,kind,True,db=db)
+    from app.shared.catalog_categories import save
+    result = save(db,user,data)
+    commit(db)
+    return {**result,"can_manage":True}

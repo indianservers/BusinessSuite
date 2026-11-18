@@ -1,0 +1,1012 @@
+[
+  {
+    "path": "pms/recovery",
+    "controls": [
+      {
+        "disabled": false,
+        "href": "/dashboard",
+        "index": 0,
+        "name": "Business Suite applications",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms",
+        "index": 1,
+        "name": "KaryaFlow PMS",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 2,
+        "name": "Team workspace",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 3,
+        "name": "Backup & recovery",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 4,
+        "name": "Trash",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/pms/projects",
+        "index": 5,
+        "name": "Projects",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/tasks",
+        "index": 6,
+        "name": "Tasks",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/dashboards",
+        "index": 7,
+        "name": "Dashboards",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/work-hub",
+        "index": 8,
+        "name": "Pipeline",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/team-communication",
+        "index": 9,
+        "name": "Channel",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 10,
+        "name": "Add pms workspaces",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/pms?workspace=1",
+        "index": 11,
+        "name": "\u2190 Back to workspace",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 12,
+        "name": "Recovery workspace",
+        "options": [
+          {
+            "disabled": false,
+            "label": "Portfolio acceptance workspace \u00b7 Admin",
+            "value": "1"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 13,
+        "name": "Undo",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 14,
+        "name": "Redo",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 15,
+        "name": "Savepoint name",
+        "tag": "INPUT",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 16,
+        "name": "Create savepoint",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 17,
+        "name": "",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 18,
+        "name": "",
+        "tag": "INPUT",
+        "type": "number"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 19,
+        "name": "",
+        "tag": "INPUT",
+        "type": "number"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 20,
+        "name": "Save workspace schedule",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 21,
+        "name": "Export",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 22,
+        "name": "Preview restore",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 23,
+        "name": "Export",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 24,
+        "name": "Preview restore",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 25,
+        "name": "Back up entire system now",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 26,
+        "name": "",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 27,
+        "name": "",
+        "tag": "INPUT",
+        "type": "number"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 28,
+        "name": "",
+        "tag": "INPUT",
+        "type": "number"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 29,
+        "name": "Save full-system schedule",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 30,
+        "name": "Download archive",
+        "tag": "BUTTON",
+        "type": "button"
+      }
+    ]
+  },
+  {
+    "path": "pms/admin/workspaces",
+    "controls": [
+      {
+        "disabled": false,
+        "href": "/dashboard",
+        "index": 0,
+        "name": "Business Suite applications",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms",
+        "index": 1,
+        "name": "KaryaFlow PMS",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/admin",
+        "index": 2,
+        "name": "PM Admin",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 3,
+        "name": "Team workspace",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/pms/projects",
+        "index": 4,
+        "name": "Projects",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/tasks",
+        "index": 5,
+        "name": "Tasks",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/dashboards",
+        "index": 6,
+        "name": "Dashboards",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/work-hub",
+        "index": 7,
+        "name": "Pipeline",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/pms/team-communication",
+        "index": 8,
+        "name": "Channel",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 9,
+        "name": "Add pms workspaces",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/pms/management",
+        "index": 10,
+        "name": "Return to routine workspace management",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 11,
+        "name": "",
+        "tag": "INPUT",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 12,
+        "name": "Reset all workspaces",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 13,
+        "name": "Refresh preview",
+        "tag": "BUTTON",
+        "type": "button"
+      }
+    ]
+  },
+  {
+    "path": "crm/whatsapp-communication",
+    "controls": [
+      {
+        "disabled": false,
+        "href": "/dashboard",
+        "index": 0,
+        "name": "Business Suite applications",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm",
+        "index": 1,
+        "name": "VyaparaCRM",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 2,
+        "name": "Team workspace",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/crm/dashboard",
+        "index": 3,
+        "name": "Overview",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/leads",
+        "index": 4,
+        "name": "Leads",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/deals",
+        "index": 5,
+        "name": "Deals",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/pipeline",
+        "index": 6,
+        "name": "Pipeline",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/activities",
+        "index": 7,
+        "name": "Activities",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/messages",
+        "index": 8,
+        "name": "Channel",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 9,
+        "name": "Add crm workspaces",
+        "tag": "BUTTON",
+        "type": "button"
+      },
+      {
+        "disabled": false,
+        "href": "/crm/whatsapp-communication",
+        "index": 10,
+        "name": "CRM",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/srm/whatsapp-communication",
+        "index": 11,
+        "name": "Sales",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 12,
+        "name": "Chats",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/whatsapp?workspace=campaigns",
+        "index": 13,
+        "name": "Broadcasts",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 14,
+        "name": "Leads",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 15,
+        "name": "Vendors",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 16,
+        "name": "Customers",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 17,
+        "name": "Search contacts",
+        "tag": "INPUT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 18,
+        "name": "Contact Filters\u2212",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 19,
+        "name": "",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 20,
+        "name": "Owner",
+        "options": [
+          {
+            "disabled": false,
+            "label": "All owners",
+            "value": ""
+          },
+          {
+            "disabled": false,
+            "label": "Unassigned",
+            "value": "Unassigned"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 21,
+        "name": "Stage / status",
+        "options": [
+          {
+            "disabled": false,
+            "label": "All stages",
+            "value": ""
+          },
+          {
+            "disabled": false,
+            "label": "Active",
+            "value": "Active"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 22,
+        "name": "WhatsApp availability",
+        "options": [
+          {
+            "disabled": false,
+            "label": "All contacts",
+            "value": ""
+          },
+          {
+            "disabled": false,
+            "label": "Opted in or reply window open",
+            "value": "ready"
+          },
+          {
+            "disabled": false,
+            "label": "Reply window open",
+            "value": "window"
+          },
+          {
+            "disabled": false,
+            "label": "Opted out",
+            "value": "opted_out"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 23,
+        "name": "Last communication",
+        "options": [
+          {
+            "disabled": false,
+            "label": "Any time",
+            "value": ""
+          },
+          {
+            "disabled": false,
+            "label": "More than 7 days ago",
+            "value": "7"
+          },
+          {
+            "disabled": false,
+            "label": "More than 30 days ago",
+            "value": "30"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 24,
+        "name": "",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 25,
+        "name": "Clear filters",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 26,
+        "name": "Saved filter name",
+        "tag": "INPUT",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 27,
+        "name": "Save",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 28,
+        "name": "Select all filtered contacts on this page",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 29,
+        "name": "Clear 1",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 30,
+        "name": "Select Acme Enterprises",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 31,
+        "name": "AEAcme EnterprisesNo mobile numberActiveConsent not recorded",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 32,
+        "name": "Select Nova Retail",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 33,
+        "name": "NRNova RetailNo mobile numberActiveConsent not recorded",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 34,
+        "name": "Select Vertex Tech",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 35,
+        "name": "VTVertex TechNo mobile numberActiveConsent not recorded",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 36,
+        "name": "Select Zenith Solutions",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 37,
+        "name": "ZSZenith SolutionsNo mobile numberActiveConsent not recorded",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 38,
+        "name": "Previous",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 39,
+        "name": "Next",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 40,
+        "name": "Greetings",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 41,
+        "name": "Payment Reminder",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 42,
+        "name": "Send Invoice",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 43,
+        "name": "Follow-up",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 44,
+        "name": "Quotation",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 45,
+        "name": "Order Update",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/whatsapp/settings",
+        "index": 46,
+        "name": "account settings",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 47,
+        "name": "",
+        "tag": "INPUT",
+        "type": "checkbox"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 48,
+        "name": "Toggle template favourite",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 49,
+        "name": "Message template",
+        "options": [
+          {
+            "disabled": false,
+            "label": "Order Update - Standard \u00b7 editable draft",
+            "value": "draft"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 50,
+        "name": "Insert token",
+        "options": [
+          {
+            "disabled": false,
+            "label": "Insert Token",
+            "value": ""
+          },
+          {
+            "disabled": false,
+            "label": "contact name",
+            "value": "{{contact_name}}"
+          },
+          {
+            "disabled": false,
+            "label": "company name",
+            "value": "{{company_name}}"
+          },
+          {
+            "disabled": false,
+            "label": "invoice number",
+            "value": "{{invoice_number}}"
+          },
+          {
+            "disabled": false,
+            "label": "due amount",
+            "value": "{{due_amount}}"
+          },
+          {
+            "disabled": false,
+            "label": "due date",
+            "value": "{{due_date}}"
+          },
+          {
+            "disabled": false,
+            "label": "follow up date",
+            "value": "{{follow_up_date}}"
+          },
+          {
+            "disabled": false,
+            "label": "occasion",
+            "value": "{{occasion}}"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 51,
+        "name": "Dear {{contact_name}},\n\nWe have an update on your order. Please contact our team for the latest details. Thank you for choosing us!{{contact_name}}{{company_name}}{{invoice_number}}{{due_amount}}{{due_date}}{{follow_up_date}}{{occasion}}",
+        "tag": "TEXTAREA",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 52,
+        "name": "{{invoice_number}}",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 53,
+        "name": "{{due_amount}}",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 54,
+        "name": "{{due_date}}",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 55,
+        "name": "{{follow_up_date}}",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 56,
+        "name": "",
+        "tag": "INPUT",
+        "type": "file"
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 57,
+        "name": "Browse",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 58,
+        "name": "Delivery",
+        "options": [
+          {
+            "disabled": false,
+            "label": "Send now",
+            "value": "now"
+          },
+          {
+            "disabled": false,
+            "label": "Schedule",
+            "value": "schedule"
+          }
+        ],
+        "tag": "SELECT",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 59,
+        "name": "Tomorrow, 9 AM",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": null,
+        "index": 60,
+        "name": "Acme EnterprisesMissing fields",
+        "tag": "BUTTON",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "href": "/crm/delivery-logs",
+        "index": 61,
+        "name": "Open Queue",
+        "tag": "A",
+        "type": null
+      },
+      {
+        "disabled": true,
+        "href": null,
+        "index": 62,
+        "name": "Review & Send (1)",
+        "tag": "BUTTON",
+        "type": null
+      }
+    ]
+  }
+]

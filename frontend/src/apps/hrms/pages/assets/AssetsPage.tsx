@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useMobile } from "@/components/mobile/useMobile";
 import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
 import AssetWorkspace, {
   AssetMetrics,
@@ -74,6 +75,7 @@ const errorText = (e: unknown) => {
 };
 export default function AssetsPage() {
   usePageTitle("Company assets");
+  const phone = useMobile(650);
   const user = useAuthStore((s) => s.user),
     [params, setParams] = useSearchParams(),
     location = useLocation();
@@ -212,7 +214,7 @@ export default function AssetsPage() {
           </Button>
         </div>
       </header>
-      <nav aria-label="Asset views" className="flex flex-wrap gap-2">
+      <nav aria-label="Asset views" className="asset-view-tabs flex flex-wrap gap-2">
         {[
           ["inventory", "Inventory"],
           ["custody", "Employee custody"],
@@ -245,6 +247,9 @@ export default function AssetsPage() {
             />
           )}{" "}
           {canAssign && <AssetHandoverButton />}
+          <details className="asset-secondary-actions" open={!phone}>
+            <summary>More asset actions</summary>
+            <div>
           <Button variant="outline" onClick={() => changeTab("custody")}>
             Record return
           </Button>
@@ -254,6 +259,8 @@ export default function AssetsPage() {
           <Button variant="outline" onClick={() => changeTab("clearance")}>
             Process exit clearance
           </Button>
+            </div>
+          </details>
         </div>
       )}
       {tab === "inventory" && (
@@ -263,8 +270,9 @@ export default function AssetsPage() {
             className={`grid items-start gap-4 ${canManage ? "xl:grid-cols-[15rem_minmax(0,1fr)]" : ""}`}
           >
             {canManage && (
-              <aside className="asset-panel space-y-4">
-                <h2>Custody actions</h2>
+              <details className="asset-panel asset-custody-actions" open={!phone}>
+                <summary>Custody actions</summary>
+                <aside className="space-y-4">
                 {canAssign && (
                   <>
                     <label className="asset-form-field">
@@ -331,6 +339,7 @@ export default function AssetsPage() {
                   </details>
                 )}
               </aside>
+              </details>
             )}
             <AssetWorkspace
               categories={categories.data || []}

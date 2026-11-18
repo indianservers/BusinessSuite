@@ -5,6 +5,8 @@
  .pms-clients>header{gap:10px;align-items:center;flex-wrap:wrap}
  .pms-clients>header h1{font-size:20px;line-height:1.3}
  .pms-clients>header button{min-height:44px}
+ .pms-client-pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+ .pms-client-pagination button{min-height:44px;padding:8px;white-space:normal}
  .pms-client-record{display:grid;gap:10px;padding:12px;min-width:0;overflow-wrap:anywhere}
  .pms-client-record>div{min-width:0}
  .pms-client-record h2{font-size:15px;font-weight:600}

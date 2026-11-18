@@ -1,0 +1,36 @@
+{
+  "started": "2026-11-18T13:27:53.070Z",
+  "network": [
+    {
+      "path": "/api/v1/srm/inventory/items",
+      "status": 200,
+      "cache": "persist",
+      "sync": "full",
+      "cacheControl": "private, max-age=0, must-revalidate"
+    }
+  ],
+  "workers": [
+    "/assets/sqlite.worker-VrTvwDl3.js"
+  ],
+  "database": {
+    "exists": true,
+    "views": [
+      {
+        "key": "201534fe2960a5970679e7c8ecbf1190895b42bf3b74690fb935437f254b74b5:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+        "url": "/srm/inventory/items?page=1&per_page=200&search=",
+        "persistent": true,
+        "row_count": 52
+      }
+    ]
+  },
+  "sqlite_read": {
+    "error": null,
+    "present": true,
+    "rows": 52
+  },
+  "cached_ui_loaded": true,
+  "blocked_catalog_requests": 0,
+  "cached_product_cards": 2,
+  "visible_error": [],
+  "finished": "2026-11-18T13:28:41.494Z"
+}

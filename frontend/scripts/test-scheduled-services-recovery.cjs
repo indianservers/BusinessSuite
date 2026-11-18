@@ -15,7 +15,7 @@ const {chromium, expect} = require('playwright/test');
       const page = await browser.newPage({viewport: {width, height: 1000}});
       let denied = false, revision = 1, writes = 0;
       const errors = [];
-      page.on('pageerror', error => errors.push(error.message));
+      page.on('pageerror', error => { errors.push(error.message); console.error('Schedule browser error:', error.message); });
       await page.route('**/api/v1/**', async route => {
         if (route.request().method() !== 'GET') writes++;
         if (denied) return route.fulfill({status: 403, json: {detail: 'Schedule access revoked'}});
@@ -28,12 +28,14 @@ const {chromium, expect} = require('playwright/test');
       });
       await page.route('**/scheduled-services-recovery-qa', route => route.fulfill({contentType: 'text/html', body: '<meta name="viewport" content="width=device-width,initial-scale=1"><script>window.__AI_HRMS_CONFIG__={apiBaseUrl:"/api/v1"};</script><div id="root"></div><script type="module">import R from "/@react-refresh";R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import("/scripts/fixtures/scheduled-services-recovery.tsx");</script>'}));
       await page.goto('http://127.0.0.1:' + server.httpServer.address().port + '/scheduled-services-recovery-qa');
+      await page.getByRole('button', {name: 'List', exact: true}).click();
       await expect(page.getByRole('button', {name: 'Private service 1', exact: true})).toBeVisible({timeout: 30000});
+      await page.getByRole('button', {name: 'Filters', exact: true}).click();
       await expect(page.getByRole('option', {name: 'Private specialist (QA)'})).toHaveCount(1);
       await page.getByRole('combobox', {name: 'Employee', exact: true}).selectOption('1');
       await page.getByRole('combobox', {name: 'Service', exact: true}).selectOption('2');
       for (const mode of ['List', 'Calendar', 'Gantt']) {
-        await page.getByRole('button', {name: mode, exact: true}).click();
+        await page.getByRole('button', {name: mode === 'Gantt' ? 'Timeline' : mode, exact: true}).click();
         const booking = page.getByRole('button', {name: /Private service/}).first();
         await expect(booking).toBeVisible({timeout: 30000});
         await booking.click();

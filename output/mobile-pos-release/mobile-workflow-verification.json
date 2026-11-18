@@ -1,0 +1,125 @@
+{
+  "release": "mobile-booking-workflows-20261117",
+  "automated_viewports": [
+    [
+      320,
+      568
+    ],
+    [
+      360,
+      640
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      430,
+      932
+    ],
+    [
+      767,
+      1024
+    ]
+  ],
+  "checks": [
+    "Create draft persists across forward/backward steps",
+    "Invalid required fields reveal the correct step without submitting",
+    "Reschedule expected revision, selected resources and duration retained in mocked request",
+    "18 receipts reachable through details pages",
+    "Short reschedule form has no step bar",
+    "No viewport scrolling, scrollbars or clipped controls",
+    "20-record appointment and calendar regression passed"
+  ],
+  "typescript": "passed",
+  "production_build": "passed",
+  "health": "healthy",
+  "live_records_changed": false,
+  "live_measurements": [
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 714,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "New appointment",
+      "top": 8,
+      "viewportHeight": 714,
+      "width": 390
+    },
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 714,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "New appointment",
+      "top": 8,
+      "viewportHeight": 714,
+      "width": 390
+    },
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 714,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "New appointment",
+      "top": 8,
+      "viewportHeight": 714,
+      "width": 390
+    },
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 764,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "Reschedule appointment",
+      "top": 8,
+      "viewportHeight": 764,
+      "width": 390
+    },
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 679,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "DEMO Calendar Booking 20",
+      "top": 8,
+      "viewportHeight": 679,
+      "width": 390
+    },
+    {
+      "bottom": 836,
+      "clippedControls": 0,
+      "contentHeight": 679,
+      "height": 844,
+      "pageHeight": 844,
+      "pageWidth": 390,
+      "scrollContainers": 0,
+      "title": "DEMO Calendar Booking 20",
+      "top": 8,
+      "viewportHeight": 679,
+      "width": 390
+    }
+  ],
+  "live_workflows": {
+    "new_appointment_steps": 2,
+    "reschedule_steps": 1,
+    "visit_details_payment_steps": 2,
+    "reschedule_from_details": "passed",
+    "data_saved": false
+  }
+}

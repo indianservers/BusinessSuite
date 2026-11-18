@@ -32,7 +32,8 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
   const framesRef = useRef(frames); framesRef.current = frames;
   const active = useRef<Frame>(); active.current = frames[frames.length - 1];
   const identity = `${user?.id}:${user?.access?.companyId}`;
-  useEffect(() => { active.current = undefined; framesRef.current = []; setFrames([]); }, [identity]);
+  const previousIdentity=useRef(identity);
+  useEffect(() => { if(previousIdentity.current===identity)return;previousIdentity.current=identity;active.current=undefined;framesRef.current=[];setFrames([]); }, [identity]);
   useEffect(() => {
     const clear = () => { active.current = undefined; framesRef.current = []; setFrames([]); };
     window.addEventListener("suite:organization-changed", clear);

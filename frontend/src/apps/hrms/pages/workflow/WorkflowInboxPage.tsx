@@ -115,6 +115,7 @@ function ScopedWorkflowInbox({scope}:{scope:string}) {
   const qc = useQueryClient();
   const phone = useMobile(480);
   const [queueSection, setQueueSection] = useState("requests");
+  const [queuePage, setQueuePage] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
   const [saveError, setSaveError] = useState("");
   const { user } = useAuthStore();
@@ -175,6 +176,9 @@ function ScopedWorkflowInbox({scope}:{scope:string}) {
   });
 
   const sourceRows = useMemo(() => Object.entries(data?.by_source || {}), [data]);
+  const queuePages = Math.max(1, Math.ceil((data?.items.length || 0) / 8));
+  const currentQueuePage = Math.min(queuePage, queuePages - 1);
+  const visibleItems = phone ? data?.items.slice(currentQueuePage * 8, currentQueuePage * 8 + 8) : data?.items;
 
   const addStep = () => setSteps((current) => [...current, blankStep(current.length + 1)]);
   const updateStep = (index: number, patch: Partial<WorkflowStep>) => {
@@ -317,9 +321,9 @@ function ScopedWorkflowInbox({scope}:{scope:string}) {
             </Button>
           )}
           {view === "queue" && roleKey !== "employee" && (
-            <Button aria-pressed={!mine} variant={mine ? "outline" : "default"} onClick={() => setMine(false)}>Team queue</Button>
+            <Button aria-pressed={!mine} variant={mine ? "outline" : "default"} onClick={() => {setMine(false);setQueuePage(0);}}>Team queue</Button>
           )}
-          {view === "queue" && <Button aria-pressed={mine} variant={mine ? "default" : "outline"} onClick={() => setMine(true)}>My submissions</Button>}
+          {view === "queue" && <Button aria-pressed={mine} variant={mine ? "default" : "outline"} onClick={() => {setMine(true);setQueuePage(0);}}>My submissions</Button>}
           {view === "queue" && <Button disabled={phone && isFetching} variant="outline" onClick={() => refetch()}>Refresh</Button>}
         </div>
       </div>
@@ -367,7 +371,7 @@ function ScopedWorkflowInbox({scope}:{scope:string}) {
               <CardContent className="space-y-3">
                 {phone && isError && !data ? null : isLoading ? (
                   <div role={phone?"status":undefined} aria-label={phone?"Loading workflow queue":undefined} className="h-24 rounded-lg border bg-muted/30" />
-                ) : data?.items.length ? data.items.map((item) => {
+                ) : data?.items.length ? visibleItems?.map((item) => {
                   const Icon = sourceIcon[item.source] || Inbox;
                   return (
                     <div data-priority-row data-priority={item.priority} key={item.id} className="hrms-workflow-item flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -388,6 +392,7 @@ function ScopedWorkflowInbox({scope}:{scope:string}) {
                     </div>
                   );
                 }) : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No workflow items found.</p>}
+                {phone && queuePages > 1 && <nav aria-label="Workflow request pages" className="flex items-center justify-between gap-2"><Button variant="outline" disabled={currentQueuePage === 0} onClick={() => setQueuePage(currentQueuePage - 1)}>Previous requests</Button><span className="text-xs">{currentQueuePage + 1} / {queuePages}</span><Button variant="outline" disabled={currentQueuePage === queuePages - 1} onClick={() => setQueuePage(currentQueuePage + 1)}>Next requests</Button></nav>}
               </CardContent>
             </Card>
           </div>

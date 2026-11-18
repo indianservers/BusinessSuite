@@ -35,10 +35,14 @@ async function setup(page: Page, canManage = true, phoneCountryCode = initialLea
     let body: unknown;
     if (method !== "GET" && !request.headers()["content-type"]?.includes("multipart")) mutations.push({ path, data: request.postDataJSON() });
     if (path === "/settings") body = method === "GET" ? { settings, owners: [{ id: 100, name: "admin@example.com" }, { id: 101, name: "Priya Shah (EMP-101)", employeeId: 501, employeeCode: "EMP-101", kind: "employee" }], unavailableEmployees: [{ employeeId: 502, employeeCode: "EMP-102", name: "Unlinked Employee", reason: "Needs an active login account" }], canManage, canAdmin: canManage, userId: 100 } : { settings: request.postDataJSON() };
+    else if (path === "/meeting-metrics") body = {counts: {}, definition: "Meeting counts across permitted leads"};
+    else if (path === "/sales-process") body = {enabled: false, ownerIds: [], stages: []};
     else if (path === "/leads" && method === "GET") body = { items: [lead, ...(captured ? [captured] : [])], total: captured ? 2 : 1, page: 1, perPage: 40, truncated: false, limit: 5000, summary: { total: 1, active: 1, overdue: 1, slaBreached: 1, stale: 1 }, byStage: { [lead.status]: 1 }, bySource: { Referral: 1 }, convertedBySource: {}, lostReasons: {} };
     else if (path === "/leads" && method === "POST") { const data = request.postDataJSON(); captured = { ...lead, id: 2, ...data.values }; body = captured; }
     else if (path === "/leads/1" && method === "PATCH") { const data = request.postDataJSON(); lead = { ...lead, ...data.values, details: { ...lead.details, ...data.details }, version: lead.version + 1 }; body = lead; }
     else if (path === "/leads/1") body = lead;
+    else if (path === "/leads/1/meetings") body = [];
+    else if (path === "/leads/1/nurture-consent") body = {allowed:false,evidence:""};
     else if (path === "/leads/2") body = captured;
     else if (path === "/leads/1/team") body = { members: [{ id: 100, name: "Admin" }, { id: 101, name: "Priya Shah (EMP-101)" }] };
     else if (path === "/leads/1/team-notes") { const data = request.postDataJSON(); lead.timeline.unshift({ id: 2, title: "Team update", event_type: "team_note", actor_user_id: 100, occurred_at: new Date().toISOString(), description: data.body, metadata_json: { authorName: "Admin", mentionIds: data.mentionIds } } as any); lead.version++; body = { saved: true }; }
@@ -68,6 +72,45 @@ async function setup(page: Page, canManage = true, phoneCountryCode = initialLea
   await expect(page.getByRole("button", { name: "Nisha Rao", exact: true })).toBeVisible();
   return mutations;
 }
+
+for (const width of [320,390]) test(`phone workbench keeps records close and secondary tools available at ${width}px`,async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.setViewportSize({width,height:844});await setup(page);
+  const extras=page.locator('.lm-workbench-extras');
+  await expect(extras).not.toHaveAttribute('open','');
+  await expect(page.getByRole('button',{name:'Add lead',exact:true})).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'Search leads',exact:true})).toBeVisible();
+  const recordsOffset=await page.locator('.lm-workspace').evaluate(element=>element.getBoundingClientRect().top-element.closest('.lm-root')!.getBoundingClientRect().top);
+  console.log(`Phone ${width}: record workspace begins ${Math.round(recordsOffset)}px below page heading`);
+  expect(recordsOffset).toBeLessThan(350);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true);
+  const health=page.getByRole('region',{name:'Lead health',exact:true});
+  expect((await health.boundingBox())!.height).toBeLessThan(115);
+  await page.locator('#suite-main').evaluate(element=>{element.scrollTop=0});
+  await page.screenshot({path:`../output/pending-crm-leads-${width}.png`,animations:'disabled'});
+  await extras.locator('summary').first().click();
+  await expect(page.getByRole('link',{name:'Website forms',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Consultations & demos',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Import Excel',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Lead workflow settings',exact:true})).toBeVisible();
+  const expandedOffset=await page.locator('.lm-workspace').evaluate(element=>element.getBoundingClientRect().top-element.closest('.lm-root')!.getBoundingClientRect().top);
+  console.log(`Phone ${width}: secondary section expansion adds ${Math.round(expandedOffset-recordsOffset)}px`);
+  await extras.locator('summary').first().click();
+  await health.getByRole('button',{name:/Overdue follow-ups/}).click();
+  await expect(page).toHaveURL(/queue=overdue/);
+  await page.getByRole('button',{name:'Nisha Rao',exact:true}).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const box=(await page.getByRole('dialog').boundingBox())!;
+  expect(box.width).toBeLessThanOrEqual(width);
+  expect(errors).toEqual([]);
+});
+
+test('desktop workbench keeps sales tools expanded',async({page})=>{
+ await page.setViewportSize({width:1440,height:1000});await setup(page);
+ await expect(page.locator('.lm-workbench-extras')).toHaveAttribute('open','');
+ await expect(page.getByRole('heading',{name:'Consultations & demos',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Website forms',exact:true})).toBeVisible();
+});
 
 test("desktop queues, layouts, preview drawer and stage history", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
@@ -146,7 +189,8 @@ test("lead save controls stay visible and successful edits clear the discard war
 
 test("failed lead save retains edits and still protects genuine unsaved work", async ({ page }) => {
   await setup(page);
-  await page.route("**/api/v1/crm/lead-management/leads/1", route => route.request().method() === "PATCH"
+  let rejectSave=true;
+  await page.route("**/api/v1/crm/lead-management/leads/1", route => rejectSave && route.request().method() === "PATCH"
     ? route.fulfill({status:503,json:{detail:"Save temporarily unavailable"}}) : route.fallback());
   const prompts: string[] = [];
   page.on("dialog", async dialog => { prompts.push(dialog.message()); await dialog.dismiss(); });
@@ -157,8 +201,16 @@ test("failed lead save retains edits and still protects genuine unsaved work", a
   await expect(page.getByRole("alert")).toContainText("Save temporarily unavailable");
   await expect(page.getByLabel("Name", {exact:true})).toHaveValue("Keep this edit");
   await page.getByRole("button", {name:"Close dialog",exact:true}).click();
+  await expect(page.getByRole('alertdialog',{name:'Discard lead changes?',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Continue editing',exact:true}).click();
   await expect(page.getByRole("dialog")).toHaveCount(1);
-  expect(prompts).toEqual(["Discard unsaved changes to this lead?"]);
+  await expect(page.getByLabel('Name',{exact:true})).toHaveValue('Keep this edit');
+  rejectSave=false;
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Save changes',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(prompts).toEqual([]);
 });
 
 test("Ctrl+S creates a lead once and closes the capture form", async ({ page }) => {

@@ -1,0 +1,241 @@
+[
+  {
+    "control": "Call direction Outbound",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call direction Inbound",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call direction Missed",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Choose a record",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice QA nested form boundary",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice QA exhaustive lead controls",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice QA Sync regression customer",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Nova Retail",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Vertex Tech",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Zenith Solutions",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Acme Enterprises",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Taylor Blake",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Morgan Reed",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Jordan Lee",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call contact choice Avery Quinn",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice Choose a record",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice QA Sync regression customer",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice Nova Retail",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice Vertex Tech",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice Zenith Solutions",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call company choice Acme Enterprises",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Choose a record",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Nova Retail · Workflow automation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Nova Retail · Customer success expansion",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Nova Retail · Platform implementation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Vertex Tech · Workflow automation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Vertex Tech · Customer success expansion",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Vertex Tech · Platform implementation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Zenith Solutions · Workflow automation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Zenith Solutions · Customer success expansion",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Zenith Solutions · Platform implementation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Acme Enterprises · Workflow automation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Acme Enterprises · Customer success expansion",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call deal choice Acme Enterprises · Platform implementation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice Choose a record",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice QA nested form boundary",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice QA exhaustive lead controls",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice Taylor Blake",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice Morgan Reed",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice Jordan Lee",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call lead choice Avery Quinn",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Call no-link choice and duration validation",
+    "result": "passed",
+    "evidence": "No linked record hides related picker; restored lead 6. Negative duration fails native minimum validation and retains editor."
+  },
+  {
+    "control": "Calls period Today",
+    "result": "passed",
+    "evidence": "Expected 1 matching QA calls."
+  },
+  {
+    "control": "Calls period Upcoming",
+    "result": "passed",
+    "evidence": "Expected 0 matching QA calls."
+  },
+  {
+    "control": "Calls period Past",
+    "result": "passed",
+    "evidence": "Expected 1 matching QA calls."
+  },
+  {
+    "control": "Calls period All",
+    "result": "passed",
+    "evidence": "Expected 1 matching QA calls."
+  },
+  {
+    "control": "Calls direction filter All directions",
+    "result": "passed",
+    "evidence": "Expected 1 matching calls."
+  },
+  {
+    "control": "Calls direction filter Inbound",
+    "result": "passed",
+    "evidence": "Expected 0 matching calls."
+  },
+  {
+    "control": "Calls direction filter Outbound",
+    "result": "passed",
+    "evidence": "Expected 1 matching calls."
+  },
+  {
+    "control": "Calls direction filter Missed",
+    "result": "passed",
+    "evidence": "Expected 0 matching calls."
+  },
+  {
+    "control": "Calls search 2025550100",
+    "result": "passed",
+    "evidence": "Expected 1 matching calls."
+  },
+  {
+    "control": "Calls search QA calls editor options verified",
+    "result": "passed",
+    "evidence": "Expected 1 matching calls."
+  },
+  {
+    "control": "Calls search absent QA call xyz",
+    "result": "passed",
+    "evidence": "Expected 0 matching calls."
+  },
+  {
+    "control": "Calls search clear",
+    "result": "passed",
+    "evidence": "Expected 1 matching calls."
+  },
+  {
+    "control": "Assigned to me / refresh / Log call dismiss",
+    "result": "passed",
+    "evidence": "Mine filter retains owned QA call; unchecked, refreshed. Log call opens and both Cancel and Close dismiss."
+  },
+  {
+    "control": "Create follow-up from call",
+    "result": "passed",
+    "evidence": "Blank title rejected by native required validation. Saved QA call linked follow-up task for Nov 10 09:30 local."
+  }
+]

@@ -1,0 +1,251 @@
+{
+  "release": "employee-taxonomy-20261118-v4",
+  "baseline": "513a38555e12f0f3d7efbddcc2d55086dc9ad99e",
+  "scope": "Retain existing compact POS/SRM mobile changes and two-page catalog forms. Add company-scoped HRMS employee category/subcategory management and bounded multi-select dropdowns, relevant child filtering, dependent selection cleanup and native parent/child eligibility matching. Additive scoped backend changes use existing versioned settings storage; no database migration.",
+  "files": [
+    {
+      "path": "frontend/src/apps/srm/appointment-label.ts",
+      "sha256": "0fdff3740bfeb2d37d8dba08b3e53e9a34b66bef42cd593bc471615919286589"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/MobileScheduleAgenda.tsx",
+      "sha256": "32a46faef9728f1dbb22852e91857c39f9b238f7b7d3c05d8585da7cdbd6f8b5"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/MobileWorkflowPages.tsx",
+      "sha256": "9d1524ee049f854089498aab733e40ed6db010648642c79f7cc9acb10707d95d"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/POSCustomerIdentity.tsx",
+      "sha256": "e5ce30bf01f9b94c52d16213a9d8e6ecba8015b2b90e430c19735787f8d5da9c"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/POSMobileCatalogue.tsx",
+      "sha256": "2c6d4cb52e1e6484fb33aa6f225676ad2e8d33e95463a08bdebd14558ab40805"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/SRMMobileScreen.tsx",
+      "sha256": "a8bacd5f9c48d436a7293a8928ba83b4f32c0f3d87d6004acaecaeb4253883f8"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/SRMMobileToolbar.tsx",
+      "sha256": "85e31552f58f0b5e787aede17e062181ecc009554f30a47fbd6fcda3e3c8d4af"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/catalog-icon.tsx",
+      "sha256": "08106128b740ab93d2ccd8034b70451fc405252aeef26c35dda285249d51ec25"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/mobile-schedule-agenda.css",
+      "sha256": "a75809e9b4b28265caa22ac6af486345c818d232cfde4310c63345d8f0589138"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/mobile-screen-pages.ts",
+      "sha256": "f31bb4ee6b638d3c6e49bfd3d4f9a3f50a7bcab8d916f11a808f2f3400a99c00"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/mobile-workflow-pages.css",
+      "sha256": "d2abc4859c3bf6a61d6fda3e677d8399e669557587484a668acbe94009bc2c8f"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/pos-mobile-catalogue.css",
+      "sha256": "e1878818c047b6e91cf1f288d82b3252bcb07a2fab01d2efdc245c2f25e45cd5"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/srm-mobile-screen.css",
+      "sha256": "ea54f4832febe30fc8eee4c48c87c11fca708687bf6f5a9df673bc661e6270d2"
+    },
+    {
+      "path": "frontend/src/apps/srm/industry/AppointmentVisitPanel.tsx",
+      "sha256": "ad17e622305b05c36af2dd735395f3524f99a937ef4b02c6b6923f534eb36c9a"
+    },
+    {
+      "path": "frontend/src/apps/srm/industry/GroupedServiceReschedule.tsx",
+      "sha256": "83d468ecccc5d976a1d336745a073092b866509da5f4c28263df5a00403c1a53"
+    },
+    {
+      "path": "frontend/src/apps/srm/industry/IndustryOperationsPage.tsx",
+      "sha256": "391c5fa29bfd8857a5f0494a677df63b323bf5a51a585c4bbd2bc08db7b296f3"
+    },
+    {
+      "path": "frontend/src/apps/srm/industry/POSServiceScheduling.tsx",
+      "sha256": "5a2ae85708c1dfade6c6972c959a07f02cf4fe7c2db5525c473555a7dd61f35b"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+      "sha256": "5be7eecd58a78afc9dc0b56bcffbba86e710643d3033a95f1b939eb6caa6cfb0"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/ScheduledServicesPage.tsx",
+      "sha256": "eb03ddf15fabfc4d964fb9f1287cafd9f21494c9640cbf617eb912193c35faa0"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/pos-mobile-reference.css",
+      "sha256": "e58b59f821abcdba2aeec5efae63c40ad4b6dd7b37ec181f5346bd6d056d520e"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/pos-ux25.css",
+      "sha256": "23aa3df06731995eb852495252765a946b0662cffe60f64f17b0eb177eba2f2b"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/srm-pos-mobile.css",
+      "sha256": "24deaae9cb1cba05d4a163beca1cb6c769a07f4b9d37cdec4931e1527077b61e"
+    },
+    {
+      "path": "frontend/src/apps/srm/pos-presentation.ts",
+      "sha256": "355ba5ac1133964bab7faab64ba346875641edc81bb1ec29c5e1792a790a0c70"
+    },
+    {
+      "path": "frontend/src/apps/srm/routes.tsx",
+      "sha256": "51b6e15d0f1e676f230ac03875376ea05a2497b8e4551bbb7cd6d24b697be8b4"
+    },
+    {
+      "path": "frontend/src/components/app/ModuleNewMenu.tsx",
+      "sha256": "a0969fa95846e5755a0b3ebbf211b040c2b4486be43304db3554f14df9f4618a"
+    },
+    {
+      "path": "frontend/src/components/app/NewMenu.tsx",
+      "sha256": "c82506d2078a4d4f5581a5744927672ce287c77760a6615a7e7d0fbc1568d737"
+    },
+    {
+      "path": "frontend/src/components/app/create-menu-model.ts",
+      "sha256": "835d1d690b2e36b12693cb4646af41e444fa7c001a55b838eff849fae2801e9f"
+    },
+    {
+      "path": "frontend/src/components/layout/AppLayout.tsx",
+      "sha256": "11b58a47fb5343eaf46d9583d3a2a100cf7d171dba7127552f57762a2e1b47c8"
+    },
+    {
+      "path": "frontend/src/components/layout/MobileModuleDock.tsx",
+      "sha256": "30f45bbbdbb47737da621fb7f34856000e0a1e8c4ff1aab82081b4b8c53b9db0"
+    },
+    {
+      "path": "frontend/src/components/layout/ModuleNavigation.tsx",
+      "sha256": "d2e0a37869be3f2c5a993efea0a204e8fbff8cdf041550bda2b3e349541f3798"
+    },
+    {
+      "path": "frontend/src/components/layout/mobile-module-dock.css",
+      "sha256": "999ce2f396f9ad5ca9b2014f6d312a706f3c104ba7e367d0598bb85a1ad462e5"
+    },
+    {
+      "path": "frontend/src/components/layout/mobile-workspaces.css",
+      "sha256": "2eeea5a782cee20159a100c2b6f696ab8dc12a934917e92349d192964eb35a4e"
+    },
+    {
+      "path": "frontend/src/components/layout/module-navigation.css",
+      "sha256": "8cb4af633353f974070669a1b6604f3792590cc10943db137cc32fc0a05fa3d0"
+    },
+    {
+      "path": "frontend/src/components/mobile/MobileCreateMenu.tsx",
+      "sha256": "4a835925421a5e2a60771cc744ecd15001478454508fd90facbf43646c271728"
+    },
+    {
+      "path": "frontend/src/pages/ModuleDashboardPage.tsx",
+      "sha256": "55ce681007b58a51d99b966632c6bc0dcb9762fb2169227fcdc3cee718030649"
+    },
+    {
+      "path": "frontend/src/shared/master-data/CompanyEditor.tsx",
+      "sha256": "bade951fdc74435c9a289685847977ead9f8d60a8b2caf61fb826237b7c57fba"
+    },
+    {
+      "path": "frontend/src/shared/master-data/company-editor-mobile.css",
+      "sha256": "eecdcc33c464a79ac6fdbb1dbfcb6f381549e9ff26c4790f38510f2fbb7201b2"
+    },
+    {
+      "path": "frontend/src/shared/catalog/CatalogEditor.tsx",
+      "sha256": "306caa59d3e1840ea69762e625ad025f2d13f67464c73fd6327be4a56887c6b7"
+    },
+    {
+      "path": "frontend/src/shared/catalog/catalog-editor-mobile.css",
+      "sha256": "5c9c99fbda3b580f86d424a6d54d181ef8266c8cd83c26d5f1d2a5873778705a"
+    },
+    {
+      "path": "frontend/src/shared/catalog/CatalogMobileFields.tsx",
+      "sha256": "3318e756181a182e9a599154f809ee8caefc98cc3c49b3efd37355c8f90ab5a4"
+    },
+    {
+      "path": "frontend/src/shared/employee-category-taxonomy.ts",
+      "sha256": "73463187911fc9a38d47d53e3ba44acdf857d34849608a38e531a2d7d1b22711"
+    },
+    {
+      "path": "frontend/src/shared/EmployeeCategoryMultiSelect.tsx",
+      "sha256": "df0ffcc6ca2fda612d4af106851c99c838dd67aafe8e3f2e9fc4f3dfab465394"
+    },
+    {
+      "path": "frontend/src/shared/employee-category-picker.css",
+      "sha256": "0b8d9efdcb1effa839f1ccde08b77c7201b0e6ccf0795746711be350846b16fd"
+    },
+    {
+      "path": "frontend/src/shared/ServiceEmployeeCategoryFields.tsx",
+      "sha256": "833b1ff439f64977ff74116894884f982be5309e97ecc300b598dbc0438a3e22"
+    },
+    {
+      "path": "frontend/src/shared/EmployeeCategories.tsx",
+      "sha256": "32ea1a457fda48532b8e66c48ad439fa5e2a26a10dd3514bbb3fc12dbe6c0dd2"
+    },
+    {
+      "path": "frontend/src/apps/hrms/Routes.tsx",
+      "sha256": "4b27334516aad652301e8be6ebe33ef70f7f20c75e31f7986daaec980af22600"
+    },
+    {
+      "path": "frontend/src/apps/hrms/pages/employees/EmployeeCategoryManagement.tsx",
+      "sha256": "679cc9220c2a690c18faf3c31f6f8dd90a779246de38a41e20df13b79e151560"
+    },
+    {
+      "path": "frontend/src/apps/hrms/pages/employees/employee-category-management.css",
+      "sha256": "84e5d3c654463d04b840986a8e448acf47a38df8b581124037425734898e0019"
+    },
+    {
+      "path": "frontend/src/apps/hrms/pages/employees/EmployeesPage.tsx",
+      "sha256": "bb43c1219450224af39b7d0cdf2917aa8da3bb4ab4b1caf8c70009d60296d268"
+    },
+    {
+      "path": "backend/app/business_packs/boundary.py",
+      "sha256": "8097e75193cbbab9e0d32a9f0180356a3efd6bfd90be06c55872831bfecb7776"
+    },
+    {
+      "path": "backend/app/business_packs/employee_core.py",
+      "sha256": "3aaaef2b3c846d03ae002b76eb4b800cdc9a24665b4af25cc488081291842cc3"
+    },
+    {
+      "path": "backend/app/shared/api.py",
+      "sha256": "ed2897b91cdcbc90849c88bd78e3ce714cb24081d14a7b7d6c2b3fe792c7e49d"
+    },
+    {
+      "path": "backend/app/shared/employee_categories.py",
+      "sha256": "2853b6f01d64154cc9997db8ea7e18392264cd509748c5bbc8ee9eabbb860973"
+    },
+    {
+      "path": "backend/app/shared/employee_category_taxonomy.py",
+      "sha256": "2b6d35f89eca57a469e21dfeb6d5cf91deabcdaeb518445c8603fde77041141f"
+    },
+    {
+      "path": "backend/app/api/v1/employees.py",
+      "sha256": "96acb8df7051837cb58e7fa1577f1c7e88dcfd68d39801da9bc3221f9d86d72d"
+    },
+    {
+      "path": "backend/app/apps/srm/service_checkout.py",
+      "sha256": "d1f0f6423c5bc01ea098a1323e1fa290e077deb4d1d403d046bf7fe948060a04"
+    }
+  ],
+  "checks": [
+    "TypeScript passed",
+    "Production Vite build passed",
+    "Full mobile app layout passed 320x568,390x844,430x932",
+    "Products pagination/search/filters passed seven mobile viewports",
+    "Scheduled appointment cart, booking dialog, tenders and pagination passed all seven mobile viewports",
+    "Twenty appointment/calendar records traversed at 320x568,360x640,390x844,430x932,767x1024; no viewport or card overflow, no scrollers; one-record pagination absent; details dialog passed",
+    "Mobile workflow regression passed five sizes: drafts preserved, invalid fields revealed, reschedule payload verified, 18 receipts traversed, no scrollers or clipped controls; short reschedule has no steps",
+    "Five mobile workflow sizes passed without Title input; draft, validation, reschedule and details still pass; TypeScript and production build passed",
+    "Create Customer passed 320x568,360x640,390x844,430x932,767x1024 and keyboard viewport; optional addresses/banking reachable; drafts retained; mocked save passed; short sections hide steps",
+    "Product and service editor passed five mobile sizes 320x568 through 767x1024 and keyboard viewport; expanded follow-ups, added pricing, image/custom fields, required-field reveal, retained drafts, mock Save and Save/configure payloads passed; TypeScript and Vite passed",
+    "Two-page catalog: product/service at five mobile sizes plus keyboard; all optional setting editors including expanded follow-ups fit; Essentials save, scheduling policy, recurring pricing, subcategories/tags, retry without duplicate creation verified with mocked requests; TypeScript and production build passed",
+    "HRMS hierarchy: 14 backend tests passed (validation, revision conflict, tenant isolation, HRMS permission/read-only denial, parent/child matching); service dropdown selection, relevant children, parent removal cleanup, search/pagination and portal bounds passed five mobile sizes; HRMS management mock save/layout passed five sizes; TypeScript and Vite production build passed",
+    "HRMS management preserves the original edit version when background refresh finds concurrent changes; stale saves fail without losing the local draft",
+    "Admin GET inspection retains real HRMS write capability; readonly save requests and actors without employee_update remain denied; 14 backend tests passed",
+    "HRMS management reserves mobile header/navigation space; compact controls and footer remain inside the visible screen; five-size management tests passed again",
+    "Expanded HRMS editor remains bounded with mobile frame padding; conflict handling also verified at 320x568"
+  ],
+  "commit": "513a38555e12f0f3d7efbddcc2d55086dc9ad99e",
+  "candidate": "2c2011246b8385f98a902508ba1a7dab7e5667f50708509f22277c74689d9aab"
+}

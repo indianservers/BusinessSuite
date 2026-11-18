@@ -50,6 +50,11 @@ class BaseInput(Strict):
 class ResourceInput(BaseInput):
     capacity: int = Field(default=1, ge=1, le=1000)
     resource_type: Literal["provider", "doctor", "stylist", "consultant", "technician", "employee", "chair", "room", "equipment", "location"]
+    location: str = Field(default="", max_length=300)
+    initial_status: Literal["active", "inactive", "maintenance"] = "active"
+    assigned_color: Literal["Lavender", "Blue", "Mint", "Peach", "Rose", "Slate"] = "Lavender"
+    accessibility: str = Field(default="", max_length=500)
+    facilities: str = Field(default="", max_length=1000)
     user_id: int | None = Field(None, gt=0)
     employee_id: int | None = Field(None, gt=0)
     timezone: str = "Asia/Kolkata"
@@ -72,6 +77,11 @@ class ResourceInput(BaseInput):
         return self
 
 
+class ResourceUpdate(ResourceInput):
+    expected_revision: int = Field(ge=1)
+    status: Literal["active", "inactive", "maintenance", "archived"] = "active"
+
+
 from app.apps.srm.service_checkout_schemas import BookingSelection
 
 
@@ -87,6 +97,8 @@ class AppointmentInput(BaseInput):
     deal_id: int | None = Field(None, gt=0)
     walk_in: bool = False
     notes: str = Field(default="", max_length=4000)
+    customer_notes: str = Field(default="", max_length=4000)
+    confirmation_channels: list[Literal["sms", "whatsapp"]] = Field(default_factory=list, max_length=2)
 
     @model_validator(mode='after')
     def project_for_task(self):
@@ -341,10 +353,16 @@ def existing(db, user, branch_id, payload, kind):
 def digest(payload):
     values = payload.model_dump(mode='json')
     # Preserve retry identities for resources created before HRMS linking existed.
+    if isinstance(payload, ResourceInput) and values.get('initial_status') == 'active':
+        values.pop('initial_status', None)
+    if isinstance(payload, ResourceInput) and values.get('assigned_color') == 'Lavender':
+        values.pop('assigned_color', None)
     if isinstance(payload, ResourceInput) and values.get('capacity') == 1:
         values.pop('capacity', None)
     if isinstance(payload, ResourceInput) and values.get('employee_id') is None:
         values.pop('employee_id', None)
+    if isinstance(payload, AppointmentInput) and not values.get('confirmation_channels'):
+        values.pop('confirmation_channels', None)
     if isinstance(payload, AppointmentInput) and values.get('booking') is None:
         values.pop('booking', None)
     if isinstance(payload, MeasurementInput) and values.get('work_package_id') is None:
@@ -547,7 +565,7 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
     prior = existing(db, user, branch, data, 'resource')
     if prior:
         return out(prior)
-    if query(db, user, branch).filter_by(kind='resource', title=data.title).first():
+    if query(db, user, branch).filter_by(kind='resource', title=data.title).filter(Record.status != 'archived').first():
         fail("A resource with this name already exists in this branch", 409)
     employee = None
     if data.employee_id:
@@ -564,9 +582,41 @@ def resource(data: ResourceInput, db: Session = Depends(get_db), user=Depends(ge
     row = create(db, user, branch, 'resource', data)
     if employee:
         row.data = {**row.data, 'user_id': employee.user_id}
-    row.status = 'active'
+    row.status = data.initial_status
     db.commit()
     return out(row)
+
+
+@router.put('/resources/{ident}')
+def update_resource(ident: int, data: ResourceUpdate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    branch = context(db, user, True, appointments=True)
+    require_pack_operation(db, user, 'providers.manage', 'settings.manage')
+    row = get(db, user, branch, ident, 'resource')
+    revision(row, data.expected_revision)
+    duplicate = query(db, user, branch).filter(Record.kind == 'resource', Record.title == data.title, Record.id != ident, Record.status != 'archived').first()
+    if duplicate:
+        fail('A resource with this name already exists in this branch', 409)
+    # Identity links are managed by HRMS/eligibility, never silently reassigned by this editor.
+    if (data.employee_id != row.data.get('employee_id') or data.user_id != row.data.get('user_id') or
+            ((data.resource_type in PROVIDER_TYPES or row.data.get('resource_type') in PROVIDER_TYPES) and data.resource_type != row.data.get('resource_type'))):
+        fail('Manage employee identity and provider links through HRMS and service eligibility', 409)
+    scheduling_fields = ('resource_type', 'capacity', 'timezone', 'weekdays', 'opens', 'closes')
+    proposed = data.model_dump(mode='json', exclude={'request_id', 'title', 'expected_revision', 'status'})
+    def normalized(values, key):
+        value = values.get(key, 1 if key == 'capacity' else None)
+        if key in ('opens', 'closes') and isinstance(value, str): return value[:5]
+        if key == 'weekdays' and isinstance(value, list): return sorted(value)
+        return value
+    changed = any(normalized(proposed, key) != normalized(row.data, key) for key in scheduling_fields)
+    if changed or data.status == 'archived':
+        now = datetime.now(timezone.utc)
+        reservations = query(db, user, branch).filter(Record.kind == 'appointment', Record.status.in_(['booked', 'checked_in', 'in_service']), Record.ends_at > now).all()
+        if any(ident in item.data.get('resource_ids', []) for item in reservations):
+            fail('This resource has upcoming bookings. Reschedule them before changing scheduling rules or deleting it.', 409)
+    row.title = data.title
+    row.status = data.status
+    row.data = {**row.data, **proposed}
+    return save(db, user, row, 'resource_updated' if data.status != 'archived' else 'resource_archived')
 
 
 @router.get('/staff-options')
@@ -593,11 +643,25 @@ def employee_query(db, user, branch):
 
 
 def provider_employee(db, user, branch, employee_id):
+    # Booking uses a closed operational projection, never an HRMS profile read.
+    # Verify the native Sales operation and selected company/branch independently.
+    from sqlalchemy import select
+    from types import SimpleNamespace
     from app.models.employee import Employee
-    employee = employee_query(db, user, branch).filter(Employee.id == employee_id).first()
-    if not employee:
+    require(user, 'srm_manage', 'srm_admin')
+    if context(db, user, appointments=True) != branch:
+        fail('Choose an employee from the selected branch', 403)
+    require_pack_operation(db, user, 'providers.manage', 'settings.manage', 'appointments.schedule', 'reservations.schedule')
+    if type(employee_id) is not int or employee_id <= 0:
         fail('Choose an active HRMS employee from this branch')
-    return employee
+    row = db.connection().execute(select(Employee.id, Employee.user_id, Employee.date_of_exit,
+        Employee.work_categories).join(Branch, Employee.branch_id == Branch.id).where(
+        Employee.id == employee_id, Employee.branch_id == branch, Branch.company_id == tenant(user),
+        Branch.is_active.is_(True), Employee.deleted_at.is_(None),
+        Employee.status.in_(('Active', 'Probation', 'On Leave')))).mappings().first()
+    if row is None:
+        fail('Choose an active HRMS employee from this branch')
+    return SimpleNamespace(**row)
 
 
 @router.get('/employee-options')

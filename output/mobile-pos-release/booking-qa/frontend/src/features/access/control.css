@@ -1,0 +1,246 @@
+.cc-root {
+  max-width: 1600px;
+  margin: auto;
+}
+.cc-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cc-heading p {
+  color: hsl(var(--muted-foreground));
+  margin: 5px 0;
+}
+.cc-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+.cc-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 12px 0;
+  margin-bottom: 20px;
+}
+.cc-nav a,
+.cc-actions > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid hsl(var(--border));
+  padding: 8px 11px;
+  border-radius: 7px;
+  text-decoration: none;
+}
+.cc-nav a[aria-current="page"] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.cc-company {
+  margin: 12px 0 18px;
+}
+.cc-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.cc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.cc-stats .cc-card {
+  margin: 0 0 12px;
+}
+.cc-stats span {
+  display: block;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.cc-stats strong {
+  display: block;
+  font-size: 26px;
+  margin-top: 8px;
+}
+.cc-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.cc-bars {
+  max-height: 265px;
+  overflow: auto;
+}
+.cc-bar {
+  display: grid;
+  grid-template-columns: minmax(95px, 1fr) 2fr 35px;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.cc-bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-bar meter {
+  width: 100%;
+  height: 13px;
+  accent-color: hsl(var(--primary));
+}
+.cc-bar meter::-webkit-meter-optimum-value {
+  background: hsl(var(--primary));
+  border-radius: 4px;
+}
+.cc-scroll {
+  overflow: auto;
+  max-height: 600px;
+}
+.cc-root table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.cc-root th {
+  position: sticky;
+  top: 0;
+  background: hsl(var(--muted));
+  z-index: 1;
+}
+.cc-root td,
+.cc-root th {
+  padding: 11px 10px;
+  border-bottom: 1px solid hsl(var(--border));
+  vertical-align: top;
+}
+.cc-root td small {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  margin-top: 5px;
+  max-width: 400px;
+  overflow-wrap: anywhere;
+}
+.cc-root td svg {
+  display: inline-block;
+  margin-right: 6px;
+}
+.cc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+.cc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: hsl(var(--muted-foreground));
+}
+.cc-branch {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 16px;
+}
+.cc-branch h3 {
+  margin: 0;
+}
+.cc-dialog {
+  max-height: 90vh;
+  overflow: auto;
+  max-width: 680px;
+}
+.cc-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: 6px;
+  margin: 12px 0;
+}
+.cc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.cc-form-grid label {
+  flex-direction: column;
+  align-items: stretch;
+  margin: 8px 0;
+}
+.cc-form-grid label:has(input[type="checkbox"]) {
+  flex-direction: row;
+}
+.cc-error {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  padding: 12px;
+  border-radius: 8px;
+  color: #9f1239;
+}
+.cc-filter {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.cc-filter label {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 180px;
+}
+.cc-empty {
+  color: hsl(var(--muted-foreground));
+  padding: 20px 0;
+}
+.cc-skeleton {
+  height: 240px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)),
+    hsl(var(--background)),
+    hsl(var(--muted))
+  );
+  animation: cc-pulse 1.3s infinite;
+}
+@keyframes cc-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+@media (max-width: 800px) {
+  .cc-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cc-charts {
+    grid-template-columns: 1fr;
+  }
+  .cc-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .cc-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .cc-nav a {
+    font-size: 11px;
+    padding: 7px;
+  }
+  .cc-card {
+    padding: 12px;
+  }
+  .cc-root h1 {
+    font-size: 21px;
+  }
+  .cc-bar {
+    grid-template-columns: 100px 1fr 25px;
+  }
+}

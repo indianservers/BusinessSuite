@@ -63,3 +63,9 @@ body:has([role="dialog"][data-state="open"], [role="alertdialog"][data-state="op
   body:has(.action-bot-launcher) .pms-workspace-host > .ws-app .ws-content { margin-bottom:80px; }
   body.mobile-keyboard-open .pms-workspace-host > .ws-app .ws-content { margin-bottom:0; }
 }
+
+@media(max-width:767px){
+ .srm-pos-terminal-route{height:100dvh;min-height:0;overflow:hidden;background:#f6f3ff}
+ body:has(.srm-pos-terminal-route){overflow:hidden;overscroll-behavior:none}
+ body:has(.srm-pos-terminal-route) :is(.action-bot-launcher,.suite-create-result,.mobile-module-add,.suite-mobile-tools-trigger){display:none!important}
+}

@@ -1,0 +1,2065 @@
+import RetailWorkspace from "../components/RetailWorkspace";
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
+import BusinessTerm from "@/components/BusinessTerm";
+import POSReturnForm from "../components/POSReturnForm";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
+import Customer360Workspace from "@/shared/records/Customer360Page";
+import SalesDashboard from "./SalesDashboard";
+import { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
+import { money as catalogMoney, type CatalogLine } from "@/shared/catalog/api";
+import { salesOrderInput, salesOrderLineAmounts } from "../sales-order-input";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { columnValue } from "@/shared/data-grid/column-presentation";
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
+import { LoadingState } from "@/components/ui/state";
+import { useModuleAction } from "@/hooks/use-module-action";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
+import RecordMaintenance from "@/components/RecordMaintenance";
+import {ExternalInvoices,DailyAccountingReport} from "@/shared/accounting/ConnectedAccounting";
+import { defaultText, defaultDateAfter, displayDate } from "@/lib/form-defaults";
+import { CurrencySelect } from "@/lib/validation/business";
+import CompaniesPage from "@/shared/master-data/CompaniesPage";
+import SalesPipeline from "../components/SalesPipeline";
+import RecurringSchedule from "../components/RecurringSchedule";
+import WorkspaceViewBar from "@/shared/workspace/WorkspaceViewBar";
+import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
+import GridTable from "@/shared/data-grid/GridTable";
+import { RecordStatusIcon } from "@/shared/data-grid/GroupLabel";
+import { api } from "@/services/api";
+import "../sales-record-list.css";
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionButton } from "@/components/actions";
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import ConnectedCollectionsPage from "./ConnectedCollectionsPage";
+import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pages/ProjectBillingPage";
+import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
+import ModuleWorkflows from "@/components/app/ModuleWorkflows";
+import SecondaryDetails from "@/components/app/SecondaryDetails";
+import { useEffect, useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  AlertTriangle,
+  BarChart3,
+  BriefcaseBusiness,
+  CheckCircle2,
+  CreditCard,
+  FileCheck2,
+  FileText,
+  FolderKanban,
+  HandCoins,
+  IndianRupee,
+  Link2,
+  Package,
+  Plus,
+  Receipt,
+  RotateCcw,
+  Search,
+  Settings,
+  Sparkles,
+  Store,
+  Trash2,
+  TrendingUp,
+  WalletCards,
+  Wallet,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { inventoryEntryPoints } from "@/apps/inventory/sourceCatalog";
+import { srmApi } from "../api";
+import { syncSrmNow, useSrmRealtimeInvalidation } from "../realtime";
+import type { SRMRecord, SRMViewKind } from "../types";
+
+type SRMQueryEndpoint =
+  | "salesOrders"
+  | "contracts"
+  | "engagements"
+  | "billingPlans"
+  | "invoiceDrafts"
+  | "invoices"
+  | "collectionsAging"
+  | "leadToCash"
+  | "profitability"
+  | "reports"
+  | "settings";
+
+type ViewMeta = {
+  title: string;
+  description: string;
+  icon: ElementType;
+  endpoint?: SRMQueryEndpoint;
+};
+
+const viewMeta: Record<SRMViewKind, ViewMeta> = {
+  dashboard: {
+    title: "Sales & Inventory Dashboard",
+    description: "Commercial and stock health across sales orders, POS, inventory, billing, collections, and margin.",
+    icon: BarChart3,
+  },
+  salesOrders: {
+    title: "Sales Orders",
+    description: "Track approved commercial commitments before delivery and billing.",
+    icon: Receipt,
+    endpoint: "salesOrders",
+  },
+  posSessions: {
+    title: "POS Sessions",
+    description: "Open, monitor, and audit real POS register sessions from the SRM database.",
+    icon: Store,
+  },
+  cashierClosing: {
+    title: "Cashier Closing",
+    description: "Close register sessions with expected cash, counted cash, and variance evidence.",
+    icon: BarChart3,
+  },
+  posReturns: {
+    title: "POS Returns",
+    description: "Create and audit POS returns, refunds, and stock-in reversal movements.",
+    icon: RotateCcw,
+  },
+  contracts: {
+    title: "Contracts",
+    description: "Review contract status, value, dates, and customer commitments.",
+    icon: FileCheck2,
+    endpoint: "contracts",
+  },
+  engagements: {
+    title: "Engagements",
+    description: "Bridge confirmed revenue to PMS delivery and billing execution.",
+    icon: BriefcaseBusiness,
+    endpoint: "engagements",
+  },
+  billingPlans: {
+    title: "Billing Plans",
+    description: "Monitor fixed fee, milestone, T&M, recurring, and hybrid billing schedules.",
+    icon: WalletCards,
+    endpoint: "billingPlans",
+  },
+  invoiceDrafts: {
+    title: "Invoice Drafts",
+    description: "Validate draft invoices before approval, export, and customer send.",
+    icon: FileText,
+    endpoint: "invoiceDrafts",
+  },
+  invoices: {
+    title: "Invoices",
+    description: "Manage invoice approval, dispatch, payment status, and balances.",
+    icon: CreditCard,
+    endpoint: "invoices",
+  },
+  collections: {
+    title: "Collections",
+    description: "Prioritize outstanding customers, aging buckets, reminders, and escalations.",
+    icon: HandCoins,
+    endpoint: "collectionsAging",
+  },
+  revenueRecognition: {
+    title: "Revenue Recognition",
+    description: "Review lead-to-cash movement and revenue readiness checkpoints.",
+    icon: CheckCircle2,
+    endpoint: "leadToCash",
+  },
+  profitability: {
+    title: "Profitability",
+    description: "Compare order, billing, collection, cost, gross margin, and cash margin.",
+    icon: TrendingUp,
+    endpoint: "profitability",
+  },
+  customer360: {
+    title: "Customer 360",
+    description: "Search a customer or linked CRM/SRM record to see the complete revenue lifecycle.",
+    icon: FolderKanban,
+  },
+  reports: {
+    title: "Reports",
+    description: "Open SRM operating reports for sales, invoice, aging, margin, and cash.",
+    icon: BarChart3,
+    endpoint: "reports",
+  },
+  settings: {
+    title: "Settings",
+    description: "Control SRM operating settings, approval thresholds, and module configuration.",
+    icon: Settings,
+    endpoint: "settings",
+  },
+};
+
+function asList(data: unknown): SRMRecord[] {
+  if (Array.isArray(data)) return data as SRMRecord[];
+  if (data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)) return (data as { items: SRMRecord[] }).items;
+  if (data && typeof data === "object") return [data as SRMRecord];
+  return [];
+}
+
+function formatValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "number") return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return Array.isArray(value) ? `${value.length}` : "Linked";
+  return String(value).replace(/_/g, " ");
+}
+
+function currencyMoney(value:unknown,currency:unknown){return value==null?"Not available":`${String(currency||"Unknown")} ${Number(value).toLocaleString(undefined,{maximumFractionDigits:2})}`}
+
+function cashNumber(value: unknown) {
+  if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && !value.trim())) return NaN;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function cashMoney(value: unknown) {
+  const amount = cashNumber(value);
+  return Number.isFinite(amount) ? money(amount) : "-";
+}
+
+function money(value: unknown) {
+  const amount = Number(value || 0);
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 0, style: "currency", currency: "INR" });
+}
+
+function numberValue(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function optionalMoney(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  return money(value);
+}
+
+function formatDate(value: unknown) {
+  if (!value) return "-";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return formatValue(value);
+  return displayDate(String(value), "srm");
+}
+
+function recordDate(record: SRMRecord) {
+  return record.order_date || record.issue_date || record.due_date || record.recognized_on || record.created_at || record.updated_at;
+}
+
+function displayStatus(status: unknown) {
+  return formatValue(status || "live");
+}
+
+function statusTone(status: unknown) {
+  const value = String(status || "").toLowerCase();
+  if (["approved", "confirmed", "paid", "sent", "healthy", "active", "normal"].includes(value)) return "default";
+  if (["pending_approval", "draft", "partially_paid", "queued", "watch"].includes(value)) return "secondary";
+  if (["rejected", "cancelled", "overdue", "at_risk", "high"].includes(value)) return "destructive";
+  return "outline";
+}
+
+function apiErrorMessage(err: unknown, fallback = "Action failed") {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || fallback;
+}
+
+function numericField(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function amountField(value: string, fallback = 0) {
+  const parsed = numericField(value);
+  return parsed ?? fallback;
+}
+
+type InvoiceLineDraft = {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  tax_amount: string;
+};
+
+function createInvoiceLineDraft(): InvoiceLineDraft {
+  return { description: "", quantity: "1", unit_price: "0", tax_amount: "0" };
+}
+
+function invoiceLineAmount(line: InvoiceLineDraft) {
+  return amountField(line.quantity) * amountField(line.unit_price) + amountField(line.tax_amount);
+}
+
+function compactRecord(record: SRMRecord) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== "")) as SRMRecord;
+}
+
+function SectionState({ label, isLoading, isError, isEmpty, onRetry }: { label: string; isLoading?: boolean; isError?: boolean; isEmpty?: boolean; onRetry?: () => void }) {
+  if (isLoading) return <LoadingState label={`Loading ${label}`} variant="table"/>;
+  if (isError) {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="flex flex-col gap-3 p-6 text-sm md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Unable to load {label}.</span>
+          </div>
+          {onRetry ? <Button variant="outline" size="sm" onClick={onRetry}>Retry</Button> : null}
+        </CardContent>
+      </Card>
+    );
+  }
+  if (isEmpty) return <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No {label} found for the current filters.</div>;
+  return null;
+}
+
+function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
+  return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={onRefresh ? <><Button variant="outline" onClick={() => { window.location.href = "/ai/copilot?module_name=srm"; }}><Sparkles className="h-4 w-4"/>AI Copilot</Button><Button variant="outline" onClick={onRefresh} disabled={isFetching}>Refresh</Button></> : null}/>;
+}
+
+function DashboardView() { return <SalesDashboard/>; }
+
+type DashboardMetricTone = "default" | "success" | "danger";
+
+function DashboardMetricCard({ icon: Icon, label, value, detail, tone = "default" }: { icon: ElementType; label: string; value: ReactNode; detail?: string; tone?: DashboardMetricTone }) {
+  const toneClass = tone === "success" ? "text-emerald-700 dark:text-emerald-300" : tone === "danger" ? "text-destructive" : "text-muted-foreground";
+  return (
+    <Card className="rounded-xl border-border/80 bg-card shadow-sm">
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <div className={`mt-1 text-2xl font-semibold tracking-tight ${tone === "danger" ? "text-destructive" : ""}`}>{value}</div>
+          {detail ? <p className={`mt-1 text-xs ${toneClass}`}>{detail}</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildRevenueTrend(records: SRMRecord[]) {
+  const byDate = new Map<string, number>();
+  records.forEach((record) => {
+    const date = String(record.date || record.recognized_on || "").slice(0, 10);
+    if (!date) return;
+    byDate.set(date, (byDate.get(date) || 0) + numberValue(record.amount));
+  });
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, amount]) => ({ date, label: formatDate(date), amount }));
+}
+
+function buildOrderPipeline(data: SRMRecord) {
+  return [
+    { label: "Confirmed", value: numberValue(data.confirmed_sales_orders), color: "#2563eb" },
+    { label: "Pending approvals", value: numberValue(data.pending_approvals), color: "#94a3b8" },
+  ].filter((item) => item.value > 0);
+}
+
+function RevenuePerformanceCard({ records, currency }: { records: Array<{ date: string; label: string; amount: number }>; currency: string }) {
+  const hasData = records.some((record) => record.amount > 0);
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-7">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">Revenue performance</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to="/srm/revenue-recognition">View all</Link></Button>
+      </CardHeader>
+      <CardContent>
+        {hasData ? (
+          <>
+            <div className="h-56" aria-label="Revenue performance chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={records} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(value) => `${currency} ${Number(value).toLocaleString(undefined,{notation:"compact"})}`} />
+                  <Tooltip formatter={(value) => [currencyMoney(value,currency), "Event amount"]} labelFormatter={(label) => String(label)} />
+                  <Area type="monotone" dataKey="amount" stroke="#2563eb" fill="#2563eb" fillOpacity={0.12} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="sr-only">Revenue trend contains {records.length} dated points.</p>
+          </>
+        ) : (
+          <EmptyDashboardState icon={BarChart3} message="No revenue data for current filters." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrderPipelineCard({ items, total }: { items: Array<{ label: string; value: number; color: string }>; total: number }) {
+  const chartData = items.length ? items : [{ label: "No active statuses", value: 1, color: "#e2e8f0" }];
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-5">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">Order pipeline</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to="/srm/sales-orders">View all</Link></Button>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <div className="relative h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} innerRadius={52} outerRadius={78} paddingAngle={items.length > 1 ? 2 : 0} dataKey="value">
+                {chartData.map((item) => <Cell key={item.label} fill={item.color} />)}
+              </Pie>
+              <Tooltip formatter={(value, name) => [items.length ? formatValue(value) : "0", name]} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-semibold">{formatValue(total)}</span>
+            <span className="text-xs text-muted-foreground">Total orders</span>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {items.length ? items.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span>
+              <span className="font-semibold">{item.value.toLocaleString("en-IN")}</span>
+            </div>
+          )) : <p className="text-sm text-muted-foreground">No active order statuses for current filters.</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SalesOrdersCard({ records }: { records: SRMRecord[] }) {
+  return (
+    <CompactTableCard
+      className="xl:col-span-4"
+      title="Recent sales orders"
+      viewAllTo="/srm/sales-orders"
+      empty="No sales orders found for current filters."
+      columns={["Order ID", "Type", "Amount", "Status"]}
+      records={records}
+      render={(record, index) => {
+        const id = record.id ? `/srm/sales-orders/${record.id}` : "/srm/sales-orders";
+        return (
+          <tr key={String(record.id || index)} className="border-t">
+            <td className="min-w-0 px-3 py-2">
+              <Link to={id} className="block truncate font-medium hover:text-primary">{formatValue(record.order_number || `Order ${index + 1}`)}</Link>
+              <span className="block truncate text-xs text-muted-foreground">{formatValue(record.title || record.customer_id || recordDate(record))}</span>
+            </td>
+            <td className="px-3 py-2">{formatValue(((record.metadata_json || {}) as SRMRecord).source === "pos" ? "POS" : record.order_type || "-")}</td>
+            <td className="px-3 py-2 font-medium">{currencyMoney(record.total_amount,record.currency)}</td>
+            <td className="px-3 py-2"><Badge variant={statusTone(record.status)}>{displayStatus(record.status)}</Badge></td>
+          </tr>
+        );
+      }}
+    />
+  );
+}
+
+function InvoicesCard({ records }: { records: SRMRecord[] }) {
+  return (
+    <CompactTableCard
+      className="xl:col-span-4"
+      title="Recent invoices"
+      viewAllTo="/srm/invoices"
+      empty="No invoices found for current filters."
+      columns={["Invoice ID", "Status", "Amount", "Due date"]}
+      records={records}
+      render={(record, index) => (
+        <tr key={String(record.id || index)} className="border-t">
+          <td className="min-w-0 px-3 py-2">
+            <Link to={record.id ? `/srm/invoices/${record.id}` : "/srm/invoices"} className="block truncate font-medium hover:text-primary">{formatValue(record.invoice_number || `Invoice ${index + 1}`)}</Link>
+            <span className="block truncate text-xs text-muted-foreground">{formatValue(record.customer_id || record.title || record.created_at)}</span>
+          </td>
+          <td className="px-3 py-2"><Badge variant={statusTone(record.payment_status || record.status)}>{displayStatus(record.payment_status || record.status)}</Badge></td>
+          <td className="px-3 py-2 font-medium">{currencyMoney(record.balance_amount ?? record.total_amount,record.currency)}</td>
+          <td className="px-3 py-2">{formatDate(record.due_date)}</td>
+        </tr>
+      )}
+    />
+  );
+}
+
+function CompactTableCard({ title, viewAllTo, columns, records, render, empty, className }: { title: string; viewAllTo: string; columns: string[]; records: SRMRecord[]; render: (record: SRMRecord, index: number) => ReactNode; empty: string; className?: string }) {
+  return (
+    <Card className={`rounded-xl shadow-sm ${className || ""}`}>
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to={viewAllTo}>View all</Link></Button>
+      </CardHeader>
+      <CardContent>
+        {records.length ? (
+          <div className="overflow-x-auto">
+            <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-1" className="w-full min-w-[520px] text-left text-sm">
+              <thead className="text-xs text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}</tr></thead>
+              <tbody>{records.slice(0, 5).map(render)}</tbody>
+            </GridTable>
+          </div>
+        ) : <EmptyDashboardState icon={FileText} message={empty} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdueInvoices, currency }: { currency:string; collectionPercent: number | null; outstanding: number; overdue: number; overdueInvoices: SRMRecord[] }) {
+  const percent = collectionPercent ?? 0;
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-4">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Collection health</CardTitle></CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-[7rem_1fr] sm:items-center">
+        <div className="relative h-28">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={[{ name: "Collected", value: percent }, { name: "Remaining", value: Math.max(0, 100 - percent) }]} innerRadius={42} outerRadius={54} dataKey="value" startAngle={90} endAngle={-270}>
+                <Cell fill="#16a34a" aria-label={`Collected ${percent}%`} />
+                <Cell fill="#e2e8f0" aria-label={`Remaining ${Math.max(0,100-percent)}%`} />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center text-lg font-semibold">{collectionPercent === null ? "-" : `${percent}%`}</div>
+        </div>
+        <div className="space-y-2 text-sm">
+          <p className="font-semibold">{collectionPercent === null ? "No invoiced collection base" : `${percent}% collected`}</p>
+          <p className="text-muted-foreground">Outstanding {currencyMoney(outstanding,currency)}</p>
+          <p className="text-muted-foreground">Overdue {currencyMoney(overdue,currency)} · alert preview: {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
+          {!overdueInvoices.length ? <p className="pt-2 text-muted-foreground">No collection alerts for the current filters.</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyDashboardState({ icon: Icon, message }: { icon: ElementType; message: string }) {
+  return (
+    <div className="flex min-h-32 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+      <Icon className="mb-2 h-6 w-6 opacity-60" />
+      {message}
+    </div>
+  );
+}
+
+const coreLaunchpad = [
+  {
+    title: "Sales",
+    description: "Sales orders, invoices, delivery documents, quotations, returns, and customer commitments.",
+    icon: Receipt,
+    to: "/srm/sales-orders",
+    action: "Open sales",
+  },
+  {
+    title: "POS",
+    description: "Counter billing, register sessions, held bills, cashier closing, and POS configuration.",
+    icon: Store,
+    to: "/srm/pos",
+    action: "Open POS",
+  },
+  {
+    title: "Inventory",
+    description: "Products, stock, warehouses, purchases, transfers, manufacturing, batches, and reports.",
+    icon: Package,
+    to: "/srm/inventory/dashboard",
+    action: "Open inventory",
+  },
+  {
+    title: "Invoices & payments",
+    description: "Prepare invoices, plan billing and collect customer payments in one place.",
+    icon: Receipt,
+    to: "/srm/invoices",
+    action: "Open billing",
+  },
+];
+
+function SalesInventoryLaunchpad() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sales, Inventory & POS Operations</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {coreLaunchpad.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.title} to={item.to} className="rounded-lg border p-4 transition hover:border-primary/60 hover:bg-muted/60">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold">{item.title}</span>
+                <div className="mt-1 block text-xs leading-5 text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
+                <span className="mt-3 block text-xs font-semibold text-primary">{item.action}</span>
+              </Link>
+            );
+          })}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quick Entry Points</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {inventoryEntryPoints.map((entry) => {
+            const Icon = entry.icon;
+            return (
+              <Button key={entry.to} asChild variant="outline" className="h-auto justify-start gap-3 px-3 py-2 text-left">
+                <Link to={entry.to}>
+                  <Icon className="h-4 w-4" />
+                  <span>
+                    <span className="block text-sm font-medium">{entry.label}</span>
+                    <div className="block text-xs font-normal text-muted-foreground"><RichTextContent legacyFormat="plain" value={entry.description}/></div>
+                  </span>
+                </Link>
+              </Button>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Customer360View() { return <Customer360Workspace source="srm"/>; }
+
+function MetricCard({ label, value }: { label: string; value: unknown }) {
+  return <Card><SuiteMetric label={label} value={formatValue(value)} icon={BarChart3}/></Card>;
+}
+
+function RecordList({ title, records, primaryKey, secondaryKey, amountKey, recordHref }: { title: string; records: SRMRecord[]; primaryKey: string; secondaryKey: string; amountKey: string; recordHref?: (record: SRMRecord) => string | undefined }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {records.length ? records.slice(0, 6).map((record, index) => (
+          <div key={`${title}-${record.id || index}`} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{recordHref?.(record) ? <Link className="text-primary hover:underline" to={recordHref(record)!}>{formatValue(record[primaryKey] || record.name || record.title || `Record ${index + 1}`)}</Link> : formatValue(record[primaryKey] || record.name || record.title || `Record ${index + 1}`)}</p>
+              <p className="truncate text-xs text-muted-foreground">{formatValue(record[secondaryKey] || record.customer_id || record.created_at)}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {record.status ? <Badge variant={statusTone(record.status)}>{formatValue(record.status)}</Badge> : null}
+              <span className="text-sm font-medium">{typeof record[amountKey] === "number" ? money(record[amountKey]) : formatValue(record[amountKey])}</span>
+            </div>
+          </div>
+        )) : <SectionState label={title.toLowerCase()} isEmpty />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryCard({ title, data }: { title: string; data: SRMRecord }) {
+  const entries = Object.entries(data || {}).slice(0, 12);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base"><Link2 className="h-4 w-4" />{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {entries.length ? (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {entries.map(([key, value]) => (
+              <div key={key} className="rounded-lg border p-3">
+                <dt className="text-xs uppercase text-muted-foreground">{key.replace(/_/g, " ")}</dt>
+                <dd className="mt-1 text-sm font-medium">{formatValue(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : <SectionState label={title.toLowerCase()} isEmpty />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TrendCard({ title, records }: { title: string; records: SRMRecord[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {records.length ? records.map((record, index) => (
+          <div key={`${title}-${index}`} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border p-3 text-sm">
+            <span>{formatValue(record.date || record.recognized_on || record.event_type)}</span>
+            <span className="font-medium">{money(record.amount)}</span>
+          </div>
+        )) : <SectionState label={title.toLowerCase()} isEmpty />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function useRevenueAction() {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+  const mutation = useMutation({
+    mutationFn: async ({ label, run }: { label: string; run: () => Promise<unknown> }) => {
+      setMessage("");
+      const result = await run();
+      return { label, result };
+    },
+    onSuccess: ({ label }) => {
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      const text = `${label} completed`;
+      setMessage(text);
+      toast({ title: text });
+    },
+    onError: (err: unknown) => {
+      const text = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || "Revenue action failed";
+      setMessage(text);
+      toast({ title: "SRM validation", description: text, variant: "destructive" });
+    },
+  });
+  return { ...mutation, message };
+}
+
+function useCanManageRevenue(action="any") {
+  const user = useAuthStore((state) => state.user);
+  const grant=user?.access?.grants.srm;
+  if(user?.access?.managed&&!user.is_superuser)return !!grant?.enabled&&grant.permissions.some(p=>(action==="approve"?["srm_admin","srm_invoice_approve"]:action==="any"?["srm_admin","srm_invoice_create","srm_invoice_approve","srm_manage"]:["srm_admin","srm_invoice_create"]).includes(p))&&(action==="any"?grant.actions.some(a=>["create","edit","approve"].includes(a)):grant.actions.includes(action));
+  const roleValue = typeof user?.role === "object" && user.role ? (user.role as { name?: string }).name : user?.role;
+  const role = String(roleValue || "").toLowerCase();
+  const isSuperuser = Boolean(user?.is_superuser);
+  return isSuperuser || ["admin", "srm_admin", "srm_finance_manager", "srm_collection_executive"].includes(role);
+}
+
+function useSrmRole() {
+  const user = useAuthStore((state) => state.user);
+  const roleValue = typeof user?.role === "object" && user.role ? (user.role as { name?: string }).name : user?.role;
+  return {
+    role: String(roleValue || "").toLowerCase(),
+    isSuperuser: Boolean(user?.is_superuser),
+  };
+}
+
+function useCanManageSettings() {
+  const { role, isSuperuser } = useSrmRole();
+  return isSuperuser || ["admin", "srm_admin"].includes(role);
+}
+
+function ActionMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return <div className="rounded-lg border bg-muted/40 p-3 text-sm" role="status">{message}</div>;
+}
+
+function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueAction> }) {
+  const [source, setSource] = useState({
+    salesOrderId: "",
+    engagementId: "",
+    billingMilestoneId: "",
+    pmsMilestoneId: "",
+    timesheetEngagementId: "",
+    timeLogIds: "",
+    hourlyRate: "1000",
+    currency: defaultText("currency", "srm"),
+  });
+  const update = (key: keyof typeof source, value: string) => setSource((current) => ({ ...current, [key]: value }));
+  const timeLogIds = source.timeLogIds.split(",").map((value) => Number(value.trim())).filter((value) => Number.isFinite(value) && value > 0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Generate Invoice From Source</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Sales order ID</span>
+            <Input inputMode="numeric" value={source.salesOrderId} onChange={(event) => update("salesOrderId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Engagement ID</span>
+            <Input inputMode="numeric" value={source.engagementId} onChange={(event) => update("engagementId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Billing milestone ID</span>
+            <Input inputMode="numeric" value={source.billingMilestoneId} onChange={(event) => update("billingMilestoneId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">PMS milestone ID</span>
+            <Input inputMode="numeric" value={source.pmsMilestoneId} onChange={(event) => update("pmsMilestoneId", event.target.value)} />
+          </label>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Timesheet engagement ID</span>
+            <Input inputMode="numeric" value={source.timesheetEngagementId} onChange={(event) => update("timesheetEngagementId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm md:col-span-2">
+            <span className="font-medium">Time log IDs</span>
+            <Input placeholder="901, 902, 903" value={source.timeLogIds} onChange={(event) => update("timeLogIds", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Hourly rate</span>
+            <Input inputMode="decimal" value={source.hourlyRate} onChange={(event) => update("hourlyRate", event.target.value)} />
+          </label>
+        </div>
+        <CompactActions className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={action.isPending || !numericField(source.salesOrderId)} onClick={() => action.mutate({ label: "Sales order draft", run: () => srmApi.draftInvoiceFromSalesOrder(Number(source.salesOrderId)) })}>Draft from Sales Order</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.engagementId)} onClick={() => action.mutate({ label: "Engagement draft", run: () => srmApi.draftInvoiceFromEngagement(Number(source.engagementId)) })}>Draft from Engagement</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.billingMilestoneId)} onClick={() => action.mutate({ label: "Billing milestone draft", run: () => srmApi.draftInvoiceFromBillingMilestone(Number(source.billingMilestoneId)) })}>Draft from Billing Milestone</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.pmsMilestoneId)} onClick={() => action.mutate({ label: "PMS milestone draft", run: () => srmApi.draftInvoiceFromPmsMilestone(Number(source.pmsMilestoneId)) })}>Draft from PMS Milestone</Button>
+          <Button
+            variant="outline"
+            disabled={action.isPending || !numericField(source.timesheetEngagementId) || !timeLogIds.length}
+            onClick={() => action.mutate({
+              label: "Timesheet draft",
+              run: () => srmApi.draftInvoiceFromTimesheets({
+                engagement_id: Number(source.timesheetEngagementId),
+                time_log_ids: timeLogIds,
+                hourly_rate: amountField(source.hourlyRate),
+                currency: source.currency,
+              }),
+            })}
+          >
+            Draft from Timesheets
+          </Button>
+        </CompactActions>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialContactId, onBusyChange }: { onBusyChange?:(busy:boolean)=>void;onCreated?: () => void; initialCustomerId?:number;initialContactId?:number }) {
+  const createRef = useNewRecordFocus();
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
+  const [form, setForm] = useState({
+    template: "services",
+    customer_id: initialCustomerId?String(initialCustomerId):"",
+    sales_order_id: "",
+    engagement_id: "",
+    currency: defaultText("currency", "srm"),
+    issue_date: "",
+    due_date: defaultDateAfter("payment_terms_days", "srm"),
+    terms: "Due on receipt",
+    notes: "",
+  });
+  const [lines, setLines] = useState<InvoiceLineDraft[]>([createInvoiceLineDraft()]);
+  const [message, setMessage] = useState("");
+  const queryClient = useQueryClient();
+  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const updateLine = (index: number, key: keyof InvoiceLineDraft, value: string) => setLines((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, [key]: value } : line));
+  const preparedLines = lines
+    .filter((line) => line.description.trim())
+    .map((line) => ({
+      description: line.description.trim(),
+      quantity: amountField(line.quantity, 1),
+      unit_price: amountField(line.unit_price),
+      tax_amount: amountField(line.tax_amount),
+      line_total: invoiceLineAmount(line),
+    }));
+  const subtotal = preparedLines.reduce((sum, line) => sum + Number(line.quantity) * Number(line.unit_price), 0);
+  const tax = preparedLines.reduce((sum, line) => sum + Number(line.tax_amount), 0);
+  const total = subtotal + tax;
+  const create = useMutation({
+    mutationFn: () => {
+      if (!numericField(form.customer_id) && !numericField(form.sales_order_id) && !numericField(form.engagement_id)) {
+        throw new Error("Enter a customer, sales order, or engagement ID before generating the invoice.");
+      }
+      if (!preparedLines.length) throw new Error("Add at least one invoice line with a description.");
+      return srmApi.manualInvoice(compactRecord({
+        request_id: requestId,
+        customer_id: numericField(form.customer_id),
+        contact_id: initialContactId,
+        sales_order_id: numericField(form.sales_order_id),
+        engagement_id: numericField(form.engagement_id),
+        currency: form.currency,
+        issue_date: form.issue_date,
+        due_date: form.due_date,
+        lines: preparedLines,
+      }));
+    },
+    onSuccess: (invoice: SRMRecord) => {
+      setSavedInvoice(invoice);
+      const text = "Manual invoice created from entered details";
+      setMessage(text);
+      toast({ title: text });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      onCreated?.();
+    },
+    onError: (err: unknown) => {
+      const text = apiErrorMessage(err, "Invoice creation failed");
+      setMessage(text);
+      toast({ title: "Invoice creation failed", description: text, variant: "destructive" });
+    },
+  });
+
+  useEffect(()=>onBusyChange?.(create.isPending),[create.isPending,onBusyChange]);
+  return (
+    <SmartCreateSection title="Create invoice" size="large"><Card ref={createRef} id="new-record">
+      <CardHeader>
+        <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CompactForm compactTabs={!initialCustomerId} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Template</span>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
+                <option value="services">Services invoice</option>
+                <option value="milestone">Milestone invoice</option>
+                <option value="time_materials">Time and materials</option>
+              </NativeSelect>
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Shared customer</span>
+              {initialCustomerId?<p>Linked customer #{initialCustomerId}{initialContactId?` · Contact #${initialContactId}`:""}</p>:<SharedCustomerSelect value={form.customer_id} onChange={value => update("customer_id", value)} />}
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Sales order ID</span>
+              <Input inputMode="numeric" value={form.sales_order_id} onChange={(event) => update("sales_order_id", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Engagement ID</span>
+              <Input inputMode="numeric" value={form.engagement_id} onChange={(event) => update("engagement_id", event.target.value)} />
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Currency</span>
+              <CurrencySelect value={form.currency} onChange={currency => update("currency", currency)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Issue date</span>
+              <Input type="date" value={form.issue_date} onChange={(event) => update("issue_date", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Due date</span>
+              <Input type="date" value={form.due_date} onChange={(event) => update("due_date", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Terms</span>
+              <Input value={form.terms} onChange={(event) => update("terms", event.target.value)} />
+            </label>
+          </div>
+          <div className="space-y-2">
+            {lines.map((line, index) => (
+              <div key={index} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
+                <Input aria-label="Line description" placeholder="Line description" value={line.description} onChange={(event) => updateLine(index, "description", event.target.value)} />
+                <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(index, "quantity", event.target.value)} />
+                <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => updateLine(index, "unit_price", event.target.value)} />
+                <Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => updateLine(index, "tax_amount", event.target.value)} />
+                <Button type="button" variant="outline" size="icon" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))} aria-label="Remove invoice line">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={() => setLines((current) => [...current, createInvoiceLineDraft()])}>
+              <Plus className="h-4 w-4" />Add Line
+            </Button>
+          </div>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Notes</span>
+            <RichTextField className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.notes} onChange={(event) => update("notes", event.target.value)} />
+          </label>
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-sm font-semibold">{form.template.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</p>
+                <p className="text-xs text-muted-foreground">Customer {form.customer_id || "-"} · Sales order {form.sales_order_id || "-"} · Engagement {form.engagement_id || "-"}</p>
+                <p className="text-xs text-muted-foreground">Issue {form.issue_date || "-"} · Due {form.due_date || "-"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs uppercase text-muted-foreground">Preview total</p>
+                <p className="text-2xl font-semibold">{money(total)}</p>
+              </div>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-2" className="w-full min-w-[560px] text-sm">
+                <thead className="text-left text-xs uppercase text-muted-foreground">
+                  <tr><th className="py-2">Description</th><th>Qty</th><th>Unit</th><th>Tax</th><th className="text-right">Line total</th></tr>
+                </thead>
+                <tbody>
+                  {preparedLines.length ? preparedLines.map((line, index) => (
+                    <tr {...recordPreviewProps(line)} key={`${line.description}-${index}`} className="border-t">
+                      <td className="py-2">{line.description}</td>
+                      <td>{line.quantity}</td>
+                      <td>{money(line.unit_price)}</td>
+                      <td>{money(line.tax_amount)}</td>
+                      <td className="text-right">{money(line.line_total)}</td>
+                    </tr>
+                  )) : <tr><td colSpan={5} className="py-3 text-center text-muted-foreground">Add line items to preview invoice totals.</td></tr>}
+                </tbody>
+              </GridTable>
+            </div>
+            <div className="mt-3 grid gap-1 text-sm sm:ml-auto sm:w-72">
+              <div className="flex justify-between"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+              <div className="flex justify-between"><span>Tax</span><span>{money(tax)}</span></div>
+              <div className="flex justify-between font-semibold"><span>Total</span><span>{money(total)}</span></div>
+              <p className="pt-2 text-xs text-muted-foreground">{form.terms}</p>
+              {form.notes ? <div className="text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={form.notes}/></div> : null}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={create.isPending || !!savedInvoice}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
+            {savedInvoice && <><Button asChild variant="outline"><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link></Button><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
+            <ActionMessage message={message} />
+          </div>
+        </CompactForm>
+      </CardContent>
+    </Card></SmartCreateSection>
+  );
+}
+
+function InvoiceLineEditor({ invoiceId, onSaved }: { invoiceId: number; onSaved?: () => void }) {
+  const [line, setLine] = useState<InvoiceLineDraft>(createInvoiceLineDraft());
+  const [message, setMessage] = useState("");
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => {
+      if (!invoiceId) throw new Error("Select an invoice before adding a line.");
+      if (!line.description.trim()) throw new Error("Line description is required.");
+      return srmApi.addInvoiceLine(invoiceId, {
+        description: line.description.trim(),
+        quantity: amountField(line.quantity, 1),
+        unit_price: amountField(line.unit_price),
+        tax_amount: amountField(line.tax_amount),
+        line_total: invoiceLineAmount(line),
+      });
+    },
+    onSuccess: () => {
+      const text = "Invoice line added";
+      setMessage(text);
+      toast({ title: text });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      setLine(createInvoiceLineDraft());
+      onSaved?.();
+    },
+    onError: (err: unknown) => {
+      const text = apiErrorMessage(err, "Unable to add invoice line");
+      setMessage(text);
+      toast({ title: "Invoice line failed", description: text, variant: "destructive" });
+    },
+  });
+
+  return (
+    <CompactForm className="space-y-3 rounded-lg border p-3" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
+      <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
+        <Input placeholder="Line description" value={line.description} onChange={(event) => setLine((current) => ({ ...current, description: event.target.value }))} />
+        <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => setLine((current) => ({ ...current, quantity: event.target.value }))} />
+        <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => setLine((current) => ({ ...current, unit_price: event.target.value }))} />
+        <Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => setLine((current) => ({ ...current, tax_amount: event.target.value }))} />
+        <Button type="submit" disabled={save.isPending || !invoiceId}>{save.isPending ? "Adding..." : "Add Line"}</Button>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="text-muted-foreground">Line preview total: {money(invoiceLineAmount(line))}</span>
+        <ActionMessage message={message} />
+      </div>
+    </CompactForm>
+  );
+}
+
+function InvoiceDraftsView() {
+  const canManage = useCanManageRevenue("create");
+  const query = useQuery({ queryKey: ["srm", "invoiceDrafts"], queryFn: srmApi.invoiceDrafts });
+  const action = useRevenueAction();
+  const records = asList(query.data);
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.invoiceDrafts} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <ActionMessage message={!canManage ? "Read-only revenue access: create, approve, send, and allocation actions are hidden for this role." : action.message} />
+      {canManage ? (
+        <>
+          <SourceDraftControls action={action} />
+          <ManualInvoiceComposer onCreated={() => query.refetch()} />
+        </>
+      ) : null}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <RecordList title="Invoice Drafts" records={records} primaryKey="invoice_number" secondaryKey="source_type" amountKey="total_amount" recordHref={record => record.invoice_id ? `/srm/invoices?invoice_id=${record.invoice_id}` : undefined} />
+        <SummaryCard title="Source Evidence" data={{ sales_order: "Supported", engagement: "Supported", billing_milestone: "Duplicate guarded", pms_milestone: "Client approval required", timesheets: "Approved billable logs only", manual: "Source-tagged lines" }} />
+      </div>
+    </div>
+  );
+}
+
+function InvoicesView() {
+  const [invoiceSearchParams]=useSearchParams();
+  const accountingCustomer=Number(invoiceSearchParams.get("accounting_customer"))||undefined;
+  const canManage = useCanManageRevenue(),canCreate=useCanManageRevenue("create"),canEdit=useCanManageRevenue("edit"),canApprove=useCanManageRevenue("approve"),canExport=useModuleAction("export");
+  const list = useQuery({ queryKey: ["srm", "invoices"], queryFn: srmApi.invoices });
+  const requestedInvoice = invoiceSearchParams.get("invoice_id") || "";
+  const [selectedInvoice, setSelectedInvoice] = useState(requestedInvoice);
+  useEffect(() => setSelectedInvoice(requestedInvoice), [requestedInvoice]);
+  const invoiceId = Number(selectedInvoice || asList(list.data)[0]?.id || 0);
+  const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
+  const action = useRevenueAction();
+  const invoice = (detail.data || asList(list.data)[0] || {}) as SRMRecord;
+  const accountingStatus = (invoice.accounting_status || {}) as SRMRecord;
+
+  return (
+    <div className="space-y-5">
+      <ExternalInvoices key={accountingCustomer||"all"} crmCompanyId={accountingCustomer}/>
+      <InvoiceList invoices={asList(list.data)} />
+      <label className="flex items-center gap-2">Invoice to review<NativeSelect aria-label="Invoice to review" value={invoiceId || ""} onChange={event => setSelectedInvoice(event.target.value)}><option value="" disabled>Select invoice</option>{asList(list.data).map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.invoice_number || item.id)}</option>)}</NativeSelect></label>
+      <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
+      <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
+      {canCreate ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
+      {!list.isLoading && !invoiceId ? <p className="rounded-lg border p-4 text-sm text-muted-foreground">No invoices yet. Create an invoice or generate a draft from a sales order to get started.</p> : null}
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Invoice Number" value={invoice.invoice_number} />
+        <MetricCard label="Total Amount" value={money(invoice.total_amount)} />
+        <MetricCard label="Paid Amount" value={money(invoice.paid_amount)} />
+        <MetricCard label="Balance Amount" value={money(invoice.balance_amount)} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">FAM Accounting Status</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="Posting Status" value={formatValue(accountingStatus.status || "not_posted")} />
+          <MetricCard label="FAM Voucher" value={accountingStatus.voucher_id ? `#${accountingStatus.voucher_id}` : "Not posted"} />
+          <MetricCard label="Posting Job" value={accountingStatus.job_id ? `#${accountingStatus.job_id}` : "Pending"} />
+          <MetricCard label="FAM Ledger Link" value={asList(accountingStatus.mappings).length ? "Mapped" : "Not mapped"} />
+        </CardContent>
+      </Card>
+      {canManage ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Invoice Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={!canApprove || action.isPending || !invoiceId || !["draft","pending_approval"].includes(String(invoice.status))} onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
+              <Button disabled={!canCreate || action.isPending || !invoiceId || !["approved","issued","sent"].includes(String(invoice.status))} onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
+              {invoiceId ? <Button variant="outline" disabled={!canExport || action.isPending} onClick={() => action.mutate({ label: "Invoice download", run: () => srmApi.downloadInvoice(invoiceId) })}>Download PDF</Button> : null}
+            </div>
+            {invoiceId && canEdit && String(invoice.status)==="draft" ? <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} /> : null}
+          </CardContent>
+        </Card>
+      ) : (
+        invoiceId ? <Button variant="outline" disabled={!canExport || action.isPending} onClick={() => action.mutate({ label: "Invoice download", run: () => srmApi.downloadInvoice(invoiceId) })}>Download PDF</Button> : null
+      )}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <RecordList title="Invoices" records={asList(list.data)} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
+        <RecordList title="Invoice Lines" records={asList(invoice.lines)} primaryKey="description" secondaryKey="source_type" amountKey="line_total" />
+        <RecordList title="Receipt Allocations" records={asList(invoice.allocations || invoice.receipt_allocations)} primaryKey="receipt_number" secondaryKey="status" amountKey="amount" />
+        <RecordList title="Audit / History" records={asList(invoice.history || invoice.audit)} primaryKey="to_status" secondaryKey="action" amountKey="actor_user_id" />
+      </div>
+    </div>
+  );
+}
+
+function CollectionsView() {
+  return <ConnectedCollectionsPage />;
+}
+
+function ProfitabilityView() {
+  const [filters, setFilters] = useState({ engagement_id: "", project_id: "", customer_id: "", crm_deal_id: "", sales_order_id: "" });
+  const query = useQuery({
+    queryKey: ["srm", "profitability", filters],
+    queryFn: () => srmApi.profitabilityByFilters(Object.fromEntries(Object.entries(filters).filter(([, value]) => value).map(([key, value]) => [key, Number(value)]))),
+  });
+  const records = asList(query.data);
+  const profitability = (records[0] || {}) as SRMRecord;
+  const profitabilityValues: SRMRecord = {
+    quoted_value: profitability.quoted_value ?? 0,
+    sales_order_value: profitability.sales_order_value ?? profitability.order_amount ?? 0,
+    contract_value: profitability.contract_value ?? 0,
+    billing_plan_value: profitability.billing_plan_value ?? 0,
+    delivery_budget: profitability.delivery_budget ?? 0,
+    approved_timesheet_cost: profitability.approved_timesheet_cost ?? 0,
+    employee_cost: profitability.employee_cost ?? 0,
+    gross_margin: profitability.gross_margin ?? profitability.gross_margin_amount ?? 0,
+    cash_margin: profitability.cash_margin ?? 0,
+    collection_status: profitability.collection_status ?? "not_billed",
+  };
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.profitability} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <MobileFilters label="Profitability filters" chips={Object.entries(filters).filter(([,value])=>!!value).map(([key,value])=>`${key.replace(/_/g," ")}: ${value}`)}>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Profitability Filters</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-5">
+          {Object.keys(filters).map((key) => (
+            <Input key={key} aria-label={key.replace(/_/g, " ")} placeholder={key.replace(/_/g, " ")} value={filters[key as keyof typeof filters]} onChange={(event) => setFilters((current) => ({ ...current, [key]: event.target.value }))} />
+          ))}
+        </CardContent>
+      </Card>
+      </MobileFilters>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <RecordList title="Engagement Profitability" records={records} primaryKey="engagement_id" secondaryKey="collection_status" amountKey="gross_margin" />
+        <SummaryCard title="Profitability Values" data={profitabilityValues} />
+      </div>
+    </div>
+  );
+}
+
+function RevenueEventsView() {
+  const dashboard = useQuery({ queryKey: ["srm", "dashboard", "revenueEvents"], queryFn: () => srmApi.dashboard() });
+  const leadToCash = useQuery({ queryKey: ["srm", "leadToCash"], queryFn: srmApi.leadToCash });
+  const events = asList((dashboard.data as SRMRecord | undefined)?.revenue_trend);
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={{ ...viewMeta.revenueRecognition, title: "Revenue Events / Revenue Operations", description: "Operational revenue, invoice, milestone, and cash events. This is not presented as a full IFRS 15 automation engine." }} isFetching={dashboard.isFetching || leadToCash.isFetching} onRefresh={() => { dashboard.refetch(); leadToCash.refetch(); }} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <RecordList title="Revenue Events" records={events} primaryKey="event_type" secondaryKey="date" amountKey="amount" />
+        <SummaryCard title="Invoice / Receipt / Cash Events" data={(leadToCash.data || {}) as SRMRecord} />
+        <RecordList title="Milestone Events" records={events.filter((item) => String(item.event_type || "").includes("milestone"))} primaryKey="event_type" secondaryKey="date" amountKey="amount" />
+        <RecordList title="Audit-backed Event History" records={events} primaryKey="event_type" secondaryKey="currency" amountKey="amount" />
+      </div>
+    </div>
+  );
+}
+
+const reportDefinitions = [
+  { key: "recurring_invoice_details", title: "Recurring Invoice Details", description: "Scheduled occurrences, plan status, due dates and linked invoice drafts. Amounts retain their original currency.", filters: "Customer ID, status, occurrence date" },
+  { key: "sales_order_report", title: "Sales Order Report", description: "Orders by customer, owner, value, and lifecycle status.", filters: "Date range, customer, owner, status" },
+  { key: "contract_report", title: "Contract Report", description: "Contract value, active/renewal status, and customer commitments.", filters: "Customer, status, renewal window" },
+  { key: "invoice_register", title: "Invoice Register", description: "Invoice numbers, statuses, totals, paid amounts, and balances.", filters: "Invoice date, customer, status" },
+  { key: "invoice_aging", title: "Invoice Aging", description: "Invoice-level due, overdue, and paid aging posture.", filters: "Due date, customer, aging bucket" },
+  { key: "collection_aging", title: "Collection Aging", description: "Customer aging buckets for collection prioritization.", filters: "Customer, bucket, risk" },
+  { key: "customer_outstanding", title: "Customer Outstanding", description: "Open receivables and outstanding customer balances.", filters: "Customer, amount range, owner" },
+  { key: "engagement_profitability", title: "Engagement Profitability", description: "Engagement revenue, delivery cost, gross margin, and cash margin.", filters: "Engagement, customer, status" },
+  { key: "project_profitability", title: "Project Profitability", description: "PMS-linked project revenue, cost, and margin performance.", filters: "Project, engagement, project manager" },
+  { key: "customer_profitability", title: "Customer Profitability", description: "Customer-level revenue, cost, collections, and margin.", filters: "Customer, period, margin status" },
+  { key: "lead_to_cash_report", title: "Lead-to-Cash Report", description: "CRM won handoff through order, engagement, invoice, and collection.", filters: "CRM deal, sales order, engagement" },
+  { key: "sales_to_delivery_margin", title: "Sales-to-Delivery Margin", description: "Compare quoted/order value against delivery budget and actual cost.", filters: "Sales owner, delivery owner, period" },
+  { key: "cash_margin_report", title: "Cash Margin Report", description: "Collected cash less delivery cost and open collection exposure.", filters: "Customer, invoice status, collection status" },
+];
+
+function previewRows(value: unknown): SRMRecord[] {
+  if (Array.isArray(value)) return value.slice(0, 3) as SRMRecord[];
+  if (value && typeof value === "object") {
+    const record = value as SRMRecord;
+    const nested = Object.values(record).find(Array.isArray);
+    if (Array.isArray(nested) && nested.length) return nested.slice(0, 3) as SRMRecord[];
+    return [record];
+  }
+  return [];
+}
+
+function reportRows(value: unknown): SRMRecord[] {
+  if (Array.isArray(value)) return value as SRMRecord[];
+  if (value && typeof value === "object") {
+    const record = value as SRMRecord;
+    const nested = Object.values(record).find(Array.isArray);
+    if (Array.isArray(nested)) return nested as SRMRecord[];
+    return [record];
+  }
+  return [];
+}
+
+function exportReportCsv(title: string, rows: SRMRecord[]) {
+  if (!rows.length) return false;
+  const columns = Array.from(rows.reduce((set, row) => {
+    Object.keys(row).forEach((key) => set.add(key));
+    return set;
+  }, new Set<string>()));
+  const csv = [
+    columns.map(csvCell).join(","),
+    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "srm-report"}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+function csvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function ReportsView() {
+  const query = useQuery({ queryKey: ["srm", "reports"], queryFn: srmApi.reports });
+  const [selected, setSelected] = useState("sales_order_report");
+  const [message, setMessage] = useState("");
+  const [recurringFilters, setRecurringFilters] = useState({ customer: "", status: "", from: "", to: "" });
+  const data = (query.data || {}) as SRMRecord;
+  const selectedDefinition = reportDefinitions.find((item) => item.key === selected) || reportDefinitions[0];
+  const filteredRows = (key: string) => {
+    const available = reportRows(data[key]);
+    if (key !== "recurring_invoice_details") return available;
+    return available.filter(row =>
+      (!recurringFilters.customer || String(row.customer_id || "").includes(recurringFilters.customer.trim())) &&
+      (!recurringFilters.status || String(row.status || "").toLowerCase().includes(recurringFilters.status.trim().toLowerCase())) &&
+      (!recurringFilters.from || String(row.date || "") >= recurringFilters.from) &&
+      (!recurringFilters.to || (!!row.date && String(row.date) <= recurringFilters.to)));
+  };
+  const exportRows = filteredRows(selectedDefinition.key);
+  const rows = selected === "recurring_invoice_details" ? exportRows : previewRows(data[selectedDefinition.key]);
+  const exportSelected = (report = selectedDefinition) => {
+    const availableRows = filteredRows(report.key);
+    if (exportReportCsv(report.title, availableRows)) {
+      setMessage(`${report.title} CSV exported with ${availableRows.length} row${availableRows.length === 1 ? "" : "s"}.`);
+    } else {
+      setMessage(`${report.title} has no rows available to export.`);
+    }
+  };
+  return (
+    <div className="space-y-5">
+      <DailyAccountingReport/>
+      <PageHeader meta={viewMeta.reports} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <ActionMessage message={message} />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+        <div className="grid gap-3 md:grid-cols-2">
+          {reportDefinitions.map((report) => (
+            <Card key={report.key} className={selected === report.key ? "border-primary/60" : undefined}>
+              <CardHeader>
+                <CardTitle className="text-base">{report.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={report.description}/></div>
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs">
+                  <span className="font-medium">Filters:</span> {report.filters}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setSelected(report.key); setMessage(`${report.title} preview loaded`); }}>View details</Button>
+                  <Button size="sm" variant="secondary" disabled={query.isLoading} onClick={() => exportSelected(report)}>Export</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="xl:sticky xl:top-4 xl:self-start">
+          <CardHeader>
+            <CardTitle className="text-base">{selectedDefinition.title} Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {selected === "recurring_invoice_details" && <div className="grid gap-2 sm:grid-cols-2">
+              <Input aria-label="report customer filter" placeholder="Customer ID" value={recurringFilters.customer} onChange={e => setRecurringFilters({...recurringFilters, customer:e.target.value})}/>
+              <Input aria-label="report status filter" placeholder="Status" value={recurringFilters.status} onChange={e => setRecurringFilters({...recurringFilters, status:e.target.value})}/>
+              <Input type="date" aria-label="report from date filter" value={recurringFilters.from} onChange={e => setRecurringFilters({...recurringFilters, from:e.target.value})}/>
+              <Input type="date" min={recurringFilters.from} aria-label="report to date filter" value={recurringFilters.to} onChange={e => setRecurringFilters({...recurringFilters, to:e.target.value})}/>
+            </div>}
+            <div className="overflow-x-auto rounded-lg border">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-3" className="w-full min-w-[420px] text-sm">
+                <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2">Metric</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2 text-right">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {query.isLoading ? (
+                    <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">Loading report preview...</td></tr>
+                  ) : rows.length ? rows.map((row, index) => (
+                    <tr {...recordPreviewProps(row)} key={`${selected}-${index}`} className="border-t">
+                      <td className="px-3 py-2">{formatValue(row.invoice_number || row.plan_name || row.order_number || row.contract_number || row.engagement_number || row.customer_id || row.id || selectedDefinition.title)}</td>
+                      <td className="px-3 py-2">{formatValue(row.status || row.collection_status || row.margin_status || "available")}</td>
+                      <td className="px-3 py-2 text-right">{formatValue(row.total || row.total_amount || row.total_outstanding || row.gross_margin || row.cash_margin_total || row.count || row.value || "-")}{selected === "recurring_invoice_details" ? ` ${String(row.currency || "")} | ${String(row.date || "")}` : ""}</td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">No preview data available for this report.</td></tr>
+                  )}
+                </tbody>
+              </GridTable>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{exportRows.length ? `${exportRows.length} row${exportRows.length === 1 ? "" : "s"} available for CSV export.` : "No rows available for CSV export."}</span>
+              <Button size="sm" variant="outline" disabled={query.isLoading || !exportRows.length} onClick={() => exportSelected()}>Export CSV</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+const defaultSettings: Record<string, unknown> = {
+  invoice_number_prefix: "INV",
+  sales_order_number_prefix: "SO",
+  contract_number_prefix: "CTR",
+  default_payment_terms: "Net 30",
+  default_tax_vat_settings: "GST 18%",
+  default_billing_plan_rules: "Milestone billing follows approved sales order value.",
+  collection_reminder_templates: "Gentle reminder, overdue reminder, escalation notice",
+  escalation_thresholds: "7, 15, 30 days overdue",
+  write_off_approval_required: true,
+  dashboard_visibility_preferences: "Show revenue, collections, and profitability cards",
+};
+
+const settingLabels: Record<string, string> = {
+  invoice_number_prefix: "invoice numbering prefix",
+  sales_order_number_prefix: "sales order numbering prefix",
+  contract_number_prefix: "contract numbering prefix",
+  default_payment_terms: "default payment terms",
+  default_tax_vat_settings: "default tax/VAT settings",
+  default_billing_plan_rules: "default billing plan rules",
+  collection_reminder_templates: "collection reminder templates",
+  escalation_thresholds: "escalation thresholds",
+  write_off_approval_required: "write-off approval requirement",
+  dashboard_visibility_preferences: "dashboard visibility preferences",
+};
+
+function settingsFromRows(rows: SRMRecord[]): Record<string, unknown> {
+  return rows.reduce((acc, row) => {
+    const key = String(row.key || "");
+    if (!key) return acc;
+    const value = row.value_json;
+    acc[key] = value && typeof value === "object" && !Array.isArray(value) && "value" in value ? (value as SRMRecord).value : value;
+    return acc;
+  }, { ...defaultSettings });
+}
+
+function SettingsView() {
+  const canManage = useCanManageSettings();
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["srm", "settings"], queryFn: srmApi.settings });
+  const [draft, setDraft] = useState<Record<string, unknown>>(defaultSettings);
+  const [message, setMessage] = useState("");
+  const rows = asList(query.data);
+  const settings = { ...settingsFromRows(rows), ...draft };
+  const save = useMutation({
+    mutationFn: async () => {
+      const missing = ["invoice_number_prefix", "sales_order_number_prefix", "contract_number_prefix", "default_payment_terms"].find((key) => !String(settings[key] || "").trim());
+      if (missing) throw new Error(`${settingLabels[missing] || missing.replace(/_/g, " ")} is required`);
+      await Promise.all(Object.entries(settings).map(([key, value]) => srmApi.updateSetting(key, { value })));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["srm", "settings"] });
+      setMessage("SRM settings saved");
+      toast({ title: "SRM settings saved" });
+    },
+    onError: (error: unknown) => {
+      const text = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (error as Error)?.message || "Unable to save SRM settings";
+      setMessage(text);
+      toast({ title: "SRM settings validation", description: text, variant: "destructive" });
+    },
+  });
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.settings} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <ActionMessage message={!canManage ? "Read-only mode: SRM settings can be viewed but only SRM Admin or srm_settings_manage users can edit." : message} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Revenue Configuration</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          {Object.keys(defaultSettings).map((key) => {
+            const label = settingLabels[key] || key.replace(/_/g, " ");
+            const value = settings[key];
+            if (typeof defaultSettings[key] === "boolean") {
+              return (
+                <label key={key} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                  <span className="font-medium capitalize">{label}</span>
+                  <input aria-label={label} type="checkbox" disabled={!canManage} checked={Boolean(value)} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.checked }))} />
+                </label>
+              );
+            }
+            return (
+              <label key={key} className="space-y-2 text-sm">
+                <span className="font-medium capitalize">{label}</span>
+                <Input aria-label={label} disabled={!canManage} value={String(value || "")} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} />
+              </label>
+            );
+          })}
+        </CardContent>
+      </Card>
+      {canManage ? (
+        <Button onClick={() => save.mutate()} disabled={save.isPending}>Save Settings</Button>
+      ) : null}
+    </div>
+  );
+}
+
+function POSSessionView() {
+  const queryClient = useQueryClient();
+  const canManage = useCanManageRevenue();
+  const [openingCash, setOpeningCash] = useState("5000");
+  const [cashAmount, setCashAmount] = useState("");
+  const [cashReason, setCashReason] = useState("");
+  const [movementType, setMovementType] = useState("cash_in");
+  const query = useQuery({ queryKey: ["srm", "posSessions"], queryFn: srmApi.posSessions });
+  const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
+  const activeSession = ((active.data as SRMRecord | undefined)?.session || null) as SRMRecord | null;
+  const open = useMutation({
+    mutationFn: () => srmApi.openPosSession({ branch: "Main Branch", register_name: "Main POS Register", opening_cash: amountField(openingCash) }),
+    onSuccess: () => {
+      toast({ title: "POS session opened" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const movement = useMutation({
+    mutationFn: () => srmApi.createPosCashMovement({ session_id: activeSession?.id, movement_type: movementType, amount: amountField(cashAmount), reason: cashReason }),
+    onSuccess: () => {
+      setCashAmount("");
+      setCashReason("");
+      toast({ title: "Cash movement saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const rows = asList(query.data);
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.posSessions} isFetching={query.isFetching || active.isFetching} onRefresh={() => { query.refetch(); active.refetch(); }} />
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Active session" value={activeSession ? formatValue(activeSession.session_number) : "None"} />
+        <MetricCard label="Expected cash" value={cashMoney((active.data as SRMRecord | undefined)?.expected_cash)} />
+        <MetricCard label="Cash sales" value={cashMoney((active.data as SRMRecord | undefined)?.cash_sales)} />
+        <MetricCard label="Sales count" value={formatValue((active.data as SRMRecord | undefined)?.sales_count || 0)} />
+      </div>
+      {canManage ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Open register session</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <Input value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} placeholder="Opening cash" />
+              <Button onClick={() => open.mutate()} disabled={open.isPending || Boolean(activeSession)}>Open Session</Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Cash movement</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-[9rem_1fr_1fr_auto]">
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={movementType} onChange={(event) => setMovementType(event.target.value)}>
+                <option value="cash_in">Cash In</option>
+                <option value="cash_out">Cash Out</option>
+              </NativeSelect>
+              <Input value={cashAmount} onChange={(event) => setCashAmount(event.target.value)} placeholder="Amount" />
+              <Input value={cashReason} onChange={(event) => setCashReason(event.target.value)} placeholder="Reason" />
+              <Button onClick={() => movement.mutate()} disabled={movement.isPending || !activeSession || !amountField(cashAmount)}>Save</Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+      <SectionState label="POS sessions" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
+      {!query.isError ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-4" className="w-full min-w-[900px] text-sm">
+                <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                  <tr><th className="px-4 py-3">Session</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Register</th><th className="px-4 py-3">Opening</th><th className="px-4 py-3">Cash Sales</th><th className="px-4 py-3">Expected</th><th className="px-4 py-3">Variance</th></tr>
+                </thead>
+                <tbody>
+                  {rows.length ? rows.map((row, index) => {
+                    const session = (row.session || {}) as SRMRecord;
+                    const closing = (row.closing || {}) as SRMRecord;
+                    return (
+                      <tr {...recordPreviewProps(row)} key={String(session.id || index)} className="border-b last:border-0">
+                        <td className="px-4 py-3 font-medium">{formatValue(session.session_number)}</td>
+                        <td className="px-4 py-3"><Badge variant={statusTone(session.status)}>{formatValue(session.status)}</Badge></td>
+                        <td className="px-4 py-3">{formatValue(session.register_name)}</td>
+                        <td className="px-4 py-3">{money(session.opening_cash)}</td>
+                        <td className="px-4 py-3">{money(row.cash_sales)}</td>
+                        <td className="px-4 py-3">{cashMoney(row.expected_cash)}</td>
+                        <td className="px-4 py-3">{cashMoney(closing.variance)}</td>
+                      </tr>
+                    );
+                  }) : <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No POS sessions found.</td></tr>}
+                </tbody>
+              </GridTable>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function CashierClosingView() {
+  const queryClient = useQueryClient();
+  const canManage = useCanManageRevenue();
+  const [countedCash, setCountedCash] = useState("");
+  const [notes, setNotes] = useState("");
+  const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
+  const activeData = (active.data || {}) as SRMRecord;
+  const session = (activeData.session || null) as SRMRecord | null;
+  const expected = cashNumber(activeData.expected_cash);
+  const counted = cashNumber(countedCash);
+  const canCloseSession = Boolean(session?.id) && !activeData.reconciliation_required && Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0;
+  const close = useMutation({
+    mutationFn: () => {
+      if (!canManage || !canCloseSession) throw new Error("Cash closing requires reconciled expected cash and a valid non-negative count");
+      return srmApi.closePosSession({ session_id: session?.id, counted_cash: counted, notes });
+    },
+    onSuccess: () => {
+      toast({ title: "Cashier closing posted" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.cashierClosing} isFetching={active.isFetching} onRefresh={() => active.refetch()} />
+      <SectionState label="active POS session" isLoading={active.isLoading} isError={active.isError} onRetry={() => active.refetch()} />
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Session" value={session ? session.session_number : "No open session"} />
+        <MetricCard label="Opening cash" value={money(session?.opening_cash)} />
+        <MetricCard label="Expected cash" value={cashMoney(expected)} />
+        <MetricCard label="Variance preview" value={Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0 ? money(counted - expected) : "-"} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Close active session</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
+          <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
+          <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !canCloseSession}>Close Session</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Closing evidence</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="Cash sales" value={cashMoney(activeData.cash_sales)} />
+          <MetricCard label="Cash in" value={cashMoney(activeData.cash_in)} />
+          <MetricCard label="Cash out" value={cashMoney(activeData.cash_out)} />
+          <MetricCard label="Sales count" value={formatValue(activeData.sales_count || 0)} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function POSReturnsView() {
+  const scope = useRecordScope();
+  const query = useQuery({ queryKey: ["srm", "posReturns", scope], queryFn: srmApi.posReturns });
+  const rows = asList(query.data);
+  return (
+    <div className="space-y-4">
+      <PageHeader meta={viewMeta.posReturns} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
+        <POSReturnForm />
+        <Card>
+          <CardHeader><CardTitle className="text-base">Return register</CardTitle></CardHeader>
+          <CardContent>
+            <SectionState label="POS returns" isLoading={query.isLoading} isError={query.isError} isEmpty={!query.isLoading && !rows.length} onRetry={() => query.refetch()} />
+            {rows.length ? (
+              <div className="overflow-auto rounded-lg border">
+                <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-5" className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left">
+                    <tr>
+                      {["Return #", "Status", "Refund", "Amount", "Created"].map((head) => <th key={head} className="px-3 py-2 font-medium">{head}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">
+                        <td className="px-3 py-2 font-medium">{formatValue(row.return_number)}</td>
+                        <td className="px-3 py-2"><Badge variant={statusTone(row.status)}>{formatValue(row.status)}</Badge></td>
+                        <td className="px-3 py-2">{formatValue(row.refund_method)} / {formatValue(row.refund_status)}</td>
+                        <td className="px-3 py-2">{money(row.refund_amount)}</td>
+                        <td className="px-3 py-2">{formatValue(row.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </GridTable>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export function CommercialCreateCard(props: Parameters<typeof ScopedCommercialCreateCard>[0]) {
+  const scope = usePrivateDraftScope();
+  return <ScopedCommercialCreateCard key={scope} {...props}/>;
+}
+
+function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+  const [creationParams] = useSearchParams();
+  const contextId = (key: string) => /^\d+$/.test(creationParams.get(key) || "") ? creationParams.get(key)! : "";
+  const ownsDraft = usePrivateDraftOwner();
+  const draftKey = privateDraftKey("srm-order-draft", contextId("customer_id"));
+  const createRef = useNewRecordFocus();
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+  const [salesOrder, setSalesOrder] = useState(() => {
+    const defaults = {
+    title: "",
+    customer_id: contextId("customer_id"),
+    currency: defaultText("currency", "srm"),
+    expected_start_date: "",
+    expected_end_date: "",
+    terms: "",
+    product_id: "",
+    line_description: "",
+    quantity: "1",
+    unit_price: "0",
+    tax_amount: "0",
+    };
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) || "null");
+      if (saved && typeof saved === "object") return Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key, typeof saved[key] === "string" ? saved[key] : value])) as typeof defaults;
+    } catch { /* Invalid browser drafts fall back to an empty form. */ }
+    return defaults;
+  });
+  const [restoredDraft] = useState(() => kind === "salesOrders" && !!sessionStorage.getItem(draftKey));
+  const [orderLines, setOrderLines] = useState<CatalogLine[]>(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem(draftKey) || "null"); if (Array.isArray(saved?.lines)) return saved.lines; } catch { /* Keep other recovered draft fields. */ }
+    const id = Number(salesOrder.product_id);
+    return Number.isSafeInteger(id) && id > 0 ? [{ item_id: id, kind: "product", name: salesOrder.line_description, quantity: Number(salesOrder.quantity), unit_price: Number(salesOrder.unit_price), discount: 0, currency: salesOrder.currency, tax_rate: Number(salesOrder.tax_amount) === 0 ? 0 : Number(salesOrder.tax_amount) / (Number(salesOrder.quantity) * Number(salesOrder.unit_price)) * 100 }] : [];
+  });
+  useEffect(() => {
+    if (kind !== "salesOrders") return;
+    if (!ownsDraft()) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ ...salesOrder, lines: orderLines })); } catch { /* Saving the record remains available without browser storage. */ }
+  }, [draftKey, kind, salesOrder, orderLines]);
+  const [contract, setContract] = useState({
+    title: "",
+    sales_order_id: contextId("sales_order_id"),
+    customer_id: contextId("customer_id"),
+    contract_type: "services",
+    effective_date: "",
+    expiry_date: "",
+    contract_value: "0",
+    currency: defaultText("currency", "srm"),
+    terms: "",
+  });
+  const [engagement, setEngagement] = useState({
+    name: "",
+    sales_order_id: contextId("sales_order_id"),
+    contract_id: contextId("contract_id"),
+    customer_id: contextId("customer_id"),
+    billing_type: "fixed_fee",
+    budget_amount: "0",
+    currency: defaultText("currency", "srm"),
+    planned_start_date: "",
+    planned_end_date: "",
+  });
+  const [billingPlan, setBillingPlan] = useState({
+    engagement_id: contextId("engagement_id"),
+    name: "",
+    billing_type: "fixed_fee",
+    currency: defaultText("currency", "srm"),
+    total_amount: "0",
+    recurrence_rule: "",
+    milestone_name: "",
+    milestone_due_date: defaultDateAfter("payment_terms_days", "srm"),
+    milestone_amount: "0",
+  });
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (kind === "salesOrders") {
+        return srmApi.createSalesOrder(salesOrderInput(salesOrder, orderLines), { recordSync: false });
+      }
+      if (kind === "contracts") {
+        if (!contract.title.trim()) throw new Error("Contract title is required.");
+        return srmApi.createContract(compactRecord({
+          title: contract.title.trim(),
+          sales_order_id: numericField(contract.sales_order_id),
+          customer_id: numericField(contract.customer_id),
+          contract_type: contract.contract_type,
+          effective_date: contract.effective_date,
+          expiry_date: contract.expiry_date,
+          contract_value: amountField(contract.contract_value),
+          currency: contract.currency,
+          terms: contract.terms,
+        }));
+      }
+      if (kind === "engagements") {
+        if (!engagement.name.trim()) throw new Error("Engagement name is required.");
+        return srmApi.createEngagement(compactRecord({
+          name: engagement.name.trim(),
+          sales_order_id: numericField(engagement.sales_order_id),
+          contract_id: numericField(engagement.contract_id),
+          customer_id: numericField(engagement.customer_id),
+          billing_type: engagement.billing_type,
+          budget_amount: amountField(engagement.budget_amount),
+          currency: engagement.currency,
+          planned_start_date: engagement.planned_start_date,
+          planned_end_date: engagement.planned_end_date,
+        }));
+      }
+      if (kind === "billingPlans") {
+        if (!numericField(billingPlan.engagement_id)) throw new Error("Engagement ID is required for a billing plan.");
+        if (!billingPlan.name.trim()) throw new Error("Billing plan name is required.");
+        return srmApi.createBillingPlan(compactRecord({
+          engagement_id: Number(billingPlan.engagement_id),
+          name: billingPlan.name.trim(),
+          billing_type: billingPlan.billing_type,
+          currency: billingPlan.currency,
+          total_amount: amountField(billingPlan.total_amount),
+          recurrence_rule: billingPlan.recurrence_rule,
+          milestones: billingPlan.milestone_name.trim() ? [{
+            name: billingPlan.milestone_name.trim(),
+            due_date: billingPlan.milestone_due_date || undefined,
+            amount: amountField(billingPlan.milestone_amount),
+          }] : [],
+        }));
+      }
+      throw new Error("Create form is not available for this SRM view.");
+    },
+    onSuccess: async (result) => {
+      if (!ownsDraft()) return;
+      if (kind === "salesOrders") sessionStorage.removeItem(draftKey);
+      const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
+      setMessage(text);
+      toast({ title: text });
+      if (kind === "salesOrders") {
+        onSaved?.();
+        void syncSrmNow(queryClient, { type: "sales_order_changed", source: "srm-salesOrders-create", ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined } }).catch(() => { if (ownsDraft()) toast({ title: "Sales order saved", description: "The list could not be refreshed. Refresh to see the latest details." }); });
+        return;
+      }
+      await syncSrmNow(queryClient, {
+        type: "inventory_changed",
+        source: `srm-${kind}-create`,
+        ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
+      });
+      if (ownsDraft()) onSaved?.();
+    },
+    onError: (err: unknown) => {
+      if (!ownsDraft()) return;
+      const text = apiErrorMessage(err, "Create failed");
+      setMessage(text);
+      toast({ title: "SRM create failed", description: text, variant: "destructive" });
+    },
+  });
+
+  if (!["salesOrders", "contracts", "engagements", "billingPlans"].includes(kind)) return null;
+
+  return (
+    <SmartCreateSection title={<>Create {viewMeta[kind].title.slice(0, -1)}</>} size="large"><Card ref={createRef} id="new-record" className="scroll-mt-4">
+      <CardHeader>
+        <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {restoredDraft && <p role="status" className="mb-3 text-sm text-muted-foreground">Unsaved sales order restored for this company and branch. Review it before saving.</p>}
+        <CompactForm compactTabs={kind !== "contracts"} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
+          {kind === "salesOrders" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-2 text-sm"><span className="font-medium">Title</span><Input required maxLength={220} value={salesOrder.title} onChange={event => setSalesOrder(current => ({ ...current, title: event.target.value }))}/></label>
+                <label className="space-y-2 text-sm"><span className="font-medium"><BusinessTerm name="customer"/></span><SharedCustomerSelect value={salesOrder.customer_id} onChange={customer_id => setSalesOrder(current => ({ ...current, customer_id }))}/></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={salesOrder.currency} onChange={currency => setSalesOrder(current => ({ ...current, currency }))}/></label>
+              </div>
+              <section data-form-section-label="Products and services"><CatalogLinesEditor source="srm" showTax value={orderLines} onChange={setOrderLines} currency={salesOrder.currency} disabled={mutation.isPending}/></section>
+              <p role="status">Order total (including tax): {catalogMoney(orderLines.reduce((sum, line) => sum + salesOrderLineAmounts(line).total, 0), salesOrder.currency)}</p>
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="space-y-2 text-sm"><span className="font-medium">Start date</span><Input type="date" value={salesOrder.expected_start_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_start_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">End date</span><Input type="date" value={salesOrder.expected_end_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_end_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={salesOrder.terms} onChange={(event) => setSalesOrder((current) => ({ ...current, terms: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          {kind === "contracts" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Title</span><Input value={contract.title} onChange={(event) => setContract((current) => ({ ...current, title: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Sales order ID</span><Input inputMode="numeric" value={contract.sales_order_id} onChange={(event) => setContract((current) => ({ ...current, sales_order_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={contract.customer_id} onChange={(event) => setContract((current) => ({ ...current, customer_id: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Type</span><Input value={contract.contract_type} onChange={(event) => setContract((current) => ({ ...current, contract_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Effective date</span><Input type="date" value={contract.effective_date} onChange={(event) => setContract((current) => ({ ...current, effective_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Expiry date</span><Input type="date" value={contract.expiry_date} onChange={(event) => setContract((current) => ({ ...current, expiry_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Contract amount</span><Input inputMode="decimal" value={contract.contract_value} onChange={(event) => setContract((current) => ({ ...current, contract_value: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={contract.currency} onChange={currency => setContract((current) => ({ ...current, currency }))} /></label>
+              </div>
+              <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={contract.terms} onChange={(event) => setContract((current) => ({ ...current, terms: event.target.value }))} /></label>
+            </>
+          ) : null}
+          {kind === "engagements" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Name</span><Input value={engagement.name} onChange={(event) => setEngagement((current) => ({ ...current, name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Sales order ID</span><Input inputMode="numeric" value={engagement.sales_order_id} onChange={(event) => setEngagement((current) => ({ ...current, sales_order_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Contract ID</span><Input inputMode="numeric" value={engagement.contract_id} onChange={(event) => setEngagement((current) => ({ ...current, contract_id: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={engagement.customer_id} onChange={(event) => setEngagement((current) => ({ ...current, customer_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Billing type</span><Input value={engagement.billing_type} onChange={(event) => setEngagement((current) => ({ ...current, billing_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Budget</span><Input inputMode="decimal" value={engagement.budget_amount} onChange={(event) => setEngagement((current) => ({ ...current, budget_amount: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Start</span><Input type="date" value={engagement.planned_start_date} onChange={(event) => setEngagement((current) => ({ ...current, planned_start_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">End</span><Input type="date" value={engagement.planned_end_date} onChange={(event) => setEngagement((current) => ({ ...current, planned_end_date: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          {kind === "billingPlans" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Engagement ID</span><Input inputMode="numeric" value={billingPlan.engagement_id} onChange={(event) => setBillingPlan((current) => ({ ...current, engagement_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Plan name</span><Input value={billingPlan.name} onChange={(event) => setBillingPlan((current) => ({ ...current, name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Billing type</span><Input value={billingPlan.billing_type} onChange={(event) => setBillingPlan((current) => ({ ...current, billing_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Total</span><Input inputMode="decimal" value={billingPlan.total_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, total_amount: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={billingPlan.currency} onChange={currency => setBillingPlan((current) => ({ ...current, currency }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Recurrence</span><NativeSelect value={billingPlan.recurrence_rule} onChange={(event) => setBillingPlan((current) => ({ ...current, recurrence_rule: event.target.value }))}><option value="">No recurrence</option>{["daily", "weekly", "monthly", "quarterly", "yearly"].map(rule => <option key={rule} value={rule}>{rule}</option>)}</NativeSelect></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Milestone</span><Input value={billingPlan.milestone_name} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Milestone amount</span><Input inputMode="decimal" value={billingPlan.milestone_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_amount: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" data-save-action data-srm-order-submit={kind === "salesOrders" ? "true" : undefined} disabled={mutation.isPending}>{mutation.isPending ? "Saving..." : `Create ${viewMeta[kind].title.slice(0, -1)}`}</Button>
+            <ActionMessage message={message} />
+          </div>
+        </CompactForm>
+      </CardContent>
+    </Card></SmartCreateSection>
+  );
+}
+
+function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
+  const location = useLocation();
+  const [showCreate,setShowCreate] = useState(false);
+  const [recordView,setRecordView] = useState<"board"|"list">("list");
+  const boardSupported = ["salesOrders","contracts","engagements","billingPlans"].includes(kind);
+  const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user);
+  const srmGrant = user?.access?.grants.srm;
+  const canManage = !!user?.is_superuser || (user?.access?.managed ? !!srmGrant?.enabled && srmGrant.permissions.some(permission => ["srm_manage", "srm_admin"].includes(permission)) : ["admin", "super_admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(user?.role || "").toLowerCase()));
+  const canCreate=canManage && (!!user?.is_superuser || !user?.access?.managed || !!srmGrant?.actions.includes("create"));
+  useEffect(() => { if (location.hash === "#new-record" && canCreate) setShowCreate(true); }, [location.key, location.hash, canManage]);
+  const query = useQuery({
+    queryKey: ["srm", kind],
+    queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),
+    enabled: Boolean(meta.endpoint),
+    refetchInterval: kind === "salesOrders" ? 3000 : 10000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+  useSrmRealtimeInvalidation(queryClient, Boolean(meta.endpoint));
+  const records = asList(query.data);
+  const entityLabel = ({salesOrders:"Sales order",contracts:"Contract",engagements:"Engagement",billingPlans:"Billing plan"} as Record<string,string>)[kind] || meta.title;
+  const dateKeys = kind === "salesOrders" ? ["expected_start_date","expected_end_date"] : kind === "engagements" ? ["planned_start_date","planned_end_date"] : ["start_date","end_date"];
+  const hasSchedule = records.some(record => record[dateKeys[0]] || record[dateKeys[1]]);
+  const hasProgress = records.some(record => record.progress_percent != null || record.completion_percentage != null);
+  const customerIds = [...new Set(records.map(record => Number(record.customer_id)).filter(id => Number.isInteger(id) && id > 0))].sort((a,b) => a-b);
+  const customers = useQuery({
+    queryKey: ["srm-list-customers", user?.access?.companyId, user?.id, customerIds.join(",")],
+    enabled: customerIds.length > 0,
+    staleTime: 60000,
+    retry: false,
+    queryFn: async ({signal}) => {
+      const names: Record<string,string> = {};
+      for (let offset=0; offset<customerIds.length; offset+=200) {
+        const params = new URLSearchParams();
+        customerIds.slice(offset,offset+200).forEach(id => params.append("ids",String(id)));
+        const {data} = await api.get<{items:{id:number;name:string}[]}>("/srm/business/customers",{params,signal,progress:false});
+        data.items.forEach(customer => {names[customer.id]=customer.name;});
+      }
+      return names;
+    },
+  });
+  const action = useMutation({
+    mutationFn: async ({ name, id }: { name: string; id: number }) => {
+      const actions: Record<string, (id: number) => Promise<unknown>> = {
+        submitSalesOrder: srmApi.submitSalesOrder,
+        confirmSalesOrder: srmApi.confirmSalesOrder,
+        draftInvoiceFromSalesOrder: srmApi.draftInvoiceFromSalesOrder,
+        createPmsProject: srmApi.createPmsProject,
+        approveInvoice: srmApi.approveInvoice,
+        sendInvoice: srmApi.sendInvoice,
+      };
+      const fn = actions[name];
+      if (!fn) throw new Error(`Unsupported SRM action: ${name}`);
+      return fn(id);
+    },
+    onSuccess: async () => {
+      await syncSrmNow(queryClient, { type: kind === "salesOrders" ? "sales_order_changed" : "inventory_changed", source: `srm-${kind}-action` });
+      toast({ title: "SRM updated" });
+    },
+    onError: (err: unknown) => {
+      const message = apiErrorMessage(err);
+      toast({ title: "SRM action failed", description: message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="srm-record-workspace space-y-3">
+      <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      {kind === "billingPlans" && canCreate && <RecurringSchedule plans={records} onSaved={() => { void query.refetch(); }} />}
+      <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
+      {canCreate && boardSupported && showCreate && <SmartCreateModal definition={{ entity: kind, title: `Create ${meta.title.replace(/s$/, "")}`, presentation: "page", size: "large" }} onClose={() => setShowCreate(false)}><CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /></SmartCreateModal>}
+      {canCreate && !boardSupported ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
+      <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
+      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<Button type="button" className="srm-create-record" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</Button>}</div>}
+      {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={canCreate?()=>setShowCreate(true):undefined} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
+      {!query.isError && (!boardSupported || recordView === "list") ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-6" className="w-full min-w-[780px] text-sm">
+                <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">{entityLabel}</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th data-business-field="customer" className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Updated</th>
+                    {hasSchedule && <><th className="px-4 py-3">Start date</th><th className="px-4 py-3">End date</th></>}
+                    {hasProgress && <th className="px-4 py-3">Progress</th>}
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {query.isLoading ? (
+                    <tr><td colSpan={6+(hasSchedule?2:0)+(hasProgress?1:0)} className="px-4 py-8 text-center text-muted-foreground">Loading {meta.title}...</td></tr>
+                  ) : records.length ? records.map((record, index) => {
+                    const id = Number(record.id || 0);
+                    const name = record.title || record.name || record.invoice_number || record.order_number || record.contract_number || record.engagement_number || `Record ${index + 1}`;
+                    const amount = record.total_amount ?? record.contract_value ?? record.budget_amount ?? record.outstanding_total ?? record.invoice_total ?? record.order_amount ?? record.total_outstanding;
+                    const status = String(record.status || "").toLowerCase();
+                    const metadata = (record.metadata_json || {}) as SRMRecord;
+                    const isPosSale = metadata.source === "pos";
+                    return (
+                      <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
+                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span><span className="srm-record-label" title={String(name)}>{String(name)}</span></span></td>
+                        <td className="px-4 py-3">
+                          <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>
+                        </td>
+                        <td className="px-4 py-3">{formatValue(record.customer_name || customers.data?.[String(record.customer_id)] || (record.customer_id ? `Customer #${record.customer_id}` : null))}</td>
+                        <td className="px-4 py-3">{amount != null && Number.isFinite(Number(amount)) ? currencyMoney(amount,record.currency) : "—"}</td>
+                        <td className="px-4 py-3">{formatDate(record.updated_at || record.created_at || record.snapshot_at)}</td>
+                        {hasSchedule && <><td className="px-4 py-3" data-grid-value={record[dateKeys[0]]}>{formatDate(record[dateKeys[0]])}</td><td className="px-4 py-3" data-grid-value={record[dateKeys[1]]}>{formatDate(record[dateKeys[1]])}</td></>}
+                        {hasProgress && <td className="px-4 py-3">{record.progress_percent != null || record.completion_percentage != null ? columnValue("Progress",`${record.progress_percent ?? record.completion_percentage}%`) : "—"}</td>}
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">{["engagements","billingPlans"].includes(kind)&&<RecordMaintenance record={record} name={String(name)} endpoint={`/srm/${({salesOrders:"sales-orders",contracts:"contracts",engagements:"engagements",billingPlans:"billing-plans"} as Record<string,string>)[kind]}/${id}`} method="patch" fields={[{key:["salesOrders","contracts"].includes(kind)?"title":"name",label:"Record name",required:true}]} queryKeys={["srm"]} canEdit={canManage} canDelete={canManage&&["draft","planned","created"].includes(status)}/>}
+                            {canCreate && kind === "salesOrders" && id ? (
+                              <>
+                                {isPosSale ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">POS posted</span> : null}
+                                {!isPosSale && status === "draft" ? <ActionButton action="review" loading={action.isPending} tooltip="Submit this sales order for approval" onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</ActionButton> : null}
+                                {!isPosSale && status === "pending_approval" ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">Awaiting approval</span> : null}
+                                {!isPosSale && status === "approved" ? <ActionButton action="approve" loading={action.isPending} tooltip="Confirm this approved sales order" onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</ActionButton> : null}
+                                {!isPosSale && status === "confirmed" ? <ActionButton action="quotation" loading={action.isPending} tooltip="Create an invoice draft from this confirmed order" onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft invoice</ActionButton> : null}
+                                {!isPosSale && ["cancelled", "closed"].includes(status) ? <span className="text-xs text-muted-foreground">No action</span> : null}
+                              </>
+                            ) : null}
+                            {canCreate && kind === "engagements" && id ? <ActionButton action="task" loading={action.isPending} tooltip="Create the delivery project for this engagement" onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</ActionButton> : null}
+                            {canManage && kind === "invoices" && id ? (
+                              <>
+                                <ActionButton action="approve" loading={action.isPending} tooltip="Approve this invoice" onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</ActionButton>
+                                <ActionButton action="email" loading={action.isPending} tooltip="Send this invoice to the customer" onClick={() => action.mutate({ name: "sendInvoice", id })}>Send invoice</ActionButton>
+                              </>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No {meta.title} found for your role.</td></tr>
+                  )}
+                </tbody>
+              </GridTable>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
+  const queryClient = useQueryClient();
+  useSrmRealtimeInvalidation(queryClient);
+  const meta = viewMeta[kind];
+  if (kind === "dashboard") return <DashboardView />;
+  if (kind === "posSessions") return <POSSessionView />;
+  if (kind === "cashierClosing") return <CashierClosingView />;
+  if (kind === "posReturns") return <POSReturnsView />;
+  if (kind === "customer360") return <Customer360View />;
+  if (kind === "invoiceDrafts") return <InvoiceDraftsView />;
+  if (kind === "invoices") return <InvoicesView />;
+  if (kind === "collections") return <CollectionsView />;
+  if (kind === "profitability") return <ProfitabilityView />;
+  if (kind === "revenueRecognition") return <RevenueEventsView />;
+  if (kind === "reports") return <RetailWorkspace mode="daily" header={<PageHeader meta={viewMeta.reports} onRefresh={()=>void queryClient.invalidateQueries({queryKey:["srm","retail"]})}/>} fallback={<ReportsView />}/>;
+  if (kind === "settings") return <SettingsView />;
+  return <GenericRouteView kind={kind} meta={meta} />;
+}
+
+export default withRecordViewHost(SRMWorkspacePage);

@@ -1,0 +1,47 @@
+{
+  "environment": "Disposable local QA workspace on 127.0.0.1:1582; synthetic records only",
+  "navigation_sweep": {
+    "pms_sidebar_destinations": 49,
+    "crm_sidebar_destinations": 57,
+    "additional_source_registered_routes_observed": 57,
+    "method": "Browser navigation and visible DOM inspection. Early loading captures were revisited where identified. Navigation coverage does not imply every record-level action was clicked."
+  },
+  "verified_interactions": [
+    "Delivery task created from In Progress stage using the real task form",
+    "Task schedule and priority saved; timer stopped and saved one minute",
+    "Delivery table task status changed to In Review and survived reload",
+    "Ten delivery lens views rendered without alerts",
+    "Financial search and project filters updated budget totals; clear filters restored totals",
+    "Guided selling flow created and survived reload",
+    "Target amount validation rejected an empty amount; valid target persisted and success feedback appeared",
+    "Lead-to-cash Review conversion opened the selected canonical lead record",
+    "Funnel CSV downloaded; header and report rows verified from the resulting file",
+    "CRM Board, Gallery, Gantt, Timeline, Calendar and Table switched without render errors",
+    "390px mobile CRM Deals and repaired PMS delivery had no document overflow",
+    "Product Launch, Software Delivery, Work Hub and Live Work rechecked after collection-shape fix"
+  ],
+  "fixes": [
+    "Replace launch/software sample boards with authorized projects and tasks",
+    "Replace simulated financials with the budget-vs-actual report and working filters",
+    "Route legacy operations pages to native planning and risk workflows",
+    "Wire guided selling creation, conversion review, funnel export and lost-analysis navigation",
+    "Remove placeholder lost-analysis metric",
+    "Use current-month and signed-in-owner sales target defaults, validation, save lock, accessible labels and success feedback",
+    "Request fresh delivery collections and ignore malformed task cache snapshots",
+    "Separate task names and codes in both native table and ARIA grid cells",
+    "Preserve useful validation and connection recovery messages"
+  ],
+  "automated_checks": {
+    "workspace_error_cases": 9,
+    "targeted_backend_tests_passed": 13,
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "production_build": "passed"
+  },
+  "limits": [
+    "External email/WhatsApp delivery, OAuth provider authorization and actual financial transactions were not executed.",
+    "Permanent deletion and security/permission changes were not exercised.",
+    "Repeated record-level buttons, every possible form option combination and all user-role permutations were not exhaustively exercised.",
+    "Other sessions are concurrently editing this checkout; this report concerns the tested local build and changes from this audit."
+  ]
+}

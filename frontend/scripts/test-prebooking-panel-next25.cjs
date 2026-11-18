@@ -1,0 +1,102 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium, expect: base } = require('playwright/test');
+const expect = base.configure({ timeout: 15000 });
+
+(async () => {
+  process.chdir(path.resolve(__dirname, '..'));
+  const fixture = path.resolve('scripts', `.prebooking-next25-${process.pid}.tsx`);
+  fs.writeFileSync(fixture, `import '@/index.css';import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter,Routes,Route} from 'react-router-dom';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import Workspace from '@/shared/scheduling/ServiceSchedulingWorkspace';import POS from '@/apps/srm/pages/SRMPOSPage';import {useAuthStore} from '@/store/authStore';sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:1,role:'super_admin',is_superuser:true}});createRoot(document.getElementById('root')).render(<MemoryRouter initialEntries={[location.search.includes('hrms')?'/hrms/service-scheduling':'/srm/service-scheduling']}><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><Routes><Route path="/srm/pos/terminal" element={<POS/>}/><Route path="*" element={<Workspace/>}/></Routes></QueryClientProvider></MemoryRouter>);`);
+  const { createServer } = await import('vite');
+  const { default: react } = await import('@vitejs/plugin-react');
+  const server = await createServer({ configFile: false, plugins: [react()], resolve: { alias: { '@': path.resolve('src') } }, cacheDir: path.resolve(`node_modules/.vite-prebooking-next25-${process.pid}`), optimizeDeps: { entries: [fixture] }, server: { host: '127.0.0.1', port: 0, hmr: false, watch: null } });
+  await server.listen();
+  const browser = await chromium.launch();
+  try {
+    for (const module of ['srm','hrms']) for (const width of [1440,390]) {
+      const page = await browser.newPage({viewport:{width,height:1000},timezoneId:'UTC'});
+      const errors=[], reservations=[], customerWrites=[], otherWrites=[];
+      let manage=false, failure=false, slow=0, created, uncertain=false, price=800, statusConfirmed=false, searchDelay=0;const searches=[];
+      const day=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+      const meera={id:8,name:'Meera Rao',phone:'9999999999',phone_country_code:'+91',entityKind:'Individual',roles:['Customer']};
+      const services=[{id:9,kind:'service',name:'Styling',code:'S9',category:'Hair',price:800,currency:'INR'},{id:10,kind:'service',name:'Therapy',code:'S10',category:'Therapy',price:1000,currency:'INR'}];
+      const people=[{eligibility_id:2,eligibility_revision:1,provider_resource_id:12,employee_id:22,employee_name:'Alex Employee',provider_name:'Alex',timezone:'UTC',work_categories:['Stylists']},{eligibility_id:3,eligibility_revision:1,provider_resource_id:13,employee_id:23,employee_name:'Sam Therapist',provider_name:'Sam',timezone:'Asia/Kolkata',work_categories:['Therapists']}];
+      let savedRow={id:99,kind:'appointment',title:'Service prebooking',status:'booked',revision:1,customer_id:9,data:{service_id:9,customer_name:'Neha Iyer',service_name:'Styling',starts_at:`${day}T10:00:00Z`,duration_minutes:45,resource_ids:[12,30]}};
+      page.on('requestfailed',r=>{if(r.failure()?.errorText!=='net::ERR_ABORTED')console.log('REQUEST FAILED',r.url(),r.failure()?.errorText);});
+      page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR',e.message);});
+      await page.route('**/api/v1/**',async route=>{
+        const req=route.request(),url=new URL(req.url()),p=url.pathname;
+        let json={items:[],total:0,pages:1};
+        if(p.endsWith('/industry/capabilities'))json={manage:true,billing:true,collect:false,invoice:false,approve_invoice:false,projects_enabled:false,crm_enabled:false};
+        else if(p.endsWith('/master-data/companies') && req.method()==='POST'){const body=req.postDataJSON();customerWrites.push(body);created={...body,id:9,name:body.name,phone:'8888888888',entityKind:'Individual'};json=created;}
+        else if(p.endsWith('/master-data/companies')){const search=url.searchParams.get('search')||'';json={items:[meera,...(created?[created]:[])].filter(c=>!search||c.name.toLowerCase().includes(search.toLowerCase())),total:created?2:1,canCreate:true};}
+        else if(p.endsWith('/master-data/companies/8'))json=meera;
+        else if(p.endsWith('/master-data/companies/9'))json=created;
+        else if(p.endsWith('/master-data/form-options'))json={country:'IN',currency:'INR',phone_country_code:'+91'};
+        else if(p.endsWith('/master-data/companies/custom-fields'))json={items:[],customFields:[]};
+        else if(p.endsWith('/branches/context'))json={company_id:1,selected:1,branches:[{id:1,name:'City branch',can_write:true}]};
+        else if(/\/catalog\/items\/service\/\d+$/.test(p)) json={...services.find(s=>s.id===Number(p.split('/').pop())),price};
+        else if(p.endsWith('/catalog/items')){const category=url.searchParams.get('category'),search=url.searchParams.get('search')||'';json={items:services.filter(s=>(!category||s.category===category)&&(!search||s.name.toLowerCase().includes(search.toLowerCase()))),pages:1,total:2,facets:{categories:['Hair','Therapy'],tags:[]}};}
+        else if(p.endsWith('/service-checkout/options')){const therapy=url.searchParams.get('service_id')==='10',search=url.searchParams.get('search')||'';json={policy:{id:1,revision:1,active:true,booking_required:true,default_duration_minutes:therapy?60:45,min_duration_minutes:15,max_duration_minutes:120,allow_duration_override:!therapy,required_resource_types:['room'],employee_categories:therapy?['Therapists']:['Stylists','Therapists']},specialists:people.filter(s=>(!therapy||s.eligibility_id===3)&&(!search||s.employee_name.toLowerCase().includes(search.toLowerCase()))),resources:[{id:30,name:'Room A',resource_type:'room',capacity:2,location:'Ground floor',accessibility:'Step-free',facilities:'Projector',opens:'09:00',closes:'18:00',timezone:'UTC'},{id:31,name:'Room B',resource_type:'room'},{id:40,name:'Projector',resource_type:'equipment'}],has_more:false,can_configure:manage,branch_timezone:'Asia/Kolkata'};}
+        else if(p.endsWith('/options/availability') && url.searchParams.get('discover')==='true'){searches.push(Object.fromEntries(url.searchParams));if(searchDelay)await new Promise(r=>setTimeout(r,searchDelay));const more=url.searchParams.get('employee_offset')==='4';json={choices:[{...people[more?1:0],starts_at:`${day}T${more?'12':'10'}:00:00Z`,resource_ids:[30],resources:['Room A'],changed_resources:1}],checked_combinations:2,partial:true,next_employee_offset:more?null:4,next_resource_offset:null,searched_days:Number(url.searchParams.get('search_days')||1)};}
+        else if(p.includes('/appointments/requests/'))json=statusConfirmed?{state:'confirmed',appointment:savedRow}:{state:'not_found'};
+        else if(p.includes('/appointments/customer-context/'))json={recent:[{...savedRow,id:77}],upcoming:[savedRow],possible_duplicates:url.searchParams.get('service_id')?[savedRow]:[],preferred_provider:{name:'Alex Employee',employee_id:22}};
+        else if(p.endsWith('/options/availability')){const fails=failure;if(slow)await new Promise(resolve=>setTimeout(resolve,slow));if(fails)return route.fulfill({status:503,json:{detail:'Temporary availability failure'}});json={selection_available:url.searchParams.getAll('resource_ids').includes('30')||url.searchParams.getAll('resource_ids').includes('31'),conflicts:[],resources:[{id:30,available:true},{id:31,available:true}],slots:[{starts_at:`${url.searchParams.get('day')}T11:00:00Z`,label:'11:00'}]};}
+        else if(/\/employees\/\d+\/planned-services$/.test(p))json={items:[{starts_at:`${day}T09:00:00Z`,ends_at:`${day}T10:30:00Z`,status:'booked'}],next_cursor:null};
+        else if(p.endsWith('/employees/planned-services'))json={timezone:'UTC',items:reservations.length?[{appointment_id:99,revision:1,employee_id:22,employee_name:'Alex Employee',employee_code:'E22',service_id:9,service_name:'Styling',starts_at:savedRow.data.starts_at,ends_at:new Date(Date.parse(savedRow.data.starts_at)+Number(savedRow.data.duration_minutes)*60000).toISOString(),planned_minutes:savedRow.data.duration_minutes,status:'booked',blocks_availability:true,resources:[{id:30,name:'Room A',resource_type:'room'}]}]:[],next_cursor:null,filter_options:{employees:[{id:22,name:'Alex Employee'}],services:[],employees_complete:true,services_complete:true}};
+        else if(p.endsWith('/industry/appointments') && req.method()==='POST'){reservations.push(req.postDataJSON());savedRow={...savedRow,customer_id:req.postDataJSON().customer_id,data:{...savedRow.data,...req.postDataJSON(),customer_name:'Meera Rao',service_name:'Styling'}};if(uncertain){await new Promise(r=>setTimeout(r,600));return route.fulfill({status:503,json:{detail:'Unknown save outcome'}});}json=savedRow;}
+        else if(p.endsWith('/prebooking-workflows/appointments/99/summary'))json={row:savedRow,employee:'Alex Employee',timezone:'UTC',resources:['Room A']};
+        else if(p.endsWith('/industry/appointments/99'))json=savedRow;
+        else if(p.endsWith('/appointments/99/billing'))json={appointment_id:99,revision:1,currency:'INR',total:'800',paid:'0',advance:'0',balance:'800',invoice:null,receipts:[]};
+        else if(req.method()!=='GET')otherWrites.push({path:p,body:req.postDataJSON()});
+        await route.fulfill({json});
+      });
+      await page.route('**/prebooking-next25?*',route=>route.fulfill({contentType:'text/html',body:`<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/${path.basename(fixture)}');</script>`}));
+      await page.goto(server.resolvedUrls.local[0]+`prebooking-next25?module=${module}`);
+      await expect(page.getByRole('heading',{name:'Appointment Scheduler',exact:true})).toBeVisible({timeout:60000});
+      if(width===390)await page.getByRole('button',{name:/New prebooking/}).click();
+      const panel=page.getByRole('complementary',{name:'New prebooking'}),confirm=panel.getByRole('button',{name:'Confirm prebooking',exact:true});
+      if(width===390){const drawer=page.getByRole('dialog',{name:'Prebooking editor'});await expect(drawer).toBeVisible();expect((await drawer.boundingBox()).height).toBe(1000);expect(await page.locator('.bookings-heading').evaluate(el=>!!el.closest('[inert]'))).toBe(true);}
+      // 1–4: hierarchy, collapsible summaries, width, persistent branch/workspace context.
+      await expect(panel.getByLabel('Active booking context')).toContainText('City branch');await expect(panel.getByLabel('Active booking context')).toContainText(module.toUpperCase());
+      if(width===1440){const before=(await panel.boundingBox()).width;await page.getByRole('button',{name:'Expand panel',exact:true}).click();expect((await panel.boundingBox()).width).toBeGreaterThan(before);await page.getByRole('button',{name:'Compact panel',exact:true}).click();}
+      const customerInput=panel.getByRole('combobox',{name:'Search customer',exact:true});await customerInput.fill('Meera');await expect(panel.locator('.sr-only[role=status]').filter({hasText:'customer suggestions available'})).toContainText('1 customer suggestions');await page.getByRole('listbox').getByRole('option',{name:/Meera/}).click();
+      await panel.getByRole('combobox',{name:'Search service',exact:true}).fill('Sty');await page.getByRole('listbox').getByRole('option',{name:/^Styling/}).click();
+      await panel.getByLabel('Prebooking date',{exact:true}).fill(day);await panel.getByLabel('Prebooking start time',{exact:true}).fill('10:00');await expect(confirm).toBeEnabled();
+      for(const title of ['Customer','Service','Schedule','Resources'])await expect(panel.getByRole('heading',{name:title,exact:true})).toBeVisible();
+      await expect(panel.locator('.prebooking-suggestion')).toContainText('first qualified employee');
+      await panel.getByRole('button',{name:'Collapse customer',exact:true}).click();await expect(panel.getByLabel('Selected customer')).toBeHidden();await panel.getByRole('button',{name:'Edit customer',exact:true}).first().click();await expect(panel.getByLabel('Selected customer')).toBeVisible();
+      // 5–8: inline review editing, quote amount, timezone and suggestion context.
+      await expect(panel.getByLabel('Review estimated price')).toContainText('800');
+      await panel.getByRole('button',{name:'Collapse schedule',exact:true}).click();await panel.getByRole('button',{name:'Edit time',exact:true}).click();await expect(panel.getByLabel('Prebooking start time',{exact:true})).toBeFocused();
+      await panel.getByRole('button',{name:'Collapse resources',exact:true}).click();await panel.getByLabel('Review prebooking').getByRole('button',{name:'Edit resources',exact:true}).click();await expect(panel.getByRole('combobox',{name:'Search room',exact:true})).toBeFocused();await page.keyboard.press('Escape');
+      await panel.getByText('Customer visits and preferences',{exact:true}).click();await expect(panel.getByLabel('Customer booking context')).toContainText('(UTC)');await panel.getByRole('button',{name:'Use suggested provider',exact:true}).click();await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveValue('2');
+      await panel.getByRole('button',{name:'Inspect booking #99'}).click();await expect(page.getByRole('region',{name:'Visit details'})).toContainText('Styling');await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+      // 9: reversible service/category changes restore employee, instant and resources.
+      page.once('dialog',d=>d.accept());await panel.getByLabel('Service category',{exact:true}).selectOption('Therapy');await panel.getByRole('combobox',{name:'Search service',exact:true}).click();await page.getByRole('listbox').getByRole('option',{name:/^Therapy/}).click();await panel.getByRole('button',{name:'Undo selection change'}).click();await expect(panel.getByRole('combobox',{name:'Search service',exact:true})).toHaveValue('Styling');await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveValue('2');await expect(confirm).toBeEnabled();
+      // 11 and 16–17: real slot counts, resource metadata and permitted planned workload.
+      await panel.getByText('Nearby dates and available-slot counts',{exact:true}).click();await expect(panel.locator('.prebooking-date-strip')).toContainText('1 available starts');
+      await panel.getByText('Compare room details',{exact:true}).click();await expect(panel.locator('.prebooking-resource-details').first()).toContainText('Step-free');await expect(panel.locator('.prebooking-resource-details').first()).toContainText('Ground floor');
+      await panel.getByText('Employee workload and free windows',{exact:true}).click();await expect(panel.locator('.prebooking-workload')).toContainText('1.5 booked hours');await expect(panel.locator('.prebooking-workload')).toContainText('Available service windows');
+      // 12–15: window/priority reaches server; old batches remain visible; cancellation is explicit.
+      await panel.getByLabel('Preferred service window',{exact:true}).selectOption('custom');await panel.getByLabel('Window from',{exact:true}).fill('09:00');await panel.getByLabel('Window until',{exact:true}).fill('12:00');await panel.getByLabel('Search priority').selectOption('fewest_changes');
+      await panel.getByRole('button',{name:/Find any available required resource/}).click();await expect(panel.getByLabel('Retained combination results')).toContainText('Alex Employee');expect(searches.at(-1).window_from).toBe('09:00');expect(searches.at(-1).window_until).toBe('12:00');expect(searches.at(-1).priority).toBe('fewest_changes');
+      await panel.getByRole('button',{name:'Check next employees'}).click();await expect(panel.getByLabel('Retained combination results')).toContainText('Sam Therapist');await expect(panel.getByLabel('Retained combination results')).toContainText('Alex Employee');
+      searchDelay=2000;await panel.getByRole('button',{name:'Search next 8 days'}).click();await expect(panel.getByRole('button',{name:'Stop search'})).toBeVisible();await expect(panel.getByLabel('Retained combination results')).toContainText('Alex Employee');await panel.getByRole('button',{name:'Stop search'}).click();await expect(panel.getByRole('button',{name:'Stop search'})).toHaveCount(0);searchDelay=0;
+      // 20–23: notes, visibility boundaries, mobile resizing/zoom and quiet routine refresh.
+      await panel.locator('.prebooking-more>summary').click();await panel.getByLabel('Visit notes',{exact:true}).fill('Internal private note');await panel.getByLabel('Reusable internal instruction').selectOption({label:'Customer requested a quiet space.'});await expect(panel.getByLabel('Visit notes',{exact:true})).toHaveValue(/Customer requested a quiet space/);await panel.getByLabel('Customer-facing instructions').fill('Please arrive ten minutes early.');
+      expect(await panel.getByLabel('Visit notes',{exact:true}).getAttribute('maxlength')).toBe('4000');expect(await panel.locator('[data-availability-state]').getAttribute('aria-live')).toBeNull();
+      if(width===390){await page.setViewportSize({width,height:650});await panel.getByLabel('Customer-facing instructions').focus();await expect(panel.getByLabel('Customer-facing instructions')).toBeInViewport();expect(await panel.getByLabel('Customer-facing instructions').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);await page.evaluate(()=>document.documentElement.style.fontSize='32px');await expect.poll(()=>panel.getByLabel('Customer-facing instructions').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(32);await expect(panel.getByLabel('Customer-facing instructions')).toBeInViewport();await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width,height:1000});}
+      if(width===390){const drawer=page.getByRole('dialog',{name:'Prebooking editor'});expect(await drawer.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);await drawer.evaluate(el=>el.scrollLeft=0);}
+      await page.screenshot({path:`../output/prebooking-next25-${module}-${width}.png`,fullPage:true});
+      await expect(confirm).toBeEnabled();await confirm.click();await expect(panel.getByRole('heading',{name:'Prebooking confirmed'})).toBeVisible();
+      // 10,24: uncluttered success with editable recipient/body; no external message is sent.
+      await expect(panel.getByRole('button',{name:'Repeat as new draft'})).toBeHidden();await panel.getByText('More booking actions',{exact:true}).click();await panel.getByRole('button',{name:'Preview confirmation'}).click();await expect(panel.getByLabel('Confirmation text')).toHaveValue(/Please arrive ten minutes early/);expect(await panel.getByLabel('Confirmation text').inputValue()).not.toContain('Internal private note');await panel.getByLabel('Confirmation recipient').fill('123');await expect(panel.getByRole('link',{name:'Open SMS draft'})).toHaveCount(0);await panel.getByLabel('Confirmation recipient').fill('+919999999999');await panel.getByLabel('Confirmation text').fill('Customer-approved edited message');await expect(panel.getByRole('link',{name:'Open SMS draft'})).toHaveAttribute('href',/Customer-approved%20edited%20message/);
+      expect(reservations).toHaveLength(1);expect(reservations[0].customer_notes).toBe('Please arrive ten minutes early.');expect(reservations[0].notes).toContain('Internal private note');
+      // 25: navigate to correct day and highlight the authorized saved appointment.
+      await panel.getByRole('link',{name:'Show in schedule',exact:true}).click();await expect(page.getByText('Booking #99 highlighted in the schedule.',{exact:true})).toBeVisible();await expect(page.locator('[data-appointment-id="99"][data-highlighted=true]').first()).toBeFocused();
+      expect(otherWrites).toEqual([]);expect(errors).toEqual([]);
+      await page.close();console.log(`PASS next 25 prebooking enhancements: ${module.toUpperCase()} ${width}px`);
+    }
+  } finally {await browser.close();await server.close();fs.unlinkSync(fixture);}
+})().catch(e=>{console.error(e);process.exitCode=1;});

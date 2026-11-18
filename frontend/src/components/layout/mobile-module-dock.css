@@ -11,7 +11,7 @@
   .mobile-module-dock button:focus-visible,.mobile-dock-sheet a:focus-visible{outline:2px solid #9670ec;outline-offset:2px}
   body:has(.mobile-module-dock) .kf-main{padding-bottom:var(--mobile-dock-space)!important}
   body:has(.mobile-module-dock):not(:has(.srm-pos)) #suite-main.kf-main{margin-bottom:calc(164px + env(safe-area-inset-bottom,0px));padding-bottom:12px!important;animation-name:suite-page-fade}
-  body.mobile-keyboard-open:has(.mobile-module-dock) #suite-main.kf-main{margin-bottom:0}
+  body.mobile-keyboard-open:has(.mobile-module-dock):not(:has(.srm-pos)) #suite-main.kf-main{margin-bottom:0}
   body.mobile-keyboard-open:has(.mobile-module-dock) .action-bot-launcher{display:none}
   .mobile-dock-fullscreen{height:100dvh;padding-bottom:var(--mobile-dock-space,0px);box-sizing:border-box;overflow:hidden}
   .mobile-dock-tasks{display:block;overflow:auto}
@@ -72,3 +72,44 @@
  .mobile-dock-quick{border-color:hsl(var(--primary)/.12);box-shadow:0 3px 12px #20163a08;font-size:11px;background:hsl(var(--background)/.96)}
 }
 @media(prefers-reduced-motion:reduce){.mobile-dock-icon,.mobile-module-add,.mobile-module-add svg{transition:none}}
+
+@media(max-width:767px){.mobile-module-dock[aria-label="SRM mobile navigation"]{grid-template-columns:repeat(5,minmax(0,1fr))}}
+/* Primary destinations plus separate, touch-sized submenu controls. */
+@media(max-width:767px){
+ .mobile-module-dock{padding:6px;gap:2px;border-radius:24px}
+ .mobile-dock-item{display:grid;grid-template-rows:44px 44px;min-width:0}
+ .mobile-dock-destination{min-height:44px;height:44px;gap:2px;border-radius:16px;font-size:10px;line-height:14px;overflow:hidden}
+ .mobile-dock-destination>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobile-dock-icon{height:26px;width:40px;border-radius:14px}
+ .mobile-module-dock .mobile-dock-submenu{min-height:44px;height:44px;padding:0;border-radius:14px;justify-content:center;color:hsl(var(--primary));background:transparent}
+ .mobile-dock-submenu svg{height:28px;width:28px;padding:5px;background:hsl(var(--primary)/.1);border-radius:50%;transition:transform .15s}
+ .mobile-dock-submenu[aria-expanded=true] svg{transform:rotate(45deg)}
+ .mobile-dock-submenu:disabled{opacity:.35}
+ .mobile-dock-actions a>span{flex:1}
+ body:has(.mobile-module-dock){--mobile-dock-space:calc(180px + env(safe-area-inset-bottom,0px))}
+ body:has(.mobile-module-dock):not(:has(.srm-pos)) #suite-main.kf-main{margin-bottom:calc(188px + env(safe-area-inset-bottom,0px))}
+ body.mobile-keyboard-open:has(.mobile-module-dock):not(:has(.srm-pos)) #suite-main.kf-main{margin-bottom:0}
+ body:has(.mobile-module-dock) .action-bot-launcher,body:has(.mobile-module-dock) .suite-mobile-tools-trigger{bottom:calc(130px + env(safe-area-inset-bottom,0px))}
+ body:has(.mobile-module-dock) .mobile-module-add{bottom:calc(124px + env(safe-area-inset-bottom,0px))}
+ body:has(.mobile-module-dock) .action-bot-panel:not(.action-bot-expanded){bottom:calc(184px + env(safe-area-inset-bottom,0px));height:min(620px,calc(100dvh - 206px - env(safe-area-inset-bottom,0px)))}
+ body:has(.mobile-module-dock) :is(.workspace-back-to-top,.pms-ai-launcher){bottom:calc(128px + env(safe-area-inset-bottom,0px))!important}
+}
+@media(max-width:767px){
+ body:has(.srm-pos-terminal-route) .pos-booking-workspace{bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;height:calc(100dvh - 112px - env(safe-area-inset-bottom,0px))!important}
+ body:has(.appointment-reference-shell) .appointment-reference-content{padding-bottom:calc(200px + env(safe-area-inset-bottom,0px))!important}
+ body:has(.appointment-reference-shell) .appointment-reference-sidebar{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:767px){
+ .mobile-dock-content{padding-bottom:var(--mobile-dock-space,0px)}
+ body:has(.mobile-module-dock) .srm-mobile-screen{bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;height:calc(var(--srm-screen-height,100dvh) - 112px - env(safe-area-inset-bottom,0px))!important}
+ .srm-mobile-document .mobile-module-dock{display:none}
+}
+@media(max-width:767px){.portal-mobile-content{padding-bottom:calc(132px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:767px){
+ body:has(.mobile-module-dock):has(.srm-pos) .action-bot-launcher{bottom:calc(130px + env(safe-area-inset-bottom,0px))}
+ body:has(.mobile-module-dock):has(.srm-pos) .action-bot-panel:not(.action-bot-expanded){bottom:calc(184px + env(safe-area-inset-bottom,0px));height:min(620px,calc(100dvh - 206px - env(safe-area-inset-bottom,0px)))}
+}
+@media(max-width:767px){
+ body.mobile-experience:has(.mobile-module-dock):has(.srm-pos) :is(.mobile-dock-quick,.mobile-tools-trigger){bottom:calc(130px + env(safe-area-inset-bottom,0px))}
+ body.mobile-experience:has(.mobile-module-dock):has(.srm-pos) .mobile-module-add{bottom:calc(124px + env(safe-area-inset-bottom,0px))}
+}

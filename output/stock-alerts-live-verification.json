@@ -1,0 +1,35 @@
+{
+  "status": "deployed and browser verified",
+  "url": "https://besterp.app/srm/reports",
+  "release": "stock-alerts-reports-20261118-v2",
+  "candidate": "886de1ec734b0b6b251ab6fe5539c2372548920d020c0b2aeb86d2153d7700bd",
+  "previous_frontend": "/srv/business-suite/suite-builds/srm-standard-fast-20261118-v10",
+  "backend_hash_checks": {
+    "backend/app/apps/srm/service_checkout.py": true,
+    "backend/app/business_packs/retail/api.py": true,
+    "backend/app/business_packs/retail/reports.py": true,
+    "backend/app/apps/srm/checkout_read_batch.py": true
+  },
+  "public_health": {
+    "status": "healthy",
+    "db": "ok",
+    "environment": "production"
+  },
+  "browser": {
+    "authenticated": true,
+    "company": "Indian Servers",
+    "branch": "Main",
+    "checks": [
+      "Reports hub loaded",
+      "Invoice Register preview opened",
+      "Manual stock refresh completed",
+      "Stock Summary loaded without error",
+      "Reorder Alerts loaded without error"
+    ],
+    "tracked_stock_records": 0,
+    "low_stock_alerts": 0,
+    "screenshot": "output/stock-alerts-production.jpg"
+  },
+  "data_changes": "No production sales, stock quantities, products or alert thresholds changed during verification.",
+  "limits": "Positive low-stock and restock-clearance scenarios were verified locally; the selected production branch has no tracked stock records."
+}

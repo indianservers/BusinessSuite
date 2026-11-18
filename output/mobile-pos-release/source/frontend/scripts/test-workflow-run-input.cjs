@@ -1,0 +1,15 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+const output = {};
+const source = fs.readFileSync(path.join(__dirname, '../src/apps/automation/workflowRunInput.ts'), 'utf8');
+vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:output,Error});
+const parse = output.workflowRunInput;
+assert.equal(parse('', '{}').record_id,null);
+assert.equal(parse('7','{"amount":42}').record_id,7);
+assert.equal(parse('7','{"amount":42}').record.amount,42);
+for (const bad of ['not-json','[]','null','42']) assert.throws(()=>parse('',bad), /JSON/);
+for (const bad of ['0','-1','1.5','9007199254740992']) assert.throws(()=>parse(bad,'{}'), /Record ID/);
+console.log('11 execution-context and record-reference checks passed.');

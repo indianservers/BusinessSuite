@@ -2,6 +2,7 @@ import re
 """Route and permission discovery. The frontend never maintains a module list."""
 
 from collections import defaultdict
+from functools import lru_cache
 from app.models.user import Permission, Role
 
 ROUTES = {}
@@ -433,14 +434,22 @@ def action_permissions(names, tier):
 
 
 def module_actions(key):
+    # Registered route definitions are process metadata, not user grants. Key by
+    # their actual contents so registrations/replacements/removals take effect
+    # immediately without caching authorization or database permissions.
+    routes = tuple((path, method) for (_, path, method), module in ROUTES.items() if module == key)
+    return list(_route_actions(routes))
+
+
+@lru_cache(maxsize=128)
+def _route_actions(routes):
     from types import SimpleNamespace
 
     supported = {
         action_for(SimpleNamespace(method=method, url=SimpleNamespace(path=path)))
-        for (_, path, method), module in ROUTES.items()
-        if module == key
+        for path, method in routes
     }
-    return [action for action in ACTIONS if action in supported]
+    return tuple(action for action in ACTIONS if action in supported)
 
 
 def catalog(db):

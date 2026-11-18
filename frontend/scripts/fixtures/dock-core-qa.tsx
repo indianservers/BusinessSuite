@@ -1,0 +1,20 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,useLocation,useNavigate,matchPath} from 'react-router-dom';
+import {crmRoutes} from '@/apps/crm/routes';
+import {projectManagementRoutes} from '@/apps/project-management/routes';
+import {hrmsRoutes} from '@/apps/hrms/routes';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import MobileModuleDock,{mobileModuleMenus} from '@/components/layout/MobileModuleDock';
+import {useAuthStore} from '@/store/authStore';
+import {canAccessRoute} from '@/lib/roles';
+import {mobileDockHref} from '@/lib/mobile-dock-actions';
+import '@/index.css';
+const query=new URLSearchParams(location.search),viewer=query.has('viewer');
+const grants=Object.fromEntries(['crm','project_management','hrms'].map(key=>[key,{enabled:true,role:key==='hrms'?'employee':'viewer',scope:'company',permissions:[key==='project_management'?'pms_view':key+'_view'],actions:['view']} ]));
+useAuthStore.setState({isHydrated:true,isAuthenticated:true,accessToken:'fixture',user:{id:55,email:'core@example.test',employee_id:7,role:viewer?'employee':'admin',is_superuser:!viewer,...(viewer?{access:{managed:true,companyId:1,modules:[{key:'crm',route:'/crm',label:'CRM'},{key:'project_management',route:'/pms',label:'Projects'},{key:'hrms',route:'/hrms',label:'People'}],grants}}:{})} as any});
+(window as any).coreMenus=mobileModuleMenus;
+(window as any).coreHref=mobileDockHref;
+(window as any).coreAllowed=(to:string)=>canAccessRoute(to.split('?')[0],useAuthStore.getState().user?.role,useAuthStore.getState().user?.is_superuser);
+(window as any).coreRouteKnown=(to:string)=>[...crmRoutes,...projectManagementRoutes,...hrmsRoutes].some(route=>matchPath({path:'/'+route.path,end:true},new URL(to,location.origin).pathname));
+function App(){const location=useLocation(),navigate=useNavigate();(window as any).coreNavigate=navigate;return <><main id="suite-main" className="kf-main"><h1>Core dock QA</h1><output aria-label="Core route">{location.pathname+location.search+location.hash}</output><input aria-label="Unsubmitted draft" defaultValue="Keep this draft"/></main><MobileModuleDock/></>}
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/crm/leads']}><App/></MemoryRouter></QueryClientProvider>);

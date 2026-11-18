@@ -3,17 +3,13 @@ import { accessQueryOptions } from "@/features/access/access-query";
 import PremiumLauncher from "@/components/suite/PremiumLauncher";
 import CompanySampleData from "@/shared/data-transfer/CompanySampleData";
 import { useEffect } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, authApi } from "@/services/api";
 import { useAuthStore, type AuthUser } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { modules } from "@/lib/moduleCatalog";
 import { useNotificationSummary } from "@/components/suite/notifications";
-import {
-  safeSuiteDestination,
-  suitePageLabel,
-} from "@/lib/suiteNavigation";
 import {
   defaultSuitePreferences,
   suiteScope,
@@ -60,11 +56,6 @@ export default function ModuleDashboardPage() {
       )
     : [];
   const ready = access.isSuccess && !!user?.access;
-  const recent = preferences.recent.filter(
-    (path) =>
-      safeSuiteDestination(path) &&
-      canAccessRoute(path, user?.role, user?.is_superuser),
-  );
   return <PremiumLauncher applications={ready ? allowed : []} authenticated
     company={user?.access?.companyName || branding.data?.company_name || "Your workspace"}
     favorites={preferences.favorites} unread={notifications.byModule}
@@ -82,10 +73,7 @@ export default function ModuleDashboardPage() {
       {access.isError ? <><p>We couldn't load your applications.</p><button onClick={() => void access.refetch()}>Try again</button></> : "Loading your authorized applications…"}
     </div>}
     {ready && !allowed.length && <p className="launcher-notice">No applications assigned yet. Contact your company administrator to request access.</p>}
-    {ready && recent.length > 0 && <section className="launcher-recents" aria-label="Continue working"><h2>Continue working</h2><div>
-      {recent.map(path => <Link key={path} to={path}>{suitePageLabel(path)}{preferences.recentVisitedAt?.[path] && <time dateTime={preferences.recentVisitedAt[path]}>{new Date(preferences.recentVisitedAt[path]).toLocaleString()}</time>}</Link>)}
-      <button onClick={() => updatePreferences(scope, { recent: [], recentVisitedAt: {} })}>Clear recent pages</button>
-    </div></section>}
+
   <CompanySampleData/>
   </PremiumLauncher>;
 }

@@ -25,6 +25,14 @@ export default function ActionBot(){
  const user=useAuthStore(s=>s.user);const location=useLocation();
  const [open,setOpen]=useState(false),[opened,setOpened]=useState(false),[revision,setRevision]=useState(0);
  const trigger=useRef<HTMLButtonElement>(null);const id=useId();
+ const [position,setPosition]=useState<{left:number;top:number}|null>(null);
+ const drag=useRef<{pointerId:number;x:number;y:number;left:number;top:number;moved:boolean}|null>(null);
+ const suppressClick=useRef(false);
+ function constrain(left:number,top:number){
+  const rect=trigger.current?.getBoundingClientRect();
+  return {left:Math.max(8,Math.min(left,window.innerWidth-(rect?.width||46)-8)),top:Math.max(8,Math.min(top,window.innerHeight-(rect?.height||46)-8))};
+ }
+ useEffect(()=>{const resize=()=>setPosition(current=>current?constrain(current.left,current.top):null);window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize)},[]);
  const context=actionBotContext(location.pathname,location.search);
  const requestedConversation=Number(new URLSearchParams(location.search).get('bot_conversation'));
  const initialConversation=Number.isSafeInteger(requestedConversation)&&requestedConversation>0?requestedConversation:undefined;
@@ -36,7 +44,17 @@ export default function ActionBot(){
  const scope=[user.id,revision,location.pathname,location.search].join(':');
  function close(){setOpen(false);trigger.current?.focus()}
  return createPortal(<div className="suite-action-bot">
-  <button ref={trigger} type="button" className="action-bot-launcher" aria-label={open?'Minimize action bot':'Open action bot'} aria-expanded={open} aria-controls={id} title="Action bot" onClick={()=>{setOpened(true);setOpen(v=>!v)}}><Bot size={23} strokeWidth={1.8}/><span className="action-bot-dot"/></button>
+  <button ref={trigger} type="button" className="action-bot-launcher" style={position?{left:position.left,top:position.top,right:'auto',bottom:'auto'}:undefined} aria-label={open?'Minimize action bot':'Open action bot'} aria-expanded={open} aria-controls={id} title="Action bot · drag to move"
+   onPointerDown={event=>{if(event.button!==0||!event.isPrimary)return;const rect=event.currentTarget.getBoundingClientRect();suppressClick.current=false;drag.current={pointerId:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,moved:false};event.currentTarget.setPointerCapture(event.pointerId)}}
+   onPointerMove={event=>{const current=drag.current;if(!current||current.pointerId!==event.pointerId)return;const dx=event.clientX-current.x,dy=event.clientY-current.y;if(!current.moved&&Math.hypot(dx,dy)<5)return;current.moved=true;suppressClick.current=true;setPosition(constrain(current.left+dx,current.top+dy))}}
+   onPointerUp={event=>{const current=drag.current;if(current?.pointerId!==event.pointerId)return;drag.current=null;
+    // Browsers may suppress the compatibility click after moving a touch target.
+    // Activate a stationary touch here and consume its optional follow-up click.
+    if(event.pointerType==='touch'&&!current.moved){suppressClick.current=true;setOpened(true);setOpen(v=>!v)}
+   }}
+   onPointerCancel={()=>{drag.current=null}}
+   onLostPointerCapture={()=>{drag.current=null}}
+   onClick={event=>{if(suppressClick.current&&event.detail!==0){suppressClick.current=false;return}setOpened(true);setOpen(v=>!v)}}><Bot size={23} strokeWidth={1.8}/><span className="action-bot-dot"/></button>
   {opened&&<BotPanel key={scope} id={id} open={open} close={close} context={context} initialConversation={initialConversation}/>}
  </div>,document.body);
 }

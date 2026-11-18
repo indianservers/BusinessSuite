@@ -1,0 +1,143 @@
+import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { defaultText } from "@/lib/form-defaults";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm, { revealFormField } from "@/components/forms/CompactForm";
+import { useAuthStore } from "@/store/authStore";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, Save, Sparkles, FileText, Folder, Type, Users, UserRound, Flag, CalendarDays, Circle, Plus, Copy, ListChecks, Check, X, Bug, Lightbulb, BarChart3, Search, Paperclip } from "lucide-react";
+import RichTextEditor from "@/components/rich-text/LazyRichText";
+import "./task-creation.css";
+
+export type TaskCreationDraft = {
+  title: string; description: string; location: string; relatedRecord: string; parentId: string;
+  workType: string; assignees: string[]; assignmentMode: string; executionMode: string;
+  reviewer: string; owner: string; priority: string; status: string; start: string; due: string;
+  estimatedHours: string; acceptance: string; subtasks: string[]; attachments: string[];
+};
+type LocalTask = { id: string; title: string; content: string; taskDetails?: TaskCreationDraft };
+const blank = (): TaskCreationDraft => ({ title: "", description: "", location: "General / workspace task", relatedRecord: "", parentId: "", workType: "Task", assignees: [], assignmentMode: "People", executionMode: "Shared task", reviewer: "", owner: "", priority: defaultText("task_priority", "crm"), status: "To Do", start: "", due: "", estimatedHours: "", acceptance: "", subtasks: [], attachments: [] });
+const workTypes = [{ name: "Task", icon: FileText }, { name: "Bug", icon: Bug }, { name: "Feature", icon: Lightbulb }, { name: "Improvement", icon: BarChart3 }, { name: "Research", icon: Search }, { name: "Documentation", icon: FileText }];
+function Section({ icon, title, sub, children }: { icon: ReactNode; title: string; sub: string; children: ReactNode }) {
+  return <section className="ct-section"><header><span className="ct-section-icon">{icon}</span><div><h2>{title}</h2><p>{sub}</p></div></header><div className="ct-section-body">{children}</div></section>;
+}
+function readDraft(key: string): TaskCreationDraft | null {
+  try { const value = JSON.parse(localStorage.getItem(key) || "null"); if (value && typeof value.title === "string" && typeof value.description === "string" && Array.isArray(value.assignees) && value.assignees.every((v: unknown) => typeof v === "string") && Array.isArray(value.subtasks) && Array.isArray(value.attachments)) return { ...blank(), ...value }; } catch { /* Keep the form usable if browser storage is unavailable. */ }
+  return null;
+}
+
+/** Presentation and browser drafts only. The host owns creation; no service calls. */
+export default function TaskCreationForm(props: Parameters<typeof ScopedTaskCreationForm>[0]) {
+  const scope = usePrivateDraftScope();
+  const source = useRef(scope);
+  if (props.initialDraft && source.current !== scope) return null;
+  return <ScopedTaskCreationForm key={scope} {...props}/>;
+}
+
+function ScopedTaskCreationForm({ draftKey: suppliedDraftKey, tasks, onCreate, onAutoSave, autoSaveVersion, onCancel, initialDraft, databaseBacked = false, additionalFields }: { onAutoSave?: (draft: TaskCreationDraft) => Promise<void>; autoSaveVersion?: string; additionalFields?:ReactNode; databaseBacked?: boolean; initialDraft?: TaskCreationDraft; draftKey: string; tasks: LocalTask[]; onCreate: (draft: TaskCreationDraft, createAnother: boolean) => void | Promise<void>; onCancel: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
+  const [draft, setDraft] = useState(() => initialDraft || blank());
+  const user = useAuthStore(s => s.user);
+  const ownsDraft = usePrivateDraftOwner();
+  const draftKey = privateDraftKey("task-draft", suppliedDraftKey);
+  const self = user?.email || user?.name;
+  const [available, setAvailable] = useState(() => readDraft(draftKey));
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [person, setPerson] = useState("");
+  const [subtask, setSubtask] = useState("");
+  const [createAnother, setCreateAnother] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [parentSearch, setParentSearch] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  const assignment = useRef<HTMLDivElement>(null);
+  const subtasks = useRef<HTMLInputElement>(null);
+  const baseline = useRef(JSON.stringify([draft, autoSaveVersion]));
+  const latestAutoSave = useRef(onAutoSave);
+  latestAutoSave.current = onAutoSave;
+  useEffect(() => {
+    const snapshot = JSON.stringify([draft, autoSaveVersion]);
+    if (snapshot === baseline.current) return;
+    const timer = window.setTimeout(() => {
+      if (!ownsDraft() || submitting.current) return;
+      try { localStorage.setItem(draftKey, JSON.stringify(draft)); setNotice("Draft automatically saved in this browser."); }
+      catch { setError("Automatic draft saving failed. Browser storage is unavailable or full."); }
+      if (!latestAutoSave.current || !draft.title.trim() || !form.current?.checkValidity() || (draft.start && draft.due && draft.due < draft.start)) return;
+      submitting.current = true; setSaving(true); setError("");
+      void latestAutoSave.current({ ...draft, title: draft.title.trim() }).then(() => {
+        if (!ownsDraft()) return;
+        baseline.current = snapshot;
+        try { localStorage.removeItem(draftKey); setAvailable(null); } catch { /* Server save succeeded. */ }
+        setNotice("All changes automatically saved to CRM.");
+      }).catch((e: unknown) => {
+        if (!ownsDraft()) return;
+        setError(e instanceof Error ? `Automatic save failed: ${e.message}. Your draft is kept in this browser; use Ctrl+S to retry.` : "Automatic save failed. Use Ctrl+S to retry.");
+      }).finally(() => { submitting.current = false; setSaving(false); });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [draft, draftKey, autoSaveVersion]);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s" || event.defaultPrevented) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      if (!event.repeat) void submit();
+    };
+    window.addEventListener("keydown", shortcut, true);
+    return () => window.removeEventListener("keydown", shortcut, true);
+  });
+  function set<K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) { setDraft(d => ({ ...d, [key]: value })); setError(""); }
+  function saveDraft() { if (!ownsDraft()) return; try { localStorage.setItem(draftKey, JSON.stringify(draft)); setAvailable(draft); setNotice("Draft saved in this browser."); setError(""); } catch { setError("Could not save the draft. Browser storage is unavailable or full."); } }
+  function discardDraft() { if (!ownsDraft()) return; try { localStorage.removeItem(draftKey); setAvailable(null); } catch { setError("Could not remove the saved draft. Please try again."); } }
+  function addPerson() { const value = person.trim(); if (!value) return; set("assignees", [...new Set([...draft.assignees, value])]); setPerson(""); }
+  function addSubtask() { if (!subtask.trim()) return; set("subtasks", [...draft.subtasks, subtask.trim()]); setSubtask(""); }
+  async function submit() {
+    if (!ownsDraft() || submitting.current) return;
+    if (!form.current?.reportValidity()) return;
+    if (!draft.title.trim()) { setError("Enter a task title."); return; }
+    if (draft.start && draft.due && draft.due < draft.start) { setError("Due date must be on or after the start date."); return; }
+    submitting.current = true; setSaving(true); setError("");
+    try {
+      await onCreate({ ...draft, title: draft.title.trim() }, !initialDraft && createAnother);
+      if (!ownsDraft()) return;
+      discardDraft();
+      if (createAnother && !initialDraft) { setDraft(blank()); setNotice(databaseBacked ? "Task saved to CRM. Ready for the next task." : "Task added to this browser. Ready for the next task."); }
+    } catch (e) {
+      if (!ownsDraft()) return;
+      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not save the task. Your entries are still here. Please try again.");
+    } finally { submitting.current = false; setSaving(false); }
+  }
+  return <SmartCreateSection title="Create task" closeOnRecordSaved={false} inline={!!initialDraft} autoOpen onClose={onCancel}><section className="crm-task-creation" aria-label="CRM task creation">
+    <div className="ct-title"><button type="button" className="ct-button ct-back" aria-label="Back to tasks" disabled={saving} onClick={() => { if (JSON.stringify(draft) !== JSON.stringify(blank())) saveDraft(); onCancel(); }}><ArrowLeft size={18}/></button><div><h1>{initialDraft ? "Edit Task" : "Create Task"}</h1><p>Create a CRM task with clear ownership and deadlines.</p></div><div className="ct-title-actions"><button type="button" className="ct-button" onClick={saveDraft}><Save size={17}/>Save Draft</button><button type="button" className="ct-primary" disabled={saving} onClick={() => void submit()}><Sparkles size={18}/>{saving ? "Saving…" : initialDraft ? "Save changes" : "Create Task"}</button></div></div>
+    <p className="ct-local-notice">{databaseBacked ? "Tasks are saved to CRM and available on your other devices. Unsaved drafts stay in this browser." : "UI preview · Tasks and drafts are saved in this browser only. No PMS records are loaded."}</p>
+    {available && <div className="ct-draft-banner">A saved draft is available for this new task. <button type="button" onClick={() => { setDraft(available); setNotice("Saved draft restored."); }}>Restore draft</button><button type="button" onClick={discardDraft}>Discard saved draft</button></div>}
+    {(notice || error) && <div className={`ct-feedback ${error ? "ct-error" : ""}`} role={error ? "alert" : "status"}>{error || notice}<button type="button" aria-label="Dismiss message" onClick={() => { setNotice(""); setError(""); }}><X size={16}/></button></div>}
+    <CompactForm ref={form} className="ct-layout" onSubmit={e => { e.preventDefault(); void submit(); }}><fieldset disabled={saving} style={{ display: "contents" }}>
+      <div className="ct-fields"><Section icon={<FileText/>} title="1. Basic Info" sub="Provide the essential details about the task.">
+        <div className="ct-basic-pair"><label className="ct-field"><Folder/><span>Task location<NativeSelect aria-label="Task location" value={draft.location} onChange={e => set("location", e.target.value)}>{["General / workspace task", "Lead task", "Contact task", "Company task", "Deal task"].map(v => <option key={v}>{v}</option>)}</NativeSelect>{draft.location === "General / workspace task" ? <><span>Workspace <b>*</b></span><NativeSelect aria-label="Task workspace" value="CRM" onChange={() => {}}><option>CRM</option></NativeSelect><small>No project is required. Choose any task type below.</small></> : <><span>Related {draft.location.replace(" task", "").toLowerCase()} <b>*</b></span><input aria-label="Related CRM record" required placeholder="Enter CRM record name or reference" value={draft.relatedRecord} onChange={e => set("relatedRecord", e.target.value)}/><small>Enter a reference for this local preview.</small></>}
+          <span>Parent task (optional)</span><input aria-label="Search parent tasks" placeholder="Find a parent task in this location" value={parentSearch} onChange={e => setParentSearch(e.target.value)}/><NativeSelect aria-label="Parent task" value={draft.parentId} onChange={e => { set("parentId", e.target.value); if (e.target.value) set("workType", "Sub-task"); }}><option value="">Top-level task</option>{tasks.filter(t => t.title.toLowerCase().includes(parentSearch.toLowerCase())).map(t => <option key={t.id} value={t.id}>{t.title || "Untitled task"}</option>)}</NativeSelect></span></label>
+          <label className="ct-field"><Type/><span>Task Title <b>*</b><input aria-label="Task Title" autoFocus required maxLength={220} placeholder="What needs to be done?" value={draft.title} onChange={e => set("title", e.target.value)}/><small>Be clear and specific about what needs to be done.</small></span></label></div>
+        <div className="ct-field ct-worktype"><FileText/><div><label>Work item type <b>*</b></label><div role="group" aria-label="Work item type">{workTypes.map(({ name, icon: Icon }) => <button type="button" key={name} className={draft.workType === name ? "selected" : ""} aria-pressed={draft.workType === name} onClick={() => set("workType", name)}><Icon size={16}/>{name}{draft.workType === name && <Check size={13}/>}</button>)}<NativeSelect aria-label="Other work item types" value={workTypes.some(t => t.name === draft.workType) ? "" : draft.workType} onChange={e => { if (e.target.value) set("workType", e.target.value); }}><option value="">••• Other</option>{["Follow-up", "Call", "Meeting", "Sub-task"].map(t => <option key={t}>{t}</option>)}</NativeSelect></div></div></div>
+        <div className="ct-field ct-description"><FileText/><div><label>Description</label><RichTextEditor label="Description" value={draft.description} onChange={v => set("description", v)} placeholder="Add details, context, or acceptance criteria…"/></div></div>
+      </Section>
+      <Section icon={<Users/>} title="2. Assignment" sub="Assign this task to a person, team, or group."><div ref={assignment} className="ct-execution-choice"><label>Execution mode<NativeSelect aria-label="Execution mode" value={draft.executionMode} onChange={e => set("executionMode", e.target.value)}><option>Shared task</option><option>Individual tasks</option></NativeSelect><small>{draft.executionMode === "Shared task" ? "Everyone works together on one task." : "Preview a separate task for each assignee."}</small></label></div>
+        <div className="ct-assignment-modes">{[{ label: "People", icon: UserRound, sub: "Assign individuals" }, { label: "Teams", icon: Users, sub: "Assign a team" }, { label: "Groups", icon: Folder, sub: "Assign a group" }].map(({ label, icon: Icon, sub }) => <button type="button" key={label} aria-pressed={draft.assignmentMode === label} className={draft.assignmentMode === label ? "selected" : ""} onClick={() => set("assignmentMode", label)}><Icon size={20}/><span><strong>{label}</strong><small>{sub}</small></span>{draft.assignmentMode === label && <Check size={14}/>}</button>)}</div>
+        <div className="ct-basic-pair"><div><label htmlFor="ct-assignee">Select assignees</label><div className="ct-inline"><input id="ct-assignee" placeholder={draft.assignmentMode === "People" ? "Enter a name or email" : "Enter a team or group name"} value={person} onChange={e => setPerson(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPerson(); } }}/><button type="button" className="ct-button" onClick={addPerson}>Add</button></div><button type="button" className="ct-button" disabled={!self || draft.assignees.includes(self)} onClick={() => { if (self) { set("assignmentMode", "People"); set("assignees", [...new Set([...draft.assignees, self])]); } }}>{self && draft.assignees.includes(self) ? "Assigned to me" : "Assign to me"}</button><small>{databaseBacked ? "Task owner defaults to you. Additional names are saved as task details." : "Local labels only; no people directory is loaded."}</small><div className="ct-chips">{draft.assignees.map(p => <span key={p}>{p}<button type="button" aria-label={`Remove assignee ${p}`} onClick={() => set("assignees", draft.assignees.filter(v => v !== p))}><X size={12}/></button></span>)}</div></div><label>Reviewer (optional)<input placeholder="Enter reviewer name" value={draft.reviewer} onChange={e => set("reviewer", e.target.value)}/></label><label>Task owner (optional)<input placeholder="Enter task owner" value={draft.owner} onChange={e => set("owner", e.target.value)}/></label></div>
+      </Section>
+      <Section icon={<CalendarDays/>} title="3. Schedule & Priority" sub="Set a realistic timeline and keep work moving."><div className="ct-grid"><label>Priority<NativeSelect aria-label="Priority" value={draft.priority} onChange={e => set("priority", e.target.value)}>{["Low", "Medium", "High", "Urgent"].map(v => <option key={v}>{v}</option>)}</NativeSelect></label><label>Status<NativeSelect aria-label="Task status" value={draft.status} onChange={e => set("status", e.target.value)}>{["To Do", "In Progress", "Done"].map(v => <option key={v}>{v}</option>)}</NativeSelect></label><label>Start date<input type="date" aria-label="Start date" value={draft.start} onChange={e => set("start", e.target.value)}/></label><label>Due date<input type="date" aria-label="Due date" min={draft.start || undefined} value={draft.due} onChange={e => set("due", e.target.value)}/></label><label>Estimated hours<input type="number" min="0" step="0.25" value={draft.estimatedHours} onChange={e => set("estimatedHours", e.target.value)}/></label></div></Section>
+      <Section icon={<ListChecks/>} title="4. Completion & Subtasks" sub="Define what done looks like and break work into smaller steps."><label>Acceptance criteria<textarea value={draft.acceptance} placeholder="How will you know this task is complete?" onChange={e => set("acceptance", e.target.value)}/></label><label htmlFor="ct-subtask">Subtasks</label><div className="ct-inline"><input id="ct-subtask" ref={subtasks} placeholder="Add a subtask" value={subtask} onChange={e => setSubtask(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } }}/><button type="button" className="ct-button" onClick={addSubtask}>Add subtask</button></div><ul className="ct-subtasks">{draft.subtasks.map((v, i) => <li key={i}><Circle size={13}/>{v}<button type="button" aria-label={`Remove subtask ${i + 1}`} onClick={() => set("subtasks", draft.subtasks.filter((_, index) => index !== i))}><X size={14}/></button></li>)}</ul></Section>
+      {additionalFields}
+      <Section icon={<Paperclip/>} title="5. Attachments" sub="Preview attachment names for this task."><label>Choose files<input type="file" multiple onChange={e => { set("attachments", [...draft.attachments, ...Array.from(e.target.files || []).map(f => f.name)]); e.target.value = ""; }}/></label><small>File names only are saved. Files are not uploaded in this UI preview.</small><div className="ct-chips">{draft.attachments.map((v, i) => <span key={i}>{v}<button type="button" aria-label={`Remove attachment ${i + 1}`} onClick={() => set("attachments", draft.attachments.filter((_, index) => index !== i))}><X size={12}/></button></span>)}</div></Section>
+      <div className="ct-bottom"><span>{databaseBacked ? "Saved to CRM when you save the task" : "Saved to this browser when you create the task"}</span>{!initialDraft && <label><input type="checkbox" checked={createAnother} onChange={e => setCreateAnother(e.target.checked)}/>Create another</label>}<button type="submit" className="ct-primary">{saving ? "Saving…" : initialDraft ? "Save changes" : "Create Task"}</button></div></div>
+      <aside className="ct-right"><section className="ct-summary"><header><span className="ct-section-icon"><Users/></span><div><h2>Assignment Summary</h2><small>{draft.assignees.length} assignees selected</small><div><button type="button" onClick={() => { revealFormField(assignment.current); document.getElementById("ct-assignee")?.focus(); }}><Plus size={13}/>Add more</button></div></div></header>{[{ icon: Users, label: "Assignees", value: draft.assignees.join(", ") || "No one assigned" }, { icon: Folder, label: "Workspace", value: "CRM" }, { icon: Flag, label: "Work item type", value: draft.workType }, { icon: Search, label: "Priority", value: draft.priority }, { icon: CalendarDays, label: "Start date", value: draft.start || "Not set" }, { icon: CalendarDays, label: "Due date", value: draft.due || "Not set" }, { icon: Circle, label: "Status", value: draft.status }].map(({ icon: Icon, label, value }) => <div className="ct-summary-row" key={label}><Icon size={15}/><span>{label}</span><strong data-priority-badge={label === "Priority" || undefined} data-priority={label === "Priority" ? value : undefined} className={label === "Priority" ? "ct-priority" : ""}>{value}</strong></div>)}</section>
+        <section className="ct-ai"><div><Sparkles size={20}/><strong>AI Assist</strong><small>Workspace context</small></div><h3>Suggest task details with AI</h3><p>Get help with the title, description, subtasks, and acceptance criteria.</p><button type="button" disabled title="AI generation is not connected in this UI preview"><Sparkles size={15}/>Generate with AI</button><small>Not connected in this UI preview</small></section>
+        <section className="ct-quick"><header><div><h2>⚡ Quick Actions</h2><small>Save time with templates and shortcuts.</small></div></header><div>{[{ label: "Blank task", sub: "Start from scratch", icon: Plus, run: () => { if (JSON.stringify(draft) === JSON.stringify(blank())) { setDraft(blank()); setNotice(""); } else setClearOpen(true); } }, { label: "Copy from existing", sub: "Use a similar task", icon: Copy, run: () => setCopyOpen(!copyOpen) }, { label: "Use template", sub: "Structured task brief", icon: FileText, run: () => { if (draft.description) { setNotice("Clear the description before inserting a template."); return; } set("description", "Objective:\n\nAcceptance criteria:\n- \n\nDelivery evidence:\n"); } }, { label: "Create subtasks", sub: "Break into smaller tasks", icon: ListChecks, run: () => { revealFormField(subtasks.current); } }].map(({ label, sub, icon: Icon, run }) => <button type="button" key={label} onClick={run}><Icon size={17}/>{label}<small>{sub}</small></button>)}</div>{copyOpen && <label>Copy a local task<NativeSelect aria-label="Copy a local task" defaultValue="" onChange={e => { const source = tasks.find(t => t.id === e.target.value); if (source) { setDraft({ ...blank(), ...source.taskDetails, title: `${source.title} (copy)`, description: source.content, parentId: "" }); setCopyOpen(false); } }}><option value="">Choose a task</option>{tasks.map(t => <option key={t.id} value={t.id}>{t.title || "Untitled task"}</option>)}</NativeSelect>{!tasks.length && <small>No local tasks to copy yet.</small>}</label>}</section>
+        <section className="ct-tips"><h2>💡 Tips for creating great tasks</h2>{["Use a clear and descriptive title", "Add acceptance criteria in the description", "Assign the right person or team", "Set a realistic due date and priority", "Include evidence needed for completion"].map(v => <p key={v}><Check size={13}/>{v}</p>)}</section>
+      </aside>
+    </fieldset></CompactForm>
+    <AlertDialog.Root open={clearOpen} onOpenChange={setClearOpen}><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-[1200] bg-black/40"/><AlertDialog.Content className="fixed left-1/2 top-1/2 z-[1201] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border bg-background p-6 shadow-xl"><AlertDialog.Title className="text-lg font-semibold">Clear this task form?</AlertDialog.Title><AlertDialog.Description className="text-sm text-muted-foreground">The current entries will be cleared. Cancel and save a draft first if you want to keep them. Your previously saved draft remains available.</AlertDialog.Description><div className="flex justify-end gap-3"><AlertDialog.Cancel className="rounded-lg border px-4 py-2 text-sm font-medium">Cancel</AlertDialog.Cancel><AlertDialog.Action className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" onClick={() => { setDraft(blank()); setNotice(""); setError(""); setPerson(""); setSubtask(""); setParentSearch(""); setCopyOpen(false); }}>Clear form</AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>
+  </section></SmartCreateSection>;
+}

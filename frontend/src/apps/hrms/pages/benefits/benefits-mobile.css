@@ -4,7 +4,8 @@
  .hrms-benefits-page .page-title{font-size:22px;line-height:1.25;}
  .hrms-benefits-page .page-description{font-size:13px;}
  .hrms-benefits-page .grid>*,.hrms-benefits-page .kf-card{min-width:0;}
- .hrms-benefits-page .hrms-benefits-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+ .hrms-benefits-page .hrms-benefits-kpis{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px;}
+ .hrms-benefits-page .hrms-benefits-kpis>.kf-card{flex:0 0 122px;}
  .hrms-benefits-page .kf-card>div{padding:12px;}
  .hrms-benefits-kpis svg{margin-bottom:4px;width:16px;height:16px;}
  .hrms-benefits-kpis p.text-2xl{font-size:20px;}

@@ -1,3 +1,4 @@
+import { moduleContextPath } from "@/lib/common-routes";
 import { useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ArrowUpRight, ChevronDown, Plus } from "lucide-react";
@@ -7,8 +8,9 @@ import type { NewAction } from "@/components/app/NewMenu";
 export default function MobileCreateMenu({ actions, disabled }: { actions: NewAction[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false), [all, setAll] = useState(false), [query, setQuery] = useState("");
   const pendingAction = useRef<(() => void) | null>(null);
-  const { pathname } = useLocation();
-  const ranked = [...actions].filter(action => `${action.label} ${action.description} ${action.group || ""}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => Number(!!b.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))) - Number(!!a.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))));
+  const { pathname, search } = useLocation();
+  const module=moduleContextPath(pathname,search).split("/")[1];
+  const ranked = [...actions].filter(action => `${action.label} ${action.description} ${action.group || ""}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => (module==="srm" && (a.label==="POS" || b.label==="POS") ? Number(b.label==="POS")-Number(a.label==="POS") : 0) || Number(!!b.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))) - Number(!!a.menuPaths?.some(path => pathname === path || pathname.startsWith(path + "/"))));
   if (!actions.length) return null;
   return <>
     <button type="button" className="mobile-module-add" data-state={open ? "open" : "closed"} aria-label="Add new record" aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => { setAll(false); setQuery(""); setOpen(true); }}><Plus size={26} aria-hidden="true" /></button>

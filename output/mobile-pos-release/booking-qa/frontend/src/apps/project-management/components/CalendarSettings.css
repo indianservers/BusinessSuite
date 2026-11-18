@@ -1,0 +1,504 @@
+.cal-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: #19112b66;
+  backdrop-filter: blur(3px);
+  z-index: 75;
+}
+.cal-settings-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  width: min(1000px, calc(100vw - 30px));
+  height: min(810px, 90dvh);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 76;
+  box-shadow: 0 25px 80px #25133e30;
+}
+.cal-settings-dialog *,
+.cal-event-dialog * {
+  box-sizing: border-box;
+}
+.cal-settings-dialog aside {
+  padding: 20px 12px;
+  border-right: 1px solid hsl(var(--border));
+  background: #faf8ff;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cal-settings-dialog aside h2 {
+  font-size: 14px;
+  font-weight: 650;
+  padding: 0 8px;
+}
+.cal-settings-dialog nav {
+  display: grid;
+  gap: 5px;
+}
+.cal-settings-dialog button,
+.cal-event-dialog button {
+  min-height: 38px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  background: hsl(var(--background));
+  cursor: pointer;
+}
+.cal-settings-dialog button:disabled,
+.cal-event-dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cal-settings-dialog button:focus-visible,
+.cal-event-dialog button:focus-visible,
+.cal-settings-dialog input:focus-visible,
+.cal-settings-dialog select:focus-visible {
+  outline: 3px solid #c4b5fd;
+  outline-offset: 1px;
+}
+.cal-settings-dialog nav button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: #93859d;
+}
+.cal-settings-dialog nav button.active {
+  background: #e8dfff;
+  color: #7c3aed;
+}
+.cal-settings-dialog aside > small {
+  margin-top: auto;
+  padding: 8px;
+  color: #ab9db5;
+  font-size: 10px;
+}
+.cal-settings-dialog main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.cal-settings-dialog main > header {
+  padding: 12px 20px;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.cal-settings-dialog main > header button {
+  border: 0;
+  border-radius: 50%;
+  font-size: 21px;
+  padding: 0;
+  min-width: 30px;
+  min-height: 30px;
+  background: hsl(var(--muted));
+}
+.cal-settings-scroll {
+  overflow: auto;
+  flex: 1;
+  padding: 28px 32px;
+}
+.cal-settings-scroll h2 {
+  font-size: 21px;
+  font-weight: 700;
+}
+.cal-settings-scroll > p {
+  font-size: 12px;
+  color: #9b8ca6;
+  margin: 6px 0 22px;
+}
+.cal-settings-scroll h3 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 22px 0 10px;
+}
+.cal-settings-dialog fieldset,
+.cal-event-dialog fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.cal-setting-row {
+  display: grid;
+  grid-template-columns: 40% minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin: 25px 0;
+  font-size: 12px;
+}
+.cal-setting-row strong {
+  display: block;
+  font-weight: 550;
+}
+.cal-setting-row small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #a092aa;
+  margin-top: 5px;
+}
+.cal-settings-dialog input:not([type="checkbox"]),
+.cal-settings-dialog select,
+.cal-settings-dialog textarea,
+.cal-event-dialog input,
+.cal-event-dialog select,
+.cal-event-dialog textarea {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 12px;
+  min-height: 38px;
+  width: 100%;
+  background: hsl(var(--background));
+  min-width: 0;
+}
+.cal-settings-dialog textarea {
+  display: block;
+  margin-top: 10px;
+  resize: vertical;
+}
+.cal-choice-cards {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.cal-choice-cards button {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 9px;
+  padding: 7px;
+  font-size: 10px;
+  text-transform: capitalize;
+  border: 0;
+}
+.cal-choice-cards button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px #a78bfa;
+}
+.cal-choice-cards i {
+  display: block;
+  min-height: 55px;
+  text-align: left;
+  background: #f0eaff;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 5px;
+  padding: 8px;
+  font-size: 10px;
+  font-style: normal;
+  color: #7c3aed;
+}
+.cal-choice-cards i.solid {
+  background: #8b5cf6;
+  color: white;
+}
+.cal-setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 11px;
+  padding: 15px;
+  margin: 12px 0;
+}
+.cal-setting-toggle input,
+.cal-sidebar-row input[type="checkbox"],
+.cal-workday input[type="checkbox"] {
+  accent-color: #8b5cf6;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.cal-setting-toggle strong {
+  font-size: 12px;
+  font-weight: 550;
+  display: block;
+}
+.cal-setting-toggle small {
+  display: block;
+  font-size: 10px;
+  color: #9c8aa9;
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.cal-settings-dialog main > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 15px 22px;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+}
+.cal-settings-dialog footer > div {
+  display: flex;
+  gap: 8px;
+}
+.cal-settings-dialog .cal-primary,
+.cal-event-dialog .cal-primary {
+  background: linear-gradient(120deg, #8b5cf6, #6d28d9);
+  color: white;
+  border: 0;
+}
+.cal-settings-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9b88a9;
+  margin: 15px 0;
+}
+.cal-account {
+  border: 1px solid hsl(var(--border));
+  padding: 18px;
+  border-radius: 12px;
+  margin: 15px 0;
+  font-size: 12px;
+}
+.cal-account > strong {
+  font-size: 14px;
+  display: block;
+}
+.cal-account > span {
+  font-size: 10px;
+  color: #a78bba;
+  display: block;
+  margin: 5px 0;
+}
+.cal-account > span.cal-connected {
+  color: #059669;
+}
+.cal-account p,
+.cal-account li {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #9b87ab;
+  margin: 8px 0;
+}
+.cal-account ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.cal-account a,
+.cal-settings-scroll a {
+  color: #8b5cf6;
+  font-size: 12px;
+}
+.cal-sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px 0;
+}
+.cal-sidebar-row input:not([type="checkbox"]) {
+  flex: 1;
+  min-width: 70px;
+}
+.cal-sidebar-row select {
+  max-width: 110px;
+}
+.cal-sidebar-row button {
+  min-width: 24px;
+  padding: 4px;
+  min-height: 32px;
+}
+.cal-workday {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 10px 0;
+}
+.cal-workday label {
+  min-width: 70px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cal-workday input[type="time"] {
+  max-width: 130px;
+}
+.cal-workday span {
+  color: #a78ab7;
+}
+.cal-settings-error {
+  padding: 12px;
+  border: 1px solid #fecdd3;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cal-event-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 77;
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  width: min(570px, calc(100vw - 24px));
+  max-height: 92dvh;
+  overflow: auto;
+  background: hsl(var(--background));
+  padding: 25px;
+  color: hsl(var(--foreground));
+  box-shadow: 0 25px 80px #25133e30;
+}
+.cal-event-dialog h2 {
+  font-size: 21px;
+  font-weight: 700;
+  padding-right: 25px;
+}
+.cal-event-dialog h2 + p {
+  font-size: 12px;
+  color: #9d8aa9;
+  line-height: 1.7;
+  margin: 8px 0 22px;
+}
+.cal-event-dialog .cal-event-close {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  padding: 3px;
+  min-width: 30px;
+  min-height: 30px;
+}
+.cal-event-dialog label {
+  display: block;
+  font-size: 12px;
+  margin: 15px 0;
+  font-weight: 550;
+}
+.cal-event-dialog label input,
+.cal-event-dialog label select,
+.cal-event-dialog label textarea {
+  display: block;
+  margin-top: 7px;
+}
+.cal-event-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.cal-event-dialog footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+.cal-event-dialog footer a {
+  font-size: 12px;
+  color: #8b5cf6;
+}
+.cal-free-slots {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.cal-free-slots button {
+  background: #f3edff;
+  color: #8b5cf6;
+  border-color: #dfcff8;
+}
+@media (max-width: 700px) {
+  .cal-settings-dialog {
+    grid-template-columns: 1fr;
+    height: 94dvh;
+    width: calc(100vw - 16px);
+  }
+  .cal-settings-dialog aside {
+    border-right: 0;
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 12px;
+    gap: 10px;
+  }
+  .cal-settings-dialog aside > small {
+    display: none;
+  }
+  .cal-settings-dialog nav {
+    display: flex;
+    overflow: auto;
+    gap: 4px;
+  }
+  .cal-settings-dialog nav button {
+    white-space: nowrap;
+    padding: 7px 10px;
+    min-height: 34px;
+    font-size: 11px;
+  }
+  .cal-settings-scroll {
+    padding: 18px 15px;
+  }
+  .cal-setting-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .cal-settings-dialog main > header {
+    padding: 8px 15px;
+  }
+  .cal-settings-dialog main > footer {
+    padding: 12px;
+    gap: 6px;
+  }
+  .cal-settings-dialog main > footer button {
+    font-size: 11px;
+    padding: 8px;
+  }
+  .cal-settings-dialog footer > div {
+    gap: 5px;
+  }
+  .cal-sidebar-row {
+    flex-wrap: wrap;
+    padding: 8px;
+  }
+  .cal-sidebar-row input:not([type="checkbox"]) {
+    flex-basis: 70%;
+  }
+  .cal-sidebar-row select {
+    max-width: none;
+    flex: 1;
+    flex-basis: 50%;
+  }
+  .cal-workday {
+    gap: 7px;
+  }
+  .cal-workday label {
+    min-width: 65px;
+  }
+  .cal-workday input[type="time"] {
+    padding: 7px;
+    min-width: 0;
+    flex: 1;
+  }
+  .cal-event-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .cal-event-dialog {
+    padding: 20px;
+  }
+  .cal-event-dialog h2 {
+    font-size: 19px;
+  }
+}

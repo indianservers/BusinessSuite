@@ -4,7 +4,7 @@ export default async environment => {
   const config=await (typeof applicationConfig === "function" ? applicationConfig(environment) : applicationConfig);
   return {
     ...config,
-    cacheDir: "node_modules/.vite-module-regression",
+    cacheDir: process.env.VITE_CACHE_DIR || "node_modules/.vite-module-regression",
     // QA pages should not reload when another workspace task edits a source file.
     server: { ...config.server, hmr: false },
     optimizeDeps: {

@@ -1,0 +1,770 @@
+import EmployeeCategories from "@/shared/EmployeeCategories";
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
+import { useRecordDraft } from "@/hooks/use-record-autosave";
+import { CurrencySelect } from "@/lib/validation/business";
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm from "@/components/forms/CompactForm";
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneError, textError } from "@/lib/validation";
+import { useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, BookOpen, Check, ChevronLeft, ChevronRight, HeartPulse, Loader2, Plus, Save, Settings, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { employeeApi, companyApi, attendanceApi } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
+import { loadManagerOptions } from "./employeeJobOptions";
+import { usePageTitle } from "@/hooks/use-page-title";
+
+const schema = z.object({
+  work_categories: z.array(z.string().max(80)).max(20).optional(),
+  first_name: z.string().trim().min(1, "First name is required").max(160).refine(value=>!textError(value,160),"Enter a valid name without control characters"),
+  last_name: z.string().trim().max(160).refine(value=>!textError(value,160,false),"Enter a valid name without control characters"),
+  gender: z.string().optional(),
+  date_of_birth: z.preprocess((v) => v === "" ? undefined : v, z.string().optional()),
+  date_of_joining: z.string().min(1, "Joining date is required"),
+  salary_currency: z.string().optional(),
+  employment_type: z.string().default("Full-time"),
+  branch_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  department_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  reporting_manager_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  designation_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  personal_email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone_number: z.string().optional(),
+  phone_number_country_code: z.string().optional(),
+  alternate_phone: z.string().optional(),
+  alternate_phone_country_code: z.string().optional(),
+  emergency_contact_name: z.string().optional(),
+  emergency_contact_number: z.string().optional(),
+  emergency_contact_number_country_code: z.string().optional(),
+  emergency_contact_relation: z.string().optional(),
+  present_address: z.string().optional(),
+  permanent_address: z.string().optional(),
+  present_city: z.string().optional(),
+  present_state: z.string().optional(),
+  present_pincode: z.string().optional(),
+  bank_name: z.string().optional(),
+  bank_branch: z.string().optional(),
+  account_number: z.string().optional(),
+  ifsc_code: z.string().optional(),
+  pan_number: z.string().optional(),
+  aadhaar_number: z.string().optional(),
+  uan_number: z.string().optional(),
+  pf_number: z.string().optional(),
+  esic_number: z.string().optional(),
+  bio: z.string().optional(),
+  interests: z.string().optional(),
+  research_work: z.string().optional(),
+  family_information: z.string().optional(),
+  health_information: z.string().optional(),
+  cost_center_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  shift_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  create_user_account: z.boolean().default(false),
+  user_email: z.string().email().optional().or(z.literal("")),
+  user_password: z.string().optional(),
+}).superRefine((data,context)=>{
+  for(const field of ['phone_number','alternate_phone','emergency_contact_number'] as const){const message=phoneError(data[field],data[`${field}_country_code`]);if(message)context.addIssue({code:'custom',path:[field],message});}
+  if(data.date_of_birth&&data.date_of_birth>=new Date().toLocaleDateString("en-CA"))context.addIssue({code:"custom",path:["date_of_birth"],message:"Date of birth must be in the past"});
+  if(!data.create_user_account)return;
+  if(!data.user_email)context.addIssue({code:'custom',path:['user_email'],message:'Login email is required'});
+  if(!data.user_password||data.user_password.length<12||new TextEncoder().encode(data.user_password).length>72)
+    context.addIssue({code:'custom',path:['user_password'],message:'Use at least 12 characters and no more than 72 UTF-8 bytes'});
+});
+
+type FormData = z.infer<typeof schema>;
+
+const steps = ["Personal", "Job", "Contact", "Optional", "Account"];
+type QuickType = "company" | "branch" | "department" | "designation" | "shift";
+
+const stepFields: Array<Array<keyof FormData>> = [
+  ["first_name", "last_name", "gender", "date_of_birth"],
+  ["date_of_joining", "employment_type", "branch_id", "department_id", "designation_id", "reporting_manager_id", "shift_id"],
+  [
+    "personal_email",
+    "phone_number",
+    "alternate_phone",
+    "emergency_contact_name",
+    "emergency_contact_number",
+    "emergency_contact_relation",
+    "present_address",
+    "present_city",
+    "present_state",
+    "present_pincode",
+  ],
+  [
+    "bio",
+    "interests",
+    "research_work",
+    "family_information",
+    "health_information",
+    "bank_name",
+    "bank_branch",
+    "account_number",
+    "ifsc_code",
+    "pan_number",
+    "aadhaar_number",
+    "uan_number",
+    "pf_number",
+    "esic_number",
+  ],
+  ["create_user_account", "user_email", "user_password"],
+];
+
+export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: { id: number }) => void } = {}) {
+  const { term } = useBusinessTerms();
+  const submitting=useRef(false);
+  const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
+  const customFieldForm=useCrmFieldForm("employees","create");
+  const navigate = useNavigate();
+  const [createParams] = useSearchParams();
+  const contextId = (key: string) => /^\d+$/.test(createParams.get(key) || "") ? Number(createParams.get(key)) : undefined;
+  const queryClient = useQueryClient();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    profile: true,
+    education: false,
+    family: false,
+    health: false,
+    bank: false,
+  });
+  const [quickType, setQuickType] = useState<QuickType | null>(null);
+  const [quickForm, setQuickForm] = useState<Record<string, any>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const { data: managers = [] } = useQuery({ queryKey: ["employee-manager-options"], queryFn: loadManagerOptions });
+
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => companyApi.listBranches().then((r) => r.data),
+  });
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => companyApi.listDepartments().then((r) => r.data),
+  });
+
+  const { data: designations } = useQuery({
+    queryKey: ["designations"],
+    queryFn: () => companyApi.listDesignations().then((r) => r.data),
+  });
+
+  const { data: companies, refetch: refetchCompanies } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => companyApi.listCompanies().then((r) => r.data),
+  });
+
+  const { data: shifts, refetch: refetchShifts } = useQuery({
+    queryKey: ["shifts"],
+    queryFn: () => attendanceApi.listShifts().then((r) => r.data),
+  });
+
+  const costCenters = useQuery({ queryKey: ["company-cost-centers"], queryFn: () => companyApi.costCenters().then(r => r.data as {id:number;name:string}[]) });
+  const {
+    control: editorControl,
+    register,
+    trigger,
+    setError: setFieldError,
+    getFieldState,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<z.input<typeof schema>, unknown, FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { salary_currency: defaultText("payroll_currency", "hrms"), cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: contextId("branch_id") || defaultId("branch_id", "hrms"), department_id: contextId("department_id") || defaultId("department_id", "hrms"), reporting_manager_id: contextId("reporting_manager_id"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
+    mode: "onBlur",
+  });
+
+  const selectedBranch = watch("branch_id");
+  const { user_password: omittedPassword, ...employeeDraft } = watch();
+  void omittedPassword;
+  const clearEmployeeDraft = useRecordDraft("hrms-employee:new", { values: employeeDraft, customValues: customFieldForm.values, step: currentStep }, draft => {
+    reset({ ...draft.values, user_password: "" });
+    customFieldForm.setValues(draft.customValues || {});
+    setCurrentStep(Math.max(0, Math.min(stepFields.length - 1, draft.step || 0)));
+  }, !customFieldForm.loading);
+  const selectedDepartment = watch("department_id");
+  const filteredDepartments = (departments || []).filter((d: any) => !selectedBranch || d.branch_id === selectedBranch);
+  const filteredDesignations = (designations || []).filter((d: any) => !selectedDepartment || d.department_id === selectedDepartment);
+
+  const mutation = useMutation({
+    mutationFn: (data: FormData) =>
+      employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}),
+    onSuccess: (res) => {
+      clearEmployeeDraft();
+      queryClient.invalidateQueries({queryKey:["employee-work-categories"]});
+      queryClient.invalidateQueries({queryKey:["pos-service-scheduling"]});
+      queryClient.invalidateQueries({queryKey:["pos-service-provider-options"]});
+      window.dispatchEvent(new Event("pms:people-changed"));
+      announceCreated({ title: "Employee created", href: `/hrms/employees/${res.data.id}`, next: [{ label: "Upload onboarding documents", href: `/hrms/documents?tab=Upload%20Documents&employee_id=${res.data.id}` }] });
+      setSubmitError(null);
+      toast({ title: "Employee created successfully!", variant: "default" });
+      if (onCreated) onCreated(res.data); else navigate(`/hrms/employees/${res.data.id}`);
+    },
+    onSettled: ()=>{submitting.current=false;},
+    onError: (err: unknown) => {
+      const details=(err as {response?:{data?:{detail?:Array<{loc?:string[];msg?:string}>}}})?.response?.data?.detail;
+      if(Array.isArray(details)){
+        const fields=details.map(item=>String(item.loc?.at(-1)||''));
+        for(const item of details){const key=String(item.loc?.at(-1)||'') as keyof FormData;if(key)setFieldError(key,{type:'server',message:item.msg||'Invalid value'});}
+        const index=stepFields.findIndex(step=>step.some(field=>fields.includes(field)));if(index>=0)setCurrentStep(index);
+      }
+      const message = getEmployeeErrorMessage(err);
+      setSubmitError(message);
+      toast({ title: "Failed to create employee", description: message, variant: "destructive" });
+    },
+  });
+
+  const quickMutation = useMutation({
+    mutationFn: async ({ type, data }: { type: QuickType; data: Record<string, any> }) => {
+      if (type === "company") return companyApi.createCompany(data);
+      if (type === "branch") return companyApi.createBranch({ ...data, company_id: Number(data.company_id) });
+      if (type === "department") return companyApi.createDepartment({ ...data, branch_id: Number(data.branch_id) });
+      if (type === "designation") return companyApi.createDesignation({ ...data, department_id: Number(data.department_id), level: Number(data.level || 1) });
+      return attendanceApi.createShift({ ...data, grace_minutes: Number(data.grace_minutes || 10), working_hours: String(data.working_hours || "8.0") });
+    },
+    onSuccess: async (_, { type }) => {
+      toast({ title: "Added to settings" });
+      if (type === "company") await refetchCompanies();
+      if (type === "branch") await queryClient.invalidateQueries({ queryKey: ["branches"] });
+      if (type === "department") await queryClient.invalidateQueries({ queryKey: ["departments"] });
+      if (type === "designation") await queryClient.invalidateQueries({ queryKey: ["designations"] });
+      if (type === "shift") await refetchShifts();
+      setQuickType(null);
+      setQuickForm({});
+    },
+    onError: (err: any) => toast({ title: "Could not add setting", description: err?.response?.data?.detail || "Check required fields", variant: "destructive" }),
+  });
+
+  const goToStep = async (target: number) => {
+    if(target>currentStep){
+      for(let index=0;index<target;index++){
+        if(!await trigger(stepFields[index],{shouldFocus:true})){
+          setCurrentStep(index);
+          const messages=stepFields[index].map(field=>getFieldState(field).error?.message).filter(Boolean);
+          setSubmitError(messages.join('; ') || 'Complete the highlighted fields before continuing.');
+          const first=stepFields[index].find(field=>getFieldState(field).invalid);
+          if(first)requestAnimationFrame(()=>document.querySelector<HTMLInputElement>(`[name="${first}"]`)?.focus());
+          return;
+        }
+      }
+    }
+    setSubmitError(null);
+    setCurrentStep(target);
+  };
+
+  const onSubmit = (data: FormData) => {
+    if(submitting.current)return;
+    submitting.current=true;
+    setSubmitError(null);
+    mutation.mutate(data);
+  };
+
+  const jumpToFirstInvalidStep = (formErrors: typeof errors) => {
+    const invalidFields = Object.keys(formErrors) as Array<keyof FormData>;
+    const stepIndex = stepFields.findIndex((fields) => fields.some((field) => invalidFields.includes(field)));
+    if (stepIndex >= 0) setCurrentStep(stepIndex);
+  };
+
+  const openQuick = (type: QuickType) => {
+    const defaults: Record<QuickType, Record<string, any>> = {
+      company: { country: "India" },
+      branch: { company_id: companies?.[0]?.id || "", country: "India" },
+      department: { branch_id: selectedBranch || branches?.[0]?.id || "" },
+      designation: { department_id: selectedDepartment || departments?.[0]?.id || "", level: 1 },
+      shift: { start_time: "09:30", end_time: "18:30", grace_minutes: 10, working_hours: "8.0" },
+    };
+    setQuickForm(defaults[type]);
+    setQuickType(type);
+  };
+
+  const toggleSection = (key: string) => setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        <div>
+          <h1 className="page-title">Add New {term("employee")}</h1>
+          <p className="page-description">Create a new {term("employee").toLowerCase()} record. Empty branch or designation lists can be managed from Settings.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => navigate("/hrms/settings")} className="ml-auto">
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </Button>
+      </div>
+
+      <EmployeeDuplicateWarning values={{personal_email:watch("personal_email"),phone_number:watch("phone_number"),phone_number_country_code:watch("phone_number_country_code")}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>
+      {/* Step indicator */}
+      <p role="status" className="text-sm text-muted-foreground">Step {currentStep + 1} of {steps.length} · {steps[currentStep]}. Your progress is saved for this session.</p>
+      <progress aria-label="Employee onboarding progress" value={currentStep + 1} max={steps.length} className="h-2 w-full accent-primary"/>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+        {steps.map((step, i) => (
+          <div key={step} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void goToStep(i)}
+              className={`flex min-h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
+                i === currentStep
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : i < currentStep
+                  ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted"
+              }`}
+              aria-current={i === currentStep ? "step" : undefined}
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-xs text-foreground">
+                {i < currentStep ? <Check className="h-3.5 w-3.5" /> : i + 1}
+              </span>
+              <span>{step}</span>
+            </button>
+            {i < steps.length - 1 && (
+              <div className={`hidden h-px w-5 sm:block ${i < currentStep ? "bg-green-500" : "bg-border"}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <CompactForm compactTabs={false}
+        onSubmit={handleSubmit(onSubmit, (formErrors) => {
+          jumpToFirstInvalidStep(formErrors);
+          const firstError = Object.values(formErrors)[0]?.message;
+          toast({
+            title: "Please check employee details",
+            description: String(firstError || "Some required or optional fields are invalid."),
+            variant: "destructive",
+          });
+        })}
+      >
+        {clearEmployeeDraft.status !== "idle" && <p role="status" className="mb-3 text-xs text-muted-foreground">{clearEmployeeDraft.status === "unavailable" ? "Browser draft storage is unavailable. Keep this form open until you save." : clearEmployeeDraft.status === "restored" ? "Your employee draft was restored. Review the details before saving. Login passwords must be entered again." : "Draft saved for this session. Login passwords are excluded."}</p>}
+        {submitError && (
+          <div role="alert" className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">Check employee details</p>
+              <p className="mt-1">{submitError}</p>
+            </div>
+          </div>
+        )}
+        {/* Step 0: Personal Info */}
+        {currentStep === 0 && (
+          <Card>
+            <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="employee-first_name">First Name *</Label>
+                <Input id="employee-first_name" aria-invalid={!!errors.first_name} aria-describedby={errors.first_name ? "employee-first_name-error" : undefined} {...register("first_name")} placeholder="John" />
+                {errors.first_name && <div id="employee-first_name-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.first_name.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-last_name">Last Name (optional)</Label>
+                <Input id="employee-last_name" aria-invalid={!!errors.last_name} aria-describedby={errors.last_name ? "employee-last_name-error" : undefined} {...register("last_name")} placeholder="Doe" />
+                {errors.last_name && <div id="employee-last_name-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.last_name.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <Label>Gender</Label>
+                <NativeSelect aria-label="Gender" {...register("gender")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option>
+                </NativeSelect>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-date_of_birth">Date of Birth</Label>
+                <Input id="employee-date_of_birth" aria-invalid={!!errors.date_of_birth} aria-describedby={errors.date_of_birth ? "employee-date_of_birth-error" : undefined} type="date" {...register("date_of_birth")} />
+                {errors.date_of_birth && <div id="employee-date_of_birth-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.date_of_birth.message}/></div>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 1: Job Details */}
+        {currentStep === 1 && (
+          <Card>
+            <CardHeader><CardTitle>Job Details</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="employee-date_of_joining">Date of Joining *</Label>
+                <Input id="employee-date_of_joining" aria-invalid={!!errors.date_of_joining} aria-describedby={errors.date_of_joining ? "employee-date_of_joining-error" : undefined} type="date" {...register("date_of_joining")} />
+                {errors.date_of_joining && <div id="employee-date_of_joining-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.date_of_joining.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <EmployeeCategories create value={watch("work_categories") || []} onChange={value=>setValue("work_categories",value,{shouldDirty:true})}/>
+                <Label>Employment Type</Label>
+                <NativeSelect aria-label="Employment type" {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Intern">Intern</option><option value="Consultant">Consultant</option>
+                </NativeSelect>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Branch</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("branch")}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <NativeSelect aria-label="Branch"
+                  {...register("branch_id", { onChange: () => { setValue("department_id", null); setValue("designation_id", null); }, setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select Branch</option>
+                  {branches?.map((b: { id: number; name: string }) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </NativeSelect>
+                {errors.branch_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.branch_id.message}/></div>}
+                {!branches?.length && <p className="text-xs text-muted-foreground">No branches yet. Add one here or in Settings.</p>}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Department</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("department")}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <NativeSelect aria-label="Department"
+                  {...register("department_id", { onChange: () => setValue("designation_id", null), setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select Department</option>
+                  {filteredDepartments?.map((d: { id: number; name: string }) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </NativeSelect>
+                {errors.department_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.department_id.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Designation</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("designation")}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <NativeSelect aria-label="Designation"
+                  {...register("designation_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select Designation</option>
+                  {filteredDesignations?.map((d: { id: number; name: string }) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </NativeSelect>
+                {errors.designation_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.designation_id.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reporting-manager">Reporting Manager / Intern Supervisor</Label>
+                <NativeSelect id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">Unassigned</option>
+                  {managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}
+                </NativeSelect>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Shift</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("shift")}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <NativeSelect aria-label="Shift" {...register("shift_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">Select Shift</option>
+                  {shifts?.map((s: { id: number; name: string; start_time: string; end_time: string }) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.start_time}-{s.end_time})</option>
+                  ))}
+                </NativeSelect>
+                {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
+              </div>
+              <label className="space-y-2 text-sm">Cost centre<NativeSelect aria-label="Employee cost centre" {...register("cost_center_id", { setValueAs: value => value == null || value === "" ? null : Number(value) })} className="flex h-10 w-full rounded-md border bg-background px-3"><option value="">None</option>{costCenters.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
+              <label className="space-y-2 text-sm">Salary currency<Controller name="salary_currency" control={editorControl} render={({field}) => <CurrencySelect label="Salary currency" value={field.value || ""} onChange={field.onChange}/>}/></label>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Contact */}
+        {currentStep === 2 && (
+          <Card>
+            <CardHeader><CardTitle>Contact Information</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="employee-personal_email">Personal Email</Label>
+                <Input id="employee-personal_email" aria-invalid={!!errors.personal_email} aria-describedby={errors.personal_email ? "employee-personal_email-error" : undefined} type="email" {...register("personal_email")} placeholder="john@example.com" />
+                {errors.personal_email && <div id="employee-personal_email-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.personal_email.message}/></div>}
+              </div>
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <PhoneInput label="Phone Number" name="phone_number" value={watch("phone_number") || ""} countryCode={watch("phone_number_country_code") || ""} onChange={value=>setValue("phone_number",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("phone_number_country_code",value,{shouldValidate:true})} error={errors.phone_number?.message} />
+              </div>
+              <div className="space-y-2">
+                <Label>Alternate Phone</Label>
+                <PhoneInput label="Alternate Phone" name="alternate_phone" value={watch("alternate_phone") || ""} countryCode={watch("alternate_phone_country_code") || ""} onChange={value=>setValue("alternate_phone",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("alternate_phone_country_code",value,{shouldValidate:true})} error={errors.alternate_phone?.message} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-emergency_contact_name">Emergency Contact</Label>
+                <Input id="employee-emergency_contact_name" aria-invalid={!!errors.emergency_contact_name} aria-describedby={errors.emergency_contact_name ? "employee-emergency_contact_name-error" : undefined} {...register("emergency_contact_name")} placeholder="Contact name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Emergency Phone</Label>
+                <PhoneInput label="Emergency Phone" name="emergency_contact_number" value={watch("emergency_contact_number") || ""} countryCode={watch("emergency_contact_number_country_code") || ""} onChange={value=>setValue("emergency_contact_number",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("emergency_contact_number_country_code",value,{shouldValidate:true})} error={errors.emergency_contact_number?.message} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-emergency_contact_relation">Relation</Label>
+                <Input id="employee-emergency_contact_relation" aria-invalid={!!errors.emergency_contact_relation} aria-describedby={errors.emergency_contact_relation ? "employee-emergency_contact_relation-error" : undefined} {...register("emergency_contact_relation")} placeholder="Spouse, parent, friend" />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Present Address</Label>
+                <textarea {...register("present_address")} rows={3} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              </div>
+              <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3">
+                <Field label="City"><Input {...register("present_city")} /></Field>
+                <Field label="State"><Input {...register("present_state")} /></Field>
+                <Field label="Pincode"><Input {...register("present_pincode")} /></Field>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === 3 && (
+          <div className="space-y-4">
+            <OptionalSection
+              icon={BookOpen}
+              title="Profile, Interests & Research"
+              open={openSections.profile}
+              onToggle={() => toggleSection("profile")}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Bio"><Controller name="bio" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Bio" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/></Field>
+                <Field label="Interests"><textarea {...register("interests")} rows={4} placeholder="AI, analytics, community work..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></Field>
+                <Field label="Research / Publications"><Controller name="research_work" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Research Work" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/></Field>
+              </div>
+            </OptionalSection>
+            <OptionalSection icon={Users} title="Family Information" open={openSections.family} onToggle={() => toggleSection("family")}>
+              <textarea {...register("family_information")} rows={4} placeholder="Dependents, spouse, children, nominee notes..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            </OptionalSection>
+            <OptionalSection icon={HeartPulse} title="Health Information" open={openSections.health} onToggle={() => toggleSection("health")}>
+              <textarea {...register("health_information")} rows={4} placeholder="Allergies, conditions, accessibility needs, insurance notes..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            </OptionalSection>
+            <OptionalSection icon={Save} title="Bank & Compliance" open={openSections.bank} onToggle={() => toggleSection("bank")}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Bank Name"><Input {...register("bank_name")} /></Field>
+                <Field label="Branch"><Input {...register("bank_branch")} /></Field>
+                <Field label="Account Number"><Input {...register("account_number")} /></Field>
+                <Field label="IFSC Code"><Input {...register("ifsc_code")} /></Field>
+                <Field label="PAN"><Input {...register("pan_number")} /></Field>
+                <Field label="Aadhaar"><Input {...register("aadhaar_number")} /></Field>
+                <Field label="UAN"><Input {...register("uan_number")} /></Field>
+                <Field label="PF Number"><Input {...register("pf_number")} /></Field>
+                <Field label="ESIC Number"><Input {...register("esic_number")} /></Field>
+              </div>
+            </OptionalSection>
+          </div>
+        )}
+
+        {/* Step 3: Account */}
+        {currentStep === 4 && (
+          <Card>
+            <CardHeader><CardTitle>User Account (Optional)</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+                <input
+                  type="checkbox"
+                  id="create_user"
+                  {...register("create_user_account")}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="create_user" className="text-sm font-medium cursor-pointer">
+                  Create login account for this employee
+                </label>
+              </div>
+              {watch("create_user_account") && (
+                <div className="space-y-2">
+                  <Label htmlFor="employee-login-email">Login Email *</Label>
+                  <Input id="employee-login-email" type="email" {...register("user_email")} placeholder="employee@company.com" />
+                  {errors.user_email&&<div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.user_email.message}/></div>}
+                  <Label htmlFor="employee-login-password">Login Password *</Label>
+                  <Input id="employee-login-password" type="password" autoComplete="new-password" maxLength={72} {...register("user_password")} />
+                  {errors.user_password&&<div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.user_password.message}/></div>}
+                  <p className="text-xs text-muted-foreground">Set a unique password of at least 12 characters that meets your organization’s password policy.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <CrmRecordFields state={customFieldForm}/>
+        {/* Navigation buttons */}
+        <div className="flex items-center justify-between mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+            disabled={currentStep === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+
+          {currentStep < steps.length - 1 ? (
+            <Button
+              type="button"
+              key="next-step"
+              onClick={event => { event.preventDefault(); void goToStep(Math.min(steps.length - 1,currentStep+1)); }}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button key="create-employee" type="submit" disabled={mutation.isPending || customFieldForm.loading || !!customFieldForm.error}>
+              {mutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Create Employee
+            </Button>
+          )}
+        </div>
+      </CompactForm>
+      {quickType && (
+        <QuickCreateModal
+          type={quickType}
+          form={quickForm}
+          setForm={setQuickForm}
+          companies={companies || []}
+          branches={branches || []}
+          departments={departments || []}
+          onClose={() => setQuickType(null)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            quickMutation.mutate({ type: quickType, data: quickForm });
+          }}
+          saving={quickMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function cleanEmployeePayload(data: FormData) {
+  const payload: Record<string, any> = { ...data };
+  ["date_of_birth", "date_of_confirmation"].forEach((key) => {
+    if (payload[key] === "") payload[key] = null;
+  });
+  ["branch_id", "department_id", "designation_id", "reporting_manager_id", "shift_id"].forEach((key) => {
+    if (payload[key] === "" || Number.isNaN(payload[key])) payload[key] = null;
+  });
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === "") payload[key] = undefined;
+  });
+  return payload;
+}
+
+function getEmployeeErrorMessage(error: unknown) {
+  const responseData = (error as { response?: { data?: { detail?: unknown; message?: unknown } }; message?: string })?.response?.data;
+  const detail = responseData?.detail || responseData?.message;
+
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const location = Array.isArray(item?.loc) ? item.loc.filter((part: string) => part !== "body").join(".") : "";
+        const message = item?.msg || item?.message || "Invalid value";
+        return location ? `${location}: ${message}` : message;
+      })
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    return Object.entries(detail)
+      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`)
+      .join("; ");
+  }
+
+  return (error as { message?: string })?.message || "Failed to create employee. Please check the required details and try again.";
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+}
+
+function OptionalSection({ icon: Icon, title, open, onToggle, children }: { icon: React.ElementType; title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <Card>
+      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between p-4 text-left">
+        <span className="flex items-center gap-3 font-semibold"><Icon className="h-4 w-4 text-primary" />{title}</span>
+        <ChevronRight className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+      {open && <CardContent className="border-t pt-4">{children}</CardContent>}
+    </Card>
+  );
+}
+
+function QuickCreateModal({
+  type,
+  form,
+  setForm,
+  companies,
+  branches,
+  departments,
+  onClose,
+  onSubmit,
+  saving,
+}: {
+  type: QuickType;
+  form: Record<string, any>;
+  setForm: (v: Record<string, any>) => void;
+  companies: any[];
+  branches: any[];
+  departments: any[];
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  saving: boolean;
+}) {
+  const update = (key: string, value: any) => setForm({ ...form, [key]: value });
+  const select = (key: string, options: any[]) => (
+    <NativeSelect value={form[key] || ""} onChange={(e) => update(key, e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <option value="">Select</option>
+      {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+    </NativeSelect>
+  );
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+      <CompactForm compactTabs={false} onSubmit={onSubmit} className="w-full max-w-xl rounded-t-lg border bg-background shadow-xl sm:rounded-lg">
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="font-semibold">Add {type}</h2>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2">
+          <Field label="Name *"><Input list={type === "designation" ? "designation-suggestions" : undefined} value={form.name || ""} onChange={(e) => update("name", e.target.value)} /></Field>
+          <datalist id="designation-suggestions">{["Intern", "Software Architect", "Marketing"].map((name) => <option key={name} value={name} />)}</datalist>
+          {type !== "company" && type !== "shift" && <Field label="Code"><Input value={form.code || ""} onChange={(e) => update("code", e.target.value)} /></Field>}
+          {type === "branch" && <Field label="Company *">{select("company_id", companies)}</Field>}
+          {type === "department" && <Field label="Branch *">{select("branch_id", branches)}</Field>}
+          {type === "designation" && <Field label="Department *">{select("department_id", departments)}</Field>}
+          {type === "designation" && <Field label="Level"><Input type="number" min={1} value={form.level || 1} onChange={(e) => update("level", e.target.value)} /></Field>}
+          {type === "shift" && <><Field label="Start"><Input type="time" value={form.start_time || ""} onChange={(e) => update("start_time", e.target.value)} /></Field><Field label="End"><Input type="time" value={form.end_time || ""} onChange={(e) => update("end_time", e.target.value)} /></Field><Field label="Grace Minutes"><Input type="number" value={form.grace_minutes || 10} onChange={(e) => update("grace_minutes", e.target.value)} /></Field><Field label="Working Hours"><Input type="number" step="0.5" value={form.working_hours || "8.0"} onChange={(e) => update("working_hours", e.target.value)} /></Field></>}
+          {(type === "company" || type === "branch") && <><Field label="Email"><Input value={form.email || ""} onChange={(e) => update("email", e.target.value)} /></Field><Field label="City"><Input value={form.city || ""} onChange={(e) => update("city", e.target.value)} /></Field></>}
+        </div>
+        <div className="flex justify-end gap-2 border-t px-5 py-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        </div>
+      </CompactForm>
+    </div>
+  );
+}

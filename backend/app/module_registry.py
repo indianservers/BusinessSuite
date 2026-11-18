@@ -214,7 +214,7 @@ APP_MODULES: dict[str, AppModule] = {
             "app.business_packs.pharma.return_api",
             "app.business_packs.restaurant.api",
             "app.business_packs.accounting_firm.api",
-            "app.apps.srm.api.router", "app.apps.srm.industry_api", "app.apps.srm.appointment_booking",
+            "app.apps.srm.api.router", "app.apps.srm.industry_api", "app.apps.srm.prebooking_workflows", "app.apps.srm.appointment_booking",
             "app.apps.srm.service_checkout_options_api", "app.apps.srm.service_checkout_api", "app.apps.srm.anonymous_cash_api", "app.apps.srm.pos_surface_api",
         ),
         model_modules=("app.apps.srm.models", "app.apps.srm.industry_models", "app.apps.srm.service_checkout_models", "app.apps.srm.anonymous_cash_models", "app.business_packs.pharma.recall_models", "app.business_packs.restaurant.models", "app.business_packs.accounting_firm.models"),

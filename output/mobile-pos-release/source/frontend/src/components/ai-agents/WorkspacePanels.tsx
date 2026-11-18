@@ -1,0 +1,47 @@
+import {useEffect,useRef,useState} from 'react';
+import {Link} from 'react-router-dom';
+import {api} from '@/services/api';
+import AgentMemory from './AgentMemory';
+import OrganizationMemory from './OrganizationMemory';
+import PromptVersions from './PromptVersions';
+const ROOT='/ai-operator/suite';
+const title=(value:string)=>value.split('.').slice(1).join(' ').replace(/_/g,' ');
+
+export function WorkspaceChats({items,onOpen}:{items:{id:number;title:string}[];onOpen:(id:number)=>void}){
+ const [query,setQuery]=useState('');return <><h3>Chats</h3><p>Your conversations are stored on the server and rechecked against your current access when opened.</p><input aria-label="Search workspace chats" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a conversation"/>{items.filter(i=>i.title.toLowerCase().includes(query.toLowerCase())).map(i=><article className="bot-result-card" key={i.id}><h4>{i.title}</h4><button type="button" onClick={()=>onOpen(i.id)}>Open chat #{i.id}</button></article>)}{!items.length&&<p>No saved conversations in this workspace.</p>}</>
+}
+
+export function WorkspaceTools({module}:{module?:string}){
+ const [items,setItems]=useState<any[]>([]),[query,setQuery]=useState(''),[scope,setScope]=useState(module||''),[error,setError]=useState('');
+ useEffect(()=>{void api.get(ROOT+'/tools').then(r=>setItems(r.data.tools||[])).catch(()=>setError('Could not load tool catalog.'))},[]);
+ const visible=items.filter(t=>(!scope||t.module===scope)&&(t.name+' '+t.description).toLowerCase().includes(query.toLowerCase()));
+ return <><h3>Tools</h3><p>Code-approved BusinessSuite capabilities. An agent can use selected tools only when your current module, record and action permissions allow it.</p><div className="bot-file-actions"><input aria-label="Search workspace tools" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Tasks, invoices, reports…"/><select aria-label="Tool module" value={scope} onChange={e=>setScope(e.target.value)}><option value="">All modules</option>{['CRM','PMS','HRMS','SRM','FAM'].map(m=><option key={m}>{m}</option>)}</select></div><p>{visible.length} matching tools</p>{visible.map(t=><article className="bot-result-card" key={t.name}><small>{t.module} · {t.approval_required?'Reviewed action':'Read'}</small><h4>{title(t.name)}</h4><p>{t.description}</p><details><summary>Inputs and scope</summary><p>{t.record_id_required?'An existing record or project is required.':'Record scope depends on the request.'}</p><p>{t.fields?.length?t.fields.join(', '):'No additional fields.'}</p><small>{t.name}</small></details></article>)}{error&&<p role="alert">{error}</p>}</>
+}
+
+export {default as WorkspaceConnections} from './WorkspaceConnections';
+
+export function WorkspaceKnowledge({conversationId,module,workspaceId,projectId,agentId,onDownloadSource,onShowFiles}:{conversationId?:number|null;module?:string;workspaceId?:number;projectId?:number;agentId?:number|null;onDownloadSource:(source:{href:string;label:string})=>void;onShowFiles:(id?:number)=>void}){
+ const [query,setQuery]=useState(''),[result,setResult]=useState<any>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[scope,setScope]=useState('uploads'),[mode,setMode]=useState('hybrid');
+ const sequence=useRef(0);
+ useEffect(()=>{sequence.current++;setResult(null);setError('');setBusy(false)},[conversationId,module,workspaceId,projectId,agentId,scope,mode]);
+ useEffect(()=>()=>{sequence.current++},[]);
+ async function search(){if(!conversationId)return;const ticket=++sequence.current;setBusy(true);setResult(null);setError('');try{
+  const choices:Record<string,string[]>={uploads:[],CRM:['crm.leads','crm.deals','crm.tasks'],PMS:['pms.projects',...(projectId?['pms.tasks']:[])],HRMS:['hrms.directory','hrms.policies'],SRM:['srm.invoices','srm.inventory'],FAM:['fam.cost_centers','fam.vouchers']};
+  const r=agentId&&scope!=='uploads'
+   ?await api.get(ROOT+'/workspace/conversation-search',{params:{conversation_id:conversationId,agent_id:agentId,module:scope,query,mode,project_id:projectId||undefined}})
+   :await api.post(ROOT+'/workspace/search',{conversation_id:conversationId,agent_id:agentId||null,query,limit:8,mode,include_uploads:true,tools:choices[scope]||[],project_id:projectId||null});if(ticket===sequence.current)setResult(r.data)
+ }catch(e:any){if(ticket===sequence.current)setError(typeof e.response?.data?.detail==='string'?e.response.data.detail:'Could not search these sources. Check current record access or try lexical search.')}finally{if(ticket===sequence.current)setBusy(false)}}
+ return <><h3>Knowledge</h3><p>In chat, ask “Search knowledge for: vacation approval”, then follow up with “What about travel reimbursement?”. Local mode returns source excerpts; a connected LLM can summarize them.</p><p>Search conversation uploads, selected private agent files and authorized business records. Semantic matching runs entirely on the server using a local English sentence model. Lexical matching also supports Unicode text.</p><button type="button" onClick={()=>onShowFiles()}>Manage conversation files</button>
+ <div className="bot-file-actions"><label>Sources<select aria-label="Knowledge sources" value={scope} onChange={e=>setScope(e.target.value)}><option value="uploads">Conversation uploads</option>{['CRM','PMS','HRMS','SRM','FAM'].map(m=><option key={m} value={m}>{m} records + uploads</option>)}</select></label><label>Matching<select aria-label="Knowledge matching" value={mode} onChange={e=>setMode(e.target.value)}><option value="hybrid">Hybrid · meaning + keywords</option><option value="semantic">Semantic · meaning</option><option value="lexical">Lexical · keywords</option></select></label></div>
+ {scope==='PMS'&&!projectId&&<p>Select a project in the bot to include its tasks. This search currently includes accessible project summaries.</p>}
+ <label>Search authorized knowledge<input aria-label="Knowledge file query" value={query} maxLength={500} onChange={e=>setQuery(e.target.value)} placeholder="Which customer commitments need attention?"/></label><button type="button" disabled={busy||!conversationId||!query.trim()} onClick={()=>void search()}>{busy?'Searching server sources…':'Search authorized knowledge'}</button>{!conversationId&&<p>Create a conversation before searching its authorized sources.</p>}
+ {result&&<><p>{result.files_searched} files · {result.candidates_searched} candidate excerpts · {result.semantic_used?'Local semantic model used':'Lexical matching'} · {result.coverage}</p>{result.notice&&<p role="status">{result.notice}</p>}{result.records?.map((r:any)=><p key={r.tool}>{r.tool}: {r.records_searched} sampled records{r.complete?' · complete API page':' · bounded API sample'}</p>)}</>}
+ {result?.items?.map((s:any)=><article className="bot-result-card" key={s.id}><small>{s.kind==='record'?'Business record':'Uploaded source'}</small><h4>{s.label}</h4><p className="bot-artifact-content">{s.excerpt}</p><small>{s.file_id?`Characters ${s.start}–${s.end} · `:''}source {s.id}</small>{s.file_id?<button type="button" disabled={busy} onClick={()=>s.agent_knowledge?onDownloadSource(s):onShowFiles(s.file_id)}>Open source file</button>:<Link to={s.href}>Open source record</Link>}</article>)}{result&&!result.items?.length&&<p>No matching excerpts. Try another term or select another source.</p>}<OrganizationMemory key={`organization-memory-${module||0}-${workspaceId||0}`} module={module} workspaceId={workspaceId}/><AgentMemory module={module} workspaceId={workspaceId} projectId={projectId}/>{error&&<p role="alert">{error}</p>}</>
+}
+
+export function WorkspaceActivity({workspaceId,onOpen}:{workspaceId?:number;onOpen:(id:number)=>void}){
+ const [items,setItems]=useState<any[]>([]),[status,setStatus]=useState(''),[error,setError]=useState('');
+ async function load(){const r=await api.get(ROOT+'/runs',{params:{workspace_id:workspaceId},progress:false});setItems(r.data.items||[])}
+ useEffect(()=>{void load().catch(()=>setError('Could not load your execution history.'));const timer=setInterval(()=>void load().catch(()=>{}),10000);return()=>clearInterval(timer)},[workspaceId]);
+ return <><h3>Activity</h3><p>Your authorized run history, proposed actions and execution receipts. Other users' private runs are not included.</p><div className="bot-file-actions"><select aria-label="Activity status" value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option>{[...new Set(items.map(i=>i.status))].sort().map(s=><option key={s}>{s}</option>)}</select><button type="button" onClick={()=>void load().catch(()=>setError('Could not refresh activity.'))}>Refresh activity</button></div>{items.filter(i=>!status||i.status===status).map(i=><article className="bot-result-card" key={i.id}><small>Run #{i.id} · {i.status?.replace(/_/g,' ')}</small><h4>{i.command}</h4><p>{i.result?.intelligence?.provider||'Server workflow'} · {i.receipts?.length||0} execution receipts</p>{i.error_code&&<p>{i.error_code}</p>}<PromptVersions value={i.result?.prompt_versions}/>{i.result?.request?.conversation_id&&<button type="button" onClick={()=>onOpen(i.result.request.conversation_id)}>Open run conversation</button>}<details><summary>Confirmed receipts</summary>{i.receipts?.length?i.receipts.map((r:any)=><p key={r.step}>Step {r.step} · {r.tool} · {r.status||'recorded'}{r.record_id?` · record #${r.record_id}`:''}</p>):<p>No executed action receipts.</p>}</details></article>)}{!items.length&&<p>No runs in this workspace.</p>}{error&&<p role="alert">{error}</p>}</>
+}

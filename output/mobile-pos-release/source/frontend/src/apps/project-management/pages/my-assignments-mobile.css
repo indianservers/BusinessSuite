@@ -1,0 +1,21 @@
+@media(max-width:480px){
+ .my-assignments-page{min-width:0}
+ .my-assignments-page>h1{font-size:20px;margin-bottom:4px}
+ .my-assignments-page>p{font-size:12px;overflow-wrap:anywhere}
+ .my-assignments-page>a{display:inline-flex;align-items:center;min-height:44px}
+ .my-assignments-page button{min-height:44px}
+ .my-assignments-page .assignments-pagination{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+ .assignments-pagination>span{font-size:12px;text-align:center;overflow-wrap:anywhere}
+ .my-assignments-page>section{padding:12px;gap:12px;min-width:0}
+ .my-assignments-page>section :is(input,textarea){font-size:16px;min-height:44px;min-width:0}
+ .my-assignments-page>section p,.my-assignments-page>section h2{overflow-wrap:anywhere}
+ .my-assignments-page>section>div.flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .my-assignments-page>section button{white-space:normal}
+}
+
+@media(max-width:480px){
+ .my-assignments-page .suite-rte-toolbar :is(button,summary){min-width:44px;min-height:44px}
+ .my-assignments-page .suite-rte .suite-rte-toolbar select{font-size:16px;min-height:44px;min-width:64px}
+ .my-assignments-page .suite-rte-menu{grid-template-columns:repeat(5,44px)}
+ .my-assignments-page .suite-rte-menu>label{min-width:44px;min-height:44px}
+}

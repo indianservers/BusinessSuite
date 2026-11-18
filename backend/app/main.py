@@ -98,6 +98,11 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Included FastAPI routers build effective route/dependency metadata lazily.
+    # Do that before readiness, rather than charging the first real page load.
+    from app.core.route_warmup import prime_routes
+    prime_routes(app)
+
     follow_up_worker = None
     if is_app_enabled("crm") or is_app_enabled("srm"):
         from app.shared.follow_ups import start_worker

@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "path": "/api/v1/srm/inventory/reports/stock-summary",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/srm/inventory/reports/reorder",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/srm/reports",
+      "status": 200
+    }
+  ],
+  "status": "passed"
+}

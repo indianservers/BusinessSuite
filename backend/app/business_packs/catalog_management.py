@@ -273,7 +273,8 @@ def _list_page(db,actor,source,scope,permissions,*,kind,search,category,status,s
     if status != 'all':
         query = query.filter(SRMProduct.active == (status == 'Active'))
     if category:
-        query = query.filter(SRMProduct.category_name == category)
+        query = query.filter(or_(SRMProduct.category_name == category,
+            cast(SRMProduct.metadata_json['catalog_categories'], String).contains(json.dumps(category,ensure_ascii=False),autoescape=True)))
     if search:
         query = query.filter(or_(SRMProduct.item_name.icontains(search, autoescape=True),
             SRMProduct.sku.icontains(search, autoescape=True), SRMProduct.description.icontains(search, autoescape=True)))
@@ -290,7 +291,10 @@ def _list_page(db,actor,source,scope,permissions,*,kind,search,category,status,s
             tag_value = cast(tag_value, JSONB)
         arrays = query.with_entities(tag_value).distinct().order_by(tag_value).limit(1001).all()
         tags = {value for (values,) in arrays[:1000] if isinstance(values,list) for value in values if isinstance(value,str)}
-        facets = {'categories': sorted(value for (value,) in categories[:1000] if value), 'tags': sorted(tags),
+        category_labels = query.with_entities(SRMProduct.metadata_json['catalog_categories']).limit(1000).all()
+        all_categories = {value for (value,) in categories[:1000] if value}
+        all_categories.update(label for (values,) in category_labels if isinstance(values,list) for label in values)
+        facets = {'categories': sorted(all_categories), 'tags': sorted(tags),
             'has_more': len(categories)>1000 or len(arrays)>1000}
     if tag:
         normalized = tag.strip().lower()
@@ -396,6 +400,11 @@ def save_item(db, actor, source, data, ident=None):
         before = {column.name: getattr(product, column.name) for column in product.__table__.c}
         metadata = dict(product.metadata_json or {})
         metadata.update(currency=data.currency, images=data.images)
+        if data.category_ids is not None:
+            from app.shared.catalog_categories import selection
+            ids, labels = selection(db, actor, data.category_ids)
+            metadata.update(catalog_category_ids=ids, catalog_categories=labels)
+            data.category = labels[0].split(' > ')[0] if labels else ''
         if modifier_supplied:
             from .restaurant.modifiers import validate_catalog
             metadata['restaurant_modifiers'] = validate_catalog(db, actor, scope, product.id, data.currency, data.restaurant_modifiers)

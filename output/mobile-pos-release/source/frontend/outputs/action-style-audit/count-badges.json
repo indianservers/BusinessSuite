@@ -1,0 +1,58 @@
+[
+  {
+    "file": "src\\apps\\communication\\whatsapp\\Inbox.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\crm\\CRMWorkspacePage.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\crm\\leads\\LeadWorkflow.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\crm\\product-customers\\ProductCustomersPage.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\crm\\templates\\TemplateGallery.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\crm\\templates\\TemplateStudio.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\hrms\\pages\\leave\\LeavePage.tsx",
+    "counts": 2
+  },
+  {
+    "file": "src\\apps\\power-apps\\applications\\automations\\builder\\NodeLibrary.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\project-management\\components\\KanbanColumn.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\project-management\\pages\\CustomFieldManagerPage.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\project-management\\pages\\PlannerPage.tsx",
+    "counts": 2
+  },
+  {
+    "file": "src\\apps\\project-management\\pages\\TasksReferencePage.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\project-management\\pages\\WorkspacesPage.tsx",
+    "counts": 1
+  },
+  {
+    "file": "src\\apps\\project-management\\pages\\WorkspaceWork.tsx",
+    "counts": 3
+  }
+]

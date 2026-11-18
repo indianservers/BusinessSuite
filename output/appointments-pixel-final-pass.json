@@ -1,0 +1,38 @@
+{
+  "resources": {
+    "size": [
+      1586,
+      992
+    ],
+    "total_pixels": 1573312,
+    "different_pixels": 1497385,
+    "identical_pixels_percent": 4.8259,
+    "mean_absolute_channel_error": 8.9351,
+    "pixels_with_channel_error_over_20_percent": 8.395,
+    "exact_match": false
+  },
+  "schedule": {
+    "size": [
+      1586,
+      992
+    ],
+    "total_pixels": 1573312,
+    "different_pixels": 1418412,
+    "identical_pixels_percent": 9.8455,
+    "mean_absolute_channel_error": 10.9226,
+    "pixels_with_channel_error_over_20_percent": 11.5157,
+    "exact_match": false
+  },
+  "booking": {
+    "size": [
+      1586,
+      992
+    ],
+    "total_pixels": 1573312,
+    "different_pixels": 1539234,
+    "identical_pixels_percent": 2.166,
+    "mean_absolute_channel_error": 8.6167,
+    "pixels_with_channel_error_over_20_percent": 8.4928,
+    "exact_match": false
+  }
+}

@@ -52,7 +52,10 @@
  .fam-recurring-source-actions{flex-wrap:wrap;gap:8px}
  .fam-recurring-source-actions>a{flex:1;min-width:0;padding:8px;white-space:normal;text-align:center}
  .fam-recurring-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;min-width:0;max-width:100%}
- .fam-recurring-form>label{min-width:0;font-size:14px}
+ .fam-recurring-form label{min-width:0;font-size:14px}
+ .fam-recurring-form>.mobile-disclosure{grid-column:1/-1;margin:0}
+ .fam-recurring-form>.mobile-disclosure>summary{min-height:44px}
+ .fam-recurring-form label:has(input[type=checkbox]){display:flex;min-height:44px}
  .fam-recurring-form>label:nth-child(-n+3),.fam-recurring-form>label:has(input[type=checkbox]),.fam-recurring-form>button{grid-column:1/-1}
  .fam-recurring-form :is(input:not([type=checkbox]),select){width:100%;max-width:100%;min-width:0;min-height:44px;font-size:16px}
  .fam-recurring-form input[type=checkbox]{width:20px;height:20px;flex-shrink:0}

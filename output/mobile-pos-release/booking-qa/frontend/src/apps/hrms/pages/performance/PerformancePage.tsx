@@ -1,0 +1,673 @@
+import { selectedBranch } from "@/lib/branch-context";
+import CalibrationParticipantsMobile, { type CalibrationParticipantView } from "./CalibrationParticipantsMobile";
+import "./performance-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import RecordMaintenance from "@/components/RecordMaintenance";
+import {useAuthStore} from "@/store/authStore";
+import { NativeSelect } from "@/components/ui/native-select";
+import CompactForm from "@/components/forms/CompactForm";
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Target, Plus, Star, TrendingUp, CheckCircle2, RefreshCw, MessageSquareText, Users, Grid3X3, BriefcaseBusiness, IndianRupee
+} from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { performanceApi } from "@/services/api";
+import { formatDate, statusColor } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { toast } from "@/hooks/use-toast";
+
+interface Cycle {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
+interface Goal {
+  id: number;
+  title: string;
+  description?: string;
+  target_value?: number;
+  current_value?: number;
+  unit?: string;
+  due_date?: string;
+  target_date?: string;
+  status: string;
+  priority?: string;
+  progress_pct?: number;
+}
+
+interface GoalForm {
+  title: string;
+  description?: string;
+  due_date?: string;
+  target_value?: number;
+  unit?: string;
+  priority?: string;
+  cycle_id?: number;
+}
+
+interface ReviewForm {
+  rating: number;
+  self_comments?: string;
+  goals_achieved?: number;
+  cycle_id?: number;
+}
+
+interface Feedback360Request {
+  id: number;
+  employee_id: number;
+  reviewer_id: number;
+  relationship_type: string;
+  due_date?: string;
+  target_date?: string;
+  status: string;
+  overall_rating?: number;
+  comments?: string;
+  created_at: string;
+}
+
+type PerformanceTab = "goals" | "reviews" | "360" | "calibration" | "oneOnOnes" | "nineBox" | "succession" | "compensation";
+
+interface CalibrationSession {
+  id: number;
+  name: string;
+  status: string;
+  cycle_id: number;
+  participants?: CalibrationParticipantView[];
+}
+
+interface OneOnOneRecord {
+  id: number;
+  manager_id: number;
+  employee_id: number;
+  meeting_date: string;
+  status: string;
+  talking_points_json?: Array<{ text?: string; topic?: string }>;
+  action_items_json?: Array<{ owner?: string; action?: string; due?: string }>;
+}
+
+interface NineBoxItem {
+  employee_id: number;
+  employee_name?: string;
+  performance_rating?: string;
+  potential_rating?: string;
+  box: string;
+}
+
+interface CriticalRole {
+  id: number;
+  role_name: string;
+  business_impact: string;
+  vacancy_risk: string;
+  successors?: Array<{ id: number; employee_id: number; readiness_level: string; development_actions_json?: Array<{ action?: string }> }>;
+}
+
+interface CompensationWorksheetRow {
+  id: number;
+  employee_id: number;
+  current_ctc: string | number;
+  proposed_merit_amount: string | number;
+  proposed_merit_percent: string | number;
+  proposed_ctc: string | number;
+  budget_impact: string | number;
+  approval_status: string;
+}
+
+function performanceBrowserScope() {
+  try { return [sessionStorage.getItem("suite-tenant"),sessionStorage.getItem("suite-organization"),selectedBranch()]; }
+  catch { return []; }
+}
+
+export default function PerformancePage() {
+  const actor=useAuthStore(state=>state.user),grant=actor?.access?.grants.hrms;
+  const canCreate=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("create"),canEdit=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("edit");
+  usePageTitle("Performance");
+  const phone = useMobile(480);
+  const phoneReadScope = phone ? JSON.stringify([actor?.id,actor?.access?.companyId,...performanceBrowserScope(),actor?.role,!!actor?.is_superuser,grant?.enabled,[...(grant?.permissions||[])].sort(),[...(grant?.actions||[])].sort()]) : "";
+  const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState<PerformanceTab>("goals");
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState<number | "">("");
+
+  const cycleQuery = useQuery({
+    queryKey: ["perf-cycles"],
+    queryFn: () => performanceApi.cycles().then((r) => r.data),
+  });
+
+  const goalQuery = useQuery({
+    queryKey: ["goals", selectedCycle],
+    queryFn: () =>
+      performanceApi.goals(selectedCycle ? Number(selectedCycle) : undefined).then((r) => r.data),
+    enabled: Boolean(selectedCycle),
+    retry: false,
+  });
+
+  const feedbackQuery = useQuery({
+    queryKey: ["feedback-360-requests"],
+    queryFn: () => performanceApi.feedback360Requests().then((r) => r.data as Feedback360Request[]),
+    retry: false,
+  });
+  const calibrationQuery = useQuery({
+    queryKey: ["perf-calibration", selectedCycle, ...(phone ? [phoneReadScope] : [])],
+    queryFn: () => performanceApi.calibrationSessions(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as CalibrationSession[]),
+  });
+  const conversationQuery = useQuery({
+    queryKey: ["perf-one-on-ones", ...(phone ? [phoneReadScope] : [])],
+    queryFn: () => performanceApi.oneOnOnes().then((r) => r.data as OneOnOneRecord[]),
+  });
+  const nineBoxQuery = useQuery({
+    queryKey: ["perf-nine-box", selectedCycle],
+    queryFn: () => performanceApi.nineBox(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as { items: NineBoxItem[]; count: number }),
+    enabled: Boolean(selectedCycle),
+    retry: false,
+  });
+  const successionQuery = useQuery({
+    queryKey: ["perf-critical-roles"],
+    queryFn: () => performanceApi.criticalRoles().then((r) => r.data as CriticalRole[]),
+  });
+  const compensationQuery = useQuery({
+    queryKey: ["perf-comp-worksheet"],
+    queryFn: () => performanceApi.compensationWorksheet().then((r) => r.data as CompensationWorksheetRow[]),
+    retry: false,
+  });
+
+  const cycles = cycleQuery.data, goals = goalQuery.data, loadingGoals = goalQuery.isLoading, refetchGoals = goalQuery.refetch;
+  const feedback360 = feedbackQuery.data, loading360 = feedbackQuery.isLoading, calibrationSessions = calibrationQuery.data;
+  const oneOnOnes = conversationQuery.data, nineBox = nineBoxQuery.data, criticalRoles = successionQuery.data, worksheetRows = compensationQuery.data;
+  const sections: Array<[PerformanceTab,string]> = [["goals","My Goals"],["reviews","Submit Review"],["360","360 Reviews"],["calibration","Calibration"],["oneOnOnes","1:1s"],["nineBox","Nine Box"],["succession","Succession"],["compensation","Comp Worksheet"]];
+  const activeQuery = {goals:goalQuery,reviews:goalQuery,"360":feedbackQuery,calibration:calibrationQuery,oneOnOnes:conversationQuery,nineBox:nineBoxQuery,succession:successionQuery,compensation:compensationQuery}[activeTab];
+  const needsCycle = ["goals","reviews","nineBox"].includes(activeTab);
+  const showTabContent = !phone || (!needsCycle || !!selectedCycle) && activeQuery.data !== undefined;
+
+  const { control: goalEditorControl, register: regGoal, handleSubmit: submitGoal, reset: resetGoal, formState: { errors: goalErrors } } = useForm<GoalForm>();
+  const { control: reviewEditorControl, register: regReview, handleSubmit: submitReview, reset: resetReview, watch: watchReview } = useForm<ReviewForm>({
+    defaultValues: { rating: 3, goals_achieved: 0 },
+  });
+
+  const createGoalMutation = useMutation({
+    mutationFn: (data: GoalForm) =>
+      performanceApi.createGoal({
+        ...data,
+        cycle_id: selectedCycle ? Number(selectedCycle) : undefined,
+        target_value: data.target_value != null && String(data.target_value) !== "" ? Number(data.target_value) : undefined,
+        target_date: data.due_date || undefined,
+      }),
+    onSuccess: () => {
+      toast({ title: "Goal created!" });
+      resetGoal();
+      setShowGoalForm(false);
+      refetchGoals();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
+  });
+
+  const updateGoalMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Goal> }) =>
+      performanceApi.updateGoal(id, data),
+    onSuccess: () => {
+      toast({ title: "Goal updated" });
+      refetchGoals();
+    },
+  });
+
+  const submitReviewMutation = useMutation({
+    mutationFn: (data: ReviewForm) =>
+      performanceApi.submitReview({
+        cycle_id: selectedCycle ? Number(selectedCycle) : undefined,
+        review_type: "Self",
+        overall_rating: Number(data.rating),
+        comments: data.self_comments,
+        strengths: `Goals achieved: ${Number(data.goals_achieved || 0)} of ${totalGoals}`,
+      }),
+    onSuccess: () => {
+      toast({ title: "Review submitted!" });
+      resetReview();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
+  });
+
+  const reviewRating = watchReview("rating");
+  const completedGoals = (goals as Goal[])?.filter((g) => g.status === "Completed").length ?? 0;
+  const totalGoals = (goals as Goal[])?.length ?? 0;
+
+  return (
+    <div className="hrms-performance-page space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Performance</h1>
+          <p className="page-description">Manage goals, track progress, and submit reviews.</p>
+        </div>
+        {activeTab === "goals" && (
+          <Button size="sm" disabled={!canCreate} onClick={() => setShowGoalForm((v) => !v)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Goal
+          </Button>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="performance-kpis grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Total Goals", value: totalGoals, color: "text-blue-600" },
+          { label: "Completed", value: completedGoals, color: "text-green-600" },
+          { label: "In Progress", value: (goals as Goal[])?.filter((g) => g.status === "In Progress").length ?? 0, color: "text-orange-600" },
+          { label: "Overdue", value: (goals as Goal[])?.filter((g) => g.status === "Overdue").length ?? 0, color: "text-red-600" },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardContent className="p-4 text-center">
+              <p className={`text-2xl font-bold ${s.color}`}>{phone && !goals ? "—" : s.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Cycle selector */}
+      <div className="performance-cycle flex items-center gap-3">
+        <Label className="text-sm" htmlFor="performance-review-cycle">Review Cycle</Label>
+        <NativeSelect
+          loading={phone && cycleQuery.isFetching} error={phone && cycleQuery.isError} id="performance-review-cycle"
+          value={selectedCycle}
+          onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : "")}
+          className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="">{phone ? "Choose a cycle" : "All Cycles"}</option>
+          {(cycles as Cycle[])?.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </NativeSelect>
+      </div>
+
+      {/* Tabs */}
+      {phone ? <label className="performance-section">Section<NativeSelect aria-label="Performance section" value={activeTab} onChange={event=>setActiveTab(event.target.value as PerformanceTab)}>{sections.map(([id,label])=><option key={id} value={id}>{label}</option>)}</NativeSelect></label> : <div className="flex flex-wrap gap-2 border-b">
+        {([
+          ["goals", "My Goals"],
+          ["reviews", "Submit Review"],
+          ["360", "360 Reviews"],
+          ["calibration", "Calibration"],
+          ["oneOnOnes", "1:1s"],
+          ["nineBox", "Nine Box"],
+          ["succession", "Succession"],
+          ["compensation", "Comp Worksheet"],
+        ] as Array<[PerformanceTab, string]>).map(([tab, label]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === tab
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>}
+      {phone && cycleQuery.isError && <p role="alert">Review cycles could not load. <Button variant="outline" onClick={()=>cycleQuery.refetch()}>Retry review cycles</Button></p>}
+      {phone && needsCycle && !selectedCycle && <p role="status">Choose a review cycle to view this section.</p>}
+      {phone && (!needsCycle || !!selectedCycle) && activeQuery.isPending && <p role="status">Loading performance section…</p>}
+      {phone && (!needsCycle || !!selectedCycle) && activeQuery.isError && <p role="alert">This performance section could not load. <Button variant="outline" onClick={()=>activeQuery.refetch()}>Retry performance section</Button></p>}
+
+      {activeTab === "goals" && (
+        <div className="space-y-4">
+          {/* Create goal form */}
+          {showGoalForm && (
+            <SmartCreateSection title={<>New Goal</>} size="standard" mobileSheet={phone} autoOpen onClose={() => setShowGoalForm(false)}><Card>
+              <CardHeader><CardTitle className="text-base">New Goal</CardTitle></CardHeader>
+              <CardContent>
+                <CompactForm
+                  onSubmit={submitGoal((data) => createGoalMutation.mutate(data))}
+                  className="performance-goal-form grid grid-cols-1 sm:grid-cols-2 gap-4"
+                >
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="block space-y-1.5">Appraisal cycle<NativeSelect aria-label="Appraisal cycle" required value={selectedCycle} onChange={event=>setSelectedCycle(event.target.value?Number(event.target.value):"")}><option value="">Choose an appraisal cycle</option>{(cycles as Cycle[])?.map(cycle=><option key={cycle.id} value={cycle.id}>{cycle.name}</option>)}</NativeSelect></label>
+                    <Label>Goal Title *</Label>
+                    <Input aria-invalid={phone ? !!goalErrors.title : undefined} aria-label="Goal title" {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
+                    {goalErrors.title && <div role={phone ? "alert" : undefined} className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={goalErrors.title.message}/></div>}
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label>Description</Label>
+                    <Controller name="description" control={goalEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Description" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Target Value</Label>
+                    <Input aria-label={phone ? "Goal target value" : undefined} type="number" {...regGoal("target_value")} placeholder="e.g. 100" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Due Date</Label>
+                    <Input aria-label="Due Date" type="date" {...regGoal("due_date")} />
+                  </div>
+                  <div className="sm:col-span-2 flex gap-3">
+                    <Button type="submit" data-save-action={phone ? "" : undefined} disabled={!canCreate||createGoalMutation.isPending}>
+                      {createGoalMutation.isPending ? "Creating..." : "Create Goal"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowGoalForm(false)}>Cancel</Button>
+                  </div>
+                </CompactForm>
+              </CardContent>
+            </Card></SmartCreateSection>
+          )}
+
+          {/* Goals list */}
+          {phone && !showTabContent ? null : loadingGoals ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}><CardContent className="p-5"><div className="h-16 skeleton rounded" /></CardContent></Card>
+            ))
+          ) : !(goals as Goal[])?.length ? (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">
+                <Target className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>No goals yet. Add your first goal!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            (goals as Goal[]).map((goal) => {
+              const progress = goal.progress_pct ?? (goal.target_value && goal.current_value != null
+                ? Math.min(100, (goal.current_value / goal.target_value) * 100)
+                : 0);
+
+              return (
+                <Card className="performance-goal-card" data-priority-row data-priority={goal.priority} key={goal.id}>
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-sm">{goal.title}</h3>
+                          {goal.priority && (
+                            <span data-priority-badge data-priority={goal.priority} className={`text-xs px-1.5 py-0.5 rounded ${statusColor(goal.priority)}`}>
+                              {goal.priority}
+                            </span>
+                          )}
+                        </div>
+                        {goal.description && (
+                          <div className="text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={goal.description}/></div>
+                        )}
+                        {goal.target_value && (
+                          <p className="text-xs text-muted-foreground">
+                            Progress: {goal.current_value ?? 0} / {goal.target_value} {goal.unit || ""}
+                          </p>
+                        )}
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden w-full max-w-xs">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">{Math.round(progress)}% complete</p>
+                      </div>
+                      <div className="performance-goal-actions flex flex-col items-end gap-2">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(goal.status)}`}>
+                          {goal.status}
+                        </span>
+                        {(goal.target_date || goal.due_date) && (
+                          <span className="text-xs text-muted-foreground">Due {formatDate(goal.target_date || goal.due_date || null)}</span>
+                        )}
+                        <RecordMaintenance record={goal as unknown as Record<string,unknown>} name={goal.title} endpoint={`/performance/goals/${goal.id}`} fields={[{key:"title",label:"Goal title",required:true},{key:"description",label:"Description"},{key:"target_date",label:"Target date",type:"date"}]} queryKeys={["goals"]} canEdit={canEdit} canDelete={!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("delete")}/>
+                        {goal.status !== "Completed" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={!canEdit||updateGoalMutation.isPending} onClick={() => updateGoalMutation.mutate({ id: goal.id, data: { status: "Completed" } })}
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Mark Done
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {activeTab === "reviews" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Self Review</CardTitle>
+            <CardDescription>Submit your performance self-assessment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SmartCreateSection title="Submit performance review" size="standard" mobileSheet={phone}><CompactForm
+              onSubmit={submitReview((data) => submitReviewMutation.mutate(data))}
+              className="performance-review-form space-y-6"
+            >
+              {/* Star rating */}
+              <div className="space-y-2">
+                <Label>Overall Rating *</Label>
+                <div className="performance-rating flex gap-3">
+                  {[1, 2, 3, 4, 5].map((r) => (
+                    <label key={r} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        aria-label={`Rating ${r}`}
+                        checked={phone ? Number(reviewRating) === r : undefined}
+                        value={r}
+                        {...regReview("rating")}
+                        className="sr-only"
+                      />
+                      <Star className={phone && r > Number(reviewRating) ? "h-8 w-8 text-yellow-500 fill-none" : "h-8 w-8 text-yellow-400 fill-yellow-400 hover:scale-110 transition-transform"} />
+                    </label>
+                  ))}
+                </div>
+                {phone && <p role="status" className="performance-rating-status">Selected rating: {reviewRating} / 5</p>}
+                <p className="text-xs text-muted-foreground">Rating: 1 (Needs Improvement) – 5 (Exceptional)</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Goals Achieved</Label>
+                <Input
+                  aria-label={phone ? "Goals achieved" : undefined} type="number"
+                  min={0}
+                  max={totalGoals}
+                  {...regReview("goals_achieved")}
+                  placeholder={`Out of ${totalGoals} goals`}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Self Comments</Label>
+                <Controller name="self_comments" control={reviewEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Self Comments" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
+              </div>
+
+              <Button type="submit" data-save-action={phone ? "" : undefined} disabled={!canCreate||!selectedCycle||!(cycles as Cycle[] | undefined)?.some(cycle=>cycle.id===Number(selectedCycle)&&["active","self_review","manager_review","calibration"].includes(cycle.status))||submitReviewMutation.isPending}>
+                {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
+              </Button>
+            </CompactForm></SmartCreateSection>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "360" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">360 Reviews</CardTitle>
+            <CardDescription>Pending and submitted feedback requests</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loading360 ? (
+              Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 skeleton rounded" />)
+            ) : !(feedback360 || []).length ? (
+              <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
+                <MessageSquareText className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                No 360 feedback requests assigned.
+              </div>
+            ) : (
+              <GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-1" items={((feedback360 || [])) || []} fields={standardRecordGroups(((feedback360 || [])) || [])} gridClassName="space-y-3" renderItem={(item) => (
+                <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Employee #{item.employee_id} feedback</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.relationship_type} review {item.due_date ? `due ${formatDate(item.due_date)}` : "with no due date"}
+                    </p>
+                    {item.comments && <p className="mt-2 text-xs text-muted-foreground">{item.comments}</p>}
+                  </div>
+                  <Badge variant={item.status === "Submitted" ? "default" : "secondary"}>{item.status}</Badge>
+                </div>
+              )}/>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "calibration" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Calibration Sessions</CardTitle>
+            <CardDescription>Review-cycle rating moderation with proposed, final, and potential ratings.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-2" items={((calibrationSessions || [])) || []} fields={standardRecordGroups(((calibrationSessions || [])) || [])} gridClassName="space-y-3" renderItem={(session) => (
+              <div key={session.id} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{session.name}</p>
+                    <p className="text-xs text-muted-foreground">Cycle #{session.cycle_id} - {session.participants?.length || 0} participants</p>
+                  </div>
+                  <Badge>{session.status}</Badge>
+                </div>
+                {phone ? <CalibrationParticipantsMobile key={phoneReadScope} sessionName={session.name} participants={session.participants||[]} sourceError={calibrationQuery.isError} refreshing={calibrationQuery.isFetching} onRetry={()=>{void calibrationQuery.refetch();}}/> : <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {(session.participants || []).slice(0, 6).map((participant) => (
+                    <div key={participant.id} className="rounded-md bg-muted/50 p-3 text-xs">
+                      <p className="font-medium">Employee #{participant.employee_id}</p>
+                      <p className="text-muted-foreground">Proposed {participant.proposed_rating || "-"} / Final {participant.final_rating || "-"}</p>
+                      <p className="text-muted-foreground">Potential {participant.potential_rating || "-"}</p>
+                    </div>
+                  ))}
+                </div>}
+              </div>
+            )}/>}
+            {!calibrationSessions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No calibration sessions yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "oneOnOnes" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">One-on-Ones</CardTitle>
+            <CardDescription>Manager and employee conversations with action follow-through.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-3" items={(phone ? (oneOnOnes || []) : (oneOnOnes || []).slice(0, 20)) || []} fields={standardRecordGroups((phone ? (oneOnOnes || []) : (oneOnOnes || []).slice(0, 20)) || [])} gridClassName="space-y-3" renderItem={(item) => (
+              <div key={item.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-sm font-medium">Employee #{item.employee_id} with Manager #{item.manager_id}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(item.meeting_date)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {(item.talking_points_json || []).map((point) => point.text || point.topic).filter(Boolean).join(", ") || "No talking points captured"}
+                  </p>
+                </div>
+                <Badge variant={item.status === "Closed" ? "default" : "secondary"}>{item.status}</Badge>
+              </div>
+            )}/>}
+            {!oneOnOnes?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No one-on-one records yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "nineBox" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Nine-Box Grid</CardTitle>
+            <CardDescription>Performance and potential placement from calibration outcomes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {(nineBox?.items || []).map((item) => (
+                <div key={`${item.employee_id}-${item.box}`} className="rounded-lg border p-4">
+                  <Grid3X3 className="mb-2 h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">{item.employee_name || `Employee #${item.employee_id}`}</p>
+                  <p className="text-xs text-muted-foreground">Performance {item.performance_rating || "-"} / Potential {item.potential_rating || "-"}</p>
+                  <Badge className="mt-3" variant="secondary">{item.box}</Badge>
+                </div>
+              ))}
+            </div>
+            {!nineBox?.items?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No nine-box placements yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "succession" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Succession & Career Paths</CardTitle>
+            <CardDescription>Critical roles, successors, readiness, and development actions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-4" items={((criticalRoles || [])) || []} fields={standardRecordGroups(((criticalRoles || [])) || [])} gridClassName="space-y-3" renderItem={(role) => (
+              <div key={role.id} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{role.role_name}</p>
+                    <p className="text-xs text-muted-foreground">Impact {role.business_impact} - Vacancy risk {role.vacancy_risk}</p>
+                  </div>
+                  <BriefcaseBusiness className="h-5 w-5 text-primary" />
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {(role.successors || []).map((candidate) => (
+                    <div key={candidate.id} className="rounded-md bg-muted/50 p-3 text-xs">
+                      <p className="font-medium">Successor Employee #{candidate.employee_id}</p>
+                      <p className="text-muted-foreground">{candidate.readiness_level}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}/>}
+            {!criticalRoles?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No critical roles configured.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "compensation" && showTabContent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Compensation Worksheet</CardTitle>
+            <CardDescription>Restricted merit planning with pay-band and budget impact tracking.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(worksheetRows || []).map((row) => (
+              <div key={row.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-sm font-medium">Employee #{row.employee_id}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Current INR {Number(row.current_ctc || 0).toLocaleString("en-IN")} - Proposed INR {Number(row.proposed_ctc || 0).toLocaleString("en-IN")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Merit INR {Number(row.proposed_merit_amount || 0).toLocaleString("en-IN")} ({row.proposed_merit_percent || 0}%) - Budget impact INR {Number(row.budget_impact || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 sm:justify-end">
+                  <IndianRupee className="h-4 w-4 text-primary" />
+                  <Badge>{row.approval_status}</Badge>
+                </div>
+              </div>
+            ))}
+            {!worksheetRows?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No accessible compensation worksheet rows.</p>}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

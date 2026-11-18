@@ -1,0 +1,181 @@
+{
+  "release": [
+    "stock-report-preview-20261118-v3"
+  ],
+  "started": "2026-11-18T13:25:17.818Z",
+  "finished": "2026-11-18T13:36:37.433Z",
+  "method": "Chromium Pixel 7 emulation, 390x844, unthrottled host network; authenticated, login excluded; 2 independent cold contexts per route and same-context repeat reloads. Background requests counted by initiation during a 60s window after 5s settling.",
+  "rows": [
+    {
+      "key": "appointments",
+      "label": "Appointments",
+      "idle": {
+        "name": "appointments",
+        "seconds": 60,
+        "count": 4,
+        "endpoints": {
+          "/api/v1/access/me": 2,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      "cold": {
+        "median_seconds": 24.633,
+        "min_seconds": 20.571,
+        "max_seconds": 28.694,
+        "samples": 2,
+        "api_counts": [
+          12,
+          12
+        ],
+        "fcp_ms": [
+          796,
+          776
+        ]
+      },
+      "repeat": {
+        "median_seconds": 20.39,
+        "min_seconds": 10.317,
+        "max_seconds": 30.464,
+        "samples": 2,
+        "api_counts": [
+          11,
+          11
+        ],
+        "fcp_ms": [
+          2636,
+          260
+        ]
+      }
+    },
+    {
+      "key": "scheduling",
+      "label": "Service scheduling",
+      "idle": {
+        "name": "scheduling",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      "cold": {
+        "median_seconds": 18.451,
+        "min_seconds": 7.475,
+        "max_seconds": 29.428,
+        "samples": 2,
+        "api_counts": [
+          9,
+          9
+        ],
+        "fcp_ms": [
+          932,
+          724
+        ]
+      },
+      "repeat": {
+        "median_seconds": 5.73,
+        "min_seconds": 5.717,
+        "max_seconds": 5.744,
+        "samples": 2,
+        "api_counts": [
+          8,
+          8
+        ],
+        "fcp_ms": [
+          168,
+          168
+        ]
+      }
+    },
+    {
+      "key": "pos",
+      "label": "POS terminal",
+      "idle": {
+        "name": "pos",
+        "seconds": 60,
+        "count": 4,
+        "endpoints": {
+          "/api/v1/srm/business/customers": 1,
+          "/api/v1/access/me": 1,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      },
+      "cold": {
+        "median_seconds": 11.669,
+        "min_seconds": 10.576,
+        "max_seconds": 12.762,
+        "samples": 2,
+        "api_counts": [
+          18,
+          18
+        ],
+        "fcp_ms": [
+          684,
+          1368
+        ]
+      },
+      "repeat": {
+        "median_seconds": 4.953,
+        "min_seconds": 4.765,
+        "max_seconds": 5.141,
+        "samples": 2,
+        "api_counts": [
+          15,
+          15
+        ],
+        "fcp_ms": [
+          152,
+          224
+        ]
+      }
+    },
+    {
+      "key": "product",
+      "label": "Product entry",
+      "idle": {
+        "name": "product",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/notifications/summary": 1,
+          "/api/v1/access/setup": 1
+        }
+      },
+      "cold": {
+        "median_seconds": 16.154,
+        "min_seconds": 15.627,
+        "max_seconds": 16.682,
+        "samples": 2,
+        "api_counts": [
+          9,
+          9
+        ],
+        "fcp_ms": [
+          852,
+          1196
+        ]
+      },
+      "repeat": {
+        "median_seconds": 21.145,
+        "min_seconds": 3.355,
+        "max_seconds": 38.935,
+        "samples": 2,
+        "api_counts": [
+          8,
+          8
+        ],
+        "fcp_ms": [
+          160,
+          536
+        ]
+      }
+    }
+  ],
+  "javascript_errors": [],
+  "api_errors": []
+}

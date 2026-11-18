@@ -1,0 +1,21 @@
+import {useState} from 'react';
+import {flushSync} from 'react-dom';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,useLocation,useNavigate} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import MobileModuleDock from '@/components/layout/MobileModuleDock';
+import MobilePortalDock from '@/components/mobile/MobilePortalDock';
+import {SmartCreateModal} from '@/shared/creation/SmartCreateModal';
+import {useAuthStore} from '@/store/authStore';
+import '@/index.css';
+const params=new URLSearchParams(location.search),initial=params.get('route')||'/portal/partner/leads';
+useAuthStore.setState({isHydrated:true,isAuthenticated:true,accessToken:'fixture',user:{id:55,email:'mobile@example.test',role:'admin',is_superuser:true}});
+function App(){const location=useLocation(),navigate=useNavigate(),[canSubmit,setCanSubmit]=useState(true),[sessionScope,setSessionScope]=useState('session-a'),[name,setName]=useState(''),[note,setNote]=useState('');
+ (window as any).__setPortalCapability=(value:boolean)=>flushSync(()=>setCanSubmit(value));
+ (window as any).__setPortalScope=(value:string)=>flushSync(()=>setSessionScope(value));
+ const portal=location.pathname.startsWith('/portal/'),creating=location.hash==='#new-record'||location.pathname.endsWith('/new');
+ const title=portal?'Create partner lead':location.pathname.startsWith('/fam')?'Create voucher':'Create automation';
+ const close=()=>navigate(portal?'/portal/partner/leads':location.pathname.startsWith('/fam')?'/fam/vouchers':'/power-apps/automations');
+ return <><main id="suite-main" className="kf-main"><h1>Creation handoff fixture</h1><output aria-label="Current route">{location.pathname+location.search+location.hash}</output></main>{portal?<MobilePortalDock type="partner" sessionScope={sessionScope} canSubmitLead={canSubmit} links={['Home','Leads','Commissions','Profile'].map((label,index)=>[label,'/portal/partner'+(index?'/'+label.toLowerCase():'')])}/>:<MobileModuleDock/>}{creating&&<SmartCreateModal definition={{entity:'handoffDraft',title,presentation:'page',size:'compact'}} onClose={close}><form onSubmit={event=>event.preventDefault()}><label>Draft name<input aria-label="Draft name" required value={name} onChange={event=>setName(event.target.value)}/></label><label>Draft notes<textarea aria-label="Draft notes" value={note} onChange={event=>setNote(event.target.value)}/></label><button type="submit">Save draft record</button></form></SmartCreateModal>}</>;
+}
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={[initial]}><App/></MemoryRouter></QueryClientProvider>);

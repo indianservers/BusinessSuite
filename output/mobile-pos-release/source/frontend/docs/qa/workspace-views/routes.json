@@ -1,0 +1,230 @@
+[
+  {
+    "path": "crm/whatsapp-communication",
+    "alerts": [],
+    "heading": [
+      "WhatsApp Communication",
+      "Contacts",
+      "ContactsCustomers"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/import-data",
+    "alerts": [],
+    "heading": [
+      "Import into CRM"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/payment-requests",
+    "alerts": [],
+    "heading": [
+      "Payment requests"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/birthdays",
+    "alerts": [],
+    "heading": [
+      "Communication Center",
+      "Contact birthdays"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/company-directory",
+    "alerts": [],
+    "heading": [
+      "Settings"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/records",
+    "alerts": [],
+    "heading": [
+      "Relationship Hub",
+      "Loading your contacts"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/record-metadata",
+    "alerts": [],
+    "heading": [
+      "Custom fields",
+      "Leads fields"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/product-customers",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/customer-follow-ups",
+    "alerts": [],
+    "heading": [
+      "Lead & customer follow-ups"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/greetings",
+    "alerts": [],
+    "heading": [
+      "Customer greetings",
+      "Write a greeting"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/follow-ups/directory",
+    "alerts": [],
+    "heading": [
+      "Customer follow-ups"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/follow-ups/calendar",
+    "alerts": [],
+    "heading": [
+      "Customer follow-ups"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/products-services",
+    "alerts": [],
+    "heading": [
+      "Products & services"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/messages",
+    "alerts": [],
+    "heading": [
+      "Messages"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm/gantt",
+    "alerts": [],
+    "heading": [
+      "CRM Gantt"
+    ],
+    "loading": false,
+    "overflow": false
+  },
+  {
+    "path": "crm",
+    "alerts": [],
+    "heading": [
+      "CRM Dashboard",
+      "Follow-ups needing attention",
+      "Risk-aware pipeline"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/sales-home",
+    "alerts": [],
+    "heading": [
+      "Who should I contact next?"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/follow-ups",
+    "alerts": [],
+    "heading": [
+      "Customer follow-ups"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/dashboard",
+    "alerts": [],
+    "heading": [
+      "CRM Dashboard",
+      "Follow-ups needing attention",
+      "Risk-aware pipeline"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/profile",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/potential-clients",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/leads",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/leads/classic",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/leads/workbench",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/contacts",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/accounts",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/companies",
+    "needsReview": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector "
+  },
+  {
+    "path": "crm/customers",
+    "alerts": [],
+    "heading": [
+      "Customers"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/vendors",
+    "alerts": [],
+    "heading": [
+      "Vendors"
+    ],
+    "overflow": false
+  },
+  {
+    "path": "crm/deals",
+    "alerts": [],
+    "heading": [
+      "Deals"
+    ],
+    "overflow": false
+  }
+]

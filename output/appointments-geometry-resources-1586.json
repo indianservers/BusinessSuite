@@ -1,0 +1,92 @@
+{
+  ".appointment-reference-topbar": {
+    "x": 248,
+    "y": 0,
+    "width": 1338,
+    "height": 62,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-breadcrumb": {
+    "x": 248,
+    "y": 62,
+    "width": 1338,
+    "height": 48,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-page-heading": {
+    "x": 270,
+    "y": 126,
+    "width": 912,
+    "height": 65,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-statistics": {
+    "x": 270,
+    "y": 227,
+    "width": 912,
+    "height": 92,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-filters": {
+    "x": 270,
+    "y": 355,
+    "width": 912,
+    "height": 40,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-table-scroll": {
+    "x": 270,
+    "y": 421,
+    "width": 912,
+    "height": 424,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-pagination": {
+    "x": 270,
+    "y": 919,
+    "width": 912,
+    "height": 72,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-editor header": {
+    "x": 1203,
+    "y": 63,
+    "width": 382,
+    "height": 97,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-editor form>fieldset": {
+    "x": 1203,
+    "y": 160,
+    "width": 382,
+    "height": 673,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".resource-editor form>footer": {
+    "x": 1203,
+    "y": 908,
+    "width": 382,
+    "height": 83,
+    "font": "",
+    "fontFamily": "AppointmentRoboto, Arial, sans-serif"
+  },
+  ".appointment-reference-datebar": null,
+  ".appointment-reference-filters": null,
+  ".appointment-reference-views": null,
+  ".appointment-gantt-scroll": null,
+  ".appointment-reference-upcoming": null,
+  ".prebooking-reference-modal": null,
+  ".prebooking-reference-header": null,
+  ".reference-appointment-form": null,
+  ".booking-reference-summary": null,
+  ".reference-appointment-form>.prebooking-footer": null
+}

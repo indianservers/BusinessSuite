@@ -69,7 +69,9 @@ const EnterprisePage = lazyRoute(() => import("@/apps/hrms/pages/platform/Enterp
 const InternManagementPage = lazyRoute(() => import("./pages/interns/InternManagementPage"));
 
 const MyAssignmentsPage=lazyRoute(()=>import("@/apps/project-management/pages/MyAssignmentsPage"));
+const EmployeeCategoryManagement=lazyRoute(()=>import('./pages/employees/EmployeeCategoryManagement'));
 const moduleRoutes: FrontendRoute[] = [
+  {path:'employee-categories',element:<EmployeeCategoryManagement/>},
   {path:"daily-work",element:<HRDailyWork/>},
   {path:"my-assignments",element:<React.Suspense><MyAssignmentsPage/></React.Suspense>},
   { path: "dashboard", element: <DashboardPage /> },

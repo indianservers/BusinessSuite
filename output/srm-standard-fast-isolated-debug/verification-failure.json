@@ -1,0 +1,184 @@
+{
+  "release": "srm-standard-fast-20261118-v8",
+  "results": [
+    {
+      "width": 360,
+      "route": "/srm/appointments",
+      "ready_and_checks_ms": 16745,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/project-options",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/prebooking-workflows/waitlist",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/catalog/items",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/master-data/companies",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    },
+    {
+      "width": 360,
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "ready_and_checks_ms": 663,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [],
+      "status": "passed"
+    },
+    {
+      "width": 360,
+      "route": "/srm/pos/terminal",
+      "ready_and_checks_ms": 26173,
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ],
+      "requests": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200
+        }
+      ],
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "apiFailures": [],
+  "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByRole('dialog').getByLabel('Product name', { exact: true })\nExpected: visible\nTimeout: 90000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 90000ms\n  - waiting for getByRole('dialog').getByLabel('Product name', { exact: true })\n"
+}

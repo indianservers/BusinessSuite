@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { useAuthStore } from "@/store/authStore";
+import { useMobile } from "@/components/mobile/useMobile";
 
 import { api, assetApi } from "@/services/api";
 
@@ -193,7 +194,8 @@ export default function AssetWorkspace({
     [view, setView] = useState("table"),
     [selected, setSelected] = useState<Asset | null>(null);
 
-  useEffect(() => setPage(0), [status, sort]);
+  const phone = useMobile(650), pageSize = phone ? 8 : 25;
+  useEffect(() => setPage(0), [status, sort, pageSize]);
 
   const rows = useQuery({
     queryKey: [
@@ -210,6 +212,7 @@ export default function AssetWorkspace({
       category,
 
       page,
+      pageSize,
 
       sort,
     ],
@@ -224,9 +227,9 @@ export default function AssetWorkspace({
 
           category_id: category || undefined,
 
-          offset: page * 25,
+          offset: page * pageSize,
 
-          limit: 25,
+          limit: pageSize,
 
           sort,
 
@@ -347,6 +350,9 @@ export default function AssetWorkspace({
             </div>
           </div>
 
+          <details className="asset-register-exports" open={!phone}>
+            <summary>Export register</summary>
+            <div>
           <Button
             variant="outline"
             onClick={() =>
@@ -374,6 +380,8 @@ export default function AssetWorkspace({
           >
             Excel
           </Button>
+            </div>
+          </details>
         </div>
 
         <div className="asset-toolbar">
@@ -392,6 +400,9 @@ export default function AssetWorkspace({
             />
           </div>
 
+          <details className="asset-register-filters" open={!phone}>
+          <summary>Filter &amp; sort</summary>
+          <div>
           <select
             aria-label="Filter category"
             value={category}
@@ -465,6 +476,8 @@ export default function AssetWorkspace({
 
             <option value="warranty_expiry">Warranty expiry</option>
           </select>
+          </div>
+          </details>
 
           <Button
             aria-label="Table view"
@@ -676,7 +689,7 @@ export default function AssetWorkspace({
             <Button
               aria-label="Next page"
               variant="outline"
-              disabled={(rows.data?.length || 0) < 25}
+              disabled={(rows.data?.length || 0) < pageSize}
               onClick={() => setPage(page + 1)}
             >
               <ChevronRight size={16} />
@@ -685,6 +698,8 @@ export default function AssetWorkspace({
         </footer>
       </section>
 
+      <details className="asset-secondary-insights" open={!phone}>
+      <summary>Asset insights &amp; policies</summary>
       <aside className="asset-insights">
         <section className="asset-panel">
           <h2>Inventory insights</h2>
@@ -742,6 +757,7 @@ export default function AssetWorkspace({
           </p>
         </section>
       </aside>
+      </details>
 
       <Dialog
         open={!!selected}

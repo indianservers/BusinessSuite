@@ -1,0 +1,209 @@
+import { appointmentLabel } from "../appointment-label";
+import { MobileWorkflowSurface } from "../components/MobileWorkflowPages";
+import { useMobile } from "@/components/mobile/useMobile";
+import SRMMobileToolbar from "../components/SRMMobileToolbar";
+import ModuleNewMenu from "@/components/app/ModuleNewMenu";
+import SchedulingFrame, { schedulingIcons } from '@/shared/scheduling/SchedulingFrame';
+import ConstructionWarehouseSelect from './ConstructionWarehouseSelect';
+import AppointmentBookingLink from './AppointmentBookingLink';
+import AppointmentVisitPanel from './AppointmentVisitPanel';
+import GroupedServiceReschedule from './GroupedServiceReschedule';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/services/api';
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { useAuthStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import CompanySelect, { masterScope } from '@/shared/master-data/CompanySelect';
+import SmartRecordPicker from '@/shared/records/SmartRecordPicker';
+import { catalogApi, catalogError } from '@/shared/catalog/api';
+import { dealError } from '@/apps/crm/deals/deal-utils';
+import { useMobileDraftGuard } from '@/components/mobile/useMobileDraftGuard';
+import DealRecordSelect from '@/apps/crm/deals/DealRecordSelect';
+
+const ConstructionPlanningPanel = lazy(() => import('./ConstructionPlanningPanel'));
+const ConstructionSiteCreate = lazy(() => import('./ConstructionPlanningPanel').then(module => ({ default: module.ConstructionSiteCreate })));
+
+type Row = { parent_id?: number; id: number; title: string; kind: string; status: string; revision: number; created_by: number; customer_id?: number; invoice_id?: number; data: Record<string, string | number | number[]> };
+type Choice = { id: number; name: string };
+type Form = Record<string, string>;
+const ROOT = '/srm/industry';
+const titles: Record<string, string> = { appointment: 'Appointments', resource: 'Salon resources', boq: 'BOQ', variation: 'Variations', measurement: 'Measurements', site_diary: 'Site diary', subcontract: 'Subcontracts', material_issue: 'Materials consumed' };
+const paths: Record<string, string> = { appointment: '/appointments', resource: '/resources', boq: '/boq', variation: '/boq', measurement: '/measurements', site_diary: '/site-diaries', subcontract: '/subcontracts', material_issue: '/material-issues' };
+const controls = 'w-full rounded-md border bg-background px-3 py-2 text-sm';
+const empty = (): Form => ({ title: '', duration_minutes: '60', resource_type: 'provider', opens: '09:00', closes: '19:00', weekdays: '0,1,2,3,4,5', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata', quantity: '', unit_rate: '', unit: '', code: '', tax_rate: '0', retention_percent: '0', workforce: '0' });
+
+function Field({ name, children }: { name: string; children: ReactNode }) {
+  return <div className="grid gap-1 text-sm"><span>{name}</span>{children}</div>;
+}
+
+function ProjectPicker({ value, change, hint }: { value: string; change: (value: string) => void; hint?: Choice }) {
+  const { term } = useBusinessTerms();
+  const [search, setSearch] = useState(''), [offset, setOffset] = useState(0);
+  const [selected, setSelected] = useState<Choice>();
+  const q = useQuery({ queryKey: ['industry-projects', masterScope(), search, offset], queryFn: async () => (await api.get<{ items: Choice[]; has_more: boolean }>(ROOT + '/project-options', { params: { search, offset } })).data, retry: false });
+  const current = selected && String(selected.id) === value ? selected : hint && String(hint.id) === value ? hint : q.data?.items.find(item => String(item.id) === value);
+  return <SmartRecordPicker name={term('project')} value={value} search={search} onSearch={s => { setSearch(s); setOffset(0); }} items={(q.data?.items || []).map(record => ({ id: String(record.id), label: record.name, record }))} selected={current ? { id: String(current.id), label: current.name, record: current } : undefined} onSelect={r => { setSelected(r); change(String(r.id)); }} onClear={() => { setSelected(undefined); change(''); }} loading={q.isFetching} error={q.isError ? dealError(q.error) : undefined} retry={() => void q.refetch()} hasMore={q.data?.has_more} loadMore={() => setOffset(s => s + 50)} />;
+}
+
+function StaffPicker({ value, change, employee = false }: { value: string; change: (value: string) => void; employee?: boolean }) {
+  const [search, setSearch] = useState(''), [offset, setOffset] = useState(0);
+  const [selected, setSelected] = useState<Choice>();
+  const q = useQuery({ queryKey: ['industry-staff', masterScope(), employee, search, offset], retry: false, queryFn: async () => (await api.get<{ items: Choice[]; has_more: boolean }>(ROOT + (employee ? '/employee-options' : '/staff-options'), { params: { search, offset } })).data });
+  return <SmartRecordPicker name={employee ? 'HRMS employee' : 'Staff account'} value={value} search={search} onSearch={s => { setSearch(s); setOffset(0); }} items={(q.data?.items || []).map(record => ({ id: String(record.id), label: record.name, record }))} selected={selected ? { id: String(selected.id), label: selected.name, record: selected } : undefined} onSelect={r => { setSelected(r); change(String(r.id)); }} onClear={() => { setSelected(undefined); change(''); }} loading={q.isFetching} error={q.isError ? dealError(q.error) : undefined} retry={() => void q.refetch()} hasMore={q.data?.has_more} loadMore={() => setOffset(o => o + 50)} />;
+}
+
+function ServicePicker({ value, change, onLabel, kind = 'service' }: { value: string; change: (value: string) => void; onLabel?:(name:string)=>void; kind?: 'service' | 'product' }) {
+  const { term } = useBusinessTerms();
+  const [search, setSearch] = useState(''), [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Choice>();
+  const q = useQuery({ queryKey: ['industry-services', masterScope(), kind, search, page], queryFn: async () => (await catalogApi.list('srm', { kind, status: 'Active', search, page, per_page: 50 })).data, retry: false });
+  return <SmartRecordPicker name={kind === 'service' ? term('service') : 'Stock item'} value={value} search={search} onSearch={s => { setSearch(s); setPage(1); }} items={(q.data?.items || []).filter(r => r.kind === kind).map(record => ({ id: String(record.id), label: record.name, record }))} selected={selected ? { id: String(selected.id), label: selected.name, record: selected } : undefined} onSelect={r => { setSelected(r); change(String(r.id));onLabel?.(r.name); }} onClear={() => { setSelected(undefined); change('');onLabel?.(''); }} loading={q.isFetching} error={q.isError ? catalogError(q.error) : undefined} retry={() => void q.refetch()} hasMore={!!q.data && page < q.data.pages} loadMore={() => setPage(p => p + 1)} />;
+}
+
+function RescheduleForm({ row, resources, saved }: { row: Row; resources: Row[]; saved: (row: Row) => Promise<void> }) {
+  const mobile=useMobile(),[mobileOpen,setMobileOpen]=useState(false);
+  const { term } = useBusinessTerms();
+  const current = new Date(String(row.data.starts_at));
+  const [starts, setStarts] = useState(new Date(current.getTime() - current.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+  const [minutes, setMinutes] = useState(String(row.data.duration_minutes));
+  const [selected, setSelected] = useState<number[]>(row.data.resource_ids as number[]);
+  const [grouped, setGrouped] = useState(!!row.data.pos_checkout_id);
+  const mutation = useMutation({ mutationFn: async () => (await api.put<Row>(ROOT + `/appointments/${row.id}/schedule`, { expected_revision: row.revision, starts_at: new Date(starts).toISOString(), duration_minutes: Number(minutes), resource_ids: selected })).data, onSuccess: saved, onError: error => {
+    const response = (error as { response?: { status?: number; data?: { detail?: { code?: string } } } }).response;
+    if (response?.status === 409 && response.data?.detail?.code === 'grouped_service_schedule') setGrouped(true);
+  } });
+  const form=(<form className="mt-3 grid gap-3" aria-label={`Reschedule ${term('appointment').toLowerCase()}`} onSubmit={e => { e.preventDefault(); mutation.mutate(); }}><Field name={`New ${term('appointment').toLowerCase()} time`}><Input aria-label={`New ${term('appointment').toLowerCase()} time`} type="datetime-local" required value={starts} onChange={e => setStarts(e.target.value)} /></Field><Field name="New duration (minutes)"><Input aria-label="New duration (minutes)" type="number" min={5} max={720} required value={minutes} onChange={e => setMinutes(e.target.value)} /></Field>{resources.map(r => <label key={r.id} className="flex gap-2 text-sm"><input type="checkbox" checked={selected.includes(r.id)} onChange={e => setSelected(s => e.target.checked ? [...s, r.id] : s.filter(id => id !== r.id))} />{r.title}</label>)}<Button type="submit" disabled={mutation.isPending}>Save new schedule</Button>{mutation.isError && <p role="alert">{dealError(mutation.error)}</p>}</form>);
+  if (grouped) return <GroupedServiceReschedule row={row} resources={resources} saved={saved}/>;
+  if(mobile)return <><Button type="button" variant="outline" size="sm" onClick={()=>setMobileOpen(true)}>Reschedule</Button>{mobileOpen&&<MobileWorkflowSurface title="Reschedule appointment" onClose={()=>setMobileOpen(false)}>{form}</MobileWorkflowSurface>}</>;
+  return <details className="rounded-md border p-3"><summary className="cursor-pointer text-sm">Reschedule</summary>{form}</details>;
+}
+
+export default function IndustryOperationsPage({ mode }: { mode: 'salon' | 'appointments' | 'construction' }) {
+  const user = useAuthStore(s => s.user);
+  const scope = masterScope();
+  return <IndustryWorkspace key={`${scope}:${mode}`} mode={mode} scope={scope} userId={user?.id} />;
+}
+
+function IndustryWorkspace({ mode, scope, userId }: { mode: 'salon' | 'appointments' | 'construction'; scope: string; userId?: number }) {
+  const cache = useQueryClient();
+  const location = useLocation();
+  const bookingWorkspace = new URLSearchParams(location.search).get('space') || undefined;
+  const { term } = useBusinessTerms();
+  const resourceTypeLabel = (type: string) => ['provider', 'doctor', 'stylist', 'consultant', 'technician', 'employee'].includes(type) ? term('provider') : type;
+  const labels: Record<string, string> = { ...titles, appointment: term('appointment', true), resource: `${term('provider', true)} & ${term('resource', true)}` };
+  const resourceTypes = mode === 'salon' ? ['stylist', 'chair', 'room'] : ['provider', 'room', 'chair', 'equipment', 'location'];
+  const [kind, setKind] = useState(mode === 'construction' ? 'boq' : new URLSearchParams(location.search).get('resources') === '1' ? 'resource' : 'appointment');
+  const [project, setProject] = useState(''), [form, setForm] = useState<Form>(() => ({ ...empty(), resource_type: mode === 'salon' ? 'stylist' : 'provider' })), [resources, setResources] = useState<number[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Choice>();
+  const [creating, setCreating] = useState(false), [notice, setNotice] = useState(''), [offset, setOffset] = useState(0);
+  const [files, setFiles] = useState<number[]>([]), [fileOffset, setFileOffset] = useState(0);
+  const [day, setDay] = useState('');
+  const requestId = useRef(crypto.randomUUID());
+  const update = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
+  const caps = useQuery({ queryKey: ['industry', scope, 'capabilities', project], retry: false, queryFn: async () => (await api.get<{ manage: boolean; approve: boolean; invoice: boolean; self_approve: boolean; projects_enabled?: boolean; crm_enabled?: boolean; billing?: boolean; collect?: boolean; approve_invoice?: boolean; appointment_actions?: string[]; operational_scope?: { pack_key?: string } }>(ROOT + '/capabilities', { params: { project_id: project || undefined } })).data });
+  const rows = useQuery({ queryKey: ['industry', scope, kind, project, offset, day], enabled: mode !== 'construction' || !!project, retry: false, queryFn: async () => {
+    const from = day && kind === 'appointment' ? new Date(day + 'T00:00:00') : undefined;
+    const until = from ? new Date(from) : undefined;
+    if (until) until.setDate(until.getDate() + 1);
+    return (await api.get<{ items: Row[] }>(ROOT + '/records', { params: { kind, project_id: project || undefined, offset, from_at: from?.toISOString(), until_at: until?.toISOString() } })).data.items;
+  } });
+  const canTransition = (status: string) => {
+    const action = ({ checked_in: 'check_in', in_service: 'start', completed: 'complete', cancelled: 'cancel', no_show: 'no_show' } as Record<string, string>)[status];
+    return caps.data?.appointment_actions ? caps.data.appointment_actions.includes(action) : !!caps.data?.manage;
+  };
+  const resourceQuery = useQuery({ queryKey: ['industry', scope, 'resource'], enabled: mode !== 'construction' && !!caps.data?.manage, retry: false, queryFn: async () => (await api.get<{ items: Row[] }>(ROOT + '/records', { params: { kind: 'resource', limit: 200 } })).data.items });
+  const projectFiles = useQuery({ queryKey: ['industry', scope, 'files', project, fileOffset], enabled: kind === 'site_diary' && !!project && creating && !!caps.data, retry: false, queryFn: async () => {
+    if (caps.data?.operational_scope?.pack_key === 'construction') {
+      return (await api.get<{ project_files: { id: number; original_name: string }[] }>(ROOT + '/records', { params: { kind: 'site_diary', project_id: project, offset: fileOffset, limit: 50, include_files: true } })).data.project_files;
+    }
+    return (await api.get<{ id: number; original_name: string }[]>('/project-management/files', { params: { project_id: project, skip: fileOffset, limit: 50 } })).data;
+  } });
+  const boqQuery = useQuery({ queryKey: ['industry', scope, 'approved-boq', project], enabled: mode === 'construction' && !!project, retry: false, queryFn: async () => {
+    const result = await Promise.all(['boq', 'variation'].map(k => api.get<{ items: Row[] }>(ROOT + '/records', { params: { kind: k, project_id: project, limit: 200 } })));
+    return result.flatMap(r => r.data.items).filter(r => r.status === 'approved');
+  } });
+  const workPackages = useQuery({ queryKey: ['industry', scope, 'work-packages', project], enabled: mode === 'construction' && kind === 'measurement' && !!project, retry: false, queryFn: async () => (await api.get<{items: Row[]}>(ROOT + '/work-packages', {params:{project_id:project}})).data.items });
+  const totals = useQuery({ queryKey: ['industry', scope, 'summary', project], enabled: mode === 'construction' && !!project, retry: false, queryFn: async () => (await api.get<Record<string, string>>(ROOT + `/projects/${project}/summary`)).data });
+  const refresh = () => cache.invalidateQueries({ queryKey: ['industry', scope] });
+  const listKey = ['industry', scope, kind, project, offset, day];
+  const accept = async (row: Row) => {
+    await cache.cancelQueries({ queryKey: listKey, exact: true });
+    cache.setQueryData<Row[]>(listKey, old => [row, ...(old || []).filter(r => r.id !== row.id)]);
+  };
+  const mutation = useMutation({ mutationFn: async ({ path, body }: { path: string; body: unknown }) => (await api.post(ROOT + path, body)).data, onSuccess: async (result, variables) => {
+    if (result.kind) await accept(result);
+    else if (variables.path.endsWith('/invoice')) {
+      await cache.cancelQueries({ queryKey: listKey, exact: true });
+      const id = Number(variables.path.split('/')[2]);
+      cache.setQueryData<Row[]>(['industry', scope, kind, project, offset, day], old => old?.map(r => r.id === id ? { ...r, invoice_id: result.id, revision: r.revision + 1 } : r));
+    }
+    setNotice('Saved successfully.'); void refresh();
+  }, onError: () => setNotice('') });
+  const clearDraft = () => { setCreating(false); setForm({ ...empty(), resource_type: mode === 'salon' ? 'stylist' : 'provider' }); setResources([]); setFiles([]); setFileOffset(0); requestId.current = crypto.randomUUID(); };
+  useEffect(() => { setOffset(0); clearDraft(); }, [kind, project]);
+  const dirty = creating && (JSON.stringify(form) !== JSON.stringify({ ...empty(), resource_type: mode === 'salon' ? 'stylist' : 'provider' }) || resources.length > 0 || files.length > 0);
+  useMobileDraftGuard({ enabled: creating, dirty, draftKey: requestId.current, pending: () => mutation.isPending, onDiscard: clearDraft, message: 'Discard this unsaved operation?', guardHistory: true });
+  const canLeave = () => !mutation.isPending && (!dirty || window.confirm('Discard this unsaved operation?'));
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    let body: Record<string, unknown> = { request_id: requestId.current, title: kind==='appointment'?[form.service_name||`Service #${form.service_id||''}`,form.customer_name||`Customer #${form.customer_id||''}`].join(' · ').slice(0,220):form.title };
+    if (kind === 'resource') body = { ...body, resource_type: form.resource_type, timezone: form.timezone, opens: form.opens, closes: form.closes, weekdays: form.weekdays ? form.weekdays.split(',').map(Number) : [], ...(form.employee_id ? { employee_id: Number(form.employee_id) } : form.user_id ? { user_id: Number(form.user_id) } : {}) };
+    if (kind === 'appointment') body = { ...body, customer_id: Number(form.customer_id), service_id: Number(form.service_id), resource_ids: resources, starts_at: new Date(form.starts_at).toISOString(), duration_minutes: Number(form.duration_minutes), notes: form.notes || '', walk_in: form.walk_in === 'true', ...(form.project_id ? { project_id: Number(form.project_id), create_pms_task: true } : {}), ...(form.link_crm === 'true' && form.deal_id ? { deal_id: Number(form.deal_id) } : {}) };
+    if (kind === 'boq' || kind === 'variation') body = { ...body, project_id: Number(project), code: form.code, unit: form.unit, quantity: form.quantity, unit_rate: form.unit_rate, tax_rate: form.tax_rate, ...(kind === 'variation' ? { variation_of: Number(form.parent_id) } : {}) };
+    if (kind === 'measurement') body = { ...body, boq_id: Number(form.parent_id), quantity: form.quantity, measured_on: form.measured_on, notes: form.notes || '', ...(form.work_package_id ? {work_package_id:Number(form.work_package_id)} : {}) };
+    if (kind === 'site_diary') body = { ...body, project_id: Number(project), entry_date: form.entry_date, work_done: form.work_done, workforce: Number(form.workforce), weather: form.weather || '', blockers: form.blockers || '', file_ids: files };
+    if (kind === 'subcontract') body = { ...body, project_id: Number(project), vendor_id: Number(form.vendor_id), scope: form.scope, amount: form.amount, due_date: form.due_date };
+    if (kind === 'material_issue') body = { ...body, project_id: Number(project), product_id: Number(form.product_id), warehouse_id: Number(form.warehouse_id), quantity: form.quantity, issue_date: form.issue_date, notes: form.notes || '' };
+    try { await mutation.mutateAsync({ path: paths[kind], body }); setCreating(false); setForm({ ...empty(), resource_type: mode === 'salon' ? 'stylist' : 'provider' }); setResources([]); requestId.current = crypto.randomUUID(); } catch { /* preserve draft and request identity on retry */ }
+  };
+  const transition = (row: Row, status: string) => {
+    const reason = ['cancelled', 'no_show', 'rejected'].includes(status) ? window.prompt('Reason') : '';
+    if (reason === null) return;
+    void mutation.mutateAsync({ path: `/records/${row.id}/transition`, body: { expected_revision: row.revision, status, reason } }).catch(() => {});
+  };
+  const invoice = (row: Row) => {
+    void mutation.mutateAsync({ path: `/records/${row.id}/invoice`, body: { expected_revision: row.revision, retention_percent: row.kind === 'measurement' ? form.retention_percent : 0 } }).catch(() => {});
+  };
+  const input = (key: string, label: string, type = 'text', required = true) => <Field name={label}><Input aria-label={label} type={type} required={required} value={form[key] || ''} min={type === 'number' ? 0 : undefined} step={type === 'number' ? 'any' : undefined} maxLength={type === 'text' ? 220 : undefined} onChange={e => update(key, e.target.value)} /></Field>;
+  const parent = <Field name="Approved BOQ item"><select className={controls} aria-label="Approved BOQ item" required value={form.parent_id || ''} onChange={e => update('parent_id', e.target.value)}><option value="">Choose item</option>{boqQuery.data?.map(r => <option key={r.id} value={r.id}>{String(r.data.code)} · {r.title}</option>)}</select>{boqQuery.isError && <p role="alert">{dealError(boqQuery.error)}</p>}</Field>;
+  const content = <main className={mode === 'construction' ? "mx-auto grid max-w-6xl gap-5 p-4 md:p-6" : "bookings-operations min-w-0 grid gap-4"}>
+    {mode === 'construction' && <header className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">{mode !== 'construction' ? term('appointment', true) : 'Construction operations'}</h1><p className="text-sm text-muted-foreground">{mode !== 'construction' ? 'Schedule people, services and resources for your business.' : 'Approve scope, record site work and bill certified quantities through Sales.'}</p></div><nav className="flex flex-wrap gap-3 text-sm"><Link to="/crm/pipeline-templates">CRM industry packs</Link><Link to="/srm/products-services">Catalog</Link><Link to="/srm/invoices">Invoices</Link><Link to="/srm/collections">Collections</Link><Link to={mode !== 'construction' ? '/srm/pos' : '/srm/inventory'}>{mode !== 'construction' ? 'Retail POS' : 'Materials & purchasing'}</Link></nav></header>}
+    {mode === 'construction' && <><Suspense fallback={null}><ConstructionSiteCreate onCreated={created => { void cache.invalidateQueries({ queryKey: ['industry-projects', scope] }); if (canLeave()) { setSelectedProject(created); setProject(String(created.id)); } }} /></Suspense><Field name={`PMS ${term('project').toLowerCase()}`}><ProjectPicker value={project} hint={selectedProject} change={v => { if (canLeave()) { setSelectedProject(undefined); setProject(v); } }} /></Field>{project && <div className="flex flex-wrap gap-3 text-sm"><Link to={`/pms/projects/${project}/billing`}>{term('customer')} &amp; {term('project').toLowerCase()} billing</Link><Link to={`/pms/projects/${project}`}>PMS schedule, tasks & files</Link></div>}{totals.data && <section className="grid grid-cols-2 gap-4 rounded-lg border p-4 md:grid-cols-4" aria-label="Project commercial summary">{[['Approved scope', 'approved_scope_value'], ['Certified work', 'certified_value'], ['Unbilled work', 'unbilled_certified_value'], ['Committed subcontracts', 'committed_subcontracts']].map(([label, key]) => <div key={key}><p className="text-xs text-muted-foreground">{label}</p><strong>{totals.data.currency} {Number(totals.data[key]).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>)}<p className="col-span-full text-xs text-muted-foreground">Before tax. Materials consumed: {totals.data.material_cost_currency} {Number(totals.data.actual_material_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}. Retention tracked: {totals.data.currency} {Number(totals.data.retention_tracked).toLocaleString(undefined, { minimumFractionDigits: 2 })}. Retention remains within the full invoice receivable.</p></section>}</>}
+    <div className={mode === 'construction' ? "flex flex-wrap gap-2" : "bookings-operation-tabs"} role="tablist" aria-label="Operations">{(mode !== 'construction' ? ['appointment', 'resource'] : ['boq', 'variation', 'measurement', 'site_diary', 'subcontract', 'material_issue']).map(k => <Button role="tab" aria-selected={kind === k} variant={kind === k ? 'default' : 'outline'} key={k} onClick={() => { if (canLeave()) setKind(k); }}>{labels[k]}</Button>)}</div>
+    {(mode !== 'construction' || project) && <SRMMobileToolbar><div className={mode === 'construction' ? "flex flex-wrap gap-2" : "bookings-operation-controls"}>{caps.data?.manage && <Button onClick={() => { if (canLeave()) { clearDraft(); setCreating(true); setNotice(''); } }}>New {kind === 'appointment' ? term('appointment').toLowerCase() : kind === 'resource' ? `${term('provider').toLowerCase()} / ${term('resource').toLowerCase()}` : kind.replace('_', ' ')}</Button>}<Button variant="outline" disabled={rows.isFetching} onClick={() => void refresh()}>Refresh</Button>{kind === 'appointment' && <Field name={`${term('appointment')} date`}><Input aria-label={`${term('appointment')} date`} type="date" value={day} onChange={e => { setDay(e.target.value); setOffset(0); }} /></Field>}</div></SRMMobileToolbar>}
+    {creating && <MobileWorkflowSurface enabled={kind==='appointment'} title="New appointment" onClose={()=>{if(canLeave())clearDraft();}}><form onSubmit={e => void submit(e)} className={`${mode !== 'construction' ? 'bookings-operation-form ' : ''}grid gap-4 rounded-lg border p-4`} aria-label="Create operation"><h2 className="font-semibold">New {kind === 'appointment' ? term('appointment').toLowerCase() : kind === 'resource' ? `${term('provider').toLowerCase()} / ${term('resource').toLowerCase()}` : kind.replace('_', ' ')}</h2><div className="grid gap-4 md:grid-cols-2">{kind!=='appointment'&&input('title', 'Title')}
+      {kind === 'resource' && <><Field name="Resource type"><select className={controls} aria-label="Resource type" value={form.resource_type} onChange={e => update('resource_type', e.target.value)}>{resourceTypes.map(v => <option key={v} value={v}>{resourceTypeLabel(v)}</option>)}</select></Field>{['provider', 'doctor', 'stylist', 'consultant', 'technician', 'employee'].includes(form.resource_type) && <><Field name="HRMS employee (optional)"><StaffPicker employee value={form.employee_id || ''} change={v => { update('employee_id', v); update('user_id', ''); }}/></Field>{!form.employee_id && <Field name="Linked staff account (optional)"><StaffPicker value={form.user_id || ''} change={v => update('user_id', v)}/></Field>}</>}{input('timezone', 'Timezone')}{input('opens', 'Opens', 'time')}{input('closes', 'Closes', 'time')}<fieldset className="flex flex-wrap gap-3"><legend className="text-sm">Working days</legend>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => <label key={d} className="flex gap-1 text-sm"><input type="checkbox" checked={form.weekdays.split(',').includes(String(i))} onChange={e => update('weekdays', e.target.checked ? [...form.weekdays.split(',').filter(Boolean), String(i)].sort().join(',') : form.weekdays.split(',').filter(v => v !== String(i)).join(','))} />{d}</label>)}</fieldset></>}
+      {kind === 'appointment' && <><Field name={term('customer')}><CompanySelect value={form.customer_id || ''} onChange={v => update('customer_id', v)} onSelected={customer=>update('customer_name',customer.name)} source="srm" entityKind="all" label={term('customer')} createRecordLabel={term('customer')} createRoles={['Customer']} /></Field><Field name={term('service')}><ServicePicker value={form.service_id || ''} change={v => update('service_id', v)} onLabel={name=>update('service_name',name)}/></Field>{input('starts_at', `${term('appointment')} time`, 'datetime-local')}{input('duration_minutes', 'Duration (minutes)', 'number')}<fieldset className="grid gap-2"><legend className="text-sm">{term('provider', true)} &amp; {term('resource', true)}</legend>{resourceQuery.data?.filter(r => r.status === 'active').map(r => <label key={r.id} className="flex gap-2 text-sm"><input type="checkbox" checked={resources.includes(r.id)} onChange={e => setResources(rs => e.target.checked ? [...rs, r.id] : rs.filter(id => id !== r.id))} />{r.title} · {resourceTypeLabel(String(r.data.resource_type))}</label>)}{resourceQuery.isError && <p role="alert">{dealError(resourceQuery.error)}</p>}<Link to="/srm/appointments?resources=1" onClick={e => { e.preventDefault(); if (canLeave()) { clearDraft(); setKind('resource'); } }}>Manage {term('provider', true).toLowerCase()} &amp; {term('resource', true).toLowerCase()}</Link></fieldset>{caps.data?.projects_enabled !== false && <Field name={`PMS delivery ${term('project').toLowerCase()} (optional)`}><ProjectPicker value={form.project_id || ''} change={v => update('project_id', v)} /></Field>}{input('notes', 'Visit notes', 'text', false)}{caps.data?.crm_enabled !== false && <label className="flex gap-2 text-sm"><input type="checkbox" checked={form.link_crm === 'true'} onChange={e => update('link_crm', String(e.target.checked))} />Link an existing CRM opportunity</label>}{form.link_crm === 'true' && <Field name="CRM opportunity"><DealRecordSelect resource="deals" name="CRM opportunity" initial={[]} companyId={form.customer_id} value={form.deal_id || ''} onChange={v => update('deal_id', v)} /></Field>}<label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.walk_in === 'true'} onChange={e => update('walk_in', String(e.target.checked))} />Walk-in</label></>}
+      {(kind === 'boq' || kind === 'variation') && <>{kind === 'variation' && parent}{input('code', 'Item code')}{input('unit', 'Unit')}{input('quantity', 'Quantity', 'number')}{input('unit_rate', 'Unit rate', 'number')}{input('tax_rate', 'Tax (%)', 'number')}</>}
+      {kind === 'measurement' && <>{parent}<Field name="WBS work package (optional)"><select className={controls} aria-label="WBS work package (optional)" value={form.work_package_id || ''} onChange={e => update('work_package_id', e.target.value)}><option value="">Choose work package for earned-value tracking</option>{workPackages.data?.filter(row => row.parent_id === Number(form.parent_id)).map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</select>{workPackages.isError && <p role="alert">{dealError(workPackages.error)}</p>}</Field>{input('quantity', 'Measured quantity', 'number')}{input('measured_on', 'Measured on', 'date')}{input('notes', 'Measurement notes', 'text', false)}</>}
+      {kind === 'site_diary' && <>{input('entry_date', 'Entry date', 'date')}{input('workforce', 'Workforce count', 'number')}{input('weather', 'Weather', 'text', false)}<Field name="Work completed"><textarea className={controls} aria-label="Work completed" required maxLength={10000} value={form.work_done || ''} onChange={e => update('work_done', e.target.value)} /></Field>{input('blockers', 'Blockers', 'text', false)}<fieldset className="grid gap-2"><legend className="text-sm">{term('project')} photos &amp; documents</legend>{projectFiles.data?.map(f => <label key={f.id} className="flex gap-2 text-sm"><input type="checkbox" checked={files.includes(f.id)} onChange={e => setFiles(v => e.target.checked ? [...v, f.id] : v.filter(id => id !== f.id))} />{f.original_name}</label>)}{projectFiles.isError && <p role="alert">{dealError(projectFiles.error)}</p>}<div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={!fileOffset} onClick={() => setFileOffset(v => Math.max(0, v - 50))}>Previous files</Button><Button type="button" size="sm" variant="outline" disabled={!projectFiles.data || projectFiles.data.length < 50} onClick={() => setFileOffset(v => v + 50)}>More files</Button></div><Link to={`/pms/files?constructionProject=${project}`}>Upload photos in PMS Files</Link></fieldset></>}
+      {kind === 'subcontract' && <><Field name="Vendor"><CompanySelect source="srm" label="Vendor" value={form.vendor_id || ''} onChange={v => update('vendor_id', v)} createRoles={['Vendor']} /></Field>{input('scope', 'Work scope')}{input('amount', 'Commitment amount', 'number')}{input('due_date', 'Due date', 'date')}</>}
+      {kind === 'material_issue' && <><Field name="Stock item"><ServicePicker kind="product" value={form.product_id || ''} change={v => update('product_id', v)} /></Field><Field name="Warehouse"><ConstructionWarehouseSelect value={form.warehouse_id || ''} onChange={value => update('warehouse_id', value)} /></Field>{input('quantity', 'Consumed quantity', 'number')}{input('issue_date', 'Issue date', 'date')}{input('notes', 'Issue notes', 'text', false)}<p className="text-sm text-muted-foreground">Posts an actual stock consumption at the warehouse average cost. Insufficient stock is blocked.</p></>}
+    </div>{kind === 'appointment' && caps.data?.manage && <AppointmentBookingLink key={`${form.customer_id}:${form.service_id}:${resources.join(',')}:${form.duration_minutes}`} customerId={Number(form.customer_id)} serviceId={Number(form.service_id)} resourceIds={resources} durationMinutes={Number(form.duration_minutes)} workspaceId={bookingWorkspace}/>}<div className="flex gap-2"><Button type="submit" disabled={mutation.isPending || (kind === 'material_issue' && !form.warehouse_id)}>{mutation.isPending ? 'Saving…' : 'Save operation'}</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => { if (canLeave()) clearDraft(); }}>Cancel</Button></div></form></MobileWorkflowSurface>}
+    {notice && <p role="status">{notice}</p>}{mutation.isError && <p role="alert" className="text-sm text-destructive">{dealError(mutation.error)}</p>}{rows.isError && <div role="alert">{dealError(rows.error)} <Button variant="outline" onClick={() => void rows.refetch()}>Retry</Button></div>}{rows.isFetching && <p role="status">Loading operations…</p>}
+    {kind === 'measurement' && input('retention_percent', 'Retention to track on new invoices (%)', 'number', false)}
+    {mode !== 'construction' && rows.isSuccess && <div className="bookings-agenda-strip" aria-label="Loaded schedule summary"><div><strong>{rows.data.length}</strong><span>Loaded {kind === 'resource' ? 'resources' : 'appointments'}</span></div><div><strong>{rows.data.filter(row=>kind==='resource'?row.status==='active':['booked','checked_in','in_service'].includes(row.status)).length}</strong><span>{kind==='resource'?'Active resources':'Booked / in progress'}</span></div><div><strong>{rows.data.filter(row=>kind==='resource'?['room','chair','equipment','location'].includes(String(row.data.resource_type)):row.status==='completed').length}</strong><span>{kind==='resource'?'Rooms & equipment':'Completed in loaded view'}</span></div><p className="self-center text-xs text-muted-foreground">{day ? `Selected date: ${day}` : 'Current branch  /  loaded records only'}</p></div>}
+    <section className={mode === 'construction' ? "grid gap-3" : "bookings-operation-cards"} aria-label={labels[kind]}>{rows.data?.map(row => <article id={`booking-record-${row.id}`} key={row.id} className={mode === 'construction' ? "grid gap-3 rounded-lg border p-4" : "bookings-operation-card"}><div className="flex flex-wrap justify-between gap-2"><h2 className="font-semibold">{row.kind==='appointment'?appointmentLabel(row):row.title}</h2><span className={mode==='construction'?"text-sm":"bookings-status"} data-status={row.status}>{row.status.replace('_', ' ')}</span></div><p className="text-sm text-muted-foreground">{row.kind === 'appointment' ? `${String(row.data.service_name)} · ${new Date(String(row.data.starts_at)).toLocaleString()} · ${row.data.duration_minutes} min` : row.kind === 'resource' ? `${resourceTypeLabel(String(row.data.resource_type))} · ${row.data.opens}–${row.data.closes} · ${row.data.timezone}` : row.kind === 'site_diary' ? `${row.data.entry_date} · ${row.data.work_done}` : row.kind === 'subcontract' ? `${row.data.scope} · ${row.data.amount}` : row.kind === 'material_issue' ? `${row.data.product_name} · ${row.data.quantity} consumed from ${row.data.warehouse_name} · ${row.data.movement_number}` : `${row.data.code || row.data.boq_code || ''} · ${row.data.quantity} ${row.data.unit} × ${row.data.unit_rate}`}</p>{mode !== 'construction' && row.kind === 'appointment' && <div className="bookings-resource-pills" aria-label="Assigned employees and resources">{(row.data.resource_ids as number[] || []).map(id=><span key={id}>{resourceQuery.data?.find(resource=>resource.id===id)?.title || `Resource #${id}`}</span>)}<span>To {new Date(Date.parse(String(row.data.starts_at))+Number(row.data.duration_minutes || 0)*60000).toLocaleString()}</span></div>}<div className="flex flex-wrap gap-2">
+      {row.kind === 'appointment' && ({ booked: ['checked_in', 'cancelled', 'no_show'], checked_in: ['in_service', 'cancelled'], in_service: ['completed'] } as Record<string, string[]>)[row.status]?.filter(canTransition).map(s => <Button size="sm" variant="outline" key={s} disabled={mutation.isPending || (s === 'no_show' && new Date(String(row.data.starts_at)).getTime() > Date.now())} title={s === 'no_show' ? 'Record a no-show after the appointment starts' : undefined} onClick={() => transition(row, s)}>{s.replace('_', ' ')}</Button>)}
+      {row.kind === 'appointment' && <AppointmentVisitPanel row={row} providers={(row.data.resource_ids as number[] || []).map(id => resourceQuery.data?.find(resource => resource.id === id)?.title || `#${id}`)} canViewBilling={!!caps.data?.billing} canCollect={!!caps.data?.collect} canInvoice={!!caps.data?.invoice} canApprove={!!caps.data?.approve_invoice} onChanged={() => void refresh()} actions={<><div className="flex flex-wrap gap-2">{({ booked: ['checked_in', 'cancelled', 'no_show'], checked_in: ['in_service', 'cancelled'], in_service: ['completed'] } as Record<string, string[]>)[row.status]?.filter(canTransition).map(status => <Button key={status} size="sm" variant="outline" disabled={mutation.isPending || (status === 'no_show' && new Date(String(row.data.starts_at)).getTime() > Date.now())} onClick={() => transition(row, status)}>{status.replace(/_/g, ' ')}</Button>)}</div>{caps.data?.manage && row.status === 'booked' && <RescheduleForm key={row.revision} row={row} resources={resourceQuery.data || []} saved={async updated => { await accept(updated); void refresh(); }}/>}</>}/>}
+      {caps.data?.approve && (caps.data.self_approve || row.created_by !== userId) && ['boq', 'variation', 'measurement', 'subcontract'].includes(row.kind) && row.status === 'draft' && ['approved', 'rejected'].map(s => <Button key={s} size="sm" variant="outline" disabled={mutation.isPending} onClick={() => transition(row, s)}>{s === 'approved' ? 'Approve' : 'Reject'}</Button>)}
+      {!!row.data.deal_id && <Link className="text-sm underline" to={`/crm/deals/${row.data.deal_id}`}>Open CRM opportunity</Link>}{!!row.data.pms_task_id && <Link className="text-sm underline" to={`/pms/tasks/${row.data.pms_task_id}`}>Open PMS delivery task</Link>}{row.invoice_id ? <Link to={`/srm/invoices/${row.invoice_id}`} className="text-sm underline">Open shared invoice</Link> : caps.data?.invoice && ((row.kind === 'appointment' && row.status === 'completed') || (row.kind === 'measurement' && row.status === 'approved')) && <Button size="sm" disabled={mutation.isPending} onClick={() => invoice(row)}>Create invoice draft</Button>}
+    </div>{caps.data?.manage && row.kind === 'appointment' && row.status === 'booked' && <RescheduleForm key={row.revision} row={row} resources={resourceQuery.data || []} saved={async updated => { await accept(updated); setNotice(`${term('appointment')} rescheduled.`); void refresh(); }} />}</article>)}</section>
+    {rows.data?.length === 0 && <p className="text-sm text-muted-foreground">No {labels[kind].toLowerCase()} recorded in this branch{mode === 'construction' ? ' and project' : ''}.</p>}
+    {!!rows.data?.length && <div className="flex gap-2"><Button variant="outline" disabled={!offset} onClick={() => setOffset(n => Math.max(0, n - 100))}>Previous</Button><Button variant="outline" disabled={rows.data.length < 100} onClick={() => setOffset(n => n + 100)}>Next</Button></div>}
+    {mode === 'construction' && !!project && <Suspense fallback={<p role="status">Loading project planning tools...</p>}><ConstructionPlanningPanel projectId={Number(project)} onSaved={() => { void refresh(); }} /></Suspense>}
+  </main>;
+  if (mode === 'construction') return content;
+  const base = location.pathname.startsWith('/crm') ? '/crm' : '/srm';
+  return <SchedulingFrame title={kind === 'resource' ? 'Employees & resources' : term('appointment', true)} subtitle="Manage service appointments, staff availability and your working day." nav={[
+    {label:'Appointments',icon:schedulingIcons.calendar,active:kind==='appointment',onClick:()=>{if(canLeave())setKind('appointment');}},
+    {label:'Employees & resources',icon:schedulingIcons.resources,active:kind==='resource',onClick:()=>{if(canLeave())setKind('resource');}},
+    {label:'Calendar & Gantt',icon:schedulingIcons.timeline,to:`${base}/service-scheduling?view=schedule&mode=Calendar`},
+    {label:'Service types',icon:schedulingIcons.services,to:'/srm/inventory/products?kind=service'},
+    {label:'Availability',icon:schedulingIcons.time,to:`${base}/service-scheduling?view=availability`},
+    {label:'Setup guide',icon:schedulingIcons.guide,to:`${base}/service-scheduling`},
+  ]} actions={<><ModuleNewMenu/><Button asChild variant="outline"><Link to={`${base}/service-scheduling?view=schedule&mode=Calendar`}>View calendar</Link></Button><Button asChild><Link to="/srm/pos/terminal">POS</Link></Button></>}>{content}</SchedulingFrame>;
+}

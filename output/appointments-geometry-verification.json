@@ -1,0 +1,155 @@
+{
+  "resources": {
+    ".resource-statistics": {
+      "expected": [
+        270,
+        227,
+        912,
+        92
+      ],
+      "actual": [
+        270,
+        227,
+        912,
+        92
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    },
+    ".resource-filters": {
+      "expected": [
+        270,
+        355,
+        912,
+        40
+      ],
+      "actual": [
+        270,
+        355,
+        912,
+        40
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    },
+    ".resource-table-scroll": {
+      "expected": [
+        270,
+        421,
+        912,
+        424
+      ],
+      "actual": [
+        270,
+        421,
+        912,
+        424
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    }
+  },
+  "schedule": {
+    ".appointment-gantt-scroll": {
+      "expected": [
+        260,
+        258,
+        1312,
+        409
+      ],
+      "actual": [
+        260,
+        258,
+        1312,
+        409
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    },
+    ".appointment-reference-upcoming": {
+      "expected": [
+        260,
+        685,
+        1312,
+        274
+      ],
+      "actual": [
+        260,
+        685,
+        1312,
+        274.5
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0.5
+      ],
+      "within_1px": true
+    }
+  },
+  "booking": {
+    ".prebooking-reference-modal": {
+      "expected": [
+        297,
+        103,
+        992,
+        834
+      ],
+      "actual": [
+        297,
+        103,
+        992,
+        834
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    },
+    ".booking-reference-summary": {
+      "expected": [
+        961,
+        205,
+        312,
+        640
+      ],
+      "actual": [
+        961,
+        205,
+        312,
+        640
+      ],
+      "delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "within_1px": true
+    }
+  }
+}

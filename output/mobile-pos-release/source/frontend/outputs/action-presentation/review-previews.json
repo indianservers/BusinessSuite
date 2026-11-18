@@ -1,0 +1,33 @@
+{
+  "results": [
+    {
+      "route": "/crm/leads",
+      "url": "/crm/leads",
+      "buttons": 27,
+      "semanticActions": 14,
+      "menus": 38
+    },
+    {
+      "route": "/hrms/employees",
+      "url": "/hrms/employees",
+      "buttons": 98,
+      "semanticActions": 24,
+      "menus": 37
+    },
+    {
+      "route": "/fam/vouchers",
+      "url": "/fam/vouchers",
+      "buttons": 10,
+      "semanticActions": 2,
+      "menus": 37
+    },
+    {
+      "route": "/srm/sales-orders",
+      "url": "/srm/sales-orders",
+      "buttons": 71,
+      "semanticActions": 62,
+      "menus": 40
+    }
+  ],
+  "errors": []
+}

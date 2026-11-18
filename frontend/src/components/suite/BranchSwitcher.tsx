@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { defaultBranch, saveDefaultBranch } from '@/lib/default-branch';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Building2, ChevronDown, Settings2 } from "lucide-react";
+import { Building2, ChevronDown, Settings2, Store, MapPin } from "lucide-react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
@@ -17,7 +17,8 @@ type Context = { company_id: number; selected: number | null; all_branches: bool
 
 const detail = (error: any) => error?.response?.data?.detail || "Unable to complete this action.";
 
-export default function BranchSwitcher() {
+export default function BranchSwitcher({icon = 'building'}:{icon?:'building'|'store'|'location'} = {}) {
+  const BranchIcon=icon==='store'?Store:icon==='location'?MapPin:Building2;
   const user = useAuthStore(s => s.user);
   const qc = useQueryClient();
   const [error, setError] = useState("");
@@ -64,7 +65,7 @@ export default function BranchSwitcher() {
   return <div className="suite-branch-control" style={packVisible ? {flexWrap:"wrap"} : undefined}>
     <BusinessPackSwitcher onVisibility={setPackVisible}/>
     <label className="suite-branch-field">
-      <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
+      <BranchIcon size={icon==='building'?16:20} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>
       <NativeSelect loading={busy || (!context && current.isFetching)} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={selectedBranch} disabled={busy || !context || !choices.length} onChange={e => void switchBranch(e.target.value)}>
         {!context && <option value="">{current.isError ? "Branch unavailable" : "Loading branches…"}</option>}

@@ -1,0 +1,1 @@
+import{u as o,f as h,a as c}from"./vendor-CbY1pB2i.js";function i(t){const e=o(),s=h(),n=c.useRef(t);n.current=t,c.useEffect(()=>{const a=new URLSearchParams(e.search),r=a.get("new");r&&(n.current(r),a.delete("new"),s({pathname:e.pathname,search:a.toString(),hash:e.hash},{replace:!0}))},[e.key,e.pathname,e.search,e.hash,s])}export{i as u};

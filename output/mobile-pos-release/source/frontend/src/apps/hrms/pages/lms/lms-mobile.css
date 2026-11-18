@@ -1,0 +1,33 @@
+@media (max-width: 480px) {
+  .hrms-lms-page { min-width: 0; font-size: 14px; }
+  .hrms-lms-page > div:first-child { padding: 12px; }
+  .hrms-lms-page h1 { font-size: 22px; line-height: 1.25; }
+  .hrms-lms-page .grid > *, .hrms-lms-page .kf-card, .hrms-lms-page .flex > div { min-width: 0; }
+  .hrms-lms-page :is(p, span, strong, summary) { overflow-wrap: anywhere; }
+  .hrms-lms-page :is(button, summary) { min-height: 44px; }
+  .hrms-lms-page button { white-space: normal; }
+  .hrms-lms-page summary { cursor: pointer; padding-block: 10px; }
+  .hrms-lms-page .kf-card > div { padding: 12px; }
+  .hrms-lms-page .hrms-lms-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hrms-lms-kpis .kf-card:last-child { grid-column: 1 / -1; }
+  .hrms-lms-kpis svg { width: 16px; height: 16px; margin-bottom: 4px; }
+  .hrms-lms-kpis p.text-2xl { font-size: 22px; }
+  .hrms-lms-page > .hrms-lms-create-shell { display: none; }
+  .smart-create-phone-sheet .hrms-lms-course-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .smart-create-phone-sheet .hrms-lms-course-fields > * { margin-top: 0; min-width: 0; }
+  .smart-create-phone-sheet .hrms-lms-course-fields > :not([hidden]) ~ :not([hidden]) { margin-top: 0; }
+  .smart-create-phone-sheet .hrms-lms-course-fields > div:first-of-type { grid-column: 1 / -1; }
+  .smart-create-phone-sheet .hrms-lms-course-fields > :is(.hrms-lms-form-guidance, .hrms-lms-course-title, .mobile-disclosure, .hrms-lms-form-actions, .hrms-lms-form-error) { grid-column: 1 / -1; }
+  .smart-create-phone-sheet .hrms-lms-course-fields > .mobile-disclosure > div { display: grid; gap: 12px; }
+  .smart-create-phone-sheet .hrms-lms-form-actions { display: none; }
+  .smart-create-phone-sheet .hrms-lms-course-fields :is(input, select), .hrms-lms-page :is(input, select) { min-height: 44px; font-size: 16px; max-width: 100%; min-width: 0; }
+  .hrms-lms-curriculum > .hrms-lms-section-entry { flex-wrap: wrap; }
+  .hrms-lms-curriculum > .hrms-lms-section-entry > input { flex: 1 1 140px; }
+  .hrms-lms-curriculum > div > input { border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 8px 12px; }
+  .hrms-lms-curriculum > .hrms-lms-section-entry > button { flex: 1 1 100px; }
+  .hrms-lms-curriculum .move-columns { display: grid; grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .hrms-lms-curriculum .move-lane { min-width: 0; max-width: none; padding: 10px; }
+  .hrms-lms-curriculum .move-card-actions { flex-wrap: wrap; }
+  .hrms-lms-curriculum .move-card-actions button, .hrms-lms-curriculum .move-handle { min-width: 44px; }
+  .hrms-lms-curriculum .move-card-actions select { flex-basis: 100%; }
+}

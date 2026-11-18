@@ -18,7 +18,7 @@ const expect = base.configure({ timeout: 15000 });
       const errors=[], reservations=[], customerWrites=[], otherWrites=[];
       let manage=false, failure=false, slow=0, created, uncertain=true, price=800, statusConfirmed=false;
       const day=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
-      const meera={id:8,name:'Meera Rao',phone:'9999999999',entityKind:'Individual',roles:['Customer']};
+      const meera={id:8,name:'Meera Rao',phone:'9999999999',phone_country_code:'+91',entityKind:'Individual',roles:['Customer']};
       const services=[{id:9,kind:'service',name:'Styling',code:'S9',category:'Hair',price:800,currency:'INR'},{id:10,kind:'service',name:'Therapy',code:'S10',category:'Therapy',price:1000,currency:'INR'}];
       const people=[{eligibility_id:2,eligibility_revision:1,provider_resource_id:12,employee_id:22,employee_name:'Alex Employee',provider_name:'Alex',timezone:'UTC',work_categories:['Stylists']},{eligibility_id:3,eligibility_revision:1,provider_resource_id:13,employee_id:23,employee_name:'Sam Therapist',provider_name:'Sam',timezone:'Asia/Kolkata',work_categories:['Therapists']}];
       const savedRow={id:99,kind:'appointment',title:'Service prebooking',status:'booked',revision:1,customer_id:9,data:{customer_name:'Neha Iyer',service_name:'Styling',starts_at:`${day}T10:00:00Z`,duration_minutes:45,resource_ids:[12,30]}};
@@ -43,6 +43,7 @@ const expect = base.configure({ timeout: 15000 });
         else if(p.endsWith('/options/availability')){const fails=failure;if(slow)await new Promise(resolve=>setTimeout(resolve,slow));if(fails)return route.fulfill({status:503,json:{detail:'Temporary availability failure'}});json={selection_available:url.searchParams.getAll('resource_ids').includes('30')||url.searchParams.getAll('resource_ids').includes('31'),conflicts:[],resources:[{id:30,available:true},{id:31,available:true}],slots:[{starts_at:`${url.searchParams.get('day')}T11:00:00Z`,label:'11:00'}]};}
         else if(p.endsWith('/employees/planned-services'))json={timezone:'UTC',items:[],next_cursor:null,filter_options:{employees:[{id:22,name:'Alex Employee'}],services:[],employees_complete:true,services_complete:true}};
         else if(p.endsWith('/industry/appointments') && req.method()==='POST'){reservations.push(req.postDataJSON());if(uncertain){await new Promise(r=>setTimeout(r,600));return route.fulfill({status:503,json:{detail:'Unknown save outcome'}});}json=savedRow;}
+        else if(p.endsWith('/prebooking-workflows/appointments/99/summary'))json={row:savedRow,employee:'Alex Employee',timezone:'UTC',resources:['Room A']};
         else if(p.endsWith('/industry/appointments/99'))json=savedRow;
         else if(p.endsWith('/appointments/99/billing'))json={appointment_id:99,revision:1,currency:'INR',total:'800',paid:'0',advance:'0',balance:'800',invoice:null,receipts:[]};
         else if(req.method()!=='GET')otherWrites.push({path:p,body:req.postDataJSON()});
@@ -91,11 +92,11 @@ const expect = base.configure({ timeout: 15000 });
       await page.reload();await openPanel();await expect(panel.getByLabel('Prebooking date',{exact:true})).toBeDisabled();
       uncertain=false;await panel.getByRole('button',{name:'Retry original request'}).click();
       await expect(panel.getByRole('heading',{name:'Prebooking confirmed'})).toBeVisible();expect(reservations).toHaveLength(2);expect(reservations[1]).toEqual(reservations[0]);
-      const downloadPromise=page.waitForEvent('download');await panel.getByRole('button',{name:'Download calendar event'}).click();const download=await downloadPromise;const calendar=fs.readFileSync(await download.path(),'utf8');expect(calendar).toContain('BEGIN:VCALENDAR');expect(calendar).toContain(`DTSTART:${day.replaceAll('-','')}T100000Z`);expect(calendar).toContain('DTEND:');
+      await panel.getByText('More booking actions',{exact:true}).click();const downloadPromise=page.waitForEvent('download');await panel.getByRole('button',{name:'Download calendar event'}).click();const download=await downloadPromise;const calendar=fs.readFileSync(await download.path(),'utf8');expect(calendar).toContain('BEGIN:VCALENDAR');expect(calendar).toContain(`DTSTART:${day.replaceAll('-','')}T100000Z`);expect(calendar).toContain('DTEND:');
       await panel.getByRole('button',{name:'Preview confirmation'}).click();await expect(panel.getByLabel('Confirmation preview')).toContainText('Delivery is not tracked here');await expect(panel.getByRole('link',{name:'Open SMS draft'})).toHaveAttribute('href',/^sms:/);
       await panel.getByRole('button',{name:'Repeat as new draft'}).click();await expect(panel.getByLabel('Selected customer')).toContainText('Meera Rao');await expect(panel.getByLabel('Prebooking employee',{exact:true})).toHaveValue('2');await expect(confirm).toBeEnabled();
       uncertain=true;await confirm.click();await expect(panel.getByRole('button',{name:'Check booking status'})).toBeVisible();statusConfirmed=true;await panel.getByRole('button',{name:'Check booking status'}).click();await expect(panel.getByRole('heading',{name:'Prebooking confirmed'})).toBeVisible();
-      await panel.getByRole('button',{name:'Book another for this customer'}).click();await expect(panel.getByLabel('Selected customer')).toContainText('Meera Rao');await expect(panel.getByRole('combobox',{name:'Search service',exact:true})).toHaveValue('');
+      await panel.getByText('More booking actions',{exact:true}).click();await panel.getByRole('button',{name:'Book another for this customer'}).click();await expect(panel.getByLabel('Selected customer')).toContainText('Meera Rao');await expect(panel.getByRole('combobox',{name:'Search service',exact:true})).toHaveValue('');
       expect(otherWrites).toEqual([]);expect(errors).toEqual([]);
       await page.close();console.log(`PASS complete prebooking UX: ${width}px ${width===390?'HRMS':'SRM'}, draft restore, discovery, quote changes, immutable retries, repeat, preview and calendar export`);
     }

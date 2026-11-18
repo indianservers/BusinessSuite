@@ -1,0 +1,5 @@
+/* Keep background notices queued while modal controls own the interaction. */
+body[data-scroll-locked] :is(.suite-toast-viewport, .record-sync-floating),
+body:has(:is([role="dialog"], [role="alertdialog"])[aria-modal="true"]:not([hidden]):not([data-state="closed"])) :is(.suite-toast-viewport, .record-sync-floating) {
+  display: none !important;
+}

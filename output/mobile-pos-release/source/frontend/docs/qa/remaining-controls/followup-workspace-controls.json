@@ -1,0 +1,211 @@
+[
+  {
+    "control": "Relationship type / All records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Leads",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Contacts",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Customers / companies",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Deals",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / All permitted records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My team",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assigned owner / All owners",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assigned owner / Admin",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Overdue status filter",
+    "result": "passed",
+    "evidence": "Expected 0 matching records shown."
+  },
+  {
+    "control": "Today status filter",
+    "result": "passed",
+    "evidence": "Expected 1 matching record shown."
+  },
+  {
+    "control": "Upcoming status filter",
+    "result": "passed",
+    "evidence": "Expected 3 matching records shown."
+  },
+  {
+    "control": "No next step filter",
+    "result": "passed",
+    "evidence": "Expected 28 matching records shown."
+  },
+  {
+    "control": "All active relationships filter",
+    "result": "passed",
+    "evidence": "Expected 32 matching records shown."
+  },
+  {
+    "control": "Follow-up editor Channel / CALL",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / EMAIL",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / WhatsApp",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / SMS",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / MEETING",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / VISIT",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Channel / OTHER",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Assigned employee / Record owner",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Assigned employee / Admin",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Priority / High",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Priority / Medium",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up editor Priority / Low",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up quick date In an hour",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 1 hours."
+  },
+  {
+    "control": "Follow-up quick date Tomorrow",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 24 hours."
+  },
+  {
+    "control": "Follow-up quick date In 3 days",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 72 hours."
+  },
+  {
+    "control": "Follow-up quick date In 7 days",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 168 hours."
+  },
+  {
+    "control": "Follow-up quick date In 15 days",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 360 hours."
+  },
+  {
+    "control": "Follow-up quick date In 30 days",
+    "result": "passed",
+    "evidence": "Local date/time falls within 3 minutes of expected 720 hours."
+  },
+  {
+    "control": "Follow-up offering type Products",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up offering type Services",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Follow-up offering type Products & services",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Offering picker search/selection and reminder validation",
+    "result": "passed",
+    "evidence": "Type options selected; code search found service, absent search empty, service 1 selected. Reminder later than due rejected without closing draft. Valid future reminder before due accepted; QA lead 6 saved with High priority, notes and next action."
+  },
+  {
+    "control": "Enhanced follow-up persistence",
+    "result": "passed",
+    "evidence": "After reload, pending follow-up 8 retains High priority, service 1, next action, due Nov 8 22:30 local and reminder Nov 8 10:30 local."
+  },
+  {
+    "control": "Enhanced follow-up outcome Connected",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up outcome Interested",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up outcome No answer",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up outcome Callback requested",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up outcome Not interested",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up outcome Resolved",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Enhanced follow-up complete",
+    "result": "passed",
+    "evidence": "Existing pending follow-up 8 completed as Resolved with stored reminder; dialog closed and grid shows no next scheduled follow-up."
+  },
+  {
+    "control": "Follow-up history tabs and search",
+    "result": "passed",
+    "evidence": "Pending empty state, Completed with QA follow-up 4, Employee activity with 3 events; Admin filter selected, absent search gives empty results, clear and refresh restore 3 events."
+  },
+  {
+    "control": "UTC timestamp display",
+    "result": "fixed-and-passed",
+    "evidence": "Naive backend UTC values now interpreted as UTC. Completed history shows due Nov 12 11:45 AM and completion Nov 7 10:11 PM local time, matching browser scheduling."
+  },
+  {
+    "control": "Follow-up and greetings main landmarks",
+    "result": "fixed-and-passed",
+    "evidence": "Each page has one main landmark; inner workspaces are named sections."
+  }
+]

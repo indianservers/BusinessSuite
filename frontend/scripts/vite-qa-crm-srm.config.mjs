@@ -1,0 +1,2 @@
+import applicationConfig from '../vite.config.ts';
+export default async environment => { const config=await (typeof applicationConfig==='function'?applicationConfig(environment):applicationConfig);return {...config,cacheDir:'node_modules/.vite-qa-crm-srm-isolated-20261118',server:{...config.server,hmr:false},optimizeDeps:{...config.optimizeDeps,include:['react','react-dom/client','react/jsx-runtime','react-router-dom','@tanstack/react-query','lucide-react'],entries:['index.html']}};};

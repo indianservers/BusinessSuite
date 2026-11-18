@@ -1,3 +1,4 @@
+import LowStockPanel from './LowStockPanel';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {useInfiniteQuery,useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {api} from '@/services/api';
@@ -21,9 +22,9 @@ import {catalogError} from '@/shared/catalog/api';
 import {useFinanceWrite} from '@/apps/fam/useFinanceWrite';
 import type {FAMRecord} from '@/apps/fam/types';
 
-type Mode='receipt'|'stock'|'warehouse'|'daily';
+type Mode='receipt'|'stock'|'warehouse'|'daily'|'alerts';
 type Table=(rows:FAMRecord[],columns:string[])=>ReactNode;
-type Product={product_id:number;sku:string;name:string;currency:string;tracked:boolean;branch_quantity:string;warehouses:{warehouse_id:number;available_quantity:string}[]};
+type Product={product_id:number;sku:string;name:string;currency:string;tracked:boolean;branch_quantity:string;reorder_threshold:string;stock_status:string;warehouses:{warehouse_id:number;available_quantity:string}[]};
 type Stock={items:Product[];warehouses:{id:number;warehouse_name:string}[];receipt_date:string;can_receive:boolean;next_after:number|null};
 type Page={items:FAMRecord[];next_after:number|null};
 type Receipt={request_key:string;product_id:number;warehouse_id:number;quantity:string;unit_cost:string;currency:string;received_date:string;reference_number?:string;notes?:string};
@@ -43,7 +44,11 @@ export default function RetailWorkspace({fallback,mode,renderTable,receiptTitle=
   if(owner!==recordScope(useAuthStore.getState().user)||selector!==selectedPackContext())throw Error('Inventory context changed. Reload before continuing.');
   const role=typeof identity.data.role==='string'?identity.data.role:identity.data.role?.name||null;
   const fresh={...user,...identity.data,role,primary_role:role,access:access.data};
-  if(securityAuthStamp(fresh)!==securityAuthStamp(user))throw Error('Your access changed. Reload before continuing.');
+  if(fresh.id!==user?.id||access.data.companyId!==user?.access?.companyId)throw Error('Inventory identity changed. Reload before continuing.');
+  if(securityAuthStamp(fresh)!==securityAuthStamp(user)){
+   useAuthStore.getState().setUser(fresh);
+   throw Error('Refreshing inventory access…');
+  }
   const discovery=(fresh.access as {businessPacks?:BusinessPackDiscovery}).businessPacks;
   if(selector!==null){
    const choice=discovery?.contexts?.find(item=>String(item.contextId)===selector&&String(item.branchId)===selectedBranch());
@@ -59,7 +64,7 @@ export default function RetailWorkspace({fallback,mode,renderTable,receiptTitle=
   if(owner!==recordScope(useAuthStore.getState().user)||selector!==selectedPackContext())throw Error('Inventory context changed. Reload before continuing.');
   return {selection:effectiveOperationalSelection(result.data?.operational_scope,fresh,selectedBranch(),selector),owner};
  }});
- if(!selection.data||selection.isError)return <Card><CardContent className="space-y-3 pt-4"><p role={selection.isError?'alert':'status'}>{selection.isError?catalogError(selection.error):'Verifying inventory access…'}</p>{selection.isError&&<Button onClick={()=>window.location.reload()}>Reload inventory access</Button>}</CardContent></Card>;
+ if(!selection.data||selection.isError)return <Card><CardContent className="space-y-3 pt-4"><p role={selection.isError?'alert':'status'}>{selection.isError?(selection.error instanceof Error?selection.error.message:catalogError(selection.error)):'Verifying inventory access…'}</p>{selection.isError&&<Button onClick={()=>window.location.reload()}>Reload inventory access</Button>}</CardContent></Card>;
  if(!selection.data.selection||selection.data.selection.pack_key!=='retail')return fallback;
  return <RetailContent key={`${scope}:${mount}:${mode}`} context={selection.data.selection.context_id!} owner={selection.data.owner} mode={mode} title={receiptTitle} header={header} renderTable={renderTable??((rows,columns)=><TableView rows={rows} columns={columns}/>)}/>;
 }
@@ -70,7 +75,7 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
  const assertOwner=()=>{if(!active.current||owner!==recordScope(useAuthStore.getState().user))throw Error('Inventory context changed. Reopen this screen.');};
  const config={recordCache:false as const,headers:{'X-Suite-Pack-Context':String(context),'X-Suite-Expected-Pack-Realm':'pack'}};
  const prefix=['srm','retail',scope,context],nativeWrite=useFinanceWrite(['srm_manage','srm_admin'],'create');
- const stock=useInfiniteQuery({queryKey:[...prefix,'stock'],initialPageParam:0,retry:false,enabled:mode!=='daily',queryFn:async({pageParam,signal})=>{assertOwner();return (await api.get<Stock>('/srm/retail/stock',{...config,signal,params:{after:pageParam,limit:100}})).data;},getNextPageParam:page=>page.next_after??undefined});
+ const stock=useInfiniteQuery({queryKey:[...prefix,'stock',mode==='alerts'],initialPageParam:0,retry:false,refetchInterval:60000,refetchOnWindowFocus:true,queryFn:async({pageParam,signal})=>{assertOwner();return (await api.get<Stock>('/srm/retail/stock',{...config,signal,params:{after:pageParam,limit:100,low_only:mode==='alerts'}})).data;},getNextPageParam:page=>page.next_after??undefined});
  const history=useInfiniteQuery({queryKey:[...prefix,'receipts'],initialPageParam:0,retry:false,enabled:mode==='receipt',queryFn:async({pageParam,signal})=>{assertOwner();return (await api.get<Page>('/srm/retail/stock-receipts',{...config,signal,params:{after:pageParam,limit:100}})).data;},getNextPageParam:page=>page.next_after??undefined});
  const [day,setDay]=useState(''),[selected,setSelected]=useState('Sales'),[message,setMessage]=useState('');
  const report=useQuery({queryKey:[...prefix,'daily',day],retry:false,enabled:mode==='daily',queryFn:async({signal})=>{assertOwner();return (await api.get<FAMRecord>('/srm/retail/reports/daily',{...config,signal,params:day?{day}:undefined})).data;}});
@@ -112,10 +117,11 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
   pending.current=null;uncertain.current=false;setLocked(false);setDraft(initial());setError('');setCompleted(`Stock receipt posted: ${result.number}`);
   void qc.invalidateQueries({queryKey:prefix});void qc.invalidateQueries({queryKey:['srm','pos-catalog']});
  },onError:failure=>{if(active.current&&owner===recordScope(useAuthStore.getState().user))setError(catalogError(failure));}});
+ const lowStock=stock.data?<LowStockPanel items={products.map(row=>({id:row.product_id,name:row.name,sku:row.sku,quantity:Number(row.branch_quantity),threshold:Number(row.reorder_threshold)}))} hasMore={stock.hasNextPage} updatedAt={stock.dataUpdatedAt} loading={stock.isFetching} onRefresh={()=>void stock.refetch()}/>:stock.isError?<p role="alert">Stock alerts could not be checked. <Button variant="outline" onClick={()=>void stock.refetch()}>Retry stock alerts</Button></p>:<p role="status">Checking low stock...</p>;
  const loading=mode==='daily'?report.isPending:stock.isPending;
  const failure=mode==='daily'?report.error:stock.error;
- if(loading||failure)return <Card><CardContent className="space-y-3 pt-4"><p role={failure?'alert':'status'}>{failure?catalogError(failure):'Loading inventory…'}</p>{failure&&<Button onClick={()=>void (mode==='daily'?report.refetch():stock.refetch())}>Retry</Button>}</CardContent></Card>;
- const stockRows:FAMRecord[]=products.map(row=>({id:row.product_id,sku:row.sku,item_name:row.name,current_quantity:row.branch_quantity}));
+ if(loading||failure)return <div className="space-y-4">{lowStock}<Card><CardContent className="space-y-3 pt-4"><p role={failure?'alert':'status'}>{failure?catalogError(failure):'Loading inventory…'}</p>{failure&&<Button onClick={()=>void (mode==='daily'?report.refetch():stock.refetch())}>Retry</Button>}</CardContent></Card></div>;
+ const stockRows:FAMRecord[]=products.map(row=>({id:row.product_id,sku:row.sku,item_name:row.name,current_quantity:row.branch_quantity,reorder_level:row.reorder_threshold,status:row.stock_status}));
  const warehouseRows:FAMRecord[]=products.flatMap(row=>row.warehouses.map(location=>({id:`${row.product_id}:${location.warehouse_id}`,sku:row.sku,item_name:row.name,warehouse_name:warehouses.find(w=>w.id===location.warehouse_id)?.warehouse_name??String(location.warehouse_id),quantity:location.available_quantity})));
  const field=(label:string,key:'quantity'|'rate'|'date'|'reference'|'notes',type='text')=><label className="grid gap-1 text-sm">{label}<Input aria-label={label} type={type} required={key!=='reference'&&key!=='notes'} maxLength={key==='reference'?120:key==='notes'?4000:undefined} inputMode={key==='quantity'||key==='rate'?'decimal':undefined} value={draft[key]} onChange={e=>setDraft(old=>({...old,[key]:e.target.value}))}/></label>;
  if(mode==='daily'){
@@ -126,12 +132,12 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
   ];
   const preview=definitions.find(item=>item.title===selected)||definitions[0];
   const exportRows=(report:typeof preview)=>{assertOwner();if(!report.rows.length){setMessage(`${report.title} has no rows available to export.`);return;}downloadBlob(new Blob([csvText(report.rows,report.columns,true)],{type:'text/csv;charset=utf-8'}),`retail-${report.title}-${day}.csv`);setMessage(`${report.title} CSV exported.`);};
-  return <div className="space-y-5">{header}<div className="flex flex-wrap items-end gap-3"><label className="grid gap-1 text-sm">Report date<Input aria-label="Report date" type="date" value={day} onChange={e=>setDay(e.target.value)}/></label><Button variant="outline" onClick={()=>void report.refetch()}>Refresh</Button><span className="text-sm text-muted-foreground">{String(data.timezone??'')}</span></div>{message&&<p role="status">{message}</p>}
+  return <div className="space-y-5">{header}{lowStock}<div className="flex flex-wrap items-end gap-3"><label className="grid gap-1 text-sm">Report date<Input aria-label="Report date" type="date" value={day} onChange={e=>setDay(e.target.value)}/></label><Button variant="outline" onClick={()=>void report.refetch()}>Refresh</Button><span className="text-sm text-muted-foreground">{String(data.timezone??'')}</span></div>{message&&<p role="status">{message}</p>}
    <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]"><div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">{definitions.map(item=><Card key={item.title} className={preview.title===item.title?'border-primary/60':undefined}><CardHeader><CardTitle className="text-base">{item.title}</CardTitle></CardHeader><CardContent className="space-y-3"><div className="text-sm text-muted-foreground">{item.rows.length} recorded transactions</div><div className="rounded-lg border bg-muted/30 p-3 text-xs"><span className="font-medium">Filters:</span> {day} · {String(data.timezone??'')}</div><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>{setSelected(item.title);setMessage(`${item.title} preview loaded`);}}>View details</Button><Button size="sm" variant="secondary" onClick={()=>exportRows(item)}>Export</Button></div></CardContent></Card>)}</div>
    <Card className="min-w-0 xl:sticky xl:top-4 xl:self-start"><CardHeader><CardTitle className="text-base">{preview.title} Preview</CardTitle></CardHeader><CardContent className="space-y-4">{renderTable(preview.rows,preview.columns)}<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>{preview.rows.length} rows available for CSV export.</span><Button size="sm" variant="outline" disabled={!preview.rows.length} onClick={()=>exportRows(preview)}>Export CSV</Button></div></CardContent></Card></div>
   </div>;
  }
- return <div className="space-y-4">{mode==='receipt'&&<Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent><CompactForm compactTabs={false} aria-label="Retail stock receipt" className="grid gap-3 md:grid-cols-3" onSubmit={e=>{e.preventDefault();setError('');if(!save.isPending)save.mutate();}}>
+ return <div className="space-y-4">{lowStock}{mode==='receipt'&&<Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent><CompactForm compactTabs={false} aria-label="Retail stock receipt" className="grid gap-3 md:grid-cols-3" onSubmit={e=>{e.preventDefault();setError('');if(!save.isPending)save.mutate();}}>
   <fieldset className="contents" disabled={!canReceive||save.isPending||locked}>
    <label className="grid gap-1 text-sm">Item<NativeSelect required searchable aria-label="Item" value={draft.product} onChange={e=>setDraft(old=>({...old,product:e.target.value}))}><option value="">Choose item</option>{products.filter(row=>!row.tracked).map(row=><option key={row.product_id} value={row.product_id}>{row.name} · {row.sku}</option>)}{locked&&draft.product&&!products.some(row=>String(row.product_id)===draft.product)&&<option value={draft.product}>Pending item #{draft.product}</option>}</NativeSelect></label>
    <label className="grid gap-1 text-sm">Warehouse<NativeSelect required searchable aria-label="Warehouse" value={draft.warehouse} onChange={e=>setDraft(old=>({...old,warehouse:e.target.value}))}><option value="">Choose warehouse</option>{warehouses.map(row=><option key={row.id} value={row.id}>{row.warehouse_name}</option>)}</NativeSelect></label>
@@ -141,8 +147,8 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
   {error&&<p role="alert" className="text-sm text-destructive md:col-span-3">{error}</p>}{completed&&<p role="status" className="text-sm md:col-span-3">{completed}</p>}
   <Button data-save-action type="submit" disabled={!canReceive||save.isPending||(recovery.pending&&!valid)}>{save.isPending?'Posting…':locked?'Retry same receipt':'Post movement'}</Button>
  </CompactForm></CardContent></Card>}
- <Card><CardHeader><CardTitle className="text-base">{mode==='receipt'?'Goods receipts':mode==='warehouse'?'Warehouse Stock':'Stock Summary'}</CardTitle></CardHeader><CardContent className="space-y-3">
-  {mode==='receipt'?<>{history.isPending&&<p role="status">Loading goods receipts…</p>}{history.isError&&<p role="alert">{catalogError(history.error)} <Button variant="outline" onClick={()=>void history.refetch()}>Retry goods receipts</Button></p>}{renderTable(history.data?.pages.flatMap(page=>page.items)||[],['number','receipt_date','product_id','warehouse_id','quantity','unit_cost','currency','reference_number'])}{history.hasNextPage&&<Button variant="outline" onClick={()=>void history.fetchNextPage()}>More receipts</Button>}</>:renderTable(mode==='warehouse'?warehouseRows:stockRows,mode==='warehouse'?['warehouse_name','sku','item_name','quantity']:['sku','item_name','current_quantity'])}
+ <Card><CardHeader><CardTitle className="text-base">{mode==='receipt'?'Goods receipts':mode==='warehouse'?'Warehouse Stock':mode==='alerts'?'Low stock items':'Stock Summary'}</CardTitle></CardHeader><CardContent className="space-y-3">
+  {mode==='receipt'?<>{history.isPending&&<p role="status">Loading goods receipts…</p>}{history.isError&&<p role="alert">{catalogError(history.error)} <Button variant="outline" onClick={()=>void history.refetch()}>Retry goods receipts</Button></p>}{renderTable(history.data?.pages.flatMap(page=>page.items)||[],['number','receipt_date','product_id','warehouse_id','quantity','unit_cost','currency','reference_number'])}{history.hasNextPage&&<Button variant="outline" onClick={()=>void history.fetchNextPage()}>More receipts</Button>}</>:renderTable(mode==='warehouse'?warehouseRows:stockRows,mode==='warehouse'?['warehouse_name','sku','item_name','quantity']:['sku','item_name','current_quantity','reorder_level','status'])}
   {stock.hasNextPage&&<Button variant="outline" onClick={()=>void stock.fetchNextPage()}>More items</Button>}
  </CardContent></Card></div>;
 }

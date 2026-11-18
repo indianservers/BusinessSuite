@@ -1,0 +1,78 @@
+{
+  "purpose": "Mobile SRM/POS frontend only; not a deployable build. Apply to inspected production source and validate before activation.",
+  "base_revision": "ef4ba03724fbcaaa89ffbf4386a51fd24d2e3854",
+  "files": [
+    {
+      "path": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+      "sha256": "ade60dbff9df330e5af3f3e4eb482921c2291523a74b4360fac0c387477a1c00"
+    },
+    {
+      "path": "frontend/src/apps/srm/pages/pos-mobile-reference.css",
+      "sha256": "fd75bfa5b61b7597c2de8064425a6315908e68811d6b6cd5bd4dbdd5322f4d11"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/POSMobileCatalogue.tsx",
+      "sha256": "2c6d4cb52e1e6484fb33aa6f225676ad2e8d33e95463a08bdebd14558ab40805"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/pos-mobile-catalogue.css",
+      "sha256": "e1878818c047b6e91cf1f288d82b3252bcb07a2fab01d2efdc245c2f25e45cd5"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/SRMMobileScreen.tsx",
+      "sha256": "66f236eb1187a52e7fde88c5bd132a697a01033ef480e48967e55eeb38a1b2f8"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/mobile-screen-pages.ts",
+      "sha256": "1bcf3e3ef77f73dd0518a863f63c74f67624143b09eaffdce381fbaf75d1de09"
+    },
+    {
+      "path": "frontend/src/apps/srm/components/srm-mobile-screen.css",
+      "sha256": "6316c295654c092ebddc000404c784307a715074b19296943eb4e999b21998be"
+    },
+    {
+      "path": "frontend/src/apps/srm/routes.tsx",
+      "sha256": "51b6e15d0f1e676f230ac03875376ea05a2497b8e4551bbb7cd6d24b697be8b4"
+    },
+    {
+      "path": "frontend/src/components/layout/AppLayout.tsx",
+      "sha256": "11b58a47fb5343eaf46d9583d3a2a100cf7d171dba7127552f57762a2e1b47c8"
+    },
+    {
+      "path": "frontend/src/components/layout/mobile-workspaces.css",
+      "sha256": "2eeea5a782cee20159a100c2b6f696ab8dc12a934917e92349d192964eb35a4e"
+    },
+    {
+      "path": "frontend/src/components/layout/ModuleNavigation.tsx",
+      "sha256": "5aa50b170434fd2720451ee4ecf13910ff4324e10b209dee392e23dd8abf0156"
+    },
+    {
+      "path": "frontend/src/components/layout/module-navigation.css",
+      "sha256": "8cb4af633353f974070669a1b6604f3792590cc10943db137cc32fc0a05fa3d0"
+    },
+    {
+      "path": "frontend/src/components/layout/MobileModuleDock.tsx",
+      "sha256": "30f45bbbdbb47737da621fb7f34856000e0a1e8c4ff1aab82081b4b8c53b9db0"
+    },
+    {
+      "path": "frontend/src/components/layout/mobile-module-dock.css",
+      "sha256": "999ce2f396f9ad5ca9b2014f6d312a706f3c104ba7e367d0598bb85a1ad462e5"
+    },
+    {
+      "path": "frontend/src/components/app/ModuleNewMenu.tsx",
+      "sha256": "a0969fa95846e5755a0b3ebbf211b040c2b4486be43304db3554f14df9f4618a"
+    },
+    {
+      "path": "frontend/src/components/app/NewMenu.tsx",
+      "sha256": "c82506d2078a4d4f5581a5744927672ce287c77760a6615a7e7d0fbc1568d737"
+    },
+    {
+      "path": "frontend/src/components/app/create-menu-model.ts",
+      "sha256": "4c85f03ca444f5783f502526a23932e80540380f58343df761e2dcdc31ee3aaa"
+    },
+    {
+      "path": "frontend/src/components/mobile/MobileCreateMenu.tsx",
+      "sha256": "4a835925421a5e2a60771cc744ecd15001478454508fd90facbf43646c271728"
+    }
+  ]
+}

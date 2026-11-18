@@ -1,3 +1,4 @@
+import InventoryLowStockAlerts from "../components/InventoryLowStockAlerts";
 import RetailWorkspace from "../components/RetailWorkspace";
 import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import BusinessTerm from "@/components/BusinessTerm";
@@ -1299,6 +1300,7 @@ function ReportsView() {
   };
   return (
     <div className="space-y-5">
+      <InventoryLowStockAlerts/>
       <DailyAccountingReport/>
       <PageHeader meta={viewMeta.reports} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <ActionMessage message={message} />
@@ -1349,7 +1351,7 @@ function ReportsView() {
                     <tr {...recordPreviewProps(row)} key={`${selected}-${index}`} className="border-t">
                       <td className="px-3 py-2">{formatValue(row.invoice_number || row.plan_name || row.order_number || row.contract_number || row.engagement_number || row.customer_id || row.id || selectedDefinition.title)}</td>
                       <td className="px-3 py-2">{formatValue(row.status || row.collection_status || row.margin_status || "available")}</td>
-                      <td className="px-3 py-2 text-right">{formatValue(row.total || row.total_amount || row.total_outstanding || row.gross_margin || row.cash_margin_total || row.count || row.value || "-")}{selected === "recurring_invoice_details" ? ` ${String(row.currency || "")} | ${String(row.date || "")}` : ""}</td>
+                      <td className="px-3 py-2 text-right">{formatValue(row.total ?? row.total_amount ?? row.total_outstanding ?? row.gross_margin ?? row.cash_margin_total ?? row.collected_total ?? row.count ?? row.value ?? row.amount ?? "-")}{selected === "recurring_invoice_details" ? ` ${String(row.currency || "")} | ${String(row.date || "")}` : row.currency ? ` ${String(row.currency)}` : ""}</td>
                     </tr>
                   )) : (
                     <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">No preview data available for this report.</td></tr>

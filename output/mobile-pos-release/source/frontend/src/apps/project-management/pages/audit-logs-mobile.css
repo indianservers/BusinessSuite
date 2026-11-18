@@ -1,0 +1,28 @@
+@media(max-width:480px){
+ .pms-audit-logs{padding:12px;overflow-wrap:anywhere}
+ .pms-audit-logs>:not(:first-child){margin-top:12px}
+ .pms-audit-logs>header{gap:10px}
+ .pms-audit-logs h1{font-size:20px;line-height:1.25}
+ .pms-audit-logs>header>div{flex:1;min-width:0}
+ .pms-audit-logs>header p{font-size:13px}
+ .pms-audit-logs button,.pms-audit-logs summary{min-height:44px}
+ .pms-audit-logs summary{display:flex;align-items:center;cursor:pointer}
+ .pms-audit-logs form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;border:0;background:transparent}
+ .pms-audit-logs form label{min-width:0;font-size:13px}
+ .pms-audit-logs form label:has([aria-label="User email"], [aria-label="Request ID"], [aria-label="Role at request time"], [type="datetime-local"]),.pms-audit-logs form>div{grid-column:1/-1}
+ .pms-audit-logs form :is(input,select){min-width:0;min-height:44px;height:44px;font-size:16px;width:100%}
+ .pms-audit-logs form>div button{flex:1}
+ .pms-audit-logs>div.grid{gap:8px}
+ .pms-audit-logs>div.grid>div{padding:10px}
+ .pms-audit-logs>div.grid .text-2xl{font-size:22px;margin-top:4px}
+ .pms-audit-logs article{padding:10px}
+ .pms-audit-logs article>div:nth-child(2){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+ .pms-audit-logs article>div:nth-child(2)>p:first-child{grid-column:1/-1}
+ .pms-audit-logs article details{margin-top:8px;padding-top:0}
+ .pms-audit-logs :is(article,dl,dd,dt){min-width:0;overflow-wrap:anywhere}
+ .pms-audit-logs article dd:has(button){display:block}
+ .pms-audit-logs article dd button{display:inline-flex;vertical-align:middle;margin:4px;align-items:center;justify-content:center;min-width:44px}
+ .pms-audit-logs footer{gap:8px}
+ .pms-audit-logs footer>div{display:flex;width:100%}
+ .pms-audit-logs footer button{flex:1}
+}

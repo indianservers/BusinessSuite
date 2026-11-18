@@ -1,0 +1,8 @@
+{
+  "backend_files_verified_unchanged": 1496,
+  "employee_taxonomy": "v4 retained",
+  "stock_alerts_and_reports": "v2 retained",
+  "baseline": "stock-alerts-reports-20261118-v2",
+  "frontend_release": "srm-standard-fast-20261118-v12",
+  "status": "passed"
+}

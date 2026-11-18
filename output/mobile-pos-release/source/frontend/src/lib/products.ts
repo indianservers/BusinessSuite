@@ -1,0 +1,124 @@
+import { moduleContextPath } from "./common-routes";
+export type ProductKey = "hrms" | "crm" | "project_management" | "srm" | "fam";
+
+export type ProductMeta = {
+  key: ProductKey;
+  name: string;
+  shortName: string;
+  version: string;
+  loginPath: string;
+  homePath: string;
+  themeClass: string;
+  searchPlaceholder: string;
+};
+
+export const BUSINESS_SUITE_VERSION = "1.01";
+export const BUSINESS_SUITE_NAME = "Business Suite";
+export const BUSINESS_SUITE_DISPLAY_NAME = `${BUSINESS_SUITE_NAME} ${BUSINESS_SUITE_VERSION}`;
+
+export const products: Record<ProductKey, ProductMeta> = {
+  hrms: {
+    key: "hrms",
+    name: "AI HRMS",
+    shortName: "HRMS",
+    version: "1.01",
+    loginPath: "/login",
+    homePath: "/hrms",
+    themeClass: "product-hrms",
+    searchPlaceholder: "Search employees, payroll, policies...  Cmd+K",
+  },
+  crm: {
+    key: "crm",
+    name: "VyaparaCRM",
+    shortName: "CRM",
+    version: "1.01",
+    loginPath: "/login",
+    homePath: "/crm",
+    themeClass: "product-crm",
+    searchPlaceholder: "Search leads, deals, contacts...  Cmd+K",
+  },
+  project_management: {
+    key: "project_management",
+    name: "KaryaFlow PMS",
+    shortName: "PMS",
+    version: "1.01",
+    loginPath: "/login",
+    homePath: "/pms",
+    themeClass: "product-pms",
+    searchPlaceholder: "Search projects, issues, sprints...  Cmd+K",
+  },
+  srm: {
+    key: "srm",
+    name: "Sales & POS",
+    shortName: "Sales & POS",
+    version: "1.02",
+    loginPath: "/login",
+    homePath: "/srm",
+    themeClass: "product-srm",
+    searchPlaceholder: "Search sales, POS, stock, invoices...  Cmd+K",
+  },
+  fam: {
+    key: "fam",
+    name: "FinanceFlow FAM",
+    shortName: "FAM",
+    version: "1.01",
+    loginPath: "/login",
+    homePath: "/fam",
+    themeClass: "product-fam",
+    searchPlaceholder: "Search ledgers, groups, balances...  Cmd+K",
+  },
+};
+
+export function getProductDisplayName(product: ProductMeta) {
+  return `${product.shortName} ${product.version}`;
+}
+
+export function normalizeRole(role?: string | null) {
+  return (role || "").toLowerCase().replace(/\s+/g, "_");
+}
+
+export function getProductKeyFromPath(pathname: string): ProductKey | null {
+  pathname = moduleContextPath(pathname);
+  const normalizedPathname = pathname.toLowerCase();
+  if (pathname.startsWith("/crm")) return "crm";
+  if (pathname.startsWith("/pms")) return "project_management";
+  if (pathname.startsWith("/srm")) return "srm";
+  if (pathname.startsWith("/fam")) return "fam";
+  if (pathname.startsWith("/hrms")) return "hrms";
+  return null;
+}
+
+export function getProductKeyForRole(role?: string | null, isSuperuser = false): ProductKey {
+  const value = normalizeRole(role);
+  if (value.startsWith("crm_")) return "crm";
+  if (value.startsWith("pms_")) return "project_management";
+  if (value.startsWith("srm_")) return "srm";
+  if (value.startsWith("fam_") || ["accountant", "auditor"].includes(value)) return "fam";
+  if (isSuperuser || value) return "hrms";
+  return "hrms";
+}
+
+export function getProductForContext(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/analytics" || pathname.startsWith("/analytics/")) return { ...products.hrms, name: "Business Suite", shortName: "Business Suite", homePath: "/", searchPlaceholder: "Search applications and reports..." };
+  if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return { ...products.hrms, name: "Master Suite", shortName: "Master Suite", homePath: "/admin/access", searchPlaceholder: "Search users, modules and permissions..." };
+  return products[getProductKeyFromPath(pathname) || getProductKeyForRole(role, isSuperuser)];
+}
+
+export function getDefaultPathForUser(role?: string | null, isSuperuser = false) {
+  const value = normalizeRole(role);
+  const productKey = getProductKeyForRole(role, isSuperuser);
+
+  if (productKey !== "hrms") return products[productKey].homePath;
+  if (isSuperuser || ["super_admin", "admin"].includes(value)) return "/hrms/admin-home";
+  if (["hr_manager", "hr_admin", "hr", "hr_company_admin", "hr_workflow_admin", "hr_custom_field_admin"].includes(value)) return "/hrms/hr-home";
+  if (["ceo", "founder", "director", "executive"].includes(value)) return "/hrms/executive-home";
+  if (["manager", "team_lead", "department_head"].includes(value)) return "/hrms/manager-dashboard";
+  if (value === "employee") return "/hrms/ess";
+
+  return products[productKey].homePath;
+}
+
+export function getLoginPathForContext(pathname: string, role?: string | null, isSuperuser = false) {
+  const productKey = getProductKeyFromPath(pathname) || getProductKeyForRole(role, isSuperuser);
+  return products[productKey].loginPath;
+}

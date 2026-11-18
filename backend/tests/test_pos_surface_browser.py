@@ -7,8 +7,9 @@ from tests.test_stock_resource import stock
 from app.business_packs.models import PackMasterAvailability,PackUserGrant
 
 @pytest.mark.skipif(os.getenv('RUN_SELECTED_POS_BROWSER')!='1',reason='Opt-in native browser workflow')
+@pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('role',['business_owner','service_desk'])
-def test_selected_pos_named_customer_stock_two_bookings_split_native_payment(client,db,hospital_http,scenario,monkeypatch,role):
+def test_selected_pos_named_customer_stock_two_bookings_split_native_payment(client,db,hospital_http,scenario,monkeypatch,role,width):
     from tests.test_control_browser import test_control_center_real_browser
     headers,actor,branch,context,grant_id,payload=hospital_http
     _,_,catalog,_=scenario;product,service=catalog[2][:2];warehouse=catalog[1]
@@ -21,7 +22,7 @@ def test_selected_pos_named_customer_stock_two_bookings_split_native_payment(cli
     db.commit()
     monkeypatch.setenv('CONTROL_BROWSER_SCRIPT','pos-selected-live.cjs')
     monkeypatch.setenv('SUITE_QA_AUTH',json.dumps({'token':headers['Authorization'].split(' ',1)[1],'user_id':actor.id,'branch':str(branch),'context':str(context),
-        'date':payload['lines'][0]['booking']['starts_at'][:10],'custom_fields':True}))
+        'date':payload['lines'][0]['booking']['starts_at'][:10],'custom_fields':True,'width':width,'role':role}))
     test_control_center_real_browser(client,db,None,headers)
     from app.apps.srm.models import SRMSalesOrder,SRMInvoice,SRMReceipt,SRMInventoryBalance
     from app.apps.srm.service_checkout_models import POSServiceCheckout,POSServiceOccurrence
@@ -42,14 +43,15 @@ def test_selected_pos_named_customer_stock_two_bookings_split_native_payment(cli
 
 
 @pytest.mark.skipif(os.getenv('RUN_SELECTED_POS_BROWSER')!='1',reason='Opt-in native browser workflow')
-def test_selected_cashier_pos_has_no_provider_fanout_and_posts_native_split_sale(client,db,stock,monkeypatch):
+@pytest.mark.parametrize('width', [1440, 390])
+def test_selected_cashier_pos_has_no_provider_fanout_and_posts_native_split_sale(client,db,stock,monkeypatch,width):
     from tests.test_control_browser import test_control_center_real_browser
     from app.apps.srm.service_checkout_models import POSServiceCheckout,POSServiceOccurrence
     from app.apps.srm.models import SRMInvoice,SRMReceipt,SRMInventoryBalance
     s=stock;role=db.query(PackUserGrant).filter_by(context_id=s.contexts['retail'],user_id=s.actor.id).one();role.role='cashier';db.commit()
     headers=s.headers('retail')
     monkeypatch.setenv('CONTROL_BROWSER_SCRIPT','pos-selected-live.cjs')
-    monkeypatch.setenv('SUITE_QA_AUTH',json.dumps({'token':headers['Authorization'].split(' ',1)[1],'user_id':s.actor.id,'branch':str(s.branch),'context':str(s.contexts['retail']),'mode':'cashier'}))
+    monkeypatch.setenv('SUITE_QA_AUTH',json.dumps({'token':headers['Authorization'].split(' ',1)[1],'user_id':s.actor.id,'branch':str(s.branch),'context':str(s.contexts['retail']),'mode':'cashier','width':width}))
     test_control_center_real_browser(client,db,None,headers)
     checkout=db.query(POSServiceCheckout).filter_by(pack_context_id=s.contexts['retail']).one();invoice=db.get(SRMInvoice,checkout.invoice_id)
     assert invoice.total_amount==invoice.paid_amount==Decimal('236') and invoice.balance_amount==0

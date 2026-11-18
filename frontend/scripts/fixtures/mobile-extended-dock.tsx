@@ -1,0 +1,25 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,useLocation,useNavigate} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import MobileModuleDock from '@/components/layout/MobileModuleDock';
+import MobilePortalDock from '@/components/mobile/MobilePortalDock';
+import {useAuthStore} from '@/store/authStore';
+import {canAccessRoute} from '@/lib/roles';
+import {famRoutes} from '@/apps/fam/routes';
+import {aiAgentRoutes} from '@/pages/ai-agents/routes';
+import {aiCopilotRoutes} from '@/apps/ai-copilot/routes';
+import {saasRoutes} from '@/apps/saas/routes';
+import {applicationRoutes} from '@/apps/power-apps/registry';
+import '@/index.css';
+const params=new URLSearchParams(location.search);
+useAuthStore.setState({isHydrated:true,isAuthenticated:true,accessToken:'fixture',user:{id:55,email:'mobile@example.test',role:'admin',is_superuser:true}});
+(window as any).__registeredDockPaths=[...famRoutes,...aiAgentRoutes,...aiCopilotRoutes,...saasRoutes].map(route=>'/'+route.path).concat(applicationRoutes.map(path=>'/power-apps/'+path));
+(window as any).__dockAllowed=(to:string)=>canAccessRoute(to.split('?')[0],useAuthStore.getState().user?.role,useAuthStore.getState().user?.is_superuser);
+(window as any).__setDockEmployee=()=>useAuthStore.setState({user:{id:55,email:'mobile@example.test',role:'employee',employee_id:7,is_superuser:false}});
+(window as any).__setReadOnlyDock=(key:string,route:string)=>useAuthStore.setState({user:{id:55,email:'mobile@example.test',role:'viewer',is_superuser:false,access:{managed:true,companyId:1,grants:{[key]:{enabled:true,role:'viewer',scope:'company',permissions:[key+'_view'],actions:['view']}},modules:[{key,route,label:key}],isAccessAdmin:false,isGlobalAdmin:false,memberships:[1]}}});
+(window as any).__setDockAdmin=()=>useAuthStore.setState({user:{id:55,email:'mobile@example.test',role:'admin',is_superuser:true}});
+function App(){const location=useLocation(),navigate=useNavigate();(window as any).__dockNavigate=navigate;
+ const portal=location.pathname.startsWith('/portal/'),type=location.pathname.includes('/partner')?'partner':'customer',base='/portal/'+type;
+ return <><main id="suite-main" className="kf-main"><h1>Dock test</h1><output aria-label="Current route">{location.pathname+location.search+location.hash}</output><label>Retained draft<input defaultValue="Keep this draft"/></label></main>{portal?<MobilePortalDock type={type} canSubmitLead={params.has('submit')} links={(type==='partner'?['Home','Leads','Commissions','Profile']:['Home','Quotes','Invoices','Projects','Profile']).map((label,index)=>[label,base+(index?'/'+label.toLowerCase():'')])}/>:<MobileModuleDock/>}</>;
+}
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/fam/vouchers']}><App/></MemoryRouter></QueryClientProvider>);

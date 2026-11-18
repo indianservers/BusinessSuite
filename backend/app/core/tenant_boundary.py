@@ -6,6 +6,9 @@ catalogues are read-only to ordinary accounts; unknown ownership fails closed.
 
 import logging
 import re
+from functools import lru_cache
+from threading import RLock
+from types import MappingProxyType, SimpleNamespace
 from fastapi import HTTPException
 from sqlalchemy import and_, or_, false, select, event, inspect, func, literal, cast, String, exists
 from sqlalchemy.orm import with_loader_criteria, Session
@@ -117,39 +120,26 @@ def company_ids(db, user):
     return {int(value) for value in ids if value is not None} - revoked
 
 
-def install(db, user, company, *, verified_portal=False, enforce_superuser_company=False):
-    if db.info.get("security_boundary"):
-        return lambda: None
-    if (
-        not verified_portal
-        and not user.is_superuser
-        and company not in company_ids(db, user)
-    ):
-        raise HTTPException(403, "Verified company membership is required")
-    if user.is_superuser and not enforce_superuser_company:
-        return lambda: None
-    from app.models.company import Company
+_plan_lock = RLock()
 
-    if (
-        not db.connection()
-        .execute(
-            select(Company.id).where(Company.id == company, Company.is_active.is_(True))
-        )
-        .first()
-    ):
-        raise HTTPException(403, "Company context is unavailable")
-    # Global Super Admin is the existing installation-wide authority, not a role string.
-    if user.is_superuser and not enforce_superuser_company:
-        return lambda: None
+
+@lru_cache(maxsize=8)
+def _company_plan(registry, company, actor_id, module, admin_read, admin_company):
+    """Reuse SQL expressions, never memberships, grants, query results or sessions.
+
+    Every value used to construct a predicate is part of this bounded key. The
+    registry identity also invalidates plans when models are registered. Ownership
+    and membership subqueries still execute against current rows on every read.
+    """
+    user = SimpleNamespace(id=actor_id, organization_id=admin_company,
+                           _suite_current_module=module, _suite_admin_read=admin_read)
     from app.models.user import User
     from app.common.models import CommonPerson
     from app.models.employee import Employee
-    from app.models.company import Branch
+    from app.models.company import Company, Branch
     from app.access.models import AccessMembership
 
-    models = {
-        mapper.local_table.name: mapper.class_ for mapper in Base.registry.mappers
-    }
+    models = {model.__table__.name: model for model in registry}
     person, emp, branch, membership = (
         CommonPerson.__table__,
         Employee.__table__,
@@ -446,6 +436,46 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
     protected_names = [
         model.__table__.name for model, guard in criteria.items() if guard is not None
     ]
+
+    return MappingProxyType(criteria), tuple(options), tuple(protected_names)
+
+
+def install(db, user, company, *, verified_portal=False, enforce_superuser_company=False):
+    if db.info.get("security_boundary"):
+        return lambda: None
+    if (
+        not verified_portal
+        and not user.is_superuser
+        and company not in company_ids(db, user)
+    ):
+        raise HTTPException(403, "Verified company membership is required")
+    if user.is_superuser and not enforce_superuser_company:
+        return lambda: None
+    from app.models.company import Company
+
+    if (
+        not db.connection()
+        .execute(
+            select(Company.id).where(Company.id == company, Company.is_active.is_(True))
+        )
+        .first()
+    ):
+        raise HTTPException(403, "Company context is unavailable")
+    # Global Super Admin is the existing installation-wide authority, not a role string.
+    if user.is_superuser and not enforce_superuser_company:
+        return lambda: None
+    from app.models.user import User
+    models = {mapper.local_table.name: mapper.class_ for mapper in Base.registry.mappers}
+    registry = tuple(models.values())
+    from app.apps.srm.services.commercial import tenant
+    admin_read = bool(getattr(user, '_suite_admin_read', False))
+    # Serialize cold construction so simultaneous page requests do not build the
+    # same large graph multiple times. Warm lookups hold this lock only briefly.
+    with _plan_lock:
+        criteria, options, protected_names = _company_plan(
+            registry, company, user.id, getattr(user, '_suite_current_module', None),
+            admin_read, tenant(user) if admin_read else company,
+        )
 
     def denied(action, model, ident=None):
         logger.warning(

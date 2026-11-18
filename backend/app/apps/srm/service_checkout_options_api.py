@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, Header, Query
 from app.core.deps import get_db, get_current_user
 from app.apps.srm.service_checkout_options import provider_options, service_options, scheduling_availability
-from datetime import date, datetime
+from datetime import date, datetime, time
+from typing import Literal
 
 router = APIRouter(prefix='/srm/service-checkout/options', tags=['Native service checkout'])
 
@@ -11,13 +12,14 @@ router = APIRouter(prefix='/srm/service-checkout/options', tags=['Native service
 def availability(service_id: int = Query(..., gt=0), eligibility_id: int | None = Query(None, gt=0),
         day: date = Query(...), duration_minutes: int = Query(..., ge=5, le=720),
         resource_ids: list[int] = Query([]), starts_at: datetime | None = Query(None),
+        window_from: time | None = None, window_until: time | None = None, priority: Literal['earliest','same_employee','fewest_changes'] = 'earliest', preferred_employee_id: int | None = Query(None, gt=0),
         discover: bool = False, auto_resources: bool = False, employee_offset: int = Query(0, ge=0, le=10000),
         resource_offset: int = Query(0, ge=0, le=100), search_days: int = Query(1, ge=1, le=30),
         selected: str | None = Header(None, alias='X-Suite-Pack-Context'),
         db=Depends(get_db), actor=Depends(get_current_user)):
     if discover:
         from app.apps.srm.prebooking_choices import find_choices
-        return find_choices(db,actor,service_id,day,duration_minutes,eligibility_id=eligibility_id,resource_ids=resource_ids,starts_at=starts_at,auto_resources=auto_resources,employee_offset=employee_offset,resource_offset=resource_offset,search_days=search_days,selected=selected)
+        return find_choices(db,actor,service_id,day,duration_minutes,eligibility_id=eligibility_id,resource_ids=resource_ids,starts_at=starts_at,auto_resources=auto_resources,employee_offset=employee_offset,resource_offset=resource_offset,search_days=search_days,selected=selected,window_from=window_from,window_until=window_until,priority=priority,preferred_employee_id=preferred_employee_id)
     if eligibility_id is None:
         from fastapi import HTTPException
         raise HTTPException(422,'Choose an eligible employee or discover available combinations')
@@ -32,6 +34,6 @@ def providers(search: str = Query('', max_length=100), selected: str | None = He
 
 
 @router.get('')
-def options(service_id: int = Query(..., gt=0), search: str = Query('', max_length=100), offset: int = Query(0, ge=0, le=10000), selected: str | None = Header(None, alias='X-Suite-Pack-Context'),
+def options(employee_id: int | None = Query(None, gt=0), service_id: int = Query(..., gt=0), search: str = Query('', max_length=100), offset: int = Query(0, ge=0, le=10000), selected: str | None = Header(None, alias='X-Suite-Pack-Context'),
         db=Depends(get_db), actor=Depends(get_current_user)):
-    return service_options(db, actor, service_id, selected=selected, search=search, offset=offset)
+    return service_options(db, actor, service_id, selected=selected, search=search, offset=offset, employee_id=employee_id)

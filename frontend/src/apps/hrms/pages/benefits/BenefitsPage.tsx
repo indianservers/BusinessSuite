@@ -60,6 +60,8 @@ export default function BenefitsPage() {
   const phone=useMobile(480);
   const qc = useQueryClient();
   const [showPlanForm, setShowPlanForm] = useState(false);
+  const [mobileSection, setMobileSection] = useState<'plans'|'claims'>('plans');
+  const [planPage, setPlanPage] = useState(0), [claimPage, setClaimPage] = useState(0);
   const [planForm, setPlanForm] = useState({
     name: "",
     plan_type: "Group Health",
@@ -116,6 +118,10 @@ export default function BenefitsPage() {
 
   const pendingClaims = (claims || []).filter((claim) => claim.status === "Pending");
   const activeEnrollments = (enrollments || []).filter((row) => row.status === "Active");
+  const currentPlanPage = Math.min(planPage, Math.max(0, Math.ceil((plans?.length || 0) / 5) - 1));
+  const currentClaimPage = Math.min(claimPage, Math.max(0, Math.ceil((claims?.length || 0) / 5) - 1));
+  const visiblePlans = phone ? (plans || []).slice(currentPlanPage * 5, currentPlanPage * 5 + 5) : plans || [];
+  const visibleClaims = phone ? (claims || []).slice(currentClaimPage * 5, currentClaimPage * 5 + 5) : (claims || []).slice(0, 6);
 
   return (
     <div className="hrms-benefits-page space-y-5">
@@ -202,14 +208,15 @@ export default function BenefitsPage() {
         </Card></SmartCreateSection>
       )}
 
+      {phone && <nav className="hrms-benefit-sections flex gap-2" aria-label="Benefits sections"><Button variant={mobileSection === 'plans' ? 'default' : 'outline'} aria-pressed={mobileSection === 'plans'} onClick={() => setMobileSection('plans')}>Plans ({plans?.length ?? '—'})</Button><Button variant={mobileSection === 'claims' ? 'default' : 'outline'} aria-pressed={mobileSection === 'claims'} onClick={() => setMobileSection('claims')}>Claims ({claims?.length ?? '—'})</Button></nav>}
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
+        {(!phone || mobileSection === 'plans') && <Card>
           <CardHeader>
             <CardTitle className="text-base">Benefit Plans</CardTitle>
             <CardDescription>Configured plans available for employee enrollment.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {phone&&plansQuery.isError&&!plans?<p role="status">Waiting for benefit plans.</p>:plansLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : plans?.length ? <GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-1" items={(plans) || []} fields={standardRecordGroups((plans) || [])} gridClassName="space-y-3" renderItem={(plan) => (
+            {phone&&plansQuery.isError&&!plans?<p role="status">Waiting for benefit plans.</p>:plansLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : plans?.length ? <GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-1" items={visiblePlans} fields={standardRecordGroups(plans || [])} gridClassName="space-y-3" renderItem={(plan) => (
               <div key={plan.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-medium">{plan.name}</p>
@@ -221,17 +228,18 @@ export default function BenefitsPage() {
                 </div>
               </div>
             )}/> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit plans configured.</p>}
+            {phone && (plans?.length || 0) > 5 && <nav aria-label="Benefit plan pages" className="flex items-center justify-between gap-2"><Button variant="outline" disabled={currentPlanPage === 0} onClick={() => setPlanPage(currentPlanPage - 1)}>Previous plans</Button><span className="text-xs">{currentPlanPage + 1} / {Math.ceil(plans!.length / 5)}</span><Button variant="outline" disabled={(currentPlanPage + 1) * 5 >= plans!.length} onClick={() => setPlanPage(currentPlanPage + 1)}>Next plans</Button></nav>}
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card>
+        {(!phone || mobileSection === 'claims') && <Card>
           <CardHeader>
             <CardTitle className="text-base">Claims Queue</CardTitle>
             <CardDescription>Latest claims waiting for payroll/HR review.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {phone&&claimsQuery.isPending&&<p role="status">Loading benefit claims…</p>}
-            {(!phone||!!claims)&&<GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-2" items={(phone?claims||[]:(claims || []).slice(0, 6)) || []} fields={standardRecordGroups((phone?claims||[]:(claims || []).slice(0, 6)) || [])} gridClassName="space-y-3" renderItem={(claim) => (
+            {(!phone||!!claims)&&<GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-2" items={visibleClaims} fields={standardRecordGroups(claims || [])} gridClassName="space-y-3" renderItem={(claim) => (
               <div key={claim.id} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">{claim.claim_type}</p>
@@ -240,9 +248,10 @@ export default function BenefitsPage() {
                 <p className="mt-1 text-sm text-muted-foreground">Employee #{claim.employee_id} - INR {money(claim.claim_amount)}</p>
               </div>
             )}/>}
+            {phone && (claims?.length || 0) > 5 && <nav aria-label="Benefit claim pages" className="flex items-center justify-between gap-2"><Button variant="outline" disabled={currentClaimPage === 0} onClick={() => setClaimPage(currentClaimPage - 1)}>Previous claims</Button><span className="text-xs">{currentClaimPage + 1} / {Math.ceil(claims!.length / 5)}</span><Button variant="outline" disabled={(currentClaimPage + 1) * 5 >= claims!.length} onClick={() => setClaimPage(currentClaimPage + 1)}>Next claims</Button></nav>}
             {!claims?.length && (!phone||claimsQuery.isSuccess) && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit claims yet.</p>}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
     </div>
   );

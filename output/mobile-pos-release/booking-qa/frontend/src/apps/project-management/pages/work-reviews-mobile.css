@@ -1,0 +1,17 @@
+@media(max-width:480px){
+ .work-reviews-page{min-width:0}
+ .work-reviews-page .page-title{font-size:20px}
+ .work-reviews-page>div.rounded-xl{padding:12px}
+ .work-reviews-page nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .work-reviews-page nav a{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:12px;text-align:center}
+ .work-reviews-page button{min-height:44px;white-space:normal}
+ .work-reviews-page :is(input:not([type=checkbox]):not([type=color]),select,textarea){font-size:16px;min-height:44px;min-width:0}
+ .work-reviews-page :is(h3,p,label){overflow-wrap:anywhere;min-width:0}
+ .work-reviews-page .work-review-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .work-review-form>.sm\:col-span-2,.work-review-form>label:nth-of-type(3),.work-review-form>button{grid-column:1/-1}
+ .work-review-form>label.flex{min-height:44px;align-items:center}
+ .work-review-source{display:grid;gap:8px;font-size:12px}
+ .work-reviews-page .suite-rte-toolbar :is(button,summary){min-width:44px;min-height:44px}
+ .work-reviews-page .suite-rte .suite-rte-toolbar select{font-size:16px;min-height:44px;min-width:64px}
+ .work-reviews-page .suite-rte-menu{grid-template-columns:repeat(5,44px)}
+}

@@ -1,0 +1,1 @@
+import{j as t}from"./ui-jX47SSyc.js";import{S as a}from"./SmartCreateSection-DxLHSxen.js";function n({title:r,description:s,children:e}){return t.jsxs(a,{title:r,size:"compact",trigger:e,children:[t.jsx("p",{className:"text-sm text-muted-foreground",children:s||"Create this record using the current page’s selected values and settings."}),e]})}export{n as S};

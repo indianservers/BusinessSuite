@@ -1,3 +1,5 @@
+import { appointmentLabel } from "../appointment-label";
+import MobileWorkflowPages from "../components/MobileWorkflowPages";
 import { bookingLabel, validZone } from "@/shared/scheduling/booking-view";
 import { PaymentAmounts } from "@/shared/scheduling/BookingUX";
 import { defaultText } from "@/lib/form-defaults";
@@ -18,9 +20,9 @@ type Billing = { revision: number; currency: string; total: string | number; pai
   receipts: { id: number; number: string; amount: string | number; status: string; method: string; reference?: string }[] };
 type GroupBilling = { revision: number; group_checkout: { id: number; line_id: number; service_charge: string } };
 
-export default function AppointmentVisitPanel({ row, canViewBilling, canCollect, canInvoice, canApprove, actions, onChanged, providers = [], triggerLabel, timezone, defaultOpen = false }: {
+export default function AppointmentVisitPanel({ row, canViewBilling, canCollect, canInvoice, canApprove, actions, onChanged, providers = [], triggerLabel, timezone, defaultOpen = false, onClosed }: {
   row: Visit; canViewBilling: boolean; canCollect: boolean; canInvoice: boolean; canApprove: boolean;
-  actions?: ReactNode; onChanged: () => void; providers?: string[]; timezone?:string; triggerLabel?: string; defaultOpen?: boolean;
+  actions?: ReactNode; onChanged: () => void; providers?: string[]; timezone?:string; triggerLabel?: string; defaultOpen?: boolean; onClosed?:()=>void;
 }) {
   const { term } = useBusinessTerms();
   const zone=validZone(timezone || defaultText('timezone','srm'));
@@ -47,9 +49,9 @@ export default function AppointmentVisitPanel({ row, canViewBilling, canCollect,
   const grouped = query.data && 'group_checkout' in query.data ? query.data : undefined;
   const billing = query.data && !('group_checkout' in query.data) ? query.data : undefined, pending = mutation.isPending;
   const money = (value: string | number) => `${billing?.currency || row.data.currency || ''} ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return <><Button size="sm" variant="outline" onClick={() => setOpen(true)}>{triggerLabel || 'Open visit & payments'}</Button><Dialog open={open} onOpenChange={value => { if (!pending) setOpen(value); }}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-    <DialogHeader><DialogTitle>{row.title}</DialogTitle><DialogDescription>{term('appointment')} details, scheduling and payments.</DialogDescription></DialogHeader>
-    <section className="grid gap-2 text-sm" aria-label="Visit details"><p><strong>{term('customer')}:</strong> {row.data.customer_name || `#${row.customer_id ?? row.id}`}</p><p><strong>{term('service')}:</strong> {row.data.service_name}</p>{providers.length > 0 && <p><strong>{term('provider', true)} / {term('resource', true)}:</strong> {providers.join(', ')}</p>}<p>{`${bookingLabel(String(row.data.starts_at),zone)} – ${bookingLabel(Date.parse(String(row.data.starts_at))+Number(row.data.duration_minutes)*60000,zone,false)} (${zone})`} · {row.data.duration_minutes} min</p><p><strong>Visit status:</strong> {row.status.replace(/_/g, ' ')}</p>{row.data.notes && <p>{String(row.data.notes)}</p>}{actions}</section>
+  return <><Button size="sm" variant="outline" onClick={() => setOpen(true)}>{triggerLabel || 'Open visit & payments'}</Button><Dialog open={open} onOpenChange={value => { if (!pending) {setOpen(value);if(!value)onClosed?.();} }}><DialogContent className="mobile-workflow-dialog max-h-[90vh] max-w-3xl overflow-y-auto">
+    <DialogHeader><DialogTitle>{appointmentLabel(row)}</DialogTitle><DialogDescription>{term('appointment')} details, scheduling and payments.</DialogDescription></DialogHeader>
+    <MobileWorkflowPages><section className="grid gap-2 text-sm" aria-label="Visit details"><p><strong>{term('customer')}:</strong> {row.data.customer_name || `#${row.customer_id ?? row.id}`}</p><p><strong>{term('service')}:</strong> {row.data.service_name}</p>{providers.length > 0 && <p><strong>{term('provider', true)} / {term('resource', true)}:</strong> {providers.join(', ')}</p>}<p>{`${bookingLabel(String(row.data.starts_at),zone)} – ${bookingLabel(Date.parse(String(row.data.starts_at))+Number(row.data.duration_minutes)*60000,zone,false)} (${zone})`} · {row.data.duration_minutes} min</p><p><strong>Visit status:</strong> {row.status.replace(/_/g, ' ')}</p>{row.data.notes && <p>{String(row.data.notes)}</p>}{actions}</section>
     {canViewBilling && <section className="mt-5 grid gap-4 border-t pt-4" aria-label="Visit payments"><h3 className="font-semibold">Charges & payments</h3>
       {query.isPending && <p role="status">Loading payments…</p>}{query.isError && <p role="alert">{dealError(query.error)} <Button variant="outline" onClick={() => void query.refetch()}>Retry payments</Button></p>}
       {grouped && <ServiceCheckoutBillingPanel checkoutId={grouped.group_checkout.id} serviceCharge={grouped.group_checkout.service_charge} canCollect={canCollect} onChanged={() => { onChanged(); void query.refetch(); }}/>}
@@ -62,5 +64,5 @@ export default function AppointmentVisitPanel({ row, canViewBilling, canCollect,
       </>}
       {notice && <p role="status">{notice}</p>}{mutation.isError && <p role="alert">{dealError(mutation.error)} Retry the same payment details if its outcome is uncertain.</p>}
     </section>}
-  </DialogContent></Dialog></>;
+  </MobileWorkflowPages></DialogContent></Dialog></>;
 }

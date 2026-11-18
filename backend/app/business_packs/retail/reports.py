@@ -14,7 +14,7 @@ def _business_day(stamp, zone):
     return (stamp.replace(tzinfo=timezone.utc) if stamp.tzinfo is None else stamp).astimezone(zone).date()
 
 
-def stock(db, actor, *, after=0, limit=100):
+def stock(db, actor, *, after=0, limit=100, low_only=False):
     company, branch, scope = authority(db, actor, 'stock.view')
     from app.shared.catalog_branches import availability_clause
     products = db.query(SRMProduct).filter(SRMProduct.organization_id == company, SRMProduct.id > after,
@@ -40,8 +40,17 @@ def stock(db, actor, *, after=0, limit=100):
         quantities = {row.warehouse_id: Decimal(row.quantity or 0) for row in balances}
         locations = [{'warehouse_id': ident, 'available_quantity': str(quantities.get(ident, Decimal(0)))} for ident in sorted(eligible)]
         available = next((row for row in locations if row['warehouse_id'] == product.default_warehouse_id), None)
+        quantity = sum(quantities.values(), Decimal(0))
+        level, minimum = Decimal(product.reorder_level or 0), Decimal(product.min_stock or 0)
+        threshold = level if level > 0 else max(minimum, Decimal(0))
+        low = threshold > 0 and quantity <= threshold
+        if low_only and not low:
+            continue
         items.append({'product_id': product.id, 'sku': product.sku, 'name': product.item_name,
-                      'currency': (product.metadata_json or {}).get('currency', 'INR'), 'stock': available, 'warehouses': locations, 'branch_quantity': str(sum(quantities.values(), Decimal(0))), 'tracked': bool(product.batch_tracking or product.expiry_tracking or product.serial_tracking)})
+                      'currency': (product.metadata_json or {}).get('currency', 'INR'), 'stock': available, 'warehouses': locations, 'branch_quantity': str(quantity),
+                      'reorder_level': str(level), 'min_stock': str(minimum), 'reorder_threshold': str(threshold),
+                      'is_low_stock': low, 'stock_status': 'Out of stock' if quantity <= 0 else 'Low stock' if low else 'In stock',
+                      'tracked': bool(product.batch_tracking or product.expiry_tracking or product.serial_tracking)})
     from app.apps.srm.services.commercial import require
     from app.access.service import check_background_access
     from fastapi import HTTPException
@@ -76,29 +85,31 @@ def daily(db, actor, day: date | None):
     collections = {}
     register_cash = {}
     drawer_currencies = {}
-    for root in roots:
-        if root.invoice_id not in visible_invoices:
-            continue
-        # Validate the complete native invoice/receipt graph before aggregating it.
-        result = checkout_result(root, db, scope=scope)
-        if _business_day(root.committed_at, zone) == day:
-            bucket = sales.setdefault(root.currency, {'count': 0, 'gross': Decimal(0), 'tax': Decimal(0)})
-            bucket['count'] += 1
-            bucket['gross'] += sum((Decimal(line['total']) for line in result['lines']), Decimal(0))
-            bucket['tax'] += sum((Decimal(line['tax']) for line in result['lines']), Decimal(0))
-        from app.apps.srm.models import SRMReceipt
-        for receipt in result['receipts']:
-            source = db.get(SRMReceipt, receipt['id'])
-            if source.payment_method == 'cash':
-                from app.apps.srm.service_checkout_models import POSCheckoutPayment
-                payment = db.query(POSCheckoutPayment).filter_by(checkout_id=root.id, receipt_id=source.id).one()
-                drawer_currencies.setdefault(payment.collection_session_id, set()).add(source.currency)
-            if source.receipt_date == day:
-                key = (source.currency, source.payment_method)
-                collections[key] = collections.get(key, Decimal(0)) + Decimal(source.amount)
+    from app.apps.srm.checkout_read_batch import checkout_read_batch
+    with checkout_read_batch(db, roots, scope):
+        for root in roots:
+            if root.invoice_id not in visible_invoices:
+                continue
+            # Validate the complete native invoice/receipt graph before aggregating it.
+            result = checkout_result(root, db, scope=scope)
+            if _business_day(root.committed_at, zone) == day:
+                bucket = sales.setdefault(root.currency, {'count': 0, 'gross': Decimal(0), 'tax': Decimal(0)})
+                bucket['count'] += 1
+                bucket['gross'] += sum((Decimal(line['total']) for line in result['lines']), Decimal(0))
+                bucket['tax'] += sum((Decimal(line['tax']) for line in result['lines']), Decimal(0))
+            from app.apps.srm.models import SRMReceipt
+            for receipt in result['receipts']:
+                source = db.get(SRMReceipt, receipt['id'])
                 if source.payment_method == 'cash':
-                    drawer_key = (payment.collection_session_id, source.currency)
-                    register_cash[drawer_key] = register_cash.get(drawer_key, Decimal(0)) + Decimal(source.amount)
+                    from app.apps.srm.service_checkout_models import POSCheckoutPayment
+                    payment = db.query(POSCheckoutPayment).filter_by(checkout_id=root.id, receipt_id=source.id).one()
+                    drawer_currencies.setdefault(payment.collection_session_id, set()).add(source.currency)
+                if source.receipt_date == day:
+                    key = (source.currency, source.payment_method)
+                    collections[key] = collections.get(key, Decimal(0)) + Decimal(source.amount)
+                    if source.payment_method == 'cash':
+                        drawer_key = (payment.collection_session_id, source.currency)
+                        register_cash[drawer_key] = register_cash.get(drawer_key, Decimal(0)) + Decimal(source.amount)
     from app.apps.srm.api.router import _pos_session_summary
     sessions = db.query(SRMPOSSession).filter_by(organization_id=company, deleted_at=None).all()
     registers = []

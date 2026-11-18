@@ -1,0 +1,33 @@
+import { Link } from "react-router-dom";
+import { CheckCircle2, Circle, ArrowRight, RefreshCw, ChevronDown } from "lucide-react";
+import type { Item } from "./SetupReadiness";
+import "./setup-guide.css";
+
+type Props = {data?: {items:Item[]; moduleItems?:Item[]; recommendations?:Item[]}; module?:string; loading:boolean; error:boolean; refreshing:boolean; refresh:()=>void};
+const labels:Record<string,string> = {company:"Company essentials", crm:"CRM · Sales process", srm:"SRM · Sales & inventory", project_management:"PMS · Project delivery", hrms:"HRMS · People & payroll", fam:"Finance · Accounting"};
+export default function SetupGuide({data,module,loading,error,refreshing,refresh}:Props) {
+  const items = [...(data?.items || []), ...(data?.moduleItems || []), ...(data?.recommendations || [])].filter(i=>!module || i.module === "company" || i.module === module);
+  const required = items.filter(i=>i.required !== false);
+  const missing = required.filter(i=>!i.ready);
+  const completed = items.filter(i=>i.ready).length;
+  const groups = ["company", ...Object.keys(labels).filter(key=>key !== "company"), ...items.map(i=>i.module || "company")]
+    .filter((group,index,all)=>all.indexOf(group)===index && items.some(i=>(i.module || "company")===group));
+  if (loading || error || !data || !missing.length) return null;
+
+  return <section className="setup-guide" aria-label="Workspace setup guide">
+    {(!module || module === 'crm') && <div className="mb-4 rounded-lg border p-4"><strong>Set up your industry</strong><p className="text-sm">Install CRM stages, fields, published follow-up workflows and reports for your business.</p><Link className="text-sm underline" to="/crm/pipeline-templates">Choose an industry pack</Link></div>}
+    <header className="setup-guide-header"><div><p className="setup-guide-eyebrow">YOUR SETUP GUIDE</p><h2>{module ? `${(labels[module] || module).split(" · ")[0]} setup` : "Let's get your workspace ready"}</h2><p>Start with shared essentials, then complete the setup for each module.</p>{items.some(i=>i.id === "administrator" && i.canRepair) && <Link className="text-sm font-medium underline" to="/settings/starter-values">Add starter setup values <ArrowRight size={14} className="inline"/></Link>}</div><button disabled={refreshing} onClick={refresh}><RefreshCw size={15}/>{refreshing ? "Checking…" : "Check again"}</button></header>
+    {loading ? <p role="status">Checking current configuration…</p> : error ? <p role="alert">Setup status is unavailable. Check again to retry.</p> : <>
+      <div className="setup-guide-progress"><progress aria-label="Setup tasks completed" value={completed} max={items.length || 1}/><span>{completed} of {items.length} complete</span></div>
+      <p className="setup-guide-summary" role="status">{missing.length} mandatory {missing.length === 1 ? "item needs" : "items need"} attention · This guide hides automatically when mandatory setup is complete.</p>
+      {groups.map(group=>{const rows=items.filter(i=>(i.module || "company")===group);return <details className="setup-guide-group" key={`${module}-${group}`} open={group === groups.find(g=>items.some(i=>(i.module || "company")===g && !i.ready && i.required!==false))}>
+        <summary>{rows.every(i=>i.ready) ? <CheckCircle2 size={18} className="setup-guide-done"/> : <Circle size={18}/>}<strong>{group === "company" ? "Shared essentials · All modules" : labels[group] || group}</strong><span><progress aria-label={`${labels[group] || group} progress`} value={rows.filter(i=>i.ready).length} max={rows.length}/>{rows.filter(i=>i.ready).length} of {rows.length} tasks</span><ChevronDown size={16} className="setup-guide-chevron"/></summary>
+        <ul>{[...rows].sort((a,b)=>Number(a.required===false)-Number(b.required===false)).map(item=><li key={item.id}>
+          {item.ready ? <CheckCircle2 size={19} className="setup-guide-done"/> : <Circle size={19}/>}
+          <div><div className="setup-guide-task"><strong>{item.title}</strong><span className={item.required===false ? "" : "setup-guide-required"}>{item.required===false ? "Recommended" : "Mandatory"}</span>{item.ready && <span>Complete</span>}</div><p>{item.description}</p>
+          {!item.ready && (item.id === "project" && items.some(i=>i.id === "workspace" && !i.ready) ? <small>Complete Project workspace first.</small> : item.canRepair ? <Link to={item.destination}>Set up now <ArrowRight size={14}/></Link> : <small>Ask your company administrator to complete this item.</small>)}</div>
+        </li>)}</ul>
+      </details>})}
+    </>}
+  </section>;
+}

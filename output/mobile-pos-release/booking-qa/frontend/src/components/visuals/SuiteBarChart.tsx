@@ -1,0 +1,8 @@
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import "./suite-visuals.css";
+
+/** Use comparable values in one unit; never aggregate different currencies here. */
+export default function SuiteBarChart({ title, data, unit }: { title: string; data: { name: string; value: number }[]; unit?: string }) {
+  const format = (value: number) => `${unit ? `${unit} ` : ""}${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return <figure className="suite-chart"><figcaption>{title}</figcaption><div aria-hidden="true" style={{height:230, minWidth:0}}><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{top:15,right:15,left:15,bottom:5}}><CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 4"/><XAxis dataKey="name" tickLine={false} axisLine={false} tick={{fontSize:11,fill:"hsl(var(--muted-foreground))"}}/><YAxis tickLine={false} axisLine={false} tick={{fontSize:10,fill:"hsl(var(--muted-foreground))"}} tickFormatter={value=>Intl.NumberFormat(undefined,{notation:"compact"}).format(value)}/><Tooltip formatter={(value:number)=>format(value)} contentStyle={{background:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:12,color:"hsl(var(--foreground))"}} cursor={{fill:"hsl(var(--primary)/.05)"}}/><Bar dataKey="value" name={unit || "Value"} fill="hsl(var(--primary))" radius={[6,6,0,0]} maxBarSize={60}/></BarChart></ResponsiveContainer></div><ul className="suite-chart-legend">{data.map(item=><li key={item.name}><span>{item.name}</span><strong>{format(item.value)}</strong></li>)}</ul></figure>;
+}

@@ -1,0 +1,414 @@
+{
+  "sample_employees": 10,
+  "sample_services": [
+    {
+      "id": 13,
+      "name": "DEMO Booking Technical Visit",
+      "matching": [
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Network Support",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled"
+      ],
+      "unrelated_assignment_rejected": true
+    },
+    {
+      "id": 14,
+      "name": "DEMO Booking Computer Repair",
+      "matching": [
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Multi Skilled"
+      ],
+      "unrelated_assignment_rejected": true
+    },
+    {
+      "id": 15,
+      "name": "DEMO Booking Tax Consultation",
+      "matching": [
+        "DEMO Booking Tax Consultation"
+      ],
+      "unrelated_assignment_rejected": true
+    },
+    {
+      "id": 16,
+      "name": "DEMO Booking Routine Inspection",
+      "matching": [
+        "DEMO Booking Routine Inspection"
+      ],
+      "unrelated_assignment_rejected": true
+    }
+  ],
+  "local_fixture": "Production service eligibility responses, mocked availability times",
+  "mobile_results": [
+    {
+      "service": "DEMO Booking Technical Visit",
+      "width": 320,
+      "height": 568,
+      "matchingEmployees": 4,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Computer Repair",
+      "width": 320,
+      "height": 568,
+      "matchingEmployees": 2,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Tax Consultation",
+      "width": 320,
+      "height": 568,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Routine Inspection",
+      "width": 320,
+      "height": 568,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Technical Visit",
+      "width": 360,
+      "height": 640,
+      "matchingEmployees": 4,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Computer Repair",
+      "width": 360,
+      "height": 640,
+      "matchingEmployees": 2,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Tax Consultation",
+      "width": 360,
+      "height": 640,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Routine Inspection",
+      "width": 360,
+      "height": 640,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Technical Visit",
+      "width": 390,
+      "height": 844,
+      "matchingEmployees": 4,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Computer Repair",
+      "width": 390,
+      "height": 844,
+      "matchingEmployees": 2,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Tax Consultation",
+      "width": 390,
+      "height": 844,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Routine Inspection",
+      "width": 390,
+      "height": 844,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Technical Visit",
+      "width": 430,
+      "height": 932,
+      "matchingEmployees": 4,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Computer Repair",
+      "width": 430,
+      "height": 932,
+      "matchingEmployees": 2,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Tax Consultation",
+      "width": 430,
+      "height": 932,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    },
+    {
+      "service": "DEMO Booking Routine Inspection",
+      "width": 430,
+      "height": 932,
+      "matchingEmployees": 1,
+      "noScroll": true,
+      "noClippedButtons": true
+    }
+  ],
+  "typecheck": "passed",
+  "build": "passed",
+  "security_role_regression": "passed",
+  "production_release": "pos-booking-qa-20261118-v4",
+  "live_verification": "passed",
+  "live_matching_verified": {
+    "parent": "DEMO Technical Services",
+    "parent_matches": 4,
+    "subcategory": "DEMO Technical Services > Computer Repair",
+    "subcategory_matches": [
+      "DEMO Booking Computer Repair",
+      "DEMO Booking Multi Skilled"
+    ]
+  },
+  "sample_employee_accounts_created": false,
+  "backend_regression": "72 passed",
+  "employee_projection_boundary": "3 passed",
+  "backend_changes": [
+    "Native SRM employee projection limited to id, user_id, date_of_exit and work_categories; branch/company/active employee and pack-operation authority checked",
+    "Category validation scoped to policy company and branch; no full employee profile read"
+  ],
+  "live_results": {
+    "booking": [
+      {
+        "bounds": [
+          12.203125,
+          555.796875,
+          10,
+          310
+        ],
+        "clipped": [],
+        "employees": [
+          "Choose employee",
+          "DEMO Booking Computer Repair",
+          "DEMO Booking Device Setup",
+          "DEMO Booking Multi Skilled",
+          "DEMO Booking Network Support"
+        ],
+        "overflow": 0,
+        "page": [
+          320,
+          568
+        ],
+        "scrollContainers": 0,
+        "viewport": [
+          320,
+          568
+        ]
+      },
+      {
+        "bounds": [
+          48.203125,
+          591.796875,
+          10,
+          350
+        ],
+        "clipped": [],
+        "employees": [
+          "Choose employee",
+          "DEMO Booking Computer Repair",
+          "DEMO Booking Device Setup",
+          "DEMO Booking Multi Skilled",
+          "DEMO Booking Network Support"
+        ],
+        "overflow": 0,
+        "page": [
+          360,
+          640
+        ],
+        "scrollContainers": 0,
+        "viewport": [
+          360,
+          640
+        ]
+      },
+      {
+        "bounds": [
+          137.390625,
+          706.609375,
+          10,
+          380
+        ],
+        "clipped": [],
+        "employees": [
+          "Choose employee",
+          "DEMO Booking Computer Repair",
+          "DEMO Booking Device Setup",
+          "DEMO Booking Multi Skilled",
+          "DEMO Booking Network Support"
+        ],
+        "overflow": 0,
+        "page": [
+          390,
+          844
+        ],
+        "scrollContainers": 0,
+        "viewport": [
+          390,
+          844
+        ]
+      },
+      {
+        "bounds": [
+          181.390625,
+          750.609375,
+          10,
+          420
+        ],
+        "clipped": [],
+        "employees": [
+          "Choose employee",
+          "DEMO Booking Computer Repair",
+          "DEMO Booking Device Setup",
+          "DEMO Booking Multi Skilled",
+          "DEMO Booking Network Support"
+        ],
+        "overflow": 0,
+        "page": [
+          430,
+          932
+        ],
+        "scrollContainers": 0,
+        "viewport": [
+          430,
+          932
+        ]
+      }
+    ],
+    "cart": [
+      {
+        "cartHeight": 223,
+        "cartOverflow": 0,
+        "clippedButtons": [],
+        "lines": [
+          {
+            "bottom": 343.3125,
+            "height": 163.3125,
+            "inside": true,
+            "top": 180
+          }
+        ],
+        "page": [
+          320,
+          568
+        ],
+        "viewport": [
+          320,
+          568
+        ],
+        "workspace": [
+          0,
+          568
+        ]
+      },
+      {
+        "cartHeight": 272,
+        "cartOverflow": 0,
+        "clippedButtons": [],
+        "lines": [
+          {
+            "bottom": 368.28125,
+            "height": 169.28125,
+            "inside": true,
+            "top": 199
+          }
+        ],
+        "page": [
+          360,
+          640
+        ],
+        "viewport": [
+          360,
+          640
+        ],
+        "workspace": [
+          0,
+          640
+        ]
+      },
+      {
+        "cartHeight": 394,
+        "cartOverflow": 0,
+        "clippedButtons": [],
+        "lines": [
+          {
+            "bottom": 431.84375,
+            "height": 185.28125,
+            "inside": true,
+            "top": 246.5625
+          }
+        ],
+        "page": [
+          390,
+          844
+        ],
+        "viewport": [
+          390,
+          844
+        ],
+        "workspace": [
+          0,
+          844
+        ]
+      },
+      {
+        "cartHeight": 475,
+        "cartOverflow": 0,
+        "clippedButtons": [],
+        "lines": [
+          {
+            "bottom": 436.59375,
+            "height": 185.28125,
+            "inside": true,
+            "top": 251.3125
+          }
+        ],
+        "page": [
+          430,
+          932
+        ],
+        "viewport": [
+          430,
+          932
+        ],
+        "workspace": [
+          0,
+          932
+        ]
+      }
+    ],
+    "availableSlots": 39,
+    "selectedTime": "2026-11-19T10:00:00+05:30",
+    "appliedToCart": true
+  },
+  "test_cart_cleared": true,
+  "financial_checkout_performed": false,
+  "temporary_qa_account": {
+    "id": 209,
+    "active": false,
+    "sessions": "revoked",
+    "credentials_removed": true
+  }
+}

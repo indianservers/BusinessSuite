@@ -18,7 +18,7 @@ const expect = base.configure({ timeout: 15000 });
       const errors=[], reservations=[], customerWrites=[], otherWrites=[];
       let manage=false, failure=false, slow=0, created;
       const day=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
-      const meera={id:8,name:'Meera Rao',phone:'9999999999',entityKind:'Individual',roles:['Customer']};
+      const meera={id:8,name:'Meera Rao',phone:'9999999999',phone_country_code:'+91',entityKind:'Individual',roles:['Customer']};
       const services=[{id:9,kind:'service',name:'Styling',code:'S9',category:'Hair',price:800,currency:'INR'},{id:10,kind:'service',name:'Therapy',code:'S10',category:'Therapy',price:1000,currency:'INR'}];
       const people=[{eligibility_id:2,eligibility_revision:1,provider_resource_id:12,employee_id:22,employee_name:'Alex Employee',provider_name:'Alex',timezone:'UTC',work_categories:['Stylists']},{eligibility_id:3,eligibility_revision:1,provider_resource_id:13,employee_id:23,employee_name:'Sam Therapist',provider_name:'Sam',timezone:'Asia/Kolkata',work_categories:['Therapists']}];
       const savedRow={id:99,kind:'appointment',title:'Service prebooking',status:'booked',revision:1,customer_id:9,data:{customer_name:'Neha Iyer',service_name:'Styling',starts_at:`${day}T10:00:00Z`,duration_minutes:45,resource_ids:[12,30]}};
@@ -40,6 +40,7 @@ const expect = base.configure({ timeout: 15000 });
         else if(p.endsWith('/options/availability')){const fails=failure;if(slow)await new Promise(resolve=>setTimeout(resolve,slow));if(fails)return route.fulfill({status:503,json:{detail:'Temporary availability failure'}});json={selection_available:url.searchParams.getAll('resource_ids').includes('30')||url.searchParams.getAll('resource_ids').includes('31'),conflicts:[],resources:[{id:30,available:true},{id:31,available:true}],slots:[{starts_at:`${url.searchParams.get('day')}T11:00:00Z`,label:'11:00'}]};}
         else if(p.endsWith('/employees/planned-services'))json={timezone:'UTC',items:[],next_cursor:null,filter_options:{employees:[{id:22,name:'Alex Employee'}],services:[],employees_complete:true,services_complete:true}};
         else if(p.endsWith('/industry/appointments') && req.method()==='POST'){reservations.push(req.postDataJSON());json=savedRow;}
+        else if(p.endsWith('/prebooking-workflows/appointments/99/summary'))json={row:savedRow,employee:'Alex Employee',timezone:'UTC',resources:['Room A']};
         else if(p.endsWith('/industry/appointments/99'))json=savedRow;
         else if(p.endsWith('/appointments/99/billing'))json={appointment_id:99,revision:1,currency:'INR',total:'800',paid:'0',advance:'0',balance:'800',invoice:null,receipts:[]};
         else if(req.method()!=='GET')otherWrites.push({path:p,body:req.postDataJSON()});
@@ -123,7 +124,7 @@ const expect = base.configure({ timeout: 15000 });
       await confirm.click();await expect(panel.getByRole('heading',{name:'Prebooking confirmed'})).toBeFocused();await expect(panel.getByRole('region',{name:'Prebooking confirmation'})).toContainText('Neha Iyer');await expect(panel.getByRole('region',{name:'Prebooking confirmation'})).toContainText('Alex Employee');await expect(panel.getByRole('region',{name:'Prebooking confirmation'})).toContainText('Reference #99');
       await page.screenshot({path:`../output/prebooking-success-${width}.png`,fullPage:true});
       await panel.getByRole('button',{name:'View booking',exact:true}).click();await expect(page.getByRole('region',{name:'Visit details'})).toContainText('Neha Iyer');await page.getByRole('button',{name:'Close dialog',exact:true}).click();
-      await panel.getByRole('link',{name:'Open in POS',exact:true}).click();await expect(page.getByRole('heading',{name:'Prebooking at POS',exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Visit details'})).toContainText('Neha Iyer');await expect(page.getByRole('region',{name:'Visit payments'})).toContainText('800');
+      await panel.getByText('More booking actions',{exact:true}).click();await panel.getByRole('link',{name:'Open in POS',exact:true}).click();await expect(page.getByRole('heading',{name:'Prebooking at POS',exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Visit details'})).toContainText('Neha Iyer');await expect(page.getByRole('region',{name:'Visit payments'})).toContainText('800');
       expect(reservations).toHaveLength(1);expect(reservations[0].customer_id).toBe(9);expect(reservations[0].booking.duration_minutes).toBe(45);expect(reservations[0].notes).toBe('Quiet room requested');expect(reservations[0].payments).toBeUndefined();expect(otherWrites).toEqual([]);expect(errors).toEqual([]);
       await page.close();console.log(`PASS prebooking UX 11–25: ${width}px ${width===390?'HRMS':'SRM'}, quick customer creation, required resources, categories, timezones, drawer/focus and existing booking POS handoff`);
     }

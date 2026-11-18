@@ -1,0 +1,16 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {QueryClient,QueryClientProvider,onlineManager} from '@tanstack/react-query';
+import LeavePage from '@/apps/hrms/pages/leave/LeavePage';
+import {useAuthStore} from '@/store/authStore';
+import {Toaster} from '@/components/ui/toaster';
+import '@/index.css';
+const employee=location.search.includes('employee'),viewer=location.search.includes('viewer');
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,employee_id:viewer?undefined:2,role:employee||viewer?'employee':'admin',is_superuser:!employee&&!viewer,access:{managed:true,companyId:1,companyName:'QA company',memberships:[1],organizations:[],modules:[],grants:{hrms:{enabled:true,role:employee||viewer?'employee':'admin',scope:'company',permissions:employee||viewer?[]:['leave_approve'],actions:viewer?[]:employee?['create']:['create','edit','approve']}}}}});
+Object.assign(window,{__leaveEmployeeRole:()=>{const user=useAuthStore.getState().user;if(user?.access)useAuthStore.setState({user:{...user,role:'employee',is_superuser:false,access:{...user.access,grants:{...user.access.grants,hrms:{...user.access.grants.hrms,permissions:[],actions:['create']}}}}});}});
+const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+const sourceKeys:Record<string,unknown[]>={'leave balances':['leave-balance'],'my leave requests':['my-leave-requests'],'leave approvals':['all-leave-requests','Pending'],'encashment requests':['leave-encashment-requests'],'encashment approvals':['leave-encashment-requests','submitted'],'leave calendar':['leave-calendar','2026-11-01','2026-11-30','team']};
+Object.assign(window,{__refetchLeaveSource:(label:string)=>client.refetchQueries({queryKey:sourceKeys[label],exact:true})});
+Object.assign(window,{__leaveOnline:(online:boolean)=>onlineManager.setOnline(online)});
+Object.assign(window,{__leaveSourceStatus:(label:string)=>client.getQueryState(sourceKeys[label])?.status});
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={client}><MemoryRouter initialEntries={['/hrms/leave']}><main id="suite-main" style={{padding:12}}><LeavePage/></main><Toaster/></MemoryRouter></QueryClientProvider>);

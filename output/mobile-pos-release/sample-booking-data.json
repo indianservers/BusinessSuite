@@ -1,0 +1,589 @@
+{
+  "employees": [
+    {
+      "id": 171,
+      "name": "DEMO Booking Computer Repair",
+      "categories": [
+        "DEMO Technical Services > Computer Repair"
+      ],
+      "provider_resource_id": 36
+    },
+    {
+      "id": 172,
+      "name": "DEMO Booking Network Support",
+      "categories": [
+        "DEMO Technical Services > Network Support"
+      ],
+      "provider_resource_id": 37
+    },
+    {
+      "id": 173,
+      "name": "DEMO Booking Device Setup",
+      "categories": [
+        "DEMO Technical Services > Device Setup"
+      ],
+      "provider_resource_id": 38
+    },
+    {
+      "id": 174,
+      "name": "DEMO Booking Business Consultation",
+      "categories": [
+        "DEMO Consulting > Business Consultation"
+      ],
+      "provider_resource_id": 39
+    },
+    {
+      "id": 175,
+      "name": "DEMO Booking Tax Consultation",
+      "categories": [
+        "DEMO Consulting > Tax Consultation"
+      ],
+      "provider_resource_id": 40
+    },
+    {
+      "id": 176,
+      "name": "DEMO Booking IT Advisory",
+      "categories": [
+        "DEMO Consulting > IT Advisory"
+      ],
+      "provider_resource_id": 41
+    },
+    {
+      "id": 177,
+      "name": "DEMO Booking Routine Inspection",
+      "categories": [
+        "DEMO Maintenance > Routine Inspection"
+      ],
+      "provider_resource_id": 42
+    },
+    {
+      "id": 178,
+      "name": "DEMO Booking Equipment Servicing",
+      "categories": [
+        "DEMO Maintenance > Equipment Servicing"
+      ],
+      "provider_resource_id": 43
+    },
+    {
+      "id": 179,
+      "name": "DEMO Booking Safety Checks",
+      "categories": [
+        "DEMO Maintenance > Safety Checks"
+      ],
+      "provider_resource_id": 44
+    },
+    {
+      "id": 180,
+      "name": "DEMO Booking Multi Skilled",
+      "categories": [
+        "DEMO Technical Services > Computer Repair",
+        "DEMO Consulting > Business Consultation"
+      ],
+      "provider_resource_id": 45
+    }
+  ],
+  "services": [
+    {
+      "id": 13,
+      "name": "DEMO Booking Technical Visit",
+      "category": "DEMO Technical Services",
+      "matching_employees": [
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Network Support",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled"
+      ],
+      "unrelated_assignment_rejected": true,
+      "options": {
+        "service_id": 13,
+        "policy": {
+          "id": 4,
+          "revision": 1,
+          "booking_required": true,
+          "default_duration_minutes": 30,
+          "min_duration_minutes": 30,
+          "max_duration_minutes": 30,
+          "allow_duration_override": false,
+          "active": true,
+          "employee_categories": [
+            "DEMO Technical Services"
+          ],
+          "required_resource_types": []
+        },
+        "specialists": [
+          {
+            "provider_resource_id": 36,
+            "provider_name": "DEMO Booking Computer Repair",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 171,
+            "work_categories": [
+              "DEMO Technical Services > Computer Repair"
+            ],
+            "eligibility_id": 6,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Computer Repair"
+          },
+          {
+            "provider_resource_id": 38,
+            "provider_name": "DEMO Booking Device Setup",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 173,
+            "work_categories": [
+              "DEMO Technical Services > Device Setup"
+            ],
+            "eligibility_id": 8,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Device Setup"
+          },
+          {
+            "provider_resource_id": 45,
+            "provider_name": "DEMO Booking Multi Skilled",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 180,
+            "work_categories": [
+              "DEMO Technical Services > Computer Repair",
+              "DEMO Consulting > Business Consultation"
+            ],
+            "eligibility_id": 9,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Multi Skilled"
+          },
+          {
+            "provider_resource_id": 37,
+            "provider_name": "DEMO Booking Network Support",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 172,
+            "work_categories": [
+              "DEMO Technical Services > Network Support"
+            ],
+            "eligibility_id": 7,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Network Support"
+          }
+        ],
+        "has_more": false,
+        "next_offset": null,
+        "resources": [
+          {
+            "id": 32,
+            "name": "DEMO Mobile Chair 01",
+            "resource_type": "chair",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo work area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 34,
+            "name": "DEMO Mobile Equipment Kit",
+            "resource_type": "equipment",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo equipment storage",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 33,
+            "name": "DEMO Mobile Room 01",
+            "resource_type": "room",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo consultation area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          }
+        ],
+        "can_configure": true,
+        "branch_timezone": "Asia/Kolkata",
+        "service": {
+          "name": "DEMO Booking Technical Visit",
+          "price": "100.00",
+          "category": "DEMO Booking",
+          "currency": "INR"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "name": "DEMO Booking Computer Repair",
+      "category": "DEMO Technical Services > Computer Repair",
+      "matching_employees": [
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Multi Skilled"
+      ],
+      "unrelated_assignment_rejected": true,
+      "options": {
+        "service_id": 14,
+        "policy": {
+          "id": 5,
+          "revision": 1,
+          "booking_required": true,
+          "default_duration_minutes": 30,
+          "min_duration_minutes": 30,
+          "max_duration_minutes": 30,
+          "allow_duration_override": false,
+          "active": true,
+          "employee_categories": [
+            "DEMO Technical Services > Computer Repair"
+          ],
+          "required_resource_types": []
+        },
+        "specialists": [
+          {
+            "provider_resource_id": 36,
+            "provider_name": "DEMO Booking Computer Repair",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 171,
+            "work_categories": [
+              "DEMO Technical Services > Computer Repair"
+            ],
+            "eligibility_id": 10,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Computer Repair"
+          },
+          {
+            "provider_resource_id": 45,
+            "provider_name": "DEMO Booking Multi Skilled",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 180,
+            "work_categories": [
+              "DEMO Technical Services > Computer Repair",
+              "DEMO Consulting > Business Consultation"
+            ],
+            "eligibility_id": 11,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Multi Skilled"
+          }
+        ],
+        "has_more": false,
+        "next_offset": null,
+        "resources": [
+          {
+            "id": 32,
+            "name": "DEMO Mobile Chair 01",
+            "resource_type": "chair",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo work area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 34,
+            "name": "DEMO Mobile Equipment Kit",
+            "resource_type": "equipment",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo equipment storage",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 33,
+            "name": "DEMO Mobile Room 01",
+            "resource_type": "room",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo consultation area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          }
+        ],
+        "can_configure": true,
+        "branch_timezone": "Asia/Kolkata",
+        "service": {
+          "name": "DEMO Booking Computer Repair",
+          "price": "100.00",
+          "category": "DEMO Booking",
+          "currency": "INR"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "name": "DEMO Booking Tax Consultation",
+      "category": "DEMO Consulting > Tax Consultation",
+      "matching_employees": [
+        "DEMO Booking Tax Consultation"
+      ],
+      "unrelated_assignment_rejected": true,
+      "options": {
+        "service_id": 15,
+        "policy": {
+          "id": 6,
+          "revision": 1,
+          "booking_required": true,
+          "default_duration_minutes": 30,
+          "min_duration_minutes": 30,
+          "max_duration_minutes": 30,
+          "allow_duration_override": false,
+          "active": true,
+          "employee_categories": [
+            "DEMO Consulting > Tax Consultation"
+          ],
+          "required_resource_types": []
+        },
+        "specialists": [
+          {
+            "provider_resource_id": 40,
+            "provider_name": "DEMO Booking Tax Consultation",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 175,
+            "work_categories": [
+              "DEMO Consulting > Tax Consultation"
+            ],
+            "eligibility_id": 12,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Tax Consultation"
+          }
+        ],
+        "has_more": false,
+        "next_offset": null,
+        "resources": [
+          {
+            "id": 32,
+            "name": "DEMO Mobile Chair 01",
+            "resource_type": "chair",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo work area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 34,
+            "name": "DEMO Mobile Equipment Kit",
+            "resource_type": "equipment",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo equipment storage",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 33,
+            "name": "DEMO Mobile Room 01",
+            "resource_type": "room",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo consultation area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          }
+        ],
+        "can_configure": true,
+        "branch_timezone": "Asia/Kolkata",
+        "service": {
+          "name": "DEMO Booking Tax Consultation",
+          "price": "100.00",
+          "category": "DEMO Booking",
+          "currency": "INR"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "name": "DEMO Booking Routine Inspection",
+      "category": "DEMO Maintenance > Routine Inspection",
+      "matching_employees": [
+        "DEMO Booking Routine Inspection"
+      ],
+      "unrelated_assignment_rejected": true,
+      "options": {
+        "service_id": 16,
+        "policy": {
+          "id": 7,
+          "revision": 1,
+          "booking_required": true,
+          "default_duration_minutes": 30,
+          "min_duration_minutes": 30,
+          "max_duration_minutes": 30,
+          "allow_duration_override": false,
+          "active": true,
+          "employee_categories": [
+            "DEMO Maintenance > Routine Inspection"
+          ],
+          "required_resource_types": []
+        },
+        "specialists": [
+          {
+            "provider_resource_id": 42,
+            "provider_name": "DEMO Booking Routine Inspection",
+            "timezone": "Asia/Kolkata",
+            "employee_id": 177,
+            "work_categories": [
+              "DEMO Maintenance > Routine Inspection"
+            ],
+            "eligibility_id": 13,
+            "eligibility_revision": 1,
+            "employee_name": "DEMO Booking Routine Inspection"
+          }
+        ],
+        "has_more": false,
+        "next_offset": null,
+        "resources": [
+          {
+            "id": 32,
+            "name": "DEMO Mobile Chair 01",
+            "resource_type": "chair",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo work area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 34,
+            "name": "DEMO Mobile Equipment Kit",
+            "resource_type": "equipment",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo equipment storage",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          },
+          {
+            "id": 33,
+            "name": "DEMO Mobile Room 01",
+            "resource_type": "room",
+            "timezone": "Asia/Kolkata",
+            "opens": "09:00:00",
+            "closes": "18:00:00",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "capacity": 1,
+            "location": "Main \u00b7 Demo consultation area",
+            "accessibility": "",
+            "facilities": "Demo asset for mobile appointment workflow verification; no real equipment."
+          }
+        ],
+        "can_configure": true,
+        "branch_timezone": "Asia/Kolkata",
+        "service": {
+          "name": "DEMO Booking Routine Inspection",
+          "price": "100.00",
+          "category": "DEMO Booking",
+          "currency": "INR"
+        }
+      }
+    }
+  ]
+}

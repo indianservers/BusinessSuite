@@ -25,4 +25,11 @@ def category_clause(db, column, categories):
     # Match complete quoted JSON string values, using bound, escaped patterns.
     # This stays inside the canonical employee source accepted by the ORM guard.
     encoded = {json.dumps(name, ensure_ascii=ascii_only) for name in normalize_categories(categories) for ascii_only in (True, False)}
-    return or_(*(cast(column, String).icontains(name, autoescape=True) for name in encoded))
+    prefixes = {json.dumps(name, ensure_ascii=ascii_only)[:-1] + ' > ' for name in normalize_categories(categories) for ascii_only in (True, False)}
+    return or_(*(cast(column, String).icontains(name, autoescape=True) for name in encoded | prefixes))
+
+
+def matches_categories(values, selected):
+    wanted = [name.casefold() for name in normalize_categories(selected)]
+    return any(value.casefold() == name or value.casefold().startswith(name + ' > ')
+               for value in values or [] for name in wanted)

@@ -1,0 +1,44 @@
+{
+  "company": "Indian Servers",
+  "branch": "Main",
+  "service": "System Repair",
+  "eligible_demo_employee_ids": [
+    169,
+    170
+  ],
+  "demo_physical_resources": [
+    {
+      "id": 32,
+      "title": "DEMO Mobile Chair 01",
+      "type": "chair"
+    },
+    {
+      "id": 33,
+      "title": "DEMO Mobile Room 01",
+      "type": "room"
+    },
+    {
+      "id": 34,
+      "title": "DEMO Mobile Equipment Kit",
+      "type": "equipment"
+    }
+  ],
+  "service_policy_unchanged": true,
+  "original_booking_records_unchanged": 20,
+  "total_bookings": 21,
+  "demo_booking": {
+    "id": 35,
+    "title": "System Repair · DEMO Calendar Customer",
+    "starts_at": "2026-11-19T03:30:00Z",
+    "duration_minutes": 30,
+    "resource_ids": [
+      10,
+      34
+    ],
+    "unit_price": "333.00",
+    "currency": "INR",
+    "invoice_id": null,
+    "confirmation_channels": []
+  },
+  "status": "passed"
+}

@@ -36,7 +36,7 @@ import { getWowFeaturesForContext } from "@/lib/wowFeatures";
 
 type Result = { type: string; title: string; subtitle?: string; url: string };
 
-export default function GlobalSearch({ compact = false, shortcuts = true }: { compact?: boolean; shortcuts?: boolean } = {}) {
+export default function GlobalSearch({ compact = false, shortcuts = true, placeholder = "Search tasks, projects, people…" }: { compact?: boolean; shortcuts?: boolean; placeholder?: string } = {}) {
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -671,7 +671,7 @@ export default function GlobalSearch({ compact = false, shortcuts = true }: { co
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
         <span className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/40 pl-9 pr-16 text-left text-sm text-muted-foreground">
-          <span className="truncate">Search tasks, projects, people…</span>
+          <span className="truncate">{placeholder}</span>
         </span>
         <kbd
           aria-hidden="true"

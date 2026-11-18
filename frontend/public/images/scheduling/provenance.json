@@ -1,0 +1,41 @@
+{
+  "purpose": "User-provided reference portraits, extracted without generation for the screenshot visual test fixtures. Live records use their supplied avatar URL.",
+  "assets": {
+    "portrait-woman": {
+      "source_attachment": "codex-clipboard-735944e8-846a-477a-8346-3c6288c7e6a3.png",
+      "crop": [
+        274,
+        323,
+        314,
+        364
+      ]
+    },
+    "portrait-man": {
+      "source_attachment": "codex-clipboard-735944e8-846a-477a-8346-3c6288c7e6a3.png",
+      "crop": [
+        274,
+        370,
+        314,
+        410
+      ]
+    },
+    "portrait-customer": {
+      "source_attachment": "codex-clipboard-1a30f083-8c11-4c07-9584-bab922c8ee6c.png",
+      "crop": [
+        336,
+        240,
+        382,
+        286
+      ]
+    },
+    "portrait-profile": {
+      "source_attachment": "codex-clipboard-10d0ba94-bdbb-41d1-924d-8b6506591a26.png",
+      "crop": [
+        1390,
+        10,
+        1430,
+        50
+      ]
+    }
+  }
+}

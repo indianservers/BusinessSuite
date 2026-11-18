@@ -1,34 +1,52 @@
-import { useEffect, useRef, useState } from 'react';
-import { calendarText } from './prebooking-state';
-import type { BookingSelection } from '@/apps/srm/industry/POSServiceScheduling';
-import { Link } from 'react-router-dom';
-import { useBusinessTerms } from '@/hooks/use-business-terms';
-import { Button } from '@/components/ui/button';
+import {createPortal} from 'react-dom';
+import BookingConfirmationDrafts from './BookingConfirmationDrafts';
+import {useEffect,useRef,useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {Link,useLocation} from 'react-router-dom';
+import {api} from '@/services/api';
+import {useRecordScope} from '@/lib/record-scope';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
 import AppointmentVisitPanel from '@/apps/srm/industry/AppointmentVisitPanel';
-
-export type ConfirmedPrebooking = {
-  row: {id:number;title:string;status:string;revision:number;customer_id?:number;data:Record<string,string|number|number[]>};
-  customerId?:number;serviceId?:number;booking?:BookingSelection;email?:string;phone?:string;
-  customer: string; service: string; employee: string; startsAt: string; minutes: number; timezone: string; resources: string[];
-};
-export default function PrebookingSuccess({ saved, onAnother, capabilities, onChanged }: { saved: ConfirmedPrebooking; onAnother: (mode?:'same_customer'|'repeat') => void; onChanged: () => void; capabilities: {billing?:boolean;collect?:boolean;invoice?:boolean;approve_invoice?:boolean} }) {
-  const [preview,setPreview]=useState(false);
-  const {term} = useBusinessTerms();
-  const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { heading.current?.focus(); }, []);
-  const formatter = new Intl.DateTimeFormat(undefined,{timeZone:saved.timezone,dateStyle:'medium',timeStyle:'short'});
-  return <section className="prebooking-success" aria-label="Prebooking confirmation">
-    <h2 ref={heading} tabIndex={-1}>Prebooking confirmed</h2><p role="status">Saved successfully. Reference #{saved.row.id}</p>
-    <dl>{[[term('customer'),saved.customer],[term('service'),saved.service],[term('provider'),saved.employee],['Starts',formatter.format(new Date(saved.startsAt))],['Ends',formatter.format(new Date(Date.parse(saved.startsAt)+saved.minutes*60000))],['Timezone',saved.timezone],['Resources',saved.resources.join(', ') || 'No additional resources']].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-    <p>No payment collected. Collect later in POS.</p><div className="prebooking-success-actions">
-      <AppointmentVisitPanel timezone={saved.timezone} row={saved.row} triggerLabel="View booking" providers={[saved.employee,...saved.resources]} canViewBilling={!!capabilities.billing} canCollect={!!capabilities.collect} canInvoice={!!capabilities.invoice} canApprove={!!capabilities.approve_invoice} onChanged={onChanged}/>
-      {capabilities.billing && <Button asChild variant="outline"><Link to={`/srm/pos/terminal?prebooking=${saved.row.id}`}>Open in POS</Link></Button>}
-      <Button type="button" onClick={()=>onAnother()}>Book another</Button>
-      <Button type="button" variant="outline" onClick={()=>onAnother('same_customer')}>Book another for this customer</Button>
-      <Button type="button" variant="outline" onClick={()=>onAnother('repeat')}>Repeat as new draft</Button>
-      <Button type="button" variant="outline" onClick={()=>{const blob=new Blob([calendarText(saved,location.origin)],{type:'text/calendar;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`booking-${saved.row.id}.ics`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>Download calendar event</Button>
-      <Button type="button" variant="outline" onClick={()=>setPreview(v=>!v)}>Preview confirmation</Button>
-    </div>
-    {preview && <section aria-label="Confirmation preview"><h3>Confirmation preview</h3><p>{saved.customer}: {saved.service} with {saved.employee}, {formatter.format(new Date(saved.startsAt))} ({saved.timezone}). Reference #{saved.row.id}.</p><p>Open your messaging app to review and send. Delivery is not tracked here.</p>{saved.email && <Button asChild variant="outline"><a href={`mailto:${encodeURIComponent(saved.email)}?subject=${encodeURIComponent(`Booking #${saved.row.id}`)}&body=${encodeURIComponent(`${saved.service} with ${saved.employee}, ${formatter.format(new Date(saved.startsAt))} (${saved.timezone}). Reference #${saved.row.id}.`)}`}>Open email draft</a></Button>}{saved.phone && <Button asChild variant="outline"><a href={`sms:${encodeURIComponent(saved.phone)}?body=${encodeURIComponent(`${saved.service}, ${formatter.format(new Date(saved.startsAt))} (${saved.timezone}). Reference #${saved.row.id}.`)}`}>Open SMS draft</a></Button>}{!saved.email && !saved.phone && <p>No email or phone is recorded for this customer.</p>}</section>}
-  </section>;
+import type {BookingSelection} from '@/apps/srm/industry/POSServiceScheduling';
+import {calendarText} from './prebooking-state';
+import {internationalPhone,smsEstimate} from './prebooking-messages';
+import {wall} from './booking-time';
+export type ConfirmedPrebooking={row:{id:number;title:string;status:string;revision:number;customer_id?:number;data:Record<string,string|number|number[]>};customerNotes?:string;customerId?:number;serviceId?:number;booking?:BookingSelection;email?:string;phone?:string;phoneCountryCode?:string;customer:string;service:string;employee:string;startsAt:string;minutes:number;timezone:string;resources:string[]};
+type Props={saved:ConfirmedPrebooking;onAnother:(mode?:'same_customer'|'repeat')=>void;onChanged:()=>void;onLatest?:(saved:ConfirmedPrebooking)=>void;capabilities:{billing?:boolean;collect?:boolean;invoice?:boolean;approve_invoice?:boolean}};
+export default function PrebookingSuccess({saved:original,onAnother,capabilities,onChanged,onLatest}:Props){
+ const location=useLocation(),scope=useRecordScope(),heading=useRef<HTMLHeadingElement>(null);
+ const latest=useQuery({queryKey:['prebooking-confirmation-latest',scope,original.row.id],retry:false,queryFn:async()=>{const {data}=await api.get<{row:ConfirmedPrebooking['row'];employee_id?:number;provider_resource_id?:number;employee:string;timezone:string;resources:string[]}>(`/srm/industry/prebooking-workflows/appointments/${original.row.id}/summary`,{recordCache:false});if(data.row?.id!==original.row.id||!data.row.data.starts_at)throw new Error('Latest booking unavailable');return data;}});
+ const saved:ConfirmedPrebooking=latest.data?{...original,row:latest.data.row,startsAt:String(latest.data.row.data.starts_at),minutes:Number(latest.data.row.data.duration_minutes),employee:latest.data.employee,timezone:latest.data.timezone,resources:latest.data.resources,booking:original.booking?{...original.booking,employee_id:latest.data.employee_id || original.booking.employee_id,provider_resource_id:latest.data.provider_resource_id || original.booking.provider_resource_id,starts_at:String(latest.data.row.data.starts_at),duration_minutes:Number(latest.data.row.data.duration_minutes),additional_resource_ids:(latest.data.row.data.resource_ids as number[] || []).filter(i=>i!==(latest.data!.provider_resource_id || original.booking!.provider_resource_id))}:undefined,customerNotes:String(latest.data.row.data.customer_notes || ''),customer:String(latest.data.row.data.customer_name || original.customer),service:String(latest.data.row.data.service_name || original.service)}:original;
+ const latestCallback=useRef(onLatest);latestCallback.current=onLatest;
+ useEffect(()=>{if(latest.data)latestCallback.current?.(saved);},[latest.data]);
+ const formatter=new Intl.DateTimeFormat(undefined,{timeZone:saved.timezone,dateStyle:'medium',timeStyle:'short'});
+ const generated=`${saved.customer}: ${saved.service} with ${saved.employee}, ${formatter.format(new Date(saved.startsAt))} (${saved.timezone}). Reference #${saved.row.id}. Status: ${saved.row.status}.${saved.customerNotes?'\n'+saved.customerNotes:''}`;
+ const [preview,setPreview]=useState(false),[printPreview,setPrintPreview]=useState(false),[channel,setChannel]=useState<'email'|'sms'>(saved.email?'email':'sms'),[copyStatus,setCopyStatus]=useState('');
+ const [drafts,setDrafts]=useState(()=>({email:{recipient:saved.email || '',message:generated,dirty:false},sms:{recipient:internationalPhone(saved.phone,saved.phoneCountryCode),message:generated,dirty:false}}));
+ const [reviewedRevision,setReviewedRevision]=useState(saved.row.revision);
+ const draft=drafts[channel],message=draft.dirty?draft.message:generated;
+ const changed=reviewedRevision!==saved.row.revision;
+ const recipientValid=channel==='email'?/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.recipient):/^\+[1-9]\d{7,14}$/.test(internationalPhone(draft.recipient));
+ const recipient=channel==='sms'?internationalPhone(draft.recipient):draft.recipient.trim();
+ const href=channel==='email'?`mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(`Booking #${saved.row.id}`)}&body=${encodeURIComponent(message)}`:`sms:${encodeURIComponent(recipient)}?body=${encodeURIComponent(message)}`;
+ const estimate=smsEstimate(message),fresh=latest.isSuccess&&!latest.isFetching;
+ const summary=`Booking #${saved.row.id} · ${saved.customer} (Customer #${saved.customerId || saved.row.customer_id}) · ${saved.service} · ${saved.employee} · ${formatter.format(new Date(saved.startsAt))} (${saved.timezone}) · ${saved.resources.join(', ') || 'No additional resources'} · ${saved.row.status}${saved.customerNotes?'\n'+saved.customerNotes:''}`;
+ function edit(values:Partial<typeof draft>){setDrafts(old=>({...old,[channel]:{...old[channel],...values}}));}
+ async function copy(text:string){try{await navigator.clipboard.writeText(text);setCopyStatus('Copied to clipboard.');}catch{setCopyStatus('Clipboard unavailable. Select and copy the visible summary or message.');}}
+ function refresh(){void latest.refetch();onChanged();}
+ useEffect(()=>{heading.current?.focus();},[]);
+ const scheduleBase=location.pathname.startsWith('/hrms')?'/hrms':'/srm';
+ const scheduleUrl=`${scheduleBase}/service-scheduling?view=schedule&focus_booking=${saved.row.id}&date=${wall(Date.parse(saved.startsAt),saved.timezone).slice(0,10)}&timezone=${encodeURIComponent(saved.timezone)}`;
+ return <section className="prebooking-success" aria-label="Prebooking confirmation"><h2 ref={heading} tabIndex={-1}>{saved.row.status==='cancelled'?'Booking cancelled':saved.row.status==='no_show'?'Booking marked no-show':'Prebooking confirmed'}</h2><p role="status">Saved successfully. Reference #{saved.row.id}</p><p><strong>Current status: {saved.row.status.replace(/_/g,' ')}</strong></p>{latest.isError&&<p role="alert">Latest booking details could not be checked. Export, printing and messaging are paused. <Button type="button" variant="outline" onClick={refresh}>Retry latest booking</Button></p>}{latest.isFetching&&<p role="status">Checking latest booking details…</p>}
+ <dl>{[['Customer',`${saved.customer} · #${saved.customerId || saved.row.customer_id || ''}`],['Service',saved.service],['Provider',saved.employee],['Starts',formatter.format(new Date(saved.startsAt))],['Ends',formatter.format(new Date(Date.parse(saved.startsAt)+saved.minutes*60000))],['Timezone',saved.timezone],['Resources',saved.resources.join(', ') || 'No additional resources']].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>No payment collected. Collect later in POS.</p>
+ <div className="prebooking-success-actions"><Button asChild><Link to={scheduleUrl}>Show in schedule</Link></Button><AppointmentVisitPanel timezone={saved.timezone} row={saved.row} triggerLabel="View booking" providers={[saved.employee,...saved.resources]} canViewBilling={!!capabilities.billing} canCollect={!!capabilities.collect} canInvoice={!!capabilities.invoice} canApprove={!!capabilities.approve_invoice} onChanged={refresh} onClosed={refresh}/><details className="prebooking-success-more"><summary>More booking actions</summary><div className="prebooking-success-actions">
+ {capabilities.billing&&<Button asChild variant="outline"><Link to={`/srm/pos/terminal?prebooking=${saved.row.id}`}>Open in POS</Link></Button>}<Button type="button" onClick={()=>onAnother()}>Book another</Button><Button type="button" variant="outline" onClick={()=>onAnother('same_customer')}>Book another for this customer</Button><Button type="button" variant="outline" onClick={()=>onAnother('repeat')}>Repeat as new draft</Button>
+ <Button type="button" variant="outline" disabled={!fresh} onClick={()=>{const blob=new Blob([calendarText(saved,[window.location.origin,sessionStorage.getItem('suite-tenant'),sessionStorage.getItem('suite-organization')].join(':'))],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`booking-${saved.row.id}.ics`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>Download calendar event</Button>
+ <Button type="button" variant="outline" onClick={()=>setPreview(v=>!v)}>Preview confirmation</Button><Button type="button" variant="outline" onClick={()=>void copy(String(saved.row.id))}>Copy booking reference</Button><Button type="button" variant="outline" disabled={!fresh} onClick={()=>void copy(summary)}>Copy customer-safe summary</Button><Button type="button" variant="outline" disabled={!fresh} onClick={()=>setPrintPreview(v=>!v)}>Preview appointment slip</Button><Button type="button" variant="outline" onClick={refresh}>Refresh booking details</Button></div></details></div><p role="status">{copyStatus}</p>
+ {printPreview&&<section className="prebooking-slip-preview" aria-label="Printable appointment slip"><h3>Appointment slip · #{saved.row.id}</h3><p>{summary}</p><p>Duration: {saved.minutes} minutes. No payment receipt is issued by this slip.</p><Button type="button" className="prebooking-no-print" disabled={!fresh} onClick={()=>window.print()}>Print appointment slip</Button></section>}
+ {preview&&<section className="prebooking-message" aria-label="Confirmation preview"><h3>Confirmation preview</h3><p>Customer-facing instructions are included. Internal visit notes are excluded.</p><label>Message channel<select aria-label="Message channel" value={channel} onChange={e=>setChannel(e.target.value as 'email'|'sms')}><option value="email">Email</option><option value="sms">SMS</option></select></label><label>Recipient<Input aria-label="Confirmation recipient" type={channel==='email'?'email':'tel'} value={draft.recipient} onChange={e=>edit({recipient:e.target.value})} aria-invalid={!!draft.recipient&&!recipientValid}/></label>{channel==='sms'&&<small>International destination: {recipient || 'Enter country code and number'}. Use + followed by country code.</small>}<label>Confirmation text<textarea aria-label="Confirmation text" rows={5} maxLength={8000} value={message} onChange={e=>edit({message:e.target.value,dirty:true})}/></label><small>{message.length}/8000 characters{channel==='sms'?` · Estimated ${estimate.segments} SMS segment(s), ${estimate.encoding}; carrier encoding may vary.`:''}</small>{changed&&<p role="alert">The booking changed. Review your message against the latest details before opening a draft. <button type="button" onClick={()=>{edit({message:generated,dirty:false});setReviewedRevision(saved.row.revision);}}>Reset to latest booking text</button><button type="button" onClick={()=>setReviewedRevision(saved.row.revision)}>I reviewed my edited message</button></p>}<Button type="button" variant="outline" onClick={()=>{edit({message:generated,dirty:false});setReviewedRevision(saved.row.revision);}}>Reset generated message</Button><Button type="button" variant="outline" onClick={()=>void copy(message)}>Copy message text</Button>{!recipientValid&&<p>Enter a valid {channel==='email'?'email address':'international phone number'} before opening a draft.</p>}{href.length>1800&&<p role="alert">This draft link is long. Some messaging apps may truncate it; copy the message text if the handoff fails.</p>}<p>Open your messaging app to review and send. Delivery is not tracked here.</p>{fresh&&!changed&&recipientValid&&message.trim()&&<Button asChild variant="outline"><a href={href}>Open {channel==='email'?'email':'SMS'} draft</a></Button>}</section>}
+ {printPreview&&createPortal(<section id="prebooking-print-sheet" className="prebooking-print-slip" aria-label="Print-ready appointment slip"><h1>Appointment slip · #{saved.row.id}</h1><p>{summary}</p><p>Duration: {saved.minutes} minutes. No payment receipt is issued by this slip.</p></section>,document.body)}
+ {fresh&&<BookingConfirmationDrafts key={`${saved.row.id}:${saved.row.revision}`} saved={saved}/>}
+ </section>;
 }

@@ -1,0 +1,135 @@
+[
+  {
+    "control": "Blank webhook creation",
+    "result": [
+      "Enter a webhook name."
+    ]
+  },
+  {
+    "control": "Invalid endpoint validation",
+    "result": [
+      "Enter a valid HTTPS endpoint URL."
+    ]
+  },
+  {
+    "control": "Empty event selection",
+    "result": [
+      "Select at least one webhook event."
+    ]
+  },
+  {
+    "control": "Read-only delivery log",
+    "result": "Failed delivery remained attempt 1 with response 503 after reload and refresh"
+  },
+  {
+    "control": "Explicit due delivery retry",
+    "result": [
+      "Event TypeStatusResponse CodeAttempt CountNext Retry AtCreated At",
+      "lead.createdfailed50312026-11-07T04:51:40.3486152026-11-07T04:50:40"
+    ]
+  },
+  {
+    "control": "Google provider configuration",
+    "result": [
+      "Configure Google Calendar client ID, client secret and redirect URI on the server first. (Reference: 77edbce3-1f25-47e8-8301-db6a3466bf5f)"
+    ]
+  },
+  {
+    "control": "Outlook provider configuration",
+    "result": [
+      "Configure Outlook Calendar client ID, client secret and redirect URI on the server first. (Reference: 6b61a4a2-3834-473d-a993-b2cf35ade04c)"
+    ]
+  },
+  {
+    "control": "Mock calendar connect, refresh and disconnect",
+    "result": "Connected row appeared; refresh retained it; disconnect removed it with success feedback"
+  },
+  {
+    "control": "Blank repository mapping",
+    "result": [
+      "Choose a project and enter the repository owner and name."
+    ]
+  },
+  {
+    "control": "Repository provider choices",
+    "result": "GitHub and nested GitLab group mappings saved without credentials; refresh retained records"
+  },
+  {
+    "control": "Calendar sync preferences",
+    "result": "Automatic sync disabled and PMS import target survived reload"
+  },
+  {
+    "control": "Manual sync using real engine and simulated transport",
+    "result": [
+      "0 imported, 1 exported."
+    ]
+  },
+  {
+    "control": "Repeat calendar sync",
+    "result": [
+      "0 imported, 0 exported."
+    ]
+  },
+  {
+    "control": "PMS calendar accounts",
+    "result": "Paused automatic sync and PMS destination shown accurately; account refresh worked."
+  },
+  {
+    "control": "PMS calendar export",
+    "result": "karyaflow-calendar.ics downloaded with VCALENDAR 2.0 and VEVENT records"
+  },
+  {
+    "control": "Final webhook list and logs are read-only after due time",
+    "result": [
+      "Event TypeStatusResponse CodeAttempt CountNext Retry AtCreated At",
+      "lead.createdfailed50312026-11-07T04:58:49.8531812026-11-07T04:57:49"
+    ]
+  },
+  {
+    "control": "Final explicit due retry",
+    "result": {
+      "messages": [
+        "1 due deliveries retried.",
+        ""
+      ],
+      "rows": [
+        "Event TypeStatusResponse CodeAttempt CountNext Retry AtCreated At",
+        "lead.createddelivered2002-2026-11-07T04:57:49"
+      ]
+    }
+  },
+  {
+    "control": "Delivered webhook cannot be retried again",
+    "result": {
+      "messages": [
+        "0 due deliveries retried.",
+        ""
+      ],
+      "rows": [
+        "Event TypeStatusResponse CodeAttempt CountNext Retry AtCreated At",
+        "lead.createddelivered2002-2026-11-07T04:57:49"
+      ]
+    }
+  },
+  {
+    "control": "Invalid OAuth callback",
+    "result": {
+      "alerts": [
+        "Calendar authorization could not be verified. Start again."
+      ],
+      "url": "http://127.0.0.1:1586/crm/follow-ups?operation=%2Fcrm%2Fcalendar-integrations"
+    }
+  },
+  {
+    "control": "Callback tab retained after reload",
+    "result": "true"
+  },
+  {
+    "control": "Mobile webhook page at 390px",
+    "result": {
+      "documentWidth": 384,
+      "error": false,
+      "width": 390
+    }
+  }
+]

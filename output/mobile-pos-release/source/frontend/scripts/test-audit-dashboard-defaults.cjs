@@ -1,0 +1,24 @@
+const fs=require('node:fs'),path=require('node:path');
+const{chromium,expect}=require('playwright/test');
+(async()=>{
+ const fixture=path.join(__dirname,'.audit-dashboard-defaults.tsx');
+ fs.writeFileSync(fixture,`import React,{useState}from'react';import{createRoot}from'react-dom/client';import{MemoryRouter,useLocation,useNavigate}from'react-router-dom';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import Gate from'@/components/forms/FormDefaultsGate';import{requiresFormDefaultsForRoute}from'@/components/forms/form-defaults-route';import{defaultText}from'@/lib/form-defaults';import{useAuthStore}from'@/store/authStore';useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:1,role:'admin',access:{companyId:1}}});function Form(){const[value]=useState(()=>defaultText('currency'));return <output data-testid="form-default">{value}</output>};function App(){const l=useLocation(),go=useNavigate();window.go=go;const required=requiresFormDefaultsForRoute(l.pathname,l.search,l.hash);return <Gate required={required} unavailableMessage="Preferences unavailable; dashboard remains available.">{required?<Form/>:<h1>Read-only dashboard</h1>}</Gate>};createRoot(document.getElementById('root')).render(<React.StrictMode><QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={[new URLSearchParams(location.search).get('target')||'/crm']}><App/></MemoryRouter></QueryClientProvider></React.StrictMode>);`);
+ const{createServer}=await import('vite');const server=await createServer({root:process.cwd(),server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});await server.listen();const browser=await chromium.launch();
+ try{for(const width of[390,1280])for(const target of['/crm','/crm/dashboard','/srm','/srm/dashboard']){
+  const page=await browser.newPage({viewport:{width,height:800}});let release,reads=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/api/v1/**',async route=>{reads++;await new Promise(r=>release=r);await route.fulfill({json:{companyId:1,branchId:11,values:{currency:'USD'},modules:{}}});});
+  await page.route('**/qa-dashboard-defaults*',route=>route.fulfill({contentType:'text/html',body:`<div id="root"></div><script type="module">import R from'/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/.audit-dashboard-defaults.tsx');</script>`}));
+  await page.goto(server.resolvedUrls.local[0]+'qa-dashboard-defaults?target='+encodeURIComponent(target));await expect(page.getByRole('heading',{name:'Read-only dashboard'})).toBeVisible();await expect.poll(()=>typeof release).toBe('function');expect(reads).toBe(1);
+  for(const route of[target+'?new=customer',target+'#new-record',target.startsWith('/crm')?'/crm/leads?new=leads':'/srm/sales-orders#new-record']){await page.evaluate(p=>window.go(p),route);await expect(page.getByTestId('form-default')).toHaveCount(0);await expect(page.getByRole('status')).toContainText('Loading workspace preferences');}
+  release();await expect(page.getByTestId('form-default')).toHaveText('USD');expect(reads).toBe(1);expect(errors).toEqual([]);await page.close();
+ }
+ for(const width of[390,1280]){
+  const page=await browser.newPage({viewport:{width,height:800}});let fail=true;
+  await page.route('**/api/v1/**',r=>r.fulfill({status:fail?503:200,json:fail?{detail:'Preferences temporarily unavailable'}:{companyId:1,branchId:11,values:{currency:'EUR'},modules:{}}}));
+  await page.route('**/qa-dashboard-defaults*',route=>route.fulfill({contentType:'text/html',body:`<div id="root"></div><script type="module">import R from'/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/.audit-dashboard-defaults.tsx');</script>`}));
+  await page.goto(server.resolvedUrls.local[0]+'qa-dashboard-defaults');await expect(page.getByRole('heading',{name:'Read-only dashboard'})).toBeVisible();await expect(page.getByText('Preferences unavailable; dashboard remains available.')).toBeVisible();
+  await page.evaluate(()=>window.go('/crm/leads?new=leads'));await expect(page.getByRole('alert')).toContainText('Could not load form defaults');await expect(page.getByTestId('form-default')).toHaveCount(0);fail=false;await page.getByRole('button',{name:'Retry',exact:true}).click();await expect(page.getByTestId('form-default')).toHaveText('EUR');await page.close();
+ }
+ console.log('PASS readonly CRM/Sales dashboards render during held defaults; query/hash/create routes wait and initialize scoped defaults at390/1280; one shared preferences request');
+ }finally{await browser.close();await server.close();fs.unlinkSync(fixture);}
+})().catch(e=>{console.error(e);process.exitCode=1});

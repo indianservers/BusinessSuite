@@ -733,6 +733,16 @@
 .asset-metrics {
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
+.asset-secondary-actions > div { display:flex; flex-wrap:wrap; gap:8px; }
+.asset-secondary-actions > summary { cursor:pointer; }
+.asset-custody-actions > summary { cursor:pointer; font-weight:600; }
+.asset-custody-actions[open] > summary { margin-bottom:16px; }
+@media(min-width:651px) {
+  .asset-secondary-actions > summary { display:none; }
+  .asset-secondary-actions { display:contents; }
+  .asset-register-exports, .asset-register-exports > div, .asset-secondary-insights, .asset-register-filters, .asset-register-filters > div { display:contents; }
+  .asset-register-exports > summary, .asset-secondary-insights > summary, .asset-register-filters > summary { display:none; }
+}
 .asset-metric {
   gap: 8px;
   padding: 14px 10px;
@@ -757,8 +767,30 @@
 }
 @media (max-width: 650px) {
   .asset-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display:flex;
+    overflow-x:auto;
+    gap:8px;
+    padding-bottom:4px;
+    scroll-snap-type:x proximity;
   }
+  .asset-metrics .asset-metric { flex:0 0 132px; min-height:74px; scroll-snap-align:start; }
+  .asset-metrics .asset-metric { padding:8px; }
+  .asset-metrics .asset-metric em { display:none; }
+  .hrms-assets-page .asset-view-tabs { display:flex; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; }
+  .asset-view-tabs > button { flex:none; min-height:44px; }
+  .asset-secondary-actions { flex-basis:100%; border-top:1px solid hsl(var(--border)); }
+  .asset-secondary-actions > summary { padding:12px 0; min-height:44px; }
+  .asset-secondary-actions > div { padding-bottom:8px; }
+  .asset-secondary-actions button { min-height:44px; }
+  .asset-custody-actions > summary { min-height:44px; display:list-item; }
+  .asset-register-exports > summary, .asset-secondary-insights > summary { min-height:44px; padding:12px 8px; cursor:pointer; font-size:12px; font-weight:600; }
+  .asset-register-exports > div { display:flex; gap:8px; }
+  .asset-secondary-insights { border:1px solid hsl(var(--border)); border-radius:12px; }
+  .hrms-assets-page .asset-toolbar .asset-search { flex-basis:100%; width:100%; }
+  .asset-register-filters > summary { min-height:44px; padding:12px 8px; cursor:pointer; font-size:12px; font-weight:600; }
+  .asset-register-filters[open] { flex-basis:100%; }
+  .asset-register-filters > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding-bottom:8px; }
+  .asset-register-filters select { width:100%; }
 }
 .asset-intelligence-counts {
   display: grid;
@@ -839,7 +871,7 @@
     align-items: stretch;
   }
   .hrms-assets-page .asset-quick-actions > button {
-    flex: 1 1 145px;
+    flex: 1 1 120px;
     min-width: 0;
     white-space: normal;
     height: auto;
@@ -847,4 +879,8 @@
     padding: 10px;
     line-height: 1.35;
   }
+  .hrms-assets-page .asset-quick-actions > span { display:none; }
+  .hrms-assets-page .asset-quick-actions { padding:8px; }
+  .hrms-assets-page .asset-quick-actions > button { font-size:12px; padding:8px 6px; line-height:1.2; }
+  .hrms-assets-page.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top:12px; }
 }

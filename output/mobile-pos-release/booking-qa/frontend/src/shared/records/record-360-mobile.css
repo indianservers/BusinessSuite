@@ -1,0 +1,38 @@
+/* Detail presentation for narrow phones. All source fields and actions remain in place. */
+@media (max-width:480px) {
+ .r360 {font-size:14px;overflow-wrap:anywhere}
+ .r360 .r360-header {gap:10px;padding:12px 0}
+ .r360 .r360-header > div {min-width:0;max-width:100%}
+ .r360 .r360-header h2 {font-size:21px;line-height:1.25}
+ .r360 .r360-eyebrow {font-size:11px;margin-bottom:4px}
+ .r360 .r360-actions {gap:6px;width:100%}
+ .r360 .r360-actions :is(button,a) {min-height:44px;display:inline-flex;align-items:center;justify-content:center;white-space:normal;font-size:13px}
+ .r360 .r360-summary {padding:12px 0}
+ .r360 .r360-summary dl > div {grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;margin-bottom:10px;line-height:1.45}
+ .r360 .r360-summary :is(dt,dd) {min-width:0;overflow-wrap:anywhere}
+ .r360 .r360-summary section {margin-top:16px}
+ .r360 .r360-summary section > p {padding-block:5px}
+ .r360 .r360-content {padding:12px 0}
+ .r360 .r360-composer {gap:4px;padding:6px;margin-bottom:18px}
+ .r360 .r360-composer > button {flex:1 1 28%;min-width:64px;min-height:44px;font-size:13px;white-space:normal}
+ .r360 .r360-work-list {gap:8px}
+ .r360 .r360-work-item {gap:8px;padding:10px;border-radius:12px;align-items:flex-start}
+ .r360 .r360-work-item .r360-open {min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+ .r360 .r360-work-item p {font-size:12px;line-height:1.45}
+ .r360 .r360-focus {margin-bottom:20px}
+ .r360 .r360-history > header {gap:8px}
+ .r360 .r360-history > header h3 {flex-basis:100%}
+ .r360 .r360-history label {min-height:44px;max-width:100%;font-size:13px}
+ .r360 .r360-history select {min-height:44px;font-size:16px;min-width:0;max-width:100%}
+ .r360 .r360-history input[type=checkbox] {width:20px;height:20px}
+ .r360 .r360-event {padding:10px;border-radius:12px;line-height:1.5}
+ .r360 .r360-event summary {min-height:44px;overflow-wrap:anywhere}
+ .r360 .r360-event small {font-size:12px;line-height:1.5}
+ .r360 .r360-details {margin-top:16px}
+ .r360 .r360-details > summary {min-height:44px;display:list-item;padding-block:10px}
+ .r360 .r360-details :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {font-size:16px;min-height:44px}
+ .r360 .r360-pager {flex-wrap:wrap;gap:8px;justify-content:space-between;font-size:13px}
+ .r360 .r360-pager button {min-height:44px;min-width:44px}
+ .r360 .r360-error {line-height:1.5}
+ .r360 .r360-error button {min-height:44px}
+}

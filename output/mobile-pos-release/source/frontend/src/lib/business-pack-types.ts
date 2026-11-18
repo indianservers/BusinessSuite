@@ -1,0 +1,2 @@
+export type BusinessPackChoice = { contextId: number; branchId: number; branchName: string; packKey: string; packLabel: string; packVersion: number; role: string; contextRevision: number; grantRevision: number; activationRevision: number };
+export type BusinessPackDiscovery = { state: 'ready' | 'unavailable'; contexts: BusinessPackChoice[]; hasMore: boolean; selectorRequired: boolean; selectedContextId: number | null; selectionState: 'none' | 'verified' | 'invalid'; reason?: string };

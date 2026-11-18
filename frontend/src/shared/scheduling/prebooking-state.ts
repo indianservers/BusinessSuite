@@ -26,10 +26,10 @@ export function bookingError(error:unknown) {
 export function selectionFromDraft(draft:ScheduleDraft,booking:BookingSelection|undefined):ScheduleDraft {
   return booking?{...draft,employeeId:booking.employee_id,duration:String(booking.duration_minutes),resources:booking.additional_resource_ids || []}:draft;
 }
-export function calendarText(saved:{row:{id:number};customer:string;service:string;employee:string;startsAt:string;minutes:number;timezone:string;resources:string[]},scope:string) {
+export function calendarText(saved:{row:{id:number;revision?:number;status?:string};customer:string;service:string;employee:string;startsAt:string;minutes:number;timezone:string;resources:string[]},scope:string) {
   const escape=(s:string)=>s.replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');
   const stamp=(at:number)=>new Date(at).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
   let hash=2166136261;for(const c of scope)hash=Math.imul(hash^c.charCodeAt(0),16777619);
-  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Business Suite//Prebooking//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:prebooking-${saved.row.id}-${hash>>>0}@business-suite.invalid`,`DTSTAMP:${stamp(Date.now())}`,`DTSTART:${stamp(Date.parse(saved.startsAt))}`,`DTEND:${stamp(Date.parse(saved.startsAt)+saved.minutes*60000)}`,`SUMMARY:${escape(saved.service)}`,`DESCRIPTION:${escape(`Booking #${saved.row.id}\n${saved.customer}\n${saved.employee}\nBooking timezone: ${saved.timezone}`)}`,`LOCATION:${escape(saved.resources.join(', '))}`,'STATUS:CONFIRMED','END:VEVENT','END:VCALENDAR'];
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Business Suite//Prebooking//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:prebooking-${saved.row.id}-${hash>>>0}@business-suite.invalid`,`DTSTAMP:${stamp(Date.now())}`,`DTSTART:${stamp(Date.parse(saved.startsAt))}`,`DTEND:${stamp(Date.parse(saved.startsAt)+saved.minutes*60000)}`,`SUMMARY:${escape(saved.service)}`,`DESCRIPTION:${escape(`Booking #${saved.row.id}\n${saved.customer}\n${saved.employee}\nBooking timezone: ${saved.timezone}`)}`,`LOCATION:${escape(saved.resources.join(', '))}`,`SEQUENCE:${Math.max(0,(saved.row.revision || 1)-1)}`,`STATUS:${['cancelled','no_show'].includes(saved.row.status || '')?'CANCELLED':'CONFIRMED'}`,'END:VEVENT','END:VCALENDAR'];
   return lines.map(line=>{let result='',part='';for(const c of line){if(new TextEncoder().encode(part+c).length>74){result+=part+'\r\n ';part='';}part+=c;}return result+part;}).join('\r\n')+'\r\n';
 }

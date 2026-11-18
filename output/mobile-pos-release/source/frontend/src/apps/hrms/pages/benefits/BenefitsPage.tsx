@@ -1,0 +1,249 @@
+import {useMobile} from "@/components/mobile/useMobile";
+import "./benefits-mobile.css";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { NativeSelect } from "@/components/ui/native-select";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Gift, HeartPulse, PiggyBank, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { benefitsApi } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
+
+type BenefitPlan = {
+  id: number;
+  name: string;
+  plan_type: string;
+  provider_name?: string;
+  employer_contribution: string | number;
+  employee_contribution: string | number;
+  taxable: boolean;
+};
+
+type BenefitClaim = {
+  id: number;
+  employee_id: number;
+  claim_type: string;
+  claim_amount: string | number;
+  approved_amount: string | number;
+  status: string;
+  claim_date: string;
+};
+
+type Enrollment = {
+  id: number;
+  employee_id: number;
+  benefit_plan_id: number;
+  coverage_level: string;
+  status: string;
+  start_date: string;
+};
+
+type EsopGrant = {
+  id: number;
+  employee_id: number;
+  granted_units: string | number;
+  vested_units: string | number;
+  status: string;
+};
+
+const money = (value: string | number | undefined) =>
+  Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+
+export default function BenefitsPage() {
+  usePageTitle("Benefits");
+  const phone=useMobile(480);
+  const qc = useQueryClient();
+  const [showPlanForm, setShowPlanForm] = useState(false);
+  const [planForm, setPlanForm] = useState({
+    name: "",
+    plan_type: "Group Health",
+    provider_name: "",
+    employer_contribution: "0",
+    employee_contribution: "0",
+    payroll_component_code: "",
+  });
+
+  const plansQuery = useQuery({
+    queryKey: ["benefits-plans"],
+    queryFn: () => benefitsApi.plans().then((r) => r.data as BenefitPlan[]),
+  });
+  const enrollmentsQuery = useQuery({
+    queryKey: ["benefits-enrollments"],
+    queryFn: () => benefitsApi.enrollments().then((r) => r.data as Enrollment[]),
+  });
+  const claimsQuery = useQuery({
+    queryKey: ["benefits-claims"],
+    queryFn: () => benefitsApi.claims().then((r) => r.data as BenefitClaim[]),
+  });
+  const esopQuery = useQuery({
+    queryKey: ["benefits-esop-grants"],
+    queryFn: () => benefitsApi.esopGrants().then((r) => r.data as EsopGrant[]),
+  });
+
+  const {data:plans,isLoading:plansLoading}=plansQuery;
+  const {data:enrollments}=enrollmentsQuery,{data:claims}=claimsQuery,{data:esopGrants}=esopQuery;
+
+  const createPlan = useMutation({
+    mutationFn: () =>
+      benefitsApi.createPlan({
+        ...planForm,
+        employer_contribution: Number(planForm.employer_contribution || 0),
+        employee_contribution: Number(planForm.employee_contribution || 0),
+        taxable: false,
+        is_active: true,
+      }),
+    onSuccess: () => {
+      toast({ title: "Benefit plan created" });
+      setShowPlanForm(false);
+      setPlanForm({
+        name: "",
+        plan_type: "Group Health",
+        provider_name: "",
+        employer_contribution: "0",
+        employee_contribution: "0",
+        payroll_component_code: "",
+      });
+      qc.invalidateQueries({ queryKey: ["benefits-plans"] });
+    },
+    onError: () => toast({ title: "Unable to create benefit plan", variant: "destructive" }),
+  });
+
+  const pendingClaims = (claims || []).filter((claim) => claim.status === "Pending");
+  const activeEnrollments = (enrollments || []).filter((row) => row.status === "Active");
+
+  return (
+    <div className="hrms-benefits-page space-y-5">
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="page-title">Benefits Administration</h1>
+          <p className="page-description">Manage group health, NPS, flexi-benefits, ESOP grants, claims, and payroll deductions.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {if(phone){for(const key of ["benefits-plans","benefits-enrollments","benefits-claims","benefits-esop-grants"])void qc.invalidateQueries({queryKey:[key]});}else void qc.invalidateQueries({ queryKey: ["benefits-plans"] });}}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setShowPlanForm((value) => !value)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Plan
+          </Button>
+        </div>
+      </div>
+
+      <div className="hrms-benefits-kpis grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Active Plans", value: plans?.length ?? (phone?"—":0), icon: HeartPulse },
+          { label: "Enrollments", value: phone&&!enrollments?"—":activeEnrollments.length, icon: ShieldCheck },
+          { label: "Pending Claims", value: phone&&!claims?"—":pendingClaims.length, icon: Gift },
+          { label: "ESOP Grants", value: esopGrants?.length ?? (phone?"—":0), icon: PiggyBank },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.label}>
+              <CardContent className="p-5">
+                <Icon className="mb-3 h-5 w-5 text-primary" />
+                <p className="text-2xl font-semibold">{item.value}</p>
+                <p className="text-sm text-muted-foreground">{item.label}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {phone&&[plansQuery,enrollmentsQuery,claimsQuery,esopQuery].some(query=>query.isError)&&<p role="alert" className="text-sm text-destructive">Benefits information could not load. <Button variant="outline" onClick={()=>{for(const query of [plansQuery,enrollmentsQuery,claimsQuery,esopQuery])if(query.isError)void query.refetch();}}>Retry benefits</Button></p>}
+      {showPlanForm && (
+        <SmartCreateSection title={<>Create Benefit Plan</>} size="standard" mobileSheet={phone} autoOpen onClose={() => setShowPlanForm(false)}><Card className="hrms-benefit-plan-form">
+          <CardHeader>
+            <CardTitle className="text-base">Create Benefit Plan</CardTitle>
+            <CardDescription>Plan definitions become the source for enrollments and payroll deductions.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            {phone&&<p className="hrms-benefit-guidance text-sm">Plan definitions become the source for enrollments and payroll deductions.</p>}
+            {phone&&createPlan.isError&&<p role="alert" className="hrms-benefit-guidance text-destructive">Unable to create benefit plan. Your plan details are retained.</p>}
+            <div className="space-y-1.5">
+              <Label>Plan Name</Label>
+              <Input aria-label="Plan name" value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <NativeSelect aria-label="Plan type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={planForm.plan_type} onChange={(e) => setPlanForm({ ...planForm, plan_type: e.target.value })}>
+                {["Group Health", "NPS", "Insurance", "Flexi", "Wellness"].map((type) => <option key={type}>{type}</option>)}
+              </NativeSelect>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Provider</Label>
+              <Input aria-label="Plan provider" value={planForm.provider_name} onChange={(e) => setPlanForm({ ...planForm, provider_name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Employer Contribution</Label>
+              <Input aria-label="Employer contribution" type="number" value={planForm.employer_contribution} onChange={(e) => setPlanForm({ ...planForm, employer_contribution: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Employee Contribution</Label>
+              <Input aria-label="Employee contribution" type="number" value={planForm.employee_contribution} onChange={(e) => setPlanForm({ ...planForm, employee_contribution: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Payroll Component</Label>
+              <Input aria-label="Payroll component" value={planForm.payroll_component_code} onChange={(e) => setPlanForm({ ...planForm, payroll_component_code: e.target.value })} placeholder="NPS_EMP" />
+            </div>
+            <div className="flex gap-2 sm:col-span-3">
+              <Button data-save-action={phone?"":undefined} disabled={!planForm.name || createPlan.isPending} onClick={() => createPlan.mutate()}>
+                Save Plan
+              </Button>
+              <Button variant="outline" onClick={() => setShowPlanForm(false)}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card></SmartCreateSection>
+      )}
+
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Benefit Plans</CardTitle>
+            <CardDescription>Configured plans available for employee enrollment.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {phone&&plansQuery.isError&&!plans?<p role="status">Waiting for benefit plans.</p>:plansLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : plans?.length ? <GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-1" items={(plans) || []} fields={standardRecordGroups((plans) || [])} gridClassName="space-y-3" renderItem={(plan) => (
+              <div key={plan.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div>
+                  <p className="font-medium">{plan.name}</p>
+                  <p className="text-sm text-muted-foreground">{plan.plan_type} {plan.provider_name ? `- ${plan.provider_name}` : ""}</p>
+                </div>
+                <div className="text-sm text-muted-foreground sm:text-right">
+                  <p>Employer INR {money(plan.employer_contribution)}</p>
+                  <p>Employee INR {money(plan.employee_contribution)}</p>
+                </div>
+              </div>
+            )}/> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit plans configured.</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Claims Queue</CardTitle>
+            <CardDescription>Latest claims waiting for payroll/HR review.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {phone&&claimsQuery.isPending&&<p role="status">Loading benefit claims…</p>}
+            {(!phone||!!claims)&&<GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-2" items={(phone?claims||[]:(claims || []).slice(0, 6)) || []} fields={standardRecordGroups((phone?claims||[]:(claims || []).slice(0, 6)) || [])} gridClassName="space-y-3" renderItem={(claim) => (
+              <div key={claim.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">{claim.claim_type}</p>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{claim.status}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Employee #{claim.employee_id} - INR {money(claim.claim_amount)}</p>
+              </div>
+            )}/>}
+            {!claims?.length && (!phone||claimsQuery.isSuccess) && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit claims yet.</p>}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

@@ -6,6 +6,8 @@ by the CommonCore adapter. Raw pack selectors do not select this purpose.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
+from collections import OrderedDict
+from threading import RLock
 
 from fastapi import HTTPException
 from fastapi.routing import APIRoute, iter_route_contexts
@@ -13,6 +15,41 @@ from starlette.routing import Match
 
 MARKER='business_pack_request_binding'
 _ABSENT=object()
+_route_index_lock=RLock()
+_route_indexes=OrderedDict()
+
+
+def _route_signature(router):
+    """Track registrations and removals, including nested included routers."""
+    seen=set()
+    result=[]
+    def visit(current):
+        if id(current) in seen:return
+        seen.add(id(current))
+        result.append((id(current),getattr(current,'_routes_version',0),tuple(id(route) for route in current.routes)))
+        for route in current.routes:
+            child=getattr(route,'original_router',None)
+            if child is not None:visit(child)
+    visit(router)
+    return tuple(result)
+
+
+def _canonical_index(router,signature):
+    # No users, grants, scopes or responses are retained. Preserve every alias;
+    # canonical_route still requires one matching path for the actual server route.
+    key=(id(router),signature)
+    cached=_route_indexes.get(key)
+    if cached is not None and cached[0] is router:
+        _route_indexes.move_to_end(key)
+        return cached[1]
+    result={}
+    for context in iter_route_contexts(router.routes):
+        result.setdefault(id(context.original_route),[]).append(context)
+    index={key:tuple(value) for key,value in result.items()}
+    _route_indexes[key]=(router,index)
+    _route_indexes.move_to_end(key)
+    while len(_route_indexes)>4:_route_indexes.popitem(last=False)
+    return index
 
 
 @dataclass(frozen=True)
@@ -36,7 +73,9 @@ def canonical_route(request):
     route=request.scope.get('route')
     router=getattr(request.scope.get('app'),'router',None)
     if not isinstance(route,APIRoute) or router is None:return None
-    paths={context.path for context in iter_route_contexts(router.routes)
+    with _route_index_lock:
+        contexts=_canonical_index(router,_route_signature(router)).get(id(route),())
+    paths={context.path for context in contexts
         if context.original_route is route and request.method in (context.methods or ())
         and context.matches(request.scope)[0] is Match.FULL}
     return paths.pop() if len(paths)==1 else None

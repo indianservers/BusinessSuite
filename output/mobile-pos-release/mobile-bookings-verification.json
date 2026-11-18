@@ -1,0 +1,56 @@
+{
+  "release": "mobile-bookings-20261117-v2",
+  "automated_viewports": [
+    [
+      320,
+      568
+    ],
+    [
+      360,
+      640
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      430,
+      932
+    ],
+    [
+      767,
+      1024
+    ]
+  ],
+  "automated_checks": [
+    "20 appointment records traversed",
+    "20 calendar records traversed",
+    "Document dimensions match viewport",
+    "No overflowing cards or scroll containers",
+    "Single appointment and single calendar booking have no pager",
+    "Scheduled service details open"
+  ],
+  "live": {
+    "viewport": [
+      390,
+      844
+    ],
+    "appointments_traversed": 20,
+    "calendar_bookings_traversed": 20,
+    "page_scroll_y": 0,
+    "clipped_records": 0,
+    "scroll_containers": 0,
+    "calendar_day_18_november": {
+      "visible_bookings": 4,
+      "pager_visible": false
+    },
+    "all_bookings": {
+      "records": 20,
+      "pages": 4,
+      "pager_visible": true
+    },
+    "viewport_note": "Browser remained pinned at 390x844; the other dimensions were verified by the automated browser regression."
+  },
+  "health": "healthy",
+  "records_changed": false
+}

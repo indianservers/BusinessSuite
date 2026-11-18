@@ -1,0 +1,1142 @@
+[
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/import-data",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/payment-requests",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/birthdays",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/company-directory",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/records",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/record-metadata",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/product-customers",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/customer-follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/greetings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups/directory",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed-after-recheck",
+    "evidence": "Initial3secondwaittimedout;recheckloadedPortfolio acceptance workspace andclosedpanel."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/messages",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/gantt",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/sales-home",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/dashboard",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/potential-clients",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads/classic",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads/workbench",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/contacts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/accounts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/companies",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/vendors",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/deals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/inventory-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/mail-merge-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline-settings",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/pipelines",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/activities",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/meetings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/calls",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/tasks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/calendar-integrations",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/webhooks",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/send-reminders",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/communication-hub",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/emails",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/webforms",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/campaigns",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/consents",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/whatsapp",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/whatsapp/inbox",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/whatsapp/sent",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/whatsapp/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/whatsapp/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/whatsapp/settings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/auto-responses",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/delivery-logs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/communication-timeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/approval-settings",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/my-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/duplicates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/territories",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/files",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/reports",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/automation",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/lead-to-cash",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/forecasting",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/forecasts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/targets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/lost-analysis",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/import-export",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/settings",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/lead-scoring",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/admin",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/import-data",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/tasks-follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed-after-recheck",
+    "evidence": "Recheck loaded workspace selector and closed panel;initial3secondwaitexpired."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/products",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/management",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/workflow-schemes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/transition-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/admin/configuration",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/my-work",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/members",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/people",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/directory",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/my-notices",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/batches",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/assignment-controls",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/reviews",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/admin/workspaces",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/audit-logs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/analytics/projects",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/operator",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/assistant",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/workspaces",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/overview",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/command-center",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/workspace-tools",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/enterprise-engine",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/product-launch",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/dependency-management",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/resource-planning",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "pms/agile-execution",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/risks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/projects",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/projects/new",
+    "control": "Team workspace open/load/close",
+    "result": "passed-after-recheck",
+    "evidence": "New project form finished loading;Teamworkspacebuttonthenopenedworkspace selectorandclosednormally.",
+    "rechecked": true
+  },
+  {
+    "page": "pms/tasks",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/tasks/new",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/work-hub",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/impact",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/ai-planner",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/timeline-plus",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/dependency-timeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/automation-ai",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/software",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/live",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/teams-live",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/backlog",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/issues",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/roadmap",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/workload",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/capacity",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/releases",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/automation",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/goals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/forms",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/messages",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/team-communication",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/teams",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/org-chart",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/trash",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/components",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/workflows",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/security",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/dependencies",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/navigator",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/apps",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/dashboards",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/docs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/notes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/task-types",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/tags",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/plans",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/issue-navigator-pro",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/backlog-grooming",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/sprint-lifecycle",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/blueprints",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/resource-utilization",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/planner",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/gantt",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/sprints",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/files",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/time-tracking",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/timesheets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/reports",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/client-portal",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  },
+  {
+    "page": "pms/settings",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "pms/admin",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed."
+  }
+]

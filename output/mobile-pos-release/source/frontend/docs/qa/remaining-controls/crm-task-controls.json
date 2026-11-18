@@ -1,0 +1,167 @@
+[
+  {
+    "control": "CRM task queue All tasks",
+    "result": "passed",
+    "evidence": "Expected 2 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Open",
+    "result": "passed",
+    "evidence": "Expected 2 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Overdue",
+    "result": "passed",
+    "evidence": "Expected 0 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Due today",
+    "result": "passed",
+    "evidence": "Expected 0 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Next 7 days",
+    "result": "passed",
+    "evidence": "Expected 2 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Unscheduled",
+    "result": "passed",
+    "evidence": "Expected 0 matching generated tasks."
+  },
+  {
+    "control": "CRM task queue Completed",
+    "result": "passed",
+    "evidence": "Expected 0 matching generated tasks."
+  },
+  {
+    "control": "Filter task status / All statuses",
+    "result": "passed",
+    "evidence": "Expected 2 matching tasks."
+  },
+  {
+    "control": "Filter task status / To Do",
+    "result": "passed",
+    "evidence": "Expected 2 matching tasks."
+  },
+  {
+    "control": "Filter task status / In Progress",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task status / Done",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task status / Not Started",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task status / Deferred",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task status / Completed",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task priority / All priorities",
+    "result": "passed",
+    "evidence": "Expected 2 matching tasks."
+  },
+  {
+    "control": "Filter task priority / Low",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task priority / Medium",
+    "result": "passed",
+    "evidence": "Expected 2 matching tasks."
+  },
+  {
+    "control": "Filter task priority / High",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task priority / Urgent",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "Filter task priority / Highest",
+    "result": "passed",
+    "evidence": "Expected 0 matching tasks."
+  },
+  {
+    "control": "CRM task sort Due soonest",
+    "result": "passed-selected-state",
+    "evidence": "Selected due_date:asc; rendered order QA Record 360 local date task → QA call linked follow-up task"
+  },
+  {
+    "control": "CRM task sort Due latest",
+    "result": "passed-selected-state",
+    "evidence": "Selected due_date:desc; rendered order QA call linked follow-up task → QA Record 360 local date task"
+  },
+  {
+    "control": "CRM task sort Newest first",
+    "result": "passed-selected-state",
+    "evidence": "Selected created_at:desc; rendered order QA call linked follow-up task → QA Record 360 local date task"
+  },
+  {
+    "control": "CRM task sort Title A–Z",
+    "result": "passed-selected-state",
+    "evidence": "Selected title:asc; rendered order QA Record 360 local date task → QA call linked follow-up task"
+  },
+  {
+    "control": "CRM task saved view",
+    "result": "passed",
+    "evidence": "Saved QA CRM task view; persisted across reload. Changed High priority returned zero; applying saved view restored two. Removed saved QA view."
+  },
+  {
+    "control": "Canonical task assignee in details",
+    "result": "fixed-and-passed",
+    "evidence": "Task without task_details.assignees now shows canonical owner admin@suiteqa.example.com, matching Assigned to me in list."
+  },
+  {
+    "control": "Edit task save",
+    "result": "passed",
+    "evidence": "Changed QA task title through shared task form and saved successfully."
+  },
+  {
+    "control": "Task edit preserves local due time",
+    "result": "fixed-and-passed",
+    "evidence": "After title-only task edit, fresh Record 360 query still shows original Nov 9 10:45 AM deadline, not noon UTC."
+  },
+  {
+    "control": "Date-only task reschedule retains time",
+    "result": "fixed-and-passed",
+    "evidence": "Moved task from Nov 9 to Nov 11 through date-only form; Record 360 shows Nov 11 10:45 AM, preserving local clock time."
+  },
+  {
+    "control": "Restore QA task date",
+    "result": "passed",
+    "evidence": "Restored original title and Nov 9 date after reschedule test."
+  },
+  {
+    "control": "Individual, reopen and bulk task completion",
+    "result": "passed",
+    "evidence": "Completed task 1; reopened via Task status To Do and saved. Header selected both open tasks; Complete selected reported 2 of 2 completed."
+  },
+  {
+    "control": "Custom task delete cancel/confirm",
+    "result": "passed",
+    "evidence": "Cancelled first deletion, record retained; confirmed deletion of generated QA call follow-up task only; one task remains. Reopened remaining QA task to To Do."
+  },
+  {
+    "control": "Canonical task relationship in details",
+    "result": "fixed-and-passed",
+    "evidence": "Task created through Record 360 has canonical leadId 6 and now displays Lead #6 instead of Not linked when form metadata is absent."
+  }
+]

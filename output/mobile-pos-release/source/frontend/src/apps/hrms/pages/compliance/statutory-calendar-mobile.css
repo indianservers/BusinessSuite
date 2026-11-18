@@ -1,0 +1,20 @@
+@media (max-width: 480px) {
+  .hrms-statutory-page { min-width: 0; }
+  .hrms-statutory-page > div:first-child h1 { font-size: 22px; line-height: 1.25; }
+  .hrms-statutory-page .hrms-statutory-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .hrms-statutory-tabs > button { min-height: 44px; padding: 8px; white-space: normal; }
+  .hrms-statutory-calendar { min-width: 0; }
+  .hrms-statutory-calendar .grid > *, .hrms-statutory-calendar .kf-card { min-width: 0; }
+  .hrms-statutory-calendar :is(p, span) { overflow-wrap: anywhere; }
+  .hrms-statutory-calendar .kf-card > div { padding: 12px; }
+  .hrms-statutory-calendar .hrms-statutory-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hrms-statutory-kpis svg { width: 16px; height: 16px; }
+  .hrms-statutory-kpis p.text-2xl { font-size: 22px; }
+  .hrms-statutory-calendar .hrms-statutory-calendar-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hrms-statutory-calendar-filters > input { grid-column: 1 / -1; }
+  .hrms-statutory-calendar :is(input, select), .smart-create-phone-sheet .hrms-statutory-filed-form input { font-size: 16px; min-height: 44px; max-width: 100%; min-width: 0; }
+  .hrms-statutory-calendar :is(button, summary) { min-height: 44px; }
+  .hrms-statutory-calendar button { white-space: normal; }
+  .smart-create-phone-sheet .hrms-statutory-filed-actions { display: none; }
+  .smart-create-phone-sheet:has(.hrms-statutory-filed-form) .smart-create-header p { display: none; }
+}

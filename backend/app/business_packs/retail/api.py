@@ -49,9 +49,9 @@ def receipt_history(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, l
 
 
 @operations.get('/stock')
-def stock(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
+def stock(after: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=200), low_only: bool = False, db=Depends(get_db), actor=Depends(get_current_user), scope=Depends(pack_selection)):
     from .reports import stock
-    return stock(db, actor, after=after, limit=limit)
+    return stock(db, actor, after=after, limit=limit, low_only=low_only)
 
 
 @operations.get('/reports/daily')

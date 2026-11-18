@@ -1,0 +1,14 @@
+@media (max-width: 480px) {
+ .hrms-bgv-file { min-width: 0; }
+ .hrms-bgv-file .kf-card > div { padding: 12px; }
+ .hrms-bgv-file :is(p, span, h2, h3, a, li) { overflow-wrap: anywhere; }
+ .hrms-bgv-file :is(button, a, summary), .hrms-bgv-file-form button, .hrms-bgv-file-form label:has(input[type="checkbox"]) { min-height: 44px; height: auto; white-space: normal; }
+ .hrms-bgv-file a { display: inline-flex; align-items: center; }
+ .hrms-bgv-file :is(input:not([type="checkbox"]), select, textarea), .hrms-bgv-file-form :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-bgv-file .mobile-disclosure { padding: 0 10px; margin: 0; }
+ .hrms-bgv-file .mobile-disclosure > div { padding-bottom: 10px; }
+ .hrms-bgv-file-form [data-save-action] { display: none; }
+ .hrms-bgv-file-form input[type="checkbox"] { width: 18px; height: 18px; }
+ .hrms-bgv-file-form fieldset > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+ .hrms-bgv-file-form label { min-width: 0; overflow-wrap: anywhere; }
+}

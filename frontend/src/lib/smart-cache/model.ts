@@ -89,5 +89,6 @@ export function refreshInterval(url:string):number {
  const entity=policy(url)?.entity;
  if(entity&&["quote","quotation","sales-order","sale","leave","attendance"].includes(entity))return 15000;
  if(entity&&["task","project","deal","lead"].includes(entity))return 30000;
+ if(entity&&["catalog","customer","employee","department","team","person"].includes(entity))return 120000;
  return CHECK_INTERVAL;
 }

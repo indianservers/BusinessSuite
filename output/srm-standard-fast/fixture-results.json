@@ -1,0 +1,41 @@
+[
+  {
+    "width": 360,
+    "status": "passed",
+    "optional_data_lazy": true,
+    "save": true
+  },
+  {
+    "width": 390,
+    "status": "passed",
+    "optional_data_lazy": true,
+    "save": true
+  },
+  {
+    "width": 430,
+    "status": "passed",
+    "optional_data_lazy": true,
+    "save": true
+  },
+  {
+    "width": 1280,
+    "status": "passed",
+    "optional_data_lazy": true,
+    "save": true
+  },
+  {
+    "customer_grid_mobile": true,
+    "keyboard_selection": true,
+    "status": "passed"
+  },
+  {
+    "fast_creation_mount_preserved": true,
+    "identity_change_clears_dialog": true,
+    "status": "passed"
+  },
+  {
+    "sqlite_persist_reload": true,
+    "scope_clear": true,
+    "status": "passed"
+  }
+]

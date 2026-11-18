@@ -30,14 +30,19 @@ test.describe("SRM invoice draft UI", () => {
     await expect(page.getByRole("main").getByRole("status")).toContainText("Timesheet draft completed");
 
     const composer=page.getByRole("heading",{name:"Invoice Template and Preview",exact:true}).locator("../..");
-    await composer.getByRole("button",{name:"Additional details",exact:true}).click();
+    await page.getByRole("button",{name:"Create invoice",exact:true}).click();
+    await expect(composer).toBeVisible();
+    for (const section of await composer.locator('nav[aria-label="Form sections"] button').all()) {
+      if (await page.getByRole("combobox",{name:"Search shared customer",exact:true}).isVisible()) break;
+      await section.click();
+    }
     await page.getByRole("combobox",{name:"Search shared customer",exact:true}).fill("QA");
     await page.getByRole("option").filter({hasText:"QA customer"}).click();
     await composer.getByRole("button",{name:"More details",exact:true}).click();
     await page.getByLabel("Line description", { exact: true }).fill("Implementation service");
     await page.getByLabel("Unit price", { exact: true }).fill("100");
-    await page.getByRole("button", { name: "Create Invoice", exact: true }).click();
-    await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Manual invoice created" })).toBeVisible();
+    await composer.getByRole("button", { name: "Create Invoice", exact: true }).click();
+    await expect(page.getByRole("region", {name: "Creation result"})).toContainText("invoice created");
 
     await page.route("**/api/v1/srm/invoices/draft-from-sales-order/1", async (route) => {
       await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "Invoice already drafted for this source" }) });

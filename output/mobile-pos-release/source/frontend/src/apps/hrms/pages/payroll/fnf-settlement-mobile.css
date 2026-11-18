@@ -1,0 +1,24 @@
+@media (max-width: 480px) {
+ .hrms-fnf, .hrms-fnf > .grid, .hrms-fnf > .grid > * { min-width: 0; }
+ .hrms-fnf > div:first-child { padding: 12px; }
+ .hrms-fnf h1 { font-size: 20px; line-height: 1.25; margin-top: 4px; }
+ .hrms-fnf .kf-card > div { padding: 12px; }
+ .hrms-fnf :is(p,span,h3,summary) { overflow-wrap: anywhere; }
+ .hrms-fnf :is(button,summary) { min-height: 44px; height: auto; white-space: normal; }
+ .hrms-fnf :is(input,select), .hrms-fnf-create :is(input,select) { min-height: 44px; min-width: 0; max-width: 100%; font-size: 16px; }
+ .hrms-fnf-summary, .hrms-fnf-timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-fnf .mobile-disclosure { padding: 0 10px; margin: 0; }
+ .hrms-fnf .mobile-disclosure > div { padding-bottom: 10px; }
+ .smart-create-phone-sheet .kf-card:has(> .hrms-fnf-create) { border: 0; box-shadow: none; }
+ .smart-create-phone-sheet .kf-card:has(> .hrms-fnf-create) > div { padding: 0; }
+ .smart-create-phone-sheet .kf-card:has(> .hrms-fnf-create) > div:first-child { padding-bottom: 12px; }
+ .smart-create-phone-sheet .kf-card:has(> .hrms-fnf-create) > div:first-child > h3 { display: none; }
+ .hrms-fnf-create [data-save-action] { display: none; }
+ .hrms-fnf-components { display: grid; gap: 8px; }
+ .hrms-fnf-components > details { min-width: 0; padding: 10px; border: 1px solid hsl(var(--border)); border-radius: 10px; }
+ .hrms-fnf-components summary { cursor: pointer; font-weight: 500; }
+ .hrms-fnf-component-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding-top: 8px; }
+ .hrms-fnf-component-fields label { min-width: 0; font-size: 13px; }
+ .hrms-fnf-component-fields :is(input,select) { display: block; width: 100%; margin-top: 4px; }
+ .hrms-fnf-component-fields label:nth-child(n+3) { grid-column: 1 / -1; }
+}

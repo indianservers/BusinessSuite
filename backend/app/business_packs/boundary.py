@@ -241,6 +241,7 @@ def install(db, scope: PackScope | None, *, policy: PackBoundaryPolicy | None = 
                             f'business-profile:company:{company}:branch:{scope.branch_id}']
             return or_(
                 and_(table.c.organization_id == company, table.c.kind == 'form_defaults', table.c.scope_key.in_(default_keys)),
+                and_(table.c.organization_id == company, table.c.kind == 'employee_categories', table.c.scope_key == f'employee-categories:company:{company}'),
                 and_(table.c.organization_id == company, table.c.kind == 'business_profile', table.c.scope_key.in_(profile_keys)),
                 and_(table.c.organization_id == company, table.c.kind == 'settings',
                      table.c.scope_key.in_([f'company:{company}', f'company:{company}:module:srm'])),

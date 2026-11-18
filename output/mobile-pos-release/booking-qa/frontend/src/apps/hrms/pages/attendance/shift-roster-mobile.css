@@ -1,0 +1,18 @@
+@media(max-width:480px){
+ .hrms-shift-roster-page{min-width:0;font-size:14px;}
+ .hrms-shift-roster-page .page-title{font-size:22px;line-height:1.25;}
+ .hrms-shift-roster-page .page-description{font-size:13px;}
+ .hrms-shift-roster-page .grid>*,.hrms-shift-roster-page .kf-card,.hrms-shift-roster-page .flex>div{min-width:0;}
+ .hrms-shift-roster-page>.grid{gap:12px;}
+ .hrms-shift-roster-page>div:first-child>.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .hrms-shift-roster-page .kf-card>div{padding:12px;}
+ .hrms-shift-roster-page :is(button,summary),.hrms-roster-review button{min-height:44px;}
+ .hrms-shift-roster-page :is(input,select){font-size:16px;min-height:44px;max-width:100%;min-width:0;}
+ .hrms-shift-roster-page :is(p,span),.hrms-roster-review :is(p,strong){overflow-wrap:anywhere;}
+ .hrms-shift-roster-page .kf-card>div>button.w-full{padding:10px;}
+ .hrms-roster-review[role="dialog"]{display:flex;flex-direction:column;overflow:hidden;}
+ .hrms-roster-review>div.overflow-x-auto{min-height:0;overflow:auto;flex:1;}
+ .hrms-roster-review>h2,.hrms-roster-review>p,.hrms-roster-review>button{flex-shrink:0;}
+ .hrms-roster-review>.hrms-roster-apply{position:static;background:hsl(var(--primary));color:hsl(var(--primary-foreground));}
+ .hrms-roster-cell-assign{white-space:normal;width:100%;}
+}

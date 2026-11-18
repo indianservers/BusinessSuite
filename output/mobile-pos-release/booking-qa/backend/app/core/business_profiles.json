@@ -1,0 +1,395 @@
+{
+  "terms": {
+    "customer": [
+      "Customer",
+      "Customers"
+    ],
+    "appointment": [
+      "Appointment",
+      "Appointments"
+    ],
+    "provider": [
+      "Service provider",
+      "Service providers"
+    ],
+    "service": [
+      "Service",
+      "Services"
+    ],
+    "resource": [
+      "Resource",
+      "Resources"
+    ],
+    "project": [
+      "Project",
+      "Projects"
+    ],
+    "employee": [
+      "Employee",
+      "Employees"
+    ]
+  },
+  "field_terms": {
+    "customer": "customer",
+    "customer_id": "customer",
+    "customerId": "customer",
+    "customer_name": "customer",
+    "customerName": "customer",
+    "employee": "employee",
+    "employee_id": "employee",
+    "employeeId": "employee",
+    "employee_name": "employee",
+    "employeeName": "employee",
+    "project": "project",
+    "project_id": "project",
+    "projectId": "project",
+    "project_name": "project",
+    "projectName": "project",
+    "service": "service",
+    "service_id": "service",
+    "serviceId": "service",
+    "service_name": "service",
+    "serviceName": "service",
+    "provider": "provider",
+    "provider_id": "provider",
+    "provider_name": "provider",
+    "resource": "resource",
+    "resource_id": "resource",
+    "resource_name": "resource",
+    "appointment": "appointment",
+    "appointment_id": "appointment",
+    "appointment_date": "appointment",
+    "appointment_time": "appointment"
+  },
+  "profiles": [
+    {
+      "id": "general",
+      "name": "General business",
+      "terms": {}
+    },
+    {
+      "id": "hospital",
+      "name": "Hospital / Clinic",
+      "terms": {
+        "customer": [
+          "Patient",
+          "Patients"
+        ],
+        "provider": [
+          "Doctor",
+          "Doctors"
+        ],
+        "appointment": [
+          "Consultation",
+          "Consultations"
+        ],
+        "service": [
+          "Consultation type",
+          "Consultation types"
+        ],
+        "resource": [
+          "Consultation room",
+          "Consultation rooms"
+        ]
+      }
+    },
+    {
+      "id": "salon",
+      "name": "Salon / Spa",
+      "terms": {
+        "provider": [
+          "Stylist",
+          "Stylists"
+        ],
+        "resource": [
+          "Chair / Room",
+          "Chairs / Rooms"
+        ]
+      }
+    },
+    {
+      "id": "construction",
+      "name": "Construction",
+      "terms": {
+        "customer": [
+          "Client",
+          "Clients"
+        ],
+        "provider": [
+          "Site representative",
+          "Site representatives"
+        ],
+        "appointment": [
+          "Site visit",
+          "Site visits"
+        ],
+        "resource": [
+          "Site resource",
+          "Site resources"
+        ]
+      }
+    },
+    {
+      "id": "accounting_firm",
+      "name": "Accounts Company",
+      "terms": {
+        "customer": ["Client", "Clients"],
+        "provider": ["Accountant", "Accountants"],
+        "appointment": ["Consultation", "Consultations"],
+        "project": ["Engagement", "Engagements"]
+      }
+    },
+    {
+      "id": "consulting",
+      "name": "Consulting",
+      "terms": {
+        "customer": [
+          "Client",
+          "Clients"
+        ],
+        "provider": [
+          "Consultant",
+          "Consultants"
+        ],
+        "appointment": [
+          "Consultation",
+          "Consultations"
+        ],
+        "resource": [
+          "Meeting room",
+          "Meeting rooms"
+        ]
+      }
+    },
+    {
+      "id": "repairs",
+      "name": "Repairs / Services",
+      "terms": {
+        "provider": [
+          "Technician",
+          "Technicians"
+        ],
+        "appointment": [
+          "Service visit",
+          "Service visits"
+        ]
+      }
+    },
+    {
+      "id": "retail",
+      "name": "Retail",
+      "terms": {}
+    },
+    {
+      "id": "education",
+      "name": "Education",
+      "terms": {
+        "customer": [
+          "Learner",
+          "Learners"
+        ],
+        "provider": [
+          "Instructor",
+          "Instructors"
+        ],
+        "appointment": [
+          "Session",
+          "Sessions"
+        ],
+        "resource": [
+          "Classroom",
+          "Classrooms"
+        ]
+      }
+    },
+    {
+      "id": "pharma",
+      "name": "Pharma / Pharmacy",
+      "terms": {
+        "provider": [
+          "Pharmacist",
+          "Pharmacists"
+        ],
+        "resource": [
+          "Counter",
+          "Counters"
+        ]
+      }
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurant / Cafe",
+      "terms": {
+        "customer": [
+          "Guest",
+          "Guests"
+        ],
+        "provider": [
+          "Host",
+          "Hosts"
+        ],
+        "appointment": [
+          "Reservation",
+          "Reservations"
+        ],
+        "service": [
+          "Reservation type",
+          "Reservation types"
+        ],
+        "resource": [
+          "Table",
+          "Tables"
+        ]
+      }
+    },
+    {
+      "id": "manufacturing",
+      "name": "Manufacturing",
+      "terms": {
+        "customer": [
+          "Client",
+          "Clients"
+        ],
+        "provider": [
+          "Coordinator",
+          "Coordinators"
+        ],
+        "appointment": [
+          "Factory visit",
+          "Factory visits"
+        ],
+        "resource": [
+          "Workstation",
+          "Workstations"
+        ]
+      }
+    },
+    {
+      "id": "logistics",
+      "name": "Logistics",
+      "terms": {
+        "provider": [
+          "Dispatcher",
+          "Dispatchers"
+        ],
+        "appointment": [
+          "Pickup booking",
+          "Pickup bookings"
+        ],
+        "resource": [
+          "Vehicle",
+          "Vehicles"
+        ]
+      }
+    },
+    {
+      "id": "real_estate",
+      "name": "Real Estate",
+      "terms": {
+        "customer": [
+          "Client",
+          "Clients"
+        ],
+        "provider": [
+          "Property advisor",
+          "Property advisors"
+        ],
+        "appointment": [
+          "Property viewing",
+          "Property viewings"
+        ],
+        "service": [
+          "Viewing type",
+          "Viewing types"
+        ],
+        "resource": [
+          "Property",
+          "Properties"
+        ]
+      }
+    },
+    {
+      "id": "hospitality",
+      "name": "Hotel / Hospitality",
+      "terms": {
+        "customer": [
+          "Guest",
+          "Guests"
+        ],
+        "provider": [
+          "Concierge",
+          "Concierges"
+        ],
+        "appointment": [
+          "Guest booking",
+          "Guest bookings"
+        ],
+        "service": [
+          "Guest service",
+          "Guest services"
+        ],
+        "resource": [
+          "Room",
+          "Rooms"
+        ]
+      }
+    },
+    {
+      "id": "fitness",
+      "name": "Fitness / Wellness",
+      "terms": {
+        "customer": [
+          "Member",
+          "Members"
+        ],
+        "provider": [
+          "Trainer",
+          "Trainers"
+        ],
+        "appointment": [
+          "Training session",
+          "Training sessions"
+        ],
+        "service": [
+          "Training type",
+          "Training types"
+        ],
+        "resource": [
+          "Studio",
+          "Studios"
+        ]
+      }
+    },
+    {
+      "id": "legal",
+      "name": "Legal Services",
+      "terms": {
+        "customer": [
+          "Client",
+          "Clients"
+        ],
+        "provider": [
+          "Lawyer",
+          "Lawyers"
+        ],
+        "appointment": [
+          "Consultation",
+          "Consultations"
+        ],
+        "service": [
+          "Legal service",
+          "Legal services"
+        ],
+        "resource": [
+          "Meeting room",
+          "Meeting rooms"
+        ]
+      }
+    },
+    {
+      "id": "custom",
+      "name": "Custom",
+      "terms": {}
+    }
+  ]
+}

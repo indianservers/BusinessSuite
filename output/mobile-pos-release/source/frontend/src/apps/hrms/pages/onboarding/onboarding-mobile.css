@@ -1,0 +1,38 @@
+@media (max-width:480px) {
+ .hrms-onboarding { min-width: 0; }
+ .hrms-onboarding.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-onboarding .hrms-onboarding-header { padding: 12px; flex-direction: row; align-items: flex-start; gap: 8px; }
+ .hrms-onboarding-header > div { min-width: 0; }
+ .hrms-onboarding-header p:first-child { display: none; }
+ .hrms-onboarding-header h1 { margin-top: 0; font-size: 20px; line-height: 1.25; }
+ .hrms-onboarding-header > button { width: 44px; min-width: 44px; padding: 10px; }
+ .hrms-onboarding-header > button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+ .hrms-onboarding :is(button,a,summary), .hrms-onboarding-start button, .hrms-onboarding-template-form button { min-height: 44px; height: auto; }
+ .hrms-onboarding button { white-space: normal; }
+ .hrms-onboarding :is(input,select), .hrms-onboarding-start :is(input,select), .hrms-onboarding-template-form input { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-onboarding-sections { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-onboarding .hrms-onboarding-layout { grid-template-columns: minmax(0,1fr); gap: 12px; }
+ .hrms-onboarding-layout > * { min-width: 0; }
+ .hrms-onboarding-records > div, .hrms-onboarding-layout > div > .kf-card > div { padding: 12px; }
+ .hrms-onboarding-start { border: 0; box-shadow: none; }
+ .hrms-onboarding-start > div { padding: 12px; }
+ .hrms-onboarding-start > div:first-child { display: none; }
+ .hrms-onboarding-start [data-save-action], .hrms-onboarding-template-form [data-save-action] { display: none; }
+ .hrms-onboarding-template-form { flex-direction: column; }
+ .hrms-onboarding :is(p,summary,strong), .hrms-onboarding-start p { overflow-wrap: anywhere; }
+ .hrms-onboarding .suite-record-card-shell > :is(.hrms-onboarding-template,.hrms-onboarding-record) { padding: 12px 12px 62px; }
+ .hrms-onboarding .suite-record-card-shell > .suite-record-star { top: auto; bottom: 6px; right: 6px; }
+ .hrms-onboarding .suite-record-card-shell > .suite-record-card-tools { top: auto; bottom: 6px; right: 56px; }
+ .hrms-onboarding .suite-record-star { width: 44px; min-width: 44px; height: 44px; }
+ .hrms-onboarding-record > div:first-child { min-width: 0; }
+ .hrms-onboarding-record > div:first-child > div:first-child { flex-shrink: 0; }
+ .hrms-onboarding-template { min-width: 0; }
+ .hrms-onboarding-template > summary { display: list-item; list-style-position: outside; margin-left: 16px; }
+ .hrms-onboarding-template .move-lane > h3 { display: none; }
+ body:has(.hrms-onboarding-start) .suite-choice-menu input { min-height: 44px; font-size: 16px; }
+ body:has(.hrms-onboarding-start) .suite-choice-menu [role=option] { min-height: 44px; display: flex; align-items: center; }
+ .hrms-onboarding-template .move-columns { max-width: 100%; }
+ .hrms-onboarding-template .move-lane { min-width: 200px; }
+ .hrms-onboarding-template .move-handle { width: 44px; min-width: 44px; }
+ .hrms-onboarding-template .move-card-actions button { min-width: 44px; }
+}

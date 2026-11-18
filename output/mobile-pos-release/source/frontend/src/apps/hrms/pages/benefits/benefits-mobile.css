@@ -1,0 +1,22 @@
+@media(max-width:480px){
+ .hrms-benefits-page{min-width:0;font-size:14px;}
+ .hrms-benefits-page>div:first-child{padding:12px;gap:10px;}
+ .hrms-benefits-page .page-title{font-size:22px;line-height:1.25;}
+ .hrms-benefits-page .page-description{font-size:13px;}
+ .hrms-benefits-page .grid>*,.hrms-benefits-page .kf-card{min-width:0;}
+ .hrms-benefits-page .hrms-benefits-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+ .hrms-benefits-page .kf-card>div{padding:12px;}
+ .hrms-benefits-kpis svg{margin-bottom:4px;width:16px;height:16px;}
+ .hrms-benefits-kpis p.text-2xl{font-size:20px;}
+ .hrms-benefits-page :is(p,span){overflow-wrap:anywhere;}
+ .hrms-benefits-page :is(button,summary){min-height:44px;}
+ .smart-create-phone-sheet:has(.hrms-benefit-plan-form) :is(input,select){font-size:16px;min-height:44px;max-width:100%;min-width:0;}
+ .smart-create-phone-sheet:has(.hrms-benefit-plan-form) .hrms-benefit-plan-form{border:0;box-shadow:none;}
+ .smart-create-phone-sheet:has(.hrms-benefit-plan-form) .hrms-benefit-plan-form>div:first-child{display:none;}
+ .smart-create-phone-sheet:has(.hrms-benefit-plan-form) .hrms-benefit-plan-form>div:last-child{padding:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+ .hrms-benefit-plan-form div:has(>input[aria-label="Plan provider"]),.hrms-benefit-plan-form div:has(>input[aria-label="Payroll component"]){grid-column:1/-1;}
+ .hrms-benefit-plan-form>div:last-child>div{min-width:0;}
+ .hrms-benefit-plan-form label{display:block;width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.3;}
+ .hrms-benefit-guidance{grid-column:1/-1;}
+ .smart-create-phone-sheet:has(.hrms-benefit-plan-form) .hrms-benefit-plan-form>div:last-child>div:last-child{display:none;}
+}

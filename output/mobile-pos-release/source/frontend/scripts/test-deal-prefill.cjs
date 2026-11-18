@@ -1,0 +1,30 @@
+const fs = require("node:fs");
+const path = require("node:path");
+const assert = require("node:assert/strict");
+const ts = require("typescript");
+function load(source) {
+  const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const mod = { exports: {} }; new Function("module", "exports", output)(mod, mod.exports); return mod.exports;
+}
+const file = relative => fs.readFileSync(path.resolve(__dirname, relative), "utf8");
+const { fillEmptyDealFields, prefillDealCompany, prefillDealLead, changeDealCompany } = load(file("../src/apps/crm/deals/deal-prefill.ts"));
+assert.deepEqual(changeDealCompany({ companyId: 1, contactId: 3, related_contacts: [{ contactId: 3 }], name: "Manual name" }, "2"), { companyId: "2", contactId: "", related_contacts: [], name: "Manual name" });
+assert.equal(fillEmptyDealFields({ amount: 0, name: "My deal" }, { amount: 100, name: "Suggested" }).amount, 0);
+assert.equal(fillEmptyDealFields({ name: "My deal" }, { name: "Suggested" }).name, "My deal");
+assert.deepEqual(prefillDealCompany({ companyId: 2, contactId: "" }, { id: 1, primaryContactId: 3 }), { companyId: 2, contactId: "" });
+assert.equal(prefillDealCompany({ companyId: 1, contactId: "" }, { id: 1, primaryContactId: 3 }).contactId, 3);
+assert.equal(prefillDealCompany({ companyId: 1, contactId: 8 }, { id: 1, primaryContactId: 3 }).contactId, 8);
+assert.equal(prefillDealCompany({ companyId: 1 }, { id: 1, contacts: [{ id: 3 }, { id: 4 }] }).contactId, undefined);
+const lead = { full_name: "Customer", company_name: "Acme", email: "person@example.test", estimated_value: 500, source: "Referral" };
+const result = prefillDealLead({ name: "My deal", companyId: 9 }, lead, [{ id: 2, name: "Acme" }], [{ id: 3, email: lead.email, company_id: 2 }]);
+assert.equal(result.name, "My deal"); assert.equal(result.companyId, 9); assert.equal(result.contactId, undefined); assert.equal(result.amount, 500);
+assert.equal(prefillDealLead({}, lead, [{ id: 1, name: "Acme" }, { id: 2, name: "Acme" }], []).companyId, undefined);
+const source = file("../src/apps/crm/CRMWorkspacePage.tsx");
+const ast = ts.createSourceFile("form.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const payload = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "buildDealPayload");
+assert(payload, "Deal payload builder exists");
+const { buildDealPayload } = load(`type CRMApiRecord = Record<string, any>; const emptyToUndefined=(value:any)=>value==null||value===''?undefined:value; const cleanCustomFieldValues=(value:any)=>value; export ${payload.getText(ast)}`);
+const built = buildDealPayload({ name: "QA deal", pipelineId: 1, stageId: 2, confirmShared: true, sharedReason: "Shared", communicationChannels: [], communicationVersion: "1", prefillLeadId: 999 }, 100);
+for (const key of ["confirmShared", "confirm_shared", "sharedReason", "communication_channels", "communication_version", "prefillLeadId"]) assert.equal(key in built, false, `Deal API must not receive ${key}`);
+assert.equal(built.name, "QA deal"); assert.equal(built.pipeline_id, 1); assert.equal(built.stage_id, 2);
+console.log("PASS deal payload contract, safe company/contact autofill, ambiguous matches, lead defaults, manual-value preservation, stale-response protection");

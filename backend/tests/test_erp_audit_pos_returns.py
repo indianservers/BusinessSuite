@@ -29,6 +29,29 @@ def test_explicit_unknown_sale_line_cannot_fall_back_to_product(client, db, pos_
     assert db.query(SRMInventoryBalance).filter_by(product_id=product["product_id"]).one().quantity == before
 
 
+@pytest.mark.parametrize('condition', ['damaged', 'not_returned'])
+def test_non_sellable_refund_does_not_restock(client, db, pos_sale, condition):
+    headers, product, sale = pos_sale
+    before = db.query(SRMInventoryBalance).filter_by(product_id=product['product_id']).one().quantity
+    movements = db.query(SRMInventoryMovement).count()
+    payload = {'sales_order_id': sale['id'], 'lines': [{'sales_order_line_id': sale['lines'][0]['id'], 'quantity': 1, 'condition': condition, 'restock': False}]}
+    response = client.post('/api/v1/srm/pos/returns', headers=headers, json=payload)
+    assert response.status_code == 201, response.text
+    assert response.json()['refund_amount'] == 10
+    assert response.json()['lines'][0]['condition'] == condition
+    assert db.query(SRMInventoryBalance).filter_by(product_id=product['product_id']).one().quantity == before
+    assert db.query(SRMInventoryMovement).count() == movements
+
+
+def test_damaged_return_cannot_increase_sellable_stock(client, db, pos_sale):
+    headers, product, sale = pos_sale
+    before = db.query(SRMInventoryBalance).filter_by(product_id=product['product_id']).one().quantity
+    response = client.post('/api/v1/srm/pos/returns', headers=headers, json={'sales_order_id': sale['id'], 'lines': [{'sales_order_line_id': sale['lines'][0]['id'], 'quantity': 1, 'condition': 'damaged', 'restock': True}]})
+    assert response.status_code == 422, response.text
+    assert db.query(SRMPOSReturn).count() == 0
+    assert db.query(SRMInventoryBalance).filter_by(product_id=product['product_id']).one().quantity == before
+
+
 def test_unambiguous_product_only_return_still_uses_original_value(client, db, pos_sale):
     headers, product, sale = pos_sale
     response = client.post("/api/v1/srm/pos/returns", headers=headers, json={"sales_order_id": sale["id"], "lines": [{"product_id": product["product_id"], "quantity": 1}]})

@@ -1,0 +1,82 @@
+[
+  {
+    "control": "Record 360 history activity",
+    "result": "passed",
+    "evidence": "Expected 9 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history note",
+    "result": "passed",
+    "evidence": "Expected 1 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history file",
+    "result": "passed",
+    "evidence": "Expected 0 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history history",
+    "result": "passed",
+    "evidence": "Expected 7 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history followup",
+    "result": "passed",
+    "evidence": "Expected 0 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history commercial",
+    "result": "passed",
+    "evidence": "Expected 0 events for QA lead 6."
+  },
+  {
+    "control": "Record 360 history email",
+    "result": "passed",
+    "evidence": "Expected empty history for QA lead 6."
+  },
+  {
+    "control": "Record 360 history whatsapp",
+    "result": "passed",
+    "evidence": "Expected empty history for QA lead 6."
+  },
+  {
+    "control": "Record 360 history call",
+    "result": "passed",
+    "evidence": "Expected empty history for QA lead 6."
+  },
+  {
+    "control": "Record 360 history meeting",
+    "result": "passed",
+    "evidence": "Expected empty history for QA lead 6."
+  },
+  {
+    "control": "Record 360 all events and expand all",
+    "result": "passed",
+    "evidence": "17 events restored; Expand all opens 17 and unchecking closes all."
+  },
+  {
+    "control": "Record 360 activity entry buttons",
+    "result": "passed",
+    "evidence": "Activity→Add Task, Notes→Add Note, Meeting→Log Meeting, Call→Add Call each opened correct nested dialog and Cancel dismissed without saving."
+  },
+  {
+    "control": "Record template missing-field completion",
+    "result": "passed",
+    "evidence": "Company unresolved initially disables export; filled QA Example Company and export enabled; iframe rendered QA lead name."
+  },
+  {
+    "control": "Task local dates and native work summary",
+    "result": "fixed-and-passed",
+    "evidence": "Created QA task from labeled datetime-local fields; after server restart and sign-in, Focus shows exactly one CRM task due Nov 9 10:45 AM. Timeline copy preserved in history, excluded from actionable work."
+  },
+  {
+    "control": "Meeting and call local date saves",
+    "result": "passed",
+    "evidence": "Created local QA meeting Nov 10 14:00–14:30 and logged QA call Nov 7 21:15 with synthetic US phone. Meeting appears once in native work at 14:00; no calls dialed or invitations sent."
+  },
+  {
+    "control": "Saved call time in calls workspace",
+    "result": "passed",
+    "evidence": "Calls workspace shows QA Record 360 call logged at Nov 7 9:15 PM. Record 360 history timestamp represents when the call log was created, rather than the call time."
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "initial_health_check": "Timed out after 15 seconds",
+  "checks": [
+    {
+      "url": "https://besterp.app/release.json",
+      "status": 200,
+      "elapsed_seconds": 0.469,
+      "release": "stock-report-preview-20261118-v3"
+    },
+    {
+      "url": "https://besterp.app/health",
+      "status": 200,
+      "elapsed_seconds": 0.422
+    }
+  ]
+}

@@ -1,0 +1,3785 @@
+{
+  "version": 3,
+  "examples": [
+    {
+      "text": "set these tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "set selected tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "make these tasks low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "mark selected tasks as low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "change these tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "update selected tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "please set these tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "set tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "mark tasks low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "change tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "make selected tasks low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "set all selected tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "please mark these tasks as low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "update tasks to low priority",
+      "intent": "priority_low"
+    },
+    {
+      "text": "set priority to low",
+      "intent": "priority_low"
+    },
+    {
+      "text": "change priority to low",
+      "intent": "priority_low"
+    },
+    {
+      "text": "make priority low",
+      "intent": "priority_low"
+    },
+    {
+      "text": "set these tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "set selected tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "make these tasks medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "mark selected tasks as medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "change these tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "update selected tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "please set these tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "set tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "mark tasks medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "change tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "make selected tasks medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "set all selected tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "please mark these tasks as medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "update tasks to medium priority",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "set priority to medium",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "change priority to medium",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "make priority medium",
+      "intent": "priority_medium"
+    },
+    {
+      "text": "set these tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "set selected tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "make these tasks high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "mark selected tasks as high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "change these tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "update selected tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "please set these tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "set tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "mark tasks high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "change tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "make selected tasks high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "set all selected tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "please mark these tasks as high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "update tasks to high priority",
+      "intent": "priority_high"
+    },
+    {
+      "text": "set priority to high",
+      "intent": "priority_high"
+    },
+    {
+      "text": "change priority to high",
+      "intent": "priority_high"
+    },
+    {
+      "text": "make priority high",
+      "intent": "priority_high"
+    },
+    {
+      "text": "set these tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "set selected tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "make these tasks urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "mark selected tasks as urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "change these tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "update selected tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "please set these tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "set tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "mark tasks urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "change tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "make selected tasks urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "set all selected tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "please mark these tasks as urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "update tasks to urgent priority",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "set priority to urgent",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "change priority to urgent",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "make priority urgent",
+      "intent": "priority_urgent"
+    },
+    {
+      "text": "set these tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "set selected tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "make these tasks to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "mark selected tasks as to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "change these tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "update selected tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "please set these tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "set tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "mark tasks to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "change tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "make selected tasks to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "set all selected tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "please mark these tasks as to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "update tasks to to do",
+      "intent": "status_todo"
+    },
+    {
+      "text": "set these tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "set selected tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "make these tasks in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "mark selected tasks as in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "change these tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "update selected tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "please set these tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "set tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "mark tasks in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "change tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "make selected tasks in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "set all selected tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "please mark these tasks as in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "update tasks to in progress",
+      "intent": "status_progress"
+    },
+    {
+      "text": "set these tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "set selected tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "make these tasks in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "mark selected tasks as in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "change these tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "update selected tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "please set these tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "set tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "mark tasks in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "change tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "make selected tasks in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "set all selected tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "please mark these tasks as in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "update tasks to in review",
+      "intent": "status_review"
+    },
+    {
+      "text": "set these tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "set selected tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "make these tasks blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "mark selected tasks as blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "change these tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "update selected tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "please set these tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "set tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "mark tasks blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "change tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "make selected tasks blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "set all selected tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "please mark these tasks as blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "update tasks to blocked",
+      "intent": "status_blocked"
+    },
+    {
+      "text": "set these tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "set selected tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "make these tasks done",
+      "intent": "status_done"
+    },
+    {
+      "text": "mark selected tasks as done",
+      "intent": "status_done"
+    },
+    {
+      "text": "change these tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "update selected tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "please set these tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "set tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "mark tasks done",
+      "intent": "status_done"
+    },
+    {
+      "text": "change tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "make selected tasks done",
+      "intent": "status_done"
+    },
+    {
+      "text": "set all selected tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "please mark these tasks as done",
+      "intent": "status_done"
+    },
+    {
+      "text": "update tasks to done",
+      "intent": "status_done"
+    },
+    {
+      "text": "unassign these tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "remove assignees from selected tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "clear assignees",
+      "intent": "unassign"
+    },
+    {
+      "text": "unassign all selected tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "remove task assignees",
+      "intent": "unassign"
+    },
+    {
+      "text": "clear all assignees",
+      "intent": "unassign"
+    },
+    {
+      "text": "unassign selected tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "remove the assignees",
+      "intent": "unassign"
+    },
+    {
+      "text": "please unassign tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "clear task assignments",
+      "intent": "unassign"
+    },
+    {
+      "text": "unassign tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "clear assignees from these tasks",
+      "intent": "unassign"
+    },
+    {
+      "text": "add checklist item \"QA review\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "add a checklist item \"test changes\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "add checklist \"verify requirements\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "create checklist item \"check links\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "append checklist item \"review\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "please add checklist item \"test\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "add checklist item \"QA\" to selected tasks",
+      "intent": "checklist"
+    },
+    {
+      "text": "add checklist \"release checks\" to these tasks",
+      "intent": "checklist"
+    },
+    {
+      "text": "create a checklist item \"sign off\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "append checklist \"verify\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "add checklist item \"check dates\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "create checklist \"smoke tests\"",
+      "intent": "checklist"
+    },
+    {
+      "text": "move tasks to sprint 4",
+      "intent": "sprint"
+    },
+    {
+      "text": "move selected tasks to sprint 5",
+      "intent": "sprint"
+    },
+    {
+      "text": "move to sprint 12",
+      "intent": "sprint"
+    },
+    {
+      "text": "set sprint to 4",
+      "intent": "sprint"
+    },
+    {
+      "text": "put these tasks in sprint 8",
+      "intent": "sprint"
+    },
+    {
+      "text": "move these tasks to sprint 2",
+      "intent": "sprint"
+    },
+    {
+      "text": "change sprint to 3",
+      "intent": "sprint"
+    },
+    {
+      "text": "move all selected tasks to sprint 20",
+      "intent": "sprint"
+    },
+    {
+      "text": "set selected tasks sprint to 1",
+      "intent": "sprint"
+    },
+    {
+      "text": "put tasks in sprint 9",
+      "intent": "sprint"
+    },
+    {
+      "text": "move tasks into sprint 2",
+      "intent": "sprint"
+    },
+    {
+      "text": "set tasks sprint to 8",
+      "intent": "sprint"
+    },
+    {
+      "text": "set due date to 2026-11-05",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to 2026-11-01",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks from 2026-11-01 to 2026-11-05",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date to 2026-12-01",
+      "intent": "schedule"
+    },
+    {
+      "text": "change due date to 2026-11-08",
+      "intent": "schedule"
+    },
+    {
+      "text": "change start date to 2026-11-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "set selected tasks due date to 2026-11-01",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule from 2026-11-01 to 2026-11-09",
+      "intent": "schedule"
+    },
+    {
+      "text": "set these tasks start date to 2026-11-01",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks start date to 2026-11-03",
+      "intent": "schedule"
+    },
+    {
+      "text": "change tasks due date to 2026-11-09",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule selected tasks from 2026-11-01 to 2026-11-04",
+      "intent": "schedule"
+    },
+    {
+      "text": "do not mark tasks done",
+      "intent": "fallback"
+    },
+    {
+      "text": "never change priority",
+      "intent": "fallback"
+    },
+    {
+      "text": "set priority high except the blocked tasks",
+      "intent": "fallback"
+    },
+    {
+      "text": "assign tasks to someone suitable",
+      "intent": "fallback"
+    },
+    {
+      "text": "plan a new website launch",
+      "intent": "fallback"
+    },
+    {
+      "text": "summarize project progress",
+      "intent": "fallback"
+    },
+    {
+      "text": "send the client an update",
+      "intent": "fallback"
+    },
+    {
+      "text": "create a project from this brief",
+      "intent": "fallback"
+    },
+    {
+      "text": "move tasks after leave ends",
+      "intent": "fallback"
+    },
+    {
+      "text": "optimize workloads",
+      "intent": "fallback"
+    },
+    {
+      "text": "set dates next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "make urgent tasks high priority",
+      "intent": "fallback"
+    },
+    {
+      "text": "if tasks are overdue mark blocked",
+      "intent": "fallback"
+    },
+    {
+      "text": "archive this project",
+      "intent": "fallback"
+    },
+    {
+      "text": "delete all tasks",
+      "intent": "fallback"
+    },
+    {
+      "text": "schedule these tasks for tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "assign Alice to these tasks",
+      "intent": "assign"
+    },
+    {
+      "text": "add a dependency between two tasks",
+      "intent": "fallback"
+    },
+    {
+      "text": "remove dependency 10",
+      "intent": "remove_dependency"
+    },
+    {
+      "text": "undo the last action",
+      "intent": "fallback"
+    },
+    {
+      "text": "keep these tasks unchanged",
+      "intent": "fallback"
+    },
+    {
+      "text": "dont set priority high",
+      "intent": "fallback"
+    },
+    {
+      "text": "set priority high only for bugs",
+      "intent": "fallback"
+    },
+    {
+      "text": "set status done unless blocked",
+      "intent": "fallback"
+    },
+    {
+      "text": "make task OP-4 urgent",
+      "intent": "fallback"
+    },
+    {
+      "text": "mark half the selected tasks done",
+      "intent": "fallback"
+    },
+    {
+      "text": "explain why we are late",
+      "intent": "fallback"
+    },
+    {
+      "text": "show capacity next month",
+      "intent": "fallback"
+    },
+    {
+      "text": "cancel all approvals",
+      "intent": "fallback"
+    },
+    {
+      "text": "approve and execute now",
+      "intent": "fallback"
+    },
+    {
+      "text": "set high priority or urgent",
+      "intent": "fallback"
+    },
+    {
+      "text": "change tasks from done to blocked",
+      "intent": "fallback"
+    },
+    {
+      "text": "make some tasks done",
+      "intent": "fallback"
+    },
+    {
+      "text": "move tasks to the next sprint",
+      "intent": "fallback"
+    },
+    {
+      "text": "set due date next Friday",
+      "intent": "schedule"
+    },
+    {
+      "text": "complete the checklist items",
+      "intent": "fallback"
+    },
+    {
+      "text": "make priority high and email everyone",
+      "intent": "fallback"
+    },
+    {
+      "text": "a random sentence with high and done",
+      "intent": "fallback"
+    },
+    {
+      "text": "set priority high but leave status unchanged",
+      "intent": "fallback"
+    },
+    {
+      "text": "mark everything done without approval",
+      "intent": "fallback"
+    },
+    {
+      "text": "create task \"Fix login\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Fix login\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Fix login\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Fix login\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Fix login\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Fix login\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Fix login\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Fix login\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Fix login\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Fix login\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Fix login\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Fix login\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Fix login\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Fix login\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Fix login\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create task \"Check links\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Check links\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Check links\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Check links\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Check links\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Check links\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Check links\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Check links\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Check links\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Check links\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Check links\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Check links\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Check links\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Check links\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Check links\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create task \"Review release\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Review release\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Review release\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Review release\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Review release\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Review release\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Review release\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Review release\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Review release\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Review release\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create task \"Migrate data\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Migrate data\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Migrate data\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Migrate data\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Migrate data\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migrate data\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migrate data\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migrate data\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migrate data\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migrate data\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Migrate data\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Migrate data\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Migrate data\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Migrate data\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Migrate data\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create task \"Design page\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Design page\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Design page\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Design page\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Design page\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Design page\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Design page\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Design page\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Design page\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Design page\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Design page\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Design page\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Design page\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Design page\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Design page\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create task \"Write API\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Write API\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Write API\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Write API\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Write API\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Write API\" key WEB-21",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Write API\" key APP-14 due tomorrow",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Write API\" under WEB-1 key WEB-23",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Write API\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Write API\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask \"Write API\" key WEB-21",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Write API\" key APP-14 due tomorrow",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Write API\" under WEB-1 key WEB-23",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Write API\" key QA-7 assigned to \"alice@example.com\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Write API\" key WEB-24 assigned to \"Bob\" due next Friday",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create project",
+      "intent": "create_project"
+    },
+    {
+      "text": "create a project",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Website launch\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create a project \"Mobile app\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Client delivery\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Website launch\" key WEB",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Migration\" key MIG",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Launch\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Launch\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Migration\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Migration\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"API work\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"API work\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Release\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Release\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Testing\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Testing\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create project \"Docs\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "new project \"Docs\"",
+      "intent": "create_project"
+    },
+    {
+      "text": "create task",
+      "intent": "create_task"
+    },
+    {
+      "text": "create a task",
+      "intent": "create_task"
+    },
+    {
+      "text": "new task",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Fix login\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Review release\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Launch\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Launch\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Migration\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Migration\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"API work\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"API work\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Release\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Release\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Testing\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Testing\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create task \"Docs\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "add task \"Docs\"",
+      "intent": "create_task"
+    },
+    {
+      "text": "create subtask",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create a subtask",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "new subtask",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "add subtask",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Test login\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Test login\" under WEB-1",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Test login\" under WEB-1 key WEB-22",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Launch\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Migration\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"API work\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Release\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Testing\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "create subtask \"Docs\"",
+      "intent": "create_subtask"
+    },
+    {
+      "text": "assign tasks",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"alice@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"Alice\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"Bob\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign to \"carol@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"Alice\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to alice@example.com",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to bob@example.com",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"Alice\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"Alice\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"Bob\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"Bob\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"Bob\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"Carol\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"Carol\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"Carol\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"Carol\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"Team lead\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"Team lead\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"Team lead\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"Team lead\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"dev@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"dev@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"dev@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"dev@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign tasks to \"qa@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign selected tasks to \"qa@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "assign these tasks to \"qa@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "set assignee to \"qa@example.com\"",
+      "intent": "assign"
+    },
+    {
+      "text": "add dependency",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "add a dependency",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "add dependency from WEB-1 to WEB-2",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "add a dependency from APP-1 to APP-2",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "make WEB-2 depend on WEB-1",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "make APP-2 depend on APP-1",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "WEB-1 blocks WEB-2",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "APP-1 blocks APP-2",
+      "intent": "add_dependency"
+    },
+    {
+      "text": "remove dependency",
+      "intent": "remove_dependency"
+    },
+    {
+      "text": "delete dependency 12",
+      "intent": "remove_dependency"
+    },
+    {
+      "text": "remove dependency 3",
+      "intent": "remove_dependency"
+    },
+    {
+      "text": "delete dependency 4",
+      "intent": "remove_dependency"
+    },
+    {
+      "text": "\"Website launch\"",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "\"Fix login\"",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "\"Alice\"",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "\"alice@example.com\"",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "WEB",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "WEB-21",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "APP-12",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "2026-11-05",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "tomorrow",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "today",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "next Monday",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "in 3 days",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "the second one",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "the first one",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "2",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "1",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "use WEB-1",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "cancel",
+      "intent": "cancel"
+    },
+    {
+      "text": "cancel this command",
+      "intent": "cancel"
+    },
+    {
+      "text": "never mind",
+      "intent": "cancel"
+    },
+    {
+      "text": "nevermind",
+      "intent": "cancel"
+    },
+    {
+      "text": "stop this request",
+      "intent": "cancel"
+    },
+    {
+      "text": "discard this command",
+      "intent": "cancel"
+    },
+    {
+      "text": "forget it",
+      "intent": "cancel"
+    },
+    {
+      "text": "start over",
+      "intent": "cancel"
+    },
+    {
+      "text": "what information do you need",
+      "intent": "help"
+    },
+    {
+      "text": "what do you need",
+      "intent": "help"
+    },
+    {
+      "text": "help",
+      "intent": "help"
+    },
+    {
+      "text": "what can you do locally",
+      "intent": "help"
+    },
+    {
+      "text": "which commands work locally",
+      "intent": "help"
+    },
+    {
+      "text": "what is missing",
+      "intent": "help"
+    },
+    {
+      "text": "why are you asking",
+      "intent": "help"
+    },
+    {
+      "text": "show local commands",
+      "intent": "help"
+    },
+    {
+      "text": "yes",
+      "intent": "confirm"
+    },
+    {
+      "text": "okay",
+      "intent": "confirm"
+    },
+    {
+      "text": "ok",
+      "intent": "confirm"
+    },
+    {
+      "text": "confirm",
+      "intent": "confirm"
+    },
+    {
+      "text": "looks good",
+      "intent": "confirm"
+    },
+    {
+      "text": "go ahead",
+      "intent": "confirm"
+    },
+    {
+      "text": "proceed",
+      "intent": "confirm"
+    },
+    {
+      "text": "yes please",
+      "intent": "confirm"
+    },
+    {
+      "text": "set due date to today",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to today",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date today",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for today",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date today",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date tomorrow",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to in 2 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to in 2 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date in 2 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for in 2 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date in 2 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to in 7 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to in 7 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date in 7 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for in 7 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date in 7 days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to in 2 weeks",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to in 2 weeks",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date in 2 weeks",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for in 2 weeks",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date in 2 weeks",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to in 3 business days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to in 3 business days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date in 3 business days",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for in 3 business days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date in 3 business days",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to next Monday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to next Monday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date next Monday",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for next Monday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date next Monday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to next Friday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to next Friday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date next Friday",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for next Friday",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date next week",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date to 2026-12-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "set start date to 2026-12-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "set tasks due date 2026-12-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "schedule tasks for 2026-12-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "set due date 2026-12-02",
+      "intent": "schedule"
+    },
+    {
+      "text": "create project \"Launch\" and email all customers",
+      "intent": "fallback"
+    },
+    {
+      "text": "assign tasks to \"Alice\" unless blocked",
+      "intent": "fallback"
+    },
+    {
+      "text": "delete project WEB",
+      "intent": "fallback"
+    },
+    {
+      "text": "create tasks from the attached contract",
+      "intent": "fallback"
+    },
+    {
+      "text": "schedule based on team availability",
+      "intent": "fallback"
+    },
+    {
+      "text": "assign the least busy developer",
+      "intent": "fallback"
+    },
+    {
+      "text": "set due date to sometime soon",
+      "intent": "fallback"
+    },
+    {
+      "text": "add dependency from WEB-1 to another task",
+      "intent": "fallback"
+    },
+    {
+      "text": "yes execute without approval",
+      "intent": "fallback"
+    },
+    {
+      "text": "create project similar to the last one",
+      "intent": "fallback"
+    },
+    {
+      "text": "assign tasks to \"Alice\" or \"Bob\"",
+      "intent": "fallback"
+    },
+    {
+      "text": "move overdue tasks to tomorrow",
+      "intent": "fallback"
+    },
+    {
+      "text": "rename task",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task \"Fix checkout\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename these tasks to \"Review release\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Review design\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Review design\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Review design\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"QA review\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"QA review\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"QA review\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Release notes\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Release notes\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Release notes\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"API acceptance\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"API acceptance\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"API acceptance\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Test migration\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Test migration\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Test migration\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Client handoff\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Client handoff\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Client handoff\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Delivery checklist\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Delivery checklist\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Delivery checklist\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename task to \"Verify build\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "rename selected tasks to \"Verify build\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "retitle task \"Verify build\"",
+      "intent": "rename_task"
+    },
+    {
+      "text": "set description",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Check acceptance criteria\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Review the API contract\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Review design\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Review design\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Review design\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"QA review\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"QA review\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"QA review\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Release notes\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Release notes\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Release notes\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"API acceptance\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"API acceptance\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"API acceptance\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Test migration\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Test migration\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Test migration\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Client handoff\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Client handoff\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Client handoff\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Delivery checklist\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Delivery checklist\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Delivery checklist\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set description to \"Verify build\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "update description \"Verify build\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "change description to \"Verify build\"",
+      "intent": "describe_task"
+    },
+    {
+      "text": "set estimate",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate task",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate selected tasks",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "change estimate to",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 4",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 3.5 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 0 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 0 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 0 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 1 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 1 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 1 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 2 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 2 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 2 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 3 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 3 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 3 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 5 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 5 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 5 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 8 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 8 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 8 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 13 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 13 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 13 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 21 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 21 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 21 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimated hours to 40 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set estimate to 40 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "estimate tasks at 40 hours",
+      "intent": "estimate_task"
+    },
+    {
+      "text": "set story points",
+      "intent": "story_points"
+    },
+    {
+      "text": "change story points",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 5",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 8",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 0",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 0",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 0",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 1",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 1",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 1",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 2",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 2",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 2",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 3",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 3",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 3",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 5",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 5",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 8",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 8",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 13",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 13",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 13",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 21",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 21",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 21",
+      "intent": "story_points"
+    },
+    {
+      "text": "set story points to 40",
+      "intent": "story_points"
+    },
+    {
+      "text": "change points to 40",
+      "intent": "story_points"
+    },
+    {
+      "text": "set points to 40",
+      "intent": "story_points"
+    },
+    {
+      "text": "add comment",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add a comment",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Ready for QA\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Waiting on design\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Review design\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Review design\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Review design\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Review design\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"QA review\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"QA review\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"QA review\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"QA review\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Release notes\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Release notes\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Release notes\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Release notes\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"API acceptance\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"API acceptance\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"API acceptance\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"API acceptance\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Test migration\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Test migration\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Test migration\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Test migration\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Client handoff\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Client handoff\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Client handoff\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Client handoff\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Delivery checklist\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Delivery checklist\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Delivery checklist\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Delivery checklist\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment \"Verify build\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "post comment \"Verify build\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "write a comment \"Verify build\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "add comment to selected tasks \"Verify build\"",
+      "intent": "add_comment"
+    },
+    {
+      "text": "complete checklist item",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"QA review\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 7",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Review design\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Review design\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"QA review\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Release notes\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Release notes\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"API acceptance\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"API acceptance\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Test migration\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Test migration\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Client handoff\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Client handoff\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Delivery checklist\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Delivery checklist\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item \"Verify build\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist entry \"Verify build\"",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 1",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 2",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 3",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 4",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 6",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 9",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 14",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 22",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "complete checklist item 41",
+      "intent": "complete_checklist"
+    },
+    {
+      "text": "reopen checklist item",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"QA review\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 7",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Review design\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Review design\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"QA review\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Release notes\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Release notes\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"API acceptance\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"API acceptance\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Test migration\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Test migration\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Client handoff\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Client handoff\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Delivery checklist\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Delivery checklist\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item \"Verify build\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist entry \"Verify build\"",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 1",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 2",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 3",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 4",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 6",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 9",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 14",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 22",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "reopen checklist item 41",
+      "intent": "reopen_checklist"
+    },
+    {
+      "text": "remove checklist item",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"QA review\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item 7",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Review design\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Review design\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Review design\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Review design\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"QA review\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"QA review\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"QA review\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Release notes\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Release notes\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Release notes\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Release notes\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"API acceptance\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"API acceptance\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"API acceptance\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"API acceptance\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Test migration\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Test migration\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Test migration\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Test migration\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Client handoff\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Client handoff\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Client handoff\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Client handoff\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Delivery checklist\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Delivery checklist\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Delivery checklist\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Delivery checklist\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item \"Verify build\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist entry \"Verify build\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist item \"Verify build\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "delete checklist entry \"Verify build\"",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 1",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 2",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 3",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 4",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 6",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 9",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 14",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 22",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "remove checklist item 41",
+      "intent": "remove_checklist"
+    },
+    {
+      "text": "create milestone",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add milestone",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create a milestone",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Review design\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Review design\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Review design\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Review design\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Review design\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Review design\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Review design\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Review design\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Review design\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Review design\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Review design\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Review design\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"QA review\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"QA review\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"QA review\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"QA review\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"QA review\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"QA review\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"QA review\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"QA review\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"QA review\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"QA review\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"QA review\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"QA review\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release notes\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release notes\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release notes\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Release notes\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Release notes\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Release notes\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Release notes\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Release notes\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Release notes\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Release notes\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Release notes\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Release notes\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"API acceptance\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"API acceptance\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"API acceptance\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"API acceptance\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"API acceptance\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"API acceptance\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"API acceptance\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"API acceptance\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"API acceptance\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"API acceptance\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"API acceptance\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"API acceptance\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Test migration\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Test migration\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Test migration\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Test migration\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Test migration\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Test migration\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Test migration\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Test migration\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Test migration\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Test migration\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Test migration\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Test migration\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Client handoff\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Client handoff\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Client handoff\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Client handoff\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Client handoff\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Client handoff\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Client handoff\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Client handoff\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Client handoff\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Client handoff\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Client handoff\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Client handoff\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Delivery checklist\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Delivery checklist\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Delivery checklist\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Delivery checklist\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Delivery checklist\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Delivery checklist\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Delivery checklist\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Delivery checklist\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Delivery checklist\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Delivery checklist\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Delivery checklist\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Delivery checklist\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Verify build\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Verify build\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Verify build\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "create milestone \"Verify build\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Verify build\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Verify build\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Verify build\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "new milestone \"Verify build\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Verify build\"",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Verify build\" due tomorrow",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Verify build\" due next Friday",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "add a milestone \"Verify build\" due in 2 weeks",
+      "intent": "create_milestone"
+    },
+    {
+      "text": "move tasks to sprint",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Release 1\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Delivery\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Review design\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Review design\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Review design\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Review design\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"QA review\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"QA review\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"QA review\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"QA review\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Release notes\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Release notes\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Release notes\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Release notes\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"API acceptance\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"API acceptance\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"API acceptance\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"API acceptance\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Test migration\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Test migration\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Test migration\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Test migration\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Client handoff\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Client handoff\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Client handoff\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Client handoff\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Delivery checklist\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Delivery checklist\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Delivery checklist\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Delivery checklist\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move tasks to sprint \"Verify build\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move selected tasks to sprint \"Verify build\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "move to sprint \"Verify build\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set sprint to \"Verify build\"",
+      "intent": "select_sprint"
+    },
+    {
+      "text": "set priority",
+      "intent": "choose_priority"
+    },
+    {
+      "text": "set priority to",
+      "intent": "choose_priority"
+    },
+    {
+      "text": "change priority",
+      "intent": "choose_priority"
+    },
+    {
+      "text": "change priority to",
+      "intent": "choose_priority"
+    },
+    {
+      "text": "set status",
+      "intent": "choose_status"
+    },
+    {
+      "text": "set status to",
+      "intent": "choose_status"
+    },
+    {
+      "text": "change status",
+      "intent": "choose_status"
+    },
+    {
+      "text": "change status to",
+      "intent": "choose_status"
+    },
+    {
+      "text": "add checklist item",
+      "intent": "checklist"
+    },
+    {
+      "text": "add a checklist item",
+      "intent": "checklist"
+    },
+    {
+      "text": "create checklist item",
+      "intent": "checklist"
+    },
+    {
+      "text": "append checklist item",
+      "intent": "checklist"
+    },
+    {
+      "text": "3.5 hours",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "8 points",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Low",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Medium",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "High",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Urgent",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "To Do",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "In Progress",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "In Review",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Blocked",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Done",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "actually 5 hours",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "use the first one",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "the third one",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Ready for QA",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "Release target",
+      "intent": "clarification_reply"
+    },
+    {
+      "text": "2027-01-04",
+      "intent": "clarification_reply"
+    }
+  ]
+}

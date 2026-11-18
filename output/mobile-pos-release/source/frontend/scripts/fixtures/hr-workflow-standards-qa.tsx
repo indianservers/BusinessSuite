@@ -1,0 +1,11 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import InternManagementPage from "@/apps/hrms/pages/interns/InternManagementPage";
+import WorkflowInboxPage from "@/apps/hrms/pages/workflow/WorkflowInboxPage";
+import { useAuthStore } from "@/store/authStore";
+import "@/index.css";
+import "@/shared/priority/priority.css";
+useAuthStore.setState({user:{id:1,email:"qa@example.test",role:"employee",is_superuser:false},isAuthenticated:true,isHydrated:true});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter>{location.search.includes("interns")?<InternManagementPage page="batches"/>:<WorkflowInboxPage/>}</BrowserRouter></QueryClientProvider>);

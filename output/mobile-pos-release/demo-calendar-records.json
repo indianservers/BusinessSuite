@@ -1,0 +1,116 @@
+{
+  "company_id": 1,
+  "branch_id": 1,
+  "employees": [
+    169,
+    170
+  ],
+  "resources": [
+    10,
+    11
+  ],
+  "bookings": [
+    {
+      "id": 12,
+      "title": "DEMO Calendar Booking 01",
+      "starts_at": "2026-11-18T09:30:00+05:30"
+    },
+    {
+      "id": 13,
+      "title": "DEMO Calendar Booking 02",
+      "starts_at": "2026-11-18T11:00:00+05:30"
+    },
+    {
+      "id": 14,
+      "title": "DEMO Calendar Booking 03",
+      "starts_at": "2026-11-18T13:30:00+05:30"
+    },
+    {
+      "id": 15,
+      "title": "DEMO Calendar Booking 04",
+      "starts_at": "2026-11-18T15:00:00+05:30"
+    },
+    {
+      "id": 16,
+      "title": "DEMO Calendar Booking 05",
+      "starts_at": "2026-11-19T09:30:00+05:30"
+    },
+    {
+      "id": 17,
+      "title": "DEMO Calendar Booking 06",
+      "starts_at": "2026-11-19T11:00:00+05:30"
+    },
+    {
+      "id": 18,
+      "title": "DEMO Calendar Booking 07",
+      "starts_at": "2026-11-19T13:30:00+05:30"
+    },
+    {
+      "id": 19,
+      "title": "DEMO Calendar Booking 08",
+      "starts_at": "2026-11-19T15:00:00+05:30"
+    },
+    {
+      "id": 20,
+      "title": "DEMO Calendar Booking 09",
+      "starts_at": "2026-11-20T09:30:00+05:30"
+    },
+    {
+      "id": 21,
+      "title": "DEMO Calendar Booking 10",
+      "starts_at": "2026-11-20T11:00:00+05:30"
+    },
+    {
+      "id": 22,
+      "title": "DEMO Calendar Booking 11",
+      "starts_at": "2026-11-20T13:30:00+05:30"
+    },
+    {
+      "id": 23,
+      "title": "DEMO Calendar Booking 12",
+      "starts_at": "2026-11-20T15:00:00+05:30"
+    },
+    {
+      "id": 24,
+      "title": "DEMO Calendar Booking 13",
+      "starts_at": "2026-11-21T09:30:00+05:30"
+    },
+    {
+      "id": 25,
+      "title": "DEMO Calendar Booking 14",
+      "starts_at": "2026-11-21T11:00:00+05:30"
+    },
+    {
+      "id": 26,
+      "title": "DEMO Calendar Booking 15",
+      "starts_at": "2026-11-21T13:30:00+05:30"
+    },
+    {
+      "id": 27,
+      "title": "DEMO Calendar Booking 16",
+      "starts_at": "2026-11-21T15:00:00+05:30"
+    },
+    {
+      "id": 28,
+      "title": "DEMO Calendar Booking 17",
+      "starts_at": "2026-11-23T09:30:00+05:30"
+    },
+    {
+      "id": 29,
+      "title": "DEMO Calendar Booking 18",
+      "starts_at": "2026-11-23T11:00:00+05:30"
+    },
+    {
+      "id": 30,
+      "title": "DEMO Calendar Booking 19",
+      "starts_at": "2026-11-23T13:30:00+05:30"
+    },
+    {
+      "id": 31,
+      "title": "DEMO Calendar Booking 20",
+      "starts_at": "2026-11-23T15:00:00+05:30"
+    }
+  ],
+  "customer_id": 7,
+  "verified_in_schedule": 20
+}

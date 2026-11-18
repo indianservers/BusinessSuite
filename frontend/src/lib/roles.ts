@@ -73,7 +73,7 @@ import { getInstalledAppKeys, isFrontendModuleEnabled } from "@/appRegistry";
 
 export type RoleKey = "admin" | "ceo" | "hr" | "manager" | "employee";
 function centralModuleForPath(access: { modules: { key: string; route: string; navigationPaths?: string[] }[] }, pathname: string) {
-  return access.modules.flatMap(module => (module.navigationPaths || [module.route]).map(path => ({ path, module }))).sort((a,b) => b.path.length-a.path.length).find(item => pathname === item.path || pathname.startsWith(item.path + "/"))?.module;
+  return (Array.isArray(access.modules) ? access.modules : []).flatMap(module => (module.navigationPaths || [module.route]).map(path => ({ path, module }))).sort((a,b) => b.path.length-a.path.length).find(item => pathname === item.path || pathname.startsWith(item.path + "/"))?.module;
 }
 export function effectiveModuleDisplayRole(pathname: string, user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>) {
   pathname = moduleContextPath(pathname);

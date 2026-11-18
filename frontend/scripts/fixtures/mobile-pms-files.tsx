@@ -1,6 +1,6 @@
 import {api} from "@/services/api";
 import {refreshPageData} from "@/lib/page-refresh";
-import {QueryClient} from "@tanstack/react-query";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
 import React from "react";
 import {createRoot} from "react-dom/client";
 import {MemoryRouter,Routes,Route,useNavigate} from "react-router-dom";
@@ -20,7 +20,7 @@ Object.assign(window,{
  filesContext:(kind:string,value:string)=>{sessionStorage.setItem("suite-"+kind,value);window.dispatchEvent(new Event(kind==="branch"?"suite:branch-changed":"suite:organization-changed"));}
 });
 function Harness(){const navigate=useNavigate();Object.assign(window,{filesProject:(id:number)=>navigate("/pms/projects/"+id+"/files")});return <Routes><Route path="/pms/files" element={<Page/>}/><Route path="/pms/projects/:projectId/files" element={<Page/>}/></Routes>;}
-createRoot(document.getElementById("root")!).render(<MemoryRouter initialEntries={[location.search.includes("global")?"/pms/files":"/pms/projects/86/files"]}><Harness/></MemoryRouter>);
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={[location.search.includes("global")?"/pms/files":"/pms/projects/86/files"]}><Harness/></MemoryRouter></QueryClientProvider>);
 
 
 Object.assign(window,{filesRefresh:()=>refreshPageData(new QueryClient()).catch(()=>undefined)});

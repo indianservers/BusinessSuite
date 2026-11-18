@@ -1,0 +1,16 @@
+@media (max-width: 480px) {
+  .hrms-form16 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hrms-form16 > *, .hrms-form16 .kf-card > * { min-width: 0; }
+  .hrms-form16 .kf-card > div { padding: 12px; }
+  .hrms-form16 :is(input:not([type="checkbox"]), select) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+  .hrms-form16 :is(button, summary), .hrms-form16 label:has(input[type="file"]), .hrms-form16 label:has(input[type="checkbox"]) { min-height: 44px; height: auto; white-space: normal; }
+  .hrms-form16 label:has(input[type="file"]) { padding-block: 8px; overflow-wrap: anywhere; }
+  .hrms-form16 label:has(input[type="file"]):focus-within { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+  .hrms-form16 label:has(input:disabled) { cursor: default; opacity: .65; }
+  .hrms-form16 label:has(input[type="checkbox"]) > span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+  .hrms-form16 :is(p, span) { overflow-wrap: anywhere; }
+  .hrms-form16 .mobile-disclosure { padding: 0 10px; margin: 0; }
+  .hrms-form16 .mobile-disclosure > div { display: grid; gap: 8px; padding-bottom: 10px; }
+  .hrms-form16 .flex:has(> button):has(> span) { flex-wrap: wrap; }
+  .hrms-form16 input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
+}

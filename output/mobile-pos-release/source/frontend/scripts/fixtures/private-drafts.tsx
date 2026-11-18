@@ -1,0 +1,16 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import TaskCreationForm from "@/shared/productivity/TaskCreationForm";
+import { useAuthStore } from "@/store/authStore";
+import { setPackContext } from "@/lib/pack-context";
+import { privateDraftKey } from "@/lib/private-draft-scope";
+import "@/index.css";
+sessionStorage.setItem("suite-tenant","one"); sessionStorage.setItem("suite-organization","1"); sessionStorage.setItem("suite-branch","1");
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.invalid",role:"admin",is_superuser:true,access:{companyId:1,grants:{},modules:[],memberships:[1],managed:false,isAccessAdmin:true,isGlobalAdmin:true}} as never});
+setPackContext("11");
+localStorage.setItem("private-task:user:1:company:1:branch:1", JSON.stringify({title:"Unproved legacy task"}));
+let finish: (()=>void)|undefined;
+Object.assign(window,{switchDraftPack:setPackContext,draftKey:()=>privateDraftKey("task-draft","private-task"),allDraftKeys:()=>["task-draft","srm-order-draft","pms-chat-drafts","crm-deal-draft"].map(kind=>privateDraftKey(kind,"same-record")),finishSave:()=>finish?.(),refreshDefaults:()=>window.dispatchEvent(new Event("suite:form-defaults-changed")),revokeDraftRights:()=>{const user=useAuthStore.getState().user!;useAuthStore.setState({user:{...user,access:{...user.access,grants:{task:{view:false}}}} as never});}});
+createRoot(document.getElementById("root")!).render(<MemoryRouter><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><TaskCreationForm draftKey="private-task" tasks={[]} onCancel={()=>{}} onCreate={()=>new Promise<void>(resolve=>{finish=resolve;})}/></QueryClientProvider></MemoryRouter>);

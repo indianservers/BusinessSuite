@@ -59,14 +59,17 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(bridge||''))throw new Error('Disposable A
   const register=await page.evaluate(async()=>{const {data}=await window.qaApi.post('/srm/pos/sessions',{branch:'Fictional QA branch',register_name:'Shared Customer Browser Counter',opening_cash:0});return data;});
   expect(Number(register.expected_cash)).toBe(0);checks++;
   await page.evaluate(()=>window.qaNavigate('/srm/pos'));
+  await page.getByRole('button',{name:'Change sale customer',exact:true}).click();
   await page.getByRole('combobox',{name:'Sale customer',exact:true}).click();
   await page.getByRole('option',{name:saved.name,exact:false}).click();
-  await expect(page.getByRole('combobox',{name:'Sale customer',exact:true})).toContainText(saved.name);checks++;
+  await expect(page.locator('.pos-sale-customer')).toContainText(saved.name);checks++;
   const policyReady=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/srm/service-checkout/options'&&response.request().method()==='GET');
   await page.locator('.srm-pos-catalog article').filter({hasText:'QA Fractional service'}).getByRole('button').first().click();
   expect((await policyReady).status()).toBe(200);
+  await page.locator('.pos-booking-trigger').click();
   await expect(page.getByText('This service has no scheduling policy yet.',{exact:true})).toBeVisible();checks++;
-  await page.getByRole('button',{name:'Payment [F7]',exact:true}).click();
+  await page.getByRole('button',{name:'Close service booking',exact:true}).click();
+  await page.getByRole('button',{name:/^Collect /}).click();
   await page.getByRole('dialog').getByRole('button',{name:'Cash',exact:true}).click();
   await expect(page.getByRole('spinbutton',{name:'Payment amount',exact:true})).toHaveValue('117.99');checks++;
   const posted=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/v1/srm/service-checkout'&&response.request().method()==='POST');
@@ -79,7 +82,7 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(bridge||''))throw new Error('Disposable A
   expect(checkout.state).toBe('committed');expect(checkout.invoice.status).toBe('paid');
   expect(Number(checkout.invoice.total)).toBe(117.99);expect(Number(checkout.invoice.paid)).toBe(117.99);expect(Number(checkout.invoice.balance)).toBe(0);checks++;
   expect(checkout.receipts).toHaveLength(1);expect(checkout.receipts[0].status).toBe('allocated');expect(Number(checkout.receipts[0].amount)).toBe(117.99);expect(Number(checkout.receipts[0].unallocated)).toBe(0);checks++;
-  await expect(page.getByText(checkout.invoice.number,{exact:true})).toBeVisible();checks++;
+  await expect(page.getByRole('region',{name:'Confirmed sale summary'})).toContainText(checkout.invoice.number);checks++;
   const collected=await page.evaluate(async()=>{const {data}=await window.qaApi.get('/srm/pos/sessions/active');return data;});
   expect(collected.session.id).toBe(register.session.id);expect(Number(collected.cash_sales)).toBe(117.99);expect(Number(collected.expected_cash)).toBe(117.99);expect(collected.unattributed_cash_count).toBe(0);checks++;
   await page.waitForLoadState('networkidle');

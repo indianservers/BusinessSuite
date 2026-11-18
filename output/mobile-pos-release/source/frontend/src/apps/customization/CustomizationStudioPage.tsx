@@ -1,0 +1,125 @@
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import FieldManager from "./FieldManager";
+import RuntimeConfiguration from './RuntimeConfiguration';
+import LayoutArrangement from "./LayoutArrangement";
+import type React from "react";
+import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Database, FileText, GitBranch, Kanban, LayoutTemplate, ListChecks, Pickaxe, ScrollText, ShieldCheck, SlidersHorizontal, Table2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { customizationApi, type CustomizationRecord } from "./api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+
+type SectionKey = "modules" | "fields" | "layouts" | "views" | "kanban" | "validation-rules" | "buttons" | "related-lists" | "picklists" | "formulas" | "rollups" | "audit";
+
+const sections: Array<{ key: SectionKey; label: string; path: string; icon: typeof Database }> = [
+  { key: "modules", label: "Modules", path: "/admin/customization/modules", icon: Database },
+  { key: "fields", label: "Fields", path: "/admin/customization/fields", icon: SlidersHorizontal },
+  { key: "layouts", label: "Layouts", path: "/admin/customization/layouts", icon: LayoutTemplate },
+  { key: "views", label: "Views", path: "/admin/customization/views", icon: Table2 },
+  { key: "kanban", label: "Kanban", path: "/admin/customization/kanban", icon: Kanban },
+  { key: "validation-rules", label: "Validation", path: "/admin/customization/validation-rules", icon: ShieldCheck },
+  { key: "buttons", label: "Buttons", path: "/admin/customization/buttons", icon: Pickaxe },
+  { key: 'related-lists', label: 'Relationships', path: '/admin/customization/related-lists', icon: GitBranch },
+  { key: "picklists", label: "Picklists", path: "/admin/customization/picklists", icon: ListChecks },
+  { key: "formulas", label: "Formulas", path: "/admin/customization/formulas", icon: FileText },
+  { key: "rollups", label: "Rollups", path: "/admin/customization/rollups", icon: GitBranch },
+  { key: "audit", label: "Audit", path: "/admin/customization/audit", icon: ScrollText },
+];
+
+function activeSection(pathname: string): SectionKey {
+  return sections.find((item) => pathname.startsWith(item.path))?.key || "modules";
+}
+
+export default function CustomizationStudioPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const active = activeSection(location.pathname);
+  return (
+    <div className="space-y-6">
+      <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
+        <p className="text-sm font-medium uppercase text-muted-foreground">Admin</p>
+        <h1 className="text-2xl font-semibold">Customization Studio</h1>
+        <p className="max-w-3xl text-sm text-muted-foreground">Admin-defined metadata overlays, dynamic forms and records, safe formulas, layouts, views, validation rules, buttons, picklists, rollups, and audit history.</p>
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {sections.map((item) => {
+            const Icon = item.icon;
+            return <Button key={item.key} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
+          })}
+        </div>
+      </div>
+      <div className="px-4 pb-8 sm:px-6 lg:px-8">
+        {active === "modules" ? <Modules /> : null}
+        {active === "fields" ? <Fields /> : null}
+        {active === "layouts" ? <Layouts /> : null}
+        {active === "views" ? <RuntimeConfiguration kind="views" /> : null}
+        {active === "kanban" ? <RuntimeConfiguration kind="kanban" /> : null}
+        {active === "validation-rules" ? <RuntimeConfiguration kind="validation-rules" /> : null}
+        {active === "buttons" ? <RuntimeConfiguration kind="buttons" /> : null}
+        {active === "related-lists" ? <RuntimeConfiguration kind="related-lists" /> : null}
+        {active === "picklists" ? <RuntimeConfiguration kind="picklists" /> : null}
+        {active === "formulas" ? <FieldManager /> : null}
+        {active === "rollups" ? <FieldManager /> : null}
+        {active === "audit" ? <GenericSection title="Customization Audit" description="Metadata and dynamic record changes are captured for diagnostics." queryKey="customization-audit" queryFn={customizationApi.audit} /> : null}
+      </div>
+    </div>
+  );
+}
+
+function useRefresh(key: string) {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: [key] });
+}
+
+function actionError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Action failed. Please try again.";
+}
+
+function Modules() { return <RuntimeConfiguration kind="modules" />; }
+
+function Fields() { return <FieldManager/>; }
+
+function Layouts() {
+  const canEdit=useDefinitionPermission(["customization_manage","customization_layouts_manage"],"edit");
+  const { toast } = useToast();
+  const qc=useQueryClient();
+  const refresh=()=>{void qc.invalidateQueries({queryKey:["customization","layouts"]});void qc.invalidateQueries({queryKey:["layout-arrange"]});};
+  const addSection = useMutation({
+    mutationFn: (id: number) => customizationApi.addLayoutSection(id, { title: "Commercial Details" }),
+    onSuccess: () => { toast({ title: "Layout section added" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return <RuntimeConfiguration kind="layouts" renderActions={item=><><Button size="sm" variant="outline" disabled={!canEdit||!item.id||addSection.isPending} onClick={()=>addSection.mutate(Number(item.id))}>Add Section</Button><LayoutArrangement layoutId={Number(item.id)}/></>}/>;
+}
+
+function GenericSection({ title, description, queryKey, queryFn, action, mutation, actions }: { title: string; description: string; queryKey: string; queryFn: () => Promise<{ items: CustomizationRecord[]; total: number }>; action?: string; mutation?: () => Promise<unknown>; actions?: (item: CustomizationRecord) => React.ReactNode }) {
+  const { toast } = useToast();
+  const query = useQuery({ queryKey: [queryKey], queryFn });
+  const refresh = useRefresh(queryKey);
+  const create = useMutation({ mutationFn: mutation || (() => Promise.resolve()), onSuccess: () => { toast({ title: `${title.split(" ")[0]} saved` }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
+  return <SectionFrame title={title} description={description} action={action} onAction={action ? () => create.mutate() : undefined} query={query} actions={actions} />;
+}
+
+function SectionFrame({ title, description, action, onAction, query, children, actions }: { title: string; description: string; action?: string; onAction?: () => void; query: ReturnType<typeof useQuery<{ items: CustomizationRecord[]; total: number }>>; children?: React.ReactNode; actions?: (item: CustomizationRecord) => React.ReactNode }) {
+  const items = useMemo(() => query.data?.items || [], [query.data]);
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div><h2 className="text-lg font-semibold">{title}</h2><p className="text-sm text-muted-foreground">{description}</p></div>
+        <div className="flex gap-2">{children}{action ? <Button onClick={onAction}>{action}</Button> : null}</div>
+      </div>
+      {query.isLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading customization metadata...</div> : null}
+      {query.isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">Customization metadata could not be loaded.</div> : null}
+      {!query.isLoading && !items.length ? <div className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">No records configured yet.</div> : null}
+      <GroupedRecords scope={`customization:${title}`} items={items} gridClassName="grid gap-3 md:grid-cols-2" fields={[
+        {id:"module",label:"Module",value:item=>item.module_name || item.module_api_name || item.entity_type || "General"},
+        {id:"status",label:"Status",value:item=>(item.enabled ?? item.active ?? item.visible) === false ? "Disabled" : "Active"},
+      ]} renderItem={item=><Card key={String(item.id)}><CardContent className="space-y-3 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{String(item.name || item.module_label || item.field_label || item.label || item.entity_type || `Record ${item.id}`)}</p><p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || item.module_api_name || item.field_type || item.action || "customization")}</p></div><Badge variant="outline">{String(item.enabled ?? item.active ?? item.visible ?? "ready")}</Badge></div>{actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}</CardContent></Card>}/>
+    </div>
+  );
+}

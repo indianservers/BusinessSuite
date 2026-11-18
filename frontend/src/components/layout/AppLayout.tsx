@@ -28,7 +28,8 @@ export default function AppLayout() { return <><AppLayoutContent/><ActionBot/></
 
 function AppLayoutContent() {
   const location = useLocation();
-  const mobileLead = useMobile() && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
+  const mobile = useMobile();
+  const mobileLead = mobile && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
@@ -48,7 +49,7 @@ function AppLayoutContent() {
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
-    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /></div>;
+    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="mobile-dock-content min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   if (isSharedTaskWorkspace(location.pathname, location.search)) {

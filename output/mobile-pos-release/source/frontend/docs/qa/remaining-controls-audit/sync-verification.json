@@ -1,0 +1,8 @@
+{
+  "main_synced_to": "43026a82322d7f807e00c29266cdfeda0029f451",
+  "working_files_preserved": 153,
+  "clean_three_way_merges": 1,
+  "recovery_archive": ".local/pre-main-sync-20261107-122934/working-files.zip",
+  "tracked_recovery_ref": "refs/backup/pre-main-sync-20261107-122934",
+  "method": "Preserved all working files in an ignored recovery archive and tracked edits in a Git backup ref; merged the shared grid and advanced HEAD/index without discarding working content. Verified preserved file hashes."
+}

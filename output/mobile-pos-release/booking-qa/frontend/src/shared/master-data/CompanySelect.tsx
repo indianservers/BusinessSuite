@@ -1,0 +1,79 @@
+import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
+import Record360Workspace from "@/shared/records/Record360Workspace";
+import SmartRecordPicker from "@/shared/records/SmartRecordPicker";
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
+import PhoneActions from "@/components/PhoneActions";
+import { CompanyQuickCreate } from "./CompanyEditor";
+export { CompanyQuickCreate } from "./CompanyEditor";
+import RelationshipEditor from "./RelationshipEditor";
+import { ContactCommunicationPanel } from "./CommunicationEditor";
+import { lazy, Suspense, useEffect, useState } from "react";
+const FinancialDataPanel = lazy(() => import("@/apps/crm/FinancialDataTab").then(module => ({default: module.FinancialDataPanel})));
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Building2, ExternalLink, Plus, Pencil, Search } from "lucide-react";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
+import { recordScope } from "@/lib/record-scope";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { dealError } from "@/apps/crm/deals/deal-utils";
+import "./master-data.css";
+
+export type MasterSource = "crm" | "srm" | "project_management" | "hrms";
+export type Company = {avatar_url?:string;services_offered?:string[];business_types?:string[];city?:string; state?:string; pincode?:string; country?:string; vendorClassification?:string; paymentTerms?:string; financialContactId?:number; gstNumber?:string; bankAccountCount?:number; upiCount?:number; id: number; name: string; entityKind?: "Individual" | "Company"; email?: string; phone?: string; phone_country_code?: string; website?: string; industry?: string; roles?: string[]; tags?: string[]; version?: string; status?: string; legalName?: string; tradeName?: string; businessType?: string; notes?: string; addresses?: Record<string,string>[]; taxRegistrations?: Record<string,string>[]; primaryContactId?: number; contacts?: {id:number;name:string;email?:string}[]; relationships?: Record<string,unknown>[]; purchases?: Record<string,unknown>[]; payables?: unknown; financialNote?: string;canEdit?:boolean };
+export function masterScope() { return recordScope(useAuthStore.getState().user); }
+export function useDebounced(value: string) { const [result,setResult]=useState(value); useEffect(()=>{const timer=setTimeout(()=>setResult(value.trim()),250);return()=>clearTimeout(timer);},[value]);return result; }
+type Match = {id:number;kind:string;name:string;phone?:string;email?:string;url?:string};
+
+export function SharedNumberConfirmation({source="crm",phone,countryCode,email,confirmed,reason,onChange,onSelect}: {source?:MasterSource;phone?:string;countryCode?:string;email?:string;confirmed:boolean;reason:string;onChange:(confirmed:boolean,reason:string)=>void;onSelect?:(match:Match)=>void}) {
+  const needle=useDebounced(JSON.stringify({phone,countryCode,email}));
+  const query=useQuery<{items:Match[]}>({queryKey:["master-duplicates",masterScope(),source,needle],enabled:!!(phone?.replace(/[ ()-]/g,"").match(/^\d{4,15}$/)||email?.includes("@")),queryFn:async()=>{const values=JSON.parse(needle);return(await api.get("/master-data/duplicates/check",{params:{source,phone:values.phone||undefined,country_code:values.countryCode,email:values.email||undefined},progress:false})).data;},retry:false,staleTime:15000});
+  return <div className="md-shared-number">{!!query.data?.items.length&&<div role="status" className="md-warning"><strong>This mobile number or email is already associated with another contact.</strong><p>Review permitted matches. Shared family or business numbers are allowed after confirmation.</p>{query.data.items.map(match=><div className="md-match" key={`${match.kind}:${match.id}`}><span><strong>{match.name}</strong><small>{match.kind} · {match.phone ? <PhoneActions value={match.phone} record={match} /> : match.email}</small></span>{match.url&&<a target="_blank" rel="noreferrer" href={match.url}>View existing</a>}{onSelect&&<button type="button" onClick={()=>onSelect(match)}>Link existing</button>}</div>)}</div>}{(!!query.data?.items.length||confirmed)&&<label className="md-check"><input type="checkbox" checked={confirmed} onChange={e=>onChange(e.target.checked,reason)}/> Create a separate record even if this is a shared number or email</label>}{confirmed&&<label>Reason (optional)<NativeSelect aria-label="Shared communication reason" value={reason} onChange={e=>onChange(true,e.target.value)}><option value="">Choose a reason</option><option>Shared Family Number</option><option>Shared Business Number</option><option>Other — separate identity confirmed</option></NativeSelect></label>}</div>;
+}
+
+export default function CompanySelect({value,onChange,source="crm",initial=[],placeholder="No company linked",label="Company",onSelected,onCreate,entityKind="companies",createRoles,createRecordLabel="company"}: {value:string;onChange:(value:string)=>void;source?:MasterSource;initial?:Company[];placeholder?:string;label?:string;onSelected?:(company:Company)=>void;onCreate?:(seedName:string)=>void;entityKind?:"companies"|"all";createRoles?:string[];createRecordLabel?:string}) {
+  const { term: businessTerm } = useBusinessTerms();
+  const [search,setSearch]=useState("");const term=useDebounced(search);
+  const [page,setPage]=useState(1);const [accumulated,setAccumulated]=useState<Company[]>([]);
+  const [creating,setCreating]=useState(false);const [editing,setEditing]=useState(false);
+  const [profile,setProfile]=useState(false);const [added,setAdded]=useState<Company[]>([]);
+  const query=useQuery<{items:Company[];total:number;canCreate:boolean}>({queryKey:["master-companies",masterScope(),source,entityKind,term,page],queryFn:async()=>(await api.get("/master-data/companies",{params:{source,entity_kind:entityKind,search:term,page,per_page:50}})).data,staleTime:60000});
+  const selected=useQuery<Company>({queryKey:["master-company",masterScope(),source,value],enabled:!!value,queryFn:async()=>(await api.get(`/master-data/companies/${value}`,{params:{source}})).data,staleTime:60000});
+  useEffect(()=>{setPage(1);setAccumulated([]);},[term,source]);
+  useEffect(()=>{if(query.data)setAccumulated(previous=>page===1?query.data.items:[...new Map([...previous,...query.data.items].map(x=>[x.id,x])).values()]);},[query.data,page]);
+  const options=[...new Map([...initial.filter(x=>String(x.id)===value),...added,...accumulated,...(selected.data?[selected.data]:[])].map(x=>[x.id,x])).values()];
+  const saved=(company:Company,keepOpen=false)=>{setAdded(rows=>[...rows.filter(x=>x.id!==company.id),company]);onChange(String(company.id));onSelected?.(company);setCreating(keepOpen);setEditing(false);};
+  const suggest=(company:Company)=>({id:String(company.id),label:company.name,details:[{label:"Mobile",value:company.phone||"Not recorded"},{label:"Email",value:company.email||"Not recorded"},{label:"ID",value:String(company.id)}],description:[company.entityKind==="Individual"?`Individual ${businessTerm('customer').toLowerCase()}`:company.legalName && company.legalName!==company.name ? company.legalName : "Company",company.email,company.phone,company.industry,...(company.roles||[]).map(role=>role==='Customer'?businessTerm('customer'):role)].filter(Boolean).join(" · "),record:company});
+  return <div className="md-company-select"><SmartRecordPicker name={label==='Customer'?businessTerm('customer'):label} value={value} search={search} onSearch={value=>{setSearch(value);setPage(1);}}
+    items={options.map(suggest)} selected={options.find(row=>String(row.id)===value)?suggest(options.find(row=>String(row.id)===value)!):undefined}
+    onSelect={company=>{onChange(String(company.id));onSelected?.(company);setSearch("");}}
+    onClear={()=>{onChange("");setSearch("");}} loading={query.isFetching} error={query.isError?dealError(query.error):undefined} retry={()=>void query.refetch()}
+    onCreate={query.data?.canCreate?()=>{if(onCreate)onCreate(search.trim());else setCreating(true);}:undefined}
+    hasMore={!!query.data&&page*50<query.data.total} loadMore={()=>setPage(x=>x+1)}/>
+    <div className="md-select-actions">{value&&<><Button type="button" variant="ghost" size="sm" onClick={()=>setProfile(true)}><ExternalLink size={13}/> View full profile</Button>{query.data?.canCreate&&selected.data&&<Button type="button" variant="ghost" size="sm" onClick={()=>setEditing(true)}><Pencil size={13}/> Edit company</Button>}</>}</div>
+    {creating&&<CompanyQuickCreate source={source} roles={createRoles} recordLabel={createRecordLabel} seedName={search} onClose={()=>setCreating(false)} onSaved={saved}/>} {editing&&selected.data&&<CompanyQuickCreate source={source} initial={selected.data} onClose={()=>setEditing(false)} onSaved={saved}/>} {profile&&value&&<CompanyProfile source={source} id={Number(value)} onClose={()=>setProfile(false)}/>}</div>;
+}
+
+
+export function LegacyCompanyProfile({id,source="crm",recordLabel="company",onClose,inline=false}: {id:number;source?:MasterSource;recordLabel?:string;onClose:()=>void;inline?:boolean}) {
+  const { term } = useBusinessTerms();
+  const [edit,setEdit]=useState(false);const [tab,setTab]=useState("details");const query=useQuery<Company>({queryKey:["master-company",masterScope(),source,String(id)],queryFn:async()=>(await api.get(`/master-data/companies/${id}`,{params:{source}})).data,staleTime:30000});
+  const content = <>{!inline && <DialogHeader><DialogTitle>{query.data?.name||"Company profile"}</DialogTitle></DialogHeader>}{query.isPending?<p>Loading company…</p>:query.error?<p role="alert">{dealError(query.error)}</p>:query.data&&<><div className="flex items-center gap-3 py-4"><SuiteAvatar name={query.data.name} kind={query.data.entityKind === "Individual" ? "customer" : "company"} size={64}/><div><strong>{query.data.name}</strong><p className="text-sm text-muted-foreground">{query.data.industry || "Business profile"} · {query.data.status}</p></div></div><nav role="tablist" aria-label="Company profile sections" className="flex gap-2 border-b pb-2"><Button type="button" role="tab" aria-selected={tab==="details"} variant={tab==="details"?"default":"outline"} onClick={()=>setTab("details")}>Details</Button><Button type="button" role="tab" aria-selected={tab==="financial"} variant={tab==="financial"?"default":"outline"} onClick={()=>setTab("financial")}>Financial data</Button></nav>{tab==="financial"&&(query.data.financialContactId?<Suspense fallback={<p role="status">Loading financial data...</p>}><FinancialDataPanel key={query.data.financialContactId} contactId={query.data.financialContactId}/></Suspense>:<p>Financial data requires an accessible, verified contact identity. Link existing business records in Relationship Hub if needed.</p>)}<div hidden={tab!=="details"}><CrmFieldsReadOnly entity="companies" recordId={id} companySource={source}/><div className="md-role-badges">{query.data.roles?.map(x=><span key={x} data-role={x.toLowerCase()}>{x==='Customer'?term('customer'):x}</span>)}</div><dl><dt>Record type</dt><dd>{query.data.entityKind==="Individual"?"Individual":"Business / company"}</dd><dt>Legal name</dt><dd>{query.data.legalName||"—"}</dd><dt>Trade name</dt><dd>{query.data.tradeName||"—"}</dd><dt>Email</dt><dd>{query.data.email||"—"}</dd><dt>Phone</dt><dd><PhoneActions value={query.data.phone} record={query.data} field="phone" /></dd><dt>Website</dt><dd>{query.data.website||"—"}</dd><dt>Industry</dt><dd>{query.data.industry||"—"}</dd><dt>Services offered</dt><dd>{query.data.services_offered?.join(", ")||"—"}</dd><dt>Business type</dt><dd>{query.data.business_types?.join(", ")||"—"}</dd><dt>Status</dt><dd>{query.data.status}</dd></dl><ContactCommunicationPanel id={id} kind="company" source={source}/><section><h3>Contact persons</h3>{query.data.contacts?.length?query.data.contacts.map(x=><p key={x.id}>{x.name} · {x.email||"No email"}</p>):<p>No contact persons linked.</p>}</section>{query.data.canEdit&&<RelationshipEditor id={id} version={query.data.version||"0"} source={source} roles={query.data.relationships||[]} onSaved={()=>void query.refetch()}/>}<section><h3>Notes</h3><p>{query.data.notes||"No notes recorded."}</p></section><section><h3>Purchases & payables</h3><p>{query.data.financialNote}</p>{query.data.payables!==null&&query.data.payables!==undefined&&<p>Outstanding payables: {String(query.data.payables)}</p>}{query.data.purchases?.map(x=><p key={String(x.id)}>{String(x.number)} · {String(x.date)} · {String(x.total)} · {String(x.status)}</p>)}</section>{query.data.canEdit&&<Button variant="outline" onClick={()=>setEdit(true)}>Edit {recordLabel}</Button>}</div>{edit&&<CompanyQuickCreate source={source} recordLabel={recordLabel} initial={query.data} onClose={()=>setEdit(false)} onSaved={()=>{setEdit(false);void query.refetch();}}/>}</>}</>;
+  return inline ? <div className="md-company-profile">{content}</div> : <Dialog open onOpenChange={open=>{if(!open)onClose();}}><DialogContent className="md-quick-dialog md-company-profile" overlayClassName="md-suboverlay">{content}</DialogContent></Dialog>;
+}
+
+
+function CompanyStructuredFields({title,value,onChange,fields}:{title:string;value:string;onChange:(value:string)=>void;fields:string[]}) {
+ const rows=JSON.parse(value) as Record<string,string>[];
+ return <fieldset className="md-span"><legend>{title}</legend>{rows.map((row,i)=><div key={i} className="md-form-grid rounded border p-3 mb-2">{fields.map(field=><label key={field}>{field}<Input value={row[field]||""} onChange={e=>onChange(JSON.stringify(rows.map((x,n)=>n===i?{...x,[field]:e.target.value}:x)))}/></label>)}<Button type="button" variant="outline" onClick={()=>onChange(JSON.stringify(rows.filter((_,n)=>n!==i)))}>Remove</Button></div>)}<Button type="button" variant="outline" onClick={()=>onChange(JSON.stringify([...rows,{}]))}>Add {title.toLowerCase()}</Button></fieldset>;
+}
+
+export function CompanyProfile({id,source="crm",recordLabel="company",onClose,inline=false}: {id:number;source?:MasterSource;recordLabel?:string;onClose:()=>void;inline?:boolean}) {
+  const { term } = useBusinessTerms();
+  if(source==="hrms") return <LegacyCompanyProfile id={id} source={source} recordLabel={recordLabel} onClose={onClose} inline={inline}/>;
+  const content=<Record360Workspace key={`${source}:${id}`} kind="company" id={id} source={source} details={<LegacyCompanyProfile id={id} source={source} recordLabel={recordLabel} onClose={onClose} inline/>}/>;
+  return inline?content:<Dialog open onOpenChange={open=>{if(!open)onClose();}}><DialogContent className="r360-dialog"><DialogTitle>{term('customer')} 360</DialogTitle>{content}</DialogContent></Dialog>;
+}

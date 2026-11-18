@@ -38,11 +38,15 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
   const moduleKey = ({crm:"crm",hrms:"hrms",srm:"srm",fam:"fam",pms:"project_management"} as Record<string,string>)[pathname.split("/")[1]];
   const moduleGrant = user?.access?.grants[moduleKey];
   const notesGrant = user?.access?.grants.project_management;
+  // Opening the POS is navigation, not permission to create or collect a sale.
+  const posActions: NewAction[] = pathname.startsWith('/srm') && (!moduleGrant || moduleGrant.enabled || user?.is_superuser) && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)
+    ? [{label:'POS',description:'Open billing & point of sale',icon:Receipt,group:'Sales',menuPaths:['/srm/pos/terminal','/srm/pos'],onSelect:()=>navigate('/srm/pos/terminal')}] : [];
+
   const noteActions: NewAction[] = !pathname.startsWith("/pms") && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser) &&
     (user?.is_superuser || !user?.access?.managed || notesGrant?.enabled && notesGrant.actions.includes("create"))
     ? [{ label: "Note", description: "Create a note in the shared Notes workspace", icon: FileText, menuPaths: [sharedNotesPath], onSelect: () => routerNavigate(createSharedNotePath) }] : [];
-  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children(noteActions)}</> : <NewMenu actions={noteActions} />;
-  const actions: NewAction[] = [...noteActions];
+  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children([...posActions,...noteActions])}</> : <NewMenu actions={[...posActions,...noteActions]} />;
+  const actions: NewAction[] = [...posActions,...noteActions];
   const add = (label: string, description: string, icon: NewAction["icon"], path: string, allowed = true, disabled = false) => {
     if (allowed && (!moduleGrant || user?.is_superuser || moduleGrant.actions.includes("create") || ["Apply Leave", "Support ticket", "Correct Attendance", "Generate Letter"].includes(label)) && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, menuPaths: label === "Correct Attendance" ? [] : [path.split(/[?#]/)[0].replace(/\/(new|create)$/, "")], onSelect: () => navigate(path) });
   };
@@ -96,7 +100,6 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
     add("Add product", "Create a product in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=product", manages);
     add("Add service", "Create a service in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=service", manages);
-    add("POS", "Start a sale in the point of sale", Receipt, "/srm/pos/terminal", manages);
     const catalogAction = actions.find(action => action.label === "Add product");
     if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
   }

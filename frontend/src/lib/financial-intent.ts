@@ -1,6 +1,6 @@
 import { logicalIntentScope } from "./logical-intent-scope";
 const prefix = "suite-financial-intent-v1:";
-export function financialIntentKey(kind: "checkout" | "payment" | "refund" | "cash_movement", recordId?: number) {
+export function financialIntentKey(kind: "checkout" | "payment" | "invoice_payment" | "refund" | "cash_movement", recordId?: number) {
   return `${prefix}${JSON.stringify([logicalIntentScope(),kind,recordId ?? null])}`;
 }
 /** A damaged/unreadable recovery store is an opaque lock, never permission for a new request. */

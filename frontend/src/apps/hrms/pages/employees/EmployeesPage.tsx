@@ -290,7 +290,7 @@ function EmployeesPage() {
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create {term("employee").toLowerCase()}</Button>
+          <Link to="/hrms/employee-categories"><Button variant="outline" size="sm">Employee categories</Button></Link><Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create {term("employee").toLowerCase()}</Button>
         </CompactActions>
       </div>
 

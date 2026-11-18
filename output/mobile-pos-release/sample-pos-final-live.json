@@ -1,0 +1,213 @@
+{
+  "booking": [
+    {
+      "bounds": [
+        12.203125,
+        555.796875,
+        10,
+        310
+      ],
+      "clipped": [],
+      "employees": [
+        "Choose employee",
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled",
+        "DEMO Booking Network Support"
+      ],
+      "overflow": 0,
+      "page": [
+        320,
+        568
+      ],
+      "scrollContainers": 0,
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "bounds": [
+        48.203125,
+        591.796875,
+        10,
+        350
+      ],
+      "clipped": [],
+      "employees": [
+        "Choose employee",
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled",
+        "DEMO Booking Network Support"
+      ],
+      "overflow": 0,
+      "page": [
+        360,
+        640
+      ],
+      "scrollContainers": 0,
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "bounds": [
+        137.390625,
+        706.609375,
+        10,
+        380
+      ],
+      "clipped": [],
+      "employees": [
+        "Choose employee",
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled",
+        "DEMO Booking Network Support"
+      ],
+      "overflow": 0,
+      "page": [
+        390,
+        844
+      ],
+      "scrollContainers": 0,
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "bounds": [
+        181.390625,
+        750.609375,
+        10,
+        420
+      ],
+      "clipped": [],
+      "employees": [
+        "Choose employee",
+        "DEMO Booking Computer Repair",
+        "DEMO Booking Device Setup",
+        "DEMO Booking Multi Skilled",
+        "DEMO Booking Network Support"
+      ],
+      "overflow": 0,
+      "page": [
+        430,
+        932
+      ],
+      "scrollContainers": 0,
+      "viewport": [
+        430,
+        932
+      ]
+    }
+  ],
+  "cart": [
+    {
+      "cartHeight": 223,
+      "cartOverflow": 0,
+      "clippedButtons": [],
+      "lines": [
+        {
+          "bottom": 343.3125,
+          "height": 163.3125,
+          "inside": true,
+          "top": 180
+        }
+      ],
+      "page": [
+        320,
+        568
+      ],
+      "viewport": [
+        320,
+        568
+      ],
+      "workspace": [
+        0,
+        568
+      ]
+    },
+    {
+      "cartHeight": 272,
+      "cartOverflow": 0,
+      "clippedButtons": [],
+      "lines": [
+        {
+          "bottom": 368.28125,
+          "height": 169.28125,
+          "inside": true,
+          "top": 199
+        }
+      ],
+      "page": [
+        360,
+        640
+      ],
+      "viewport": [
+        360,
+        640
+      ],
+      "workspace": [
+        0,
+        640
+      ]
+    },
+    {
+      "cartHeight": 394,
+      "cartOverflow": 0,
+      "clippedButtons": [],
+      "lines": [
+        {
+          "bottom": 431.84375,
+          "height": 185.28125,
+          "inside": true,
+          "top": 246.5625
+        }
+      ],
+      "page": [
+        390,
+        844
+      ],
+      "viewport": [
+        390,
+        844
+      ],
+      "workspace": [
+        0,
+        844
+      ]
+    },
+    {
+      "cartHeight": 475,
+      "cartOverflow": 0,
+      "clippedButtons": [],
+      "lines": [
+        {
+          "bottom": 436.59375,
+          "height": 185.28125,
+          "inside": true,
+          "top": 251.3125
+        }
+      ],
+      "page": [
+        430,
+        932
+      ],
+      "viewport": [
+        430,
+        932
+      ],
+      "workspace": [
+        0,
+        932
+      ]
+    }
+  ],
+  "availableSlots": 39,
+  "selectedTime": "2026-11-19T10:00:00+05:30",
+  "appliedToCart": true
+}

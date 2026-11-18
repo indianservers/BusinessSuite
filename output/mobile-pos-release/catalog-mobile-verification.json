@@ -1,0 +1,28 @@
+{
+  "clippedControls": 0,
+  "release": "catalog-mobile-20261118",
+  "typecheck": "passed",
+  "liveRecordsCreated": 0,
+  "liveProductPages": 5,
+  "mockSaveAndConfigure": "passed",
+  "invalidFieldReveal": "passed",
+  "liveServicePages": 5,
+  "health": "healthy",
+  "keyboardViewport": "390x460",
+  "types": [
+    "product",
+    "service"
+  ],
+  "expandedFollowups": "passed",
+  "liveViewport": "390x844",
+  "optionalPricingImagesCustomFields": "passed",
+  "automatedSizes": [
+    "320x568",
+    "360x640",
+    "390x844",
+    "430x932",
+    "767x1024"
+  ],
+  "scrollContainers": 0,
+  "build": "passed"
+}
