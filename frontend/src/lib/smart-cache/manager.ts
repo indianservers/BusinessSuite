@@ -14,7 +14,7 @@ declare module 'axios' {
 }
 export type SyncStatus = { hits: number; misses: number; avoided: number; requests: number; updated: number; pending: number; bytes: number; lastSync: number; failures: number; error: string; health: 'idle' | 'syncing' | 'offline' | 'error'; views: number; diskBytes: number; networkRequests: number };
 export type Change = { key: string; url: string; old: unknown; data: unknown; module: string; entity: string };
-type Environment = { identity: () => string | null; changed: (change: Change) => void; revoked: (revalidate?: boolean) => void; used: (key: string, data: unknown) => void; active: (key: string) => boolean };
+type Environment = { identity: () => string | null; changed: (change: Change) => void; revoked: (revalidate?: boolean, scopeChanged?: boolean) => void; used: (key: string, data: unknown) => void; active: (key: string) => boolean };
 export class RecordCacheManager {
   private memory = new Map<string, Entry>();
   private flights = new Map<string, Promise<AxiosResponse>>();
@@ -79,7 +79,7 @@ export class RecordCacheManager {
   dispose() { this.stopped = true; clearTimeout(this.timer); this.channel?.close(); window.removeEventListener('online', this.wake); window.removeEventListener('focus', this.wake); document.removeEventListener('visibilitychange', this.wake); }
   contextChanged() {
     const next = this.env.identity();
-    if (next !== this.lastIdentity) { this.lastIdentity = next; const hadScope = Boolean(this.activeScope); void this.clear(); if (hadScope) this.env.revoked(); return hadScope; }
+    if (next !== this.lastIdentity) { this.lastIdentity = next; const hadScope = Boolean(this.activeScope); void this.clear(); if (hadScope) this.env.revoked(true, true); return hadScope; }
     return false;
   }
   async clear(broadcast = true, module?: string) {

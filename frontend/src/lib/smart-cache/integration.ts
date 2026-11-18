@@ -1,6 +1,6 @@
 import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import type { AxiosInstance } from 'axios';
-import type { QueryClient } from '@tanstack/react-query';
+import type { Query, QueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { selectedPackContext } from '@/lib/pack-context';
 import { shareRecordReferences } from './structural-sharing';
@@ -87,15 +87,19 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
     }
     window.dispatchEvent(new CustomEvent('suite:records-updated', { detail: change }));
   };
-  const revoke = (revalidate = true) => {
-      // Drop already-visible unauthorized records too; components retain their local UI state.
-      void client.cancelQueries().then(() => {
+  const revoke = (revalidate = true, scopeChanged = false) => {
+      // A new authority can mount queries while cancellation of the old one is
+      // settling. Scope changes must only reset the queries that existed then.
+      // Same-scope 401/403 handling still clears every currently visible query.
+      const previous = scopeChanged ? new Set(client.getQueryCache().getAll()) : undefined;
+      const affected = (query: Query) => !previous || previous.has(query);
+      void client.cancelQueries({ predicate: affected }).then(() => {
         if (!useAuthStore.getState().isAuthenticated) { client.clear(); return; }
-        for (const query of client.getQueryCache().getAll()) {
+        for (const query of client.getQueryCache().getAll().filter(affected)) {
           if (revalidate) query.reset();
           else query.setState({ data: undefined, error: new Error('Access to cached records is unavailable. Refresh after checking your permissions.'), status: 'error', fetchStatus: 'idle' });
         }
-        if (revalidate) return client.refetchQueries({ type: 'active' });
+        if (revalidate) return client.refetchQueries({ type: 'active', predicate: affected });
       });
       window.dispatchEvent(new CustomEvent('suite:record-access-changed', { detail: { revalidate } }));
     };
@@ -105,7 +109,7 @@ export function installRecordCache(api: AxiosInstance, client: QueryClient) {
     revoked: revoke,
   });
   let authorization = securityAuthStamp(useAuthStore.getState().user);
-  useAuthStore.subscribe(() => { const next = securityAuthStamp(useAuthStore.getState().user); const changed = next !== authorization; authorization = next; if (!recordCache.contextChanged() && changed) revoke(); });
+  useAuthStore.subscribe(() => { const next = securityAuthStamp(useAuthStore.getState().user); const changed = next !== authorization; authorization = next; if (!recordCache.contextChanged() && changed) revoke(true, true); });
   for (const event of ['suite:organization-changed', 'suite:branch-changed', 'suite:tenant-changed']) window.addEventListener(event, () => recordCache.contextChanged());
   window.addEventListener('suite:pack-context-changed', () => { if (!recordCache.contextChanged()) revoke(); });
   window.addEventListener('suite:record-push', event => { const module = (event as CustomEvent<{ module: string }>).detail?.module; void recordCache.syncModuleChanges(module, true); });
