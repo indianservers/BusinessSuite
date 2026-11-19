@@ -83,6 +83,12 @@ def canonical_route(request):
 
 def request_binding(actor,request):
     from .common_core import OPERATIONS
+    # Included canonical paths end with their server APIRoute path. Unrelated
+    # routes need no index scan. Candidates still pass exact alias checks below.
+    registered = request.scope.get('route')
+    if not isinstance(registered, APIRoute):return None
+    suffixes = {registered.path, registered.path_format}
+    if not any(method == request.method and any(path.endswith(suffix) for suffix in suffixes) for method, path in OPERATIONS):return None
     route=canonical_route(request)
     if (request.method,route) not in OPERATIONS:return None
     if OPERATIONS[(request.method,route)].purpose=='crm.company_master' and request.query_params.get('source','crm')!='crm':

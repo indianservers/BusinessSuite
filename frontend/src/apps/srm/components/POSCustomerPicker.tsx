@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 type Customer = {id:number; name:string; phone?:string;email?:string};
-export default function POSCustomerPicker({customers,value,onChange,loading,error}: {customers:Customer[];value:number;onChange:(id:number)=>void;loading?:boolean;error?:boolean}) {
+export default function POSCustomerPicker({customers,value,onChange,loading,error,onOpen}: {customers:Customer[];value:number;onChange:(id:number)=>void;loading?:boolean;error?:boolean;onOpen?:()=>void}) {
   const [search,setSearch] = useState(''), [open,setOpen] = useState(false);
   const { term } = useBusinessTerms();
   const trigger=useRef<HTMLButtonElement>(null);
@@ -17,7 +17,7 @@ export default function POSCustomerPicker({customers,value,onChange,loading,erro
   return <div className="pos-customer-identity min-w-0 flex-1">
     <span className="pos-customer-avatar">{selected?.id ? selected.name.split(' ').slice(0,2).map(part=>part[0]).join('') : <UserRound size={23}/>}</span>
     <div className="min-w-0 flex-1"><strong>{selected?.name || `Choose ${term('customer').toLowerCase()}`}</strong>{selected?.phone && <span className="block text-xs text-muted-foreground">{selected.phone}</span>}</div>
-    <Button ref={trigger} variant="outline" aria-label="Change sale customer" onClick={()=>setOpen(true)}><UserRound size={16}/>Change</Button>
+    <Button ref={trigger} variant="outline" aria-label="Change sale customer" onClick={()=>{onOpen?.();setOpen(true);}}><UserRound size={16}/>Change</Button>
     <Dialog open={open} onOpenChange={setOpen}><DialogContent onCloseAutoFocus={event=>{event.preventDefault();trigger.current?.focus();}}><DialogTitle>Choose {term('customer').toLowerCase()}</DialogTitle><DialogDescription>Search shared records by name, phone or code.</DialogDescription><div className="space-y-3">
     <Input aria-label="Search customers" placeholder="Customer name, phone or code" value={search} onChange={event=>setSearch(event.target.value)}/>
     <Select value={String(value)} loading={loading} error={error} onValueChange={value=>{onChange(Number(value));setOpen(false);}}><SelectTrigger aria-label="Sale customer"><SelectValue/></SelectTrigger><SelectContent>

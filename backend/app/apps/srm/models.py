@@ -947,3 +947,4 @@ class SRMSetting(Base):
 
 # Shared commercial relationships are additive; SRM remains the invoice ledger.
 from app.apps.srm.commercial_models import CustomerLink, ProjectCommercial, InvoiceContext, InvoiceDelivery, SellerGrant, TimeBillingAllocation, SalesTeamAssignment, MilestoneBillingSource, CommercialNumberSequence, ReceiptContext  # noqa: E402,F401
+from app.apps.srm.reporting_models import SRMReportView, SRMReportFlag, SRMReportJob, SRMReportSchedule  # noqa: E402,F401

@@ -1,0 +1,225 @@
+{
+  "release": "mobile-speed-sync-20261118-v3",
+  "status": "passed",
+  "method": "Live production, Chromium Pixel 7 emulation at 390x844, desktop CPU and unthrottled host network. Two independent cold browser contexts per page, each followed by a same-context full reload with cache retained. Authenticated; login, DNS and server cold-start excluded. Page timings run serially; warmed first-pair pages stay open concurrently for passive 60s idle and POS sync observations. Initial/API idle counts use request initiation time; static assets excluded. Repeat visits preserve the browser session rather than reinjecting stale actor metadata.",
+  "started": "2026-11-18T15:39:25.058Z",
+  "finished": "2026-11-18T15:43:24.982Z",
+  "backend_stable": true,
+  "backend_files_verified": 1505,
+  "preservation": {
+    "baseline": "reports-workspace-20261118-v2",
+    "changed": [
+      "frontend/src/main.tsx",
+      "frontend/src/apps/srm/industry/IndustryOperationsPage.tsx",
+      "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+      "frontend/src/components/ai-agents/ActionBot.tsx",
+      "frontend/src/components/layout/AppLayout.tsx",
+      "frontend/src/pages/settings/CentralSettingsRedirect.tsx"
+    ],
+    "unchanged": 1400
+  },
+  "screens": {
+    "appointments": {
+      "cold": {
+        "usable_ms": [
+          8997,
+          5630
+        ],
+        "median_usable_ms": 7313.5,
+        "api_requests_until_usable": [
+          12,
+          12
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          4436,
+          3956
+        ],
+        "median_usable_ms": 4196.0,
+        "api_requests_until_usable": [
+          10,
+          10
+        ]
+      },
+      "idle_60s": {
+        "name": "appointments",
+        "visibility": "visible",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/access/setup": 1,
+          "/api/v1/notifications/summary": 1
+        }
+      }
+    },
+    "scheduling": {
+      "cold": {
+        "usable_ms": [
+          6655,
+          6034
+        ],
+        "median_usable_ms": 6344.5,
+        "api_requests_until_usable": [
+          9,
+          9
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          3021,
+          4063
+        ],
+        "median_usable_ms": 3542.0,
+        "api_requests_until_usable": [
+          8,
+          8
+        ]
+      },
+      "idle_60s": {
+        "name": "scheduling",
+        "visibility": "visible",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/notifications/summary": 1,
+          "/api/v1/access/setup": 1
+        }
+      }
+    },
+    "pos": {
+      "cold": {
+        "usable_ms": [
+          12274,
+          8585
+        ],
+        "median_usable_ms": 10429.5,
+        "api_requests_until_usable": [
+          18,
+          18
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          3138,
+          10876
+        ],
+        "median_usable_ms": 7007.0,
+        "api_requests_until_usable": [
+          15,
+          15
+        ]
+      },
+      "idle_60s": {
+        "name": "pos",
+        "visibility": "visible",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/notifications/summary": 1,
+          "/api/v1/access/setup": 1
+        }
+      }
+    },
+    "product": {
+      "cold": {
+        "usable_ms": [
+          4253,
+          4881
+        ],
+        "median_usable_ms": 4567.0,
+        "api_requests_until_usable": [
+          10,
+          10
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          2600,
+          2613
+        ],
+        "median_usable_ms": 2606.5,
+        "api_requests_until_usable": [
+          8,
+          8
+        ]
+      },
+      "idle_60s": {
+        "name": "product",
+        "visibility": "visible",
+        "seconds": 60,
+        "count": 3,
+        "endpoints": {
+          "/api/v1/access/me": 1,
+          "/api/v1/notifications/summary": 1,
+          "/api/v1/access/setup": 1
+        }
+      }
+    }
+  },
+  "inventory_auto_sync": {
+    "initial": {
+      "key": "b04a88824cd0a96296b4ff971f4d47c7a5bcfed90ebad52508a60734c76f0014:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795016451009,
+      "rows": 52
+    },
+    "initial_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795016451009,
+      "rows": 52
+    },
+    "recheck": {
+      "at": 1795016595266,
+      "status": 304,
+      "mode": "unchanged",
+      "cache": "persist"
+    },
+    "delay_ms": 144257,
+    "updated": {
+      "key": "b04a88824cd0a96296b4ff971f4d47c7a5bcfed90ebad52508a60734c76f0014:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795016595265,
+      "rows": 52
+    },
+    "updated_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795016595265,
+      "rows": 52
+    },
+    "status": "passed",
+    "automatic": true,
+    "server_writes": false
+  },
+  "inventory_cached_reload": {
+    "status": "passed",
+    "usable_ms": 5689,
+    "blocked_inventory_network_attempts": 0,
+    "rows": 52,
+    "visible_cards": 4
+  },
+  "errors": [],
+  "api_errors": [],
+  "delivery": {
+    "asset": "/assets/index-BYWWarng.js",
+    "alpn": "h2",
+    "encoding": "gzip",
+    "uncompressed_bytes": 1583254,
+    "wire_compressed_bytes": 445018,
+    "reduction_percent": 71.9,
+    "decoded_content_identical": true,
+    "release": "mobile-speed-sync-20261118-v3"
+  },
+  "limitations": [
+    "Mobile Chromium emulation, not a physical handset or throttled 4G network.",
+    "Two cold/repeat pairs per screen; small observational sample, not p95.",
+    "Cold loads and POS repeat latency remain multiple seconds; do not treat as consistently fast.",
+    "Earlier interrupted measurements are retained separately and excluded from this stable set.",
+    "Production sync observed an unchanged server response; changed/add/remove inventory behavior also verified in deterministic cache regression tests."
+  ]
+}

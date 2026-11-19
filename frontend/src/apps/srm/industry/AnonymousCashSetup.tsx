@@ -9,13 +9,13 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { dealError } from '@/apps/crm/deals/deal-utils';
 
 export type AnonymousCashConfiguration = { schema_ready: boolean; configured: boolean; enabled: boolean; revision: number; label: string | null };
-export default function AnonymousCashSetup({ canConfigure }: { canConfigure: boolean }) {
+export default function AnonymousCashSetup({ canConfigure, enabled = true }: { canConfigure: boolean; enabled?: boolean }) {
   const scope = useRecordScope();
-  return <Setup key={scope} scope={scope} canConfigure={canConfigure}/>;
+  return <Setup key={scope} scope={scope} canConfigure={canConfigure} enabled={enabled}/>;
 }
-function Setup({ scope, canConfigure }: { scope: string; canConfigure: boolean }) {
+function Setup({ scope, canConfigure, enabled }: { scope: string; canConfigure: boolean; enabled: boolean }) {
   const owns = useRecordScopeOwner();
-  const query = useQuery({ queryKey: ['srm', 'anonymous-cash-configuration', scope], retry: false, queryFn: () => api.get<AnonymousCashConfiguration>('/srm/anonymous-cash/configuration').then(response => response.data) });
+  const query = useQuery({ enabled, queryKey: ['srm', 'anonymous-cash-configuration', scope], retry: false, queryFn: () => api.get<AnonymousCashConfiguration>('/srm/anonymous-cash/configuration').then(response => response.data) });
   const [open, setOpen] = useState(false), [action, setAction] = useState(''), [label, setLabel] = useState(''), [country, setCountry] = useState(''), [identity, setIdentity] = useState(''), [reason, setReason] = useState(''), [active, setActive] = useState(true);
   const [expectedRevision, setExpectedRevision] = useState(0);
   const mutation = useMutation({ mutationFn: async () => {

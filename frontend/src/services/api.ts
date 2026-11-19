@@ -3,6 +3,7 @@ import { securityAuthStamp } from "@/lib/security-auth-stamp";
 import { startRecordSync, finishRecordSync, confirmRecoveredSync } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
+import {startupReadPriority} from '@/lib/startup-read-priority';
 import { identityReadTransport } from '@/lib/identity-read-transport';
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
@@ -49,7 +50,13 @@ export const api = axios.create({
   timeout: 60000,
 });
 
-api.defaults.adapter = identityReadTransport(axios.getAdapter(api.defaults.adapter), config => api.getUri(config));
+api.defaults.adapter = startupReadPriority(identityReadTransport(axios.getAdapter(api.defaults.adapter), config => api.getUri(config)), () => {
+  const route=window.location.pathname.replace(/\/$/, '');
+  const branch=selectedBranch();
+  return useAuthStore.getState().isAuthenticated && branch && /^[1-9][0-9]*$/.test(branch)
+    && /^\/srm\/(?:appointments|service-scheduling|pos(?:\/terminal)?|inventory\/products)$/.test(route)
+    ? {route,scope:mutationScope()} : null;
+});
 
 // Request interceptor: attach access token
 api.interceptors.request.use(async (config) => {

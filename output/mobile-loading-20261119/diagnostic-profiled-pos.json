@@ -1,0 +1,4138 @@
+[
+  {
+    "sample": 1,
+    "visit": "cold",
+    "domElapsed": 769,
+    "waitElapsed": 9212,
+    "cardAt": 9167.100000000093,
+    "longTasks": [
+      {
+        "start": 768.1999999997206,
+        "duration": 397
+      },
+      {
+        "start": 4269.5,
+        "duration": 84
+      },
+      {
+        "start": 7436,
+        "duration": 152
+      },
+      {
+        "start": 8469.69999999972,
+        "duration": 74
+      },
+      {
+        "start": 9139.399999999907,
+        "duration": 55
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 767.6999999997206,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h2",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.10000000009313226,
+      "domainLookupStart": 3.5,
+      "domainLookupEnd": 6.699999999720603,
+      "connectStart": 6.699999999720603,
+      "secureConnectionStart": 17.699999999720603,
+      "connectEnd": 43.1999999997206,
+      "requestStart": 43.39999999990687,
+      "responseStart": 276.79999999981374,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 276.79999999981374,
+      "responseEnd": 277.6999999997206,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 53,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 164,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 0,
+      "unloadEventEnd": 0,
+      "domInteractive": 688.2999999998137,
+      "domContentLoadedEventStart": 767.2999999998137,
+      "domContentLoadedEventEnd": 767.2999999998137,
+      "domComplete": 767.6000000000931,
+      "loadEventStart": 767.6000000000931,
+      "loadEventEnd": 767.6999999997206,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 284,
+        "duration": 419.79999999981374,
+        "bytes": 446219,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 284.10000000009313,
+        "duration": 161,
+        "bytes": 61098,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 284.1999999997206,
+        "duration": 161,
+        "bytes": 36162,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 284.1999999997206,
+        "duration": 235.20000000018626,
+        "bytes": 132726,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 284.29999999981374,
+        "duration": 94.70000000018626,
+        "bytes": 84598,
+        "type": "link"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 284.29999999981374,
+        "duration": 218.20000000018626,
+        "bytes": 14504,
+        "type": "other"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 284.5,
+        "duration": 399.1999999997206,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 284.60000000009313,
+        "duration": 167.5,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 286.5,
+        "duration": 397.39999999990687,
+        "bytes": 42800,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 286.6999999997206,
+        "duration": 397.20000000018626,
+        "bytes": 629,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 286.6999999997206,
+        "duration": 397.40000000037253,
+        "bytes": 4126,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 286.79999999981374,
+        "duration": 397.3000000002794,
+        "bytes": 1336,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 286.79999999981374,
+        "duration": 397.3000000002794,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 286.89999999990687,
+        "duration": 397.29999999981374,
+        "bytes": 616,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 287,
+        "duration": 397.29999999981374,
+        "bytes": 2674,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 287.10000000009313,
+        "duration": 397.29999999981374,
+        "bytes": 1043,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 287.10000000009313,
+        "duration": 397.29999999981374,
+        "bytes": 11821,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 287.1999999997206,
+        "duration": 397.3000000002794,
+        "bytes": 731,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 287.29999999981374,
+        "duration": 397.3000000002794,
+        "bytes": 1381,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 287.29999999981374,
+        "duration": 397.3000000002794,
+        "bytes": 16750,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 287.39999999990687,
+        "duration": 397.29999999981374,
+        "bytes": 5032,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 287.5,
+        "duration": 412.6999999997206,
+        "bytes": 36455,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 287.5,
+        "duration": 413.60000000009313,
+        "bytes": 1705,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 287.6999999997206,
+        "duration": 413.20000000018626,
+        "bytes": 1296,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 287.79999999981374,
+        "duration": 413.5,
+        "bytes": 1575,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 287.89999999990687,
+        "duration": 413.29999999981374,
+        "bytes": 2008,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 287.89999999990687,
+        "duration": 413.70000000018626,
+        "bytes": 1784,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 288,
+        "duration": 413.5,
+        "bytes": 2230,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 288.10000000009313,
+        "duration": 413.29999999981374,
+        "bytes": 865,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 288.10000000009313,
+        "duration": 413.79999999981374,
+        "bytes": 2302,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 288.1999999997206,
+        "duration": 414.20000000018626,
+        "bytes": 1948,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 288.29999999981374,
+        "duration": 413.89999999990687,
+        "bytes": 667,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 288.29999999981374,
+        "duration": 413.70000000018626,
+        "bytes": 805,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 288.29999999981374,
+        "duration": 414.3000000002794,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 288.39999999990687,
+        "duration": 414,
+        "bytes": 639,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 288.5,
+        "duration": 414.29999999981374,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 288.60000000009313,
+        "duration": 414.29999999981374,
+        "bytes": 606,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 288.60000000009313,
+        "duration": 414.5,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 908,
+        "duration": 36,
+        "bytes": 3212,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 908.1000000000931,
+        "duration": 36.1999999997206,
+        "bytes": 1479,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 908.1999999997206,
+        "duration": 114.40000000037253,
+        "bytes": 3254,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 908.2999999998137,
+        "duration": 24,
+        "bytes": 13584,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 922.6000000000931,
+        "duration": 32.6999999997206,
+        "bytes": 7052,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 922.6999999997206,
+        "duration": 37.8000000002794,
+        "bytes": 517,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 922.8999999999069,
+        "duration": 36.10000000009313,
+        "bytes": 586,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 923,
+        "duration": 35.60000000009313,
+        "bytes": 1055,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 923.1999999997206,
+        "duration": 34.90000000037253,
+        "bytes": 2888,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 923.2999999998137,
+        "duration": 35.10000000009313,
+        "bytes": 424,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 1141.3999999999069,
+        "duration": 3083.7000000001863,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/settings/defaults/effective",
+        "start": 1160,
+        "duration": 6617.5,
+        "bytes": 1130,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 1164.6999999997206,
+        "duration": 3072.4000000003725,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 1165.1000000000931,
+        "duration": 6270.5999999996275,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 1165.2999999998137,
+        "duration": 4373.200000000186,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 1178.1000000000931,
+        "duration": 37.89999999990687,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 1287.6999999997206,
+        "duration": 7171.200000000186,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 1288.1000000000931,
+        "duration": 5917,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 3653.2999999998137,
+        "duration": 4267.300000000279,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 3654.7999999998137,
+        "duration": 4913.5,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 3655.100000000093,
+        "duration": 4910.299999999814,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/inventory/items",
+        "start": 8603.100000000093,
+        "duration": 514.7999999998137,
+        "bytes": 3100,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 9208.600000000093,
+        "duration": -31.90000000037253,
+        "bytes": 72897,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 1,
+    "visit": "repeat",
+    "domElapsed": 1165,
+    "waitElapsed": 7033,
+    "cardAt": 6897.399999999907,
+    "longTasks": [
+      {
+        "start": 1164.5,
+        "duration": 200
+      },
+      {
+        "start": 4115,
+        "duration": 83
+      },
+      {
+        "start": 5333.799999999814,
+        "duration": 149
+      },
+      {
+        "start": 6780,
+        "duration": 60
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 1164.2000000001863,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h3",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.20000000018626451,
+      "domainLookupStart": 0.20000000018626451,
+      "domainLookupEnd": 0.20000000018626451,
+      "connectStart": 0.20000000018626451,
+      "secureConnectionStart": 0.20000000018626451,
+      "connectEnd": 0.20000000018626451,
+      "requestStart": 1.1000000000931323,
+      "responseStart": 531.2999999998137,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 531.2999999998137,
+      "responseEnd": 531.7000000001863,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 51,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 57,
+          "description": ""
+        },
+        {
+          "name": "cfExtPri",
+          "duration": 0,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 534.3999999999069,
+      "unloadEventEnd": 534.3999999999069,
+      "domInteractive": 1148.7999999998137,
+      "domContentLoadedEventStart": 1163.6000000000931,
+      "domContentLoadedEventEnd": 1163.6000000000931,
+      "domComplete": 1164.1000000000931,
+      "loadEventStart": 1164.1000000000931,
+      "loadEventEnd": 1164.2000000001863,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 539.2999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 539.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 539.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 539.6000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 539.6000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 539.7999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 539.7999999998137,
+        "duration": 608.2000000001863,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 539.8999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 541.7000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 542,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 542.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 542.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 542.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 542.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 542.6000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 542.7000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 542.7999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 542.8999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 542.8999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 543.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 543.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 543.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 543.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 543.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 543.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 543.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 543.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 543.6000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 543.7000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 543.7999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 543.8999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 544,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 544,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 544.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 544.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 544.2999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 544.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 544.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 1264.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 1264.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 1264.6000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 1264.7999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 1277.8999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 1278.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 1278.1000000000931,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 1278.2000000001863,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 1278.2999999998137,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 1278.3999999999069,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 1344.7000000001863,
+        "duration": 2747.899999999907,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 1364.3999999999069,
+        "duration": 2728.3000000002794,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 1364.7999999998137,
+        "duration": 3968.7000000001863,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 1365,
+        "duration": 2308.899999999907,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 1402.5,
+        "duration": 296.79999999981374,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 1487.8999999999069,
+        "duration": 5280.399999999907,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 1488.2000000001863,
+        "duration": 2604.1999999997206,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 3853.2000000001863,
+        "duration": 2746.2999999998137,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 3854.899999999907,
+        "duration": 2833.600000000093,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 3855.100000000093,
+        "duration": 3029.100000000093,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 6924,
+        "duration": -57.200000000186265,
+        "bytes": 0,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 2,
+    "visit": "cold",
+    "domElapsed": 658,
+    "waitElapsed": 14226,
+    "cardAt": 14077.399999999907,
+    "longTasks": [
+      {
+        "start": 657.5999999996275,
+        "duration": 378
+      },
+      {
+        "start": 6651,
+        "duration": 88
+      },
+      {
+        "start": 9312.299999999814,
+        "duration": 154
+      },
+      {
+        "start": 11424.5,
+        "duration": 80
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 657.2999999998137,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h2",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.09999999962747097,
+      "domainLookupStart": 0.8999999999068677,
+      "domainLookupEnd": 1.2999999998137355,
+      "connectStart": 1.2999999998137355,
+      "secureConnectionStart": 12.699999999720603,
+      "connectEnd": 32.59999999962747,
+      "requestStart": 32.6999999997206,
+      "responseStart": 175,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 175,
+      "responseEnd": 175.79999999981374,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 69,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 57,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 0,
+      "unloadEventEnd": 0,
+      "domInteractive": 513.1999999997206,
+      "domContentLoadedEventStart": 657.0999999996275,
+      "domContentLoadedEventEnd": 657.0999999996275,
+      "domComplete": 657.0999999996275,
+      "loadEventStart": 657.0999999996275,
+      "loadEventEnd": 657.2999999998137,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 181.09999999962747,
+        "duration": 418.3000000002794,
+        "bytes": 446219,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 181.29999999981374,
+        "duration": 93.89999999990687,
+        "bytes": 36162,
+        "type": "other"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 181.29999999981374,
+        "duration": 197.89999999990687,
+        "bytes": 61098,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 181.29999999981374,
+        "duration": 269.39999999990687,
+        "bytes": 132726,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 181.39999999990687,
+        "duration": 330.10000000009313,
+        "bytes": 14504,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 181.59999999962747,
+        "duration": 197.40000000037253,
+        "bytes": 84598,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 181.6999999997206,
+        "duration": 330,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 181.79999999981374,
+        "duration": 133.20000000018626,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 183.09999999962747,
+        "duration": 393,
+        "bytes": 42800,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 183.29999999981374,
+        "duration": 393,
+        "bytes": 629,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 183.39999999990687,
+        "duration": 97.1999999997206,
+        "bytes": 4126,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 183.5,
+        "duration": 116.59999999962747,
+        "bytes": 1336,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 183.59999999962747,
+        "duration": 392.90000000037253,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 183.59999999962747,
+        "duration": 393,
+        "bytes": 616,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 183.6999999997206,
+        "duration": 393.20000000018626,
+        "bytes": 1043,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 183.6999999997206,
+        "duration": 393.10000000009313,
+        "bytes": 2674,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 183.79999999981374,
+        "duration": 393.20000000018626,
+        "bytes": 11821,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 183.79999999981374,
+        "duration": 414.5,
+        "bytes": 731,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 183.89999999990687,
+        "duration": 414.60000000009313,
+        "bytes": 1381,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 184,
+        "duration": 414.6999999997206,
+        "bytes": 16750,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 184,
+        "duration": 414.6999999997206,
+        "bytes": 5032,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 184.09999999962747,
+        "duration": 91.5,
+        "bytes": 1705,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 184.09999999962747,
+        "duration": 115.10000000009313,
+        "bytes": 36455,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 184.29999999981374,
+        "duration": 96.60000000009313,
+        "bytes": 2008,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 184.29999999981374,
+        "duration": 115.39999999990687,
+        "bytes": 1575,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 184.29999999981374,
+        "duration": 414.39999999990687,
+        "bytes": 1296,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 184.5,
+        "duration": 414.29999999981374,
+        "bytes": 2230,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 184.5,
+        "duration": 414.29999999981374,
+        "bytes": 1784,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 184.5,
+        "duration": 414.39999999990687,
+        "bytes": 865,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 184.59999999962747,
+        "duration": 414.3000000002794,
+        "bytes": 2302,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 184.6999999997206,
+        "duration": 116,
+        "bytes": 1948,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 184.79999999981374,
+        "duration": 115.60000000009313,
+        "bytes": 805,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 184.79999999981374,
+        "duration": 414.20000000018626,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 184.79999999981374,
+        "duration": 414.29999999981374,
+        "bytes": 664,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 184.89999999990687,
+        "duration": 414.1999999997206,
+        "bytes": 639,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 184.89999999990687,
+        "duration": 414.29999999981374,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 184.89999999990687,
+        "duration": 414.39999999990687,
+        "bytes": 606,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 185,
+        "duration": 414.29999999981374,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 789.1999999997206,
+        "duration": 46.8000000002794,
+        "bytes": 3212,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 789.3999999999069,
+        "duration": 60.5,
+        "bytes": 1479,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 789.5,
+        "duration": 45.39999999990687,
+        "bytes": 3254,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 789.5999999996275,
+        "duration": 52.3000000002794,
+        "bytes": 13581,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 803,
+        "duration": 46.5,
+        "bytes": 7052,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 803.1999999997206,
+        "duration": 37.60000000009313,
+        "bytes": 589,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 803.1999999997206,
+        "duration": 42.3000000002794,
+        "bytes": 517,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 803.2999999998137,
+        "duration": 33.89999999990687,
+        "bytes": 1055,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 803.3999999999069,
+        "duration": 33.1999999997206,
+        "bytes": 2888,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 803.5,
+        "duration": 48.799999999813735,
+        "bytes": 421,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 1013.7999999998137,
+        "duration": 8803,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/settings/defaults/effective",
+        "start": 1032.2999999998137,
+        "duration": 5623.200000000186,
+        "bytes": 1130,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 1035.5,
+        "duration": 5605.399999999907,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 1035.8999999999069,
+        "duration": 8276.19999999972,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 1036.1999999997206,
+        "duration": 7700.899999999907,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 1048.6999999997206,
+        "duration": 32.39999999990687,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 1153.3999999999069,
+        "duration": 10259.100000000093,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 1153.6999999997206,
+        "duration": 7306.200000000186,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 3525.6999999997206,
+        "duration": 7520.5,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 3527.2999999998137,
+        "duration": 7842,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 3527.6999999997206,
+        "duration": 8077.700000000186,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/inventory/items",
+        "start": 11541.299999999814,
+        "duration": 2484.600000000093,
+        "bytes": 3100,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 14108.899999999907,
+        "duration": -16.899999999906868,
+        "bytes": 72816,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 2,
+    "visit": "repeat",
+    "domElapsed": 271,
+    "waitElapsed": 14696,
+    "cardAt": 14651.100000000093,
+    "longTasks": [
+      {
+        "start": 270.1999999997206,
+        "duration": 197
+      },
+      {
+        "start": 10295.799999999814,
+        "duration": 90
+      },
+      {
+        "start": 12724.19999999972,
+        "duration": 157
+      },
+      {
+        "start": 14522.799999999814,
+        "duration": 67
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 269.89999999990687,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h3",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.19999999972060323,
+      "domainLookupStart": 0.19999999972060323,
+      "domainLookupEnd": 0.19999999972060323,
+      "connectStart": 0.19999999972060323,
+      "secureConnectionStart": 0.19999999972060323,
+      "connectEnd": 0.19999999972060323,
+      "requestStart": 1,
+      "responseStart": 135.79999999981374,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 135.79999999981374,
+      "responseEnd": 138.1999999997206,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 61,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 57,
+          "description": ""
+        },
+        {
+          "name": "cfExtPri",
+          "duration": 0,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 138.5,
+      "unloadEventEnd": 138.5,
+      "domInteractive": 256.10000000009313,
+      "domContentLoadedEventStart": 269.5,
+      "domContentLoadedEventEnd": 269.5,
+      "domComplete": 269.6999999997206,
+      "loadEventStart": 269.79999999981374,
+      "loadEventEnd": 269.89999999990687,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 142.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 142.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 142.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 142.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 142.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 142.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 142.60000000009313,
+        "duration": 112.59999999962747,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 142.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 144.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 144.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 144.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 144.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 144.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 145.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 145.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 145.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 145.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 145.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 145.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 145.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 145.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 145.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 146,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 146.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 146.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 146.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 146.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 146.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 146.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 146.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 146.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 147,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 147.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 147.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 147.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 147.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 147.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 147.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 372.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 372.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 373,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 373.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 383.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 383.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 383.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 383.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 383.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 383.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 449,
+        "duration": 12405.69999999972,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 467.1999999997206,
+        "duration": 9817.200000000186,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 467.79999999981374,
+        "duration": 12256.100000000093,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 468,
+        "duration": 11287.399999999907,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 502.79999999981374,
+        "duration": 18.600000000093132,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 588.6999999997206,
+        "duration": 13922.900000000373,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 589,
+        "duration": 11164.19999999972,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 2957,
+        "duration": 10940.19999999972,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 2958.399999999907,
+        "duration": 11499.200000000186,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 2958.600000000093,
+        "duration": 11507.099999999627,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 14678.19999999972,
+        "duration": -55.299999999813735,
+        "bytes": 0,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 3,
+    "visit": "cold",
+    "domElapsed": 654,
+    "waitElapsed": 15268,
+    "cardAt": 15161.69999999972,
+    "longTasks": [
+      {
+        "start": 653.2999999998137,
+        "duration": 406
+      },
+      {
+        "start": 1078.1999999997206,
+        "duration": 56
+      },
+      {
+        "start": 7577,
+        "duration": 92
+      },
+      {
+        "start": 9331.19999999972,
+        "duration": 167
+      },
+      {
+        "start": 12955.399999999907,
+        "duration": 84
+      },
+      {
+        "start": 15126.600000000093,
+        "duration": 66
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 653,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h2",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0,
+      "domainLookupStart": 1,
+      "domainLookupEnd": 1.3999999999068677,
+      "connectStart": 1.3999999999068677,
+      "secureConnectionStart": 13.299999999813735,
+      "connectEnd": 68.5,
+      "requestStart": 68.60000000009313,
+      "responseStart": 225.10000000009313,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 225.10000000009313,
+      "responseEnd": 231.5,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 55,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 61,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 0,
+      "unloadEventEnd": 0,
+      "domInteractive": 498.60000000009313,
+      "domContentLoadedEventStart": 652.6999999997206,
+      "domContentLoadedEventEnd": 652.7999999998137,
+      "domComplete": 652.7999999998137,
+      "loadEventStart": 652.7999999998137,
+      "loadEventEnd": 653,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 232.10000000009313,
+        "duration": 360.29999999981374,
+        "bytes": 446219,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 232.1999999997206,
+        "duration": 133.70000000018626,
+        "bytes": 61098,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 232.29999999981374,
+        "duration": 46.89999999990687,
+        "bytes": 36162,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 232.39999999990687,
+        "duration": 33.799999999813735,
+        "bytes": 14504,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 232.39999999990687,
+        "duration": 170.29999999981374,
+        "bytes": 132726,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 232.5,
+        "duration": 110.39999999990687,
+        "bytes": 84598,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 232.5,
+        "duration": 262.79999999981374,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 232.60000000009313,
+        "duration": 104.5,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 233.89999999990687,
+        "duration": 261.60000000009313,
+        "bytes": 42800,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 234.1999999997206,
+        "duration": 261.40000000037253,
+        "bytes": 629,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 234.29999999981374,
+        "duration": 45.39999999990687,
+        "bytes": 1336,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 234.29999999981374,
+        "duration": 261.5,
+        "bytes": 4126,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 234.39999999990687,
+        "duration": 32,
+        "bytes": 616,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 234.39999999990687,
+        "duration": 261.39999999990687,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 234.5,
+        "duration": 32.1999999997206,
+        "bytes": 2674,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 234.5,
+        "duration": 261.5,
+        "bytes": 1043,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 234.60000000009313,
+        "duration": 45.299999999813735,
+        "bytes": 731,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 234.60000000009313,
+        "duration": 261.5,
+        "bytes": 11821,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 234.6999999997206,
+        "duration": 261.5,
+        "bytes": 1381,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 234.6999999997206,
+        "duration": 316.10000000009313,
+        "bytes": 16750,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 234.79999999981374,
+        "duration": 316.20000000018626,
+        "bytes": 5032,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 234.79999999981374,
+        "duration": 355.60000000009313,
+        "bytes": 36455,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 234.89999999990687,
+        "duration": 355.70000000018626,
+        "bytes": 1705,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 235,
+        "duration": 355.60000000009313,
+        "bytes": 1296,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 235.10000000009313,
+        "duration": 355.6999999997206,
+        "bytes": 1575,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 235.1999999997206,
+        "duration": 355.60000000009313,
+        "bytes": 1784,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 235.1999999997206,
+        "duration": 355.70000000018626,
+        "bytes": 2230,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 235.1999999997206,
+        "duration": 355.70000000018626,
+        "bytes": 2008,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 235.29999999981374,
+        "duration": 355.8000000002794,
+        "bytes": 865,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 235.29999999981374,
+        "duration": 356,
+        "bytes": 1948,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 235.29999999981374,
+        "duration": 355.89999999990687,
+        "bytes": 2302,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 235.39999999990687,
+        "duration": 355.70000000018626,
+        "bytes": 805,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 235.39999999990687,
+        "duration": 356,
+        "bytes": 664,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 235.60000000009313,
+        "duration": 356.09999999962747,
+        "bytes": 639,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 235.60000000009313,
+        "duration": 355.79999999981374,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 235.6999999997206,
+        "duration": 355.90000000037253,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 235.6999999997206,
+        "duration": 356.10000000009313,
+        "bytes": 606,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 235.79999999981374,
+        "duration": 355.89999999990687,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 790.6000000000931,
+        "duration": 41.5,
+        "bytes": 3212,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 790.7999999998137,
+        "duration": 46,
+        "bytes": 1479,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 790.8999999999069,
+        "duration": 19.799999999813735,
+        "bytes": 3254,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 791.1000000000931,
+        "duration": 58.1999999997206,
+        "bytes": 13581,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 805,
+        "duration": 38.10000000009313,
+        "bytes": 7052,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 805.1000000000931,
+        "duration": 30.59999999962747,
+        "bytes": 517,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 805.1999999997206,
+        "duration": 27.300000000279397,
+        "bytes": 586,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 805.2999999998137,
+        "duration": 67.5,
+        "bytes": 1055,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 805.5,
+        "duration": 41.39999999990687,
+        "bytes": 2888,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 805.6000000000931,
+        "duration": 31.699999999720603,
+        "bytes": 421,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 1036.1999999997206,
+        "duration": 7651.4000000003725,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/settings/defaults/effective",
+        "start": 1054.7999999998137,
+        "duration": 9945,
+        "bytes": 1130,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 1058.6000000000931,
+        "duration": 6506.199999999721,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 1059.1000000000931,
+        "duration": 8271.799999999814,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 1059.2999999998137,
+        "duration": 7815.700000000186,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 1071.1000000000931,
+        "duration": 78.59999999962747,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 1239.8999999999069,
+        "duration": 11679.299999999814,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 1240.3999999999069,
+        "duration": 6133.600000000093,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 3554.1999999997206,
+        "duration": 6891.600000000093,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 3555.899999999907,
+        "duration": 9362.5,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 3556.100000000093,
+        "duration": 9557.299999999814,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/inventory/items",
+        "start": 13074.600000000093,
+        "duration": 2024.3999999999069,
+        "bytes": 3100,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 15205.299999999814,
+        "duration": -35.10000000009313,
+        "bytes": 72897,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 3,
+    "visit": "repeat",
+    "domElapsed": 257,
+    "waitElapsed": 12558,
+    "cardAt": 12383.399999999907,
+    "longTasks": [
+      {
+        "start": 256,
+        "duration": 206
+      },
+      {
+        "start": 6686.600000000093,
+        "duration": 89
+      },
+      {
+        "start": 11758.399999999907,
+        "duration": 164
+      },
+      {
+        "start": 12221.899999999907,
+        "duration": 74
+      },
+      {
+        "start": 12353.399999999907,
+        "duration": 62
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 255.79999999981374,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h3",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.19999999972060323,
+      "domainLookupStart": 0.19999999972060323,
+      "domainLookupEnd": 0.19999999972060323,
+      "connectStart": 0.19999999972060323,
+      "secureConnectionStart": 0.19999999972060323,
+      "connectEnd": 0.19999999972060323,
+      "requestStart": 0.8999999999068677,
+      "responseStart": 113.29999999981374,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 113.29999999981374,
+      "responseEnd": 113.79999999981374,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 39,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 56,
+          "description": ""
+        },
+        {
+          "name": "cfExtPri",
+          "duration": 0,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 116.29999999981374,
+      "unloadEventEnd": 116.29999999981374,
+      "domInteractive": 237.29999999981374,
+      "domContentLoadedEventStart": 255.39999999990687,
+      "domContentLoadedEventEnd": 255.39999999990687,
+      "domComplete": 255.6999999997206,
+      "loadEventStart": 255.6999999997206,
+      "loadEventEnd": 255.79999999981374,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 120.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 120.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 120.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 120.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 120.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 120.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 120.89999999990687,
+        "duration": 115.39999999990687,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 121.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 122.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 122.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 122.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 122.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 123,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 123,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 123.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 123.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 123.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 123.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 123.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 123.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 123.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 123.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 123.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 123.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 123.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 123.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 124,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 124.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 124.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 124.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 124.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 124.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 124.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 124.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 124.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 124.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 124.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 124.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 361.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 362.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 362.1999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 362.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 372.6999999997206,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 372.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 373,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 373,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 373,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 373.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 440.89999999990687,
+        "duration": 10346,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 462.1999999997206,
+        "duration": 6213.300000000279,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 462.60000000009313,
+        "duration": 11295.5,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 462.79999999981374,
+        "duration": 10322.5,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 498.39999999990687,
+        "duration": 16.200000000186265,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 606.7999999998137,
+        "duration": 11601.600000000093,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 607.1999999997206,
+        "duration": 7728.100000000093,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 2957.7999999998137,
+        "duration": 8849.200000000186,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 2959.100000000093,
+        "duration": 9178.299999999814,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 2959.2999999998137,
+        "duration": 9347.30000000028,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 12419.19999999972,
+        "duration": -72.09999999962747,
+        "bytes": 0,
+        "type": "other"
+      }
+    ]
+  },
+  {
+    "sample": 4,
+    "visit": "cold",
+    "domElapsed": 626,
+    "waitElapsed": 23474,
+    "cardAt": 23428.399999999907,
+    "longTasks": [
+      {
+        "start": 626.2999999998137,
+        "duration": 422
+      },
+      {
+        "start": 1076.0999999996275,
+        "duration": 57
+      },
+      {
+        "start": 21610.299999999814,
+        "duration": 91
+      },
+      {
+        "start": 22302.69999999972,
+        "duration": 150
+      },
+      {
+        "start": 22645.399999999907,
+        "duration": 77
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 625.8999999999069,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h2",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.09999999962747097,
+      "domainLookupStart": 1,
+      "domainLookupEnd": 1.3999999999068677,
+      "connectStart": 1.3999999999068677,
+      "secureConnectionStart": 20,
+      "connectEnd": 40.89999999990687,
+      "requestStart": 41,
+      "responseStart": 177,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 177,
+      "responseEnd": 177.39999999990687,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 60,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 56,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 0,
+      "unloadEventEnd": 0,
+      "domInteractive": 534.0999999996275,
+      "domContentLoadedEventStart": 625.3999999999069,
+      "domContentLoadedEventEnd": 625.3999999999069,
+      "domComplete": 625.6999999997206,
+      "loadEventStart": 625.6999999997206,
+      "loadEventEnd": 625.8999999999069,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 182.59999999962747,
+        "duration": 190.3000000002794,
+        "bytes": 61098,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 182.59999999962747,
+        "duration": 378.90000000037253,
+        "bytes": 446219,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 182.6999999997206,
+        "duration": 107.60000000009313,
+        "bytes": 36162,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 182.79999999981374,
+        "duration": 261.29999999981374,
+        "bytes": 132726,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 182.79999999981374,
+        "duration": 350,
+        "bytes": 14504,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 182.89999999990687,
+        "duration": 189.5,
+        "bytes": 84598,
+        "type": "link"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 183.09999999962747,
+        "duration": 160.5,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 183.09999999962747,
+        "duration": 349.8000000002794,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 184.5,
+        "duration": 377.1999999997206,
+        "bytes": 42800,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 184.6999999997206,
+        "duration": 377,
+        "bytes": 629,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 184.79999999981374,
+        "duration": 377,
+        "bytes": 4126,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 184.79999999981374,
+        "duration": 377.20000000018626,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 184.79999999981374,
+        "duration": 377.10000000009313,
+        "bytes": 1336,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 184.89999999990687,
+        "duration": 377.10000000009313,
+        "bytes": 2674,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 184.89999999990687,
+        "duration": 377.10000000009313,
+        "bytes": 616,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 185,
+        "duration": 377.1999999997206,
+        "bytes": 1043,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 185.09999999962747,
+        "duration": 377.10000000009313,
+        "bytes": 11821,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 185.1999999997206,
+        "duration": 377.3000000002794,
+        "bytes": 1381,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 185.1999999997206,
+        "duration": 377.10000000009313,
+        "bytes": 731,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 185.1999999997206,
+        "duration": 377.20000000018626,
+        "bytes": 16750,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 185.1999999997206,
+        "duration": 384.89999999990687,
+        "bytes": 5032,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 185.29999999981374,
+        "duration": 384.5,
+        "bytes": 36455,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 185.39999999990687,
+        "duration": 384.79999999981374,
+        "bytes": 1705,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 185.5,
+        "duration": 385,
+        "bytes": 1575,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 185.5,
+        "duration": 384.89999999990687,
+        "bytes": 1296,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 185.5,
+        "duration": 385.29999999981374,
+        "bytes": 2008,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 185.59999999962747,
+        "duration": 385,
+        "bytes": 1784,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 185.6999999997206,
+        "duration": 385.5,
+        "bytes": 865,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 185.6999999997206,
+        "duration": 385.20000000018626,
+        "bytes": 2230,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 185.6999999997206,
+        "duration": 385.3000000002794,
+        "bytes": 2302,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 185.79999999981374,
+        "duration": 385.29999999981374,
+        "bytes": 1948,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 185.89999999990687,
+        "duration": 385.39999999990687,
+        "bytes": 805,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 186,
+        "duration": 385.5,
+        "bytes": 664,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 186.09999999962747,
+        "duration": 385.60000000009313,
+        "bytes": 611,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 186.1999999997206,
+        "duration": 385.60000000009313,
+        "bytes": 639,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 186.39999999990687,
+        "duration": 385.60000000009313,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 186.5,
+        "duration": 385.59999999962747,
+        "bytes": 606,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 186.59999999962747,
+        "duration": 385.70000000018626,
+        "bytes": 594,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 773.6999999997206,
+        "duration": 70.39999999990687,
+        "bytes": 3212,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 773.8999999999069,
+        "duration": 29.899999999906868,
+        "bytes": 1479,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 773.8999999999069,
+        "duration": 41.39999999990687,
+        "bytes": 3254,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 774,
+        "duration": 30.699999999720603,
+        "bytes": 13581,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 788.3999999999069,
+        "duration": 57.39999999990687,
+        "bytes": 7052,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 788.3999999999069,
+        "duration": 57.6999999997206,
+        "bytes": 517,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 788.5999999996275,
+        "duration": 57.3000000002794,
+        "bytes": 586,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 788.6999999997206,
+        "duration": 63.700000000186265,
+        "bytes": 1055,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 788.7999999998137,
+        "duration": 57.200000000186265,
+        "bytes": 2888,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 788.8999999999069,
+        "duration": 56.6999999997206,
+        "bytes": 421,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 1020.0999999996275,
+        "duration": 20509.100000000093,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/settings/defaults/effective",
+        "start": 1043.8999999999069,
+        "duration": 21041.299999999814,
+        "bytes": 1130,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 1048.0999999996275,
+        "duration": 20553.700000000186,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 1048.6999999997206,
+        "duration": 21253.600000000093,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 1049,
+        "duration": 20913,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 1066.3999999999069,
+        "duration": 18.199999999720603,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 1232.5999999996275,
+        "duration": 21401.400000000373,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 1233.0999999996275,
+        "duration": 20646.600000000093,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/enterprise/branding",
+        "start": 3534,
+        "duration": 18614,
+        "bytes": 397,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/notifications/summary",
+        "start": 3536,
+        "duration": 19076,
+        "bytes": 557,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/setup",
+        "start": 3536.2999999998137,
+        "duration": 19260.899999999907,
+        "bytes": 1564,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/inventory/items",
+        "start": 22755.69999999972,
+        "duration": 623.5,
+        "bytes": 3100,
+        "type": "xmlhttprequest"
+      }
+    ]
+  },
+  {
+    "sample": 4,
+    "visit": "repeat",
+    "domElapsed": 280,
+    "waitElapsed": 2593,
+    "cardAt": 2233.899999999907,
+    "longTasks": [
+      {
+        "start": 278.60000000009313,
+        "duration": 249
+      },
+      {
+        "start": 582,
+        "duration": 62
+      },
+      {
+        "start": 1481.1000000000931,
+        "duration": 91
+      },
+      {
+        "start": 1787.6000000000931,
+        "duration": 146
+      },
+      {
+        "start": 2119.100000000093,
+        "duration": 60
+      }
+    ],
+    "navigation": {
+      "name": "https://besterp.app/srm/pos/terminal",
+      "entryType": "navigation",
+      "startTime": 0,
+      "duration": 278.39999999990687,
+      "initiatorType": "navigation",
+      "deliveryType": "",
+      "nextHopProtocol": "h3",
+      "renderBlockingStatus": "non-blocking",
+      "contentType": "text/html",
+      "contentEncoding": "zstd",
+      "workerStart": 0,
+      "workerRouterEvaluationStart": 0,
+      "workerCacheLookupStart": 0,
+      "workerMatchedSourceType": "",
+      "workerFinalSourceType": "",
+      "redirectStart": 0,
+      "redirectEnd": 0,
+      "fetchStart": 0.39999999990686774,
+      "domainLookupStart": 0.39999999990686774,
+      "domainLookupEnd": 0.39999999990686774,
+      "connectStart": 0.39999999990686774,
+      "secureConnectionStart": 0.39999999990686774,
+      "connectEnd": 0.39999999990686774,
+      "requestStart": 1.1000000000931323,
+      "responseStart": 116.39999999990687,
+      "firstInterimResponseStart": 0,
+      "finalResponseHeadersStart": 116.39999999990687,
+      "responseEnd": 117,
+      "transferSize": 3005,
+      "encodedBodySize": 2705,
+      "decodedBodySize": 8373,
+      "responseStatus": 200,
+      "serverTiming": [
+        {
+          "name": "cfCacheStatus",
+          "duration": 0,
+          "description": "DYNAMIC"
+        },
+        {
+          "name": "cfEdge",
+          "duration": 44,
+          "description": ""
+        },
+        {
+          "name": "cfOrigin",
+          "duration": 55,
+          "description": ""
+        },
+        {
+          "name": "cfExtPri",
+          "duration": 0,
+          "description": ""
+        }
+      ],
+      "unloadEventStart": 119.70000000018626,
+      "unloadEventEnd": 119.70000000018626,
+      "domInteractive": 249.89999999990687,
+      "domContentLoadedEventStart": 278.20000000018626,
+      "domContentLoadedEventEnd": 278.29999999981374,
+      "domComplete": 278.29999999981374,
+      "loadEventStart": 278.29999999981374,
+      "loadEventEnd": 278.39999999990687,
+      "type": "navigate",
+      "redirectCount": 0,
+      "activationStart": 0,
+      "criticalCHRestart": 0,
+      "notRestoredReasons": null,
+      "confidence": {
+        "randomizedTriggerRate": 0.4994798,
+        "value": "high"
+      }
+    },
+    "resources": [
+      {
+        "path": "/assets/index-CpaDU2JM.js",
+        "start": 124.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/vendor-7-FcLwML.js",
+        "start": 124.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/ui-Dldn_Y9Z.js",
+        "start": 124.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/charts-DRlgN3wX.js",
+        "start": 125.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/query-C134Gqns.js",
+        "start": 125.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "other"
+      },
+      {
+        "path": "/assets/index-DfzKJaJ5.css",
+        "start": 125.20000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/app-config.js",
+        "start": 125.29999999981374,
+        "duration": 123.70000000018626,
+        "bytes": 494,
+        "type": "script"
+      },
+      {
+        "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+        "start": 125.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+        "start": 127.20000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/box-CDarA68x.js",
+        "start": 127.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+        "start": 127.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/financial-intent-BsPXTguy.js",
+        "start": 127.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/monitor-C662bYFX.js",
+        "start": 127.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/wrench-6evKOGwK.js",
+        "start": 127.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/select-BExsZVi7.js",
+        "start": 127.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+        "start": 127.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+        "start": 127.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/booking-time-DSZt-lbO.js",
+        "start": 127.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/EmployeeCategories-24TCjqLY.js",
+        "start": 128,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/FinancialDataTab-i87pOoYA.js",
+        "start": 128.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/business-DEjuxQ6E.js",
+        "start": 128.20000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/form-uZIh7Wvp.js",
+        "start": 128.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+        "start": 128.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/use-record-autosave-CB_xw8wz.js",
+        "start": 128.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BranchAvailability-B3tSmKg9.js",
+        "start": 128.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+        "start": 128.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/CompactActions-C4Ip8Gnw.js",
+        "start": 128.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/ScheduleFields-BXQe-S1A.js",
+        "start": 128.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/badge-DiNs-SYp.js",
+        "start": 128.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/api-CofbXvNY.js",
+        "start": 128.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/transfer-f6ktW4V-.js",
+        "start": 128.89999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/realtime-CdUUm8zF.js",
+        "start": 129,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/calendar-range-71MiScen.js",
+        "start": 129,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/banknote-CrAb-jz4.js",
+        "start": 129,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/printer-BZLovpX9.js",
+        "start": 129.20000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/circle-pause-GLE-eQhc.js",
+        "start": 129.20000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/split-7x5BsMmf.js",
+        "start": 129.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/credit-card-C2kNzAAU.js",
+        "start": 129.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+        "start": 416.39999999990687,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+        "start": 416.5,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/FinancialDataTab-CFBId16_.css",
+        "start": 416.60000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/SRMPOSPage-BOvJoILo.css",
+        "start": 416.79999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "link"
+      },
+      {
+        "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+        "start": 427.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleTypes-muyIB96h.js",
+        "start": 427.70000000018626,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/peopleMemberships-CEohUZiT.js",
+        "start": 428,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+        "start": 428,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+        "start": 428.10000000009313,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/assets/BusinessTerm-CF1MojcW.js",
+        "start": 428.29999999981374,
+        "duration": 0,
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "path": "/api/v1/access/settings/business-profile/effective",
+        "start": 506.89999999990687,
+        "duration": 1049,
+        "bytes": 496,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/business-os/modules",
+        "start": 527.7999999998137,
+        "duration": 943.9000000003725,
+        "bytes": 799,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/access/me",
+        "start": 528.2999999998137,
+        "duration": 1259.2000000001863,
+        "bytes": 7639,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/branches/context",
+        "start": 528.5,
+        "duration": 1154.8999999999069,
+        "bytes": 709,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/cdn-cgi/rum",
+        "start": 575.8999999999069,
+        "duration": 15.399999999906868,
+        "bytes": 300,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/srm/industry/capabilities",
+        "start": 713.3999999999069,
+        "duration": 1394.3000000002794,
+        "bytes": 501,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/api/v1/auth/me",
+        "start": 714,
+        "duration": 966.7000000001863,
+        "bytes": 3413,
+        "type": "xmlhttprequest"
+      },
+      {
+        "path": "/assets/sqlite.worker-VrTvwDl3.js",
+        "start": 2265.899999999907,
+        "duration": -60.6999999997206,
+        "bytes": 0,
+        "type": "other"
+      }
+    ]
+  }
+]

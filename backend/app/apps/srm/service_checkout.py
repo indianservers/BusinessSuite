@@ -360,6 +360,9 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
             from app.business_packs.pharma.quantity import validate as validate_sale_quantity
             validate_sale_quantity(db, product.id, line.quantity)
             service=product.product_type.lower() in {'service','services'}
+            if product.product_type in {'membership','subscription'}:
+                if data.buyer_mode == 'anonymous_cash':fail('Plans require a registered customer')
+                if scope:fail('Customer plan fulfillment requires native context enrollment',503)
             if not service and (product.batch_tracking or product.serial_tracking):
                 from app.business_packs.pharma.fefo import supported
                 if not supported(scope,product):fail('This item requires a checkout with batch or serial allocation',409)
@@ -410,6 +413,8 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                 fail('Assigned Business Pack role cannot override prices or approve discounts',403)
             prepared.append({'product_id':product.id,'quantity':line.quantity,'unit_price':rate,'discount_amount':line.discount_amount,
                 'description':product.item_name,'metadata_json':{'checkout_line_key':str(line.client_line_key),'note':line.note,
+                    **({'plan_start_date':line.plan_start_date.isoformat()} if line.plan_start_date else {}),
+                    **({'plan_beneficiaries':line.plan_beneficiaries} if line.plan_beneficiaries else {}),
                     **({'follow_up':line.follow_up.model_dump(mode='json')} if line.follow_up is not None else {}),
                     **({'warehouse_id':line.warehouse_id} if line.warehouse_id else {})}})
             selected.append((line,product,policy,eligibility))

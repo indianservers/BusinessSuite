@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import update
 
-from app.core.tenant_boundary import install, _company_plan
+from app.core.tenant_boundary import install, _company_plan, _single_company_plan
 from app.apps.crm.models import CRMLead
 from app.models.company import Company
 from tests.test_company_security_boundary import tenants
@@ -20,12 +20,12 @@ def test_warm_plan_reuses_expressions_but_reads_current_ownership(db, tenants):
             assert [row.id for row in db.query(CRMLead)] == [own.id]
         finally:
             cleanup()
-    warmed = _company_plan.cache_info()
+    warmed_hits = _single_company_plan.cache_info().hits + _company_plan.cache_info().hits
     db.connection().execute(update(CRMLead.__table__).where(CRMLead.id == foreign.id).values(organization_id=1))
     cleanup = install(db, user, 1)
     try:
         assert {row.id for row in db.query(CRMLead)} == {own.id, foreign.id}
-        assert _company_plan.cache_info().hits == warmed.hits + 1
+        assert _single_company_plan.cache_info().hits + _company_plan.cache_info().hits > warmed_hits
     finally:
         cleanup()
 

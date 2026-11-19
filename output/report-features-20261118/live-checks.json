@@ -1,0 +1,198 @@
+{
+  "dashboard": {
+    "report": "overview",
+    "title": "Daily business dashboard",
+    "items": [
+      {
+        "currency": "INR",
+        "transactions": 1,
+        "gross": "100.00",
+        "discounts": "0.00",
+        "tax": "0.00",
+        "invoiced": "100.00",
+        "invoice_paid": "100.00",
+        "outstanding": "0.00",
+        "returns": "0.00",
+        "collections": "100.00",
+        "average_bill": "100.00",
+        "net_billed": "100.00"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 100,
+    "has_more": false,
+    "columns": [
+      "currency",
+      "transactions",
+      "gross",
+      "discounts",
+      "tax",
+      "invoiced",
+      "returns",
+      "net_billed",
+      "collections",
+      "outstanding",
+      "average_bill"
+    ],
+    "filters": {
+      "start": "2026-11-18",
+      "end": "2026-11-18",
+      "branch_id": null,
+      "warehouse_id": null,
+      "customer_id": null,
+      "product_id": null,
+      "cashier_id": null,
+      "payment_method": "",
+      "currency": "",
+      "status": "",
+      "search": "",
+      "include_test": false,
+      "inactive_days": 90,
+      "low_only": false,
+      "customer_segment": "all",
+      "discrepancy_only": false,
+      "period_preset": "custom"
+    },
+    "context": {
+      "organization_id": 1,
+      "timezone": "Asia/Kolkata",
+      "as_of": "2026-11-18T16:13:05.526066+00:00",
+      "business_date": "2026-11-18",
+      "cache_policy": "no-store",
+      "period": "current snapshot"
+    },
+    "definitions": {
+      "currency": "Each currency is separate. No currency conversion is applied.",
+      "dates": "Invoices use issue date; payments use receipt date; returns and orders use company-local creation dates. Undated invoices are excluded from date-filtered results.",
+      "document_filters": "Product/warehouse/payment filters select whole financial documents; their values remain full-document totals. Product performance uses linked invoice lines.",
+      "test_data": "Only explicit test flags are excluded. Names and amounts never determine test status."
+    },
+    "trend": [
+      {
+        "date": "2026-11-18",
+        "currency": "INR",
+        "transactions": 1,
+        "amount": "100.00"
+      }
+    ],
+    "comparison": [],
+    "comparison_period": {
+      "start": "2026-11-17",
+      "end": "2026-11-17"
+    }
+  },
+  "reconciliation": {
+    "products": 45,
+    "closing_quantity": 265.0,
+    "discrepancies": 0,
+    "columns": [
+      "product",
+      "sku",
+      "opening",
+      "receipts",
+      "customer_returns",
+      "sales_issues",
+      "adjustments",
+      "expected_closing",
+      "ledger_closing",
+      "on_hand",
+      "quantity_difference",
+      "reconciled",
+      "comparison"
+    ]
+  },
+  "low_stock": {
+    "items": 11,
+    "supplier_examples": [
+      {
+        "product": "QA-LIVE-20261118-STOCK Product 09",
+        "supplier": "QA report validation supplier - draft only",
+        "supplier_source": "PO-000001",
+        "suggested_reorder": 6.0,
+        "priority": "Low stock"
+      },
+      {
+        "product": "QA-LIVE-20261118-STOCK Product 12",
+        "supplier": "",
+        "supplier_source": null,
+        "suggested_reorder": 3.0,
+        "priority": "Low stock"
+      },
+      {
+        "product": "QA-LIVE-20261118-STOCK Product 15",
+        "supplier": "",
+        "supplier_source": null,
+        "suggested_reorder": 3.0,
+        "priority": "Low stock"
+      }
+    ]
+  },
+  "customer_history": {
+    "repeat_customers": 5,
+    "selected_customer_invoices": 2
+  },
+  "summary_preview": {
+    "collections": "295.00",
+    "dates": {
+      "start": "2026-11-18",
+      "end": "2026-11-18",
+      "branch_id": null,
+      "warehouse_id": null,
+      "customer_id": null,
+      "product_id": null,
+      "cashier_id": null,
+      "payment_method": "",
+      "currency": "",
+      "status": "",
+      "search": "",
+      "include_test": true,
+      "inactive_days": 90,
+      "low_only": false,
+      "customer_segment": "all",
+      "discrepancy_only": false,
+      "period_preset": "custom"
+    },
+    "delivery_enabled": false
+  },
+  "saved_views": [
+    {
+      "name": "Main daily business",
+      "period_preset": "custom"
+    },
+    {
+      "name": "Main \u00b7 Today (automatic dates)",
+      "period_preset": "today"
+    },
+    {
+      "name": "QA - Today invoice totals",
+      "period_preset": "today"
+    }
+  ],
+  "schedule": {
+    "id": 1,
+    "enabled": false,
+    "config": {
+      "frequency": "daily",
+      "at": "09:00",
+      "timezone": "Asia/Kolkata",
+      "weekday": 0,
+      "period": "yesterday",
+      "channels": [
+        "in_app"
+      ],
+      "watch_low_stock": true,
+      "digest": true,
+      "include_test": false,
+      "warehouse_id": null
+    },
+    "state": {
+      "next_digest_at": "2026-11-19T03:30:00+00:00"
+    },
+    "next_run_at": null,
+    "last_run_at": null,
+    "last_error": null,
+    "recipient": "saisatish@indianservers.com",
+    "delivery": "Detailed data stays in the signed-in app. Email contains a report link only."
+  }
+}

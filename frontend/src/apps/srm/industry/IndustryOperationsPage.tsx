@@ -1,3 +1,4 @@
+import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import { appointmentLabel } from "../appointment-label";
 import MobileWorkflowPages, { MobileWorkflowSurface } from "../components/MobileWorkflowPages";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -108,7 +109,17 @@ function RescheduleForm({ row, resources, saved }: { row: Row; resources: Row[];
 export default function IndustryOperationsPage({ mode, bookingOnly = false, prefill, onClose, onDiscard, panelOpen = true }: { mode: 'salon' | 'appointments' | 'construction'; bookingOnly?: boolean; prefill?: BookingSlot; onClose?: () => void; onDiscard?: () => void; panelOpen?: boolean }) {
   const user = useAuthStore(s => s.user);
   const scope = masterScope();
-  return <IndustryWorkspace key={`${scope}:${mode}`} mode={mode} bookingOnly={bookingOnly} prefill={prefill} onClose={onClose} onDiscard={onDiscard} panelOpen={panelOpen} scope={scope} userId={user?.id} />;
+  const location = useLocation();
+  const content = <IndustryWorkspace key={`${scope}:${mode}`} mode={mode} bookingOnly={bookingOnly} prefill={prefill} onClose={onClose} onDiscard={onDiscard} panelOpen={panelOpen} scope={scope} userId={user?.id} />;
+  return !bookingOnly && mode !== 'construction' && /^\/srm\/appointments\/?$/.test(location.pathname)
+    ? <AppointmentStartup scope={scope}>{content}</AppointmentStartup> : content;
+}
+
+/** Only current-page reads are started here; forms remain behind defaults. */
+function AppointmentStartup({scope,children}:{scope:string;children:import('react').ReactNode}) {
+  const caps=useQuery({queryKey:['industry',scope,'capabilities',''],retry:false,queryFn:async()=>(await api.get<{manage:boolean}>(ROOT+'/capabilities',{params:{project_id:undefined}})).data});
+  useQuery({queryKey:['industry',scope,'resource'],enabled:!!caps.data?.manage,retry:false,queryFn:async()=>(await api.get<{items:Row[]}>(ROOT+'/records',{params:{kind:'resource',limit:200}})).data.items});
+  return <FormDefaultsGate>{children}</FormDefaultsGate>;
 }
 
 function IndustryWorkspace({ mode, scope, userId, bookingOnly = false, prefill, onClose, onDiscard, panelOpen = true }: { mode: 'salon' | 'appointments' | 'construction'; scope: string; userId?: number; bookingOnly?: boolean; prefill?: BookingSlot; onClose?: () => void; onDiscard?: () => void; panelOpen?: boolean }) {

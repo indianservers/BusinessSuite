@@ -1,3 +1,4 @@
+import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import {loadPOSCatalog} from "../pos-catalog-pages";
 import POSBookingSettings, {type POSBookingPresentation} from '../components/POSBookingSettings';
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
@@ -137,6 +138,7 @@ type Customer = {
 };
 
 type CartLine = Product & {
+  planStartDate?: string;planBeneficiaries?:number[];
   resourceCapacities?: Record<number,number>;
   lineId: string;
   booking?: BookingSelection;
@@ -178,7 +180,7 @@ type Sale = {
   lines?: {name:string;qty:number;rate:number;appointment?:string}[];
 };
 
-type NativeCheckoutPayload = { request_id: string; buyer_mode?: "registered"|"anonymous_cash"; customer_id?: number; pos_session_id: number; currency: string; billing_mode: "invoice_at_checkout"; note:string; expected_total: string; bill_discount_amount: string; lines: {client_line_key:string;line_kind:"product"|"unscheduled_service"|"booked_service";product_id:number;quantity:string;unit_price:string;discount_amount:string;note:string;follow_up?:Schedule;booking?:BookingSelection}[]; payments:{payment_key:string;method:string;amount:string;reference?:string}[] };
+type NativeCheckoutPayload = { request_id: string; buyer_mode?: "registered"|"anonymous_cash"; customer_id?: number; pos_session_id: number; currency: string; billing_mode: "invoice_at_checkout"; note:string; expected_total: string; bill_discount_amount: string; lines: {client_line_key:string;line_kind:"product"|"unscheduled_service"|"booked_service";product_id:number;quantity:string;unit_price:string;discount_amount:string;note:string;plan_start_date?:string;plan_beneficiaries?:number[];follow_up?:Schedule;booking?:BookingSelection}[]; payments:{payment_key:string;method:string;amount:string;reference?:string}[] };
 type NativeCheckoutResult = {id:number;state:string;sales_order_id:number;invoice:{id:number;number:string;status:string;total:string;paid:string;balance:string};receipts:{id:number;number:string}[]};
 type CheckoutAfter = "done"|"print"|"whatsapp"|"email"|"request_payment";
 type CheckoutAttempt = {payload:NativeCheckoutPayload; sale:Sale;after?:CheckoutAfter;recoverySourceKeys?:string[]};
@@ -311,7 +313,7 @@ function productFromRecord(item: SRMRecord): Product {
     name: String(item.item_name || item.name || "Unnamed product"),
     image: (Array.isArray(item.images) ? item.images as string[] : (item.metadata_json as { images?: string[] } | undefined)?.images || [])[0],
     followUp: (item.metadata_json as {follow_up?:Schedule} | undefined)?.follow_up,
-    kind: String(["service","services"].includes(String(item.product_type).toLowerCase()) ? "Services" : item.product_type === "package" ? "Packages" : "Products"),
+    kind: String(["service","services"].includes(String(item.product_type).toLowerCase()) ? "Services" : item.product_type === "package" ? "Packages" : item.product_type === "membership" ? "Memberships" : item.product_type === "subscription" ? "Subscriptions" : item.product_type === "bundle" ? "Bundles" : "Products"),
     schedulingConfigured: 'booking_policy' in item ? Boolean(item.booking_policy && (item.booking_policy as {active?:boolean}).active !== false) : undefined,
     duration: item.duration_minutes ? `${item.duration_minutes} min` : String((item.metadata_json as Record<string, unknown> | undefined)?.duration || ""),
     active: item.active !== false,
@@ -326,7 +328,7 @@ function productFromRecord(item: SRMRecord): Product {
     bookingRequired: Boolean((item.booking_policy as {required?:boolean}|undefined)?.required),
     unsupportedReason: item.unsupported_reason ? String(item.unsupported_reason) : undefined,
     reorderLevel: recordNumber(item.reorder_level),
-    trackInventory: !["service","services"].includes(String(item.product_type).toLowerCase()) && item.track_inventory !== false,
+    trackInventory: !["service","services","membership","subscription","bundle"].includes(String(item.product_type).toLowerCase()) && item.track_inventory !== false,
     batchTracking: Boolean(item.batch_tracking),
     serialTracking: Boolean(item.serial_tracking),
     lotAllocation: item.lot_allocation === "fefo" ? "fefo" : undefined,
@@ -461,7 +463,7 @@ function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
       {error && <button type="button" className="ml-3 rounded border px-3 py-1" onClick={()=>{if(error instanceof Error && error.message.startsWith('Your access changed.'))window.location.reload();else if(branch===null)void branchQuery.refetch();else void verified.refetch();}}>Reload POS access</button>}
     </div></div>;
   }
-  return <ScopedPOS scope={`${scope}:${mount}`} draftScope={draftScope} selectedPOS={verified.data.realm==='pack'} operationalPackKey={verified.data.pack_key}/>;
+  return <FormDefaultsGate><ScopedPOS scope={`${scope}:${mount}`} draftScope={draftScope} selectedPOS={verified.data.realm==='pack'} operationalPackKey={verified.data.pack_key}/></FormDefaultsGate>;
 }
 function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:string;draftScope:string;selectedPOS:boolean;operationalPackKey:string|null}) {
   const owns = useRecordScopeOwner();
@@ -482,18 +484,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const mode = activeStoreProfile.mode;
   const [customerId, setCustomerId] = usePersistedState(storage("customer"), 0);
   const [customerProfile,setCustomerProfile]=useState(false);
+  const [customersRequested,setCustomersRequested]=useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const customersQuery = useQuery<Customer[]>({ queryKey: ["srm", "posCustomers", scope], queryFn: async () => {
-    const items: Customer[] = [];
-    let after: number | null = 0;
-    while (after !== null) {
-      const { data }: { data: { items: PosCustomerRecord[]; next: number | null } } = await api.get(selectedPOS ? "/srm/pos/customers" : "/srm/business/customers", { params: { after }, progress: false,recordCache:false });
-      items.push(...data.items.map(savedCustomer));
-      after = data.next;
-    }
-    return items;
-  } });
-  const customers = [walkInCustomer, ...(customersQuery.data || [])];
   function customerCreated(record: PosCustomerRecord) {
     queryClient.setQueryData<Customer[]>(["srm", "posCustomers", scope], current => [...(current || []).filter(c => c.id !== record.id), savedCustomer(record)]);
     setCustomerId(record.id);
@@ -570,8 +562,19 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [closingCash, setClosingCash] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const productsQuery = useQuery({queryKey:["srm","inventoryItems","pos",scope,catalogSearch,catalogPages],queryFn:({signal})=>loadPOSCatalog(api,!!selectedPOS,catalogSearch,catalogPages,signal),refetchInterval:selectedPOS?45000:false,refetchIntervalInBackground:false,refetchOnWindowFocus:false});
+  const customersQuery = useQuery<Customer[]>({ enabled: customersRequested || phonePanel === "customer" || customerId > 0 || productsQuery.isSuccess, queryKey: ["srm", "posCustomers", scope], queryFn: async () => {
+    const items: Customer[] = [];
+    let after: number | null = 0;
+    while (after !== null) {
+      const { data }: { data: { items: PosCustomerRecord[]; next: number | null } } = await api.get(selectedPOS ? "/srm/pos/customers" : "/srm/business/customers", { params: { after }, progress: false,recordCache:false });
+      items.push(...data.items.map(savedCustomer));
+      after = data.next;
+    }
+    return items;
+  } });
+  const customers = [walkInCustomer, ...(customersQuery.data || [])];
   const posFeatures = productsQuery.data?.features;
-  const heldBillsQuery = useQuery({ enabled:!selectedPOS, queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: activeModal === "held" ? 30000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const heldBillsQuery = useQuery({ enabled:!selectedPOS && (productsQuery.isSuccess || activeModal === "held" || cart.length > 0), queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: activeModal === "held" ? 30000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
 
   useEffect(()=>{if(!selectedPOS&&activeModal==="held")void heldBillsQuery.refetch()},[activeModal,selectedPOS]);
   const followUpOptions = useQuery({enabled:!selectedPOS&&cart.length>0,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
@@ -589,7 +592,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [openingCash, setOpeningCash] = useState('0'), [opening, setOpening] = useState(false);
   const registerQueryKey = ['srm','pos-active-session',scope] as const;
   const readActiveRegister = (signal: AbortSignal) => api.get<SRMRecord>('/srm/pos/sessions/active',{signal,recordCache:false}).then(response=>response.data);
-  const activeRegister = useQuery({queryKey:registerQueryKey,queryFn:({signal})=>readActiveRegister(signal),retry:false});
+  const activeRegister = useQuery({enabled:productsQuery.isSuccess || cart.length>0 || activeModal!==null || phonePanel==='sessions',queryKey:registerQueryKey,queryFn:({signal})=>readActiveRegister(signal),retry:false});
   const paymentCaps = useQuery({queryKey:['srm','pos-checkout-payment-capabilities',scope],queryFn:()=>api.get<{collect:boolean}>('/srm/industry/capabilities').then(response=>response.data),enabled:!!lastSale?.checkoutId,retry:false});
   type CheckoutAuthority = {invoice?:boolean;collect?:boolean;checkout_create?:boolean;checkout_collect?:boolean};
   const recoveryAuthority = useQuery({queryKey:['srm','pos-checkout-recovery-authority',scope],queryFn:({signal})=>api.get<CheckoutAuthority>('/srm/industry/capabilities',{signal,recordCache:false}).then(response=>response.data),retry:false,enabled:!!uncertain,placeholderData:undefined});
@@ -665,11 +668,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const expectedCash = cashNumber(registerCash?.expected_cash);
   const cashReceived = cashNumber(registerCash?.cash_sales);
   const countedClosingCash = cashNumber(closingCash);
-  const registerCashReady = !activeRegister.isFetching && !activeRegister.isError && Number.isFinite(expectedCash);
+  const registerCashReady = !activeRegister.isPending && !activeRegister.isFetching && !activeRegister.isError && Number.isFinite(expectedCash);
   const canCloseSession = registerCashReady && Boolean(register?.id) && !registerCash?.reconciliation_required && Number.isFinite(expectedCash) && Number.isFinite(countedClosingCash) && countedClosingCash >= 0;
   const lowStockCount = storeProducts.filter((product) => product.trackInventory && product.stock <= product.reorderLevel).length;
 
-  const branchDisplay = useQuery({queryKey:['srm','pos-display-branch',scope],queryFn:()=>api.get<{branches:{id:number;name:string}[]}>('/branches/context',{recordCache:false}).then(response=>response.data),retry:false});
+  const branchDisplay = useQuery({queryKey:['suite-branch-context',authUser?.id,authUser?.access?.companyId],staleTime:60_000,refetchOnWindowFocus:false,queryFn:()=>api.get<{branches:{id:number;name:string}[]}>('/branches/context',{recordCache:false}).then(response=>response.data),retry:false});
   const cashierName = authUser?.name || authUser?.email || 'Cashier';
   const branchName = branchDisplay.data?.branches?.find(branch=>String(branch.id)===selectedBranch())?.name || (authUser?.access as {branchName?:string}|undefined)?.branchName || `Branch ${selectedBranch()}`;
   const readiness: {id:string;text:string;lineId?:string}[] = [];
@@ -835,7 +838,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         if(!configuration.schema_ready||!configuration.configured||!configuration.enabled)throw new Error('A company administrator must enable the explicit walk-in counter account before checkout.');
       }
       const payload:NativeCheckoutPayload={request_id:checkoutKey,...(customerId>0?{buyer_mode:'registered' as const,customer_id:customerId}:{buyer_mode:'anonymous_cash' as const}),pos_session_id:session.id,currency:'INR',billing_mode:'invoice_at_checkout',note,expected_total:totals.grandTotal.toFixed(2),bill_discount_amount:(totals.billDiscount+totals.couponDiscount).toFixed(2),
-        lines:cart.map(line=>({client_line_key:line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
+        lines:cart.map(line=>({client_line_key:line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
       const attempt:CheckoutAttempt={payload,after,sale:{id:checkoutKey,invoiceNo:'',customer:customer.name,amount:totals.grandTotal,mode:paymentMode,createdAt:new Date().toISOString(),items:cart.length,lines:cart.map(line=>({name:line.name,qty:line.qty,rate:line.rate,...(line.booking?{appointment:bookingSummaries[line.lineId] || `${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleString()}`}:{})}))}};
       saveAttempt(attempt);checkoutBusy.current=false;setNativeBusy(false);await submitNative(attempt);
     } catch(error) {if(owns()){const message=error instanceof Error?error.message:dealError(error);setPaymentError(message);toast({title:'Checkout not started',description:message,variant:'destructive'});}checkoutBusy.current=false;if(owns())setNativeBusy(false);}
@@ -1046,7 +1049,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
           </div>
           <CompactActions className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={!lastSale?.checkoutId && !sales.some(sale=>!!sale.checkoutId)} onClick={()=>{const sale=lastSale || sales.find(sale=>!!sale.checkoutId);if(sale){setLastSale(sale);setActiveModal('success');}}}>Last receipt</Button>
-            {!register && <><label className="text-xs">Opening cash<Input aria-label="POS opening cash" className="w-28 border-slate-200 bg-slate-50 text-slate-950" type="number" min="0" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={opening||activeRegister.isFetching} onClick={async()=>{if(locked||!owns())return;setOpening(true);try{await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});if(owns())await activeRegister.refetch();}catch(error){if(owns())toast({title:"Register not opened",description:dealError(error),variant:"destructive"});}finally{if(owns())setOpening(false);}}}>Open POS register</Button></>}
+            {!register && <><label className="text-xs">Opening cash<Input aria-label="POS opening cash" className="w-28 border-slate-200 bg-slate-50 text-slate-950" type="number" min="0" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={opening||activeRegister.isPending||activeRegister.isFetching} onClick={async()=>{if(locked||!owns())return;setOpening(true);try{await srmApi.openPosSession({branch:activeStoreProfile.branch,register_name:activeStoreProfile.register,opening_cash:openingCash});if(owns())await activeRegister.refetch();}catch(error){if(owns())toast({title:"Register not opened",description:dealError(error),variant:"destructive"});}finally{if(owns())setOpening(false);}}}>Open POS register</Button></>}
             {activeRegister.isError && <Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("cash")}><Banknote className="h-4 w-4" />Cash drawer</Button>
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("profile")}><Settings className="h-4 w-4" />Settings</Button>
@@ -1272,11 +1275,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-950" onClick={() => setConfirmClear(true)} disabled={!cart.length}><Trash2 className="h-4 w-4" />Clear</Button>
             </CardHeader>
 <div className="pos-sale-customer"><strong className="text-xs">{term("customer")}</strong>        <div className="min-w-0"><div className="flex gap-2">
-          <POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
+          <POSCustomerPicker onOpen={()=>setCustomersRequested(true)} customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/>
           {customerId>0&&<Button type="button" variant="outline" aria-label="Open customer 360" onClick={()=>setCustomerProfile(true)}>360°</Button>}
           {customerProfile&&customerId>0&&<>{selectedPOS?<POSCustomerProfile id={customerId} onClose={()=>setCustomerProfile(false)}/>:<CompanyProfile id={customerId} source="srm" onClose={()=>setCustomerProfile(false)}/>}</>}
           <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" disabled={selectedPOS&&!posFeatures?.customers_register} title={selectedPOS?posFeatures?.registration_unavailable_reason||undefined:undefined} onClick={() => setQuickAddOpen(true)}><Plus size={16}/>New {term("customer").toLowerCase()}</Button>
-        </div>{selectedPOS && posFeatures?.customers_register===false && <p className="mt-1 text-xs text-slate-600">{posFeatures.registration_unavailable_reason || 'Quick add is unavailable for this register. Choose an existing customer.'}</p>}{customerId===0&&<AnonymousCashSetup canConfigure={!!authUser?.is_superuser||!!(authUser?.access as {isAccessAdmin?:boolean}|undefined)?.isAccessAdmin}/>} {customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <Button variant="outline" type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</Button></p>}</div>
+        </div>{selectedPOS && posFeatures?.customers_register===false && <p className="mt-1 text-xs text-slate-600">{posFeatures.registration_unavailable_reason || 'Quick add is unavailable for this register. Choose an existing customer.'}</p>}{customerId===0&&<AnonymousCashSetup enabled={productsQuery.isSuccess || cart.length > 0} canConfigure={!!authUser?.is_superuser||!!(authUser?.access as {isAccessAdmin?:boolean}|undefined)?.isAccessAdmin}/>} {customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <Button variant="outline" type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</Button></p>}</div>
 <POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/>
 
 </div>
@@ -1294,7 +1297,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                   </div>
                   <details className="mt-2"><summary className="cursor-pointer text-xs font-medium">Price, discount &amp; note</summary><div className="grid grid-cols-2 gap-2 py-2">                    <label className="text-xs text-slate-500">Rate<Input type="number" min="0" value={line.rate} onChange={(event) => updateLine(line.lineId, { rate: Math.max(0, Number(event.target.value) || 0) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
-</div>                  <label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
+</div>                  {["Memberships","Subscriptions"].includes(line.kind)&&<label className="mt-2 block text-xs text-slate-500">Plan start date<Input type="date" aria-label={`Plan start date ${line.lineId}`} value={line.planStartDate||""} onChange={event=>updateLine(line.lineId,{planStartDate:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>}<label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
 </details>
                   {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling presentation={bookingPresentation==='dialog'?'dialog':'cart'} onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? (phoneWidth<=767 ? 'Edit' : 'Booking details') : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" aria-label="Add another appointment" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};phonePaginationAnchor.current=next.lineId;setPhonePage(Math.floor(cart.length/phonePageSize));setCart(current=>[...current,next]);setMobileView('cart');}}>Add another appointment</Button></>}
 
@@ -1359,9 +1362,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
       {phoneLine && <Overlay title={`Edit ${phoneLine.name}`} onClose={()=>setPhoneLineId(null)}><div className="space-y-3"><label className="block">Rate<Input type="number" min="0" value={phoneLine.rate} onChange={event=>updateLine(phoneLine.lineId,{rate:Math.max(0,Number(event.target.value)||0)})}/></label><label className="block">Discount %<Input type="number" min="0" max="50" value={phoneLine.discount} onChange={event=>updateLine(phoneLine.lineId,{discount:Math.min(50,Math.max(0,Number(event.target.value)||0))})}/></label><label className="block">Line note<Input value={phoneLine.note} onChange={event=>updateLine(phoneLine.lineId,{note:event.target.value})}/></label>{phoneLine.booking&&<p>Quantity is fixed at one per appointment. Use Add another appointment for a second booking.</p>}<Button onClick={()=>setPhoneLineId(null)}>Done</Button></div></Overlay>}
       {phonePanel && <Overlay title={phonePanel==='sessions'?'Register session':phonePanel==='actions'?'POS actions':phonePanel==='customer'?'Sale customer':'Discounts & coupons'} onClose={()=>setPhonePanel(null)}>
-        {phonePanel==='sessions' && <div className="pos-phone-session space-y-3"><p>{branchName} · {register?.register_name || activeStoreProfile.register}</p><p>Cashier: {cashierName}</p>{register?.id?<><p>Session {register.session_number || register.id} · Open</p><p>Opening cash {currency(Number(register.opening_cash||0))}</p><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('close');}}>Close session</Button></>:<form className="space-y-3" onSubmit={event=>{event.preventDefault();void openRegister();}}><p className="text-sm">Open the register before collecting payment.</p><label className="block text-sm">Opening cash<Input aria-label="Mobile POS opening cash" required type="number" min="0" step="0.01" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button type="submit" disabled={locked||opening||!online||activeRegister.isFetching}>{opening?'Opening register…':'Open POS register'}</Button></form>}{activeRegister.isError&&<Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}</div>}
+        {phonePanel==='sessions' && <div className="pos-phone-session space-y-3"><p>{branchName} · {register?.register_name || activeStoreProfile.register}</p><p>Cashier: {cashierName}</p>{register?.id?<><p>Session {register.session_number || register.id} · Open</p><p>Opening cash {currency(Number(register.opening_cash||0))}</p><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('close');}}>Close session</Button></>:<form className="space-y-3" onSubmit={event=>{event.preventDefault();void openRegister();}}><p className="text-sm">Open the register before collecting payment.</p><label className="block text-sm">Opening cash<Input aria-label="Mobile POS opening cash" required type="number" min="0" step="0.01" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button type="submit" disabled={locked||opening||!online||activeRegister.isPending||activeRegister.isFetching}>{opening?'Opening register…':'Open POS register'}</Button></form>}{activeRegister.isError&&<Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}</div>}
         {phonePanel==='actions' && <div className="grid grid-cols-2 gap-3"><Button onClick={()=>setPhonePanel("customer")}>Sale customer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('profile');}}>Register settings</Button><Button disabled={!lastSale?.checkoutId&&!sales.some(sale=>!!sale.checkoutId)} onClick={()=>printReceipt()}>Print last receipt</Button><Button disabled={selectedPOS} onClick={()=>{setPhonePanel(null);setActiveModal('held');}}>Recall held bill</Button><Button onClick={()=>{setPhonePanel(null);setReadinessOpen(true);}}>Review bill</Button><Button disabled={!cart.length} onClick={()=>{setPhonePanel(null);setConfirmClear(true);}}>Clear bill</Button></div>}
-        {phonePanel==='customer' && <div className="space-y-3"><POSCustomerPicker customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/><POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/><Button disabled={selectedPOS&&!posFeatures?.customers_register} onClick={()=>{setPhonePanel(null);setQuickAddOpen(true);}}>New customer</Button><Button variant="outline" onClick={()=>setPhonePanel(null)}>Done</Button></div>}
+        {phonePanel==='customer' && <div className="space-y-3"><POSCustomerPicker onOpen={()=>setCustomersRequested(true)} customers={customers} value={customerId} onChange={setCustomerId} loading={customersQuery.isFetching} error={customersQuery.isError}/><POSCustomerIdentity id={customerId} enabled={selectedPOS} pack={operationalPackKey || profile.business_type}/><Button disabled={selectedPOS&&!posFeatures?.customers_register} onClick={()=>{setPhonePanel(null);setQuickAddOpen(true);}}>New customer</Button><Button variant="outline" onClick={()=>setPhonePanel(null)}>Done</Button></div>}
         {phonePanel==='discounts' && <div className="space-y-4"><label className="block">Bill discount<Input aria-label="Mobile bill discount" type="number" min="0" value={billDiscount} onChange={event=>setBillDiscount(Math.max(0,Number(event.target.value)||0))}/></label><label className="block">Coupon code<Input aria-label="Mobile coupon code" value={coupon} onChange={event=>setCoupon(event.target.value)}/></label><SummaryLine label="Discount" value={currency(totals.lineDiscount+totals.couponDiscount)}/><SummaryLine label="Amount payable" value={currency(totals.grandTotal)}/><Button onClick={()=>setPhonePanel(null)}>Apply & close</Button></div>}
       </Overlay>}
       {quickAddOpen && (selectedPOS&&posFeatures?<POSQuickAddCustomer features={posFeatures} onClose={()=>setQuickAddOpen(false)} onCreated={customerCreated}/>:!selectedPOS?<QuickAddCustomer onClose={() => setQuickAddOpen(false)} onCreated={customerCreated}/>:null)}

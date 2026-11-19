@@ -123,8 +123,13 @@ def company_ids(db, user):
 _plan_lock = RLock()
 
 
+class _CyclicPlan(Exception):
+    """A partial plan cannot choose a different cycle-breaking order."""
+
+
+
 @lru_cache(maxsize=8)
-def _company_plan(registry, company, actor_id, module, admin_read, admin_company):
+def _company_plan(registry, company, actor_id, module, admin_read, admin_company, selected_models=None):
     """Reuse SQL expressions, never memberships, grants, query results or sessions.
 
     Every value used to construct a predicate is part of this bounded key. The
@@ -177,6 +182,7 @@ def _company_plan(registry, company, actor_id, module, admin_read, admin_company
         if table.name in INTERNAL_TABLES:
             return false()
         if model in stack:
+            if selected_models is not None:raise _CyclicPlan()
             return None
         if model is Company:
             result = table.c.id == company
@@ -425,7 +431,7 @@ def _company_plan(registry, company, actor_id, module, admin_read, admin_company
         cache[model] = result
         return result
 
-    criteria = {model: predicate(model) for model in models.values()}
+    criteria = {model: predicate(model) for model in (models.values() if selected_models is None else selected_models)}
     options = [
         with_loader_criteria(
             model, guard, include_aliases=True, propagate_to_loaders=False
@@ -438,6 +444,12 @@ def _company_plan(registry, company, actor_id, module, admin_read, admin_company
     ]
 
     return MappingProxyType(criteria), tuple(options), tuple(protected_names)
+
+
+@lru_cache(maxsize=512)
+def _single_company_plan(registry, company, actor_id, module, admin_read, admin_company, model):
+    try:return _company_plan.__wrapped__(registry, company, actor_id, module, admin_read, admin_company, (model,))
+    except _CyclicPlan:return None
 
 
 def install(db, user, company, *, verified_portal=False, enforce_superuser_company=False):
@@ -469,13 +481,15 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
     registry = tuple(models.values())
     from app.apps.srm.services.commercial import tenant
     admin_read = bool(getattr(user, '_suite_admin_read', False))
-    # Serialize cold construction so simultaneous page requests do not build the
-    # same large graph multiple times. Warm lookups hold this lock only briefly.
-    with _plan_lock:
-        criteria, options, protected_names = _company_plan(
-            registry, company, user.id, getattr(user, '_suite_current_module', None),
-            admin_read, tenant(user) if admin_read else company,
-        )
+    from app.db.loader_options import GuardPlan
+    plan_context=(registry, company, user.id, getattr(user, '_suite_current_module', None),
+                  admin_read, tenant(user) if admin_read else company)
+    def complete_plan():
+        with _plan_lock:return _company_plan(*plan_context)
+    def single_plan(model):
+        with _plan_lock:return _single_company_plan(*plan_context,model)
+    guard_plan=GuardPlan(models.values(),complete_plan,single_plan)
+    criteria=guard_plan
 
     def denied(action, model, ident=None):
         logger.warning(
@@ -618,7 +632,7 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
             sql = str(execution.statement).lower()
             if any(
                 re.search(r"\b" + re.escape(name) + r"\b", sql)
-                for name in protected_names
+                for name in guard_plan.full()[2]
             ):
                 raise HTTPException(403, "Unscoped business SQL is not permitted")
         if execution.is_insert:
@@ -686,7 +700,10 @@ def install(db, user, company, *, verified_portal=False, enforce_superuser_compa
             # Eager loaders inherit options from the parent query. Applying the
             # same objects again duplicates nested ownership subqueries.
             inherited = {id(option) for option in getattr(execution.statement, '_with_options', ())}
-            execution.statement = execution.statement.options(*(option for option in options if id(option) not in inherited))
+            project=execution.is_select and not any(db.info.get(key) is not None for key in (
+                'business_pack_scope', 'business_pack_request_binding'))
+            current_options=guard_plan.read_options(execution.statement,project)
+            execution.statement = execution.statement.options(*(option for option in current_options if id(option) not in inherited))
             if (
                 execution.is_select
                 and not execution.is_relationship_load

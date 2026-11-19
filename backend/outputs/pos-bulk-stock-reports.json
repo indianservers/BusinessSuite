@@ -1529,7 +1529,7 @@
           "session": {
             "id": 2,
             "organization_id": 1,
-            "session_number": "RETAIL-5481ba45c7d141819f98600ceadf4127",
+            "session_number": "RETAIL-14b5589aec994c32b918114c0fefbc4e",
             "status": "open",
             "branch": "Main Branch",
             "register_name": "Main POS Register",
@@ -1538,15 +1538,15 @@
             "expected_cash": 0.0,
             "counted_cash": 0.0,
             "cash_variance": 0.0,
-            "opened_at": "2026-11-18T03:05:13",
+            "opened_at": "2026-11-18T15:17:42",
             "closed_at": null,
             "notes": null,
             "metadata_json": {
               "cash_currency": "INR"
             },
             "created_by": 2,
-            "created_at": "2026-11-18T03:05:13",
-            "updated_at": "2026-11-18T03:05:44",
+            "created_at": "2026-11-18T15:17:42",
+            "updated_at": "2026-11-18T15:18:01",
             "deleted_at": null
           },
           "cash_intent_version": 119,

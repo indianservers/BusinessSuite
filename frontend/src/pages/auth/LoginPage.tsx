@@ -16,6 +16,7 @@ import { modules } from "@/lib/moduleCatalog";
 import SuiteBrand from "@/components/suite/SuiteBrand";
 import "./suite-login.css";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
+import GoogleSignInFallback, {googleSignInState} from "./GoogleSignInFallback";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
@@ -106,14 +107,16 @@ export default function LoginPage({ embedded = false, onSignup }: { embedded?: b
   });
   const providers = useQuery({
     queryKey: ["sso-providers"],
-    queryFn: () => authApi.ssoProviders().then((r) => r.data as SsoProvider[]),
+    queryFn: ({signal}) => api.get<SsoProvider[]>("/auth/sso/providers/active", {signal, timeout: 10000, recordCache: false, progress: false}).then((r) => r.data),
+    retry: false,
     staleTime: 600_000,
   });
   const firebase = useQuery({
     queryKey: ["firebase-login-config"],
-    queryFn: () =>
-      authApi
-        .firebaseConfig()
+    retry: false,
+    queryFn: ({signal}) =>
+      api
+        .get("/auth/firebase/config", {signal, timeout: 10000, recordCache: false, progress: false})
         .then(
           (r) =>
             r.data as {
@@ -635,7 +638,7 @@ export default function LoginPage({ embedded = false, onSignup }: { embedded?: b
                       ))}
                 </div>
               )}
-              {embedded && !firebase.isPending && !providers.isPending && !firebase.data?.enabled && !sortedProviders.length && <div className="suite-login-providers"><button className="suite-secondary" disabled><ProviderMark provider="google"/>Continue with Google</button><button className="suite-secondary" disabled><ProviderMark provider="microsoft"/>Continue with Microsoft</button><p role="status">Social sign-in is unavailable. Use your email below.</p></div>}
+              <GoogleSignInFallback state={googleSignInState({firebaseEnabled:firebase.data?.enabled,moduleCount:firebase.data?.modules.length,googleSso:sortedProviders.some(p=>p.provider_type==='google'),pending:firebase.isPending||providers.isPending,failed:firebase.isError||providers.isError})} onRetry={()=>{void firebase.refetch();void providers.refetch();}}/>
               {embedded && <div className="home-email-divider">or use your email</div>}
               <CompactForm
                 className="suite-form suite-email-login"

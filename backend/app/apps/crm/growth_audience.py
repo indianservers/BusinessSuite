@@ -16,7 +16,7 @@ def parse_offerings(raw):
         if not isinstance(values,list) or len(values)>50: raise ValueError()
         result=[]
         for value in values:
-            if not isinstance(value,dict) or set(value)!={'kind','id'} or value['kind'] not in ('product','service') or type(value['id']) is not int or not 0<value['id']<=9223372036854775807: raise ValueError()
+            if not isinstance(value,dict) or set(value)!={'kind','id'} or value['kind'] not in ('product','service','membership','subscription','bundle') or type(value['id']) is not int or not 0<value['id']<=9223372036854775807: raise ValueError()
             pair=(value['kind'],value['id'])
             if pair not in result: result.append(pair)
         return result
@@ -28,17 +28,17 @@ def offering_relations(db,user,scope):
     from app.shared import catalog
     org=g.crm()._organization_id(db,user)
     kinds=[]
-    for kind in ('product','service'):
+    for kind in ('product','service','membership','subscription','bundle'):
         try: catalog.authorize(user,'crm',kind,db=db); kinds.append(kind)
         except HTTPException as exc:
             if exc.status_code!=403: raise
-    product_kind=case((SRMProduct.product_type=='service','service'),else_='product')
+    product_kind=case(*[(SRMProduct.product_type==k,k) for k in ('service','membership','subscription','bundle')],else_='product')
     catalog_query=db.query(SRMProduct).filter(func.coalesce(SRMProduct.organization_id,1)==org,SRMProduct.deleted_at.is_(None),product_kind.in_(kinds),catalog.availability_clause(SRMProduct,catalog.selected_branch(user)))
     catalog_query=catalog.restrict_workspaces(catalog_query,SRMProduct,db,user)
     catalog_query=g.crm()._apply_record_visibility(catalog_query,catalog.catalog_resource(),user,db)
     visible=catalog_query.with_entities(SRMProduct.id.label('item_id'),product_kind.label('kind'),SRMProduct.item_name.label('name')).subquery('audience_catalog')
     target=case((CatalogLink.target_type=='lead','leads'),(CatalogLink.target_type=='contact','contacts'),(CatalogLink.target_type.in_(['account','customer']),'companies'),else_='deals')
-    direct=select(target.label('entity'),CatalogLink.target_id.label('record_id'),case((CatalogLink.product_id.isnot(None),'product'),else_='service').label('kind'),func.coalesce(CatalogLink.product_id,CatalogLink.service_id).label('item_id')).where(CatalogLink.organization_id==org,CatalogLink.target_type.in_(['lead','contact','account','customer','deal']))
+    direct=select(target.label('entity'),CatalogLink.target_id.label('record_id'),case(*[(SRMProduct.product_type==k,k) for k in ('service','membership','subscription','bundle')],else_='product').label('kind'),func.coalesce(CatalogLink.product_id,CatalogLink.service_id).label('item_id')).select_from(CatalogLink).join(SRMProduct,SRMProduct.id==func.coalesce(CatalogLink.product_id,CatalogLink.service_id)).where(CatalogLink.organization_id==org,CatalogLink.target_type.in_(['lead','contact','account','customer','deal']))
     parts=[direct]
     if g.sales.allowed(user,'deals','view'):
         deals=g.sales.rows(db,user,'deals',scope).with_entities(CRMDeal.id).subquery('audience_visible_deals')
@@ -49,7 +49,7 @@ def offering_relations(db,user,scope):
             entries=func.json_each(CRMDeal.catalog_items).table_valued('key','value').alias('audience_items')
             kind=func.json_extract(entries.c.value,'$.kind'); item_id=cast(func.json_extract(entries.c.value,'$.item_id'),Integer)
         modern=select(CRMDeal.id.label('deal_id'),kind.label('kind'),item_id.label('item_id')).select_from(CRMDeal).join(entries,true()).where(CRMDeal.id.in_(select(deals.c.id)))
-        legacy=select(CRMDealProduct.deal_id,case((SRMProduct.product_type=='service','service'),else_='product').label('kind'),CRMDealProduct.product_id.label('item_id')).join(SRMProduct,SRMProduct.id==CRMDealProduct.product_id).join(CRMDeal,CRMDeal.id==CRMDealProduct.deal_id).where(CRMDeal.id.in_(select(deals.c.id)),CRMDeal.catalog_items.is_(None))
+        legacy=select(CRMDealProduct.deal_id,case(*[(SRMProduct.product_type==k,k) for k in ('service','membership','subscription','bundle')],else_='product').label('kind'),CRMDealProduct.product_id.label('item_id')).join(SRMProduct,SRMProduct.id==CRMDealProduct.product_id).join(CRMDeal,CRMDeal.id==CRMDealProduct.deal_id).where(CRMDeal.id.in_(select(deals.c.id)),CRMDeal.catalog_items.is_(None))
         deal_lines=union(modern,legacy).cte('audience_deal_lines')
         parts.append(select(literal('deals').label('entity'),deal_lines.c.deal_id.label('record_id'),deal_lines.c.kind,deal_lines.c.item_id))
         for entity,field in [('contacts',CRMDeal.contact_id),('companies',CRMDeal.company_id)]:

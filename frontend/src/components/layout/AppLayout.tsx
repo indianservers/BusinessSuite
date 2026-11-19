@@ -33,7 +33,10 @@ function AppLayoutContent() {
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
-  const requiresFormDefaults = requiresFormDefaultsForRoute(location.pathname, location.search, location.hash);
+  // These pages have an inner defaults gate: their read-only startup checks
+  // can overlap preference loading without mounting an uninitialized form.
+  const parallelStartup = /^\/srm\/(?:appointments|pos(?:\/terminal)?)\/?$/.test(location.pathname);
+  const requiresFormDefaults = !parallelStartup && requiresFormDefaultsForRoute(location.pathname, location.search, location.hash);
   const preferencesUnavailable = /^\/hrms\/helpdesk\/?$/.test(location.pathname) ? "Workspace preferences are unavailable. Helpdesk remains available." : "Workspace preferences are unavailable. You can continue viewing this dashboard.";
   const isDealCollection = /^\/crm\/(deals|pipeline)\/?$/.test(location.pathname);
   const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);

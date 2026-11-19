@@ -9,7 +9,7 @@ import "./new-menu.css";
 import MobileCreateMenu from "@/components/mobile/MobileCreateMenu";
 
 export type NewAction = { label: string; description: string; icon: LucideIcon; onSelect: () => void; disabled?: boolean; menuPaths?: string[]; group?: string; keywords?: string };
-export default function NewMenu({ actions, disabled, floating = false, iconOnly = false }: { actions: NewAction[]; disabled?: boolean; floating?: boolean; iconOnly?: boolean }) {
+export default function NewMenu({ actions, disabled, floating = false, iconOnly = false, label = "Create" }: { label?:string; actions: NewAction[]; disabled?: boolean; floating?: boolean; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const selecting = useRef(false);
   const [query, setQuery] = useState("");
@@ -22,7 +22,7 @@ export default function NewMenu({ actions, disabled, floating = false, iconOnly 
   const groups = [...new Set(filtered.map(action => action.group))];
   if (floating) return <MobileCreateMenu actions={prepared} disabled={disabled} />;
   if (!actions.length) return null;
-  return <Dropdown.Root modal={false} open={open} onOpenChange={value => { setOpen(value); if (value) setQuery(""); }}><Dropdown.Trigger className={`suite-new-trigger ${iconOnly?"is-icon-only":""}`} aria-label={iconOnly?"Add new record":undefined} disabled={disabled}><Plus size={16} aria-hidden="true" />{!iconOnly&&<>Create<ChevronDown size={14} /></>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content onCloseAutoFocus={event => { if (selecting.current) event.preventDefault(); selecting.current = false; }} onEscapeKeyDown={() => setOpen(false)} className="suite-new-menu" align="end" side="bottom" sideOffset={8} collisionPadding={12}>
+  return <Dropdown.Root modal={false} open={open} onOpenChange={value => { setOpen(value); if (value) setQuery(""); }}><Dropdown.Trigger className={`suite-new-trigger ${iconOnly?"is-icon-only":""}`} aria-label={iconOnly?"Add new record":undefined} disabled={disabled}><Plus size={16} aria-hidden="true" />{!iconOnly&&<>{label}<ChevronDown size={14} /></>}</Dropdown.Trigger><Dropdown.Portal><Dropdown.Content onCloseAutoFocus={event => { if (selecting.current) event.preventDefault(); selecting.current = false; }} onEscapeKeyDown={() => setOpen(false)} className="suite-new-menu" align="end" side="bottom" sideOffset={8} collisionPadding={12}>
     <div className="suite-create-search"><Search size={16} aria-hidden="true"/><input ref={searchInput} aria-label="Search create actions" placeholder="Search actions…" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key !== "Escape" && event.key !== "Tab") event.stopPropagation(); if (event.key === "ArrowDown") { event.preventDefault(); event.currentTarget.closest('[role="menu"]')?.querySelector<HTMLElement>('[role="menuitem"]:not([data-disabled])')?.focus(); } }}/></div>
     {!filtered.length && <p className="suite-create-empty" role="status">No matching actions. Try task, leave, or document.</p>}
     {groups.map(group => <Dropdown.Group key={group}><Dropdown.Label className="suite-create-group">{group}</Dropdown.Label>{filtered.filter(action => action.group === group).map(action => <Dropdown.Item key={action.label} disabled={action.disabled} onSelect={() => {

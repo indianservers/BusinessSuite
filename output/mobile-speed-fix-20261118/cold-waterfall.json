@@ -1,0 +1,775 @@
+{
+  "usable_ms": 8765,
+  "metrics": [
+    {
+      "name": "LayoutDuration",
+      "value": 0.078769
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 0.094099
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 1.248068
+    },
+    {
+      "name": "TaskDuration",
+      "value": 1.81459
+    }
+  ],
+  "longTasks": [
+    {
+      "start": 1860.4000000357628,
+      "duration": 84
+    },
+    {
+      "start": 1958.800000011921,
+      "duration": 557
+    },
+    {
+      "start": 2552.400000035763,
+      "duration": 54
+    },
+    {
+      "start": 3582,
+      "duration": 98
+    },
+    {
+      "start": 4990.600000023842,
+      "duration": 178
+    },
+    {
+      "start": 5858.300000011921,
+      "duration": 182
+    }
+  ],
+  "top": [
+    {
+      "functionName": "(idle)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 6982385
+    },
+    {
+      "functionName": "(program)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 153936
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 841,
+      "columnNumber": 68763,
+      "self_us": 57305
+    },
+    {
+      "functionName": "(garbage collector)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 43591
+    },
+    {
+      "functionName": "D",
+      "scriptId": "40",
+      "url": "https://besterp.app/assets/SRMPOSPage-CJ-sBv3v.js",
+      "lineNumber": 45,
+      "columnNumber": 1765,
+      "self_us": 33335
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 25203
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 18991
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 11516
+    },
+    {
+      "functionName": "uu",
+      "scriptId": "5",
+      "url": "https://besterp.app/assets/vendor-7-FcLwML.js",
+      "lineNumber": 40,
+      "columnNumber": 16945,
+      "self_us": 11109
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 10856
+    },
+    {
+      "functionName": "Ic",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 841,
+      "columnNumber": 73799,
+      "self_us": 10848
+    },
+    {
+      "functionName": "zc",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 835,
+      "columnNumber": 104366,
+      "self_us": 10783
+    },
+    {
+      "functionName": "ht",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 835,
+      "columnNumber": 81335,
+      "self_us": 10684
+    },
+    {
+      "functionName": "ht",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 835,
+      "columnNumber": 81335,
+      "self_us": 9907
+    },
+    {
+      "functionName": "n",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 909,
+      "columnNumber": 159278,
+      "self_us": 9616
+    },
+    {
+      "functionName": "D0",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2906,
+      "self_us": 9515
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 9372
+    },
+    {
+      "functionName": "g",
+      "scriptId": "22",
+      "url": "https://besterp.app/assets/business-_RFL-3hI.js",
+      "lineNumber": 0,
+      "columnNumber": 3884,
+      "self_us": 9298
+    },
+    {
+      "functionName": "",
+      "scriptId": "22",
+      "url": "https://besterp.app/assets/business-_RFL-3hI.js",
+      "lineNumber": 0,
+      "columnNumber": 0,
+      "self_us": 9296
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 0,
+      "columnNumber": 0,
+      "self_us": 9159
+    },
+    {
+      "functionName": "J",
+      "scriptId": "5",
+      "url": "https://besterp.app/assets/vendor-7-FcLwML.js",
+      "lineNumber": 35,
+      "columnNumber": 4872,
+      "self_us": 9131
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 8578
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 8257
+    },
+    {
+      "functionName": "",
+      "scriptId": "6",
+      "url": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "lineNumber": 1,
+      "columnNumber": 2957,
+      "self_us": 8102
+    }
+  ],
+  "requests": [
+    {
+      "at": 1795019641070,
+      "path": "/api/v1/access/settings/business-profile/effective",
+      "status": 200
+    },
+    {
+      "at": 1795019641204,
+      "path": "/api/v1/business-os/modules",
+      "status": 200
+    },
+    {
+      "at": 1795019642263,
+      "path": "/api/v1/branches/context",
+      "status": 200
+    },
+    {
+      "at": 1795019642509,
+      "path": "/api/v1/access/settings/defaults/effective",
+      "status": 200
+    },
+    {
+      "at": 1795019642525,
+      "path": "/api/v1/notifications/summary",
+      "status": 200
+    },
+    {
+      "at": 1795019642595,
+      "path": "/api/v1/access/me",
+      "status": 200
+    },
+    {
+      "at": 1795019642811,
+      "path": "/api/v1/access/setup",
+      "status": 200
+    },
+    {
+      "at": 1795019642827,
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "at": 1795019643023,
+      "path": "/api/v1/srm/industry/capabilities",
+      "status": 200
+    },
+    {
+      "at": 1795019643448,
+      "path": "/api/v1/access/me",
+      "status": 200
+    },
+    {
+      "at": 1795019644706,
+      "path": "/api/v1/branches/context",
+      "status": 200
+    },
+    {
+      "at": 1795019645212,
+      "path": "/api/v1/srm/business/customers",
+      "status": 200
+    },
+    {
+      "at": 1795019646147,
+      "path": "/api/v1/srm/inventory/items",
+      "status": 200
+    },
+    {
+      "at": 1795019646181,
+      "path": "/api/v1/srm/pos/held-bills",
+      "status": 200
+    },
+    {
+      "at": 1795019646229,
+      "path": "/api/v1/srm/anonymous-cash/configuration",
+      "status": 200
+    }
+  ],
+  "resources": [
+    {
+      "name": "https://besterp.app/assets/index-BFhd9Ne3.js",
+      "start": 274.4000000357628,
+      "duration": 1567.5,
+      "transfer": 445304,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/vendor-7-FcLwML.js",
+      "start": 274.60000002384186,
+      "duration": 150.30000001192093,
+      "transfer": 61098,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/index-DfzKJaJ5.css",
+      "start": 274.69999998807907,
+      "duration": 468.60000002384186,
+      "transfer": 84598,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/ui-Dldn_Y9Z.js",
+      "start": 274.69999998807907,
+      "duration": 559.1000000238419,
+      "transfer": 36162,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/query-C134Gqns.js",
+      "start": 274.69999998807907,
+      "duration": 863.9000000357628,
+      "transfer": 14504,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/charts-DRlgN3wX.js",
+      "start": 274.69999998807907,
+      "duration": 863.7000000476837,
+      "transfer": 132726,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+      "start": 274.80000001192093,
+      "duration": 452.89999997615814,
+      "transfer": 0,
+      "protocol": ""
+    },
+    {
+      "name": "https://besterp.app/app-config.js",
+      "start": 274.80000001192093,
+      "duration": 1220.300000011921,
+      "transfer": 494,
+      "protocol": "h2"
+    },
+    {
+      "name": "https://besterp.app/assets/SRMPOSPage-CJ-sBv3v.js",
+      "start": 2169,
+      "duration": 418.9000000357628,
+      "transfer": 42611,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/box-CPiyHpRz.js",
+      "start": 2169.199999988079,
+      "duration": 1425.9000000357628,
+      "transfer": 629,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/ServiceCheckoutBillingPanel-DO57NlVP.js",
+      "start": 2169.300000011921,
+      "duration": 430.39999997615814,
+      "transfer": 4127,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/financial-intent-qdvsaLsz.js",
+      "start": 2169.400000035763,
+      "duration": 38.39999997615814,
+      "transfer": 1335,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/monitor-BtHQVxol.js",
+      "start": 2169.699999988079,
+      "duration": 786.2000000476837,
+      "transfer": 609,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/wrench-UMFSr7-w.js",
+      "start": 2169.800000011921,
+      "duration": 444.10000002384186,
+      "transfer": 614,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/select-DSDEMnAb.js",
+      "start": 2169.900000035763,
+      "duration": 450.2999999523163,
+      "transfer": 2674,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/effective-operational-selection-DGs-ynRV.js",
+      "start": 2170,
+      "duration": 128.4000000357628,
+      "transfer": 1043,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/POSServiceScheduling-J11JpaOp.js",
+      "start": 2170.100000023842,
+      "duration": 254.69999998807907,
+      "transfer": 11819,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/booking-time-DSZt-lbO.js",
+      "start": 2170.300000011921,
+      "duration": 37,
+      "transfer": 734,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/EmployeeCategories-SVMzSSsr.js",
+      "start": 2170.600000023842,
+      "duration": 113.69999998807907,
+      "transfer": 1380,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/POSServiceScheduling-sBk8ayVv.css",
+      "start": 2170.699999988079,
+      "duration": 133.70000004768372,
+      "transfer": 3212,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/FinancialDataTab-BRqqOW5C.js",
+      "start": 2170.800000011921,
+      "duration": 289.10000002384186,
+      "transfer": 16744,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/business-_RFL-3hI.js",
+      "start": 2171,
+      "duration": 173.60000002384186,
+      "transfer": 5033,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/form-uZIh7Wvp.js",
+      "start": 2171,
+      "duration": 268.19999998807907,
+      "transfer": 36455,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/MobileWorkflowPages-CoePdqEI.js",
+      "start": 2171.199999988079,
+      "duration": 115.20000004768372,
+      "transfer": 1706,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/MobileWorkflowPages-JAXMkmvn.css",
+      "start": 2171.400000035763,
+      "duration": 115.09999996423721,
+      "transfer": 1479,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/use-record-autosave-BWyI4uwo.js",
+      "start": 2171.400000035763,
+      "duration": 124.69999998807907,
+      "transfer": 1294,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/BranchAvailability-CeBbqe28.js",
+      "start": 2171.5,
+      "duration": 122.30000001192093,
+      "transfer": 1573,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/FinancialDataTab-CFBId16_.css",
+      "start": 2171.800000011921,
+      "duration": 148.30000001192093,
+      "transfer": 3254,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/SmartCreateSection-shRquyGd.js",
+      "start": 2171.800000011921,
+      "duration": 187.60000002384186,
+      "transfer": 2009,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/CompactActions-SanwMd2o.js",
+      "start": 2172.100000023842,
+      "duration": 116.69999998807907,
+      "transfer": 1783,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/ScheduleFields-p3IA63hn.js",
+      "start": 2172.100000023842,
+      "duration": 145,
+      "transfer": 2230,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/badge-Bg2ruoZW.js",
+      "start": 2172.300000011921,
+      "duration": 106.39999997615814,
+      "transfer": 863,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/transfer-BH-NyZw5.js",
+      "start": 2172.400000035763,
+      "duration": 164.79999995231628,
+      "transfer": 1948,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/api-CbMXIqF6.js",
+      "start": 2172.400000035763,
+      "duration": 204.89999997615814,
+      "transfer": 2305,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/realtime-CdUUm8zF.js",
+      "start": 2172.5,
+      "duration": 102.69999998807907,
+      "transfer": 805,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/calendar-range-Cndrmiju.js",
+      "start": 2172.600000023842,
+      "duration": 291.5,
+      "transfer": 663,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/banknote-BX5yqFeI.js",
+      "start": 2172.900000035763,
+      "duration": 441.19999998807907,
+      "transfer": 609,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/printer-CTE-U1qH.js",
+      "start": 2173.100000023842,
+      "duration": 436.0999999642372,
+      "transfer": 638,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/circle-pause-DnHetSK3.js",
+      "start": 2173.199999988079,
+      "duration": 153.70000004768372,
+      "transfer": 591,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/split-DbTCftmg.js",
+      "start": 2173.199999988079,
+      "duration": 294.30000001192093,
+      "transfer": 604,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/credit-card-DB5Y9gPK.js",
+      "start": 2173.300000011921,
+      "duration": 108.69999998807907,
+      "transfer": 596,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/SRMPOSPage-BOvJoILo.css",
+      "start": 2173.5,
+      "duration": 282.9000000357628,
+      "transfer": 13581,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/PersonManagementHost-DuvtHspc.js",
+      "start": 2197,
+      "duration": 249.5,
+      "transfer": 7053,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/peopleTypes-O7xdZwxM.js",
+      "start": 2197.199999988079,
+      "duration": 184.70000004768372,
+      "transfer": 518,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/peopleMemberships-Gj8gtUp0.js",
+      "start": 2197.300000011921,
+      "duration": 184.5,
+      "transfer": 586,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/RecordSectionNav-0wcg2ehL.js",
+      "start": 2197.5,
+      "duration": 241.4000000357628,
+      "transfer": 1055,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/AddExistingPeopleDialog-fpGaLVQH.js",
+      "start": 2197.600000023842,
+      "duration": 246.5,
+      "transfer": 2889,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/BusinessTerm-v8V2NFUD.js",
+      "start": 2197.699999988079,
+      "duration": 246.9000000357628,
+      "transfer": 420,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/access/settings/business-profile/effective",
+      "start": 2496.199999988079,
+      "duration": 943.5,
+      "transfer": 496,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/access/me",
+      "start": 2506.600000023842,
+      "duration": 2483.800000011921,
+      "transfer": 7640,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/notifications/summary",
+      "start": 2511,
+      "duration": 2385.600000023842,
+      "transfer": 557,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/access/settings/defaults/effective",
+      "start": 2513.199999988079,
+      "duration": 2393.300000011921,
+      "transfer": 1128,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/business-os/modules",
+      "start": 2515.699999988079,
+      "duration": 1056.6000000238419,
+      "transfer": 799,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/access/setup",
+      "start": 2516.300000011921,
+      "duration": 2553.699999988079,
+      "transfer": 1564,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/branches/context",
+      "start": 2516.699999988079,
+      "duration": 2761.7000000476837,
+      "transfer": 709,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/cdn-cgi/rum?",
+      "start": 2540.600000023842,
+      "duration": 52.69999998807907,
+      "transfer": 300,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/srm/industry/capabilities",
+      "start": 3730.600000023842,
+      "duration": 1658.3999999761581,
+      "transfer": 501,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/auth/me",
+      "start": 3732.100000023842,
+      "duration": 1416.0999999642372,
+      "transfer": 3413,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/access/me",
+      "start": 3732.300000011921,
+      "duration": 2110,
+      "transfer": 7640,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/srm/anonymous-cash/configuration",
+      "start": 6017.400000035763,
+      "duration": 2577.099999964237,
+      "transfer": 390,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/srm/business/customers?after=0",
+      "start": 6020.600000023842,
+      "duration": 1556.8999999761581,
+      "transfer": 744,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/srm/pos/held-bills",
+      "start": 6030.800000011921,
+      "duration": 2500.100000023842,
+      "transfer": 342,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/branches/context",
+      "start": 6037.900000035763,
+      "duration": 1052.5,
+      "transfer": 709,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/api/v1/srm/inventory/items?page=1&per_page=200&search=",
+      "start": 6084.400000035763,
+      "duration": 2441.899999976158,
+      "transfer": 3100,
+      "protocol": "h3"
+    },
+    {
+      "name": "https://besterp.app/assets/sqlite.worker-VrTvwDl3.js",
+      "start": 8752,
+      "duration": 0.800000011920929,
+      "transfer": 300,
+      "protocol": ""
+    }
+  ]
+}

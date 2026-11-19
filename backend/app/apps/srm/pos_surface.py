@@ -105,7 +105,7 @@ def catalog(db,actor,selected=None,*,after=0,limit=200,search=''):
     from app.apps.srm.service_checkout_models import ServiceBookingPolicy
     policies={row.service_product_id:row for row in db.query(ServiceBookingPolicy).filter_by(organization_id=company,branch_id=branch,pack_context_id=scope.context_id).filter(ServiceBookingPolicy.service_product_id.in_([row.id for row in rows[:limit]])).all()}
     for row in rows[:limit]:
-        service=(row.product_type or '').lower() in {'service','services'}
+        service=(row.product_type or '').lower() in {'service','services','membership','subscription','bundle'}
         physical=bool(row.track_inventory and not service)
         stock=capacity(db,row,company,branch,scope) if physical else None
         required=bool((row.metadata_json or {}).get('follow_up',{}).get('required')) if isinstance((row.metadata_json or {}).get('follow_up'),dict) else False

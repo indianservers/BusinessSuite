@@ -126,6 +126,9 @@ def _deliver_authorized(db, row, *, notification=None):
             if row.event_key.startswith("domain-report:"):
                 from app.services.domain_report_delivery import outbox_allowed
                 allowed = allowed and outbox_allowed(db, row)
+            if row.event_key.startswith('srm-report:'):
+                from app.apps.srm.reporting_jobs import outbox_allowed as srm_report_allowed
+                allowed = allowed and srm_report_allowed(db,row)
             if row.event_key.startswith("workspace-invite:"):
                 from app.apps.project_management.models import PMSWorkspaceInvitation
                 invitation = db.query(PMSWorkspaceInvitation).filter_by(token_hash=row.event_key.split(":", 1)[1]).first()
@@ -278,6 +281,10 @@ def process_email(db, limit=25):
     customer = process_customer_communications(db, limit)
     from app.services.domain_report_delivery import dispatch as dispatch_reports
     domain_reports = dispatch_reports(db)
+    if is_app_enabled('srm'):
+        from app.apps.srm.reporting_jobs import dispatch as dispatch_srm_reports
+        srm_reports=dispatch_srm_reports(db,limit=2)
+    else:srm_reports={'exports':0,'schedules':0}
     if is_app_enabled('project_management'):
         from app.ai_operator.reminders import dispatch as dispatch_ai_reminders
         ai_reminders = dispatch_ai_reminders(db, limit=limit)
@@ -302,6 +309,7 @@ def process_email(db, limit=25):
     result['customer_communications'] = customer
     result["scheduled"] = scheduled
     result["report_delivery"] = domain_reports
+    result['srm_reports']=srm_reports
     result['ai_reminders'] = ai_reminders
     result['ai_commitments'] = ai_commitments
     result["engagement_queued"] = engagement

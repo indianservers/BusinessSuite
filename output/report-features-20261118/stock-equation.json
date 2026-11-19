@@ -1,0 +1,10 @@
+{
+  "opening": 0,
+  "receipts": 460.0,
+  "customer_returns": 0,
+  "sales_issues": 195.0,
+  "adjustments": 0,
+  "expected_closing": 265.0,
+  "ledger_closing": 265.0,
+  "quantity_difference": 0
+}

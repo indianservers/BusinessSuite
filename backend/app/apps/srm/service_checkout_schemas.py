@@ -1,6 +1,6 @@
 from app.shared.employee_categories import WorkCategories
 """Strict source inputs for the server-owned atomic checkout operation."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
@@ -46,6 +46,8 @@ class CheckoutLineInput(Strict):
     discount_amount: Decimal = Field(default=Decimal(0),ge=0,max_digits=14,decimal_places=2,allow_inf_nan=False)
     note: str = Field(default="",max_length=10000)
     follow_up: CheckoutFollowUp | None = None
+    plan_start_date: date | None = None
+    plan_beneficiaries: list[ID] = Field(default_factory=list, max_length=100000)
     warehouse_id: ID | None = None
     booking: BookingSelection | None = None
     @model_validator(mode='after')

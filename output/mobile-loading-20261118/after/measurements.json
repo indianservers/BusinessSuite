@@ -1,0 +1,1695 @@
+{
+  "started": "2026-11-18T16:58:38.098Z",
+  "release": "mobile-loading-20261118-v2",
+  "method": "Live production, Chromium Pixel 7 emulation at 390x844, desktop CPU and unthrottled host network. Two independent cold browser contexts per page, each followed by a same-context full reload with cache retained. Authenticated; login, DNS and server cold-start excluded. Page timings run serially with one page open; all timing pages close before passive idle/sync observations start. First-pair browser profiles retain HTTP/storage caches for separate idle tabs. The four idle observations then run concurrently, outside all page timing windows. Initial/API idle counts use request initiation time; static assets excluded. Repeat visits preserve the browser session rather than reinjecting stale actor metadata.",
+  "runs": [
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 11951,
+      "ttfb_ms": 181,
+      "fcp_ms": 736,
+      "dom_ms": 2140,
+      "protocol": "h2",
+      "transfer_bytes": 1494429,
+      "api_until_usable": 12,
+      "api_through_2s_settle": 12,
+      "responses": [
+        {
+          "at": 1795021127137,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128047,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128122,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128255,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128362,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128816,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021128968,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021129491,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021129516,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021129544,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021129675,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021129969,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 3787,
+      "ttfb_ms": 555,
+      "fcp_ms": 572,
+      "dom_ms": 781,
+      "protocol": "h3",
+      "transfer_bytes": 15463,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795021137979,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138119,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138180,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138301,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138366,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138521,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138613,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138617,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021138765,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021139220,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 5488,
+      "ttfb_ms": 206,
+      "fcp_ms": 896,
+      "dom_ms": 2128,
+      "protocol": "h2",
+      "transfer_bytes": 1494441,
+      "api_until_usable": 12,
+      "api_through_2s_settle": 12,
+      "responses": [
+        {
+          "at": 1795021145454,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021145646,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021145757,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021145996,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146107,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146210,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146427,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146435,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146587,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021146774,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021147069,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021147128,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 3588,
+      "ttfb_ms": 191,
+      "fcp_ms": 212,
+      "dom_ms": 445,
+      "protocol": "h3",
+      "transfer_bytes": 15463,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795021154677,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021154677,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021154928,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021154947,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021154981,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021155023,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021155387,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021155401,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021155531,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021155941,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 6096,
+      "ttfb_ms": 257,
+      "fcp_ms": 480,
+      "dom_ms": 1835,
+      "protocol": "h2",
+      "transfer_bytes": 855355,
+      "api_until_usable": 9,
+      "api_through_2s_settle": 9,
+      "responses": [
+        {
+          "at": 1795021161190,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021161781,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162110,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162114,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162388,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162544,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162554,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021162565,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021163997,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 3177,
+      "ttfb_ms": 276,
+      "fcp_ms": 296,
+      "dom_ms": 477,
+      "protocol": "h3",
+      "transfer_bytes": 14032,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795021171185,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021171383,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021171490,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021171644,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021171651,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021171857,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021172014,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021172663,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 2,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 4964,
+      "ttfb_ms": 252,
+      "fcp_ms": 720,
+      "dom_ms": 1839,
+      "protocol": "h2",
+      "transfer_bytes": 855445,
+      "api_until_usable": 9,
+      "api_through_2s_settle": 9,
+      "responses": [
+        {
+          "at": 1795021178136,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178184,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178567,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178666,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178693,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178945,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021178945,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021179143,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021180000,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 3597,
+      "ttfb_ms": 124,
+      "fcp_ms": 140,
+      "dom_ms": 364,
+      "protocol": "h3",
+      "transfer_bytes": 14032,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795021186630,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021186786,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021186852,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021187248,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021187264,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021187524,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021187685,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021188457,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 5428,
+      "ttfb_ms": 241,
+      "fcp_ms": 500,
+      "dom_ms": 2003,
+      "protocol": "h2",
+      "transfer_bytes": 975962,
+      "api_until_usable": 15,
+      "api_through_2s_settle": 16,
+      "responses": [
+        {
+          "at": 1795021194171,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021194568,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021194987,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021194992,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195019,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195372,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195384,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195569,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195577,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021195761,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021196575,
+          "path": "/api/v1/srm/inventory/items",
+          "status": 200,
+          "mode": "full",
+          "cache": "persist"
+        },
+        {
+          "at": 1795021197496,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021197593,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021197711,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021198136,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021198451,
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 4670,
+      "ttfb_ms": 218,
+      "fcp_ms": 240,
+      "dom_ms": 478,
+      "protocol": "h3",
+      "transfer_bytes": 16870,
+      "api_until_usable": 13,
+      "api_through_2s_settle": 14,
+      "responses": [
+        {
+          "at": 1795021204751,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021204797,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205048,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205103,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205106,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205247,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205391,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021205524,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021206114,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021207676,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021207747,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021207938,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021208345,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 2,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 6921,
+      "ttfb_ms": 236,
+      "fcp_ms": 760,
+      "dom_ms": 2016,
+      "protocol": "h2",
+      "transfer_bytes": 1048856,
+      "api_until_usable": 15,
+      "api_through_2s_settle": 16,
+      "responses": [
+        {
+          "at": 1795021212630,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021212986,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021213009,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021213114,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021213346,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021213455,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021213664,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021214012,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021214188,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021214538,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021215548,
+          "path": "/api/v1/srm/inventory/items",
+          "status": 200,
+          "mode": "full",
+          "cache": "persist"
+        },
+        {
+          "at": 1795021216732,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021216741,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021216857,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021217120,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021217378,
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 13407,
+      "ttfb_ms": 127,
+      "fcp_ms": 144,
+      "dom_ms": 487,
+      "protocol": "h3",
+      "transfer_bytes": 16870,
+      "api_until_usable": 13,
+      "api_through_2s_settle": 14,
+      "responses": [
+        {
+          "at": 1795021231919,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021232575,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021232921,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021232999,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021233051,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021233173,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021233529,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021233715,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021233830,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021235116,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021235214,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021235375,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021235698,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021236193,
+          "path": "/api/v1/srm/pos/sessions/active",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 4825,
+      "ttfb_ms": 262,
+      "fcp_ms": 580,
+      "dom_ms": 1977,
+      "protocol": "h2",
+      "transfer_bytes": 1016432,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795021240526,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240601,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240702,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240705,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240734,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240734,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240783,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021240923,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021241553,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021241608,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 2686,
+      "ttfb_ms": 200,
+      "fcp_ms": 216,
+      "dom_ms": 420,
+      "protocol": "h3",
+      "transfer_bytes": 13480,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795021248191,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021248516,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021248988,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021249101,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021249105,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021249185,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021249364,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021249394,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 2,
+      "visit": "cold",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 5324,
+      "ttfb_ms": 261,
+      "fcp_ms": 564,
+      "dom_ms": 2094,
+      "protocol": "h2",
+      "transfer_bytes": 1016956,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795021255436,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021255623,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021255815,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021255834,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021255927,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021255970,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021256061,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021256061,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021256808,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021256883,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "mobile-loading-20261118-v2",
+      "usable_ms": 3018,
+      "ttfb_ms": 532,
+      "fcp_ms": 564,
+      "dom_ms": 746,
+      "protocol": "h3",
+      "transfer_bytes": 3752,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795021265189,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265307,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265374,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265374,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265488,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265576,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265597,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795021265629,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    }
+  ],
+  "idle": [
+    {
+      "name": "product",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/access/setup": 1,
+        "/api/v1/notifications/summary": 1
+      }
+    },
+    {
+      "name": "pos",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "scheduling",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "appointments",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    }
+  ],
+  "errors": [],
+  "apiErrors": [],
+  "inventory_auto_sync": {
+    "initial": {
+      "key": "50a253689741599903cca9d81cbad4c1e9ac531faee9dab5bb61b0a5cb7403ae:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795021196572,
+      "rows": 52
+    },
+    "initial_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795021196572,
+      "rows": 52
+    },
+    "recheck": {
+      "at": 1795021362458,
+      "status": 304,
+      "mode": "unchanged",
+      "cache": "persist"
+    },
+    "delay_ms": 165886,
+    "updated": {
+      "key": "50a253689741599903cca9d81cbad4c1e9ac531faee9dab5bb61b0a5cb7403ae:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795021362459,
+      "rows": 52
+    },
+    "updated_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795021362459,
+      "rows": 52
+    },
+    "status": "passed",
+    "automatic": true,
+    "server_writes": false
+  },
+  "inventory_cached_reload": {
+    "status": "passed",
+    "usable_ms": 7305,
+    "blocked_inventory_network_attempts": 0,
+    "rows": 52,
+    "visible_cards": 4
+  },
+  "finished": "2026-11-18T17:02:53.787Z",
+  "status": "complete"
+}

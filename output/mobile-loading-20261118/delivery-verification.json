@@ -1,0 +1,10 @@
+{
+  "asset": "/assets/index-CdNJGdne.js",
+  "alpn": "h2",
+  "encoding": "gzip",
+  "uncompressed_bytes": 1585657,
+  "wire_compressed_bytes": 445908,
+  "reduction_percent": 71.9,
+  "decoded_content_identical": true,
+  "release": "mobile-loading-20261118-v6"
+}

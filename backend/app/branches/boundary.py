@@ -116,11 +116,12 @@ _read_guard_lock = RLock()
 
 
 @lru_cache(maxsize=32)
-def _read_guards(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration, company_admin=False):
+def _read_guards(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration, company_admin=False, selected_models=None):
     models = dict(model_items)
     ownership = BranchOwnership.__table__
     criteria = {}
     for name, model in models.items():
+        if selected_models is not None and model not in selected_models:continue
         if (superuser or company_admin) and branch_id is None:
             continue
         if identity_administration and name in {"users", "common_people", "common_profiles"}:
@@ -162,6 +163,11 @@ def _read_guards(model_items, actor_id, company_id, branch_id, selected, superus
     return MappingProxyType(criteria), tuple(options)
 
 
+@lru_cache(maxsize=512)
+def _single_read_guard(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration, company_admin, model):
+    return _read_guards.__wrapped__(model_items, actor_id, company_id, branch_id, selected, superuser, identity_administration, company_admin, (model,))
+
+
 def install(db, user, ctx, *, identity_administration=False):
     if db.info.get("branch_context") is not None:
         if db.info["branch_context"] != ctx:
@@ -171,9 +177,15 @@ def install(db, user, ctx, *, identity_administration=False):
     tables = Base.metadata.tables
     ownership = BranchOwnership.__table__
     selected = {ctx.branch_id} if ctx.branch_id else set(ctx.allowed)
-    with _read_guard_lock:
-        criteria, options = _read_guards(tuple(sorted(models.items())), user.id, ctx.company_id,
-            ctx.branch_id, tuple(sorted(selected)), ctx.superuser, identity_administration, getattr(ctx, 'company_admin', False))
+    from app.db.loader_options import GuardPlan
+    plan_context=(tuple(sorted(models.items())),user.id,ctx.company_id,ctx.branch_id,
+                  tuple(sorted(selected)),ctx.superuser,identity_administration,getattr(ctx,'company_admin',False))
+    def complete_plan():
+        with _read_guard_lock:return _read_guards(*plan_context)
+    def single_plan(model):
+        with _read_guard_lock:return _single_read_guard(*plan_context,model)
+    guard_plan=GuardPlan(models.values(),complete_plan,single_plan)
+    criteria=guard_plan
     protected = set(models) - SHARED
     pattern = re.compile(r"\b(?:" + "|".join(re.escape(n) for n in protected) + r")\b", re.I)
     pending = []
@@ -223,7 +235,10 @@ def install(db, user, ctx, *, identity_administration=False):
             execution.update_execution_options(compiled_cache=None)
             # Keep one copy of each current-context guard on relationship loads.
             inherited = {id(option) for option in getattr(execution.statement, '_with_options', ())}
-            execution.statement = execution.statement.options(*(option for option in options if id(option) not in inherited))
+            project=execution.is_select and not any(db.info.get(key) is not None for key in (
+                'business_pack_scope','business_pack_request_binding'))
+            current_options=guard_plan.read_options(execution.statement,project)
+            execution.statement = execution.statement.options(*(option for option in current_options if id(option) not in inherited))
 
     def validate(session, *args):
         for item in session.new | session.dirty | session.deleted:

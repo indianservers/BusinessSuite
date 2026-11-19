@@ -116,7 +116,7 @@ export type Lead = {
 export type LeadPatch = {
   customFields?: Record<string, unknown>;
  confirmShared?:boolean;sharedReason?:string;
-  catalog_lines?: {kind: "product" | "service"; item_id: number; pricing_id?: string | null; quantity: number; unit_price: number; discount: number}[];
+  catalog_lines?: {kind: "product" | "service" | "membership" | "subscription" | "bundle"; item_id: number; pricing_id?: string | null; quantity: number; unit_price: number; discount: number}[];
   values?: Record<string, unknown>;
   details?: Partial<LeadDetails>;
   version?: number;

@@ -13,6 +13,7 @@ from sqlalchemy import String, and_, case, cast, exists, func, literal, or_, sel
 
 from app.apps.srm.models import SRMProduct
 from app.shared.catalog_models import CatalogDetails
+from app.shared.offering_contracts import KINDS, detail_column, offering_kind, kind_predicate
 
 
 def fail(message, status=403):
@@ -63,7 +64,7 @@ def _query(db, actor, source, scope, kind=None, *, exclude_workspace=False):
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == scope.company_id, SRMProduct.deleted_at.is_(None),
         availability_clause(SRMProduct, scope.branch_id))
     if kind:
-        query = query.filter(SRMProduct.product_type == 'service' if kind == 'service' else or_(SRMProduct.product_type.is_(None), SRMProduct.product_type != 'service'))
+        query = query.filter(kind_predicate(SRMProduct, kind))
     if source == 'crm':
         from app.apps.crm.api.router import _apply_record_visibility
         query = _apply_record_visibility(query, catalog_resource(), actor, db)
@@ -89,8 +90,8 @@ def _detail(db, product, kind, *, lock=False):
     if not rows:
         return None
     row = dict(rows[0])
-    if (row['organization_id'] != product.organization_id or row[kind + '_id'] != product.id
-            or row[('service' if kind == 'product' else 'product') + '_id'] is not None):
+    if (row['organization_id'] != product.organization_id or row[detail_column(kind)] != product.id
+            or row[('product_id' if kind == 'service' else 'service_id')] is not None):
         fail('Catalog metadata parent is inconsistent', 503)
     if row['workspace_id'] is not None:
         fail('Workspace catalog management is not integrated for this context', 503)
@@ -233,11 +234,11 @@ def list_items(db, actor, source, *, kind=None, search='', category='', status='
     keys = None
     if item_keys is not None:
         keys = list(dict.fromkeys(item_keys.split(',') if item_keys else []))
-        if len(keys) > 500 or any(not re.fullmatch(r'(product|service):[1-9][0-9]{0,15}', value) for value in keys):
+        if len(keys) > 500 or any(not re.fullmatch(r'(product|service|membership|subscription|bundle):[1-9][0-9]{0,15}', value) for value in keys):
             fail('Choose up to 500 valid catalog records', 422)
     permissions = {}
     scope = None
-    for selected in ([kind] if kind else ['product', 'service']):
+    for selected in ([kind] if kind else KINDS):
         try:
             current, _ = authority(db, actor, source, selected)
         except HTTPException as error:
@@ -268,7 +269,7 @@ def list_items(db, actor, source, *, kind=None, search='', category='', status='
 
 def _list_page(db,actor,source,scope,permissions,*,kind,search,category,status,sort,direction,page,per_page,tag,keys,key_order,include_facets):
     query = _query(db, actor, source, scope, kind, exclude_workspace=True)
-    item_kind = case((SRMProduct.product_type == 'service', literal('service')), else_=literal('product'))
+    item_kind = case(*[(SRMProduct.product_type == k, literal(k)) for k in KINDS[1:]], else_=literal('product'))
     query = query.filter(item_kind.in_(list(permissions)))
     if status != 'all':
         query = query.filter(SRMProduct.active == (status == 'Active'))
@@ -323,7 +324,7 @@ def _list_page(db,actor,source,scope,permissions,*,kind,search,category,status,s
     items = []
     write_grant=_module_grant(db,actor,scope,'project_management' if source=='pms' else source)
     for product in products:
-        selected = 'service' if product.product_type=='service' else 'product'
+        selected = offering_kind(product)
         from app.apps.srm.service_checkout import _source_scope
         _source_scope(db,scope,scope.company_id,scope.branch_id,SRMProduct,product.id,master=True)
         items.append({**_output(product,selected,_detail(db,product,selected),scope,db=db,actor=actor),'can_edit':_item_editable(db,actor,scope,source,product,permissions[selected],grant=write_grant)})
@@ -391,7 +392,7 @@ def save_item(db, actor, source, data, ident=None):
             fail('Catalog authority changed before save')
         if product is None:
             product = SRMProduct(organization_id=scope.company_id, created_by=actor.id,
-                product_type='service' if data.kind == 'service' else 'stock', track_inventory=data.kind != 'service',
+                product_type='stock' if data.kind == 'product' else data.kind, track_inventory=data.kind == 'product',
                 sku=data.code, item_name=data.name, metadata_json={'catalog_branches': {'default': False, 'overrides': {str(scope.branch_id): True}}})
             db.add(product)
             db.flush()  # Existing native boundary stamps only this newly born master.
@@ -400,6 +401,22 @@ def save_item(db, actor, source, data, ident=None):
         before = {column.name: getattr(product, column.name) for column in product.__table__.c}
         metadata = dict(product.metadata_json or {})
         metadata.update(currency=data.currency, images=data.images)
+        if data.plan is not None:
+            metadata["plan"] = data.plan.model_dump(mode="json")
+        if data.bundle is not None:
+            # Nested components must pass their existing selected-context authority.
+            def check_bundle(bundle_id, path):
+                if bundle_id in path or len(path) >= 20:
+                    fail("Circular or excessively nested bundle reference",422)
+                child = _query(db,actor,source,scope).filter(SRMProduct.id == bundle_id,SRMProduct.active.is_(True)).first()
+                if child is None:fail("Bundle component is unavailable",404)
+                authority(db,actor,source,offering_kind(child))
+                if child.product_type == "bundle":
+                    for component in (child.metadata_json or {}).get("bundle",{}).get("components",[]):
+                        check_bundle(component["offering_id"],path | {bundle_id})
+            for component in data.bundle.components:
+                check_bundle(component.offering_id,{product.id})
+            metadata["bundle"] = data.bundle.model_dump(mode="json")
         if data.category_ids is not None:
             from app.shared.catalog_categories import selection
             ids, labels = selection(db, actor, data.category_ids)
@@ -416,7 +433,7 @@ def save_item(db, actor, source, data, ident=None):
             value = getattr(data, field)
             if value is not None:
                 values[column] = (value or None) if field in {'barcode','hsn_code'} else value
-        if data.kind == 'service':
+        if data.kind != 'product':
             values['track_inventory'] = False
         if data.pharma_lot_tracking is not None:
             if data.pharma_lot_tracking and (data.track_inventory is False or before['serial_tracking']):
@@ -450,12 +467,12 @@ def save_item(db, actor, source, data, ident=None):
             pricing_options=[price.model_dump(mode='json') for price in data.pricing_options], version=(detail['version'] if detail else 0)+1)
         if detail:
             changed = connection.execute(table.update().where(table.c.id == detail['id'], table.c.organization_id == scope.company_id,
-                table.c[data.kind+'_id'] == product.id, table.c.version == detail['version']).values(**details))
+                table.c[detail_column(data.kind)] == product.id, table.c.version == detail['version']).values(**details))
             if changed.rowcount != 1:
                 fail('Catalog version changed during save', 409)
             details = {**detail, **details}
         else:
-            details.update(organization_id=scope.company_id, product_id=product.id if data.kind == 'product' else None,
+            details.update(organization_id=scope.company_id, product_id=product.id if data.kind != 'service' else None,
                 service_id=product.id if data.kind == 'service' else None, workspace_id=None)
             connection.execute(table.insert().values(**details))
         audit = AuditLog.__table__

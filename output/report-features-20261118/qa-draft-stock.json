@@ -1,0 +1,22 @@
+{
+  "id": 25,
+  "product": "QA-LIVE-20261118-STOCK Product 09",
+  "sku": "QA-LIVE-20261118-STOCK-P09",
+  "currency": "INR",
+  "on_hand": 1.5,
+  "stock_value": "0.75",
+  "threshold": 8.0,
+  "low_stock": true,
+  "priority": "Low stock",
+  "average_daily_usage": 0.283,
+  "days_cover": 5.3,
+  "lead_time_days": 7,
+  "suggested_reorder": 6.0,
+  "supplier": "QA report validation supplier - draft only",
+  "supplier_id": null,
+  "warehouse_id": 3,
+  "_url": "/srm/inventory/items/25",
+  "supplier_last_po": "PO-000001",
+  "supplier_source": "PO-000001",
+  "open_purchase_quantity": 1.0
+}

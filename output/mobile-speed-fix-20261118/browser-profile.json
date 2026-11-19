@@ -1,0 +1,315 @@
+{
+  "usable_ms": 8935,
+  "metrics": [
+    {
+      "name": "LayoutDuration",
+      "value": 0.04456
+    },
+    {
+      "name": "RecalcStyleDuration",
+      "value": 0.065371
+    },
+    {
+      "name": "ScriptDuration",
+      "value": 0.885786
+    },
+    {
+      "name": "TaskDuration",
+      "value": 1.307566
+    }
+  ],
+  "longTasks": [
+    {
+      "start": 2937.599999964237,
+      "duration": 374
+    },
+    {
+      "start": 5220.5,
+      "duration": 78
+    },
+    {
+      "start": 5584.5,
+      "duration": 135
+    },
+    {
+      "start": 6758.899999976158,
+      "duration": 100
+    }
+  ],
+  "top": [
+    {
+      "functionName": "(idle)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 7648031
+    },
+    {
+      "functionName": "(program)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 121731
+    },
+    {
+      "functionName": "(garbage collector)",
+      "scriptId": "0",
+      "url": "",
+      "lineNumber": -1,
+      "columnNumber": -1,
+      "self_us": 32370
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 955,
+      "columnNumber": 126431,
+      "self_us": 29726
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 18492
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 14524
+    },
+    {
+      "functionName": "B",
+      "scriptId": "18",
+      "url": "https://besterp.app/assets/SRMPOSPage-Djyyz7iY.js",
+      "lineNumber": 45,
+      "columnNumber": 1765,
+      "self_us": 13303
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 12684
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 9460
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 7984
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 7882
+    },
+    {
+      "functionName": "ki",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 945,
+      "columnNumber": 11548,
+      "self_us": 7861
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 0,
+      "columnNumber": 0,
+      "self_us": 6477
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 6418
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 6363
+    },
+    {
+      "functionName": "ws",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 945,
+      "columnNumber": 81296,
+      "self_us": 6343
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 955,
+      "columnNumber": 131920,
+      "self_us": 6328
+    },
+    {
+      "functionName": "Em",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2036,
+      "self_us": 6309
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 6275
+    },
+    {
+      "functionName": "ws",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 945,
+      "columnNumber": 81296,
+      "self_us": 5879
+    },
+    {
+      "functionName": "",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2087,
+      "self_us": 5070
+    },
+    {
+      "functionName": "Em",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 1,
+      "columnNumber": 2036,
+      "self_us": 4973
+    },
+    {
+      "functionName": "Vr",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 945,
+      "columnNumber": 92113,
+      "self_us": 4887
+    },
+    {
+      "functionName": "I2",
+      "scriptId": "10",
+      "url": "https://besterp.app/assets/index-UIako_7-.js",
+      "lineNumber": 955,
+      "columnNumber": 131467,
+      "self_us": 4881
+    }
+  ],
+  "requests": [
+    {
+      "at": 1795013605688,
+      "path": "/api/v1/branches/context",
+      "status": 200
+    },
+    {
+      "at": 1795013605797,
+      "path": "/api/v1/access/settings/business-profile/effective",
+      "status": 200
+    },
+    {
+      "at": 1795013605812,
+      "path": "/api/v1/access/enterprise/branding",
+      "status": 200
+    },
+    {
+      "at": 1795013605872,
+      "path": "/api/v1/business-os/modules",
+      "status": 200
+    },
+    {
+      "at": 1795013605972,
+      "path": "/api/v1/notifications/summary",
+      "status": 200
+    },
+    {
+      "at": 1795013606217,
+      "path": "/api/v1/access/me",
+      "status": 200
+    },
+    {
+      "at": 1795013606385,
+      "path": "/api/v1/access/settings/defaults/effective",
+      "status": 200
+    },
+    {
+      "at": 1795013606390,
+      "path": "/api/v1/access/setup",
+      "status": 200
+    },
+    {
+      "at": 1795013606797,
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "at": 1795013607384,
+      "path": "/api/v1/access/me",
+      "status": 200
+    },
+    {
+      "at": 1795013607410,
+      "path": "/api/v1/srm/industry/capabilities",
+      "status": 200
+    },
+    {
+      "at": 1795013607758,
+      "path": "/api/v1/branches/context",
+      "status": 200
+    },
+    {
+      "at": 1795013608765,
+      "path": "/api/v1/srm/business/customers",
+      "status": 200
+    },
+    {
+      "at": 1795013608962,
+      "path": "/api/v1/srm/anonymous-cash/configuration",
+      "status": 200
+    },
+    {
+      "at": 1795013609259,
+      "path": "/api/v1/srm/pos/held-bills",
+      "status": 200
+    },
+    {
+      "at": 1795013609419,
+      "path": "/api/v1/srm/inventory/items",
+      "status": 200
+    }
+  ]
+}

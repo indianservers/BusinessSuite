@@ -16,7 +16,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import App from "./App.tsx";
-import PlatformApp from "./platform/PlatformApp";
+const PlatformApp = React.lazy(() => import("./platform/PlatformApp"));
 import { api } from "./services/api";
 import { installRecordCache } from "./lib/smart-cache/integration";
 import CacheDiagnostics from "./lib/smart-cache/CacheDiagnostics";
@@ -69,7 +69,7 @@ window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statist
 
 function PortalRoot() {
   const {pathname} = useLocation();
-  if (pathname.startsWith("/platform")) return <PlatformApp/>;
+  if (pathname.startsWith("/platform")) return <React.Suspense fallback={<div role="status">Loading platform…</div>}><PlatformApp/></React.Suspense>;
   return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
 }
 

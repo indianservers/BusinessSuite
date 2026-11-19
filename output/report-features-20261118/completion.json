@@ -1,0 +1,22 @@
+{
+  "release": "report-features-20261118-v3",
+  "checks": {
+    "targeted_tests": 51,
+    "typescript": "passed",
+    "production_build": "passed",
+    "browser": [
+      "six daily metrics",
+      "stock reconciliation",
+      "zero-discrepancy filter",
+      "low-stock review",
+      "draft PO creation",
+      "repeat/unpaid/inactive customers",
+      "all-history purchase dialog with currencies",
+      "saved filters and two-column restore",
+      "weekly summary preview without delivery"
+    ]
+  },
+  "qa_draft": "PO-000001",
+  "stock_changed_by_draft": false,
+  "scheduled_delivery_enabled": false
+}

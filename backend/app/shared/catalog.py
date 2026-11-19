@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
-from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator
+from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator, model_validator
 from sqlalchemy import func, or_, literal, select, union_all, cast, String, case
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -23,7 +23,8 @@ from app.shared.catalog_models import CatalogDetails, CatalogLink
 from app.shared.catalog_branches import availability_clause, selected_branch, assert_available, is_available, set_availability
 
 router = APIRouter(prefix="/catalog", tags=["Shared products & services"])
-Kind = Literal["product", "service"]
+from app.shared.offering_contracts import KINDS, Plan, Bundle, detail_column, offering_kind, kind_predicate, validate_bundle
+Kind = Literal["product", "service", "membership", "subscription", "bundle"]
 Source = Literal["pms", "crm", "srm"]
 Target = Literal["project", "lead", "contact", "customer", "account", "deal"]
 CENT = Decimal("0.01")
@@ -49,6 +50,8 @@ from app.shared.service_category_links import SchedulingInput
 
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    plan: Plan | None = None
+    bundle: Bundle | None = None
     service_scheduling: SchedulingInput | None = None
     branch_availability: BranchAvailability | None = None
     follow_up: ScheduleTemplate | None = None
@@ -79,6 +82,20 @@ class ItemInput(BaseModel):
     custom_fields: dict[str, str | int | float | bool | None] = Field(default_factory=dict, max_length=100)
     pricing_options: list[Price] = Field(default_factory=list, max_length=30)
     version: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def offering_configuration(self):
+        if self.kind in {"membership", "subscription"} and self.plan is None:
+            raise ValueError("Plan configuration is required")
+        if self.kind == "bundle" and self.bundle is None:
+            raise ValueError("Bundle components are required")
+        if self.plan is not None and self.kind not in {"membership", "subscription"}:
+            raise ValueError("Plan configuration belongs to memberships or subscriptions")
+        if self.bundle is not None and self.kind != "bundle":
+            raise ValueError("Bundle configuration belongs to bundles")
+        if self.kind in {"membership", "subscription", "bundle"} and self.track_inventory:
+            raise ValueError("Only products can track physical inventory")
+        return self
 
     @field_validator("tags")
     @classmethod
@@ -146,7 +163,7 @@ def workspace_access(db, user, workspace_id, write=False):
 
 
 def metadata(db, kind, ident):
-    return db.query(CatalogDetails).filter(getattr(CatalogDetails, kind + "_id") == ident).first()
+    return db.query(CatalogDetails).filter(getattr(CatalogDetails, detail_column(kind)) == ident).first()
 
 
 def restrict_workspaces(query, model, db, user):
@@ -168,7 +185,7 @@ def item_record(db, user, source, kind, ident, write=False, archived=True):
     authorize(user, source, kind, write, db=db)
     model = SRMProduct
     row = db.query(model).filter(model.id == ident, func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None)).with_for_update().first() if write else db.query(model).filter(model.id == ident, func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None)).first()
-    if not row or ("service" if row.product_type == "service" else "product") != kind:
+    if not row or offering_kind(row) != kind:
         raise HTTPException(404, "Catalog item not found")
     if write and not is_available(row, selected_branch(user)):
         raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
@@ -188,7 +205,7 @@ def output(row, kind, detail):
     attributes = row.metadata_json or {}
     policy = attributes.get("catalog_branches") or {}
     availability = None if policy.get("default", True) else {"scope": "selected", "branch_ids": sorted(int(key) for key, enabled in policy.get("overrides", {}).items() if enabled)}
-    return {"branch_availability": availability, "follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
+    return {**({"plan": attributes["plan"]} if "plan" in attributes else {}), **({"bundle": attributes["bundle"]} if "bundle" in attributes else {}), "branch_availability": availability, "follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
             "category_ids": attributes.get("catalog_category_ids"), "categories": attributes.get("catalog_categories", [row.category_name] if row.category_name else []), "category": row.category_name or "", "tags": attributes.get("catalog_tags", []), "description": row.description or "", "price": float(row.sales_rate or 0),
             "currency": attributes.get("currency", "INR"), "tax": float(row.gst_rate or 0), "unit": row.unit_code or "unit",
             "barcode": row.barcode or "", "hsn_code": row.hsn_code or "", "cost": float(row.purchase_rate or 0), "mrp": float(row.mrp or 0), "reorder_level": float(row.reorder_level or 0), "track_inventory": bool(row.track_inventory),
@@ -203,6 +220,9 @@ def save_item(db, user, source, data, ident=None):
     if data.pharma_lot_tracking is not None or data.pharma_warehouse_id is not None:
         raise HTTPException(422,'Pharma lot configuration requires the selected Pharma catalog workflow')
     authorize(user, source, data.kind, True, db=db)
+    if data.kind == "bundle":
+        from app.apps.srm.services.commercial import lock_tenant
+        lock_tenant(db, user)
     workspace_access(db, user, data.workspace_id, True)
     targets = None
     if data.branch_availability is not None and not ident:
@@ -215,7 +235,7 @@ def save_item(db, user, source, data, ident=None):
         if data.version is not None and data.version != (detail.version if detail else 0):
             raise HTTPException(409, "This item changed. Reload it before saving.")
     else:
-        row, detail = model(organization_id=tenant(user), created_by=user.id, product_type="service" if data.kind == "service" else "stock", track_inventory=data.kind != "service"), None
+        row, detail = model(organization_id=tenant(user), created_by=user.id, product_type="stock" if data.kind == "product" else data.kind, track_inventory=data.kind == "product"), None
         branch = selected_branch(user)
         if branch:
             row.metadata_json = {"catalog_branches": {"default": False, "overrides": {str(branch): True}}}
@@ -247,12 +267,15 @@ def save_item(db, user, source, data, ident=None):
         value = getattr(data, field)
         if value is not None:
             setattr(row, attribute, (value or None) if field in {"barcode", "hsn_code"} else value)
-    if data.kind == "service":
+    if data.kind != "product":
         row.track_inventory = False
     row.metadata_json = {**(row.metadata_json or {}), **({"catalog_tags": data.tags} if data.tags is not None else {}), "currency": data.currency, "images": data.images, **({"follow_up": data.follow_up.model_dump(mode="json")} if data.follow_up is not None else {})}
+    if data.bundle is not None:
+        validate_bundle(db, user, source, data.bundle, ident)
+    row.metadata_json = {**(row.metadata_json or {}), **({"plan": data.plan.model_dump(mode="json")} if data.plan is not None else {}), **({"bundle": data.bundle.model_dump(mode="json")} if data.bundle is not None else {})}
     db.flush()
     if detail is None:
-        detail = CatalogDetails(organization_id=tenant(user), **{data.kind + "_id": row.id}, version=0)
+        detail = CatalogDetails(organization_id=tenant(user), **{detail_column(data.kind): row.id}, version=0)
         db.add(detail)
     detail.workspace_id, detail.unit, detail.images = data.workspace_id, data.unit, data.images
     detail.custom_fields = data.custom_fields
@@ -364,13 +387,13 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
     if item_keys is not None:
         import re
         values = item_keys.split(",") if item_keys else []
-        if len(values) > 500 or any(not re.fullmatch(r"(product|service):[1-9][0-9]{0,15}", value) for value in values):
+        if len(values) > 500 or any(not re.fullmatch(r"(product|service|membership|subscription|bundle):[1-9][0-9]{0,15}", value) for value in values):
             raise HTTPException(422, "Choose up to 500 valid catalog records")
         keys = list(dict.fromkeys(values))
     queries = []
     facet_queries = []
     permissions = {}
-    for selected in ([kind] if kind else ["product", "service"]):
+    for selected in ([kind] if kind else KINDS):
         try:
             authorize(user, source, selected, db=db)
         except HTTPException as exc:
@@ -385,8 +408,8 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         model = SRMProduct
         price = func.coalesce(model.sales_rate, 0)
         code = model.sku
-        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code"), model.metadata_json["catalog_tags"].label("catalog_tags"), model.metadata_json["catalog_categories"].label("catalog_categories")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
-        query = query.where(model.product_type == "service" if selected == "service" else func.coalesce(model.product_type, "stock") != "service")
+        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code"), model.metadata_json["catalog_tags"].label("catalog_tags"), model.metadata_json["catalog_categories"].label("catalog_categories")).outerjoin(CatalogDetails, getattr(CatalogDetails, detail_column(selected)) == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
+        query = query.where(kind_predicate(model, selected))
         query = query.where(availability_clause(model, selected_branch(user)))
         if not user.is_superuser and not organization_admin(user):
             visible = select(PMSWorkspaceMember.workspace_id).join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceMember.workspace_id).where(PMSWorkspaceMember.user_id == user.id, func.coalesce(PMSWorkspace.organization_id, 1) == tenant(user))
@@ -435,11 +458,11 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         facets = {"categories": sorted(categories), "tags": sorted(tags)}
     rows = db.execute(select(combined).order_by(ordering, combined.c.kind, combined.c.id).offset((page - 1) * per_page).limit(per_page)).mappings().all()
     items = []
-    for selected in ("product", "service"):
+    for selected in KINDS:
         ids = [r["id"] for r in rows if r["kind"] == selected]
         if not ids: continue
         model = SRMProduct
-        details = {getattr(d, selected + "_id"): d for d in db.query(CatalogDetails).filter(getattr(CatalogDetails, selected + "_id").in_(ids)).all()}
+        details = {getattr(d, detail_column(selected)): d for d in db.query(CatalogDetails).filter(getattr(CatalogDetails, detail_column(selected)).in_(ids)).all()}
         items.extend(output(row, selected, details.get(row.id)) for row in db.query(model).filter(model.id.in_(ids)).all())
     if price_book_id:
         from app.apps.crm.models import CRMPriceBook, CRMPriceBookItem
@@ -533,7 +556,7 @@ def reuse_in_branches(data: BranchReuseInput, source: Source = "crm", db: Sessio
             if data.operation == "move":
                 set_availability(row, origin, False)
             if detail is None:
-                detail = CatalogDetails(organization_id=tenant(user), **{item.kind + "_id": row.id}, version=0)
+                detail = CatalogDetails(organization_id=tenant(user), **{detail_column(item.kind): row.id}, version=0)
                 db.add(detail)
             detail.version += 1
             results.append({"id": row.id, "kind": item.kind, "branch_ids": sorted(destinations)})
@@ -690,7 +713,8 @@ def get_links(target: Target, ident: int, source: Source = "crm", db: Session = 
     rows = db.query(CatalogLink).filter_by(organization_id=tenant(user), target_type=target, target_id=ident).all()
     lines = []
     for row in rows:
-        kind = "product" if row.product_id else "service"
+        master = db.get(SRMProduct, row.product_id or row.service_id)
+        kind = offering_kind(master) if master else "product"
         item, detail = item_record(db, user, source, kind, row.product_id or row.service_id)
         data = output(item, kind, detail); data["currency"] = row.currency
         lines.append(line_output(data, Line(kind=kind, item_id=item.id, pricing_id=row.pricing_id, quantity=row.quantity, unit_price=row.unit_price, discount=row.discount), row.tax_rate))
@@ -721,7 +745,7 @@ def save_links(target, ident, data, source, db, user, persist=True):
     else:
         db.query(CatalogLink).filter_by(organization_id=tenant(user), target_type=target, target_id=ident).delete()
         for line in normalized:
-            db.add(CatalogLink(organization_id=tenant(user), target_type=target, target_id=ident, **{line["kind"] + "_id": line["item_id"]}, **{key: line[key] for key in ("pricing_id", "quantity", "unit_price", "discount", "tax_rate", "currency")}))
+            db.add(CatalogLink(organization_id=tenant(user), target_type=target, target_id=ident, **{detail_column(line["kind"]): line["item_id"]}, **{key: line[key] for key in ("pricing_id", "quantity", "unit_price", "discount", "tax_rate", "currency")}))
         from app.apps.crm.api.router import _create_crm_audit_log
         _create_crm_audit_log(db, user_id=user.id, entity_type="catalog_links", entity_id=ident, action="UPDATE", description=f"Updated {target} products/services")
         if persist: commit(db)

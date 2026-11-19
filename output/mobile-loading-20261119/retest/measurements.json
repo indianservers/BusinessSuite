@@ -1,0 +1,6807 @@
+{
+  "started": "2026-11-19T12:11:15.769Z",
+  "release": "report-crud-20261118-v1",
+  "method": "Live production, Chromium Pixel 7 emulation at 390x844, desktop CPU and unthrottled host network. Two independent cold browser contexts per page, each followed by a same-context full reload with cache retained. Authenticated; login, DNS and server cold-start excluded. Ten seconds between sample pairs. No profiler attached. Page timings run serially with one page open; all timing pages close before passive idle/sync observations start. First-pair browser profiles retain HTTP/storage caches for separate idle tabs. Idle observations run sequentially with one page open, outside all page timing windows. Initial/API idle counts use request initiation time; static assets excluded. Repeat visits preserve the browser session rather than reinjecting stale actor metadata.",
+  "runs": [
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090276221,
+      "usable_ms": 6695,
+      "ttfb_ms": 2971,
+      "fcp_ms": 3108,
+      "dom_ms": 3432,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 2977,
+          "duration_ms": 391,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 2977,
+          "duration_ms": 344,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 2977,
+          "duration_ms": 43,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 2978,
+          "duration_ms": 110,
+          "bytes": 84598
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 2978,
+          "duration_ms": 209,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 2978,
+          "duration_ms": 209,
+          "bytes": 132726
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 2978,
+          "duration_ms": 154,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 2978,
+          "duration_ms": 386,
+          "bytes": 494
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-CCSj5Pu9.js",
+          "start_ms": 2980,
+          "duration_ms": 388,
+          "bytes": 58741
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 2980,
+          "duration_ms": 388,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 2980,
+          "duration_ms": 388,
+          "bytes": 4126
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 2980,
+          "duration_ms": 40,
+          "bytes": 1336
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 621
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 629
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 616
+        },
+        {
+          "path": "/assets/map-pin-CkFjmyK4.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 595
+        },
+        {
+          "path": "/assets/ellipsis-vertical-DK4ABVYd.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 573
+        },
+        {
+          "path": "/assets/ban-DhJHpze3.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 570
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 2980,
+          "duration_ms": 418,
+          "bytes": 657
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 16750
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 2981,
+          "duration_ms": 419,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 2981,
+          "duration_ms": 419,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 2008
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 2981,
+          "duration_ms": 419,
+          "bytes": 1242
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 2981,
+          "duration_ms": 418,
+          "bytes": 582
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 2981,
+          "duration_ms": 419,
+          "bytes": 1469
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 2982,
+          "duration_ms": 418,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 2982,
+          "duration_ms": 419,
+          "bytes": 556
+        },
+        {
+          "path": "/assets/useMobileDraftGuard-DDswEeGj.js",
+          "start_ms": 2982,
+          "duration_ms": 419,
+          "bytes": 1222
+        },
+        {
+          "path": "/assets/DealRecordSelect-SPro78e6.js",
+          "start_ms": 2982,
+          "duration_ms": 419,
+          "bytes": 1312
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 3576,
+          "duration_ms": 81,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 3576,
+          "duration_ms": 42,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 3577,
+          "duration_ms": 42,
+          "bytes": 3254
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 3577,
+          "duration_ms": 60,
+          "bytes": 29707
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-B8GvmqMS.css",
+          "start_ms": 3577,
+          "duration_ms": 80,
+          "bytes": 683
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 3597,
+          "duration_ms": 41,
+          "bytes": 520
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 3597,
+          "duration_ms": 61,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 3597,
+          "duration_ms": 62,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 3597,
+          "duration_ms": 59,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 3597,
+          "duration_ms": 66,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 3597,
+          "duration_ms": 61,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 3821,
+          "duration_ms": 267,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 3846,
+          "duration_ms": 1087,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 3850,
+          "duration_ms": 804,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 3850,
+          "duration_ms": 1241,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 3850,
+          "duration_ms": 976,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 3868,
+          "duration_ms": 54,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 4015,
+          "duration_ms": 1162,
+          "bytes": 501
+        },
+        {
+          "path": "/fonts/roboto/roboto-600.ttf",
+          "start_ms": 4977,
+          "duration_ms": 325,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-400.ttf",
+          "start_ms": 4983,
+          "duration_ms": 320,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-700.ttf",
+          "start_ms": 4985,
+          "duration_ms": 347,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-500.ttf",
+          "start_ms": 4986,
+          "duration_ms": 299,
+          "bytes": 2747
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 5023,
+          "duration_ms": 941,
+          "bytes": 1026
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 5023,
+          "duration_ms": 491,
+          "bytes": 709
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 5287,
+          "duration_ms": 1175,
+          "bytes": 1197
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 5355,
+          "duration_ms": 851,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 5356,
+          "duration_ms": 1089,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 5356,
+          "duration_ms": 1161,
+          "bytes": 1564
+        }
+      ],
+      "transfer_bytes": 1008935,
+      "api_until_usable": 12,
+      "api_through_2s_settle": 12,
+      "responses": [
+        {
+          "at": 1795090280320,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090280890,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090281056,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090281141,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090281470,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090281481,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090281746,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090282196,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090282414,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090282676,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090282694,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090282957,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090288119,
+      "usable_ms": 3459,
+      "ttfb_ms": 112,
+      "fcp_ms": 136,
+      "dom_ms": 257,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 118,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 118,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 118,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 118,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 119,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 119,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 119,
+          "duration_ms": 123,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 119,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-CCSj5Pu9.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/map-pin-CkFjmyK4.js",
+          "start_ms": 120,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ellipsis-vertical-DK4ABVYd.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ban-DhJHpze3.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 121,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 122,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 122,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/useMobileDraftGuard-DDswEeGj.js",
+          "start_ms": 122,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/DealRecordSelect-SPro78e6.js",
+          "start_ms": 122,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 353,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 354,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 354,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 354,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-B8GvmqMS.css",
+          "start_ms": 354,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 365,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 365,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 365,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 436,
+          "duration_ms": 1098,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 454,
+          "duration_ms": 1212,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 455,
+          "duration_ms": 1680,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 455,
+          "duration_ms": 1189,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 494,
+          "duration_ms": 14,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 619,
+          "duration_ms": 1776,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 622,
+          "duration_ms": 1652,
+          "bytes": 1026
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 2462,
+          "duration_ms": 724,
+          "bytes": 1197
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 2502,
+          "duration_ms": 743,
+          "bytes": 397
+        }
+      ],
+      "transfer_bytes": 13558,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795090289661,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090289752,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090289804,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090290249,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090290404,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090290524,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090291287,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090291538,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090291596,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090291663,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090303935,
+      "usable_ms": 4530,
+      "ttfb_ms": 152,
+      "fcp_ms": 372,
+      "dom_ms": 830,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 158,
+          "duration_ms": 593,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 158,
+          "duration_ms": 190,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 158,
+          "duration_ms": 250,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 158,
+          "duration_ms": 260,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 158,
+          "duration_ms": 436,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 159,
+          "duration_ms": 190,
+          "bytes": 84598
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 159,
+          "duration_ms": 436,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 159,
+          "duration_ms": 121,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-CCSj5Pu9.js",
+          "start_ms": 161,
+          "duration_ms": 434,
+          "bytes": 58741
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 161,
+          "duration_ms": 434,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 161,
+          "duration_ms": 519,
+          "bytes": 4126
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 1336
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 621
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 629
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 616
+        },
+        {
+          "path": "/assets/map-pin-CkFjmyK4.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 595
+        },
+        {
+          "path": "/assets/ellipsis-vertical-DK4ABVYd.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 573
+        },
+        {
+          "path": "/assets/ban-DhJHpze3.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 570
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 657
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 161,
+          "duration_ms": 520,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 162,
+          "duration_ms": 520,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 162,
+          "duration_ms": 520,
+          "bytes": 16750
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 162,
+          "duration_ms": 520,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 582
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 2008
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1242
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1469
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 559
+        },
+        {
+          "path": "/assets/useMobileDraftGuard-DDswEeGj.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1222
+        },
+        {
+          "path": "/assets/DealRecordSelect-SPro78e6.js",
+          "start_ms": 162,
+          "duration_ms": 588,
+          "bytes": 1312
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 1013,
+          "duration_ms": 27,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 1013,
+          "duration_ms": 79,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 1013,
+          "duration_ms": 39,
+          "bytes": 3254
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 1013,
+          "duration_ms": 69,
+          "bytes": 29611
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-B8GvmqMS.css",
+          "start_ms": 1013,
+          "duration_ms": 42,
+          "bytes": 683
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 1033,
+          "duration_ms": 35,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 1033,
+          "duration_ms": 59,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 1034,
+          "duration_ms": 35,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 1034,
+          "duration_ms": 59,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 1034,
+          "duration_ms": 35,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 1034,
+          "duration_ms": 49,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 1287,
+          "duration_ms": 694,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 1311,
+          "duration_ms": 1002,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 1315,
+          "duration_ms": 936,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 1316,
+          "duration_ms": 1196,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 1316,
+          "duration_ms": 912,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 1337,
+          "duration_ms": 23,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 1498,
+          "duration_ms": 1087,
+          "bytes": 501
+        },
+        {
+          "path": "/fonts/roboto/roboto-600.ttf",
+          "start_ms": 2433,
+          "duration_ms": 173,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-400.ttf",
+          "start_ms": 2438,
+          "duration_ms": 168,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-700.ttf",
+          "start_ms": 2439,
+          "duration_ms": 167,
+          "bytes": 2747
+        },
+        {
+          "path": "/fonts/roboto/roboto-500.ttf",
+          "start_ms": 2440,
+          "duration_ms": 166,
+          "bytes": 2747
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 2475,
+          "duration_ms": 860,
+          "bytes": 1026
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 2475,
+          "duration_ms": 1019,
+          "bytes": 709
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 2744,
+          "duration_ms": 1368,
+          "bytes": 1197
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 2811,
+          "duration_ms": 1032,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 2813,
+          "duration_ms": 1264,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 2813,
+          "duration_ms": 1309,
+          "bytes": 1564
+        }
+      ],
+      "transfer_bytes": 1008839,
+      "api_until_usable": 12,
+      "api_through_2s_settle": 12,
+      "responses": [
+        {
+          "at": 1795090305902,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090306173,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090306198,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090306328,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090306627,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090306644,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090307196,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090307417,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090307785,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090308013,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090308062,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090308071,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090313924,
+      "usable_ms": 3914,
+      "ttfb_ms": 290,
+      "fcp_ms": 316,
+      "dom_ms": 495,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 299,
+          "duration_ms": 172,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-CCSj5Pu9.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 301,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/map-pin-CkFjmyK4.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ellipsis-vertical-DK4ABVYd.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ban-DhJHpze3.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 302,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/useMobileDraftGuard-DDswEeGj.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/DealRecordSelect-SPro78e6.js",
+          "start_ms": 303,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 639,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 640,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 640,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 640,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/IndustryOperationsPage-B8GvmqMS.css",
+          "start_ms": 640,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 654,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 655,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 655,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 655,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 655,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 655,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 747,
+          "duration_ms": 955,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 769,
+          "duration_ms": 1049,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 770,
+          "duration_ms": 1369,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 770,
+          "duration_ms": 1011,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 817,
+          "duration_ms": 58,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 1012,
+          "duration_ms": 1346,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 1018,
+          "duration_ms": 1258,
+          "bytes": 1026
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "start_ms": 2513,
+          "duration_ms": 1044,
+          "bytes": 1197
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 2565,
+          "duration_ms": 762,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 2567,
+          "duration_ms": 951,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 2568,
+          "duration_ms": 1136,
+          "bytes": 1564
+        }
+      ],
+      "transfer_bytes": 15679,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795090315612,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090315705,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090315783,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090316042,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090316291,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090316323,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090317245,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090317451,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090317494,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090317880,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090330110,
+      "usable_ms": 3721,
+      "ttfb_ms": 159,
+      "fcp_ms": 368,
+      "dom_ms": 811,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 166,
+          "duration_ms": 565,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 167,
+          "duration_ms": 215,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 167,
+          "duration_ms": 303,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 167,
+          "duration_ms": 303,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 167,
+          "duration_ms": 303,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 167,
+          "duration_ms": 183,
+          "bytes": 84598
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 167,
+          "duration_ms": 449,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 167,
+          "duration_ms": 133,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceSchedulingWorkspace-C4eAP9NI.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 5173
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 1469
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 621
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 660
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 169,
+          "duration_ms": 448,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-gVFF6NId.js",
+          "start_ms": 169,
+          "duration_ms": 448,
+          "bytes": 7665
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 169,
+          "duration_ms": 447,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 170,
+          "duration_ms": 448,
+          "bytes": 734
+        },
+        {
+          "path": "/assets/info-DwAEaAM5.js",
+          "start_ms": 170,
+          "duration_ms": 448,
+          "bytes": 580
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 986,
+          "duration_ms": 31,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 986,
+          "duration_ms": 31,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 986,
+          "duration_ms": 31,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 986,
+          "duration_ms": 30,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 986,
+          "duration_ms": 31,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 986,
+          "duration_ms": 30,
+          "bytes": 421
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 1040,
+          "duration_ms": 65,
+          "bytes": 29707
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 1040,
+          "duration_ms": 35,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-D31SGRDs.css",
+          "start_ms": 1040,
+          "duration_ms": 34,
+          "bytes": 1312
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 1233,
+          "duration_ms": 652,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 1256,
+          "duration_ms": 888,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 1259,
+          "duration_ms": 737,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 1260,
+          "duration_ms": 1007,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 1260,
+          "duration_ms": 843,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 1276,
+          "duration_ms": 22,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/employees/planned-services",
+          "start_ms": 2215,
+          "duration_ms": 1257,
+          "bytes": 1032
+        }
+      ],
+      "transfer_bytes": 853575,
+      "api_until_usable": 9,
+      "api_through_2s_settle": 9,
+      "responses": [
+        {
+          "at": 1795090331988,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090332120,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090332213,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090332267,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090332560,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090333597,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090334188,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090334361,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090334409,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090338998,
+      "usable_ms": 2570,
+      "ttfb_ms": 133,
+      "fcp_ms": 156,
+      "dom_ms": 276,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 142,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 143,
+          "duration_ms": 114,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 143,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceSchedulingWorkspace-C4eAP9NI.js",
+          "start_ms": 144,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 144,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-gVFF6NId.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/info-DwAEaAM5.js",
+          "start_ms": 145,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 409,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 409,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-D31SGRDs.css",
+          "start_ms": 409,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 422,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 422,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 422,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 422,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 422,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 423,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 522,
+          "duration_ms": 783,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 542,
+          "duration_ms": 721,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 543,
+          "duration_ms": 1129,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 543,
+          "duration_ms": 952,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 588,
+          "duration_ms": 18,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/employees/planned-services",
+          "start_ms": 713,
+          "duration_ms": 1684,
+          "bytes": 1032
+        }
+      ],
+      "transfer_bytes": 11469,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795090340250,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090340392,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090340485,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090340664,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090341397,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090341987,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090342129,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090342148,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 2,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090353984,
+      "usable_ms": 4058,
+      "ttfb_ms": 195,
+      "fcp_ms": 368,
+      "dom_ms": 860,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 207,
+          "duration_ms": 583,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 208,
+          "duration_ms": 261,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 208,
+          "duration_ms": 327,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 208,
+          "duration_ms": 403,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 208,
+          "duration_ms": 404,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 208,
+          "duration_ms": 141,
+          "bytes": 84598
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 208,
+          "duration_ms": 489,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 208,
+          "duration_ms": 200,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceSchedulingWorkspace-C4eAP9NI.js",
+          "start_ms": 210,
+          "duration_ms": 139,
+          "bytes": 5173
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 210,
+          "duration_ms": 487,
+          "bytes": 1469
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 210,
+          "duration_ms": 487,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 210,
+          "duration_ms": 139,
+          "bytes": 657
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 210,
+          "duration_ms": 487,
+          "bytes": 621
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 211,
+          "duration_ms": 487,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 211,
+          "duration_ms": 487,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-gVFF6NId.js",
+          "start_ms": 211,
+          "duration_ms": 487,
+          "bytes": 7665
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 211,
+          "duration_ms": 487,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/info-DwAEaAM5.js",
+          "start_ms": 211,
+          "duration_ms": 486,
+          "bytes": 580
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 1020,
+          "duration_ms": 24,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 1020,
+          "duration_ms": 32,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 1020,
+          "duration_ms": 38,
+          "bytes": 589
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 1020,
+          "duration_ms": 27,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 1020,
+          "duration_ms": 44,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 1020,
+          "duration_ms": 37,
+          "bytes": 421
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 1066,
+          "duration_ms": 33,
+          "bytes": 29698
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 1066,
+          "duration_ms": 45,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-D31SGRDs.css",
+          "start_ms": 1066,
+          "duration_ms": 31,
+          "bytes": 1312
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 1245,
+          "duration_ms": 745,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 1264,
+          "duration_ms": 1083,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 1267,
+          "duration_ms": 795,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 1267,
+          "duration_ms": 1071,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 1268,
+          "duration_ms": 1037,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 1280,
+          "duration_ms": 16,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/employees/planned-services",
+          "start_ms": 2542,
+          "duration_ms": 1027,
+          "bytes": 1032
+        }
+      ],
+      "transfer_bytes": 853563,
+      "api_until_usable": 9,
+      "api_through_2s_settle": 9,
+      "responses": [
+        {
+          "at": 1795090355983,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090356063,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090356284,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090356320,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090356474,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090357563,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090358269,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090358269,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090358376,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090363190,
+      "usable_ms": 2458,
+      "ttfb_ms": 116,
+      "fcp_ms": 132,
+      "dom_ms": 264,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 123,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 123,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 124,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 124,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 124,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 124,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 124,
+          "duration_ms": 125,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 124,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceSchedulingWorkspace-C4eAP9NI.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BEoYiPgk.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/door-open-D9bmYRhi.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/users-round-DxeTv8YD.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-gVFF6NId.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/info-DwAEaAM5.js",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduledServicesPage-D31SGRDs.css",
+          "start_ms": 366,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 447,
+          "duration_ms": 931,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 469,
+          "duration_ms": 986,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 469,
+          "duration_ms": 1025,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 470,
+          "duration_ms": 815,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 506,
+          "duration_ms": 16,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/employees/planned-services",
+          "start_ms": 613,
+          "duration_ms": 1684,
+          "bytes": 1032
+        }
+      ],
+      "transfer_bytes": 11469,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795090364468,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090364576,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090364656,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090364898,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090365501,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090366031,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090366094,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090366246,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090377920,
+      "usable_ms": 6275,
+      "ttfb_ms": 310,
+      "fcp_ms": 864,
+      "dom_ms": 1856,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 317,
+          "duration_ms": 1470,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 317,
+          "duration_ms": 215,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 317,
+          "duration_ms": 664,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 317,
+          "duration_ms": 663,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 317,
+          "duration_ms": 531,
+          "bytes": 84598
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 317,
+          "duration_ms": 594,
+          "bytes": 14504
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 317,
+          "duration_ms": 1099,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 317,
+          "duration_ms": 718,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+          "start_ms": 319,
+          "duration_ms": 1349,
+          "bytes": 42800
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 629
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 4126
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 1336
+        },
+        {
+          "path": "/assets/monitor-C662bYFX.js",
+          "start_ms": 320,
+          "duration_ms": 1350,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 616
+        },
+        {
+          "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+          "start_ms": 320,
+          "duration_ms": 1350,
+          "bytes": 1043
+        },
+        {
+          "path": "/assets/select-BExsZVi7.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 2674
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 320,
+          "duration_ms": 1350,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 320,
+          "duration_ms": 1349,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 320,
+          "duration_ms": 1350,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 321,
+          "duration_ms": 1464,
+          "bytes": 16750
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 321,
+          "duration_ms": 1464,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 321,
+          "duration_ms": 1464,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 321,
+          "duration_ms": 1464,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 321,
+          "duration_ms": 1466,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 321,
+          "duration_ms": 1466,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/CompactActions-C4Ip8Gnw.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 1784
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 2008
+        },
+        {
+          "path": "/assets/badge-DiNs-SYp.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 865
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 2230
+        },
+        {
+          "path": "/assets/realtime-CdUUm8zF.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 805
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 1948
+        },
+        {
+          "path": "/assets/api-CofbXvNY.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 2302
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/banknote-CrAb-jz4.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/split-7x5BsMmf.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 606
+        },
+        {
+          "path": "/assets/printer-BZLovpX9.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 639
+        },
+        {
+          "path": "/assets/credit-card-C2kNzAAU.js",
+          "start_ms": 322,
+          "duration_ms": 1466,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 1994,
+          "duration_ms": 54,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 1994,
+          "duration_ms": 40,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 1994,
+          "duration_ms": 39,
+          "bytes": 3254
+        },
+        {
+          "path": "/assets/SRMPOSPage-BOvJoILo.css",
+          "start_ms": 1995,
+          "duration_ms": 38,
+          "bytes": 13581
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 2010,
+          "duration_ms": 36,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 2011,
+          "duration_ms": 24,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 2011,
+          "duration_ms": 31,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 2011,
+          "duration_ms": 30,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 2011,
+          "duration_ms": 26,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 2011,
+          "duration_ms": 24,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 2229,
+          "duration_ms": 1102,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 2249,
+          "duration_ms": 1675,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 2253,
+          "duration_ms": 1648,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 2253,
+          "duration_ms": 2055,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 2254,
+          "duration_ms": 1537,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 2266,
+          "duration_ms": 20,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 2385,
+          "duration_ms": 2100,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "start_ms": 2385,
+          "duration_ms": 1684,
+          "bytes": 3413
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 4601,
+          "duration_ms": 886,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 4602,
+          "duration_ms": 930,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 4602,
+          "duration_ms": 1179,
+          "bytes": 1564
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "start_ms": 4612,
+          "duration_ms": 1242,
+          "bytes": 3100
+        },
+        {
+          "path": "/assets/sqlite.worker-VrTvwDl3.js",
+          "start_ms": 5959,
+          "duration_ms": -26,
+          "bytes": 72799
+        }
+      ],
+      "transfer_bytes": 1049481,
+      "api_until_usable": 15,
+      "api_through_2s_settle": 16,
+      "responses": [
+        {
+          "at": 1795090381184,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090381695,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090381795,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090381809,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090381975,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090382217,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090382417,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090383416,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090383458,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090383708,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090383789,
+          "path": "/api/v1/srm/inventory/items",
+          "status": 200,
+          "mode": "full",
+          "cache": "persist"
+        },
+        {
+          "at": 1795090385020,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090385093,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090385175,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090385473,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090389359,
+      "usable_ms": 1987,
+      "ttfb_ms": 120,
+      "fcp_ms": 144,
+      "dom_ms": 266,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 128,
+          "duration_ms": 122,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/monitor-C662bYFX.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/select-BExsZVi7.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CompactActions-C4Ip8Gnw.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/badge-DiNs-SYp.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-CofbXvNY.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/realtime-CdUUm8zF.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/banknote-CrAb-jz4.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/printer-BZLovpX9.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/split-7x5BsMmf.js",
+          "start_ms": 132,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/credit-card-C2kNzAAU.js",
+          "start_ms": 132,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 367,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 367,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 367,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SRMPOSPage-BOvJoILo.css",
+          "start_ms": 367,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 377,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 454,
+          "duration_ms": 869,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 473,
+          "duration_ms": 794,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 474,
+          "duration_ms": 1196,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 474,
+          "duration_ms": 972,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 513,
+          "duration_ms": 18,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 620,
+          "duration_ms": 1157,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "start_ms": 621,
+          "duration_ms": 994,
+          "bytes": 3413
+        },
+        {
+          "path": "/assets/sqlite.worker-VrTvwDl3.js",
+          "start_ms": 1982,
+          "duration_ms": -48,
+          "bytes": 0
+        }
+      ],
+      "transfer_bytes": 14351,
+      "api_until_usable": 13,
+      "api_through_2s_settle": 14,
+      "responses": [
+        {
+          "at": 1795090390625,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090390741,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090390796,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090390961,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090391016,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090391194,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090392277,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090392557,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090392928,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090393320,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090393332,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 2,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090403793,
+      "usable_ms": 6632,
+      "ttfb_ms": 184,
+      "fcp_ms": 652,
+      "dom_ms": 2085,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 200,
+          "duration_ms": 1809,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 200,
+          "duration_ms": 559,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 200,
+          "duration_ms": 623,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 200,
+          "duration_ms": 930,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 201,
+          "duration_ms": 89,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 201,
+          "duration_ms": 427,
+          "bytes": 84598
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 201,
+          "duration_ms": 318,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 201,
+          "duration_ms": 1362,
+          "bytes": 494
+        },
+        {
+          "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+          "start_ms": 202,
+          "duration_ms": 1361,
+          "bytes": 42800
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 203,
+          "duration_ms": 88,
+          "bytes": 629
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 203,
+          "duration_ms": 1361,
+          "bytes": 4126
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 203,
+          "duration_ms": 57,
+          "bytes": 1336
+        },
+        {
+          "path": "/assets/monitor-C662bYFX.js",
+          "start_ms": 203,
+          "duration_ms": 1361,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 203,
+          "duration_ms": 57,
+          "bytes": 616
+        },
+        {
+          "path": "/assets/select-BExsZVi7.js",
+          "start_ms": 203,
+          "duration_ms": 1361,
+          "bytes": 2674
+        },
+        {
+          "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+          "start_ms": 203,
+          "duration_ms": 88,
+          "bytes": 1043
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 203,
+          "duration_ms": 1621,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 203,
+          "duration_ms": 87,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 203,
+          "duration_ms": 1621,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 203,
+          "duration_ms": 1758,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 203,
+          "duration_ms": 1758,
+          "bytes": 16750
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 1705
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 2008
+        },
+        {
+          "path": "/assets/CompactActions-C4Ip8Gnw.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 1784
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 2230
+        },
+        {
+          "path": "/assets/badge-DiNs-SYp.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 865
+        },
+        {
+          "path": "/assets/realtime-CdUUm8zF.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 805
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 1948
+        },
+        {
+          "path": "/assets/api-CofbXvNY.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 2302
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 664
+        },
+        {
+          "path": "/assets/banknote-CrAb-jz4.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/printer-BZLovpX9.js",
+          "start_ms": 204,
+          "duration_ms": 1806,
+          "bytes": 639
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 205,
+          "duration_ms": 1806,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/credit-card-C2kNzAAU.js",
+          "start_ms": 205,
+          "duration_ms": 1806,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/split-7x5BsMmf.js",
+          "start_ms": 205,
+          "duration_ms": 1806,
+          "bytes": 606
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 2244,
+          "duration_ms": 138,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 2245,
+          "duration_ms": 62,
+          "bytes": 3254
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 2245,
+          "duration_ms": 155,
+          "bytes": 1479
+        },
+        {
+          "path": "/assets/SRMPOSPage-BOvJoILo.css",
+          "start_ms": 2245,
+          "duration_ms": 101,
+          "bytes": 13581
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 2259,
+          "duration_ms": 112,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 2259,
+          "duration_ms": 137,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 2259,
+          "duration_ms": 90,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 2259,
+          "duration_ms": 135,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 2259,
+          "duration_ms": 137,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 2259,
+          "duration_ms": 147,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 2488,
+          "duration_ms": 1367,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 2508,
+          "duration_ms": 1594,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 2511,
+          "duration_ms": 1415,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 2511,
+          "duration_ms": 1886,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 2511,
+          "duration_ms": 1491,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 2524,
+          "duration_ms": 83,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 2645,
+          "duration_ms": 1909,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "start_ms": 2645,
+          "duration_ms": 1508,
+          "bytes": 3413
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 4702,
+          "duration_ms": 989,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 4704,
+          "duration_ms": 1316,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 4705,
+          "duration_ms": 1488,
+          "bytes": 1564
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "start_ms": 4715,
+          "duration_ms": 1509,
+          "bytes": 3100
+        }
+      ],
+      "transfer_bytes": 976682,
+      "api_until_usable": 15,
+      "api_through_2s_settle": 16,
+      "responses": [
+        {
+          "at": 1795090407573,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090407733,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090407828,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090407852,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090407942,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090408159,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090408368,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090409484,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090409796,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090409993,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090410017,
+          "path": "/api/v1/srm/inventory/items",
+          "status": 200,
+          "mode": "full",
+          "cache": "persist"
+        },
+        {
+          "at": 1795090411582,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090411605,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090411615,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090412190,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090415571,
+      "usable_ms": 2183,
+      "ttfb_ms": 285,
+      "fcp_ms": 308,
+      "dom_ms": 434,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 294,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 294,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 295,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 295,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 295,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 295,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 295,
+          "duration_ms": 119,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 295,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SRMPOSPage-BrXvOTAR.js",
+          "start_ms": 297,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/box-CDarA68x.js",
+          "start_ms": 297,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ServiceCheckoutBillingPanel-oRJg3SSP.js",
+          "start_ms": 297,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/financial-intent-BsPXTguy.js",
+          "start_ms": 297,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/monitor-C662bYFX.js",
+          "start_ms": 297,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/wrench-6evKOGwK.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/select-BExsZVi7.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/effective-operational-selection-DGs-ynRV.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-i87pOoYA.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 298,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-b5K_BlNK.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SmartCreateSection-CdTzPA5Y.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CompactActions-C4Ip8Gnw.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/badge-DiNs-SYp.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-CofbXvNY.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/realtime-CdUUm8zF.js",
+          "start_ms": 299,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/calendar-range-71MiScen.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/banknote-CrAb-jz4.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/printer-BZLovpX9.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/split-7x5BsMmf.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/credit-card-C2kNzAAU.js",
+          "start_ms": 300,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 561,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/MobileWorkflowPages-JAXMkmvn.css",
+          "start_ms": 561,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/FinancialDataTab-CFBId16_.css",
+          "start_ms": 561,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SRMPOSPage-BOvJoILo.css",
+          "start_ms": 561,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 572,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 573,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 573,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 573,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 573,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 573,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 650,
+          "duration_ms": 880,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 672,
+          "duration_ms": 807,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 672,
+          "duration_ms": 1156,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 673,
+          "duration_ms": 926,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 713,
+          "duration_ms": 16,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/srm/industry/capabilities",
+          "start_ms": 828,
+          "duration_ms": 1087,
+          "bytes": 501
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "start_ms": 828,
+          "duration_ms": 789,
+          "bytes": 3413
+        },
+        {
+          "path": "/assets/sqlite.worker-VrTvwDl3.js",
+          "start_ms": 2175,
+          "duration_ms": -53,
+          "bytes": 0
+        }
+      ],
+      "transfer_bytes": 14351,
+      "api_until_usable": 13,
+      "api_through_2s_settle": 14,
+      "responses": [
+        {
+          "at": 1795090417047,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090417189,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090417194,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090417208,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090417393,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090417581,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090418699,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090419007,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090419540,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090419587,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090419630,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090419673,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090429979,
+      "usable_ms": 3364,
+      "ttfb_ms": 173,
+      "fcp_ms": 380,
+      "dom_ms": 783,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 179,
+          "duration_ms": 532,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 179,
+          "duration_ms": 67,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 180,
+          "duration_ms": 181,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 180,
+          "duration_ms": 304,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 180,
+          "duration_ms": 180,
+          "bytes": 84598
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 180,
+          "duration_ms": 304,
+          "bytes": 14504
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 180,
+          "duration_ms": 363,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 180,
+          "duration_ms": 129,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogPage-BSlh5K-V.js",
+          "start_ms": 182,
+          "duration_ms": 361,
+          "bytes": 10878
+        },
+        {
+          "path": "/assets/use-create-intent-Big0d550.js",
+          "start_ms": 182,
+          "duration_ms": 361,
+          "bytes": 555
+        },
+        {
+          "path": "/assets/GroupedRecords-B_QKWQjp.js",
+          "start_ms": 182,
+          "duration_ms": 361,
+          "bytes": 4941
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/SharedDataGrid-ClrmHdHo.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 57874
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 582
+        },
+        {
+          "path": "/assets/circle-play-KceBk8PC.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 607
+        },
+        {
+          "path": "/assets/zoom-out-CiotJDlW.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 820
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 556
+        },
+        {
+          "path": "/assets/sortable.esm-CNIheilg.js",
+          "start_ms": 182,
+          "duration_ms": 484,
+          "bytes": 17276
+        },
+        {
+          "path": "/assets/index-C9948_FJ.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 2067
+        },
+        {
+          "path": "/assets/bookmark-DIHlU9q8.js",
+          "start_ms": 183,
+          "duration_ms": 485,
+          "bytes": 567
+        },
+        {
+          "path": "/assets/undo-2-7lb8HVzr.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 578
+        },
+        {
+          "path": "/assets/grip-vertical-Bqk7Bs2c.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 605
+        },
+        {
+          "path": "/assets/LocalRecordGrid-DSIlOxTI.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 824
+        },
+        {
+          "path": "/assets/cell-content-DD3iOLTL.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 1201
+        },
+        {
+          "path": "/assets/record-group-fields-BMeJzAlk.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 958
+        },
+        {
+          "path": "/assets/ImportWizard-CZpdtfaA.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 4116
+        },
+        {
+          "path": "/assets/GridTable-DJHZJpmQ.js",
+          "start_ms": 183,
+          "duration_ms": 484,
+          "bytes": 9670
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 183,
+          "duration_ms": 514,
+          "bytes": 1948
+        },
+        {
+          "path": "/assets/file-spreadsheet-Cl54_3D0.js",
+          "start_ms": 183,
+          "duration_ms": 514,
+          "bytes": 638
+        },
+        {
+          "path": "/assets/ExportButton-PXV5YEc3.js",
+          "start_ms": 183,
+          "duration_ms": 514,
+          "bytes": 2283
+        },
+        {
+          "path": "/assets/fields-DcKTFi8b.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 1079
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 1242
+        },
+        {
+          "path": "/assets/CatalogEditor-BF8dTqof.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 17079
+        },
+        {
+          "path": "/assets/employee-category-picker-NeJr4Dbv.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 1028
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 184,
+          "duration_ms": 514,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 2230
+        },
+        {
+          "path": "/assets/repeat-2-B4ipFPaU.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/image-plus-CMZPhmDg.js",
+          "start_ms": 184,
+          "duration_ms": 528,
+          "bytes": 683
+        },
+        {
+          "path": "/assets/clipboard-CN8qJq1M.js",
+          "start_ms": 185,
+          "duration_ms": 529,
+          "bytes": 614
+        },
+        {
+          "path": "/assets/archive-DjtXa0xn.js",
+          "start_ms": 185,
+          "duration_ms": 529,
+          "bytes": 612
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 956,
+          "duration_ms": 29,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 956,
+          "duration_ms": 24,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 956,
+          "duration_ms": 38,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 956,
+          "duration_ms": 25,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 956,
+          "duration_ms": 30,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 956,
+          "duration_ms": 23,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 1203,
+          "duration_ms": 866,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 1226,
+          "duration_ms": 1098,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 1230,
+          "duration_ms": 1064,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 1231,
+          "duration_ms": 1233,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 1232,
+          "duration_ms": 1077,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 1244,
+          "duration_ms": 17,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 2431,
+          "duration_ms": 394,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 2432,
+          "duration_ms": 747,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 2433,
+          "duration_ms": 922,
+          "bytes": 1564
+        },
+        {
+          "path": "/assets/employee-category-picker-MWJ6kJdo.css",
+          "start_ms": 2507,
+          "duration_ms": 20,
+          "bytes": 1098
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 2507,
+          "duration_ms": 29,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/CatalogEditor-cIi-8aoF.css",
+          "start_ms": 2508,
+          "duration_ms": 26,
+          "bytes": 6593
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 2747,
+          "duration_ms": 566,
+          "bytes": 709
+        }
+      ],
+      "transfer_bytes": 1017130,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795090432056,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090432257,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090432295,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090432387,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090432641,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090432810,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090433164,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090433291,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090433340,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090433380,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090438515,
+      "usable_ms": 1673,
+      "ttfb_ms": 255,
+      "fcp_ms": 272,
+      "dom_ms": 392,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 262,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 262,
+          "duration_ms": 112,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 263,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogPage-BSlh5K-V.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-create-intent-Big0d550.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/GroupedRecords-B_QKWQjp.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SharedDataGrid-ClrmHdHo.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-play-KceBk8PC.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/zoom-out-CiotJDlW.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/sortable.esm-CNIheilg.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-C9948_FJ.js",
+          "start_ms": 264,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/bookmark-DIHlU9q8.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/undo-2-7lb8HVzr.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/grip-vertical-Bqk7Bs2c.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/LocalRecordGrid-DSIlOxTI.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/cell-content-DD3iOLTL.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/record-group-fields-BMeJzAlk.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ImportWizard-CZpdtfaA.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/GridTable-DJHZJpmQ.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/file-spreadsheet-Cl54_3D0.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ExportButton-PXV5YEc3.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/fields-DcKTFi8b.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogEditor-BF8dTqof.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/employee-category-picker-NeJr4Dbv.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 265,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/repeat-2-B4ipFPaU.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/image-plus-CMZPhmDg.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CN8qJq1M.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/archive-DjtXa0xn.js",
+          "start_ms": 266,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 526,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 526,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 526,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 526,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 527,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 527,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 617,
+          "duration_ms": 934,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 651,
+          "duration_ms": 18,
+          "bytes": 300
+        },
+        {
+          "path": "/assets/employee-category-picker-MWJ6kJdo.css",
+          "start_ms": 729,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 729,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogEditor-cIi-8aoF.css",
+          "start_ms": 729,
+          "duration_ms": 0,
+          "bytes": 0
+        }
+      ],
+      "transfer_bytes": 1503,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795090440083,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440276,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440550,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440678,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440766,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440955,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090440979,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090441086,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 2,
+      "visit": "cold",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090452637,
+      "usable_ms": 3051,
+      "ttfb_ms": 156,
+      "fcp_ms": 344,
+      "dom_ms": 622,
+      "protocol": "h2",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 163,
+          "duration_ms": 398,
+          "bytes": 446219
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 163,
+          "duration_ms": 34,
+          "bytes": 36162
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 163,
+          "duration_ms": 156,
+          "bytes": 61098
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 163,
+          "duration_ms": 196,
+          "bytes": 14504
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 163,
+          "duration_ms": 214,
+          "bytes": 132726
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 163,
+          "duration_ms": 156,
+          "bytes": 84598
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 163,
+          "duration_ms": 298,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 163,
+          "duration_ms": 131,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogPage-BSlh5K-V.js",
+          "start_ms": 165,
+          "duration_ms": 296,
+          "bytes": 10878
+        },
+        {
+          "path": "/assets/use-create-intent-Big0d550.js",
+          "start_ms": 165,
+          "duration_ms": 296,
+          "bytes": 555
+        },
+        {
+          "path": "/assets/GroupedRecords-B_QKWQjp.js",
+          "start_ms": 165,
+          "duration_ms": 296,
+          "bytes": 4941
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 165,
+          "duration_ms": 362,
+          "bytes": 594
+        },
+        {
+          "path": "/assets/SharedDataGrid-ClrmHdHo.js",
+          "start_ms": 165,
+          "duration_ms": 361,
+          "bytes": 57874
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 582
+        },
+        {
+          "path": "/assets/circle-play-KceBk8PC.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 607
+        },
+        {
+          "path": "/assets/zoom-out-CiotJDlW.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 820
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 1296
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 556
+        },
+        {
+          "path": "/assets/sortable.esm-CNIheilg.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 17276
+        },
+        {
+          "path": "/assets/index-C9948_FJ.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 2067
+        },
+        {
+          "path": "/assets/bookmark-DIHlU9q8.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 567
+        },
+        {
+          "path": "/assets/undo-2-7lb8HVzr.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 578
+        },
+        {
+          "path": "/assets/grip-vertical-Bqk7Bs2c.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 605
+        },
+        {
+          "path": "/assets/cell-content-DD3iOLTL.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 1201
+        },
+        {
+          "path": "/assets/record-group-fields-BMeJzAlk.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 958
+        },
+        {
+          "path": "/assets/LocalRecordGrid-DSIlOxTI.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 824
+        },
+        {
+          "path": "/assets/ImportWizard-CZpdtfaA.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 4116
+        },
+        {
+          "path": "/assets/GridTable-DJHZJpmQ.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 9670
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 1948
+        },
+        {
+          "path": "/assets/fields-DcKTFi8b.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 1082
+        },
+        {
+          "path": "/assets/file-spreadsheet-Cl54_3D0.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 638
+        },
+        {
+          "path": "/assets/ExportButton-PXV5YEc3.js",
+          "start_ms": 166,
+          "duration_ms": 362,
+          "bytes": 2283
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 167,
+          "duration_ms": 362,
+          "bytes": 1242
+        },
+        {
+          "path": "/assets/CatalogEditor-BF8dTqof.js",
+          "start_ms": 167,
+          "duration_ms": 391,
+          "bytes": 17079
+        },
+        {
+          "path": "/assets/employee-category-picker-NeJr4Dbv.js",
+          "start_ms": 167,
+          "duration_ms": 362,
+          "bytes": 1028
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 167,
+          "duration_ms": 363,
+          "bytes": 731
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 167,
+          "duration_ms": 362,
+          "bytes": 11821
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 1381
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 167,
+          "duration_ms": 391,
+          "bytes": 5032
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 167,
+          "duration_ms": 391,
+          "bytes": 1575
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 167,
+          "duration_ms": 394,
+          "bytes": 36455
+        },
+        {
+          "path": "/assets/image-plus-CMZPhmDg.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 680
+        },
+        {
+          "path": "/assets/repeat-2-B4ipFPaU.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 611
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 2230
+        },
+        {
+          "path": "/assets/clipboard-CN8qJq1M.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 614
+        },
+        {
+          "path": "/assets/archive-DjtXa0xn.js",
+          "start_ms": 167,
+          "duration_ms": 395,
+          "bytes": 612
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 779,
+          "duration_ms": 32,
+          "bytes": 7052
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 779,
+          "duration_ms": 32,
+          "bytes": 517
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 779,
+          "duration_ms": 32,
+          "bytes": 586
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 779,
+          "duration_ms": 20,
+          "bytes": 1055
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 779,
+          "duration_ms": 41,
+          "bytes": 2888
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 779,
+          "duration_ms": 32,
+          "bytes": 421
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 980,
+          "duration_ms": 1008,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "start_ms": 1002,
+          "duration_ms": 1164,
+          "bytes": 1130
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 1005,
+          "duration_ms": 976,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/access/me",
+          "start_ms": 1005,
+          "duration_ms": 1180,
+          "bytes": 7639
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 1006,
+          "duration_ms": 926,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 1015,
+          "duration_ms": 19,
+          "bytes": 300
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "start_ms": 2079,
+          "duration_ms": 441,
+          "bytes": 397
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "start_ms": 2080,
+          "duration_ms": 712,
+          "bytes": 557
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "start_ms": 2080,
+          "duration_ms": 826,
+          "bytes": 1564
+        },
+        {
+          "path": "/assets/employee-category-picker-MWJ6kJdo.css",
+          "start_ms": 2416,
+          "duration_ms": 24,
+          "bytes": 1095
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 2417,
+          "duration_ms": 24,
+          "bytes": 3212
+        },
+        {
+          "path": "/assets/CatalogEditor-cIi-8aoF.css",
+          "start_ms": 2417,
+          "duration_ms": 23,
+          "bytes": 6593
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 2514,
+          "duration_ms": 487,
+          "bytes": 709
+        }
+      ],
+      "transfer_bytes": 1017127,
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795090454580,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090454616,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090454627,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090454797,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090454978,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090455170,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090455421,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090455540,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090455638,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090455703,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    },
+    {
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 2,
+      "visit": "repeat",
+      "release": "report-crud-20261118-v1",
+      "started_at_ms": 1795090460836,
+      "usable_ms": 1484,
+      "ttfb_ms": 119,
+      "fcp_ms": 136,
+      "dom_ms": 273,
+      "protocol": "h3",
+      "waterfall": [
+        {
+          "path": "/assets/index-CpaDU2JM.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "start_ms": 125,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/app-config.js",
+          "start_ms": 126,
+          "duration_ms": 132,
+          "bytes": 494
+        },
+        {
+          "path": "/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+          "start_ms": 126,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogPage-BSlh5K-V.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-create-intent-Big0d550.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/GroupedRecords-B_QKWQjp.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/SharedDataGrid-ClrmHdHo.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-pause-GLE-eQhc.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-x-DS56VqAc.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/circle-play-KceBk8PC.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/zoom-out-CiotJDlW.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/use-record-autosave-CB_xw8wz.js",
+          "start_ms": 127,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CuGcWWuW.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/sortable.esm-CNIheilg.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/index-C9948_FJ.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/bookmark-DIHlU9q8.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/undo-2-7lb8HVzr.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/grip-vertical-Bqk7Bs2c.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/LocalRecordGrid-DSIlOxTI.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/cell-content-DD3iOLTL.js",
+          "start_ms": 128,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/record-group-fields-BMeJzAlk.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ImportWizard-CZpdtfaA.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/GridTable-DJHZJpmQ.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/transfer-f6ktW4V-.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/file-spreadsheet-Cl54_3D0.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ExportButton-PXV5YEc3.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/fields-DcKTFi8b.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/api-DYiLeUeS.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogEditor-BF8dTqof.js",
+          "start_ms": 129,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/employee-category-picker-NeJr4Dbv.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-w2Gq2drP.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/booking-time-DSZt-lbO.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/EmployeeCategories-24TCjqLY.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/business-DEjuxQ6E.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BranchAvailability-B3tSmKg9.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/ScheduleFields-BXQe-S1A.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/repeat-2-B4ipFPaU.js",
+          "start_ms": 130,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/image-plus-CMZPhmDg.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/clipboard-CN8qJq1M.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/archive-DjtXa0xn.js",
+          "start_ms": 131,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/PersonManagementHost-CkdX1wZ7.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleTypes-muyIB96h.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/peopleMemberships-CEohUZiT.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/RecordSectionNav-0wcg2ehL.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/AddExistingPeopleDialog-DMYCHZ7B.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/BusinessTerm-CF1MojcW.js",
+          "start_ms": 379,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "start_ms": 442,
+          "duration_ms": 804,
+          "bytes": 496
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "start_ms": 459,
+          "duration_ms": 681,
+          "bytes": 799
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "start_ms": 460,
+          "duration_ms": 876,
+          "bytes": 709
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "start_ms": 494,
+          "duration_ms": 21,
+          "bytes": 300
+        },
+        {
+          "path": "/assets/employee-category-picker-MWJ6kJdo.css",
+          "start_ms": 562,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/POSServiceScheduling-sBk8ayVv.css",
+          "start_ms": 562,
+          "duration_ms": 0,
+          "bytes": 0
+        },
+        {
+          "path": "/assets/CatalogEditor-cIi-8aoF.css",
+          "start_ms": 562,
+          "duration_ms": 0,
+          "bytes": 0
+        }
+      ],
+      "transfer_bytes": 2798,
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795090461962,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462097,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462173,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462344,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462436,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462774,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090462966,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        },
+        {
+          "at": 1795090463080,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null,
+          "cache": null
+        }
+      ],
+      "menu": [
+        "POS",
+        "Customers",
+        "Quotes",
+        "Orders",
+        "Payments"
+      ]
+    }
+  ],
+  "idle": [
+    {
+      "name": "appointments",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "scheduling",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "pos",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "product",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    }
+  ],
+  "errors": [],
+  "apiErrors": [],
+  "inventory_auto_sync": {
+    "initial": {
+      "key": "83ec90fccd7efdce884569da90aabd324ab7fae2c402a21e2ce89a164fac0dff:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795090631623,
+      "rows": 52
+    },
+    "initial_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795090631623,
+      "rows": 52
+    },
+    "recheck": {
+      "at": 1795090767471,
+      "status": 304,
+      "mode": "unchanged",
+      "cache": "persist"
+    },
+    "delay_ms": 135848,
+    "updated": {
+      "key": "83ec90fccd7efdce884569da90aabd324ab7fae2c402a21e2ce89a164fac0dff:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795090767470,
+      "rows": 52
+    },
+    "updated_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795090767470,
+      "rows": 52
+    },
+    "status": "passed",
+    "automatic": true,
+    "server_writes": false
+  },
+  "inventory_cached_reload": {
+    "status": "passed",
+    "usable_ms": 4660,
+    "blocked_inventory_network_attempts": 0,
+    "rows": 52,
+    "visible_cards": 4
+  },
+  "finished": "2026-11-19T12:20:43.341Z",
+  "status": "complete"
+}

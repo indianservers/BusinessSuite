@@ -99,9 +99,10 @@ def ensure_srm_schema(db: Session) -> None:
     older database already exists.
     """
     from app.shared.follow_ups import FollowUp, FollowUpActivity, FollowUpReminder, FollowUpAttachment, FollowUpPreference
+    from app.apps.srm.reporting_models import REPORT_MODELS
     follow_up_models = [FollowUp, FollowUpActivity, FollowUpReminder, FollowUpAttachment, FollowUpPreference]
     inspector = inspect(db.bind)
     existing_tables = set(inspector.get_table_names())
-    missing = [model.__table__ for model in [*SRM_TABLE_MODELS, *follow_up_models] if model.__tablename__ not in existing_tables]
+    missing = [model.__table__ for model in [*SRM_TABLE_MODELS, *follow_up_models, *REPORT_MODELS] if model.__tablename__ not in existing_tables]
     if missing:
         SRMSalesOrder.metadata.create_all(bind=db.bind, tables=missing)

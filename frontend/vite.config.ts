@@ -1,5 +1,6 @@
 import path from "path";
 import react from "@vitejs/plugin-react";
+import {criticalRoutePreload} from "./build/critical-route-preload";
 import { defineConfig, loadEnv } from "vite";
 
 type DevProxyResponse = {
@@ -29,7 +30,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     cacheDir: env.VITE_CACHE_DIR || "node_modules/.vite",
-    plugins: [react()],
+    plugins: [react(), criticalRoutePreload()],
     optimizeDeps: { include: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm', '@huggingface/tokenizers', '@tensorflow/tfjs-core', '@tensorflow/tfjs-layers', '@tensorflow/tfjs-backend-cpu'] },
     resolve: {
       dedupe: ["react", "react-dom"],

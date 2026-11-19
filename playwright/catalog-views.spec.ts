@@ -86,7 +86,7 @@ test("view-only users can browse and favorite but cannot mutate catalog records"
 
 test("edit and branch reuse keep their existing working forms",async({page})=>{
   const {writes}=await setup(page);await page.goto("/srm/products-services");await card(page,"Cloud Platform").getByRole("button",{name:"Edit Cloud Platform",exact:true}).click();
-  await page.getByRole("dialog").getByLabel("Name",{exact:true}).fill("Cloud Platform Plus");await page.getByRole("button",{name:"Save item",exact:true}).click();await expect(card(page,"Cloud Platform Plus")).toBeVisible();
+  await page.getByRole("dialog").getByLabel("Product name",{exact:true}).fill("Cloud Platform Plus");await page.getByRole("button",{name:"Save item",exact:true}).click();await expect(card(page,"Cloud Platform Plus")).toBeVisible();
   expect(writes.find(write=>write.method==="PUT")?.body).toMatchObject({name:"Cloud Platform Plus",tags:["cloud","recurring"]});
   await card(page,"Cloud Platform Plus").getByRole("button",{name:"More actions for Cloud Platform Plus",exact:true}).click();await page.getByRole("menuitem",{name:"Reuse in other branches",exact:true}).click();
   await expect(page.getByRole("dialog")).toContainText(/branches/i);expect(writes.filter(write=>write.path.includes("reuse"))).toHaveLength(0);await page.keyboard.press("Escape");
@@ -101,12 +101,12 @@ test("failed tag saves retain the draft and keyboard view navigation works",asyn
 for(const source of ["pms","crm"]){test(`catalog views work through ${source}`,async({page})=>{const {requests}=await setup(page);await page.goto(`/${source}/products-services`);await view(page,"List");await expect(panel(page).locator(".sc-list-identity").filter({hasText:"Cloud Platform"})).toBeVisible();expect(requests.at(-1)?.searchParams.get("source")).toBe(source);});}
 
 test("mobile category view stays within the viewport and keeps actions usable",async({page})=>{
-  await page.setViewportSize({width:390,height:844});await setup(page);await page.goto("/srm/products-services");await view(page,"Categories");await expect(card(page,"Cloud Platform")).toBeVisible();
+  await page.setViewportSize({width:390,height:844});await setup(page);await page.goto("/srm/products-services");await view(page,"Categories");for(let step=0;step<40&&!await card(page,"Cloud Platform").isVisible();step++){const next=page.getByRole("button",{name:"Next section",exact:true});if(!await next.isEnabled())break;await next.click();}await expect(card(page,"Cloud Platform")).toBeVisible();
   await card(page,"Cloud Platform").getByRole("button",{name:"Favorite Cloud Platform",exact:true}).click();await expect(card(page,"Cloud Platform").getByRole("button",{name:"Unfavorite Cloud Platform",exact:true})).toHaveAttribute("aria-pressed","true");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBeTruthy();
 });
 
 test("capture the finished list and category workspaces",async({page},testInfo)=>{
   await page.setViewportSize({width:1600,height:1100});await setup(page);await page.goto("/srm/products-services");await view(page,"List");await expect(panel(page).locator(".sc-list-identity").filter({hasText:"Cloud Platform"})).toBeVisible();await page.screenshot({path:resolve(testInfo.project.testDir,"../outputs/catalog-views/List.png")});
-  await view(page,"Categories");await expect(card(page,"Cloud Platform")).toBeVisible();await page.screenshot({path:resolve(testInfo.project.testDir,"../outputs/catalog-views/Categories.png")});
+  await view(page,"Categories");for(let step=0;step<40&&!await card(page,"Cloud Platform").isVisible();step++){const next=page.getByRole("button",{name:"Next section",exact:true});if(!await next.isEnabled())break;await next.click();}await expect(card(page,"Cloud Platform")).toBeVisible();await page.screenshot({path:resolve(testInfo.project.testDir,"../outputs/catalog-views/Categories.png")});
 });

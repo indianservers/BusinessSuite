@@ -1,4 +1,5 @@
 import InventoryLowStockAlerts from "../components/InventoryLowStockAlerts";
+import ReportsWorkspace from './ReportsWorkspace';
 import RetailWorkspace from "../components/RetailWorkspace";
 import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import BusinessTerm from "@/components/BusinessTerm";
@@ -1272,7 +1273,9 @@ function csvCell(value: unknown) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-function ReportsView() {
+function ReportsView() { return <ReportsWorkspace/>; }
+
+function LegacyReportsView() {
   const query = useQuery({ queryKey: ["srm", "reports"], queryFn: srmApi.reports });
   const [selected, setSelected] = useState("sales_order_report");
   const [message, setMessage] = useState("");
@@ -1909,7 +1912,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   const query = useQuery({
     queryKey: ["srm", kind],
     queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),
-    enabled: Boolean(meta.endpoint),
+    enabled: Boolean(meta.endpoint) && kind !== "reports",
     refetchInterval: kind === "salesOrders" ? 3000 : 10000,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,

@@ -67,7 +67,7 @@ def _product(db,ident,company,branch,scope,currency):
         if all(state.attrs[name].loaded_value is not NO_VALUE for name in _FIELDS):
             old={name:state.attrs[name].loaded_value for name in _FIELDS}
             if _signature(old,branch)!=_signature(row,branch):fail('Catalog stock configuration changed; review the cart',409)
-    service=(row['product_type'] or '').strip().lower() in {'service','services'}
+    service=(row['product_type'] or '').strip().lower() in {'service','services','membership','subscription','bundle'}
     from app.business_packs.pharma.eligibility import managed_product
     if managed_product(db,company,ident):
         from app.business_packs.pharma.fefo import supported

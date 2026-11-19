@@ -1,0 +1,335 @@
+{
+  "earlier_unprofiled_run": {
+    "artifact": "final/measurements.json",
+    "status": "failed",
+    "api_errors": [
+      {
+        "at": 1795088696185,
+        "path": "/api/v1/srm/industry/records",
+        "status": 503,
+        "mode": null,
+        "cache": null
+      },
+      {
+        "at": 1795088817203,
+        "path": "/api/v1/branches/context",
+        "status": 429,
+        "mode": null,
+        "cache": null
+      }
+    ],
+    "all_slow_samples": [
+      {
+        "screen": "appointments",
+        "sample": 1,
+        "visit": "repeat",
+        "usable_ms": 17615
+      },
+      {
+        "screen": "pos",
+        "sample": 3,
+        "visit": "repeat",
+        "usable_ms": 17333
+      },
+      {
+        "screen": "product",
+        "sample": 1,
+        "visit": "cold",
+        "usable_ms": 11201
+      },
+      {
+        "screen": "product",
+        "sample": 2,
+        "visit": "cold",
+        "usable_ms": 15951
+      }
+    ]
+  },
+  "separate_profiled_diagnostics": {
+    "artifact": "diagnostic-profiled-pos.json",
+    "excluded_from_timings": true,
+    "reason": "Native profiler imposed material overhead; these are diagnostic only.",
+    "initial_idle_observation_note": "Python-only sampling ran during part of the first passive idle observations after all 18 timed visits. The successful final retest had no profiler."
+  },
+  "status": "verified_with_remaining_latency_outlier",
+  "method": "Live production, Chromium Pixel 7 emulation at 390x844, desktop CPU and unthrottled host network. Two independent cold browser contexts per page, each followed by a same-context full reload with cache retained. Authenticated; login, DNS and server cold-start excluded. Ten seconds between sample pairs. No profiler attached. Page timings run serially with one page open; all timing pages close before passive idle/sync observations start. First-pair browser profiles retain HTTP/storage caches for separate idle tabs. Idle observations run sequentially with one page open, outside all page timing windows. Initial/API idle counts use request initiation time; static assets excluded. Repeat visits preserve the browser session rather than reinjecting stale actor metadata.",
+  "started": "2026-11-19T12:11:15.769Z",
+  "finished": "2026-11-19T12:20:43.341Z",
+  "release": "report-crud-20261118-v1",
+  "backend_patch": "mobile-loading-20261119-v7",
+  "deployment": {
+    "status": "ready",
+    "frontend_preserved": "/srv/business-suite/suite-builds/report-crud-20261118-v1",
+    "modified_backend": [
+      "backend/app/db/loader_options.py"
+    ],
+    "before": "d228af7b56ec4d653aeddb866d0afd15e7fd43e1f02378e1ba278c1a7f247ec1",
+    "after": "5d082c8fa326037ecb7425bb87ab87cf9213d43e3190be602cfc262f5baf69da",
+    "unchanged_other_backend_files": 1506
+  },
+  "screens": {
+    "appointments": {
+      "cold": {
+        "usable_ms": [
+          6695,
+          4530
+        ],
+        "api_until_usable": [
+          12,
+          12
+        ],
+        "api_through_2s_settle": [
+          12,
+          12
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          3459,
+          3914
+        ],
+        "api_until_usable": [
+          10,
+          10
+        ],
+        "api_through_2s_settle": [
+          10,
+          10
+        ]
+      }
+    },
+    "scheduling": {
+      "cold": {
+        "usable_ms": [
+          3721,
+          4058
+        ],
+        "api_until_usable": [
+          9,
+          9
+        ],
+        "api_through_2s_settle": [
+          9,
+          9
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          2570,
+          2458
+        ],
+        "api_until_usable": [
+          8,
+          8
+        ],
+        "api_through_2s_settle": [
+          8,
+          8
+        ]
+      }
+    },
+    "pos": {
+      "cold": {
+        "usable_ms": [
+          6275,
+          6632
+        ],
+        "api_until_usable": [
+          15,
+          15
+        ],
+        "api_through_2s_settle": [
+          16,
+          16
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          1987,
+          2183
+        ],
+        "api_until_usable": [
+          13,
+          13
+        ],
+        "api_through_2s_settle": [
+          14,
+          14
+        ]
+      }
+    },
+    "product": {
+      "cold": {
+        "usable_ms": [
+          3364,
+          3051
+        ],
+        "api_until_usable": [
+          10,
+          10
+        ],
+        "api_through_2s_settle": [
+          10,
+          10
+        ]
+      },
+      "repeat": {
+        "usable_ms": [
+          1673,
+          1484
+        ],
+        "api_until_usable": [
+          8,
+          8
+        ],
+        "api_through_2s_settle": [
+          8,
+          8
+        ]
+      }
+    }
+  },
+  "background_requests": [
+    {
+      "name": "appointments",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "scheduling",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "pos",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    },
+    {
+      "name": "product",
+      "visibility": "visible",
+      "seconds": 60,
+      "count": 3,
+      "endpoints": {
+        "/api/v1/access/me": 1,
+        "/api/v1/notifications/summary": 1,
+        "/api/v1/access/setup": 1
+      }
+    }
+  ],
+  "inventory_auto_sync": {
+    "initial": {
+      "key": "83ec90fccd7efdce884569da90aabd324ab7fae2c402a21e2ce89a164fac0dff:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795090631623,
+      "rows": 52
+    },
+    "initial_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795090631623,
+      "rows": 52
+    },
+    "recheck": {
+      "at": 1795090767471,
+      "status": 304,
+      "mode": "unchanged",
+      "cache": "persist"
+    },
+    "delay_ms": 135848,
+    "updated": {
+      "key": "83ec90fccd7efdce884569da90aabd324ab7fae2c402a21e2ce89a164fac0dff:7eaadc39ae4168272c490acc9297a697858017798731a1755a94be3e2c7e7f24",
+      "url": "/srm/inventory/items?page=1&per_page=200&search=",
+      "checked": 1795090767470,
+      "rows": 52
+    },
+    "updated_sql": {
+      "asset": "/assets/sqlite.worker-VrTvwDl3.js",
+      "error": null,
+      "checked": 1795090767470,
+      "rows": 52
+    },
+    "status": "passed",
+    "automatic": true,
+    "server_writes": false
+  },
+  "inventory_cached_reload": {
+    "status": "passed",
+    "usable_ms": 4660,
+    "blocked_inventory_network_attempts": 0,
+    "rows": 52,
+    "visible_cards": 4
+  },
+  "errors": [],
+  "api_errors": [],
+  "preserved_frontend_startup_sources": {
+    "frontend/src/lib/startup-read-priority.ts": {
+      "ours": "91578dbe9b899014dda5158ce2b03aa9df959594379b95c77e6bedcbe1fa0d40",
+      "current": "91578dbe9b899014dda5158ce2b03aa9df959594379b95c77e6bedcbe1fa0d40",
+      "same": true
+    },
+    "frontend/src/services/api.ts": {
+      "ours": "5a27dd97d4a8ba6affc31295553b132b44c598895eeb1ddecce478b1c404d8e2",
+      "current": "5a27dd97d4a8ba6affc31295553b132b44c598895eeb1ddecce478b1c404d8e2",
+      "same": true
+    },
+    "frontend/src/apps/srm/pages/SRMPOSPage.tsx": {
+      "ours": "6abb8106060ab450517093244d1a4f4284651fd58add2235f354e64bffd1174c",
+      "current": "6abb8106060ab450517093244d1a4f4284651fd58add2235f354e64bffd1174c",
+      "same": true
+    }
+  },
+  "validation": {
+    "stable_release_backend_pid_and_sources": true,
+    "targeted_query_projection_tests": "22 passed after alias fallback correction",
+    "prior_broad_regression": "293 passed; alias fallback expectation failed, then corrected and targeted suite rerun",
+    "previous_lazy_plan_regressions": "235 passed",
+    "previous_POS_financial_integrity_tests": "60 passed",
+    "routing_prefix_experiment": "Removed without deployment; small benchmark savings did not justify a framework override."
+  },
+  "limitations": [
+    "Chromium mobile emulation, not a physical phone or cellular network. Small samples; ranges are observations, not percentiles.",
+    "Authenticated navigation; login and server cold-start excluded. Repeat means full navigation with browser storage retained.",
+    "Earlier unchanged-release testing had appointments/POS repeat samples of 17.615/17.333 seconds and one 503 plus one 429. A later clean run does not prove intermittent backend delays eliminated.",
+    "Production automatic sync used unchanged data; it proves freshness validation and matching SQLite mirror, not a live stock mutation. Changed-row/add/remove behavior is covered separately by deterministic cache tests.",
+    "Earlier baseline measurements were on November 18; this retest is November 19 and appointment contents can differ."
+  ],
+  "final_health": {
+    "health": {
+      "status": "healthy",
+      "db": "ok",
+      "environment": "production"
+    },
+    "frontend": "/srv/business-suite/suite-builds/report-crud-20261118-v1",
+    "loader_options_sha256": "5d082c8fa326037ecb7425bb87ab87cf9213d43e3190be602cfc262f5baf69da"
+  },
+  "qa_session_revoked": true,
+  "delivery": {
+    "asset": "/assets/index-CpaDU2JM.js",
+    "alpn": "h2",
+    "encoding": "gzip",
+    "uncompressed_bytes": 1585667,
+    "wire_compressed_bytes": 445919,
+    "reduction_percent": 71.9,
+    "decoded_content_identical": true,
+    "release": "report-crud-20261118-v1"
+  }
+}

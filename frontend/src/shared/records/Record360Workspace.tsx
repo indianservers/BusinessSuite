@@ -13,6 +13,7 @@ import "./record-360.css";
 import "./record-360-mobile.css";
 import TaskRecordLinks from "./TaskRecordLinks";
 import { useCursorPages } from "./useCursorPages";
+const CustomerPlans = lazy(()=>import("@/shared/catalog/CustomerPlans"));
 const RecordTemplatePicker = lazy(()=>import('@/shared/template-design/RecordTemplatePicker'));
 const CustomerAccounting = lazy(()=>import("@/shared/accounting/ConnectedAccounting").then(m=>({default:m.CustomerAccounting})));
 const QuickAction = lazy(()=>import("@/apps/crm/CRMRecordDetailPage").then(module=>({default:module.QuickActionModal})));
@@ -63,6 +64,7 @@ export default function Record360Workspace({kind,id,source="crm",actions,details
         {!!record.relations?.length&&<section><h3>People & deals</h3>{record.relations.map(relation=><p key={`${relation.kind}:${relation.id}`}><Link to={relation.url}>{relation.name}</Link> · {relation.kind}</p>)}</section>}
         {details&&<details className="r360-details"><summary>Details & related records</summary><div key={scope}>{details}</div></details>}
       </aside><div className="r360-content">
+        {kind==="company"&&(source==="crm"||source==="srm")&&<Suspense fallback={null}><CustomerPlans key={`${scope}:${source}:${id}`} customerId={id} source={source}/></Suspense>}
         <nav className="r360-composer" aria-label="Record activity actions">{([['task','Activity'],['note','Notes'],['meeting','Meeting'],['call','Call'],['email','Email']] as const).filter(([value])=>value==="email"?!!onAction:record.allowed_actions?record.allowed_actions.includes(value):!!onAction).map(([value,label])=><Button key={value} variant="ghost" size="sm" onClick={()=>onAction?onAction(value):value!=="email"&&setAction(value)}>{label}</Button>)}
           {!onAction&&messageRecord.email&&<Button variant="ghost" size="sm" onClick={()=>setDraft("email")}>Email</Button>}{messageRecord.phone&&<Button variant="ghost" size="sm" onClick={()=>setDraft("whatsapp")}>WhatsApp</Button>}
           {record.customer&&<Button variant="ghost" size="sm" asChild><Link to={`/${module}/follow-ups?new=1&customer=${record.customer.id}${kind==="deal"?`&deal=${id}`:""}`}>Schedule follow-up</Link></Button>}

@@ -1,0 +1,14 @@
+import {useState} from 'react';
+import {Link} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
+import {api} from '@/services/api';
+import {useRecordScope} from '@/lib/record-scope';
+import {Button} from '@/components/ui/button';
+import type {ReportData,ReportRow} from '../reporting-types';
+
+export default function CustomerPurchaseHistory({customer,includeTest,onClose}:{customer:ReportRow;includeTest:boolean;onClose:()=>void}){
+ const scope=useRecordScope(),[page,setPage]=useState(1);
+ const query=useQuery({queryKey:['srm','reporting','customer-history',scope,customer.customer_id,includeTest,page],queryFn:async({signal})=>(await api.get<ReportData>(`/srm/reporting/customer-history/${customer.customer_id}`,{params:{include_test:includeTest,page,page_size:25},signal,recordCache:false,progress:false})).data,retry:false});
+ const amount=(value:unknown)=>Number(value||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ return <div className="reports-dialog-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="customer-history-title" className="reports-dialog reports-history"><div className="reports-section-title"><h2 id="customer-history-title">Purchase history · {String(customer.customer)}</h2><Button variant="outline" onClick={onClose}>Close history</Button></div><p className="reports-help">All authorized invoice history · currencies shown per invoice · {includeTest?'Test data included':'Test data excluded'}. The dashboard date range does not limit this history.</p>{query.isPending&&<p role="status">Loading purchase history…</p>}{query.isError&&<p role="alert" className="reports-error">Purchase history could not load. <button onClick={()=>void query.refetch()}>Retry history</button></p>}{query.data&&<><p>{query.data.total} invoices</p><div className="reports-table-scroll"><table aria-label="Customer purchase history"><thead><tr>{['Invoice','Date','Currency','Status','Total','Paid','Unpaid','Open'].map(s=><th key={s}>{s}</th>)}</tr></thead><tbody>{query.data.items.map(row=><tr key={String(row.id)}><td>{String(row.invoice)}</td><td>{String(row.date||'Undated')}</td><td>{String(row.currency)}</td><td>{String(row.status)}</td><td>{amount(row.total)}</td><td>{amount(row.paid)}</td><td>{amount(row.balance)}</td><td>{row._url&&<Link to={row._url}>Open invoice</Link>}</td></tr>)}{!query.data.total&&<tr><td colSpan={8}>No authorized invoices for this customer.</td></tr>}</tbody></table></div><div className="reports-pagination"><span>Page {page} of {Math.max(1,Math.ceil(query.data.total/25))}</span><Button variant="outline" disabled={page===1||query.isFetching} onClick={()=>setPage(p=>p-1)}>Earlier page</Button><Button variant="outline" disabled={!query.data.has_more||query.isFetching} onClick={()=>setPage(p=>p+1)}>Next history page</Button></div></>}</section></div>;
+}

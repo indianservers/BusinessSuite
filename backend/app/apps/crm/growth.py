@@ -110,7 +110,7 @@ def card(db,user,entity,row,due=None):
 
 
 @router.get('/records')
-def records(entity:Literal['all','leads','contacts','customers','customers_companies','companies','deals']='all',scope:Literal['all','mine','team']='all',kind:Literal['product','service']|None=None,item_id:int|None=Query(None,gt=0),search:str=Query('',max_length=150),bucket:Literal['all','overdue','today','upcoming','missing']='all',active_only:bool=False,occasion:Literal['all','birthday','anniversary']='all',timezone_name:str='Asia/Kolkata',page:int=Query(1,ge=1),per_page:int=Query(25,ge=1,le=200),owner_id:int|None=Query(None,gt=0),date_from:datetime|None=None,date_to:datetime|None=None,state:str|None=Query(None,max_length=16000),offerings:str|None=Query(None,max_length=5000),match:Literal['any','all']='any',audience:bool=False,include_analytics:bool=False,trend_days:int=Query(30,ge=7,le=90),trend_interval:Literal['daily','weekly','monthly']='daily',status:str=Query('',max_length=80),stage:str=Query('',max_length=100),branch_id:int|None=Query(None,gt=0),workspace_id:int|None=Query(None,gt=0),created_from:datetime|None=None,created_to:datetime|None=None,activity_from:datetime|None=None,deal_scope:Literal['all','active']='all',unassigned:bool=False,exporting:bool=False,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def records(entity:Literal['all','leads','contacts','customers','customers_companies','companies','deals']='all',scope:Literal['all','mine','team']='all',kind:Literal['product','service','membership','subscription','bundle']|None=None,item_id:int|None=Query(None,gt=0),search:str=Query('',max_length=150),bucket:Literal['all','overdue','today','upcoming','missing']='all',active_only:bool=False,occasion:Literal['all','birthday','anniversary']='all',timezone_name:str='Asia/Kolkata',page:int=Query(1,ge=1),per_page:int=Query(25,ge=1,le=200),owner_id:int|None=Query(None,gt=0),date_from:datetime|None=None,date_to:datetime|None=None,state:str|None=Query(None,max_length=16000),offerings:str|None=Query(None,max_length=5000),match:Literal['any','all']='any',audience:bool=False,include_analytics:bool=False,trend_days:int=Query(30,ge=7,le=90),trend_interval:Literal['daily','weekly','monthly']='daily',status:str=Query('',max_length=80),stage:str=Query('',max_length=100),branch_id:int|None=Query(None,gt=0),workspace_id:int|None=Query(None,gt=0),created_from:datetime|None=None,created_to:datetime|None=None,activity_from:datetime|None=None,deal_scope:Literal['all','active']='all',unassigned:bool=False,exporting:bool=False,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     grant=(getattr(user,'_suite_grants',None) or {}).get('crm')
     can_export=bool(user.is_superuser or grant is None or 'export' in grant.get('actions',[]))
     if exporting and not can_export:raise HTTPException(403,'CRM export permission is required')
@@ -245,7 +245,7 @@ class FollowUp(Strict):
     priority:Literal['High','Medium','Low']|None=None
     reminder_at:datetime|None=None
     next_action:str=Field(default='',max_length=1000)
-    offering_kind:Literal['product','service']|None=None
+    offering_kind:Literal['product','service','membership','subscription','bundle']|None=None
     offering_id:int|None=Field(default=None,gt=0)
     activity_version:datetime|None=None
 

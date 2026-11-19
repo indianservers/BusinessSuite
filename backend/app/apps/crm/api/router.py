@@ -3329,7 +3329,7 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
     total = Decimal("0")
     currency = data.get("currency") or getattr(record, "currency", None) or "INR"
     for line in lines:
-        if not isinstance(line, dict) or line.get("kind") not in {"product", "service"}:
+        if not isinstance(line, dict) or line.get("kind") not in {"product", "service", "membership", "subscription", "bundle"}:
             raise HTTPException(422, "Each line must select a product or service")
         try:
             item_id = int(line["item_id"])

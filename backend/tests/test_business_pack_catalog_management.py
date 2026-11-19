@@ -81,7 +81,7 @@ def test_catalog_pack_manager_native_action_ceiling(client,db,hospital_http):
     headers={**headers,'X-Suite-Pack-Context':str(context)}
     read=client.get(BASE+'?source=srm',headers=headers)
     assert read.status_code==200,read.text
-    assert read.json()['permissions']=={'product':False,'service':False}
+    assert read.json()['permissions']=={kind:False for kind in ('product','service','membership','subscription','bundle')}
     assert client.post(BASE+'?source=srm',headers=headers,json=body()).status_code==403
 
 

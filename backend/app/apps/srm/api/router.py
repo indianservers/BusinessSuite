@@ -832,7 +832,7 @@ def _tracks_physical_inventory(product: SRMProduct | None) -> bool:
     # Historical imports can retain track_inventory=True on service masters.
     # The canonical catalog kind still controls whether physical stock exists.
     return bool(product and product.track_inventory
-                and (product.product_type or '').strip().lower() not in {'service', 'services'})
+                and (product.product_type or '').strip().lower() not in {'service', 'services', 'membership', 'subscription', 'bundle'})
 
 
 def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: User) -> list[SRMInventoryMovement]:
@@ -1328,7 +1328,9 @@ def list_srm_products(search: str | None = None, page: int | None = None, per_pa
     query = query.order_by(SRMProduct.item_name, SRMProduct.id)
     if page is not None:
         query = query.offset((page - 1) * per_page).limit(per_page)
-    rows = query.all()
+    # Scoped relationship reads in two batches instead of one per category/warehouse.
+    from sqlalchemy.orm import selectinload
+    rows = query.options(selectinload(SRMProduct.category), selectinload(SRMProduct.default_warehouse)).all()
     return {"items": [_product_payload(row) for row in rows], "total": total, "page": page, "per_page": per_page}
 
 
@@ -1381,7 +1383,7 @@ def srm_inventory_warehouse_report(db: Session = Depends(get_db), current_user: 
         .join(SRMWarehouse, SRMWarehouse.id == SRMInventoryBalance.warehouse_id)
         .filter(SRMInventoryBalance.organization_id == org_id,
                 SRMProduct.organization_id == org_id, SRMWarehouse.organization_id == org_id,
-                SRMProduct.deleted_at.is_(None), SRMProduct.product_type != "service"))
+                SRMProduct.deleted_at.is_(None), SRMProduct.product_type.notin_(["service", "membership", "subscription", "bundle"])))
     from app.shared.catalog import restrict_workspaces
     from app.shared.catalog_branches import availability_clause, selected_branch
     query = restrict_workspaces(query, SRMProduct, db, current_user)
@@ -1424,7 +1426,7 @@ def srm_inventory_valuation(db: Session = Depends(get_db), current_user: User = 
 def srm_inventory_summary_rows(db: Session, current_user: User) -> list[dict]:
     org_id = _org(current_user)
     values = {row["id"]: row for row in srm_inventory_valuation(db, current_user)["items"]}
-    query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None), SRMProduct.product_type != "service")
+    query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None), SRMProduct.product_type.notin_(["service", "membership", "subscription", "bundle"]))
     from app.shared.catalog import restrict_workspaces
     from app.shared.catalog_branches import availability_clause, selected_branch
     query = restrict_workspaces(query, SRMProduct, db, current_user)
@@ -1465,7 +1467,7 @@ def srm_inventory_activity_rows(db: Session, current_user: User) -> list[dict]:
     issued = func.sum(case((and_(SRMInventoryMovement.movement_type.in_(issue_types), SRMInventoryMovement.quantity_out > 0), SRMInventoryMovement.quantity_out), else_=0))
     query = (db.query(SRMProduct, func.max(SRMInventoryMovement.movement_date), issued)
         .outerjoin(SRMInventoryMovement, and_(SRMInventoryMovement.product_id == SRMProduct.id, SRMInventoryMovement.organization_id == org_id))
-        .filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None), SRMProduct.product_type != "service"))
+        .filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None), SRMProduct.product_type.notin_(["service", "membership", "subscription", "bundle"])))
     from app.shared.catalog import restrict_workspaces
     from app.shared.catalog_branches import availability_clause, selected_branch
     query = restrict_workspaces(query, SRMProduct, db, current_user)
@@ -2588,6 +2590,7 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
     """Reuse commercial decimal arithmetic; snapshot the canonical item tax."""
     from decimal import ROUND_HALF_UP
     from app.apps.srm.services.commercial import money, normalize_lines
+    from app.shared.offering_contracts import offering_kind
     if not data.lines:
         raise HTTPException(422, "POS requires at least one catalog item")
     prepared = []
@@ -2612,7 +2615,9 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
         values = line.model_dump()
         values.update(description=line.description or product.item_name,
                       tax_rate=product.gst_rate or 0,
-                      service_type="service" if (product.product_type or '').strip().lower() in {'service', 'services'} else "product")
+                      service_type=offering_kind(product))
+        from app.shared.offering_sales import prepare_plan_line
+        metadata = prepare_plan_line(product, metadata, data.customer_id or data.crm_company_id, line.quantity)
         metadata["tax_snapshot"] = {"gst_rate": str(product.gst_rate or 0), "hsn_code": product.hsn_code,
                                     "tax_inclusive": False}
         values["metadata_json"] = metadata
@@ -2712,6 +2717,9 @@ def create_sales_order_operation(data: SRMSalesOrderCreate, db: Session, current
         from app.business_packs.restaurant.tabs import capture_native_order
         capture_native_order(db, current_user, item)
     for line_data in data.lines:
+        if line_data.product_id:
+            from app.shared.offering_sales import prepare_plan_line
+            line_data.metadata_json = prepare_plan_line(_product_or_404(db, org_id, line_data.product_id), dict(line_data.metadata_json or {}), buyer_id, line_data.quantity)
         line_total = line_data.line_total if line_data.line_total is not None else (_decimal(line_data.quantity) * _decimal(line_data.unit_price) - _decimal(line_data.discount_amount) + _decimal(line_data.tax_amount))
         db.add(SRMSalesOrderLine(sales_order_id=item.id, line_total=line_total, **line_data.model_dump(exclude={"line_total"})))
     if data.lines:
@@ -4250,6 +4258,8 @@ def allocate_receipt_operation(receipt_id, data, db, current_user, *, commit=Tru
     invoice.paid_amount = _decimal(invoice.paid_amount) + data.amount
     invoice.balance_amount = _decimal(invoice.total_amount) - _decimal(invoice.paid_amount)
     invoice.status = "paid" if invoice.balance_amount <= 0 else "partially_paid"
+    from app.shared.offering_sales import fulfill_paid_invoice
+    fulfill_paid_invoice(db, current_user, invoice)
     db.add(SRMRevenueEvent(organization_id=invoice.organization_id, engagement_id=invoice.engagement_id, invoice_id=invoice.id, event_type="cash_collected", amount=data.amount, currency=invoice.currency, recognized_on=date.today()))
     engagement = db.query(SRMEngagement).filter(SRMEngagement.id == invoice.engagement_id).first() if invoice.engagement_id else None
     if engagement:
@@ -4812,6 +4822,8 @@ def upsert_setting(key: str, data: SRMSettingUpsert, db: Session = Depends(get_d
 
 from app.apps.srm.commercial_api import router as commercial_router
 router.include_router(commercial_router)
+from app.apps.srm.reporting_api import router as reporting_router
+router.include_router(reporting_router)
 from app.apps.srm.dashboard_workspace import router as dashboard_workspace_router
 router.include_router(dashboard_workspace_router)
 from app.apps.srm.document_records import router as document_records_router

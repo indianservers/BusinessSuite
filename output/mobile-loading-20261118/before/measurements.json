@@ -1,0 +1,936 @@
+{
+  "started": "2026-11-18T16:49:35.947Z",
+  "method": "Chromium Pixel 7 emulation, 390x844, unthrottled host network; authenticated, login excluded; 1 independent cold context per route and same-context repeat reloads. Baseline page timings only; no idle windows in this set.",
+  "runs": [
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "cold",
+      "usable_ms": 8922,
+      "ttfb_ms": 2944,
+      "fcp_ms": 3396,
+      "dom_ms": 4720,
+      "resources": 63,
+      "transfer_bytes": 1494220,
+      "largest_resources": [
+        {
+          "path": "/assets/index-Dg0N8Rbq.js",
+          "bytes": 445305,
+          "duration_ms": 1702
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "bytes": 132726,
+          "duration_ms": 882
+        },
+        {
+          "path": "/fonts/roboto/roboto-700.ttf",
+          "bytes": 124592,
+          "duration_ms": 1379
+        },
+        {
+          "path": "/fonts/roboto/roboto-600.ttf",
+          "bytes": 124588,
+          "duration_ms": 1237
+        },
+        {
+          "path": "/fonts/roboto/roboto-500.ttf",
+          "bytes": 124204,
+          "duration_ms": 962
+        },
+        {
+          "path": "/fonts/roboto/roboto-400.ttf",
+          "bytes": 124020,
+          "duration_ms": 1406
+        }
+      ],
+      "api_until_usable": 12,
+      "api_through_2s_settle": 12,
+      "responses": [
+        {
+          "at": 1795020582768,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020582965,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583201,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583327,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583418,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583598,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583710,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583727,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020583888,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020584587,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020584772,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020584875,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "appointments",
+      "route": "/srm/appointments",
+      "sample": 1,
+      "visit": "repeat",
+      "usable_ms": 4004,
+      "ttfb_ms": 182,
+      "fcp_ms": 216,
+      "dom_ms": 392,
+      "resources": 61,
+      "transfer_bytes": 14969,
+      "largest_resources": [
+        {
+          "path": "/api/v1/access/me",
+          "bytes": 7640,
+          "duration_ms": 2312
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "bytes": 1564,
+          "duration_ms": 1994
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "bytes": 1197,
+          "duration_ms": 380
+        },
+        {
+          "path": "/api/v1/srm/industry/records",
+          "bytes": 809,
+          "duration_ms": 1950
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "bytes": 799,
+          "duration_ms": 1331
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "bytes": 709,
+          "duration_ms": 1427
+        }
+      ],
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795020592520,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020592635,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020592647,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020592655,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020593063,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020593193,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020593326,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020593482,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020593674,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020594123,
+          "path": "/api/v1/srm/industry/records",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "cold",
+      "usable_ms": 8163,
+      "ttfb_ms": 229,
+      "fcp_ms": 736,
+      "dom_ms": 1856,
+      "resources": 37,
+      "transfer_bytes": 855213,
+      "largest_resources": [
+        {
+          "path": "/assets/index-Dg0N8Rbq.js",
+          "bytes": 445305,
+          "duration_ms": 1560
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "bytes": 132726,
+          "duration_ms": 676
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "bytes": 84598,
+          "duration_ms": 482
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "bytes": 61098,
+          "duration_ms": 623
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "bytes": 36162,
+          "duration_ms": 849
+        },
+        {
+          "path": "/assets/SchedulingFrame-BuVQJ52d.css",
+          "bytes": 29707,
+          "duration_ms": 132
+        }
+      ],
+      "api_until_usable": 9,
+      "api_through_2s_settle": 9,
+      "responses": [
+        {
+          "at": 1795020602647,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020602714,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603043,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603116,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603203,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603253,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603319,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020603516,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020606099,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "scheduling",
+      "route": "/srm/service-scheduling?view=schedule&mode=Calendar",
+      "sample": 1,
+      "visit": "repeat",
+      "usable_ms": 4670,
+      "ttfb_ms": 227,
+      "fcp_ms": 252,
+      "dom_ms": 451,
+      "resources": 36,
+      "transfer_bytes": 13538,
+      "largest_resources": [
+        {
+          "path": "/api/v1/access/me",
+          "bytes": 7640,
+          "duration_ms": 2510
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "bytes": 1564,
+          "duration_ms": 1969
+        },
+        {
+          "path": "/api/v1/employees/planned-services",
+          "bytes": 1076,
+          "duration_ms": 3620
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "bytes": 799,
+          "duration_ms": 2158
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "bytes": 709,
+          "duration_ms": 2042
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "bytes": 557,
+          "duration_ms": 2194
+        }
+      ],
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795020613728,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020613771,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020614365,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020614432,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020614563,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020614680,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020614887,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020616164,
+          "path": "/api/v1/employees/planned-services",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "cold",
+      "usable_ms": 22838,
+      "ttfb_ms": 265,
+      "fcp_ms": 740,
+      "dom_ms": 2075,
+      "resources": 65,
+      "transfer_bytes": 985412,
+      "largest_resources": [
+        {
+          "path": "/assets/index-Dg0N8Rbq.js",
+          "bytes": 445305,
+          "duration_ms": 1735
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "bytes": 132726,
+          "duration_ms": 1064
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "bytes": 84598,
+          "duration_ms": 448
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "bytes": 61098,
+          "duration_ms": 635
+        },
+        {
+          "path": "/assets/SRMPOSPage-a6UDMnGh.js",
+          "bytes": 42607,
+          "duration_ms": 925
+        },
+        {
+          "path": "/assets/form-uZIh7Wvp.js",
+          "bytes": 36455,
+          "duration_ms": 309
+        }
+      ],
+      "api_until_usable": 18,
+      "api_through_2s_settle": 18,
+      "responses": [
+        {
+          "at": 1795020633541,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020633825,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020634782,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635025,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635150,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635404,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635414,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635723,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020635744,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020636301,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020636635,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020639788,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020640429,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020640783,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020640802,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020641431,
+          "path": "/api/v1/srm/inventory/items",
+          "status": 200,
+          "mode": "full"
+        },
+        {
+          "at": 1795020642434,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "pos",
+      "route": "/srm/pos/terminal",
+      "sample": 1,
+      "visit": "repeat",
+      "usable_ms": 4653,
+      "ttfb_ms": 145,
+      "fcp_ms": 172,
+      "dom_ms": 378,
+      "resources": 60,
+      "transfer_bytes": 24016,
+      "largest_resources": [
+        {
+          "path": "/api/v1/access/me",
+          "bytes": 7640,
+          "duration_ms": 2392
+        },
+        {
+          "path": "/api/v1/access/me",
+          "bytes": 7640,
+          "duration_ms": 3612
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "bytes": 3413,
+          "duration_ms": 2476
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "bytes": 1564,
+          "duration_ms": 2853
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "bytes": 799,
+          "duration_ms": 1367
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "bytes": 709,
+          "duration_ms": 2557
+        }
+      ],
+      "api_until_usable": 15,
+      "api_through_2s_settle": 16,
+      "responses": [
+        {
+          "at": 1795020648642,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649083,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649663,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649809,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649849,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649863,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020649892,
+          "path": "/api/v1/auth/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020650144,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020650484,
+          "path": "/api/v1/srm/industry/capabilities",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020651027,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020651988,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020652303,
+          "path": "/api/v1/srm/pos/held-bills",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020652347,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020652436,
+          "path": "/api/v1/srm/anonymous-cash/configuration",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020652918,
+          "path": "/api/v1/srm/business/customers",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "cold",
+      "usable_ms": 7033,
+      "ttfb_ms": 253,
+      "fcp_ms": 720,
+      "dom_ms": 1850,
+      "resources": 41,
+      "transfer_bytes": 802228,
+      "largest_resources": [
+        {
+          "path": "/assets/index-Dg0N8Rbq.js",
+          "bytes": 445305,
+          "duration_ms": 1535
+        },
+        {
+          "path": "/assets/charts-DRlgN3wX.js",
+          "bytes": 132726,
+          "duration_ms": 783
+        },
+        {
+          "path": "/assets/index-DfzKJaJ5.css",
+          "bytes": 84598,
+          "duration_ms": 442
+        },
+        {
+          "path": "/assets/vendor-7-FcLwML.js",
+          "bytes": 61098,
+          "duration_ms": 156
+        },
+        {
+          "path": "/assets/ui-Dldn_Y9Z.js",
+          "bytes": 36162,
+          "duration_ms": 533
+        },
+        {
+          "path": "/assets/query-C134Gqns.js",
+          "bytes": 14504,
+          "duration_ms": 783
+        }
+      ],
+      "api_until_usable": 10,
+      "api_through_2s_settle": 10,
+      "responses": [
+        {
+          "at": 1795020656928,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020657441,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020657686,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020657872,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020657960,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020658445,
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020658581,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020658741,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020660615,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020660634,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    },
+    {
+      "release": "report-entry-20261118-v1",
+      "name": "product",
+      "route": "/srm/inventory/products?new=item&kind=product",
+      "sample": 1,
+      "visit": "repeat",
+      "usable_ms": 4704,
+      "ttfb_ms": 2758,
+      "fcp_ms": 2784,
+      "dom_ms": 2986,
+      "resources": 35,
+      "transfer_bytes": 2861,
+      "largest_resources": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "bytes": 799,
+          "duration_ms": 1314
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "bytes": 709,
+          "duration_ms": 1457
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "bytes": 557,
+          "duration_ms": 1058
+        },
+        {
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "bytes": 496,
+          "duration_ms": 1511
+        },
+        {
+          "path": "/cdn-cgi/rum",
+          "bytes": 300,
+          "duration_ms": 20
+        },
+        {
+          "path": "/assets/index-Dg0N8Rbq.js",
+          "bytes": 0,
+          "duration_ms": 28
+        }
+      ],
+      "api_until_usable": 8,
+      "api_through_2s_settle": 8,
+      "responses": [
+        {
+          "at": 1795020670131,
+          "path": "/api/v1/notifications/summary",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670408,
+          "path": "/api/v1/business-os/modules",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670529,
+          "path": "/api/v1/branches/context",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670569,
+          "path": "/api/v1/access/settings/business-profile/effective",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670725,
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670842,
+          "path": "/api/v1/access/setup",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020670882,
+          "path": "/api/v1/access/me",
+          "status": 200,
+          "mode": null
+        },
+        {
+          "at": 1795020671049,
+          "path": "/api/v1/catalog/categories",
+          "status": 200,
+          "mode": null
+        }
+      ]
+    }
+  ],
+  "idle": [],
+  "errors": [],
+  "finished": "2026-11-18T16:51:12.630Z",
+  "status": "complete"
+}

@@ -1,0 +1,36 @@
+import {test,expect} from '../frontend/node_modules/playwright/test';
+import {authenticate} from './srm-test-utils';
+const titles=['Review appointment booking flow','Verify payroll approval rules','Update workspace permissions','Prepare release checklist','Validate task reminders','Review dashboard filters','Fix calendar sync issues','Improve page load performance'];
+const names=['Aarav Singh','Riya Kapoor','Neha Mehta','Vikram Khanna','Priya Shah','Dev Gupta','Aman Rao','Sneha Sharma','Manish Kumar','Rohit Bansal','Ishaan Khatri'];
+const members=names.map((name,i)=>({id:i+1,user_id:i+1,name,email:name.toLowerCase().replace(' ','.')+'@example.com',role:'Member'}));
+const projects=['Customer Portal','HR & Payroll','Platform Admin','Product Release','Notifications','Analytics & Reports','Integrations','Platform Core'].map((name,i)=>({id:i+1,name,project_key:'P'+i}));
+const tasks=titles.map((title,i)=>({id:1024+i,task_key:'TAS-'+(1024+i),project_id:i+1,title,status:i<4?'To Do':'In Progress',priority:[1,4,6].includes(i)?'High':i===7?'Low':'Medium',position:i,comments_count:0,assignee_user_ids:[[1,2],[3],[4],[5,6],[7],[8,9],[10],[11]][i],due_date:[2,7].includes(i)?null:`2026-11-${i===4?'16':20+i}`,description:'Review and refine the end-to-end appointment booking flow for a smoother user experience.'}));
+test('reference workspace list and drawer with populated data',async({page})=>{
+ test.setTimeout(120000); await page.setViewportSize({width:1672,height:941}); await authenticate(page,'admin');
+ const checks=[{id:1,task_id:1024,title:'Map the current booking flow',is_completed:true,position:0},{id:2,task_id:1024,title:'Identify improvements',is_completed:false,position:1},{id:3,task_id:1024,title:'Update flow and share for review',is_completed:false,position:2}];
+ await page.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname.replace(/^\/api\/v1/,'');let body:unknown;
+ if(path==='/access/setup')body={companyId:1,ready:true,items:[]};
+ else if(path==='/project-management/workspaces')body=[{id:3,name:'Workspace',role:'Owner'}];
+ else if(path==='/project-management/workspaces/3/overview')body={projects,tasks,members,invitations:[],role:'Owner'};
+ else if(path==='/project-management/custom-fields/records')body={records:{}};
+ else if(path==='/project-management/custom-fields')body={fields:[]};
+ else if(/\/tasks\/\d+\/checklists$/.test(path))body=checks;
+ else if(/\/checklist\/\d+$/.test(path)){const item=checks.find(item=>item.id===Number(path.split('/').pop()))!;Object.assign(item,route.request().postDataJSON());body=item;}
+ else if(/\/tasks\/\d+\/(comments|activity)$/.test(path))body=[];
+ else if(/\/tasks\/\d+$/.test(path))body=tasks.find(item=>item.id===Number(path.split('/').pop()));
+ else if(path==='/project-management/projects')body=projects;
+ else{await route.fallback();return}await route.fulfill({json:body});});
+ await page.goto('/pms?workspace=3'); await expect(page.locator('[data-testid^="workspace-task-"]')).toHaveCount(8);
+ await expect(page.locator('.udg-toolbar')).toHaveCount(0);
+ const searchBox=await page.getByRole('textbox',{name:'Search tasks in workspace',exact:true}).boundingBox();const projectBox=await page.getByRole('combobox',{name:'Filter project',exact:true}).boundingBox();expect(Math.abs(searchBox!.y-projectBox!.y)).toBeLessThan(15);
+ await page.screenshot({path:'docs/qa/pms-reference-list-desktop.png',fullPage:true});
+ await page.getByRole('button',{name:'Details for Review appointment booking flow',exact:true}).click();
+ await expect(page.getByRole('heading',{name:titles[0],exact:true})).toBeVisible();
+ await expect(page.getByText('Checklist (3)',{exact:true})).toBeVisible();
+ await page.screenshot({path:'docs/qa/pms-reference-drawer-desktop.png',fullPage:true});
+ await page.getByRole('checkbox',{name:'Identify improvements',exact:true}).click(); await expect(page.getByRole('checkbox',{name:'Identify improvements',exact:true})).toBeChecked();
+ await page.getByRole('button',{name:'Next task',exact:true}).click();await expect(page.getByRole('heading',{name:titles[1],exact:true})).toBeVisible();await page.getByRole('button',{name:'Close task',exact:true}).click();
+ await page.getByRole('textbox',{name:'Search tasks in workspace',exact:true}).fill('calendar');await expect(page.locator('[data-testid^="workspace-task-"]')).toHaveCount(1);await page.getByRole('textbox',{name:'Search tasks in workspace',exact:true}).fill('');
+ await page.getByRole('combobox',{name:'Group tasks by',exact:true}).selectOption('Project');await expect(page.locator('.wr-group-row')).toHaveCount(8);await page.getByRole('combobox',{name:'Group tasks by',exact:true}).selectOption('Status');
+ await page.setViewportSize({width:390,height:844}); await page.screenshot({path:'docs/qa/pms-reference-list-mobile.png',fullPage:true});await page.getByRole('button',{name:'Details for Review appointment booking flow',exact:true}).click();await expect(page.getByRole('heading',{name:titles[0],exact:true})).toBeVisible();await page.screenshot({path:'docs/qa/pms-reference-drawer-mobile.png',fullPage:true});
+});
