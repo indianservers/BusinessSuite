@@ -1,0 +1,32 @@
+{
+  "fam": {
+    "current_quantity": 115,
+    "average_cost": 10
+  },
+  "srm": {
+    "quantity": 120,
+    "average_cost": 10
+  },
+  "financeTransfer": [
+    {
+      "warehouse_id": 8,
+      "quantity": 80
+    },
+    {
+      "warehouse_id": 9,
+      "quantity": 20
+    }
+  ],
+  "salesTransfer": [
+    {
+      "warehouse_id": 6,
+      "quantity": 80,
+      "average_cost": 10
+    },
+    {
+      "warehouse_id": 7,
+      "quantity": 20,
+      "average_cost": 10
+    }
+  ]
+}

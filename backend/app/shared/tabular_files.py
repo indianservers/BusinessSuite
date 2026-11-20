@@ -25,7 +25,10 @@ def cell(value):
     return value if value is not None else ""
 
 
-def read_table(raw: bytes, filename: str, sheet: str = "", header_row: int = 1, max_rows: int = 5000):
+def read_table(
+    raw: bytes, filename: str, sheet: str = "", header_row: int = 1, max_rows: int = 5000,
+    *, use_active_sheet: bool = False, use_cached_values: bool = False,
+):
     """Bounded parser shared by uploads and export conversions; never executes formulas."""
     if not 1 <= header_row <= 50:
         raise ValueError("Choose a header row from 1 to 50")
@@ -36,11 +39,12 @@ def read_table(raw: bytes, filename: str, sheet: str = "", header_row: int = 1, 
             with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                 if sum(item.file_size for item in archive.infolist()) > 60 * 1024 * 1024 or len(archive.infolist()) > 2000:
                     raise ValueError("Workbook is too large when expanded; split it into smaller files")
-            workbook = load_workbook(io.BytesIO(raw), read_only=True, data_only=False, keep_links=False)
+            workbook = load_workbook(io.BytesIO(raw), read_only=True, data_only=use_cached_values, keep_links=False)
             sheets = workbook.sheetnames
             if sheet and sheet not in sheets:
                 raise ValueError("Choose a worksheet from this workbook")
-            active = workbook[sheet or sheets[0]]
+            active = workbook.active if use_active_sheet and not sheet else workbook[sheet or sheets[0]]
+            sheet = active.title
             if active.max_column and active.max_column > MAX_COLUMNS:
                 raise ValueError(f"Use at most {MAX_COLUMNS} columns; remove unused formatted columns")
             matrix = active.iter_rows(values_only=True)

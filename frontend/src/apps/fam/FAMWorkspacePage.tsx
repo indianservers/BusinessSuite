@@ -1,3 +1,4 @@
+import InventoryReports from './InventoryReports';
 import ReportingEntryLinks from '@/apps/srm/components/ReportingEntryLinks';
 import StockAlertSettings from "@/apps/srm/components/StockAlertSettings";
 import LowStockPanel from "@/apps/srm/components/LowStockPanel";
@@ -169,7 +170,7 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   inventoryStockSummary: { title: "Stock Summary", description: "Item-wise quantity, average cost, stock value, and low-stock flags.", icon: BookOpen },
   inventoryItemLedger: { title: "Item Ledger", description: "Movement lines, balances, rates, and values for a stock item.", icon: ScrollText },
   inventoryWarehouseStock: { title: "Warehouse Stock", description: "Warehouse-wise stock quantities and values from posted inventory movements.", icon: Building2 },
-  inventoryStockAging: { title: "Stock Aging", description: "Age inventory by last stock movement date to identify slow-moving stock.", icon: ScrollText },
+  inventoryStockAging: { title: "Stock Aging", description: "Age remaining inventory from posted receipt dates.", icon: ScrollText },
   inventoryReorderReport: { title: "Reorder Report", description: "Items below reorder and minimum levels with available quantity after reservations.", icon: AlertTriangle },
   inventoryDeadStock: { title: "Dead Stock", description: "Items with no recent movement based on audited inventory ledger activity.", icon: AlertTriangle },
   inventoryFastSlowMoving: { title: "Fast/Slow Moving Items", description: "Rank items by outward movement quantity for velocity analysis.", icon: BarChart3 },
@@ -1943,14 +1944,14 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryStockTransfers") content = <InventoryTransferView />;
   else if (kind === "inventoryStockAdjustments") content = <InventoryAdjustmentView />;
   else if (kind === "inventoryOpeningStock") content = <InventoryOpeningStockView />;
-  else if (kind === "inventoryStockSummary") content = <InventorySummaryView kind="summary" />;
-  else if (kind === "inventoryItemLedger") content = <InventoryItemDetailView ledger />;
-  else if (kind === "inventoryWarehouseStock") content = <InventorySummaryView kind="warehouse" />;
-  else if (kind === "inventoryStockAging") content = <InventorySummaryView kind="aging" />;
-  else if (kind === "inventoryReorderReport") content = <InventorySummaryView kind="reorder" />;
-  else if (kind === "inventoryDeadStock") content = <InventorySummaryView kind="dead" />;
+  else if (kind === "inventoryStockSummary") content = <InventoryReports initialReport="summary" singleReport />;
+  else if (kind === "inventoryItemLedger") content = <InventoryReports initialReport="ledger" singleReport />;
+  else if (kind === "inventoryWarehouseStock") content = <InventoryReports initialReport="summary" singleReport />;
+  else if (kind === "inventoryStockAging") content = <InventoryReports initialReport="aging" singleReport />;
+  else if (kind === "inventoryReorderReport") content = <InventoryReports initialReport="reorder" singleReport />;
+  else if (kind === "inventoryDeadStock") content = <InventoryReports initialReport="dead-stock" singleReport />;
   else if (kind === "inventoryFastSlowMoving") content = <InventorySummaryView kind="fastSlow" />;
-  else if (kind === "inventoryValuation") content = <InventorySummaryView kind="valuation" />;
+  else if (kind === "inventoryValuation") content = <InventoryReports initialReport="valuation" singleReport />;
   else if (kind === "inventoryGrossMargin") content = <InventorySummaryView kind="grossMargin" />;
   else if (kind === "inventoryCogs") content = <InventorySummaryView kind="cogs" />;
   else if (kind === "inventoryGrni") content = <InventoryReconciliationDetailView kind="grni" />;
@@ -1963,8 +1964,8 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryAudit") content = <InventorySummaryView kind="audit" />;
   else if (kind === "inventoryCrmLink") content = <InventorySummaryView kind="crmLink" />;
   else if (kind === "inventorySrmLink") content = <InventorySalesIntegrationView />;
-  else if (kind === "inventoryReorderAlerts") content = <InventorySummaryView kind="reorder" />;
-  else if (kind === "inventoryReports" || kind === "inventoryCompleteReports") content = <InventorySummaryView kind="reports" />;
+  else if (kind === "inventoryReorderAlerts") content = <InventoryReports initialReport="reorder" singleReport />;
+  else if (kind === "inventoryReports" || kind === "inventoryCompleteReports") content = <InventoryReports />;
   else if (kind === "inventoryPurchaseOrders") content = <InventoryPurchaseOrdersView />;
   else if (kind === "inventoryPriceLists") content = <InventoryPriceListsView />;
   else if (kind === "inventoryBatches") content = <InventoryBatchesView />;

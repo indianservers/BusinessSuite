@@ -171,3 +171,20 @@ def test_postgres_migration_compiles_history_triggers_without_live_database():
         migration.upgrade()
     assert 'CREATE FUNCTION catalog_reject_history_mutation()' in output.getvalue()
     assert 'BEFORE UPDATE OR DELETE ON catalog_usage_ledger' in output.getvalue()
+
+
+def test_customer_plan_views_filter_states_and_effective_dates_before_pagination(client,db,headers):
+    from datetime import timedelta
+    plan,payload=purchased(client,db,headers)
+    params={'customer_id':payload['customer_id'],'source':'pms','view':'active','per_page':1}
+    assert client.get('/api/v1/customer-plans',params=params,headers=headers).json()['total']==1
+    paused=client.post(f"/api/v1/customer-plans/{plan['id']}/lifecycle?source=pms",headers=headers,json={'action':'pause','revision':1,'request_key':'view-pause-001'})
+    assert paused.status_code==200,paused.text
+    assert client.get('/api/v1/customer-plans',params=params,headers=headers).json()['total']==0
+    assert client.get('/api/v1/customer-plans',params={**params,'view':'all'},headers=headers).json()['total']==1
+    assert client.get('/api/v1/customer-plans',params={**params,'view':'renewals'},headers=headers).json()['total']==1
+    row=db.get(CustomerPlan,plan['id']);row.status='active';row.start_date=date.today()-timedelta(days=90);row.end_date=date.today()-timedelta(days=1);db.commit()
+    assert client.get('/api/v1/customer-plans',params=params,headers=headers).json()['total']==0
+    assert client.get('/api/v1/customer-plans',params={**params,'view':'all'},headers=headers).json()['total']==1
+    row.status='cancelled';db.commit()
+    assert client.get('/api/v1/customer-plans',params={**params,'view':'renewals'},headers=headers).json()['total']==0

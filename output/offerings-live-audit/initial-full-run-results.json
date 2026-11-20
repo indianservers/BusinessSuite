@@ -1,0 +1,1416 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\playwright.offerings-live.config.ts",
+    "rootDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/output/offerings-live-audit/traces",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "catalog-offerings-live.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../output/offerings-live-audit/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 5198",
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": true,
+      "timeout": 120000,
+      "env": {
+        "VITE_DEV_API_PROXY_TARGET": "http://127.0.0.1:8799",
+        "VITE_SUPPRESS_PROXY_ERRORS": "true"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "catalog-offerings-live.spec.ts",
+      "file": "catalog-offerings-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real browser login and isolated catalog bootstrap",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6067,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:20.741Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-22da96a3e8c7aa3b682e",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 73,
+          "column": 5
+        },
+        {
+          "title": "real product create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6883,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:26.998Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-50a90beccb7f8dcef928",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real service create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7135,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:33.894Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-f0e848b6f1bee6875e89",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real membership create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7701,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:41.040Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-ac3750032b0a1a51436b",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real subscription create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7671,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:48.754Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-b6b8df0b0a9982031f0f",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real bundle create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8386,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:26:56.436Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-7eabcbacf5fefc2f4e6b",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real membership 3-month preset persists",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8301,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:27:04.834Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-46baa24a06e4ffe5cf39",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 91,
+          "column": 34
+        },
+        {
+          "title": "real membership 6-month preset persists",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8385,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:27:13.149Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-4c8a7fc684c32a0f0d65",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 91,
+          "column": 34
+        },
+        {
+          "title": "real membership 12-month preset persists",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8199,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:27:21.549Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-337285bca9e7079b6964",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 91,
+          "column": 34
+        },
+        {
+          "title": "real customer membership assignment, pause, resume, renewal and history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 20850,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:27:29.759Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-19937bf12a39d7184f96",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 93,
+          "column": 5
+        },
+        {
+          "title": "real POS recognizes and filters all five offering types",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17551,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:27:50.623Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-c6f511854aa5a3b1c469",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 135,
+          "column": 5
+        },
+        {
+          "title": "real POS paid membership creates invoice, payment and one customer plan",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 12809,
+                  "error": {
+                    "message": "TimeoutError: page.waitForResponse: Timeout 12000ms exceeded while waiting for event \"response\"",
+                    "stack": "TimeoutError: page.waitForResponse: Timeout 12000ms exceeded while waiting for event \"response\"\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts:150:28",
+                    "location": {
+                      "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                      "column": 28,
+                      "line": 150
+                    },
+                    "snippet": "  148 |\n  149 | test('real POS paid membership creates invoice, payment and one customer plan',async({page})=>{\n> 150 |  const registerLoaded=page.waitForResponse(r=>r.url().includes('/srm/pos/sessions/active'));\n      |                            ^\n  151 |  await openPOS(page);\n  152 |  const register=await (await registerLoaded).json();\n  153 |  await page.getByRole('button',{name:/Session & actions/}).click();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                        "column": 28,
+                        "line": 150
+                      },
+                      "message": "TimeoutError: page.waitForResponse: Timeout 12000ms exceeded while waiting for event \"response\"\n\n  148 |\n  149 | test('real POS paid membership creates invoice, payment and one customer plan',async({page})=>{\n> 150 |  const registerLoaded=page.waitForResponse(r=>r.url().includes('/srm/pos/sessions/active'));\n      |                            ^\n  151 |  await openPOS(page);\n  152 |  const register=await (await registerLoaded).json();\n  153 |  await page.getByRole('button',{name:/Session & actions/}).click();\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts:150:28"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:28:08.188Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-10586-yment-and-one-customer-plan\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-10586-yment-and-one-customer-plan\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-10586-yment-and-one-customer-plan\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                    "column": 28,
+                    "line": 150
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-fd681e5b9d68a8233d48",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 149,
+          "column": 5
+        },
+        {
+          "title": "real responsive catalog and editors 1920x1080",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 22178,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:28:22.383Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-b6533eebbc801a6a6049",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 193,
+          "column": 79
+        },
+        {
+          "title": "real responsive catalog and editors 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21922,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:28:44.780Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-2b9d8517963cd489d5bb",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 193,
+          "column": 79
+        },
+        {
+          "title": "real responsive catalog and editors 768x1024",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21578,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:29:06.714Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-594eab2c125fc771e9af",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 193,
+          "column": 79
+        },
+        {
+          "title": "real responsive catalog and editors 390x844",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 25486,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:29:28.302Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-a05c15726686f2fb0300",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 193,
+          "column": 79
+        },
+        {
+          "title": "real read-only role cannot mutate or read a private workspace offering",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "expected-http",
+                  "description": "403"
+                },
+                {
+                  "type": "expected-http",
+                  "description": "404"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7981,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:29:53.800Z",
+                  "annotations": [
+                    {
+                      "type": "expected-http",
+                      "description": "403"
+                    },
+                    {
+                      "type": "expected-http",
+                      "description": "404"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-0f0119a546724093e34d",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 222,
+          "column": 5
+        },
+        {
+          "title": "real second-company browser cannot read the first company catalog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "expected-http",
+                  "description": "404"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5463,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:01.791Z",
+                  "annotations": [
+                    {
+                      "type": "expected-http",
+                      "description": "404"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-25754d3b2806fcee58e6",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 243,
+          "column": 5
+        },
+        {
+          "title": "real membership edit, archive, status filter and record preservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8808,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:07.265Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-b49d225223181e9a5202",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 256,
+          "column": 5
+        },
+        {
+          "title": "real fixed subscription and independent monthly recurring configuration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7856,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:16.084Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-351d00914cbc6528db38",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 277,
+          "column": 5
+        },
+        {
+          "title": "real CRM and PMS catalogs reference the same master offerings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 19676,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:23.951Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-9054665768edc5c5e2b5",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 294,
+          "column": 5
+        },
+        {
+          "title": "real invalid renewal date leaves plan and audit unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "expected-http",
+                  "description": "422"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10194,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:43.638Z",
+                  "annotations": [
+                    {
+                      "type": "expected-http",
+                      "description": "422"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-e2a66571a048bd6c6000",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 309,
+          "column": 5
+        },
+        {
+          "title": "real mixed bundle preserves all component types, quantities and options",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9862,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:30:53.842Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-14eb2760129e477b3440",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 334,
+          "column": 5
+        },
+        {
+          "title": "real circular bundle edit is rejected without changing its definition",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "expected-http",
+                  "description": "422"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12734,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:03.714Z",
+                  "annotations": [
+                    {
+                      "type": "expected-http",
+                      "description": "422"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-516bce7a11a460acb8fc",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 348,
+          "column": 5
+        },
+        {
+          "title": "real catalog search, type filtering and pagination use persisted records",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6848,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:16.459Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-996d733c539a3dd3d886",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 361,
+          "column": 5
+        },
+        {
+          "title": "real customer subscription assignment and cancellation preserves history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11824,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:23.318Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-ed5429c793aa67543860",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 377,
+          "column": 5
+        },
+        {
+          "title": "real Active Plans excludes cancelled plans while History preserves them",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9711,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:35.154Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-880019529cc2eabeef1e",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 393,
+          "column": 5
+        },
+        {
+          "title": "real cross-module regression: appointments",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 7344,
+                  "error": {
+                    "message": "Error: No unexpected API failures\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"409 /api/v1/srm/industry/records\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: No unexpected API failures\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"409 /api/v1/srm/industry/records\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts:25:117",
+                    "location": {
+                      "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                      "column": 117,
+                      "line": 25
+                    },
+                    "snippet": "  23 |  if(info.status==='passed'&&(record.errors.length||unexpectedHTTP.length||unexpectedConsole.length))record.status='failed';\n  24 |  writeFileSync(resolve(output,info.title.replace(/[^a-z0-9]+/gi,'-')+'-observations.json'),JSON.stringify(record,null,2));\n> 25 |  expect(record.errors,'No uncaught browser errors').toEqual([]);expect(unexpectedHTTP,'No unexpected API failures').toEqual([]);expect(unexpectedConsole,'No unexpected console errors').toEqual([]);\n     |                                                                                                                     ^\n  26 | });\n  27 | async function login(page:Page,email=\"browser-audit@example.com\",company=\"Workflow Test Company\"){\n  28 |  await page.goto('/login?redirect=/srm/products-services');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                        "column": 117,
+                        "line": 25
+                      },
+                      "message": "Error: No unexpected API failures\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"409 /api/v1/srm/industry/records\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  23 |  if(info.status==='passed'&&(record.errors.length||unexpectedHTTP.length||unexpectedConsole.length))record.status='failed';\n  24 |  writeFileSync(resolve(output,info.title.replace(/[^a-z0-9]+/gi,'-')+'-observations.json'),JSON.stringify(record,null,2));\n> 25 |  expect(record.errors,'No uncaught browser errors').toEqual([]);expect(unexpectedHTTP,'No unexpected API failures').toEqual([]);expect(unexpectedConsole,'No unexpected console errors').toEqual([]);\n     |                                                                                                                     ^\n  26 | });\n  27 | async function login(page:Page,email=\"browser-audit@example.com\",company=\"Workflow Test Company\"){\n  28 |  await page.goto('/login?redirect=/srm/products-services');\n    at C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts:25:117"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:44.876Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-565ff-ule-regression-appointments\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-565ff-ule-regression-appointments\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\output\\offerings-live-audit\\traces\\catalog-offerings-live-rea-565ff-ule-regression-appointments\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\playwright\\catalog-offerings-live.spec.ts",
+                    "column": 117,
+                    "line": 25
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-ed747725b3a6cd3c6b77",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real cross-module regression: service scheduling",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7727,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:31:53.518Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-90e26c936d518545f933",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real cross-module regression: HRMS employee benefits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6823,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:01.428Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-394ecce7626705124584",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real cross-module regression: PMS delivery projects",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7376,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:08.264Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-74a251240656668ea1ab",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real cross-module regression: finance invoices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7734,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:15.651Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-ff5e53353c72d14c51d6",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real cross-module regression: sales reporting",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7249,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:23.396Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-5d6341602ac0a1db6114",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 407,
+          "column": 7
+        },
+        {
+          "title": "real browser retries the same checkout without duplicate invoices, payments or plans",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6305,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:30.655Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-53643de1f74846f7c57e",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 419,
+          "column": 5
+        },
+        {
+          "title": "real unsupported bundle checkout is disclosed and cannot write a partial sale",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "expected-http",
+                  "description": "503"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11097,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T13:32:36.971Z",
+                  "annotations": [
+                    {
+                      "type": "expected-http",
+                      "description": "503"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-2b6b987c9c7f1df14a4a",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 432,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T13:26:20.310Z",
+    "duration": 388094.809,
+    "expected": 33,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 import secrets
 import hashlib
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response, RedirectResponse
 from urllib.parse import urlparse
@@ -12,10 +11,13 @@ from app.models.employee import Employee
 from app.models.sso import SSOProvider, SSOSession
 from app.models.user import User
 from app.services.sso_service import (
+    GOOGLE_OIDC_ENDPOINTS,
     exchange_oidc_code,
     extract_user_attributes,
     generate_pkce_pair,
     get_oidc_authorization_url,
+    oidc_target_host,
+    request_oidc_endpoint,
 )
 
 
@@ -51,8 +53,7 @@ def _safe_relay_state(next_url: str | None) -> str:
 def _validate_provider_config(data: dict) -> None:
     provider_type = str(data.get("provider_type") or "").lower()
     if provider_type == "google":
-        endpoints = {"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth", "token_url": "https://oauth2.googleapis.com/token", "userinfo_url": "https://openidconnect.googleapis.com/v1/userinfo"}
-        for key, expected in endpoints.items():
+        for key, expected in GOOGLE_OIDC_ENDPOINTS.items():
             data.setdefault(key, expected)
             if data[key] != expected:
                 raise HTTPException(400, "Google Workspace must use Google's official identity endpoints")
@@ -73,9 +74,10 @@ def _validate_provider_config(data: dict) -> None:
     for key in ["authorization_url", "token_url", "userinfo_url", "idp_sso_url"]:
         value = data.get(key)
         if value:
-            parsed = urlparse(value)
-            if parsed.scheme != "https" or not parsed.netloc:
-                raise HTTPException(status_code=400, detail=f"{key} must be an HTTPS URL")
+            try:
+                oidc_target_host(value)
+            except ValueError:
+                raise HTTPException(400, f"{key} must be an HTTPS URL without credentials or fragments") from None
     if provider_type == "saml" and "BEGIN CERTIFICATE" not in str(data.get("idp_x509_cert", "")):
         raise HTTPException(status_code=400, detail="SAML IdP certificate must be PEM formatted")
 
@@ -105,9 +107,15 @@ async def initiate_sso(provider_id: int, next: str = Query("/dashboard"), db: Se
     provider = db.query(SSOProvider).filter(SSOProvider.id == provider_id, SSOProvider.is_active == True).first()
     if not provider:
         raise HTTPException(status_code=404, detail="SSO provider not found")
+    if provider.provider_type.lower() == "saml":
+        return {"error": "SAML not yet implemented", "provider": provider.name}
     state = secrets.token_urlsafe(32)
     nonce = secrets.token_urlsafe(32)
     verifier, challenge = generate_pkce_pair()
+    try:
+        url = await get_oidc_authorization_url(provider, state, nonce, challenge)
+    except ValueError:
+        raise HTTPException(503, "The SSO provider configuration is unavailable") from None
     session = SSOSession(
         provider_id=provider.id,
         state=state,
@@ -118,9 +126,6 @@ async def initiate_sso(provider_id: int, next: str = Query("/dashboard"), db: Se
     )
     db.add(session)
     db.commit()
-    if provider.provider_type.lower() == "saml":
-        return {"error": "SAML not yet implemented", "provider": provider.name}
-    url = await get_oidc_authorization_url(provider, state, nonce, challenge)
     response = RedirectResponse(url, status_code=302)
     response.headers["Cache-Control"] = "no-store"
     response.set_cookie(f"sso_state_{provider.id}", state, max_age=600, httponly=True,
@@ -149,8 +154,6 @@ async def oidc_callback(provider_id: int, request: Request, code: str | None = N
     try:
         userinfo = await exchange_oidc_code(provider, code, state, session.code_verifier, nonce=session.nonce)
         attrs = extract_user_attributes(userinfo, provider)
-        if not attrs.get("email"):
-            return RedirectResponse(f"{frontend}/login?sso_error=email_missing")
         if not _domain_allowed(provider, attrs["email"]):
             return RedirectResponse(f"{frontend}/login?sso_error=domain_not_allowed")
         user = db.query(User).filter(User.email == attrs["email"]).first()
@@ -289,17 +292,16 @@ async def test_sso_provider(provider_id: int, db: Session = Depends(get_db), cur
     if not provider:
         raise HTTPException(status_code=404, detail="SSO provider not found")
     results = {}
-    async with httpx.AsyncClient(timeout=10) as client:
-        for key in ["authorization_url", "token_url", "userinfo_url"]:
-            url = getattr(provider, key)
-            if not url:
-                results[f"{key}_reachable"] = False
-                continue
-            try:
-                response = await client.get(url)
-                results[f"{key}_reachable"] = response.status_code < 500 and response.status_code != 404
-            except Exception:
-                results[f"{key}_reachable"] = False
+    for key in GOOGLE_OIDC_ENDPOINTS:
+        url = GOOGLE_OIDC_ENDPOINTS[key] if provider.provider_type.lower() == "google" else getattr(provider, key)
+        if not url:
+            results[f"{key}_reachable"] = False
+            continue
+        try:
+            response = await request_oidc_endpoint("GET", url, probe=True)
+            results[f"{key}_reachable"] = response.status < 500 and response.status != 404
+        except Exception:
+            results[f"{key}_reachable"] = False
     overall = "ok" if all(results.values()) else "warning" if any(results.values()) else "error"
     return {**results, "overall": overall}
 

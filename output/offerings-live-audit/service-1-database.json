@@ -1,0 +1,10 @@
+[
+  {
+    "id": 125,
+    "sku": "BQA-service-1-1795105538122",
+    "item_name": "Browser audit service 1 1795105538122",
+    "product_type": "service",
+    "track_inventory": 0,
+    "metadata_json": "{\"catalog_branches\": {\"default\": false, \"overrides\": {\"1\": true}}, \"catalog_tags\": [], \"currency\": \"INR\", \"images\": []}"
+  }
+]

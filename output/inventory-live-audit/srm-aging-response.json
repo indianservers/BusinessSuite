@@ -1,0 +1,73 @@
+{
+  "source": "srm",
+  "report": "aging",
+  "as_of": "2026-11-19",
+  "filters": {
+    "report": "aging",
+    "start_date": null,
+    "end_date": null,
+    "product_id": 49,
+    "warehouse_id": null,
+    "category": "",
+    "search": "",
+    "transaction_type": "",
+    "movement_id": null,
+    "page": 1,
+    "per_page": 25,
+    "days": 90,
+    "sort": "item_name",
+    "descending": false
+  },
+  "quantity_basis": "posted_stock_movements_in_base_unit",
+  "value_basis": "recorded_movement_cost_excluding_sales_tax",
+  "available_reports": [
+    "overview",
+    "summary",
+    "ledger",
+    "valuation",
+    "purchases",
+    "sales",
+    "reorder",
+    "aging",
+    "expiry",
+    "adjustments",
+    "transfers",
+    "dead-stock",
+    "reconciliation"
+  ],
+  "warnings": [
+    "Sales and Finance stock are separate ledgers. No cross-ledger consolidation is applied.",
+    "Sales has no stock reservation balance in this ledger. Available quantity is unknown, not assumed equal to physical stock."
+  ],
+  "items": [
+    {
+      "product_id": 49,
+      "warehouse_id": 6,
+      "sku": "IQA-1795099466761",
+      "item_name": "Sales inventory audit item",
+      "warehouse_name": "Sales audit warehouse",
+      "receipt_date": "2026-11-19",
+      "remaining_quantity": 70,
+      "id": 13,
+      "age_days": 0,
+      "age_bucket": "0â€“30"
+    },
+    {
+      "product_id": 49,
+      "warehouse_id": 6,
+      "sku": "IQA-1795099466761",
+      "item_name": "Sales inventory audit item",
+      "warehouse_name": "Sales audit warehouse",
+      "receipt_date": "2026-11-19",
+      "remaining_quantity": 50,
+      "id": 14,
+      "age_days": 0,
+      "age_bucket": "0â€“30"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "per_page": 25,
+  "age_basis": "receipt_dates_with_inferred_FIFO_depletion",
+  "limitations": "Receipt age is reconstructed from posted movements. Transfers use receipt date at destination; original lot provenance and specific identification are not available."
+}

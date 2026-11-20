@@ -1,0 +1,22 @@
+[
+  {
+    "action": "issue",
+    "before": "{}",
+    "after": "{\"status\": \"active\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 1}"
+  },
+  {
+    "action": "pause",
+    "before": "{\"status\": \"active\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 1}",
+    "after": "{\"status\": \"paused\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 2, \"request\": {\"revision\": 1, \"until\": null, \"customer_id\": null}}"
+  },
+  {
+    "action": "resume",
+    "before": "{\"status\": \"paused\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 2}",
+    "after": "{\"status\": \"active\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 3, \"request\": {\"revision\": 2, \"until\": null, \"customer_id\": null}}"
+  },
+  {
+    "action": "renew",
+    "before": "{\"status\": \"active\", \"start_date\": \"2026-11-19\", \"end_date\": \"2026-12-19\", \"customer_id\": 101, \"revision\": 3}",
+    "after": "{\"status\": \"active\", \"start_date\": \"2026-11-19\", \"end_date\": \"2028-12-31\", \"customer_id\": 101, \"revision\": 4, \"request\": {\"revision\": 3, \"until\": \"2028-12-31\", \"customer_id\": null}}"
+  }
+]

@@ -326,12 +326,14 @@ async def native_ingress(request,db,**identity):
     return PlainTextResponse(answer,headers={"X-Content-Type-Options":"nosniff"}) if media=="text/plain" else JSONResponse(answer)
 
 
-@router.api_route("/native-hooks/{endpoint}",methods=["GET","POST"])
+@router.get("/native-hooks/{endpoint}")
+@router.post("/native-hooks/{endpoint}")
 async def native_hook(endpoint:str,request:Request,db:Session=Depends(get_db)):
     return await native_ingress(request,db,endpoint=endpoint)
 
 
-@router.api_route("/native-apps/{module_id}/{app_id}",methods=["GET","POST"])
+@router.get("/native-apps/{module_id}/{app_id}")
+@router.post("/native-apps/{module_id}/{app_id}")
 async def native_app(module_id:str,app_id:str,request:Request,db:Session=Depends(get_db)):
     return await native_ingress(request,db,module_id=module_id,app_id=app_id)
 

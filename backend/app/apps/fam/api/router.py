@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.shared.inventory_reporting import InventoryReportFilters, inventory_report_response
 from app.services.metrics.queries import count_rows_before_page
 from app.apps.fam.uae_tax import router as uae_tax_router
 from app.apps.fam.transaction_locks import router as transaction_locks_router, check_lock, check_existing
@@ -1529,8 +1530,17 @@ def list_vouchers(status_filter: str | None = None, db: Session = Depends(get_db
     return {"items": [serialize(item) for item in items], "total": items_statistics_total}
 
 
+def _validate_manual_voucher_source(payload: VoucherPayload, voucher: FAMVoucher | None = None) -> None:
+    fields = {"source_module": "fam", "source_record_type": None, "source_record_id": None}
+    if voucher is not None:
+        fields = {field: getattr(voucher, field) for field in fields}
+    if any(getattr(payload, field) != fields[field] for field in fields.keys() & payload.model_fields_set):
+        raise HTTPException(422, "Voucher source is assigned by the system")
+
+
 @router.post("/vouchers", status_code=status.HTTP_201_CREATED)
 def create_voucher(payload: VoucherPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_VOUCHER_CREATE_PERMISSIONS))):
+    _validate_manual_voucher_source(payload)
     company_id = bootstrap(db, current_user)
     fy, period, voucher_type, debit, credit = validate_voucher_payload(db, company_id, payload, for_posting=False)
     voucher_number = payload.voucher_number or next_voucher_number(voucher_type)
@@ -1550,9 +1560,7 @@ def create_voucher(payload: VoucherPayload, request: Request, db: Session = Depe
         total_debit=debit,
         total_credit=credit,
         status="draft",
-        source_module=payload.source_module,
-        source_record_type=payload.source_record_type,
-        source_record_id=payload.source_record_id,
+        source_module="fam",
     )
     db.add(voucher)
     db.flush()
@@ -1583,6 +1591,7 @@ def update_voucher(id: int, payload: VoucherUpdatePayload, request: Request, db:
         raise HTTPException(status_code=404, detail="Voucher not found")
     if voucher.status != "draft":
         raise HTTPException(status_code=409, detail="Posted/cancelled/reversed vouchers cannot be silently edited")
+    _validate_manual_voucher_source(payload, voucher)
     check_existing(db, company_id, voucher)
     old = serialize_voucher(db, voucher)
     fy, period, voucher_type, debit, credit = validate_voucher_payload(db, company_id, payload, for_posting=False)
@@ -1596,9 +1605,6 @@ def update_voucher(id: int, payload: VoucherUpdatePayload, request: Request, db:
     voucher.narration = payload.narration
     voucher.total_debit = debit
     voucher.total_credit = credit
-    voucher.source_module = payload.source_module
-    voucher.source_record_type = payload.source_record_type
-    voucher.source_record_id = payload.source_record_id
     for line in db.query(FAMVoucherLine).filter(FAMVoucherLine.voucher_id == voucher.id).all():
         db.delete(line)
     db.flush()
@@ -1908,6 +1914,10 @@ def create_bill_reference(payload: BillReferencePayload, request: Request, db: S
     company_id = bootstrap(db, current_user)
     if payload.bill_type not in VALID_BILL_TYPES:
         raise HTTPException(status_code=422, detail="Invalid bill type")
+    if payload.bill_type in {"invoice", "debit_note"}:
+        RequirePermission(*FAM_AR_MANAGE_PERMISSIONS)(current_user)
+    elif payload.bill_type in {"bill", "credit_note"}:
+        RequirePermission(*FAM_AP_MANAGE_PERMISSIONS)(current_user)
     party = db.query(FAMParty).filter(FAMParty.company_id == company_id, FAMParty.id == payload.party_id).first()
     if not party:
         raise HTTPException(status_code=404, detail="Party not found")
@@ -1920,6 +1930,8 @@ def create_bill_reference(payload: BillReferencePayload, request: Request, db: S
         raise HTTPException(status_code=422, detail="Bill amount must be positive")
     due_date = payload.due_date or (payload.bill_date + timedelta(days=int(party.payment_terms_days or 0)))
     outstanding = payload.outstanding_amount if payload.outstanding_amount is not None else payload.original_amount
+    if not 0 <= outstanding <= payload.original_amount:
+        raise HTTPException(status_code=422, detail="Outstanding must be between zero and the original bill amount")
     item = FAMBillReference(company_id=company_id, ledger_id=ledger_id, due_date=due_date, outstanding_amount=outstanding, status=bill_status(Decimal(outstanding)), **payload.model_dump(exclude={"ledger_id", "due_date", "outstanding_amount"}))
     db.add(item)
     db.flush()
@@ -1943,15 +1955,26 @@ def create_bill_allocation(payload: BillAllocationPayload, request: Request, db:
     amount = Decimal(payload.allocated_amount or 0)
     if amount <= 0:
         raise HTTPException(status_code=422, detail="Allocation amount must be positive")
-    from_bill = db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id, FAMBillReference.id == payload.from_bill_reference_id, FAMBillReference.party_id == payload.party_id).first()
-    to_bill = db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id, FAMBillReference.id == payload.to_bill_reference_id, FAMBillReference.party_id == payload.party_id).first()
-    if not from_bill or not to_bill:
+    if payload.from_bill_reference_id == payload.to_bill_reference_id:
+        raise HTTPException(status_code=422, detail="Source and target bill references must differ")
+    bill_ids = (payload.from_bill_reference_id, payload.to_bill_reference_id)
+    bills = {bill.id: bill for bill in db.query(FAMBillReference).filter(
+        FAMBillReference.company_id == company_id,
+        FAMBillReference.party_id == payload.party_id,
+        FAMBillReference.id.in_(bill_ids),
+    ).order_by(FAMBillReference.id).with_for_update().populate_existing()}
+    if len(bills) != 2:
         raise HTTPException(status_code=404, detail="Bill reference not found")
-    if amount > Decimal(to_bill.outstanding_amount or 0):
+    from_bill, to_bill = (bills[bill_id] for bill_id in bill_ids)
+    source_outstanding = Decimal(from_bill.outstanding_amount or 0)
+    target_outstanding = Decimal(to_bill.outstanding_amount or 0)
+    if amount > target_outstanding:
         raise HTTPException(status_code=409, detail="Allocation exceeds target outstanding")
-    to_bill.outstanding_amount = Decimal(to_bill.outstanding_amount or 0) - amount
+    if amount > source_outstanding:
+        raise HTTPException(status_code=409, detail="Allocation exceeds source outstanding")
+    to_bill.outstanding_amount = target_outstanding - amount
     to_bill.status = bill_status(Decimal(to_bill.outstanding_amount or 0))
-    from_bill.outstanding_amount = max(Decimal(from_bill.outstanding_amount or 0) - amount, Decimal("0"))
+    from_bill.outstanding_amount = source_outstanding - amount
     from_bill.status = bill_status(Decimal(from_bill.outstanding_amount or 0))
     item = FAMBillAllocation(company_id=company_id, created_by=current_user.id, **payload.model_dump())
     db.add(item)
@@ -3173,7 +3196,7 @@ def inventory_control_value(db: Session, company_id: int, key: str, default: Any
 def active_reserved_quantity(db: Session, company_id: int, stock_item_id: int) -> Decimal:
     return decimal_value(
         db.query(func.coalesce(func.sum(FAMInventoryReservation.reserved_quantity), 0))
-        .filter(FAMInventoryReservation.company_id == company_id, FAMInventoryReservation.stock_item_id == stock_item_id, FAMInventoryReservation.status == "active")
+        .filter(FAMInventoryReservation.company_id == company_id, FAMInventoryReservation.stock_item_id == stock_item_id, FAMInventoryReservation.status == "active", or_(FAMInventoryReservation.expires_at.is_(None), FAMInventoryReservation.expires_at > datetime.now(timezone.utc)))
         .scalar()
     )
 
@@ -3239,6 +3262,9 @@ def inventory_accounting_ledgers(db: Session, company_id: int, item: FAMStockIte
 
 def apply_stock_line(db: Session, company_id: int, movement: FAMStockMovement, raw_line: dict[str, Any], line_number: int) -> FAMStockMovementLine:
     item = inventory_item_or_404(db, company_id, int(raw_line["stock_item_id"]))
+    db.refresh(item, with_for_update=True)
+    if not item.track_inventory:
+        raise HTTPException(422, "Stock movements require an inventory-tracked item")
     warehouse_or_404(db, company_id, int(raw_line["warehouse_id"]))
     qty_in = decimal_value(raw_line.get("quantity_in"))
     qty_out = decimal_value(raw_line.get("quantity_out"))
@@ -3246,21 +3272,21 @@ def apply_stock_line(db: Session, company_id: int, movement: FAMStockMovement, r
         raise HTTPException(status_code=422, detail="Stock line must have positive quantity_in or quantity_out")
     if qty_in > 0 and qty_out > 0:
         raise HTTPException(status_code=422, detail="Stock line cannot have both inward and outward quantity")
-    rate = decimal_value(raw_line.get("rate")) or decimal_value(item.average_cost) or decimal_value(item.purchase_rate)
+    from app.apps.fam.inventory_costing import prepare as prepare_cost, maintain as maintain_layers
+    method, cost_layers, complete_layers, old_value, rate, fifo_cost = prepare_cost(db, company_id, item, movement, int(raw_line["warehouse_id"]), qty_out, raw_line.get("rate"))
     old_qty = decimal_value(item.current_quantity)
-    old_value = old_qty * decimal_value(item.average_cost)
     if qty_out > old_qty and not bool(inventory_control_value(db, company_id, "allow_negative_stock", False)):
         raise HTTPException(status_code=409, detail=f"Insufficient stock for {item.item_name}")
-    if qty_in > 0:
-        new_qty = old_qty + qty_in
-        new_value = old_value + (qty_in * rate)
-        item.average_cost = (new_value / new_qty).quantize(Decimal("0.0001")) if new_qty else rate
-    else:
-        new_qty = old_qty - qty_out
-        new_value = new_qty * decimal_value(item.average_cost)
+    if qty_out > 0 and not bool(inventory_control_value(db, company_id, "allow_negative_stock", False)):
+        warehouse_quantity = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.quantity_in - FAMStockMovementLine.quantity_out), 0)).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.company_id == company_id, FAMStockMovementLine.stock_item_id == item.id, FAMStockMovementLine.warehouse_id == int(raw_line["warehouse_id"]), or_(FAMStockMovement.status == "posted", FAMStockMovement.id == movement.id)).scalar())
+        if qty_out > warehouse_quantity:
+            raise HTTPException(409, f"Insufficient stock in the selected warehouse for {item.item_name}")
+    new_qty = old_qty + qty_in - qty_out
+    value = fifo_cost if fifo_cost is not None else ((qty_in or qty_out) * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    new_value = old_value + value if qty_in > 0 else old_value - value
     item.current_quantity = new_qty
+    item.average_cost = (new_value / new_qty).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP) if new_qty else Decimal("0")
     item.purchase_rate = rate if qty_in > 0 else item.purchase_rate
-    value = ((qty_in or qty_out) * rate).quantize(Decimal("0.01"))
     line = FAMStockMovementLine(
         movement_id=movement.id,
         company_id=company_id,
@@ -3271,25 +3297,33 @@ def apply_stock_line(db: Session, company_id: int, movement: FAMStockMovement, r
         rate=rate,
         value=value,
         balance_quantity=new_qty,
-        balance_value=(new_qty * decimal_value(item.average_cost)).quantize(Decimal("0.01")),
+        balance_value=new_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
         line_number=line_number,
         notes=raw_line.get("notes"),
     )
     db.add(line)
     db.flush()
-    if qty_in > 0:
-        db.add(FAMInventoryValuationLayer(company_id=company_id, stock_item_id=item.id, warehouse_id=line.warehouse_id, movement_id=movement.id, movement_line_id=line.id, quantity=qty_in, unit_cost=rate, layer_value=value, remaining_quantity=qty_in, remaining_value=value))
+    maintain_layers(db, company_id, item, movement, line, cost_layers, complete_layers, method)
     return line
 
 
 def post_stock_movement_record(db: Session, request: Request, user: User, company_id: int, movement: FAMStockMovement, lines: list[dict[str, Any]]) -> FAMStockMovement:
+    from app.apps.srm.services.commercial import lock_tenant
+    lock_tenant(db, user)
     if movement.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft stock movements can be posted")
     if not lines:
         raise HTTPException(status_code=422, detail="At least one stock movement line is required")
+    if inventory_source_exists(db, company_id, movement.source_module, movement.source_record_type, movement.source_record_id):
+        raise HTTPException(409, "Inventory posting already exists for this source")
     inventory_posting_period_check(db, company_id, movement.movement_date)
+    transfer_rates = {}
     for index, line in enumerate(lines, start=1):
-        apply_stock_line(db, company_id, movement, line, index)
+        if movement.movement_type == "stock_transfer" and decimal_value(line.get("quantity_in")) > 0 and line["stock_item_id"] in transfer_rates:
+            line = {**line, "rate": transfer_rates[line["stock_item_id"]]}
+        posted_line = apply_stock_line(db, company_id, movement, line, index)
+        if movement.movement_type == "stock_transfer" and posted_line.quantity_out:
+            transfer_rates[posted_line.stock_item_id] = decimal_value(posted_line.value) / decimal_value(posted_line.quantity_out)
     movement.status = "posted"
     movement.posted_by = user.id
     movement.posted_at = datetime.now(timezone.utc)
@@ -3320,11 +3354,19 @@ def inventory_source_audit(current_user: User = Depends(RequirePermission(*FAM_I
 @router.get("/inventory")
 def inventory_dashboard(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    rows = inventory_summary_rows(db, company_id)
-    total_value = sum(decimal_value(row.get("stock_value")) for row in rows)
-    low_stock = [row for row in rows if row.get("is_low_stock")]
+    items = db.query(
+        FAMStockItem.current_quantity, FAMStockItem.average_cost, FAMStockItem.reorder_level, FAMStockItem.min_stock,
+    ).filter(FAMStockItem.company_id == company_id).yield_per(200)
+    items_count = low_stock_count = 0
+    total_value = Decimal("0")
+    for quantity, average_cost, reorder_level, min_stock in items:
+        quantity = decimal_value(quantity)
+        threshold = decimal_value(reorder_level) or decimal_value(min_stock)
+        items_count += 1
+        low_stock_count += int(bool(threshold and quantity <= threshold))
+        total_value += (quantity * decimal_value(average_cost)).quantize(Decimal("0.01"))
     movements = db.query(FAMStockMovement).filter(FAMStockMovement.company_id == company_id).order_by(FAMStockMovement.id.desc()).limit(8).all()
-    return {"items_count": len(rows), "warehouses_count": db.query(FAMWarehouse).filter(FAMWarehouse.company_id == company_id).count(), "total_stock_value": float(total_value), "low_stock_count": len(low_stock), "recent_movements": [serialize(item) for item in movements], "source_merge": "AI Inventory Management Software stock masters, ledger, valuation and reports merged into FAM"}
+    return {"items_count": items_count, "warehouses_count": db.query(FAMWarehouse).filter(FAMWarehouse.company_id == company_id).count(), "total_stock_value": float(total_value), "low_stock_count": low_stock_count, "recent_movements": [serialize(item) for item in movements], "source_merge": "AI Inventory Management Software stock masters, ledger, valuation and reports merged into FAM"}
 
 
 @router.get("/inventory/accounting")
@@ -3508,7 +3550,7 @@ def create_opening_stock(payload: InventoryOpeningPayload, request: Request, db:
     opening = FAMStockOpeningBalance(company_id=company_id, opening_number=payload.opening_number or generated_number("OPEN"), created_by=current_user.id, value=(payload.quantity * payload.rate).quantize(Decimal("0.01")), **payload.model_dump(exclude={"opening_number"}))
     db.add(opening)
     db.flush()
-    movement = FAMStockMovement(company_id=company_id, movement_number=f"MOV-{opening.opening_number}", movement_date=payload.opening_date, movement_type="opening_stock", reference_number=opening.opening_number, source_module="fam", source_record_type="stock_opening", source_record_id=str(opening.id), narration=payload.notes, created_by=current_user.id)
+    movement = FAMStockMovement(company_id=company_id, movement_number=f"OPEN-MOV-{company_id}-{opening.id}", movement_date=payload.opening_date, movement_type="opening_stock", reference_number=opening.opening_number, source_module="fam", source_record_type="stock_opening", source_record_id=str(opening.id), narration=payload.notes, created_by=current_user.id)
     db.add(movement)
     db.flush()
     post_stock_movement_record(db, request, current_user, company_id, movement, [{"stock_item_id": item.id, "warehouse_id": payload.warehouse_id, "quantity_in": payload.quantity, "rate": payload.rate, "notes": payload.notes}])
@@ -3586,7 +3628,7 @@ def create_posted_stock_document(movement_type: str, payload: StockMovementPaylo
     db.add(movement)
     db.flush()
     post_stock_movement_record(db, request, current_user, company_id, movement, [line.model_dump() for line in payload.lines])
-    total_value = sum((decimal_value(line.quantity_in) or decimal_value(line.quantity_out)) * decimal_value(line.rate) for line in db.query(FAMStockMovementLine).filter(FAMStockMovementLine.movement_id == movement.id).all()).quantize(Decimal("0.01"))
+    total_value = sum(decimal_value(line.value) for line in db.query(FAMStockMovementLine).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.movement_id == movement.id).all()).quantize(Decimal("0.01"))
     first_line = db.query(FAMStockMovementLine).filter(FAMStockMovementLine.movement_id == movement.id).first()
     first_item = inventory_item_or_404(db, company_id, first_line.stock_item_id) if first_line else None
     ledgers = inventory_accounting_ledgers(db, company_id, first_item)
@@ -3718,7 +3760,7 @@ def stock_summary(db: Session = Depends(get_db), current_user: User = Depends(Re
 def item_ledger(id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     inventory_item_or_404(db, company_id, id)
-    lines = db.query(FAMStockMovementLine).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.stock_item_id == id).order_by(FAMStockMovementLine.id).all()
+    lines = db.query(FAMStockMovementLine).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted", FAMStockMovementLine.stock_item_id == id).order_by(FAMStockMovement.movement_date, FAMStockMovementLine.id).all()
     return {"items": [serialize(line) for line in lines], "total": len(lines)}
 
 
@@ -3754,13 +3796,13 @@ def post_stock_transfer(id: int, request: Request, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Stock transfer not found")
     if transfer.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft transfers can be posted")
-    movement = FAMStockMovement(company_id=company_id, movement_number=f"MOV-{transfer.transfer_number}", movement_date=transfer.transfer_date, movement_type="stock_transfer", reference_number=transfer.transfer_number, source_module="fam", source_record_type="stock_transfer", source_record_id=str(transfer.id), narration=transfer.notes, created_by=current_user.id)
+    movement = FAMStockMovement(company_id=company_id, movement_number=f"TRF-MOV-{company_id}-{transfer.id}", movement_date=transfer.transfer_date, movement_type="stock_transfer", reference_number=transfer.transfer_number, source_module="fam", source_record_type="stock_transfer", source_record_id=str(transfer.id), narration=transfer.notes, created_by=current_user.id)
     db.add(movement)
     db.flush()
     lines: list[dict[str, Any]] = []
     for raw in transfer.lines_json or []:
         qty = decimal_value(raw.get("quantity"))
-        rate = decimal_value(raw.get("rate"))
+        rate = decimal_value(inventory_item_or_404(db, company_id, int(raw["stock_item_id"])).average_cost)
         lines.append({"stock_item_id": raw["stock_item_id"], "warehouse_id": transfer.from_warehouse_id, "quantity_out": qty, "rate": rate, "notes": raw.get("notes")})
         lines.append({"stock_item_id": raw["stock_item_id"], "warehouse_id": transfer.to_warehouse_id, "quantity_in": qty, "rate": rate, "notes": raw.get("notes")})
     post_stock_movement_record(db, request, current_user, company_id, movement, lines)
@@ -3816,7 +3858,7 @@ def post_stock_adjustment(id: int, payload: StockAdjustmentPayload, request: Req
         raise HTTPException(status_code=404, detail="Stock adjustment not found")
     if adjustment.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft adjustments can be posted")
-    movement = FAMStockMovement(company_id=company_id, movement_number=f"MOV-{adjustment.adjustment_number}", movement_date=adjustment.adjustment_date, movement_type="stock_adjustment", reference_number=adjustment.adjustment_number, source_module="fam", source_record_type="stock_adjustment", source_record_id=str(adjustment.id), narration=adjustment.reason or adjustment.notes, created_by=current_user.id)
+    movement = FAMStockMovement(company_id=company_id, movement_number=f"ADJ-MOV-{company_id}-{adjustment.id}", movement_date=adjustment.adjustment_date, movement_type="stock_adjustment", reference_number=adjustment.adjustment_number, source_module="fam", source_record_type="stock_adjustment", source_record_id=str(adjustment.id), narration=adjustment.reason or adjustment.notes, created_by=current_user.id)
     db.add(movement)
     db.flush()
     lines = [{**raw, "warehouse_id": adjustment.warehouse_id} for raw in adjustment.lines_json or []]
@@ -3872,7 +3914,7 @@ def post_adjustment_accounting(id: int, payload: dict[str, Any] | None = Body(de
 def inventory_valuation(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VALUATION_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = inventory_summary_rows(db, company_id)
-    return {"items": rows, "total": len(rows), "valuation_method": "weighted_average", "valuation_basis": "stock_item_current_average_cost", "currency": inventory_reconciliation_currency(db, company_id), "total_inventory_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
+    return {"items": rows, "total": len(rows), "valuation_method": next(iter({row.get("valuation_method") or "weighted_average" for row in rows}), "weighted_average") if len({row.get("valuation_method") or "weighted_average" for row in rows}) <= 1 else "mixed", "valuation_basis": "stock_item_current_average_cost", "currency": inventory_reconciliation_currency(db, company_id), "total_inventory_value": float(sum(decimal_value(row.get("stock_value")) for row in rows))}
 
 
 @router.get("/inventory/valuation/{item_id}")
@@ -3903,7 +3945,7 @@ def post_cogs(payload: COGSPostPayload, request: Request, db: Session = Depends(
         db.add(movement)
         db.flush()
         post_stock_movement_record(db, request, current_user, company_id, movement, [{"stock_item_id": item.id, "warehouse_id": payload.warehouse_id, "quantity_out": quantity, "rate": decimal_value(item.average_cost), "notes": "COGS stock issue"}])
-    amount = (quantity * decimal_value(item.average_cost)).quantize(Decimal("0.01"))
+    amount = decimal_value(db.query(func.sum(FAMStockMovementLine.value)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.movement_id == movement.id).scalar()) if payload.warehouse_id else (quantity * decimal_value(item.average_cost)).quantize(Decimal("0.01"))
     if amount <= 0:
         raise HTTPException(status_code=422, detail="COGS amount must be positive")
     ledgers = inventory_accounting_ledgers(db, company_id, item)
@@ -3922,7 +3964,14 @@ def batch_post_cogs(payload: InventoryBatchCOGSPayload, request: Request, db: Se
 
 
 @router.get("/inventory/reports")
-def inventory_reports(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
+def inventory_reports(analysis: bool = False, export_format: str | None = Query(None, pattern="^(xlsx|pdf)$"), filters: InventoryReportFilters = Depends(), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
+    if analysis:
+        from app.apps.fam.access import require_fam_permission
+        if filters.report == "reconciliation":
+            require_fam_permission(current_user, FAM_INVENTORY_RECONCILIATION_VIEW_PERMISSIONS)
+        if filters.report == "valuation":
+            require_fam_permission(current_user, FAM_INVENTORY_VALUATION_VIEW_PERMISSIONS)
+        return inventory_report_response(db, current_user, "fam", filters, export_format)
     company_id = bootstrap(db, current_user)
     summary = stock_summary(db, current_user=current_user)
     valuation = inventory_valuation(db, current_user=current_user)
@@ -4027,14 +4076,14 @@ def inventory_report_valuation(db: Session = Depends(get_db), current_user: User
 @router.get("/inventory/reports/purchase-item-register")
 def inventory_report_purchase_item_register(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    lines = db.query(FAMStockMovementLine).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.movement_type.in_(["purchase_receipt", "stock_in", "opening_stock"])).all()
+    lines = db.query(FAMStockMovementLine).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted", FAMStockMovement.movement_type.in_(["purchase_receipt", "stock_in", "purchase_return"])).all()
     return {"items": [serialize(line) for line in lines], "total": len(lines)}
 
 
 @router.get("/inventory/reports/sales-item-register")
 def inventory_report_sales_item_register(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    lines = db.query(FAMStockMovementLine).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue"])).all()
+    lines = db.query(FAMStockMovementLine).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted", FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue", "sales_return"])).all()
     return {"items": [serialize(line) for line in lines], "total": len(lines)}
 
 
@@ -4055,12 +4104,13 @@ def inventory_report_gross_margin(db: Session = Depends(get_db), current_user: U
         FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue"]),
         FAMStockMovementLine.quantity_out > 0,
     ).group_by(FAMStockMovementLine.stock_item_id).all())
+    posted_returns = dict(db.query(FAMStockMovementLine.stock_item_id, func.sum(FAMStockMovementLine.value)).join(FAMStockMovement, FAMStockMovement.id == FAMStockMovementLine.movement_id).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovement.company_id == company_id, FAMStockMovement.status == "posted", FAMStockMovement.movement_type == "sales_return", FAMStockMovementLine.quantity_in > 0).group_by(FAMStockMovementLine.stock_item_id).all())
     for item in items:
         revenue = decimal_value(revenues.get(item.id, 0)).quantize(Decimal("0.01"))
-        complete = item.id in linked and not attribution["unattributed_invoice_lines"] and not attribution["ambiguous_product_links"]
-        cost = decimal_value(posted_costs.get(item.id, 0)).quantize(Decimal("0.01"))
+        complete = item.id in linked and not attribution["unattributed_invoice_lines"] and not attribution["ambiguous_product_links"] and not posted_returns.get(item.id)
+        cost = (decimal_value(posted_costs.get(item.id, 0)) - decimal_value(posted_returns.get(item.id, 0))).quantize(Decimal("0.01"))
         margin = revenue - cost
-        rows.append({**stock_item_payload(db, company_id, item), "revenue": float(revenue), "cogs": float(cost), "gross_margin": float(margin) if complete else None, "gross_margin_percent": (float((margin / revenue * Decimal("100")).quantize(Decimal("0.01"))) if revenue else 0) if complete else None, "revenue_complete": complete, "revenue_status": "Attributed" if complete else "Incomplete attribution"})
+        rows.append({**stock_item_payload(db, company_id, item), "revenue": float(revenue), "cogs": float(cost), "gross_margin": float(margin) if complete else None, "gross_margin_percent": (float((margin / revenue * Decimal("100")).quantize(Decimal("0.01"))) if revenue else 0) if complete else None, "revenue_complete": complete, "revenue_status": "Return credits need attribution" if posted_returns.get(item.id) else "Attributed" if complete else "Incomplete attribution"})
     return {"items": rows, "total": len(rows), "attribution": attribution}
 
 
@@ -4068,9 +4118,9 @@ def inventory_report_gross_margin(db: Session = Depends(get_db), current_user: U
 def inventory_report_cogs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = []
-    movements = db.query(FAMStockMovement).filter(FAMStockMovement.company_id == company_id, FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue"]), FAMStockMovement.status == "posted").all()
+    movements = db.query(FAMStockMovement).filter(FAMStockMovement.company_id == company_id, FAMStockMovement.movement_type.in_(["delivery_note", "stock_out", "cogs_issue", "sales_return"]), FAMStockMovement.status == "posted").all()
     for movement in movements:
-        total = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.value), 0)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.movement_id == movement.id, FAMStockMovementLine.quantity_out > 0).scalar())
+        total = decimal_value(db.query(func.coalesce(func.sum(FAMStockMovementLine.value), 0)).filter(FAMStockMovementLine.company_id == company_id, FAMStockMovementLine.movement_id == movement.id, FAMStockMovementLine.quantity_in > 0 if movement.movement_type == "sales_return" else FAMStockMovementLine.quantity_out > 0).scalar()) * (-1 if movement.movement_type == "sales_return" else 1)
         rows.append({**serialize(movement), "cogs_value": float(total), "voucher_posted": bool(movement.voucher_id)})
     return {"currency": inventory_reconciliation_currency(db, company_id), "items": rows, "total": len(rows), "total_cogs": float(sum(decimal_value(row["cogs_value"]) for row in rows))}
 
@@ -4534,7 +4584,7 @@ def fam_integrity_results(db: Session, company_id: int) -> list[dict[str, Any]]:
         row("ar_ap_bill_references", "passed", "medium", {"bill_references": db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id).count()}),
         row("gst_tds_traceability", "passed" if gst_without_voucher == 0 and tds_without_voucher == 0 else "warning", "high", {"gst_without_voucher": gst_without_voucher, "tds_without_voucher": tds_without_voucher}),
         row("bank_reconciliation", "passed" if unreconciled_bank == 0 else "warning", "medium", {"unreconciled_lines": unreconciled_bank}),
-        row("inventory_valuation_vs_layers", "passed" if abs(stock_value - valuation_value) <= Decimal("1.00") or valuation_value == 0 else "warning", "high", {"stock_value": float(stock_value), "valuation_layers": float(valuation_value)}),
+        row("inventory_valuation_vs_layers", "passed" if abs(stock_value - valuation_value) <= Decimal("0.01") else "warning", "high", {"stock_value": float(stock_value), "valuation_layers": float(valuation_value)}),
         row("srm_duplicate_postings", "passed" if duplicate_srm_jobs == 0 else "failed", "critical", {"duplicate_groups": duplicate_srm_jobs}),
         row("negative_stock_exceptions", "passed" if negative_stock == 0 else "warning", "high", {"negative_stock_items": negative_stock}),
         row("orphan_accounting_records", "passed" if orphan_entries == 0 else "failed", "critical", {"orphan_ledger_entries": orphan_entries}),

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text, select, func
+from sqlalchemy import and_, func, or_, select, text
 
 from app.apps.crm.models import CRMDeal, CRMLead, CRMQuotation
 from app.apps.project_management.models import PMSProject
@@ -82,6 +82,11 @@ def _serialize(item) -> dict[str, Any] | None:
 def _items(rows) -> dict[str, Any]:
     rows = list(rows)
     return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+
+
+def _portal_items(query, *columns) -> dict[str, Any]:
+    items = [dict(row._mapping) for row in query.with_entities(*columns)]
+    return {"items": items, "total": len(items)}
 
 
 def _hash(value: str) -> str:
@@ -179,11 +184,25 @@ def _portal_permissions(db, user):
 
 def _customer_ids(db: Session, user: PortalUser) -> list[int]:
     from app.apps.crm.models import CRMCompany, CRMAccount
-    linked = [row.customer_id for row in db.query(PortalCustomerLink).filter(PortalCustomerLink.portal_user_id == user.id, PortalCustomerLink.active.is_(True)).all()]
-    allowed = set()
-    for model in (CRMCompany, CRMAccount):
-        allowed.update(row[0] for row in db.query(model.id).filter(model.id.in_(linked), func.coalesce(model.organization_id, 1) == user.organization_id).all())
-    return sorted(allowed)
+    link = PortalCustomerLink
+    # The legacy customer ID was shared by two independent CRM sequences.
+    # Only a typed binding can authorize a colliding ID.
+    registry_collision = select(CRMAccount.id).where(
+        CRMAccount.id == link.customer_id,
+        func.coalesce(CRMAccount.organization_id, 1) == user.organization_id,
+    ).exists()
+    rows = db.query(CRMCompany.id).join(
+        link, CRMCompany.id == func.coalesce(link.srm_customer_id, link.customer_id),
+    ).filter(
+        link.portal_user_id == user.id,
+        link.active.is_(True),
+        func.coalesce(CRMCompany.organization_id, 1) == user.organization_id,
+        CRMCompany.deleted_at.is_(None),
+        or_(link.srm_customer_id.is_not(None), and_(
+            link.crm_account_id.is_(None), link.crm_contact_id.is_(None), ~registry_collision,
+        )),
+    ).distinct().order_by(CRMCompany.id)
+    return [row.id for row in rows]
 
 
 def _partner_ids(db: Session, user: PortalUser) -> list[int]:
@@ -257,9 +276,13 @@ def list_portal_users(db: Session = Depends(get_db), current_user: User = Depend
 
 def _provision_portal_user(data, db, current_user):
     if data.customer_id is not None:
-        from app.apps.crm.models import CRMCompany, CRMAccount
+        from app.apps.crm.models import CRMCompany
         company = current_user.organization_id
-        exists = any(db.query(model.id).filter(model.id == data.customer_id, func.coalesce(model.organization_id, 1) == company).first() for model in (CRMCompany, CRMAccount))
+        exists = db.query(CRMCompany.id).filter(
+            CRMCompany.id == data.customer_id,
+            func.coalesce(CRMCompany.organization_id, 1) == company,
+            CRMCompany.deleted_at.is_(None),
+        ).first()
         if not exists:
             raise HTTPException(404, "Customer not found in this company")
     if db.query(PortalUser).filter(PortalUser.email == data.email).first():
@@ -277,7 +300,8 @@ def _provision_portal_user(data, db, current_user):
     db.add(user)
     db.flush()
     if data.portal_type == "customer" and data.customer_id:
-        db.add(PortalCustomerLink(portal_user_id=user.id, customer_id=data.customer_id, active=True))
+        db.add(PortalCustomerLink(portal_user_id=user.id, customer_id=data.customer_id,
+                                  srm_customer_id=data.customer_id, active=True))
     if data.portal_type == "partner" and data.partner_id:
         db.add(PortalPartnerLink(portal_user_id=user.id, partner_id=data.partner_id, partner_name=data.display_name, active=True))
     _portal_log(db, user, "portal_user_created", "portal_user", user.id)
@@ -331,23 +355,42 @@ def customer_me(db: Session = Depends(get_db), portal_user: PortalUser = Depends
 @router.get("/customer-portal/quotes")
 def customer_quotes(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
     customer_ids = _customer_ids(db, portal_user)
-    rows = []
-    if customer_ids:
-        rows = db.query(CRMQuotation).filter(CRMQuotation.account_id.in_(customer_ids)).all() if hasattr(CRMQuotation, "account_id") else []
-    _portal_log(db, portal_user, "customer_quotes_viewed", detail={"count": len(rows)})
+    query = db.query(CRMQuotation).filter(
+        CRMQuotation.account_id.in_(customer_ids),
+        CRMQuotation.sent_at.is_not(None),
+        func.lower(CRMQuotation.status).in_(("sent", "accepted", "declined", "rejected", "expired")),
+    )
+    result = _portal_items(
+        query, CRMQuotation.id, CRMQuotation.quote_number, CRMQuotation.status,
+        CRMQuotation.issue_date, CRMQuotation.expiry_date, CRMQuotation.valid_until,
+        CRMQuotation.currency, CRMQuotation.subtotal, CRMQuotation.discount_total,
+        CRMQuotation.tax_total, CRMQuotation.grand_total, CRMQuotation.terms_and_conditions,
+    )
+    _portal_log(db, portal_user, "customer_quotes_viewed", detail={"count": result["total"]})
     db.commit()
-    return _items(rows)
+    return result
 
 
 @router.post("/customer-portal/quotes/{quote_id}/accept")
 def accept_customer_quote(quote_id: int, db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
     _portal_permission(db, portal_user, "accept_quote")
     customer_ids = _customer_ids(db, portal_user)
-    quote = db.query(CRMQuotation).filter(CRMQuotation.id == quote_id).first()
-    if not quote or (hasattr(quote, "account_id") and quote.account_id not in customer_ids):
+    quote = db.query(CRMQuotation).filter(
+        CRMQuotation.id == quote_id,
+        CRMQuotation.account_id.in_(customer_ids),
+        CRMQuotation.sent_at.is_not(None),
+        func.lower(CRMQuotation.status).in_(("sent", "accepted")),
+    ).with_for_update().first()
+    if quote is None:
         raise HTTPException(status_code=404, detail="Quote not available in customer portal")
-    if hasattr(quote, "status"):
-        quote.status = "accepted"
+    if quote.status.lower() == "accepted":
+        return {"status": "accepted", "quote_id": quote_id}
+    now = datetime.now(timezone.utc)
+    expires_on = quote.valid_until or quote.expiry_date
+    if expires_on is None or expires_on < now.date():
+        raise HTTPException(409, "This quote has expired")
+    quote.status = "Accepted"
+    quote.accepted_at = now
     _portal_log(db, portal_user, "customer_quote_accepted", "quote", quote_id)
     db.commit()
     return {"status": "accepted", "quote_id": quote_id}
@@ -356,36 +399,63 @@ def accept_customer_quote(quote_id: int, db: Session = Depends(get_db), portal_u
 @router.get("/customer-portal/invoices")
 def customer_invoices(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
     customer_ids = _customer_ids(db, portal_user)
-    rows = db.query(SRMInvoice).filter(SRMInvoice.customer_id.in_(customer_ids)).all() if customer_ids and hasattr(SRMInvoice, "customer_id") else []
-    _portal_log(db, portal_user, "customer_invoices_viewed", detail={"count": len(rows)})
+    query = db.query(SRMInvoice).filter(
+        SRMInvoice.customer_id.in_(customer_ids),
+        SRMInvoice.deleted_at.is_(None),
+        func.lower(SRMInvoice.status).in_(("sent", "partially_paid", "paid", "overdue")),
+    )
+    result = _portal_items(
+        query, SRMInvoice.id, SRMInvoice.invoice_number, SRMInvoice.status,
+        SRMInvoice.issue_date, SRMInvoice.due_date, SRMInvoice.currency,
+        SRMInvoice.total_amount, SRMInvoice.paid_amount, SRMInvoice.balance_amount,
+    )
+    _portal_log(db, portal_user, "customer_invoices_viewed", detail={"count": result["total"]})
     db.commit()
-    return _items(rows)
+    return result
 
 
 @router.get("/customer-portal/projects")
 def customer_projects(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
     customer_ids = _customer_ids(db, portal_user)
-    engagements = db.query(SRMEngagement).filter(SRMEngagement.customer_id.in_(customer_ids)).all() if customer_ids and hasattr(SRMEngagement, "customer_id") else []
-    project_ids = [row.pms_project_id for row in engagements if getattr(row, "pms_project_id", None)]
-    projects = db.query(PMSProject).filter(PMSProject.id.in_(project_ids)).all() if project_ids else []
-    _portal_log(db, portal_user, "customer_projects_viewed", detail={"count": len(projects)})
+    project_ids = select(SRMEngagement.pms_project_id).where(
+        SRMEngagement.customer_id.in_(customer_ids),
+        SRMEngagement.deleted_at.is_(None),
+    )
+    query = db.query(PMSProject).filter(
+        PMSProject.id.in_(project_ids),
+        PMSProject.is_client_visible.is_(True),
+        PMSProject.deleted_at.is_(None),
+        PMSProject.is_archived.is_not(True),
+        func.lower(PMSProject.status) != "archived",
+    )
+    result = _portal_items(
+        query, PMSProject.id, PMSProject.name, PMSProject.project_key, PMSProject.status,
+        PMSProject.start_date, PMSProject.due_date, PMSProject.progress_percent,
+    )
+    _portal_log(db, portal_user, "customer_projects_viewed", detail={"count": result["total"]})
     db.commit()
-    return {"items": [_serialize(item) for item in projects], "total": len(projects), "support_placeholder": "Support cases are not enabled in this deployment."}
+    return {**result, "support_placeholder": "Support cases are not enabled in this deployment."}
+
+
+PORTAL_LEAD_FIELDS = (
+    CRMLead.id, CRMLead.full_name, CRMLead.company_name, CRMLead.email, CRMLead.source, CRMLead.status,
+)
 
 
 @router.get("/partner-portal/leads")
 def partner_leads(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_partner_user)):
-    partner_ids = _partner_ids(db, portal_user)
-    lead_ids = [
-        row.resource_id
-        for row in db.query(PortalAccessGrant)
-        .filter(PortalAccessGrant.portal_user_id == portal_user.id, PortalAccessGrant.resource_type == "partner_lead", PortalAccessGrant.active.is_(True))
-        .all()
-    ]
-    rows = db.query(CRMLead).filter(CRMLead.id.in_(lead_ids)).all() if lead_ids else []
-    _portal_log(db, portal_user, "partner_leads_viewed", detail={"count": len(rows)})
+    if not _partner_ids(db, portal_user):
+        raise HTTPException(403, "Partner link required")
+    lead_ids = select(PortalAccessGrant.resource_id).where(
+        PortalAccessGrant.portal_user_id == portal_user.id,
+        PortalAccessGrant.resource_type == "partner_lead",
+        PortalAccessGrant.active.is_(True),
+    )
+    query = db.query(CRMLead).filter(CRMLead.id.in_(lead_ids), CRMLead.deleted_at.is_(None))
+    result = _portal_items(query, *PORTAL_LEAD_FIELDS)
+    _portal_log(db, portal_user, "partner_leads_viewed", detail={"count": result["total"]})
     db.commit()
-    return _items(rows)
+    return result
 
 
 @router.post("/partner-portal/leads", status_code=201)
@@ -403,7 +473,7 @@ def submit_partner_lead(data: PartnerLeadPayload, db: Session = Depends(get_db),
     _portal_log(db, portal_user, "partner_lead_submitted", "lead", lead.id, {"value": data.value})
     db.commit()
     db.refresh(lead)
-    return _serialize(lead)
+    return {column.key: getattr(lead, column.key) for column in PORTAL_LEAD_FIELDS}
 
 
 @router.get("/partner-portal/me")
@@ -691,7 +761,8 @@ def portal_fingerprint(db, user):
     """Revokes issued file links when a portal grant or customer link changes."""
     import json
     grants = [(row.resource_type, row.resource_id, row.permissions_json, row.active) for row in db.query(PortalAccessGrant).filter_by(portal_user_id=user.id).order_by(PortalAccessGrant.id).all()]
-    customers = [(row.customer_id, row.active) for row in db.query(PortalCustomerLink).filter_by(portal_user_id=user.id).order_by(PortalCustomerLink.id).all()]
+    customers = [(row.customer_id, row.srm_customer_id, row.crm_account_id, row.crm_contact_id, row.active)
+                 for row in db.query(PortalCustomerLink).filter_by(portal_user_id=user.id).order_by(PortalCustomerLink.id).all()]
     partners = [(row.partner_id, row.active) for row in db.query(PortalPartnerLink).filter_by(portal_user_id=user.id).order_by(PortalPartnerLink.id).all()]
     return hashlib.sha256(json.dumps([grants, customers, partners], sort_keys=True).encode()).hexdigest()
 

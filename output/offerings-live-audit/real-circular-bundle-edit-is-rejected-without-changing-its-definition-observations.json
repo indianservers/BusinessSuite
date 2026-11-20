@@ -1,0 +1,16 @@
+{
+  "test": "real circular bundle edit is rejected without changing its definition",
+  "errors": [],
+  "apiFailures": [
+    "422 /api/v1/catalog/items/bundle/42"
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "status": "passed",
+  "expectedHTTP": [
+    "422"
+  ],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

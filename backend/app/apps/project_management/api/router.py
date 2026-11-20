@@ -47,7 +47,7 @@ from app.apps.project_management.access import (
     PMS_GLOBAL_TIME,
 )
 from app.apps.project_management.schemas import (
-    PMSProjectCreate, PMSProjectUpdate, PMSProjectResponse,
+    PMSProjectCreate, PMSProjectCreateRequest, PMSProjectUpdate, PMSProjectResponse,
     PMSProjectIntakeCreate, PMSProjectIntakeReview, PMSProjectIntakeResponse,
     PMSTaskCreate, PMSTaskUpdate, PMSTaskResponse,
     PMSClientCreate, PMSClientUpdate, PMSClientResponse,
@@ -2103,7 +2103,7 @@ def review_project_intake(
 # ============= PROJECTS =============
 @router.post("/projects", response_model=PMSProjectResponse)
 def create_project(
-    project_in: PMSProjectCreate,
+    project_in: PMSProjectCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

@@ -1,0 +1,10 @@
+[
+  {
+    "test": "real membership 12-month preset persists",
+    "errors": [],
+    "apiFailures": [],
+    "consoleErrors": [],
+    "status": "failed",
+    "error": "Error: locator.click: Error: strict mode violation: getByRole('button', { name: 'New item', exact: true }) resolved to 2 elements:\n    1) <button type=\"button\" data-variant=\"default\" data-action-tone=\"purple\" class=\"kf-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2\">…</button> aka getByRole('button', { name: 'New item' }).first()\n    2) <button type=\"button\" data-variant=\"default\" data-action-tone=\"purple\" class=\"kf-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2\">…</button> aka getByLabel('Cards').getByRole('button', { name: 'New item' })\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'New item', exact: true })\u001b[22m\n"
+  }
+]

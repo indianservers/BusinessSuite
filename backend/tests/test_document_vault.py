@@ -313,3 +313,46 @@ def test_opt_in_scheduler_reuses_current_scope_and_daily_deduplication(
     assert run_document_reminders(db) >= 1
     assert run_document_reminders(db) == 0
     assert db.query(Notification).filter_by(event_type="document_reminder").count() == 1
+
+
+def test_metadata_import_applies_shared_workbook_column_budget(client, superuser_headers, monkeypatch):
+    from openpyxl import Workbook
+    from app.shared import tabular_files
+
+    monkeypatch.setattr(tabular_files, "MAX_COLUMNS", 2)
+    workbook = Workbook()
+    workbook.create_sheet("Metadata")
+    workbook.active = 1
+    workbook.active.append(["certificate_id", "title", "expiry_date"])
+    workbook.active.append([1, "Certificate", "2030-01-01"])
+    content = BytesIO()
+    workbook.save(content)
+    workbook.close()
+    content.seek(0)
+
+    response = client.post(
+        BASE + "/imports",
+        headers=superuser_headers,
+        data={"process_metadata": "true"},
+        files={"file": ("metadata.xlsx", content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert response.status_code == 201, response.text
+    batch = response.json()
+    assert batch["status"] == "Failed"
+    report = client.get(BASE + f"/imports/{batch['id']}/report", headers=superuser_headers)
+    assert report.status_code == 200, report.text
+    assert "at most 2 columns" in report.json()["errors"][0]["error"]
+
+
+def test_bulk_download_limits_legacy_document_with_unknown_size(client, db, superuser_headers, monkeypatch):
+    from app.api.v1 import document_vault
+
+    created = upload(client, superuser_headers, employee(db))
+    assert created.status_code == 201, created.text
+    identity = created.json()["id"]
+    db.get(EmployeeCertificate, identity).file_size_bytes = None
+    db.commit()
+    monkeypatch.setattr(document_vault, "MAX_BULK_DOWNLOAD_BYTES", 1)
+    response = client.post(BASE + "/download-bulk", headers=superuser_headers, json={"ids": [identity]})
+
+    assert response.status_code == 413, response.text

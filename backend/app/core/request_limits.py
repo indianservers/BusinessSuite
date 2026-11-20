@@ -147,9 +147,32 @@ def factory(request):
     return getattr(request.app.state, "security_session_factory", ControlSessionLocal)
 
 
+EXPENSIVE_AGGREGATE_PATHS = {
+    "/api/v1/attendance/biometric/reconcile",
+    "/api/v1/attendance/team",
+    "/api/v1/admin/duplicates/scan",
+    "/api/v1/crm/dashboard",
+    "/api/v1/crm/dashboard/records",
+    "/api/v1/crm/duplicates",
+    "/api/v1/crm/duplicates/scan",
+    "/api/v1/crm/statistics/records",
+    "/api/v1/fam/dashboard",
+    "/api/v1/fam/inventory",
+    "/api/v1/fam/inventory/accounting",
+    "/api/v1/fam/inventory/dashboard",
+    "/api/v1/fam/payables/dashboard",
+    "/api/v1/hrms/probation/dashboard",
+    "/api/v1/srm/dashboard",
+    "/api/v1/srm/profitability",
+}
+
+
 def expensive(path):
+    path = path.lower().rstrip("/")
+    if path in EXPENSIVE_AGGREGATE_PATHS:
+        return True
     return any(
-        part in path.lower()
+        part in path
         for part in (
             "/export",
             "/report",

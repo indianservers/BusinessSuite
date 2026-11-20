@@ -41,13 +41,17 @@ def state_for(db, connection):
 def account_identity(provider, token):
     import httpx
     from fastapi import HTTPException
+    from .calendar_http import IDENTITY_RESPONSE_LIMIT, calendar_request
     url = "https://openidconnect.googleapis.com/v1/userinfo" if provider == "google" else "https://graph.microsoft.com/v1.0/me?$select=id"
     try:
-        response = httpx.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=20)
-        if response.status_code != 200:
+        with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
+            status, _, profile = calendar_request(
+                client, "GET", url, headers={"Authorization": f"Bearer {token}"}, limit=IDENTITY_RESPONSE_LIMIT,
+            )
+        if status != 200:
             raise ValueError()
-        identity = response.json().get("sub" if provider == "google" else "id")
-        if not identity:
+        identity = profile.get("sub" if provider == "google" else "id")
+        if not isinstance(identity, str) or not identity:
             raise ValueError()
     except (httpx.RequestError, ValueError):
         raise HTTPException(400, "Calendar account identity could not be verified. Reconnect and grant the requested permissions.") from None

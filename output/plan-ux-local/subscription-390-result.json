@@ -1,0 +1,245 @@
+{
+  "id": 79,
+  "offering_id": 148,
+  "customer_id": 101,
+  "kind": "subscription",
+  "number": "SUB-3D58FE845A1F49DE",
+  "status": "cancelled",
+  "start_date": "2028-01-31",
+  "end_date": "2029-03-01",
+  "revision": 3,
+  "configuration": {
+    "tier": "",
+    "duration": {
+      "unit": "month",
+      "count": 1,
+      "start": null,
+      "end": null
+    },
+    "activation": "purchase",
+    "beneficiary_type": "family",
+    "beneficiary_limit": 1,
+    "benefits": [
+      {
+        "key": "sessions",
+        "type": "sessions",
+        "label": "Included sessions",
+        "allowance": "20",
+        "value": "0",
+        "priority": 0,
+        "stacking": "best",
+        "consumption_event": "completion",
+        "rollover": false,
+        "eligibility": {
+          "offering_ids": [],
+          "locations": [],
+          "customer_groups": [],
+          "weekdays": [],
+          "blackout_dates": []
+        }
+      }
+    ],
+    "eligibility": {
+      "offering_ids": [],
+      "locations": [],
+      "customer_groups": [],
+      "weekdays": [],
+      "blackout_dates": []
+    },
+    "renewal": {
+      "mode": "automatic",
+      "reminder_days": [
+        7
+      ],
+      "price": null
+    },
+    "billing": {
+      "mode": "prepaid",
+      "recurring": true,
+      "automation": false,
+      "interval_unit": "month",
+      "interval_count": 1,
+      "anchor_day": 1,
+      "timezone": "Asia/Kolkata",
+      "setup_fee": "0",
+      "refundable_deposit": "0",
+      "trial_days": 0,
+      "grace_days": 0,
+      "proration": "none",
+      "overage": "deny"
+    },
+    "allow_pause": true,
+    "allow_transfer": false,
+    "employee_ids": [],
+    "project_template_id": null
+  },
+  "beneficiaries": [
+    101
+  ],
+  "price_snapshot": {
+    "name": "UX-subscription-390-1795115474105",
+    "price": "100.00",
+    "currency": "INR",
+    "tax": "0.00",
+    "version": 1
+  },
+  "name": "UX-subscription-390-1795115474105",
+  "tier": "",
+  "display_status": "cancelled",
+  "status_description": "Access is cancelled. Remaining balances are retained for history and cannot be used.",
+  "benefit_summary": [
+    {
+      "id": 94,
+      "key": "sessions",
+      "type": "sessions",
+      "label": "Included sessions",
+      "allowance": "20",
+      "value": "0",
+      "priority": 0,
+      "stacking": "best",
+      "consumption_event": "completion",
+      "rollover": false,
+      "eligibility": {
+        "offering_ids": [],
+        "locations": [],
+        "customer_groups": [],
+        "weekdays": [],
+        "blackout_dates": []
+      },
+      "remaining": 20
+    }
+  ],
+  "server_date": "2026-11-20",
+  "can_manage": true,
+  "actions": {
+    "activate": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "pause": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "resume": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "suspend": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "renew": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "extend": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "cancel": {
+      "available": false,
+      "reason": "This plan is cancelled. Its history and balances are retained."
+    },
+    "change": {
+      "available": false,
+      "reason": "Changing a purchased plan, upgrades, downgrades and proration are not supported. Existing purchase terms are retained."
+    }
+  },
+  "benefits": [
+    {
+      "id": 94,
+      "key": "sessions",
+      "type": "sessions",
+      "label": "Included sessions",
+      "allowance": "20",
+      "value": "0",
+      "priority": 0,
+      "stacking": "best",
+      "consumption_event": "completion",
+      "rollover": false,
+      "eligibility": {
+        "offering_ids": [],
+        "locations": [],
+        "customer_groups": [],
+        "weekdays": [],
+        "blackout_dates": []
+      },
+      "remaining": 20
+    }
+  ],
+  "history_total": 3,
+  "usage_total": 0,
+  "history": [
+    {
+      "id": 149,
+      "action": "cancel",
+      "description": "Cancelled access; history retained",
+      "before": {
+        "status": "active",
+        "start_date": "2028-01-31",
+        "end_date": "2029-03-01",
+        "customer_id": 101,
+        "revision": 2
+      },
+      "after": {
+        "status": "cancelled",
+        "start_date": "2028-01-31",
+        "end_date": "2029-03-01",
+        "customer_id": 101,
+        "revision": 3,
+        "request": {
+          "revision": 2,
+          "until": null,
+          "customer_id": null
+        }
+      },
+      "created_by": 1,
+      "actor": "browser-audit@example.com",
+      "created_at": "2026-11-19T19:11:26"
+    },
+    {
+      "id": 148,
+      "action": "renew",
+      "description": "Renewed plan: expiry 2028-02-29 → 2029-03-01",
+      "before": {
+        "status": "active",
+        "start_date": "2028-01-31",
+        "end_date": "2028-02-29",
+        "customer_id": 101,
+        "revision": 1
+      },
+      "after": {
+        "status": "active",
+        "start_date": "2028-01-31",
+        "end_date": "2029-03-01",
+        "customer_id": 101,
+        "revision": 2,
+        "request": {
+          "revision": 1,
+          "until": "2029-03-01",
+          "customer_id": null
+        }
+      },
+      "created_by": 1,
+      "actor": "browser-audit@example.com",
+      "created_at": "2026-11-19T19:11:22"
+    },
+    {
+      "id": 147,
+      "action": "issue",
+      "description": "Assigned plan",
+      "before": {},
+      "after": {
+        "status": "active",
+        "start_date": "2028-01-31",
+        "end_date": "2028-02-29",
+        "customer_id": 101,
+        "revision": 1
+      },
+      "created_by": 1,
+      "actor": "browser-audit@example.com",
+      "created_at": "2026-11-19T19:11:19"
+    }
+  ],
+  "usage": []
+}

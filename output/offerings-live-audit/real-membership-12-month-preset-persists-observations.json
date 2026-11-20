@@ -1,0 +1,10 @@
+{
+  "test": "real membership 12-month preset persists",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

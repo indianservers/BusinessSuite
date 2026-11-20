@@ -1,3 +1,4 @@
+import {useAuthStore} from "@/store/authStore";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import GridTable from "@/shared/data-grid/GridTable";
 import {useState} from "react";
@@ -22,9 +23,11 @@ function InvoiceRows({items,source}:{items:ExternalInvoice[];source:Source}){ret
 
 export function CustomerAccounting({kind,id,source="crm"}:{kind:string;id:number;source?:Source}){
  const { term } = useBusinessTerms();
+ const user=useAuthStore(state=>state.user);
+ const canManageLinks=Boolean(user?.is_superuser||(user?.access?.grants.fam?.enabled&&["fam_chart_manage","fam_ar_manage","fam_ap_manage","fam_bank_statement_import","fam_banking_manage","fam_admin"].some(permission=>user.access?.grants.fam?.permissions.includes(permission))));
  const scope=useRecordScope(),client=useQueryClient();const [connection,setConnection]=useState(""),[external,setExternal]=useState(""),[search,setSearch]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const info=useQuery<CustomerData>({...poll,queryKey:["accounting-360",scope,source,kind,id],queryFn:async({signal})=>(await api.get(`/accounting-sync/customer-360/${kind}/${id}`,{params:{source},signal})).data});
- const own=useQuery<{items:{id:string;provider:string;account_id:string}[]}>({retry:false,queryKey:["accounting-own",scope],queryFn:async({signal})=>(await api.get("/accounting-sync/connections",{signal})).data});
+ const own=useQuery<{items:{id:string;provider:string;account_id:string}[]}>({enabled:canManageLinks&&Number(sessionStorage.getItem("suite-branch"))>0&&!!info.data?.customer_id,retry:false,queryKey:["accounting-own",scope],queryFn:async({signal})=>(await api.get("/accounting-sync/connections",{signal})).data});
  const customers=useQuery<{items:{external_id:string;name:string}[]}>({retry:false,queryKey:["accounting-customer-picker",scope,connection,search],enabled:!!connection,queryFn:async({signal})=>(await api.get(`/accounting-sync/connections/${connection}/records`,{params:{entity:"customers",q:search,page_size:200},signal})).data});
  async function change(work:()=>Promise<unknown>){setBusy(true);setMessage("");try{await work();await client.invalidateQueries({queryKey:["accounting-360"]});await client.invalidateQueries({queryKey:["external-invoices"]});setMessage(`Accounting ${term('customer').toLowerCase()} link updated.`);}catch(e){setMessage(recordError(e));}finally{setBusy(false);}}
  const data=info.data;

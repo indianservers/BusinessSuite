@@ -1,6 +1,8 @@
 # Business Suite backend API reference for iOS and Android
 
-Use this bundle to build mobile screens against the existing Business Suite backend. It covers authentication, HRMS, CRM, Project Management, Sales and Inventory, Finance and Accounting, AI, and shared platform services. The existing Flutter application starts with Project Management; the complete suite catalog is included for later modules.
+This bundle documents authentication, HRMS, CRM, Project Management, Sales and Inventory, Finance and Accounting, AI, and shared platform services as of the export date. The existing Flutter application starts with Project Management.
+
+This bundle is a historical export. Use `GET /api/v1/openapi.json` on the target environment for the current public API contract. From the repository root, run `backend/venv/Scripts/python.exe backend/scripts/export_mobile_api_reference.py --output-dir .local/current-api-reference` to generate a current local catalog alongside this snapshot.
 
 The 24 October 2026 export contains **2,022 HTTP operations**, **1,064 schemas**, one additional hidden file route, and one WebSocket route. The deployed OpenAPI contains **1,986 HTTP operations**; **36 local operations are not yet present there**, mainly assistant workbench, dashboard builder and workspace notes routes. These entries are marked in the catalog. Documentation reachability was checked; individual business operations were not exercised.
 

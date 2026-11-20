@@ -1,11 +1,13 @@
 from decimal import Decimal
 from uuid import uuid4
+import httpx
 import pytest
 from fastapi import HTTPException
 from app.apps.srm.models import SRMSalesOrder, SRMInvoice, SRMReceipt
 from app.models.user import User
 from app.shared.payment_models import PaymentRequest
 from app.shared import payment_requests as payments
+from app.shared import payment_gateway
 from app.shared.payment_gateway import RazorpayGateway, verified_link, provider_reference
 from tests.test_contact_directory import directory_identity
 
@@ -124,6 +126,29 @@ def test_provider_payload_does_not_send_unsolicited_messages(monkeypatch):
     assert captured["amount"] == 123
     assert captured["notify"] == {"sms":False,"email":False}
     assert captured["reminder_enable"] is False and captured["accept_partial"] is False
+
+
+def test_payment_provider_response_limit_stops_reading(monkeypatch):
+    seen = []
+
+    class Page(httpx.SyncByteStream):
+        def __iter__(self):
+            for index in range(4):
+                seen.append(index)
+                yield b"x" * 5
+
+    def reply(request):
+        assert request.headers["Accept-Encoding"] == "identity"
+        return httpx.Response(200, stream=Page())
+
+    client_class = httpx.Client
+    transport = httpx.MockTransport(reply)
+    monkeypatch.setattr(payment_gateway, "MAX_PROVIDER_RESPONSE_BYTES", 8)
+    monkeypatch.setattr(payment_gateway.httpx, "Client", lambda **kwargs: client_class(transport=transport, **kwargs))
+    with pytest.raises(HTTPException) as error:
+        RazorpayGateway("rzp_test_fixture", "test-only").request("GET", "")
+    assert error.value.status_code == 502
+    assert seen == [0, 1]
 
 
 def test_invoice_handover_reserves_request_until_actual_receipt_is_matched(client, db, order, superuser_headers):

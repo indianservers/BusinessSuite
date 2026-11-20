@@ -181,20 +181,24 @@ def clear_staging(db):
 def retain_staging(db): db.info.pop("verified_cloud_staging", None)
 
 
-def materialize(path, db=None, company=None):
+def materialize(path, db=None, company=None, *, max_bytes=None):
     row = locator(path, db, company)
     if not row or row.status != "cloud": return None
     db, company, _ = scope(db, company)
     # Check the actual account attached to this file, never the module's current destination.
     conn = db.query(StorageConnection).filter_by(id=row.connection_id, organization_id=company).with_for_update().first()
     if not conn: raise HTTPException(409, "The original storage account is unavailable")
-    content = providers.download(db, conn, row.remote_id)
+    options = {} if max_bytes is None else {"max_bytes": max_bytes}
+    content = providers.download(db, conn, row.remote_id, **options)
     if hashlib.sha256(content).hexdigest() != row.sha256: raise HTTPException(409, "Cloud file contents changed; original checksum verification failed")
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(target.name + "." + uuid4().hex + ".tmp")
-    temporary.write_bytes(content)
-    temporary.replace(target)
+    try:
+        temporary.write_bytes(content)
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
     return str(target)
 
 

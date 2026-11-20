@@ -1,0 +1,10 @@
+{
+  "test": "real catalog search, type filtering and pagination use persisted records",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

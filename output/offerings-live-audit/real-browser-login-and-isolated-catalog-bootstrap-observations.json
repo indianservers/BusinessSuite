@@ -1,0 +1,10 @@
+{
+  "test": "real browser login and isolated catalog bootstrap",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

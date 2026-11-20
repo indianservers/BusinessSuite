@@ -1,0 +1,103 @@
+{
+  "plan": {
+    "tier": "",
+    "duration": {
+      "unit": "month",
+      "count": 1,
+      "start": null,
+      "end": null
+    },
+    "activation": "purchase",
+    "beneficiary_type": "person",
+    "beneficiary_limit": 1,
+    "benefits": [
+      {
+        "key": "c2c00279-70e5-4053-ae78-2affa5bf4d16",
+        "type": "discount_percent",
+        "label": "Zero finite sessions",
+        "allowance": "0",
+        "value": "15",
+        "priority": 0,
+        "stacking": "best",
+        "consumption_event": "completion",
+        "rollover": false,
+        "eligibility": {
+          "offering_ids": [
+            1
+          ],
+          "locations": [],
+          "customer_groups": [],
+          "weekdays": [],
+          "blackout_dates": []
+        }
+      }
+    ],
+    "eligibility": {
+      "offering_ids": [],
+      "locations": [],
+      "customer_groups": [],
+      "weekdays": [],
+      "blackout_dates": []
+    },
+    "renewal": {
+      "mode": "manual",
+      "reminder_days": [
+        30,
+        7,
+        1
+      ],
+      "price": null
+    },
+    "billing": {
+      "mode": "prepaid",
+      "recurring": true,
+      "automation": false,
+      "interval_unit": "month",
+      "interval_count": 1,
+      "anchor_day": 1,
+      "timezone": "Asia/Kolkata",
+      "setup_fee": 0,
+      "refundable_deposit": 0,
+      "trial_days": 0,
+      "grace_days": 0,
+      "proration": "none",
+      "overage": "deny"
+    },
+    "allow_pause": true,
+    "allow_transfer": false,
+    "employee_ids": [],
+    "project_template_id": null
+  },
+  "branch_availability": {
+    "scope": "selected",
+    "branch_ids": [
+      1
+    ]
+  },
+  "follow_up": null,
+  "id": 146,
+  "kind": "membership",
+  "name": "UX10-1795115445270",
+  "code": "UX10-1795115445270",
+  "category_ids": null,
+  "categories": [],
+  "category": "",
+  "tags": [],
+  "description": "",
+  "price": 0,
+  "currency": "INR",
+  "tax": 0,
+  "unit": "Nos",
+  "barcode": "",
+  "hsn_code": "",
+  "cost": 0,
+  "mrp": 0,
+  "reorder_level": 0,
+  "track_inventory": false,
+  "status": "Active",
+  "workspace_id": null,
+  "images": [],
+  "custom_fields": {},
+  "pricing_options": [],
+  "version": 1
+}

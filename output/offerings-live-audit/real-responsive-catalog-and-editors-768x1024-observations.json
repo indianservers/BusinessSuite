@@ -1,0 +1,10 @@
+{
+  "test": "real responsive catalog and editors 768x1024",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

@@ -29,6 +29,10 @@ def test_srm_collection_reminder_escalation_and_writeoff_request(client, db, sup
     assert reminder.status_code == 200, reminder.text
     assert reminder.json()["status"] == "queued"
     assert reminder.json()['sent_at'] is None
+    repeated = client.post("/api/v1/srm/collections/reminders/send", headers=superuser_headers, json={"invoice_id": invoice["id"]})
+    assert repeated.status_code == 200, repeated.text
+    assert repeated.json()["id"] == reminder.json()["id"]
+    assert db.query(SRMCollectionReminder).filter_by(invoice_id=invoice["id"], reminder_type="email").count() == 1
 
     escalation = client.post(f"/api/v1/srm/collections/{invoice['id']}/escalate", headers=superuser_headers, json={"message": "Escalate overdue payment"})
     assert escalation.status_code == 200, escalation.text

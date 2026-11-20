@@ -14,7 +14,7 @@ from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_db, get_current_user, get_current_active_superuser, RequirePermission
 from app.core.hr_audit import record_employee_field_changes
-from app.core.masking import mask_employee_detail, mask_employee_list_item
+from app.core.masking import SENSITIVE_EMPLOYEE_FIELDS, can_view_sensitive_employee, mask_employee_detail, mask_employee_list_item
 from app.core.security import get_password_hash
 from app.crud.crud_employee import crud_employee
 from app.models.audit import AuditLog
@@ -899,6 +899,9 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_create")),
 ):
+    supplied = data.model_dump(exclude_unset=True)
+    if any(supplied.get(field) not in (None, "") for field in SENSITIVE_EMPLOYEE_FIELDS) and not can_view_sensitive_employee(current_user):
+        raise HTTPException(403, "Sensitive employee fields require employee_sensitive_view")
     from app.shared.form_defaults import effective as form_defaults
     branch = getattr(current_user, "_suite_branch_id", None)
     values = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None,
@@ -918,7 +921,8 @@ def create_employee(
     from app.business_packs.employee_core import creation_plan
     try:
         with creation_plan(db,current_user,data):
-            return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
+            employee = crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
+        return mask_employee_detail(employee, current_user)
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "Employee code or login account already exists. Review existing records before trying again.") from None
@@ -1576,7 +1580,6 @@ def update_employee(
     from app.services.employee_custom_fields import save as save_custom_fields
     custom_values=values.pop("custom_fields", {}) or {}
     save_custom_fields(db, current_user, emp, custom_values, validate_only=True)
-    from app.core.masking import can_view_sensitive_employee, SENSITIVE_EMPLOYEE_FIELDS
     if SENSITIVE_EMPLOYEE_FIELDS.intersection(values) and not can_view_sensitive_employee(current_user, emp.id):
         raise HTTPException(403, "Sensitive employee fields require employee_sensitive_view within your assigned scope")
     role_id = values.pop("role_id", None)

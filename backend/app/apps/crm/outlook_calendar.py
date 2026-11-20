@@ -11,6 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
 
 from app.core.config import settings
+from .calendar_http import IDENTITY_RESPONSE_LIMIT, calendar_request
 
 SCOPE = "Calendars.ReadWrite"
 
@@ -42,16 +43,18 @@ def authorize(user_id, organization_id):
 def token_request(data):
     configured()
     try:
-        response = httpx.post("https://login.microsoftonline.com/common/oauth2/v2.0/token", data={
-            "client_id": settings.CRM_OUTLOOK_CALENDAR_CLIENT_ID,
-            "client_secret": settings.CRM_OUTLOOK_CALENDAR_CLIENT_SECRET, **data,
-        }, timeout=20)
+        with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
+            status, _, result = calendar_request(client, "POST", "https://login.microsoftonline.com/common/oauth2/v2.0/token", data={
+                "client_id": settings.CRM_OUTLOOK_CALENDAR_CLIENT_ID,
+                "client_secret": settings.CRM_OUTLOOK_CALENDAR_CLIENT_SECRET, **data,
+            }, limit=IDENTITY_RESPONSE_LIMIT)
     except httpx.RequestError:
         raise HTTPException(502, "Outlook Calendar could not be reached. Try again.") from None
-    if response.status_code != 200:
+    except ValueError:
+        raise HTTPException(502, "Outlook returned an invalid authorization response.") from None
+    if status != 200:
         raise HTTPException(400, "Outlook authorization expired or was revoked. Reconnect Outlook Calendar.")
-    result = response.json()
-    if not result.get("access_token"):
+    if not isinstance(result.get("access_token"), str) or not result["access_token"]:
         raise HTTPException(502, "Outlook did not return an access token.")
     return result
 
@@ -99,25 +102,27 @@ def sync_meeting(integration, meeting):
             "start": {"dateTime": stamp(meeting.start_time), "timeZone": "UTC"},
             "end": {"dateTime": stamp(meeting.end_time), "timeZone": "UTC"}}
     try:
-        with httpx.Client(timeout=20) as client:
-            found = client.get(url, headers=headers, params={"$filter": f"singleValueExtendedProperties/Any(ep: ep/id eq '{PROPERTY}' and ep/value eq '{identity}')", "$select": "id"})
-            if found.status_code != 200:
-                raise RuntimeError(f"Outlook Calendar lookup failed (HTTP {found.status_code}).")
-            events = found.json().get("value", [])
+        with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
+            status, _, found = calendar_request(client, "GET", url, headers=headers, params={"$filter": f"singleValueExtendedProperties/Any(ep: ep/id eq '{PROPERTY}' and ep/value eq '{identity}')", "$select": "id"})
+            if status != 200:
+                raise RuntimeError(f"Outlook Calendar lookup failed (HTTP {status}).")
+            events = found.get("value", [])
             event_id = events[0]["id"] if events else None
             cancelled = str(meeting.status).lower() in {"cancelled", "canceled"}
             if cancelled:
                 if event_id:
-                    response = client.delete(f"{url}/{quote(event_id, safe='')}", headers=headers)
-                    if response.status_code not in (204, 404):
-                        raise RuntimeError(f"Outlook Calendar cancellation failed (HTTP {response.status_code}).")
+                    status, _, _ = calendar_request(client, "DELETE", f"{url}/{quote(event_id, safe='')}", headers=headers, expected=())
+                    if status not in (204, 404):
+                        raise RuntimeError(f"Outlook Calendar cancellation failed (HTTP {status}).")
                 return event_id or identity
             if event_id:
-                response = client.patch(f"{url}/{quote(event_id, safe='')}", headers=headers, json=body)
+                status, _, event = calendar_request(client, "PATCH", f"{url}/{quote(event_id, safe='')}", headers=headers, json=body, expected=(200, 201))
             else:
-                response = client.post(url, headers=headers, json={**body, "transactionId": identity, "singleValueExtendedProperties": [{"id": PROPERTY, "value": identity}]})
+                status, _, event = calendar_request(client, "POST", url, headers=headers, json={**body, "transactionId": identity, "singleValueExtendedProperties": [{"id": PROPERTY, "value": identity}]}, expected=(200, 201))
     except httpx.RequestError:
         raise RuntimeError("Outlook Calendar could not be reached. Retry sync.") from None
-    if response.status_code not in (200, 201):
-        raise RuntimeError(f"Outlook Calendar rejected event sync (HTTP {response.status_code}). Reconnect if access expired.")
-    return response.json()["id"]
+    except ValueError:
+        raise RuntimeError("Outlook Calendar returned an invalid event response.") from None
+    if status not in (200, 201):
+        raise RuntimeError(f"Outlook Calendar rejected event sync (HTTP {status}). Reconnect if access expired.")
+    return event["id"]

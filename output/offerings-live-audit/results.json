@@ -1,0 +1,156 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\playwright.offerings-live.config.ts",
+    "rootDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/output/offerings-live-audit/traces",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "catalog-offerings-live.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../output/offerings-live-audit/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 5198",
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": true,
+      "timeout": 120000,
+      "env": {
+        "VITE_DEV_API_PROXY_TARGET": "http://127.0.0.1:8799",
+        "VITE_SUPPRESS_PROXY_ERRORS": "true"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "catalog-offerings-live.spec.ts",
+      "file": "catalog-offerings-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real product create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7303,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T16:25:25.021Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-50a90beccb7f8dcef928",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        },
+        {
+          "title": "real service create, view and shared master persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6804,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T16:25:32.511Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "37acec8824bfe5bc285c-f0e848b6f1bee6875e89",
+          "file": "catalog-offerings-live.spec.ts",
+          "line": 83,
+          "column": 82
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T16:25:24.607Z",
+    "duration": 14922.235999999999,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

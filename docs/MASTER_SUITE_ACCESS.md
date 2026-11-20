@@ -55,5 +55,7 @@ Remaining integration limits:
 - Legacy raw SQL and configuration without tenant ownership fail closed for centrally scoped users until explicit adapters exist. Some shared HRMS employee records still require an HRMS grant in addition to Interns Hub permissions; independent intern administration needs a dedicated employee-partition adapter.
 - Preexisting unsigned-context file links retain their existing expiry behavior; newly generated managed links support policy/session revocation.
 - External customer-portal identities retain their separate authentication flow. This console manages corporate User accounts.
+- Customer portal links use the CRM company ID. Older links with an untyped ID that also belongs to a separate CRM account-registry record require an administrator to verify the company and rebind the link before the portal shows its commercial records.
+- Refresh tokens require an active server-side session with a current expiry. Clients with older refresh tokens that lack a session identifier or a session expiry must sign in again.
 - Administrative step-up currently uses the existing password verifier. SSO-only accounts need an appropriate identity-provider reauthentication adapter.
 - Coverage targets critical paths; it is not an exhaustive independent security audit of every legacy endpoint.

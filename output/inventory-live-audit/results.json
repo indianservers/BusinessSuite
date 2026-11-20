@@ -1,0 +1,393 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\playwright.inventory-live.config.ts",
+    "rootDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/output/inventory-live-audit/traces",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/Sai Satish/Documents/GitHub/BusinessSuite/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "inventory-reports-live.spec.ts"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../output/inventory-live-audit/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 5198",
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": true,
+      "env": {
+        "VITE_DEV_API_PROXY_TARGET": "http://127.0.0.1:8799",
+        "VITE_SUPPRESS_PROXY_ERRORS": "true"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "inventory-reports-live.spec.ts",
+      "file": "inventory-reports-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real inventory transactions establish 115 Finance and 120 Sales units",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9371,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:44:22.564Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-6b9371d05a5dd9739326",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 15,
+          "column": 5
+        },
+        {
+          "title": "real fam all inventory reports, filters, exports and traceable quantities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 32123,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:44:32.154Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-fd0796b6197710d4f6ef",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 53,
+          "column": 39
+        },
+        {
+          "title": "real srm all inventory reports, filters, exports and traceable quantities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 34865,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:45:04.288Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-3ef9dcc2bd523177725c",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 53,
+          "column": 39
+        },
+        {
+          "title": "real inventory filter and drill-down preserve dates and server ledger pagination",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7694,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:45:39.165Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-7e209641888d35b059e6",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 73,
+          "column": 5
+        },
+        {
+          "title": "real inventory reports responsive 1920x1080",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5763,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:45:46.873Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-a4e49bbce338696e7053",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 84,
+          "column": 79
+        },
+        {
+          "title": "real inventory reports responsive 1366x768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5194,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:45:52.649Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-9abe2e83abfb27e89650",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 84,
+          "column": 79
+        },
+        {
+          "title": "real inventory reports responsive 768x1024",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5041,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:45:57.853Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-a4ec4aa30ebce5d12c87",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 84,
+          "column": 79
+        },
+        {
+          "title": "real inventory reports responsive 390x844",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5894,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:46:02.904Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-ba334a86ccd3da81a8b8",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 84,
+          "column": 79
+        },
+        {
+          "title": "real batch expiry reports reconcile persisted available quantity and cost",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6032,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T14:46:08.810Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c85363ff9bb42648d37e-282eadc883a160528cb8",
+          "file": "inventory-reports-live.spec.ts",
+          "line": 100,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T14:44:22.102Z",
+    "duration": 113237.76000000001,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

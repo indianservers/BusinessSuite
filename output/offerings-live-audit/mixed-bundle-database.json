@@ -1,0 +1,48 @@
+{
+  "type": "fixed",
+  "pricing": "package",
+  "components": [
+    {
+      "offering_id": 1,
+      "quantity": "1",
+      "optional": false,
+      "allocated_price": null,
+      "fulfillment": "purchase"
+    },
+    {
+      "offering_id": 9,
+      "quantity": "1",
+      "optional": false,
+      "allocated_price": null,
+      "fulfillment": "purchase"
+    },
+    {
+      "offering_id": 3,
+      "quantity": "1",
+      "optional": false,
+      "allocated_price": null,
+      "fulfillment": "purchase"
+    },
+    {
+      "offering_id": 8,
+      "quantity": "1",
+      "optional": false,
+      "allocated_price": null,
+      "fulfillment": "purchase"
+    },
+    {
+      "offering_id": 4,
+      "quantity": "2",
+      "optional": true,
+      "allocated_price": null,
+      "fulfillment": "purchase"
+    }
+  ],
+  "eligibility": {
+    "offering_ids": [],
+    "locations": [],
+    "customer_groups": [],
+    "weekdays": [],
+    "blackout_dates": []
+  }
+}

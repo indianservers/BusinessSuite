@@ -14,6 +14,7 @@ import os
 import re
 import secrets
 import smtplib
+import socket
 import csv
 import io
 from datetime import date, datetime, timedelta, timezone
@@ -22,7 +23,6 @@ from difflib import SequenceMatcher
 from email.message import EmailMessage
 from math import ceil
 from typing import Any, Literal
-from urllib.parse import urlparse
 
 import httpx
 from cryptography.fernet import Fernet
@@ -1022,19 +1022,42 @@ def _normalize_webhook_events(events: list[str] | None) -> list[str]:
 
 def _validate_webhook_url(url: str | None) -> str:
     value = str(url or "").strip()
-    parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+    try:
+        parsed = httpx.URL(value)
+    except (ValueError, httpx.InvalidURL):
+        raise HTTPException(422, "Invalid webhook URL") from None
+    if parsed.scheme not in {"http", "https"} or not parsed.host or parsed.userinfo or parsed.fragment:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Webhook URL must be an absolute http or https URL")
-    if settings.ENVIRONMENT.lower() in {"production", "prod"} and settings.CRM_WEBHOOK_BLOCK_PRIVATE_URLS:
-        hostname = parsed.hostname or ""
+    if settings.CRM_WEBHOOK_BLOCK_PRIVATE_URLS:
+        hostname = parsed.host.rstrip(".").lower()
         try:
             ip = ipaddress.ip_address(hostname)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Private, localhost, and reserved webhook URLs are not allowed in production")
+            if not ip.is_global or ip.is_multicast or ip.is_reserved:
+                raise HTTPException(422, "Webhook destination must be public")
         except ValueError:
-            if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith(".local"):
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Private, localhost, and reserved webhook URLs are not allowed in production")
+            if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith((".localhost", ".local", ".internal")):
+                raise HTTPException(422, "Webhook destination must be public")
     return value
+
+
+def _send_webhook(url: str, body: str, headers: dict[str, str]) -> tuple[int, str | None]:
+    target = httpx.URL(_validate_webhook_url(url))
+    extensions = {}
+    headers = {**headers, "Accept-Encoding": "identity"}
+    if settings.CRM_WEBHOOK_BLOCK_PRIVATE_URLS:
+        host = target.raw_host.decode("ascii")
+        port = target.port or (443 if target.scheme == "https" else 80)
+        answers = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        addresses = [ipaddress.ip_address(answer[4][0]) for answer in answers]
+        if not addresses or any(not ip.is_global or ip.is_multicast or ip.is_reserved for ip in addresses):
+            raise HTTPException(422, "Webhook destination must resolve only to public addresses")
+        headers["Host"] = target.netloc.decode("ascii")
+        extensions["sni_hostname"] = host
+        target = target.copy_with(host=str(addresses[0]))
+    with httpx.Client(timeout=10, follow_redirects=False, trust_env=False) as client:
+        with client.stream("POST", target, content=body, headers=headers, extensions=extensions) as response:
+            preview = next(response.iter_raw(chunk_size=4000), b"")
+            return response.status_code, preview.decode("utf-8", errors="replace") or None
 
 
 def _mask_secret(secret: str | None) -> str:
@@ -1078,13 +1101,11 @@ def _deliver_webhook(db: Session, webhook: CRMWebhook, delivery: CRMWebhookDeliv
     delivery.attempt_count = int(delivery.attempt_count or 0) + 1
     delivery.updated_at = now
     try:
-        response = httpx.post(webhook.url, content=body, headers=headers, timeout=10)
-        delivery.response_code = response.status_code
-        delivery.response_body = response.text[:4000] if response.text else None
-        delivery.status = "delivered" if 200 <= response.status_code < 300 else "failed"
-    except Exception as exc:
+        delivery.response_code, delivery.response_body = _send_webhook(webhook.url, body, headers)
+        delivery.status = "delivered" if 200 <= delivery.response_code < 300 else "failed"
+    except (httpx.HTTPError, HTTPException, OSError, ValueError):
         delivery.response_code = None
-        delivery.response_body = str(exc)[:4000]
+        delivery.response_body = "Webhook delivery could not reach a permitted destination"
         delivery.status = "failed"
     if delivery.status == "failed" and delivery.attempt_count < 5:
         delay_seconds = min(3600, 60 * (2 ** (delivery.attempt_count - 1)))
@@ -3441,6 +3462,12 @@ def _sync_deal_primary_contact(db: Session, deal: CRMDeal, primary_link: CRMDeal
     deal.contact_id = primary.contact_id if primary else None
 
 
+def _validate_deal_contact_account(db: Session, deal: CRMDeal, contact_id: int, organization_id: int) -> None:
+    contact = _get_record(db, _get_resource("contacts"), contact_id, organization_id)
+    if deal.company_id and contact.company_id and contact.company_id != deal.company_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Contact belongs to a different account than the deal")
+
+
 def _upsert_deal_contact(
     db: Session,
     deal: CRMDeal,
@@ -3448,13 +3475,12 @@ def _upsert_deal_contact(
     data: dict[str, Any],
     user_id: int | None,
 ) -> CRMDealContact:
-    contact = _get_record(db, _get_resource("contacts"), data["contact_id"], organization_id)
-    if deal.company_id and contact.company_id and contact.company_id != deal.company_id:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Contact belongs to a different account than the deal")
+    contact_id = data["contact_id"]
+    _validate_deal_contact_account(db, deal, contact_id, organization_id)
     existing = db.query(CRMDealContact).filter(
         CRMDealContact.organization_id == organization_id,
         CRMDealContact.deal_id == deal.id,
-        CRMDealContact.contact_id == contact.id,
+        CRMDealContact.contact_id == contact_id,
     ).first()
     if existing:
         existing.role = data["role"]
@@ -3469,7 +3495,7 @@ def _upsert_deal_contact(
         link = CRMDealContact(
             organization_id=organization_id,
             deal_id=deal.id,
-            contact_id=contact.id,
+            contact_id=contact_id,
             role=data["role"],
             influence_level=data.get("influence_level"),
             is_primary=is_primary,
@@ -4440,6 +4466,17 @@ def _company_key(record: Any, resource_name: str) -> str:
     return ""
 
 
+MAX_DUPLICATE_SCAN_RECORDS = 2000
+MAX_DUPLICATE_SCAN_COMPARISONS = 100_000
+MAX_DUPLICATE_SCAN_MATCHES = 1000
+MAX_DUPLICATE_CUSTOM_VALUES = 10_000
+
+
+class _DuplicateScanBudgetExceeded(HTTPException):
+    def __init__(self):
+        super().__init__(422, "Duplicate scan exceeds the processing budget for this scope")
+
+
 def _unique_custom_fields(db: Session, organization_id: int, resource_name: str) -> list[CRMCustomField]:
     entity_names = {resource_name, resource_name.rstrip("s"), resource_name.replace("-", "_")}
     if resource_name == "companies":
@@ -4447,8 +4484,11 @@ def _unique_custom_fields(db: Session, organization_id: int, resource_name: str)
     fields = (
         _base_query(db, _get_resource("custom-fields"), organization_id)
         .filter(CRMCustomField.entity.in_(entity_names), CRMCustomField.is_active.is_(True))
+        .limit(MAX_DUPLICATE_CUSTOM_VALUES + 1)
         .all()
     )
+    if len(fields) > MAX_DUPLICATE_CUSTOM_VALUES:
+        raise _DuplicateScanBudgetExceeded()
 
     def configured_unique(field: CRMCustomField) -> bool:
         options = field.options_json or {}
@@ -4479,8 +4519,11 @@ def _custom_unique_values(db: Session, organization_id: int, resource_name: str,
             CRMCustomFieldValue.entity.in_(entity_names),
             CRMCustomFieldValue.record_id.in_(record_ids),
         )
+        .limit(MAX_DUPLICATE_CUSTOM_VALUES + 1)
         .all()
     )
+    if len(rows) > MAX_DUPLICATE_CUSTOM_VALUES:
+        raise _DuplicateScanBudgetExceeded()
     values: dict[int, dict[str, str]] = {}
     for row in rows:
         raw_value = _custom_field_value(row)
@@ -4545,13 +4588,16 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
     resource = _get_resource(resource_name)
     query=_base_query(db,resource,organization_id)
     if current_user is not None: query=_apply_record_visibility(query,resource,current_user,db)
-    records = query.order_by(asc(resource.model.id)).all()
+    records = query.order_by(asc(resource.model.id)).limit(MAX_DUPLICATE_SCAN_RECORDS + 1).all()
+    if len(records) > MAX_DUPLICATE_SCAN_RECORDS:
+        raise _DuplicateScanBudgetExceeded()
     if len(records) < 2:
         return []
     records_by_id = {record.id: record for record in records}
     custom_values = _custom_unique_values(db, organization_id, resource_name, list(records_by_id))
     parent = {record.id: record.id for record in records}
     pair_meta: dict[tuple[int, int], dict[str, Any]] = {}
+    comparisons = 0
 
     def find(value: int) -> int:
         while parent[value] != value:
@@ -4566,8 +4612,14 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
             parent[right_root] = left_root
 
     def compare(left, right):
+        nonlocal comparisons
+        comparisons += 1
+        if comparisons > MAX_DUPLICATE_SCAN_COMPARISONS:
+            raise _DuplicateScanBudgetExceeded()
         score, reasons, fields = _duplicate_pair_reasons(left, right, resource_name, custom_values)
         if score:
+            if len(pair_meta) >= MAX_DUPLICATE_SCAN_MATCHES:
+                raise _DuplicateScanBudgetExceeded()
             union(left.id, right.id)
             pair_meta[(left.id, right.id)] = {"score": score, "reasons": reasons, "fields": fields}
         return bool(score)
@@ -4598,9 +4650,13 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
     for record in records:
         grouped_ids.setdefault(find(record.id), []).append(record.id)
 
+    pairs_by_root: dict[int, list[dict[str, Any]]] = {}
+    for pair, metadata in sorted(pair_meta.items()):
+        pairs_by_root.setdefault(find(pair[0]), []).append({"recordIds": list(pair), **metadata})
+
     groups: list[dict[str, Any]] = []
     entity_type = _duplicate_entity_type(resource_name)
-    for ids in grouped_ids.values():
+    for root, ids in grouped_ids.items():
         if len(ids) < 2:
             continue
         if target_id is not None and target_id not in ids:
@@ -4608,18 +4664,11 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
         group_reasons: set[str] = set()
         group_fields: set[str] = set()
         group_score = 0
-        pairs = []
-        for left_id in ids:
-            for right_id in ids:
-                if left_id >= right_id:
-                    continue
-                meta = pair_meta.get((left_id, right_id))
-                if not meta:
-                    continue
-                group_score = max(group_score, int(meta["score"]))
-                group_reasons.update(meta["reasons"])
-                group_fields.update(meta["fields"])
-                pairs.append({"recordIds": [left_id, right_id], **meta})
+        pairs = pairs_by_root.get(root, [])
+        for meta in pairs:
+            group_score = max(group_score, int(meta["score"]))
+            group_reasons.update(meta["reasons"])
+            group_fields.update(meta["fields"])
         serialized = [_serialize(records_by_id[record_id]) for record_id in ids]
         for item in serialized:
             item["duplicateLabel"] = _record_label(records_by_id[int(item["id"])], resource_name)
@@ -4639,7 +4688,10 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
 
 
 def _duplicate_summary_for(db: Session, organization_id: int, resource_name: str, record_id: int, current_user:User|None=None) -> dict[str, Any]:
-    groups = _duplicate_groups(db, organization_id, resource_name, target_id=record_id,current_user=current_user)
+    try:
+        groups = _duplicate_groups(db, organization_id, resource_name, target_id=record_id,current_user=current_user)
+    except _DuplicateScanBudgetExceeded:
+        return {"count": None, "groups": [], "truncated": True}
     return {"count": sum(len(group["recordIds"]) - 1 for group in groups), "groups": groups[:5]}
 
 
@@ -8706,6 +8758,7 @@ def list_deal_contacts(
 ):
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
     return {"items": _deal_contacts_for(db, deal, organization_id)}
 
 
@@ -8718,7 +8771,10 @@ def add_deal_contact(
 ):
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
-    link = _upsert_deal_contact(db, deal, organization_id, _deal_contact_data(payload), current_user.id)
+    _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
+    data = _deal_contact_data(payload)
+    _assert_record_visible(db, _get_resource("contacts"), data["contact_id"], organization_id, current_user)
+    link = _upsert_deal_contact(db, deal, organization_id, data, current_user.id)
     deal.updated_by_user_id = current_user.id
     deal.updated_at = datetime.now(timezone.utc)
     db.commit()
@@ -8736,10 +8792,14 @@ def replace_deal_contacts(
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
     _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
+    for item in payload.contacts:
+        contact_id = _deal_contact_data(item)["contact_id"]
+        _assert_record_visible(db, _get_resource("contacts"), contact_id, organization_id, current_user)
     # Unit-of-work deletion preserves branch ownership and relationship validation.
     for contact_link in db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == deal.id).all():
         db.delete(contact_link)
     db.flush()
+    deal.contact_id = None
     _create_deal_contact_links_from_payload(db, deal, [item.model_dump(exclude_unset=True) for item in payload.contacts], organization_id, current_user.id)
     _sync_deal_primary_contact(db, deal)
     deal.updated_by_user_id = current_user.id
@@ -8758,6 +8818,7 @@ def update_deal_contact(
 ):
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
     link = db.query(CRMDealContact).filter(
         CRMDealContact.organization_id == organization_id,
         CRMDealContact.deal_id == deal.id,
@@ -8767,17 +8828,18 @@ def update_deal_contact(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal contact not found")
     raw = payload.model_dump(exclude_unset=True)
     if "contactId" in raw or "contact_id" in raw:
-        contact_id = raw.get("contactId") or raw.get("contact_id")
-        _get_record(db, _get_resource("contacts"), int(contact_id), organization_id)
+        contact_id = _deal_contact_data(payload)["contact_id"]
+        _assert_record_visible(db, _get_resource("contacts"), contact_id, organization_id, current_user)
+        _validate_deal_contact_account(db, deal, contact_id, organization_id)
         duplicate = db.query(CRMDealContact).filter(
             CRMDealContact.organization_id == organization_id,
             CRMDealContact.deal_id == deal.id,
-            CRMDealContact.contact_id == int(contact_id),
+            CRMDealContact.contact_id == contact_id,
             CRMDealContact.id != link.id,
         ).first()
         if duplicate:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Contact is already linked to this deal")
-        link.contact_id = int(contact_id)
+        link.contact_id = contact_id
     if "role" in raw:
         link.role = raw["role"]
     if "influenceLevel" in raw or "influence_level" in raw:
@@ -8807,6 +8869,7 @@ def delete_deal_contact(
 ):
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
     link = db.query(CRMDealContact).filter(
         CRMDealContact.organization_id == organization_id,
         CRMDealContact.deal_id == deal.id,

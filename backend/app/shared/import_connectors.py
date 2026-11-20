@@ -8,10 +8,12 @@ from uuid import uuid4
 import httpx
 from fastapi import HTTPException
 from app.ai_operator.providers import cipher
+from app.core.provider_responses import ProviderResponseTooLarge, read_provider_json
 from app.shared.import_models import ImportConnection
 
 REGIONS = {"com", "in", "eu", "com.au", "jp", "ca", "sa"}
 PROVIDERS = {"quickbooks": "QuickBooks Online", "zoho": "Zoho Books"}
+MAX_PROVIDER_RESPONSE_BYTES = 12 * 1024 * 1024
 
 
 def config(provider):
@@ -39,18 +41,20 @@ def token_url(connection):
 
 def request_json(method, url, **kwargs):
     # All callers construct URLs from pinned provider names and validated IDs.
+    headers = httpx.Headers(kwargs.pop("headers", None))
+    headers["Accept-Encoding"] = "identity"
     try:
         with httpx.Client(timeout=30, follow_redirects=False, trust_env=False) as client:
-            response = client.request(method, url, **kwargs)
-            response.raise_for_status()
-            if len(response.content) > 12 * 1024 * 1024:
-                raise HTTPException(413, "Provider response too large; use a smaller export")
-            data = response.json()
+            with client.stream(method, url, headers=headers, **kwargs) as response:
+                response.raise_for_status()
+                data = read_provider_json(response, MAX_PROVIDER_RESPONSE_BYTES)
         if not isinstance(data, dict):
             raise HTTPException(502,"Provider returned an unsupported response")
         if data.get("error") or data.get("Fault") or data.get("code", 0):
             raise HTTPException(422, "Provider rejected the request. Check account access and reconnect if needed")
         return data
+    except ProviderResponseTooLarge:
+        raise HTTPException(413, "Provider response too large; use a smaller export") from None
     except (httpx.HTTPError, ValueError):
         raise HTTPException(502, "Finance provider could not be reached or authorization expired. Reconnect and try again")
 

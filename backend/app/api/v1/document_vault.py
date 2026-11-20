@@ -19,6 +19,7 @@ from app.services.metrics.queries import employee_records
 from app.schemas.document import EmployeeCertificateSchema
 
 router = APIRouter(prefix="/certificates", tags=["Employee document vault"])
+MAX_BULK_DOWNLOAD_BYTES = 100 * 1024 * 1024
 
 
 def employees(db, user):
@@ -503,18 +504,25 @@ def bulk_download(
     rows = records(db, user).filter(EmployeeCertificate.id.in_(set(data.ids))).all()
     if len(rows) != len(set(data.ids)):
         raise HTTPException(404, "One or more documents are unavailable")
-    if sum(r.file_size_bytes or 0 for r in rows) > 100 * 1024 * 1024:
+    if sum(r.file_size_bytes or 0 for r in rows) > MAX_BULK_DOWNLOAD_BYTES:
         raise HTTPException(
             413, "Select fewer documents; bulk downloads are limited to 100 MB"
         )
     output = BytesIO()
     root = Path(settings.UPLOAD_DIR).resolve()
+    actual_size = 0
     with ZipFile(output, "w", ZIP_DEFLATED) as archive:
         for row in rows:
             path = (root / row.file_url.removeprefix("/uploads/")).resolve()
             if not path.is_relative_to(root):
                 raise HTTPException(404, "Document not found")
-            local = materialize_file(str(path), db=db)
+            local = materialize_file(str(path), db=db, max_bytes=MAX_BULK_DOWNLOAD_BYTES - actual_size)
+            try:
+                actual_size += Path(local).stat().st_size
+            except FileNotFoundError:
+                raise HTTPException(404, "Document not found") from None
+            if actual_size > MAX_BULK_DOWNLOAD_BYTES:
+                raise HTTPException(413, "Select fewer documents; bulk downloads are limited to 100 MB")
             archive.write(
                 local, f"{row.id}-{Path(row.original_filename or 'document').name}"
             )
@@ -542,31 +550,18 @@ def export_metadata(
 
 def process_import(db, user, batch, content, filename):
     """Update existing certificate metadata; binary uploads stay a separate operation."""
-    import csv
-    from io import StringIO, BytesIO
+    from app.shared.tabular_files import read_table
 
     errors = []
     success = 0
     seen = set()
     try:
-        if filename.lower().endswith(".csv"):
-            rows = list(csv.DictReader(StringIO(content.decode("utf-8-sig"))))
-        elif filename.lower().endswith(".xlsx"):
-            from openpyxl import load_workbook
-
-            workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
-            try:
-                values = iter(workbook.active.values)
-                headers = [str(v or "") for v in next(values)]
-                rows = [dict(zip(headers, r)) for r in values]
-            finally:
-                workbook.close()
-        else:
+        if not filename.lower().endswith((".csv", ".xlsx")):
             raise ValueError("Use CSV or XLSX for metadata processing")
-        if len(rows) > 5000:
-            raise ValueError("Import at most 5,000 records at a time")
-        batch.total_records = len(rows)
-        for index, row in enumerate(rows, 2):
+        table = read_table(content, filename, use_active_sheet=True, use_cached_values=True)
+        batch.total_records = table["total"]
+        for index, values in zip(table["rowNumbers"], table["rows"], strict=True):
+            row = dict(zip(table["headers"], values, strict=True))
             try:
                 identity = int(row.get("certificate_id") or row.get("record_id") or 0)
                 cert = (

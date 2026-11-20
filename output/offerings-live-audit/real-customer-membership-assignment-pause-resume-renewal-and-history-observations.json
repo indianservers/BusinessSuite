@@ -1,0 +1,10 @@
+{
+  "test": "real customer membership assignment, pause, resume, renewal and history",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

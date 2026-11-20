@@ -1,0 +1,10 @@
+{
+  "test": "real mixed bundle preserves all component types, quantities and options",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

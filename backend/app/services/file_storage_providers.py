@@ -7,6 +7,7 @@ from uuid import uuid4
 from pathlib import Path
 from fastapi import HTTPException
 from app.core.config import settings
+from app.apps.power_apps.integrations.contracts import IntegrationFailure
 from app.apps.power_apps.integrations.transport import EgressPolicy, HttpTransport
 from app.apps.power_apps.integrations.vault import CredentialVault
 
@@ -45,11 +46,11 @@ def app_config(provider):
     return {**info, "client_id": key, "client_secret": secret, "redirect_uri": redirect, "ready": bool(key and secret and secure)}
 
 
-def request(method, url, headers=None, body=None, *, media=False, redirect=False):
+def request(method, url, headers=None, body=None, *, media=False, redirect=False, media_limit=LIMIT):
     host = urlsplit(url).hostname
     if host not in HOSTS: raise HTTPException(502, "Unsupported storage provider host")
     response = HttpTransport(EgressPolicy([host])).request(method, url, headers, body, timeout=15,
-        return_redirect=redirect, max_response_bytes=LIMIT if media else 262144)
+        return_redirect=redirect, max_response_bytes=media_limit if media else 262144)
     if response.status not in ({200, 201, 202, 204, 302, 303, 307} if redirect else {200, 201, 202, 204}):
         if response.status == 507: raise HTTPException(409, "Cloud storage quota is full. Free space or increase the connected account's storage, then try again. Your original file is retained.")
         if response.status in {401, 403}: raise HTTPException(409, "Storage access expired or folder access was denied. Reconnect the account.")
@@ -209,14 +210,27 @@ def upload(db, conn, folder, name, content, mime):
     return str(data["entries"][0]["id"] if conn.provider == "box" else data["id"])
 
 
-def download(db, conn, remote_id):
+def download(db, conn, remote_id, *, max_bytes=None):
+    limit = LIMIT if max_bytes is None else min(LIMIT, max_bytes)
+    if limit <= 0:
+        raise HTTPException(413, "File exceeds the remaining download size limit")
+    try:
+        return _download(db, conn, remote_id, limit)
+    except IntegrationFailure as exc:
+        if max_bytes is not None and exc.category == "response_size":
+            raise HTTPException(413, "File exceeds the remaining download size limit") from None
+        raise
+
+
+def _download(db, conn, remote_id, limit):
+    options = {} if limit == LIMIT else {"media_limit": limit}
     if conn.provider == "dropbox":
         headers = authorization(db, conn)
         headers["Dropbox-API-Arg"] = json.dumps({"path": dropbox_identifier(remote_id)})
-        return request("POST", "https://content.dropboxapi.com/2/files/download", headers, media=True).body
+        return request("POST", "https://content.dropboxapi.com/2/files/download", headers, media=True, **options).body
     item = identifier(remote_id)
     urls = {"google_drive": f"https://www.googleapis.com/drive/v3/files/{item}?alt=media&supportsAllDrives=true", "onedrive": f"https://graph.microsoft.com/v1.0/me/drive/items/{item}/content", "box": f"https://api.box.com/2.0/files/{item}/content"}
-    response = request("GET", urls[conn.provider], authorization(db, conn), media=True, redirect=True)
+    response = request("GET", urls[conn.provider], authorization(db, conn), media=True, redirect=True, **options)
     if response.status in {302, 303, 307}:
         location = response.headers.get("location", "")
         host = (urlsplit(location).hostname or "").lower()
@@ -224,7 +238,7 @@ def download(db, conn, remote_id):
         if not any(host.endswith(s) for s in suffixes[conn.provider]): raise HTTPException(502, "Storage download redirected to an unsupported host")
         # Never forward the OAuth bearer to the provider's signed download host.
         policy = EgressPolicy([host], safe_query_keys={k for k, _ in parse_qsl(urlsplit(location).query)})
-        response = HttpTransport(policy).request("GET", location, timeout=15, max_response_bytes=LIMIT)
+        response = HttpTransport(policy).request("GET", location, timeout=15, max_response_bytes=limit)
         if response.status != 200: raise HTTPException(502, "Cloud file could not be downloaded")
     return response.body
 

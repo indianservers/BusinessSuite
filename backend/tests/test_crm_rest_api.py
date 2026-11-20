@@ -739,15 +739,11 @@ def test_crm_whatsapp_sms_templates_send_logs_and_timeline(client, db, superuser
 def test_crm_outbound_webhooks_send_signed_deliveries(client, db, superuser_headers, monkeypatch):
     calls = []
 
-    class FakeResponse:
-        status_code = 202
-        text = "accepted"
+    def fake_send(url, body, headers):
+        calls.append({"url": url, "content": body, "headers": headers})
+        return 202, "accepted"
 
-    def fake_post(url, content=None, headers=None, timeout=None):
-        calls.append({"url": url, "content": content, "headers": headers, "timeout": timeout})
-        return FakeResponse()
-
-    monkeypatch.setattr("app.apps.crm.api.router.httpx.post", fake_post)
+    monkeypatch.setattr("app.apps.crm.api.router._send_webhook", fake_send)
 
     webhook = client.post(
         "/api/v1/crm/webhooks",

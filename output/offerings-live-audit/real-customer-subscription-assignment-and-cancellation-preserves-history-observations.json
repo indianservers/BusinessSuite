@@ -1,0 +1,10 @@
+{
+  "test": "real customer subscription assignment and cancellation preserves history",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

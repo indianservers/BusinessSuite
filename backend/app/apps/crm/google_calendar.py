@@ -11,6 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
 
 from app.core.config import settings
+from .calendar_http import IDENTITY_RESPONSE_LIMIT, calendar_request
 
 SCOPE = "https://www.googleapis.com/auth/calendar.events"
 
@@ -42,16 +43,18 @@ def authorize(user_id, organization_id):
 def token_request(data):
     configured()
     try:
-        response = httpx.post("https://oauth2.googleapis.com/token", data={
-            "client_id": settings.CRM_GOOGLE_CALENDAR_CLIENT_ID,
-            "client_secret": settings.CRM_GOOGLE_CALENDAR_CLIENT_SECRET, **data,
-        }, timeout=20)
+        with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
+            status, _, result = calendar_request(client, "POST", "https://oauth2.googleapis.com/token", data={
+                "client_id": settings.CRM_GOOGLE_CALENDAR_CLIENT_ID,
+                "client_secret": settings.CRM_GOOGLE_CALENDAR_CLIENT_SECRET, **data,
+            }, limit=IDENTITY_RESPONSE_LIMIT)
     except httpx.RequestError:
         raise HTTPException(502, "Google Calendar could not be reached. Try again.") from None
-    if response.status_code != 200:
+    except ValueError:
+        raise HTTPException(502, "Google returned an invalid authorization response.") from None
+    if status != 200:
         raise HTTPException(400, "Google authorization expired or was revoked. Reconnect Google Calendar.")
-    result = response.json()
-    if not result.get("access_token"):
+    if not isinstance(result.get("access_token"), str) or not result["access_token"]:
         raise HTTPException(502, "Google did not return an access token.")
     return result
 
@@ -99,12 +102,14 @@ def sync_meeting(integration, meeting):
     url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
     headers = {"Authorization": f"Bearer {token}"}
     try:
-        with httpx.Client(timeout=20) as client:
-            response = client.post(url, headers=headers, json={"id": event_id, **body})
-            if response.status_code == 409:
-                response = client.patch(f"{url}/{quote(event_id, safe='')}", headers=headers, json=body)
+        with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
+            status, _, event = calendar_request(client, "POST", url, headers=headers, json={"id": event_id, **body}, expected=(200, 201))
+            if status == 409:
+                status, _, event = calendar_request(client, "PATCH", f"{url}/{quote(event_id, safe='')}", headers=headers, json=body, expected=(200, 201))
     except httpx.RequestError:
         raise RuntimeError("Google Calendar could not be reached. Retry sync.") from None
-    if response.status_code not in (200, 201):
-        raise RuntimeError(f"Google Calendar rejected event sync (HTTP {response.status_code}). Reconnect if access expired.")
-    return response.json()["id"]
+    except ValueError:
+        raise RuntimeError("Google Calendar returned an invalid event response.") from None
+    if status not in (200, 201):
+        raise RuntimeError(f"Google Calendar rejected event sync (HTTP {status}). Reconnect if access expired.")
+    return event["id"]

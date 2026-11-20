@@ -1,14 +1,55 @@
 import base64
 import hashlib
+import json
 import secrets
-from urllib.parse import urlencode
-import httpx
+from urllib.parse import urlencode, urlsplit
 import jwt
+from starlette.concurrency import run_in_threadpool
+from app.apps.power_apps.integrations.transport import EgressPolicy, HttpTransport
 from app.core.config import settings
 from app.models.sso import SSOProvider
 
 
 FRONTEND_ORIGIN = settings.FRONTEND_PUBLIC_URL
+GOOGLE_OIDC_ENDPOINTS = {
+    "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+    "token_url": "https://oauth2.googleapis.com/token",
+    "userinfo_url": "https://openidconnect.googleapis.com/v1/userinfo",
+}
+OIDC_RESPONSE_LIMIT = 256 * 1024
+
+
+def oidc_target_host(url: str) -> str:
+    if (not isinstance(url, str) or len(url) > 2048 or "\\" in url
+        or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url)):
+        raise ValueError("Invalid OIDC endpoint")
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme != "https" or not parsed.hostname or parsed.port not in {None, 443}
+        or parsed.username is not None or parsed.password is not None or parsed.fragment
+    ):
+        raise ValueError("Use an HTTPS endpoint without credentials or a fragment")
+    return parsed.hostname.encode("idna").decode("ascii").rstrip(".")
+
+
+async def request_oidc_endpoint(method, url, *, headers=None, data=None, probe=False):
+    transport = HttpTransport(EgressPolicy([oidc_target_host(url)]))
+    body = urlencode(data).encode() if data is not None else None
+    if data is not None:
+        headers = {**(headers or {}), "Content-Type": "application/x-www-form-urlencoded"}
+    return await run_in_threadpool(
+        transport.request, method, url, headers, body,
+        timeout=10, return_redirect=probe, max_response_bytes=OIDC_RESPONSE_LIMIT,
+    )
+
+
+def oidc_json(response):
+    if not 200 <= response.status < 300:
+        raise ValueError("Identity provider rejected the request")
+    data = json.loads(response.body)
+    if not isinstance(data, dict):
+        raise ValueError("Identity provider returned an invalid response")
+    return data
 
 
 def generate_pkce_pair() -> tuple[str, str]:
@@ -38,7 +79,9 @@ async def get_oidc_authorization_url(
     }
     if provider.provider_type.lower() == "google" and provider.domain_hint:
         params["hd"] = provider.domain_hint.strip().lower()
-    return f"{provider.authorization_url}?{urlencode(params)}"
+    url = GOOGLE_OIDC_ENDPOINTS["authorization_url"] if provider.provider_type.lower() == "google" else provider.authorization_url
+    oidc_target_host(url)
+    return f"{url}{'&' if urlsplit(url).query else '?'}{urlencode(params)}"
 
 
 def validate_google_identity(id_token: str, jwks: dict, provider: SSOProvider, nonce: str, access_token: str | None = None) -> dict:
@@ -78,33 +121,40 @@ async def exchange_oidc_code(
     nonce: str | None = None,
 ) -> dict:
     """Exchange the OIDC authorization code and return userinfo claims."""
-    async with httpx.AsyncClient(timeout=20) as client:
-        token_resp = await client.post(provider.token_url, data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": provider.redirect_uri or f"{settings.BACKEND_PUBLIC_URL}/api/v1/auth/sso/callback/oidc/{provider.id}",
-            "client_id": provider.client_id,
-            "client_secret": provider.client_secret,
-            "code_verifier": code_verifier,
-        })
-        token_resp.raise_for_status()
-        tokens = token_resp.json()
-        if provider.provider_type.lower() == "google":
-            keys = await client.get("https://www.googleapis.com/oauth2/v3/certs")
-            keys.raise_for_status()
-            return validate_google_identity(tokens.get("id_token", ""), keys.json(), provider, nonce or "", tokens.get("access_token"))
-        userinfo_resp = await client.get(
-            provider.userinfo_url,
-            headers={"Authorization": f"Bearer {tokens['access_token']}"},
-        )
-        userinfo_resp.raise_for_status()
-        return userinfo_resp.json()
+    google = provider.provider_type.lower() == "google"
+    token_url = GOOGLE_OIDC_ENDPOINTS["token_url"] if google else provider.token_url
+    response = await request_oidc_endpoint("POST", token_url, data={
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": provider.redirect_uri or f"{settings.BACKEND_PUBLIC_URL}/api/v1/auth/sso/callback/oidc/{provider.id}",
+        "client_id": provider.client_id,
+        "client_secret": provider.client_secret,
+        "code_verifier": code_verifier,
+    })
+    tokens = oidc_json(response)
+    if google:
+        keys = oidc_json(await request_oidc_endpoint("GET", "https://www.googleapis.com/oauth2/v3/certs"))
+        return validate_google_identity(tokens.get("id_token", ""), keys, provider, nonce or "", tokens.get("access_token"))
+    access_token = tokens.get("access_token")
+    if not isinstance(access_token, str) or not access_token or len(access_token) > 8192:
+        raise ValueError("Identity provider returned an invalid access token")
+    return oidc_json(await request_oidc_endpoint(
+        "GET", provider.userinfo_url, headers={"Authorization": f"Bearer {access_token}"},
+    ))
 
 
 def extract_user_attributes(userinfo: dict, provider: SSOProvider) -> dict:
     """Map IdP claims to AI HRMS user fields."""
+    email = userinfo.get("email")
+    if not isinstance(email, str) or not email or len(email) > 320:
+        raise ValueError("Identity provider did not return an email")
+    if provider.provider_type.lower() != "google" and userinfo.get("email_verified") is not True:
+        raise ValueError("Identity provider did not verify the email")
+    mapped_email = userinfo.get(provider.attr_email or "email")
+    if not isinstance(mapped_email, str) or mapped_email.casefold() != email.casefold():
+        raise ValueError("Configured email must match the provider's verified email")
     return {
-        "email": userinfo.get(provider.attr_email or "email"),
+        "email": email,
         "first_name": userinfo.get(provider.attr_first_name or "given_name", ""),
         "last_name": userinfo.get(provider.attr_last_name or "family_name", ""),
         "role_hint": userinfo.get(provider.attr_role) if provider.attr_role else None,

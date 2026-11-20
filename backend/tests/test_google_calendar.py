@@ -118,8 +118,9 @@ def test_expired_state_rejected(credentials):
 
 
 def test_provider_error_does_not_expose_response_body(credentials, monkeypatch):
-    monkeypatch.setattr(google.httpx, "post", lambda *args, **kwargs:
-                        httpx.Response(400, json={"error_description": "sensitive details"}))
+    real_client = httpx.Client
+    remote = httpx.MockTransport(lambda request: httpx.Response(400, json={"error_description": "sensitive details"}))
+    monkeypatch.setattr(google.httpx, "Client", lambda **kwargs: real_client(transport=remote, **kwargs))
     with pytest.raises(HTTPException) as error:
         google.token_request({"grant_type": "refresh_token", "refresh_token": "secret"})
     assert "sensitive" not in error.value.detail

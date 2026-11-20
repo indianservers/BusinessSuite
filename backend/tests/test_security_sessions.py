@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from app.core.deps import token_record_id
 from app.core.security import create_access_token, create_refresh_token
 from app.models.user import User, UserSession
+from tests.test_pms_workflow_postgresql import live, race
 
 
 @pytest.mark.parametrize('value', [None, True, {}, [], 'abc', '-1', '0', '1.2', '9'*100, '\u0661'])
@@ -35,6 +36,71 @@ def test_expired_session_cannot_mint_fresh_tokens(client, db, superuser_headers)
 def test_signed_invalid_refresh_subject_is_unauthorized(client):
     response = client.post('/api/v1/auth/refresh', json={'refresh_token': create_refresh_token('invalid')})
     assert response.status_code == 401
+
+
+def test_refresh_requires_a_session_id(client, db, superuser_headers):
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    response = client.post("/api/v1/auth/refresh", json={"refresh_token": create_refresh_token(user.id)})
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("status", ["Inactive", None])
+def test_refresh_requires_an_active_session(client, db, superuser_headers, status):
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    session = db.query(UserSession).filter_by(user_id=user.id).one()
+    session.status = status
+    db.commit()
+    token = create_refresh_token(user.id, session_id=session.id)
+
+    response = client.post("/api/v1/auth/refresh", json={"refresh_token": token})
+    assert response.status_code == 401
+    assert client.get("/api/v1/auth/me", headers=superuser_headers).status_code == 401
+
+
+def test_refresh_requires_a_session_expiry(client, db, superuser_headers):
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    session = db.query(UserSession).filter_by(user_id=user.id).one()
+    session.expires_at = None
+    db.commit()
+    token = create_refresh_token(user.id, session_id=session.id)
+
+    response = client.post("/api/v1/auth/refresh", json={"refresh_token": token})
+    assert response.status_code == 401
+
+
+def test_mfa_challenge_stays_in_the_issuing_company_database(client, db, superuser_headers):
+    from app.api.v1.auth import _create_mfa_token
+
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    token = _create_mfa_token(user)
+    db.info["tenant_uuid"] = "another-test-database"
+    try:
+        response = client.post("/api/v1/auth/mfa/verify", json={"mfa_token": token, "code": "000000"})
+    finally:
+        db.info.pop("tenant_uuid")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "MFA challenge is not valid for this company database"
+
+
+def test_recovery_code_is_single_use_with_independent_transactions(live):
+    from app.api.v1.auth import _create_mfa_token
+    from app.core.mfa import generate_recovery_codes, hash_recovery_code
+    from app.models.user import MFAMethod
+
+    code = generate_recovery_codes(1)[0]
+    with live.factory.begin() as db:
+        user = db.get(User, live.owner_id)
+        challenge = _create_mfa_token(user)
+        db.add(MFAMethod(
+            user_id=user.id, method_type="totp", is_active=True, is_verified=True,
+            recovery_codes_json=[{"hash": hash_recovery_code(code), "used": False}],
+        ))
+
+    def complete():
+        return live.client.post("/api/v1/auth/mfa/verify",
+                                json={"mfa_token": challenge, "method": "recovery", "code": code})
+
+    assert sorted(response.status_code for response in race(complete, complete)) == [200, 401]
 
 
 def test_access_token_without_expiration_is_rejected():

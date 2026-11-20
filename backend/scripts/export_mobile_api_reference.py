@@ -6,6 +6,7 @@ Only docs/mobile-api-reference is written. No .env files or credentials are expo
 from __future__ import annotations
 
 import ast
+import argparse
 from collections import Counter
 from datetime import datetime, timezone
 import inspect
@@ -24,6 +25,11 @@ BASE = "https://businesssuite-rosy.vercel.app"
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=OUT)
+    parser.add_argument("--check-deployed", action="store_true")
+    args = parser.parse_args()
+    output = args.output_dir
     # Fixed, non-secret configuration. Importing app does not run its lifespan.
     os.environ.update(INSTALLED_APPS="hrms,crm,project_management,srm,fam",
                       ENVIRONMENT="test", DATABASE_URL="postgresql+psycopg://reference:reference@127.0.0.1:5432/reference",
@@ -34,7 +40,7 @@ def main():
     from fastapi.routing import APIRoute, APIWebSocketRoute
     from app.main import app
 
-    OUT.mkdir(parents=True, exist_ok=True)
+    output.mkdir(parents=True, exist_ok=True)
     schema = app.openapi()
     schema["servers"] = [{"url": BASE, "description": "Deployed host; verify module availability"},
                          {"url": "http://localhost:1534", "description": "Repository start-backend.cmd"},
@@ -43,7 +49,7 @@ def main():
     generated = datetime.now(timezone.utc).isoformat()
 
     def write_json(name, data):
-        (OUT / name).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (output / name).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     def source(endpoint):
         endpoint = inspect.unwrap(endpoint)
@@ -108,20 +114,29 @@ def main():
 
     route_map = {}
     hidden, sockets, registered_sources = [], [], set()
-    for route in app.routes:
-        if not isinstance(route, (APIRoute, APIWebSocketRoute)):
-            continue
+    def mounted_routes(router, prefix=""):
+        for route in router.routes:
+            child = getattr(route, "original_router", None)
+            if child is not None:
+                yield from mounted_routes(child, prefix + route.include_context.prefix)
+            elif isinstance(route, (APIRoute, APIWebSocketRoute)):
+                yield prefix + route.path_format, route
+
+    for path, route in mounted_routes(app.router):
         src = source(route.endpoint)
         if src:
             registered_sources.add((src["file"], src["handler"]))
         if isinstance(route, APIWebSocketRoute):
-            sockets.append({"path": route.path, "source": src, "description": inspect.getdoc(route.endpoint) or ""})
+            sockets.append({"path": path, "source": src, "description": inspect.getdoc(route.endpoint) or ""})
         elif not route.include_in_schema:
-            hidden.append({"path": route.path, "methods": sorted(route.methods), "source": src,
-                           "parameters": [{"name": p.name, "required": p.required} for p in route.dependant.query_params]})
+            hidden.append({"path": path, "methods": sorted(route.methods), "source": src,
+                           "parameters": [{"name": p.name, "required": p.field_info.is_required()} for p in route.dependant.query_params]})
         else:
             for method in route.methods:
-                route_map[(method.lower(), route.path)] = route
+                key = (method.lower(), path)
+                if key in route_map:
+                    raise RuntimeError(f"Duplicate API registration: {method} {path}")
+                route_map[key] = route
 
     operations, counts, missing = [], Counter(), []
     for path, item in sorted(schema["paths"].items()):
@@ -130,7 +145,12 @@ def main():
                 continue
             route = route_map[(method, path)]
             deps = dependencies(route.dependant)
-            required_auth = any(d["name"] == "get_current_user" for d in deps)
+            dependency_types = {d["name"] for d in deps}
+            auth = "Handler-specific credentials or public operation"
+            if "current_platform_admin" in dependency_types:
+                auth = "Platform administrator session"
+            elif "get_current_user" in dependency_types:
+                auth = "Bearer access token"
             body = op.get("requestBody", {})
             responses = op.get("responses", {})
             untyped = any(not media.get("schema") for code, response in responses.items()
@@ -144,7 +164,7 @@ def main():
                       "url_template": BASE + path,
                       "swagger_url": BASE + "/api/v1/docs#/" + quote((op.get("tags") or ["default"])[0], safe="") + "/" + op["operationId"],
                       "source": source(route.endpoint),
-                      "auth": "Bearer access token" if required_auth else "No get_current_user dependency; check handler-specific credentials",
+                      "auth": auth,
                       "security": op.get("security", []), "dependencies": deps,
                       "parameters": op.get("parameters", []), "request_body": body,
                       "request_fields": {media: fields(spec.get("schema", {})) for media, spec in body.get("content", {}).items()},
@@ -241,7 +261,7 @@ def main():
         lines.append(f"- `{','.join(r.get('methods', ['WEBSOCKET']))} {r['path']}` — [source](../../{src['file']}#L{src['line']}). See mobile guide for transport and signed-file behavior.")
     lines.extend(["", "## Route files outside the main app", "",
                   f"[Unmounted declarations](unmounted-route-declarations.json) contains {len(unmounted)} decorator declarations found in source but not registered in the main app. These include the separate legacy inventory application. Their paths are local to the declaring router or blueprint; do not call them as suite endpoints without a separate deployment contract.", ""])
-    (OUT / "ENDPOINTS.md").write_text("\n".join(lines), encoding="utf-8")
+    (output / "ENDPOINTS.md").write_text("\n".join(lines), encoding="utf-8")
 
     folders = []
     for key in sorted(counts):
@@ -276,6 +296,7 @@ def main():
     # Validate coverage, uniqueness, JSON references and source targets before delivery.
     keys = [(r["method"], r["path"]) for r in operations]
     assert len(keys) == len(set(keys)) == len(route_map)
+    assert len({r["operation_id"] for r in operations}) == len(operations)
     assert sum(len(f["item"]) for f in folders) == len(operations)
     def validate_refs(value):
         if isinstance(value, dict):
@@ -296,9 +317,9 @@ def main():
                 "hidden_http_routes": hidden, "websocket_routes": sockets,
                 "unmounted_route_declarations": len(unmounted),
                 "untyped_success_responses": len(missing), "untyped_operations": missing,
-                "validation": "Operation coverage, uniqueness, source file targets, Postman count and local schema references passed. No business API calls or database startup executed."}
+                "validation": "Operation coverage, unique method/path and operation IDs, source file targets, Postman count and local schema references passed. No business API calls or database startup executed."}
     write_json("manifest.json", manifest)
-    if "--check-deployed" in sys.argv:
+    if args.check_deployed:
         import httpx
         checks = {"checked_at_utc": datetime.now(timezone.utc).isoformat(), "origin": BASE,
                   "scope": "Unauthenticated documentation reads only; no business handlers or mutations tested"}
@@ -315,8 +336,8 @@ def main():
                           local_only_operations=[{"method": m, "path": p} for m, p in sorted(local_keys - deployed_keys)],
                           deployed_only_operations=[{"method": m, "path": p} for m, p in sorted(deployed_keys - local_keys)],
                           shared_operations=len(local_keys & deployed_keys))
-            inventory = json.loads((OUT / "endpoints.json").read_text(encoding="utf-8"))
-            catalog = (OUT / "ENDPOINTS.md").read_text(encoding="utf-8")
+            inventory = json.loads((output / "endpoints.json").read_text(encoding="utf-8"))
+            catalog = (output / "ENDPOINTS.md").read_text(encoding="utf-8")
             for record in inventory["http_operations"]:
                 present = (record["method"], record["path"]) in deployed_keys
                 record["deployment_path_present"] = present
@@ -325,7 +346,7 @@ def main():
                     catalog = catalog.replace(heading, heading + "\n**Deployment:** Absent from the deployed OpenAPI snapshot. Requires deployment before mobile can use this route on the linked host.\n", 1)
             write_json("endpoints.json", inventory)
             catalog = catalog.replace("## Modules\n", f"Deployment comparison: {len(deployed_keys):,} operations on the deployed host; {len(local_keys - deployed_keys)} operations exist only in this local export. Those entries are marked below. See [comparison snapshot](deployment-check.json) for the check time.\n\n## Modules\n", 1)
-            (OUT / "ENDPOINTS.md").write_text(catalog, encoding="utf-8")
+            (output / "ENDPOINTS.md").write_text(catalog, encoding="utf-8")
         except (httpx.HTTPError, ValueError, KeyError) as error:
             checks["error"] = type(error).__name__
         write_json("deployment-check.json", checks)

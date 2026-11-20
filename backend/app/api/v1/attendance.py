@@ -1,3 +1,4 @@
+from collections import defaultdict
 from app.access.catalog import permission_objects
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
@@ -42,6 +43,10 @@ from app.schemas.attendance import ShiftCreate as ShiftUpdate
 from app.schemas.attendance import HolidayCreate as HolidayUpdate
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
+MAX_ATTENDANCE_DAYS = 31
+MAX_ATTENDANCE_CELLS = 5000
+MAX_RECONCILIATION_CELLS = 1000
+MAX_RECONCILIATION_PUNCHES = 20000
 
 
 def _locked_month(db: Session, value: date) -> bool:
@@ -189,26 +194,52 @@ def _record_biometric_punch(
     return True
 
 
-def _attendance_reconciliation(db: Session, from_date: date, to_date: date, employee_id: Optional[int] = None, recompute: bool = True) -> dict:
+def _attendance_days(from_date: date, to_date: date) -> int:
     if to_date < from_date:
         raise HTTPException(status_code=400, detail="to_date must be on or after from_date")
+    days = (to_date - from_date).days + 1
+    if days > MAX_ATTENDANCE_DAYS:
+        raise HTTPException(422, f"Choose at most {MAX_ATTENDANCE_DAYS} days")
+    return days
+
+
+def _attendance_employees(query, days: int, budget: int):
+    limit = budget // days
+    employees = query.limit(limit + 1).all()
+    if len(employees) > limit:
+        raise HTTPException(422, "Choose a shorter date range or narrower employee scope")
+    return employees
+
+
+def _attendance_reconciliation(db: Session, from_date: date, to_date: date, employee_id: Optional[int] = None, recompute: bool = True) -> dict:
+    days = _attendance_days(from_date, to_date)
     employee_query = db.query(Employee).filter(Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation", "Notice Period"]))
     if employee_id:
         employee_query = employee_query.filter(Employee.id == employee_id)
-    employees = employee_query.order_by(Employee.employee_id).all()
+    budget = MAX_RECONCILIATION_CELLS if recompute else MAX_ATTENDANCE_CELLS
+    employees = _attendance_employees(employee_query.order_by(Employee.employee_id), days, budget)
+    punches_by_day = defaultdict(list)
+    if employees:
+        punches = db.query(
+            AttendancePunch.employee_id, AttendancePunch.punch_type, AttendancePunch.punch_time, AttendancePunch.device_id,
+        ).filter(
+            AttendancePunch.employee_id.in_([employee.id for employee in employees]),
+            AttendancePunch.punch_time >= datetime.combine(from_date, time.min, tzinfo=timezone.utc),
+            AttendancePunch.punch_time <= datetime.combine(to_date, time.max, tzinfo=timezone.utc),
+        ).order_by(AttendancePunch.punch_time).limit(MAX_RECONCILIATION_PUNCHES + 1).all()
+        if len(punches) > MAX_RECONCILIATION_PUNCHES:
+            raise HTTPException(422, "Too many punches; choose a shorter date range or one employee")
+        for punch in punches:
+            stamp = punch.punch_time
+            utc_day = (stamp.astimezone(timezone.utc) if stamp.tzinfo else stamp).date()
+            punches_by_day[(punch.employee_id, utc_day)].append(punch)
     missing_punches = []
     duplicate_punches = []
     reconciled_days = 0
-    cursor = from_date
-    while cursor <= to_date:
-        start = datetime.combine(cursor, datetime.min.time(), tzinfo=timezone.utc)
-        end = datetime.combine(cursor, datetime.max.time(), tzinfo=timezone.utc)
+    for offset in range(days):
+        cursor = from_date + timedelta(days=offset)
         for employee in employees:
-            punches = db.query(AttendancePunch).filter(
-                AttendancePunch.employee_id == employee.id,
-                AttendancePunch.punch_time >= start,
-                AttendancePunch.punch_time <= end,
-            ).order_by(AttendancePunch.punch_time).all()
+            punches = punches_by_day.get((employee.id, cursor), ())
             if recompute and punches:
                 compute_attendance_summary(employee.id, cursor, db)
             by_key: dict[tuple[str, datetime, str], int] = {}
@@ -236,7 +267,6 @@ def _attendance_reconciliation(db: Session, from_date: date, to_date: date, empl
                     missing_punches.append({"employee_id": employee.id, "employee_code": employee.employee_id, "date": cursor.isoformat(), "missing": "OUT"})
                 if "IN" in punch_types and "OUT" in punch_types:
                     reconciled_days += 1
-        cursor += timedelta(days=1)
     return {
         "from_date": from_date.isoformat(),
         "to_date": to_date.isoformat(),
@@ -1242,15 +1272,13 @@ def team_attendance(
 ):
     from_date = from_date or date.today()
     end_date = to_date or from_date
-    if end_date < from_date:
-        raise HTTPException(status_code=400, detail="to_date cannot be before from_date")
+    days = _attendance_days(from_date, end_date)
 
     query = db.query(Employee).filter(Employee.deleted_at.is_(None))
-    if _can_view_all_attendance(current_user):
-        employees = query.order_by(Employee.first_name, Employee.last_name).all()
-    else:
+    if not _can_view_all_attendance(current_user):
         employee = _employee_or_400(current_user)
-        employees = query.filter(Employee.reporting_manager_id == employee.id).order_by(Employee.first_name, Employee.last_name).all()
+        query = query.filter(Employee.reporting_manager_id == employee.id)
+    employees = _attendance_employees(query.order_by(Employee.first_name, Employee.last_name), days, MAX_ATTENDANCE_CELLS)
 
     employee_ids = [item.id for item in employees]
     attendance_rows = db.query(Attendance).filter(
@@ -1260,8 +1288,8 @@ def team_attendance(
     ).all()
     by_key = {(item.employee_id, item.attendance_date): item for item in attendance_rows}
     items = []
-    cursor = from_date
-    while cursor <= end_date:
+    for offset in range(days):
+        cursor = from_date + timedelta(days=offset)
         for employee in employees:
             attendance = by_key.get((employee.id, cursor))
             items.append({
@@ -1276,7 +1304,6 @@ def team_attendance(
                 "is_late": attendance.is_late if attendance else False,
                 "is_early_exit": attendance.is_early_exit if attendance else False,
             })
-        cursor += timedelta(days=1)
     return {"items": items, "from_date": from_date, "to_date": end_date, "total": len(items)}
 
 

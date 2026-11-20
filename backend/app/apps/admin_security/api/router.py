@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timezone
+from itertools import combinations
+import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import or_
+from sqlalchemy import or_, tuple_
 from sqlalchemy.orm import Session
 
 from app.apps.admin_security.models import (
@@ -58,6 +61,8 @@ from app.models.user import User
 router = APIRouter(prefix="/admin", tags=["Enterprise Admin Security"])
 
 CRM_MODULES = {"leads": CRMLead, "contacts": CRMContact, "accounts": CRMCompany, "companies": CRMCompany}
+MAX_DUPLICATE_SCAN_RECORDS = 5000
+MAX_DUPLICATE_SCAN_PAIRS = 1000
 
 
 def _serialize(item) -> dict[str, Any] | None:
@@ -403,26 +408,59 @@ def create_duplicate_rule(data: DuplicateRulePayload, db: Session = Depends(get_
     return _serialize(item)
 
 
-def _record_value(record: Any, field: str):
-    return getattr(record, field, None)
-
-
 @router.post("/duplicates/scan", status_code=201)
 def scan_duplicates(data: DuplicateScanPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("admin_duplicates_manage", "admin_security_manage"))):
     model = CRM_MODULES.get(data.module_name)
-    rule = db.query(AdminDuplicateRule).filter(AdminDuplicateRule.module_name == data.module_name, AdminDuplicateRule.active.is_(True)).first()
+    rule = db.query(AdminDuplicateRule).filter(
+        AdminDuplicateRule.module_name == data.module_name, AdminDuplicateRule.active.is_(True),
+    ).order_by(AdminDuplicateRule.id).with_for_update().first()
     if not model or not rule:
         return {"items": [], "total": 0}
-    fields = rule.match_fields_json or []
-    records = db.query(model).all()
+    fields = [field for field in dict.fromkeys(rule.match_fields_json or [])
+              if field in model.__table__.columns and field != "id"]
+    if not fields:
+        return {"items": [], "total": 0}
+    records = db.query(model.id, *(getattr(model, field) for field in fields)).order_by(model.id).limit(
+        MAX_DUPLICATE_SCAN_RECORDS + 1,
+    ).all()
+    if len(records) > MAX_DUPLICATE_SCAN_RECORDS:
+        raise HTTPException(422, f"Duplicate scans support up to {MAX_DUPLICATE_SCAN_RECORDS:,} visible records")
+
+    matches = defaultdict(list)
+    for index, field in enumerate(fields, 1):
+        groups = defaultdict(list)
+        for row in records:
+            value = row[index]
+            if value:
+                key = (type(value), json.dumps(value, sort_keys=True)) if isinstance(value, (list, dict)) else value
+                groups[key].append(row.id)
+        for group in groups.values():
+            for pair in combinations(group, 2):
+                matches[pair].append(field)
+                if len(matches) > MAX_DUPLICATE_SCAN_PAIRS:
+                    raise HTTPException(422, "Too many duplicate matches; use a more specific duplicate rule")
+
+    candidate_pair = tuple_(AdminDuplicateCandidate.record_id, AdminDuplicateCandidate.duplicate_record_id)
+    pairs = list(matches)
+    existing = set()
+    for offset in range(0, len(pairs), 200):
+        batch = pairs[offset:offset + 200]
+        existing.update(tuple(sorted(row)) for row in db.query(
+            AdminDuplicateCandidate.record_id, AdminDuplicateCandidate.duplicate_record_id,
+        ).filter(
+            AdminDuplicateCandidate.rule_id == rule.id,
+            candidate_pair.in_(batch + [(right, left) for left, right in batch]),
+        ).distinct())
+
     created = []
-    for i, left in enumerate(records):
-        for right in records[i + 1:]:
-            matched = [field for field in fields if _record_value(left, field) and _record_value(left, field) == _record_value(right, field)]
-            if matched:
-                candidate = AdminDuplicateCandidate(module_name=data.module_name, rule_id=rule.id, record_id=left.id, duplicate_record_id=right.id, confidence_score=min(100, 60 + len(matched) * 20), evidence_json={"matched_fields": matched})
-                db.add(candidate)
-                created.append(candidate)
+    for (left, right), matched in sorted(matches.items()):
+        if (left, right) not in existing:
+            candidate = AdminDuplicateCandidate(
+                module_name=data.module_name, rule_id=rule.id, record_id=left, duplicate_record_id=right,
+                confidence_score=min(100, 60 + len(matched) * 20), evidence_json={"matched_fields": matched},
+            )
+            db.add(candidate)
+            created.append(candidate)
     audit(db, current_user, "admin_duplicates_scanned", data.module_name, "duplicate_candidate", None, {"count": len(created)})
     db.commit()
     return {"items": [_serialize(row) for row in created], "total": len(created)}

@@ -1,0 +1,10 @@
+{
+  "test": "real CRM and PMS catalogs reference the same master offerings",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

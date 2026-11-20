@@ -286,7 +286,8 @@ def _create_mfa_token(user: User, module: str | None = None, auth_provider: str 
 
 def _decode_mfa_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+                             options={"require": ["exp", "sub"]})
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid MFA token")
     if payload.get("scope") != "mfa":
@@ -294,13 +295,16 @@ def _decode_mfa_token(token: str) -> dict:
     return payload
 
 
-def _active_totp(db: Session, user_id: int) -> MFAMethod | None:
-    return db.query(MFAMethod).filter(
+def _active_totp(db: Session, user_id: int, *, for_update: bool = False) -> MFAMethod | None:
+    query = db.query(MFAMethod).filter(
         MFAMethod.user_id == user_id,
         MFAMethod.method_type.in_(["totp", "TOTP"]),
         MFAMethod.is_verified == True,
         MFAMethod.is_active == True,
-    ).order_by(MFAMethod.id.desc()).first()
+    ).order_by(MFAMethod.id.desc())
+    if for_update:
+        query = query.with_for_update(of=MFAMethod).populate_existing()
+    return query.first()
 
 
 def _active_policy_mfa_required(db: Session) -> bool:
@@ -523,6 +527,8 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
 def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Depends(get_db)):
     """Complete the second login phase using TOTP or a recovery code."""
     payload = _decode_mfa_token(data.mfa_token)
+    if payload.get("tenant") != db.info.get("tenant_uuid"):
+        raise HTTPException(401, "MFA challenge is not valid for this company database")
     user = db.query(User).filter(User.id == token_record_id(payload.get("sub"))).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
@@ -530,7 +536,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
     if lockout:
         raise HTTPException(status_code=429, detail="Login temporarily throttled. Try again shortly.", headers={"Retry-After": "60"})
     _ensure_module_login_allowed(user, payload.get("module"))
-    method = _active_totp(db, user.id)
+    method = _active_totp(db, user.id, for_update=data.method == "recovery")
     valid = False
     if data.method == "totp" and method:
         valid = verify_totp(reveal_totp_secret(method.secret_ref or method.secret or ""), data.code)
@@ -564,7 +570,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     payload = verify_refresh_token(data.refresh_token)
-    if not payload:
+    if not payload or not payload.get("sid"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
     if payload.get("tenant") != db.info.get("tenant_uuid"):
         raise HTTPException(401,"Refresh session is not valid for this company database")
@@ -574,23 +580,20 @@ def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
     if payload.get("portal") == "interns_hub":
         _ensure_module_login_allowed(user, "interns_hub")
-    session_id = payload.get("sid")
-    if session_id:
-        session = db.query(UserSession).filter(UserSession.id == token_record_id(session_id), UserSession.user_id == user.id).first()
-        expires_at = session.expires_at if session else None
-        if expires_at and expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if not session or session.status.lower() == "revoked" or (expires_at and expires_at <= datetime.now(timezone.utc)):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
-    else:
-        session = None
+    session = db.query(UserSession).filter(
+        UserSession.id == token_record_id(payload["sid"]), UserSession.user_id == user.id,
+    ).first()
+    expires_at = session.expires_at if session else None
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if not session or (session.status or "").lower() != "active" or expires_at is None or expires_at <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
 
-    access_token = create_access_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
-    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
-    if session:
-        session.session_token_hash = _hash_token(access_token)
-        session.last_seen_at = datetime.now(timezone.utc)
-        db.commit()
+    access_token = create_access_token(user.id, session_id=session.id, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
+    refresh_token_new = create_refresh_token(user.id, session_id=session.id, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
+    session.session_token_hash = _hash_token(access_token)
+    session.last_seen_at = datetime.now(timezone.utc)
+    db.commit()
 
     employee = getattr(user, "employee", None)
     return TokenResponse(

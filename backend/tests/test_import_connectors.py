@@ -1,6 +1,28 @@
 import time
+import httpx
+import pytest
+from fastapi import HTTPException
 from app.shared import import_connectors as connectors
 from tests.test_import_workspace import import_headers
+
+
+def test_import_reader_stops_when_provider_stream_exceeds_limit(monkeypatch):
+    seen = []
+
+    class Page(httpx.SyncByteStream):
+        def __iter__(self):
+            for index in range(4):
+                seen.append(index)
+                yield b"x" * 5
+
+    client_class = httpx.Client
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, stream=Page()))
+    monkeypatch.setattr(connectors, "MAX_PROVIDER_RESPONSE_BYTES", 8)
+    monkeypatch.setattr(connectors.httpx, "Client", lambda **kwargs: client_class(transport=transport, **kwargs))
+    with pytest.raises(HTTPException) as error:
+        connectors.request_json("GET", "https://quickbooks.api.intuit.com/v3/company/1/query")
+    assert error.value.status_code == 413
+    assert seen == [0, 1]
 
 
 def test_connectors_require_setup_and_keep_tokens_private(client,db,import_headers,monkeypatch):

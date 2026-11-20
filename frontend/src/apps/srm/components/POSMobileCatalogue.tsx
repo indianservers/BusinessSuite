@@ -1,3 +1,4 @@
+import {posOfferingTabs} from "./pos-offering-types";
 import { useLayoutEffect, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowLeft, ArrowRight, Check, LayoutGrid, Plus, Search, SlidersHorizontal, Star, X } from 'lucide-react';
@@ -14,7 +15,7 @@ type MobileProduct = {
   duration?:string; bookingRequired?:boolean;
 };
 type Props<T extends MobileProduct> = {
-  products:T[]; counts:{All:number;Products:number;Services:number};
+  products:T[]; counts:Record<string,number>;
   cart:{id:number;qty:number}[]; query:string; onQuery:(value:string)=>void;
   searchInputRef:RefObject<HTMLInputElement>; onScan:()=>void;
   category:string; categories:string[]; onCategory:(value:string)=>void;
@@ -53,11 +54,11 @@ export default function POSMobileCatalogue<T extends MobileProduct>(props:Props<
   useEffect(()=>setPage(0),[query,category,tab,sort]);
   useEffect(()=>setPage(value=>Math.min(value,pages-1)),[pages]);
   const reset=()=>{props.onQuery('');props.onCategory('All');props.onTab('All');props.onSort('name');};
-  const extraFilters=category!=='All'||!['All','Products','Services'].includes(tab)||sort!=='name';
+  const extraFilters=category!=='All'||!posOfferingTabs.some(value=>value===tab)||sort!=='name';
   return <div className="pos-mobile-catalogue">
     <div className="pos-mobile-search"><Search size={18}/><Input ref={props.searchInputRef} aria-label="Search or scan items" placeholder="Search or scan items" value={query} onChange={event=>props.onQuery(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();props.onScan();}}}/>{query&&<button type="button" aria-label="Clear product search" onClick={()=>props.onQuery('')}><X size={16}/></button>}<button type="button" className={extraFilters?'has-filters':''} aria-label="Product filters" onClick={()=>setFiltersOpen(true)}><SlidersHorizontal size={18}/>{extraFilters&&<span/>}</button></div>
     <nav className="pos-mobile-product-tabs" aria-label="Catalogue filters">
-      {(['All','Products','Services'] as const).map(value=><button key={value} type="button" aria-pressed={tab===value} onClick={()=>props.onTab(value)}>{value} <span>{props.counts[value]}</span></button>)}
+      {posOfferingTabs.map(value=><button key={value} type="button" aria-pressed={tab===value} onClick={()=>props.onTab(value)}>{value} <span>{props.counts[value]}</span></button>)}
     </nav>
     <div className="pos-mobile-catalogue-caption"><strong><LayoutGrid size={13}/>{category==='All'?'Products & services':category}</strong><span>{products.length} {products.length===1?'item':'items'}</span></div>
     <div ref={gridRef} className="pos-mobile-products-grid" role="region" aria-label="Paginated products" style={{gridTemplateColumns:`repeat(${layout.columns},minmax(0,1fr))`,gridTemplateRows:`repeat(${layout.rows},minmax(0,1fr))`}}>
@@ -82,7 +83,7 @@ export default function POSMobileCatalogue<T extends MobileProduct>(props:Props<
     <Dialog.Root open={filtersOpen} onOpenChange={setFiltersOpen}><Dialog.Portal><Dialog.Overlay className="pos-booking-overlay"/><Dialog.Content className="pos-mobile-catalogue-dialog" aria-describedby={undefined}>
       <div className="pos-mobile-catalogue-dialog-heading"><Dialog.Title>Product filters</Dialog.Title><Dialog.Close aria-label="Close product filters"><X size={20}/></Dialog.Close></div>
       <label>Category<NativeSelect aria-label="Product category" value={category} onChange={event=>props.onCategory(event.target.value)}>{props.categories.map(value=><option key={value} value={value}>{value==='All'?'All categories':value}</option>)}</NativeSelect></label>
-      <label>Show<NativeSelect aria-label="Product collection" value={tab} onChange={event=>props.onTab(event.target.value)}>{['All','Products','Services','Favorites','Frequently Used','Recently Used'].map(value=><option key={value}>{value}</option>)}</NativeSelect></label>
+      <label>Show<NativeSelect aria-label="Product collection" value={tab} onChange={event=>props.onTab(event.target.value)}>{[...posOfferingTabs,'Favorites','Frequently Used','Recently Used'].map(value=><option key={value}>{value}</option>)}</NativeSelect></label>
       <label>Sort by<NativeSelect aria-label="Sort catalogue" value={sort} onChange={event=>props.onSort(event.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option><option value="frequent">Most used</option></NativeSelect></label>
       <div className="pos-mobile-catalogue-links"><Link to="/srm/inventory/products">Manage catalogue</Link>{props.canCreate&&<><Link to="/srm/inventory/products?new=item&kind=product">Add product</Link><Link to="/srm/inventory/products?new=item&kind=service">Add service</Link></>}</div>
       <div className="pos-mobile-catalogue-dialog-actions"><Button variant="outline" onClick={reset}>Reset filters</Button><Button onClick={()=>setFiltersOpen(false)}>Show {products.length} items</Button></div>

@@ -22,11 +22,15 @@ def routes(router, prefix=""):
             yield prefix + route.path, route
 
 
-def test_all_user_authenticated_operations_reject_anonymous_requests(client):
+@pytest.mark.parametrize(("auth_dependency", "minimum_operations"), [
+    pytest.param("get_current_user", 3000, id="user"),
+    pytest.param("current_platform_admin", 70, id="platform-admin"),
+])
+def test_all_user_authenticated_operations_reject_anonymous_requests(client, auth_dependency, minimum_operations):
     failures = []
     checked = 0
     for path, route in routes(app.router):
-        if not path.startswith("/api/v1/") or "get_current_user" not in set(dependency_names(route.dependant)):
+        if not path.startswith("/api/v1/") or auth_dependency not in set(dependency_names(route.dependant)):
             continue
         path = re.sub(r"\{[^}]+\}", "1", path)
         for method in sorted(route.methods):
@@ -35,7 +39,7 @@ def test_all_user_authenticated_operations_reject_anonymous_requests(client):
             checked += 1
             if response.status_code not in {401, 403}:
                 failures.append((method, path, response.status_code))
-    assert checked > 3000
+    assert checked >= minimum_operations
     assert failures == [], failures
 
 

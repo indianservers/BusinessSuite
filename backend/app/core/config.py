@@ -271,9 +271,17 @@ class Settings(BaseSettings):
                 return [item.strip() for item in v.split(",") if item.strip()]
         return v
 
+    @field_validator("ENVIRONMENT", mode="before")
+    @classmethod
+    def normalize_environment(cls, value: str) -> str:
+        if isinstance(value, str):
+            value = value.strip().lower()
+            return "production" if value == "prod" else value
+        return value
+
     @model_validator(mode="after")
     def validate_production_cors(self):
-        if self.ENVIRONMENT.lower() == "production":
+        if self.ENVIRONMENT == "production":
             if self.SEED_DEMO_DATA:
                 raise ValueError('Demo seeding must be disabled in production')
             if self.DEBUG:

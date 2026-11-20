@@ -99,3 +99,56 @@ def test_google_provider_requires_workspace_and_official_endpoints():
         _validate_provider_config({**config, "domain_hint": ""})
     with pytest.raises(HTTPException):
         _validate_provider_config({**config, "token_url": "https://attacker.example/token"})
+
+
+@pytest.mark.asyncio
+async def test_oidc_exchange_uses_bounded_pinned_transport(monkeypatch):
+    from app.apps.power_apps.integrations.transport import Response
+    from app.services import sso_service
+
+    requests = []
+
+    class Transport:
+        def __init__(self, policy):
+            self.policy = policy
+
+        def request(self, method, url, headers, body, **options):
+            assert self.policy.allowed_hosts == {"identity.example.test"}
+            assert options["return_redirect"] is False
+            assert options["max_response_bytes"] == 256 * 1024
+            requests.append((method, url, headers, body))
+            response = b'{"access_token":"fixture-token"}' if method == "POST" else b'{"email":"person@example.test"}'
+            return Response(200, {}, response, 1)
+
+    monkeypatch.setattr(sso_service, "HttpTransport", Transport)
+    provider = SSOProvider(provider_type="custom_oidc", client_id="fixture-client", client_secret="fixture-secret",
+                           token_url="https://identity.example.test/token", userinfo_url="https://identity.example.test/me")
+    result = await sso_service.exchange_oidc_code(provider, "fixture-code", "state", "fixture-verifier")
+    assert result == {"email": "person@example.test"}
+    assert requests[0][0] == "POST"
+    assert requests[0][2]["Content-Type"] == "application/x-www-form-urlencoded"
+    assert parse_qs(requests[0][3].decode())["code"] == ["fixture-code"]
+    assert requests[1][0] == "GET"
+    assert requests[1][2] == {"Authorization": "Bearer fixture-token"}
+
+
+@pytest.mark.parametrize("claims", [
+    {"email": "member@example.test"},
+    {"email": "member@example.test", "email_verified": False},
+    {"email": "member@example.test", "email_verified": "true"},
+    {"preferred_username": "member@example.test", "email_verified": True},
+])
+def test_custom_oidc_requires_verified_standard_email(claims):
+    from app.services.sso_service import extract_user_attributes
+
+    provider = SSOProvider(provider_type="custom_oidc", attr_email="preferred_username")
+    with pytest.raises(ValueError):
+        extract_user_attributes(claims, provider)
+
+
+def test_custom_oidc_allows_verified_claim_with_matching_legacy_mapping():
+    from app.services.sso_service import extract_user_attributes
+
+    provider = SSOProvider(provider_type="custom_oidc", attr_email="preferred_username")
+    claims = {"email": "member@example.test", "email_verified": True, "preferred_username": "member@example.test"}
+    assert extract_user_attributes(claims, provider)["email"] == "member@example.test"

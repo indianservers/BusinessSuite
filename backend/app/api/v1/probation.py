@@ -193,10 +193,14 @@ def _query_visible_probation_employees(db: Session, current_user: User):
 
 @router.get("/dashboard")
 def probation_dashboard(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    employees = _query_visible_probation_employees(db, current_user).all()
+    employee_query = _query_visible_probation_employees(db, current_user)
+    employees = employee_query.all()
     due = [item for item in employees if _probation_end(item) <= date.today() + timedelta(days=15)]
     overdue = [item for item in employees if _probation_end(item) < date.today() and (item.probation_status or "on_probation") in {"on_probation", "extended"}]
-    pending_reviews = db.query(func.count(ProbationReview.id)).filter(ProbationReview.status.in_(["pending", "submitted"])).scalar() or 0
+    pending_reviews = db.query(func.count(ProbationReview.id)).filter(
+        ProbationReview.employee_id.in_(employee_query.with_entities(Employee.id)),
+        ProbationReview.status.in_(["pending", "submitted"]),
+    ).scalar() or 0
     return {
         "onProbation": len([item for item in employees if (item.probation_status or "on_probation") == "on_probation"]),
         "extended": len([item for item in employees if item.probation_status == "extended"]),

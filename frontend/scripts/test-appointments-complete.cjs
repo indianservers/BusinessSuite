@@ -43,6 +43,7 @@ const { chromium, expect } = require('playwright/test');
         }else if(p.endsWith('/industry/resources')&&req.method()==='POST'){
           const data=req.postDataJSON();json={id:50,kind:'resource',title:data.title,status:data.initial_status || 'active',revision:1,data};resources.push(json);
         }else if(p.endsWith('/prebooking-workflows/appointments/110/summary'))json={row:appointments.find(r=>r.id===110),employee:'Anita Rao',employee_id:21,provider_resource_id:1,timezone:'Asia/Kolkata',resources:['Chair 01']};
+        else if(p.endsWith('/access/settings/defaults/effective'))json={values:{timezone:'Asia/Kolkata'},modules:{}};
         else if(p.endsWith('/branches/context'))json={company_id:1,selected:1,all_branches:false,branches:[{id:1,name:'Indian Servers - Main',can_write:true,is_active:true}]};
         else if(p.endsWith('/master-data/companies/8'))json=customer;
         else if(p.endsWith('/master-data/companies'))json={items:[customer],total:1,canCreate:true};

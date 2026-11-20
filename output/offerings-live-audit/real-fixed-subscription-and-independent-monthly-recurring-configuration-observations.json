@@ -1,0 +1,10 @@
+{
+  "test": "real fixed subscription and independent monthly recurring configuration",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

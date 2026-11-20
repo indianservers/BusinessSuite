@@ -1,0 +1,10 @@
+{
+  "test": "real POS paid membership creates invoice, payment and one customer plan",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

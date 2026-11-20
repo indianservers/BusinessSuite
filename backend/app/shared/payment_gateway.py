@@ -9,6 +9,9 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import HTTPException
 from app.core.config import settings
+from app.core.provider_responses import read_provider_json
+
+MAX_PROVIDER_RESPONSE_BYTES = 2_000_000
 
 
 def provider_reference(row):
@@ -39,12 +42,11 @@ class RazorpayGateway:
         # Fixed provider host, TLS verification, no redirects, no client-supplied URLs.
         try:
             with httpx.Client(timeout=20, follow_redirects=False, trust_env=False) as client:
-                response = client.request(method, "https://api.razorpay.com/v1/payment_links/" + path,
-                    auth=(self.key_id, self.secret), json=body, params=params)
-                response.raise_for_status()
-                if len(response.content) > 2_000_000:
-                    raise ValueError("Oversized provider response")
-                data = response.json()
+                with client.stream(method, "https://api.razorpay.com/v1/payment_links/" + path,
+                    auth=(self.key_id, self.secret), json=body, params=params,
+                    headers={"Accept-Encoding": "identity"}) as response:
+                    response.raise_for_status()
+                    data = read_provider_json(response, MAX_PROVIDER_RESPONSE_BYTES)
                 if not isinstance(data, dict):
                     raise ValueError("Invalid provider response")
                 return data

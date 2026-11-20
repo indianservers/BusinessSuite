@@ -17,6 +17,9 @@ def test_duplicate_rule_scan_candidate_and_merge_log(client, db):
     assert scan.status_code == 201
     assert scan.json()["total"] == 1
     assert {scan.json()["items"][0]["record_id"], scan.json()["items"][0]["duplicate_record_id"]} == {row.id for row in leads}
+    repeated = client.post("/api/v1/admin/duplicates/scan", headers=headers, json={"module_name": "leads"})
+    assert repeated.status_code == 201, repeated.text
+    assert repeated.json() == {"items": [], "total": 0}
     candidate = scan.json()["items"][0]
     merge = client.post("/api/v1/admin/duplicates/merge", headers=headers, json={"module_name": "leads", "winner_record_id": candidate["record_id"], "loser_record_ids": [candidate["duplicate_record_id"]]})
     assert merge.status_code == 200
@@ -45,3 +48,23 @@ def test_duplicate_scan_excludes_other_branches_and_companies(client, db):
     assert response.json()["total"] == 1
     candidate = response.json()["items"][0]
     assert {candidate["record_id"], candidate["duplicate_record_id"]} == {row.id for row in leads[:2]}
+
+
+def test_duplicate_scan_requires_visible_records_to_fit_budget(client, db, monkeypatch):
+    from importlib import import_module
+
+    monkeypatch.setattr(import_module("app.apps.admin_security.api.router"), "MAX_DUPLICATE_SCAN_RECORDS", 1)
+    headers = auth_headers(client, db)
+    branch_id = int(headers["X-Suite-Branch"])
+    leads = [CRMLead(organization_id=1, branch_id=branch_id, first_name="Asha", full_name="Asha Rao",
+                     email="dupe@example.com") for _ in range(2)]
+    db.add_all(leads)
+    own_workflow_records(db, *leads)
+    db.commit()
+    rule = client.post("/api/v1/admin/duplicate-rules", headers=headers, json={
+        "module_name": "leads", "name": "Lead email", "match_fields_json": ["email"],
+    })
+    assert rule.status_code == 201, rule.text
+    scan = client.post("/api/v1/admin/duplicates/scan", headers=headers, json={"module_name": "leads"})
+    assert scan.status_code == 422, scan.text
+    assert client.get("/api/v1/admin/duplicates/candidates", headers=headers).json()["total"] == 0

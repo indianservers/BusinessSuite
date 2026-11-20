@@ -111,3 +111,69 @@ def test_expired_file_capability_cannot_be_resaved(client,superuser_headers):
                         json={'file_url':settings.BACKEND_PUBLIC_URL+'/api/v1/files/blob?token='+token})
     assert response.status_code==403
     assert response.json()['detail']=='Invalid or expired file reference'
+
+
+@pytest.mark.parametrize("backend", ["s3", "vercel_blob"])
+def test_bounded_remote_file_leaves_original_intact_on_excess_bytes(backend, tmp_path, monkeypatch):
+    from contextlib import closing, nullcontext
+    from types import SimpleNamespace
+    from app.core import storage
+    from app.services import file_storage
+
+    class Download:
+        closed = False
+        metadata = SimpleNamespace(size=None)
+
+        def __iter__(self):
+            yield b"first"
+            yield b"second"
+            pytest.fail("The storage stream continued after exceeding the download budget")
+
+        def iter_chunks(self, chunk_size):
+            return iter(self)
+
+        def close(self):
+            self.closed = True
+
+    target = tmp_path / "certificate.pdf"
+    target.write_bytes(b"existing certificate")
+    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
+    monkeypatch.setattr(settings, "STORAGE_BACKEND", backend)
+    monkeypatch.setattr(file_storage, "materialize", lambda *args, **kwargs: None)
+    download = Download()
+    if backend == "s3":
+        client = SimpleNamespace(get_object=lambda **kwargs: {"Body": download})
+        monkeypatch.setattr(storage, "s3_client", lambda: client)
+    else:
+        from vercel.blob import sync
+
+        monkeypatch.setattr(storage, "blob_session", nullcontext)
+        monkeypatch.setattr(sync, "stream_blob", lambda *args, **kwargs: closing(download))
+
+    with pytest.raises(HTTPException) as error:
+        storage.materialize_file(str(target), max_bytes=8)
+    assert error.value.status_code == 413
+    assert download.closed
+    assert target.read_bytes() == b"existing certificate"
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_connected_storage_passes_remaining_bytes_to_bounded_transport(monkeypatch):
+    from types import SimpleNamespace
+    from app.apps.power_apps.integrations.contracts import IntegrationFailure
+    from app.services import file_storage_providers as providers
+
+    monkeypatch.setattr(providers, "authorization", lambda *args: {})
+
+    def download(self, method, url, headers, body, *, timeout, return_redirect, max_response_bytes):
+        assert max_response_bytes == 8
+        raise IntegrationFailure("response_size", "Response exceeds the configured byte limit")
+
+    monkeypatch.setattr(providers.HttpTransport, "request", download)
+    connection = SimpleNamespace(provider="google_drive")
+    with pytest.raises(HTTPException) as error:
+        providers.download(None, connection, "certificate", max_bytes=8)
+    assert error.value.status_code == 413
+    with pytest.raises(HTTPException) as empty_budget:
+        providers.download(None, connection, "certificate", max_bytes=0)
+    assert empty_budget.value.status_code == 413

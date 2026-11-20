@@ -18,11 +18,11 @@ class PortalInvitePayload(PortalUserPayload):
 
 
 class PartnerLeadPayload(BaseModel):
-    company_name: str
-    contact_name: str
-    email: str
-    value: float = 0
-    notes: str | None = None
+    company_name: str = Field(min_length=1, max_length=180)
+    contact_name: str = Field(min_length=1, max_length=100)
+    email: EmailAddress = Field(max_length=150)
+    value: float = Field(default=0, ge=0, le=9_999_999_999.99, allow_inf_nan=False)
+    notes: str | None = Field(default=None, max_length=5000)
 
 
 class APIKeyPayload(BaseModel):

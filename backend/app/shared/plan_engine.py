@@ -16,13 +16,27 @@ def end_date(start, duration):
     if duration.unit == "custom":
         return duration.end
     if duration.unit in {"day", "week"}:
-        return start + timedelta(days=duration.count * (7 if duration.unit == "week" else 1))
+        try:
+            return start + timedelta(days=duration.count * (7 if duration.unit == "week" else 1))
+        except OverflowError:
+            raise HTTPException(422, "Plan duration exceeds the supported date range") from None
     months = duration.count * (12 if duration.unit == "year" else 1)
     month = start.month - 1 + months
     year, month = start.year + month // 12, month % 12 + 1
     if not 1 <= year <= 9999:
         raise HTTPException(422, "Plan duration exceeds the supported date range")
     return date(year, month, min(start.day, calendar.monthrange(year, month)[1]))
+
+
+def validity_dates(config, start=None):
+    """Shared by assignment and read-only UX previews; expiry is exclusive."""
+    if config.activation == "selected_date" and start is None:
+        raise HTTPException(422, "Select an activation date")
+    start = start or config.duration.start or date.today()
+    end = end_date(start, config.duration)
+    if end and end <= start:
+        raise HTTPException(422, "Plan expiry must follow activation")
+    return start, end
 
 
 def snapshot(plan):
@@ -35,7 +49,7 @@ def event(db, user, plan, action, key, before, intent=None):
         action=action, before=before, after={**snapshot(plan), **({"request": intent} if intent is not None else {})}, created_by=user.id))
 
 
-def issue(db, user, source, offering_id, kind, customer_id, source_key, start=None, beneficiaries=None, *, configuration=None, price_snapshot=None):
+def issue(db, user, source, offering_id, kind, customer_id, source_key, start=None, beneficiaries=None, *, configuration=None, price_snapshot=None, expected_version=None):
     from app.shared.catalog import item_record
     lock_tenant(db, user)
     row, detail = item_record(db, user, source, kind, offering_id, archived=False)
@@ -49,14 +63,13 @@ def issue(db, user, source, offering_id, kind, customer_id, source_key, start=No
             raise HTTPException(409, "Issuance key was already used for another purchase")
         if start and start != previous.start_date:
             raise HTTPException(409, "Issuance key has a different activation date")
+        if expected_version is not None and previous.price_snapshot.get("version") != expected_version:
+            raise HTTPException(409, "Issuance key has different plan terms")
         return previous
+    if expected_version is not None and expected_version != (detail.version if detail else 0):
+        raise HTTPException(409, "Plan terms changed. Refresh the preview before assigning.")
     config = Plan.model_validate(configuration or (row.metadata_json or {}).get("plan") or {})
-    if config.activation == "selected_date" and start is None:
-        raise HTTPException(422, "Select an activation date")
-    start = start or config.duration.start or date.today()
-    end = end_date(start, config.duration)
-    if end and end <= start:
-        raise HTTPException(422, "Plan expiry must follow activation")
+    start, end = validity_dates(config, start)
     participants = list(dict.fromkeys(beneficiaries or []))
     if len(participants) > config.beneficiary_limit:
         raise HTTPException(422, "Beneficiary limit exceeded")
@@ -67,7 +80,7 @@ def issue(db, user, source, offering_id, kind, customer_id, source_key, start=No
     plan = CustomerPlan(organization_id=tenant(user), offering_id=row.id, customer_id=customer_id, kind=kind,
         number=f"{kind[:3].upper()}-{uuid4().hex[:16].upper()}", source_key=source_key, status=status,
         start_date=start, end_date=end, configuration=config.model_dump(mode="json"), beneficiaries=participants,
-        price_snapshot=price_snapshot or {"price": str(row.sales_rate), "currency": row.currency, "tax": str(row.gst_rate), "version": detail.version if detail else 0},
+        price_snapshot={"name": row.item_name, **(price_snapshot or {"price": str(row.sales_rate), "currency": row.currency, "tax": str(row.gst_rate), "version": detail.version if detail else 0})},
         revision=1, created_by=user.id)
     db.add(plan); db.flush()
     for benefit in config.benefits:
@@ -91,19 +104,9 @@ def plan_for(db, user, ident, source="srm", write=False):
     return plan
 
 
-def transition(db, user, ident, action, key, revision, source="srm", until=None, customer_id=None):
-    lock_tenant(db, user)
-    plan = plan_for(db, user, ident, source, True)
-    intent = {"revision": revision, "until": str(until) if until else None, "customer_id": customer_id}
-    old = db.query(PlanLifecycleEvent).filter_by(organization_id=tenant(user), request_key=key).first()
-    if old:
-        if old.plan_id != ident or old.action != action or old.after.get("request") != intent:
-            raise HTTPException(409, "Lifecycle key was already used")
-        return plan
-    if plan.revision != revision:
-        raise HTTPException(409, "Plan changed; reload before saving")
+def transition_changes(plan, action, until=None, customer_id=None):
+    """Validate lifecycle effects without mutating a plan or granting benefits."""
     config = Plan.model_validate(plan.configuration)
-    before = snapshot(plan)
     allowed = {"activate": ({"pending"}, "active"), "pause": ({"active"}, "paused"),
         "resume": ({"paused", "suspended"}, "active"), "suspend": ({"active"}, "suspended"),
         "cancel": ({"pending", "active", "paused", "suspended"}, "cancelled"),
@@ -116,20 +119,36 @@ def transition(db, user, ident, action, key, revision, source="srm", until=None,
             raise HTTPException(422, "Expired plans must be renewed before activation")
         if action == "expire" and (plan.end_date is None or plan.end_date > date.today()):
             raise HTTPException(422, "Plan has not reached expiry")
-        plan.status = target
+        return {"status": target}
     elif action in {"extend", "renew"}:
         if plan.status == "cancelled" or not until or until <= max(plan.end_date or date.today(), date.today()):
             raise HTTPException(422, "Select a later expiry for a non-cancelled plan")
-        plan.end_date = until
-        if action == "renew":
-            plan.status = "active"
+        return {"end_date": until, **({"status": "active"} if action == "renew" else {})}
     elif action == "transfer":
         if not config.allow_transfer or not customer_id or plan.status == "cancelled":
             raise HTTPException(422, "Transfer is not permitted")
-        customer(db, customer_id, user)
-        plan.customer_id = customer_id
+        return {"customer_id": customer_id}
     else:
         raise HTTPException(422, "Unsupported lifecycle operation")
+
+
+def transition(db, user, ident, action, key, revision, source="srm", until=None, customer_id=None):
+    lock_tenant(db, user)
+    plan = plan_for(db, user, ident, source, True)
+    intent = {"revision": revision, "until": str(until) if until else None, "customer_id": customer_id}
+    old = db.query(PlanLifecycleEvent).filter_by(organization_id=tenant(user), request_key=key).first()
+    if old:
+        if old.plan_id != ident or old.action != action or old.after.get("request") != intent:
+            raise HTTPException(409, "Lifecycle key was already used")
+        return plan
+    if plan.revision != revision:
+        raise HTTPException(409, "Plan changed; reload before saving")
+    before = snapshot(plan)
+    changes = transition_changes(plan, action, until, customer_id)
+    if action == "transfer":
+        customer(db, customer_id, user)
+    for name, value in changes.items():
+        setattr(plan, name, value)
     plan.revision += 1
     event(db, user, plan, action, key, before, intent)
     db.flush()

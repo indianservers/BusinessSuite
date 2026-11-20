@@ -1,0 +1,10 @@
+{
+  "test": "real membership edit, archive, status filter and record preservation",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

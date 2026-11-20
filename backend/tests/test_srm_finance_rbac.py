@@ -25,6 +25,12 @@ def test_srm_finance_collection_and_sales_rbac(client, db, superuser_headers):
     assert approved.status_code == 200, approved.text
     assert client.get("/api/v1/srm/profitability", headers=finance_headers).status_code == 200
 
+    finance_dashboard = client.get("/api/v1/srm/dashboard", headers=finance_headers)
+    collector_dashboard = client.get("/api/v1/srm/dashboard", headers=collection_headers)
+    assert finance_dashboard.status_code == collector_dashboard.status_code == 200
+    assert "profitability_summary" in finance_dashboard.json()
+    assert {"profitability_summary", "gross_margin", "cash_margin"}.isdisjoint(collector_dashboard.json())
+
     receipt = client.post("/api/v1/srm/receipts", headers=collection_headers, json={"customer_id": 101, "amount": 1000})
     assert receipt.status_code == 201, receipt.text
     blocked_invoice_edit = client.patch(f"/api/v1/srm/invoices/{invoice.json()['id']}", headers=collection_headers, json={"status": "cancelled"})

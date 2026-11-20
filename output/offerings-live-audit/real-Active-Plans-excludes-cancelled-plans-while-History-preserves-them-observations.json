@@ -1,0 +1,10 @@
+{
+  "test": "real Active Plans excludes cancelled plans while History preserves them",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

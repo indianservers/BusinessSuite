@@ -1,0 +1,919 @@
+{
+  "stats": {
+    "total": 35,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "runs": [
+    {
+      "startTime": "2026-11-19T13:38:33.988Z",
+      "duration": 265732.68,
+      "expected": 21,
+      "skipped": 0,
+      "unexpected": 14,
+      "flaky": 0
+    },
+    {
+      "startTime": "2026-11-19T13:43:53.789Z",
+      "duration": 142840.615,
+      "expected": 12,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    {
+      "startTime": "2026-11-19T13:46:25.001Z",
+      "duration": 31022.852,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  ],
+  "cases": [
+    {
+      "name": "real browser login and isolated catalog bootstrap",
+      "status": "passed",
+      "duration_ms": 6247,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:38:34.437Z",
+          "duration_ms": 6247
+        }
+      ],
+      "observations": {
+        "test": "real browser login and isolated catalog bootstrap",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real product create, view and shared master persistence",
+      "status": "passed",
+      "duration_ms": 6950,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:38:40.870Z",
+          "duration_ms": 6950
+        }
+      ],
+      "observations": {
+        "test": "real product create, view and shared master persistence",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real service create, view and shared master persistence",
+      "status": "passed",
+      "duration_ms": 7462,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:38:47.833Z",
+          "duration_ms": 7462
+        }
+      ],
+      "observations": {
+        "test": "real service create, view and shared master persistence",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real membership create, view and shared master persistence",
+      "status": "passed",
+      "duration_ms": 7841,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:38:55.313Z",
+          "duration_ms": 7841
+        }
+      ],
+      "observations": {
+        "test": "real membership create, view and shared master persistence",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real subscription create, view and shared master persistence",
+      "status": "passed",
+      "duration_ms": 7687,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:03.166Z",
+          "duration_ms": 7687
+        }
+      ],
+      "observations": {
+        "test": "real subscription create, view and shared master persistence",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real bundle create, view and shared master persistence",
+      "status": "passed",
+      "duration_ms": 8035,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:10.865Z",
+          "duration_ms": 8035
+        }
+      ],
+      "observations": {
+        "test": "real bundle create, view and shared master persistence",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real membership 3-month preset persists",
+      "status": "passed",
+      "duration_ms": 6449,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:18.913Z",
+          "duration_ms": 6449
+        }
+      ],
+      "observations": {
+        "test": "real membership 3-month preset persists",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real membership 6-month preset persists",
+      "status": "passed",
+      "duration_ms": 6699,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:25.373Z",
+          "duration_ms": 6699
+        }
+      ],
+      "observations": {
+        "test": "real membership 6-month preset persists",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real membership 12-month preset persists",
+      "status": "passed",
+      "duration_ms": 7118,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:32.085Z",
+          "duration_ms": 7118
+        }
+      ],
+      "observations": {
+        "test": "real membership 12-month preset persists",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real customer membership assignment, pause, resume, renewal and history",
+      "status": "passed",
+      "duration_ms": 17312,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:39.215Z",
+          "duration_ms": 17312
+        }
+      ],
+      "observations": {
+        "test": "real customer membership assignment, pause, resume, renewal and history",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real POS recognizes and filters all five offering types",
+      "status": "passed",
+      "duration_ms": 11632,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:39:56.536Z",
+          "duration_ms": 11632
+        }
+      ],
+      "observations": {
+        "test": "real POS recognizes and filters all five offering types",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real POS paid membership creates invoice, payment and one customer plan",
+      "status": "passed",
+      "duration_ms": 12168,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:40:08.180Z",
+          "duration_ms": 12168
+        }
+      ],
+      "observations": {
+        "test": "real POS paid membership creates invoice, payment and one customer plan",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real responsive catalog and editors 1920x1080",
+      "status": "passed",
+      "duration_ms": 19768,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:40:20.359Z",
+          "duration_ms": 19768
+        }
+      ],
+      "observations": {
+        "test": "real responsive catalog and editors 1920x1080",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real responsive catalog and editors 1366x768",
+      "status": "passed",
+      "duration_ms": 19790,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:40:40.137Z",
+          "duration_ms": 19790
+        }
+      ],
+      "observations": {
+        "test": "real responsive catalog and editors 1366x768",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real responsive catalog and editors 768x1024",
+      "status": "passed",
+      "duration_ms": 18844,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:40:59.934Z",
+          "duration_ms": 18844
+        }
+      ],
+      "observations": {
+        "test": "real responsive catalog and editors 768x1024",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real responsive catalog and editors 390x844",
+      "status": "passed",
+      "duration_ms": 21608,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:41:18.788Z",
+          "duration_ms": 21608
+        }
+      ],
+      "observations": {
+        "test": "real responsive catalog and editors 390x844",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real read-only role cannot mutate or read a private workspace offering",
+      "status": "passed",
+      "duration_ms": 5332,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:41:40.405Z",
+          "duration_ms": 5332
+        }
+      ],
+      "observations": {
+        "test": "real read-only role cannot mutate or read a private workspace offering",
+        "errors": [],
+        "apiFailures": [
+          "404 /api/v1/catalog/items/membership/10",
+          "403 /api/v1/catalog/items"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        ],
+        "status": "passed",
+        "expectedHTTP": [
+          "403",
+          "404"
+        ],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real second-company browser cannot read the first company catalog",
+      "status": "passed",
+      "duration_ms": 6231,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:41:45.748Z",
+          "duration_ms": 6231
+        }
+      ],
+      "observations": {
+        "test": "real second-company browser cannot read the first company catalog",
+        "errors": [],
+        "apiFailures": [
+          "404 /api/v1/catalog/items/membership/3"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "status": "passed",
+        "expectedHTTP": [
+          "404"
+        ],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real membership edit, archive, status filter and record preservation",
+      "status": "passed",
+      "duration_ms": 9028,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:41:51.993Z",
+          "duration_ms": 9028
+        }
+      ],
+      "observations": {
+        "test": "real membership edit, archive, status filter and record preservation",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real fixed subscription and independent monthly recurring configuration",
+      "status": "passed",
+      "duration_ms": 8042,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:42:01.037Z",
+          "duration_ms": 8042
+        }
+      ],
+      "observations": {
+        "test": "real fixed subscription and independent monthly recurring configuration",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real CRM and PMS catalogs reference the same master offerings",
+      "status": "passed",
+      "duration_ms": 19288,
+      "attempts": [
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:42:09.089Z",
+          "duration_ms": 19288
+        }
+      ],
+      "observations": {
+        "test": "real CRM and PMS catalogs reference the same master offerings",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real invalid renewal date leaves plan and audit unchanged",
+      "status": "passed",
+      "duration_ms": 14250,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:28.387Z",
+          "duration_ms": 15304
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:43:54.645Z",
+          "duration_ms": 14250
+        }
+      ],
+      "observations": {
+        "test": "real invalid renewal date leaves plan and audit unchanged",
+        "errors": [],
+        "apiFailures": [
+          "422 /api/v1/customer-plans/10/lifecycle"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+        ],
+        "status": "passed",
+        "expectedHTTP": [
+          "422"
+        ],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real mixed bundle preserves all component types, quantities and options",
+      "status": "passed",
+      "duration_ms": 13312,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:45.015Z",
+          "duration_ms": 379
+        },
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:44:09.092Z",
+          "duration_ms": 18462
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:46:25.640Z",
+          "duration_ms": 13312
+        }
+      ],
+      "observations": {
+        "test": "real mixed bundle preserves all component types, quantities and options",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real circular bundle edit is rejected without changing its definition",
+      "status": "passed",
+      "duration_ms": 16600,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:46.475Z",
+          "duration_ms": 409
+        },
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:44:28.417Z",
+          "duration_ms": 18063
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:46:39.179Z",
+          "duration_ms": 16600
+        }
+      ],
+      "observations": {
+        "test": "real circular bundle edit is rejected without changing its definition",
+        "errors": [],
+        "apiFailures": [
+          "422 /api/v1/catalog/items/bundle/42"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+        ],
+        "status": "passed",
+        "expectedHTTP": [
+          "422"
+        ],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real catalog search, type filtering and pagination use persisted records",
+      "status": "passed",
+      "duration_ms": 6857,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:47.661Z",
+          "duration_ms": 382
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:44:47.491Z",
+          "duration_ms": 6857
+        }
+      ],
+      "observations": {
+        "test": "real catalog search, type filtering and pagination use persisted records",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real customer subscription assignment and cancellation preserves history",
+      "status": "passed",
+      "duration_ms": 11766,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:48.894Z",
+          "duration_ms": 426
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:44:54.570Z",
+          "duration_ms": 11766
+        }
+      ],
+      "observations": {
+        "test": "real customer subscription assignment and cancellation preserves history",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real Active Plans excludes cancelled plans while History preserves them",
+      "status": "passed",
+      "duration_ms": 8749,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:50.065Z",
+          "duration_ms": 420
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:06.348Z",
+          "duration_ms": 8749
+        }
+      ],
+      "observations": {
+        "test": "real Active Plans excludes cancelled plans while History preserves them",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: appointments",
+      "status": "passed",
+      "duration_ms": 8181,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:51.241Z",
+          "duration_ms": 375
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:15.110Z",
+          "duration_ms": 8181
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: appointments",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: service scheduling",
+      "status": "passed",
+      "duration_ms": 6939,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:52.328Z",
+          "duration_ms": 288
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:23.307Z",
+          "duration_ms": 6939
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: service scheduling",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: HRMS employee benefits",
+      "status": "passed",
+      "duration_ms": 6455,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:53.356Z",
+          "duration_ms": 377
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:30.257Z",
+          "duration_ms": 6455
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: HRMS employee benefits",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: PMS delivery projects",
+      "status": "passed",
+      "duration_ms": 6900,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:54.496Z",
+          "duration_ms": 387
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:36.722Z",
+          "duration_ms": 6900
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: PMS delivery projects",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: finance invoices",
+      "status": "passed",
+      "duration_ms": 7775,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:55.621Z",
+          "duration_ms": 305
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:43.634Z",
+          "duration_ms": 7775
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: finance invoices",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real cross-module regression: sales reporting",
+      "status": "passed",
+      "duration_ms": 6816,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:56.698Z",
+          "duration_ms": 401
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:51.421Z",
+          "duration_ms": 6816
+        }
+      ],
+      "observations": {
+        "test": "real cross-module regression: sales reporting",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real browser retries the same checkout without duplicate invoices, payments or plans",
+      "status": "passed",
+      "duration_ms": 6253,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:57.840Z",
+          "duration_ms": 388
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:45:58.246Z",
+          "duration_ms": 6253
+        }
+      ],
+      "observations": {
+        "test": "real browser retries the same checkout without duplicate invoices, payments or plans",
+        "errors": [],
+        "apiFailures": [],
+        "consoleErrors": [],
+        "status": "passed",
+        "expectedHTTP": [],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    },
+    {
+      "name": "real unsupported bundle checkout is disclosed and cannot write a partial sale",
+      "status": "passed",
+      "duration_ms": 11740,
+      "attempts": [
+        {
+          "status": "failed",
+          "start_time": "2026-11-19T13:42:58.967Z",
+          "duration_ms": 397
+        },
+        {
+          "status": "passed",
+          "start_time": "2026-11-19T13:46:04.511Z",
+          "duration_ms": 11740
+        }
+      ],
+      "observations": {
+        "test": "real unsupported bundle checkout is disclosed and cannot write a partial sale",
+        "errors": [],
+        "apiFailures": [
+          "503 /api/v1/srm/sales-orders"
+        ],
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        ],
+        "status": "passed",
+        "expectedHTTP": [
+          "503"
+        ],
+        "unexpectedHTTP": [],
+        "unexpectedConsole": []
+      }
+    }
+  ]
+}

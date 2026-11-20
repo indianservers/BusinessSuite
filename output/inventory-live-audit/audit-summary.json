@@ -1,0 +1,322 @@
+{
+  "browser_stats": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0
+  },
+  "runs": [
+    {
+      "startTime": "2026-11-19T14:44:22.102Z",
+      "duration": 113237.76000000001,
+      "expected": 9,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "startTime": "2026-11-19T14:52:15.519Z",
+      "duration": 42560.669,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  ],
+  "cases": [
+    {
+      "name": "real inventory transactions establish 115 Finance and 120 Sales units",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory transactions establish 115 Finance and 120 Sales units",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real fam all inventory reports, filters, exports and traceable quantities",
+      "status": "passed",
+      "observations": {
+        "title": "real fam all inventory reports, filters, exports and traceable quantities",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real srm all inventory reports, filters, exports and traceable quantities",
+      "status": "passed",
+      "observations": {
+        "title": "real srm all inventory reports, filters, exports and traceable quantities",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real inventory filter and drill-down preserve dates and server ledger pagination",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory filter and drill-down preserve dates and server ledger pagination",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real inventory reports responsive 1920x1080",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory reports responsive 1920x1080",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real inventory reports responsive 1366x768",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory reports responsive 1366x768",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real inventory reports responsive 768x1024",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory reports responsive 768x1024",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real inventory reports responsive 390x844",
+      "status": "passed",
+      "observations": {
+        "title": "real inventory reports responsive 390x844",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real batch expiry reports reconcile persisted available quantity and cost",
+      "status": "passed",
+      "observations": {
+        "title": "real batch expiry reports reconcile persisted available quantity and cost",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    },
+    {
+      "name": "real classic inventory report routes reuse the corrected paginated reports",
+      "status": "passed",
+      "observations": {
+        "title": "real classic inventory report routes reuse the corrected paginated reports",
+        "errors": [],
+        "http": [],
+        "console": [],
+        "status": "passed"
+      }
+    }
+  ],
+  "export_checks": [
+    {
+      "source": "fam",
+      "report": "overview",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "summary",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "ledger",
+      "excel_rows": 5,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "valuation",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "purchases",
+      "excel_rows": 2,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "sales",
+      "excel_rows": 2,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "reorder",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "aging",
+      "excel_rows": 3,
+      "pdf_pages": 2,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "expiry",
+      "excel_rows": 0,
+      "pdf_pages": 1,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "adjustments",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "transfers",
+      "excel_rows": 2,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "dead-stock",
+      "excel_rows": 0,
+      "pdf_pages": 1,
+      "status": "passed"
+    },
+    {
+      "source": "fam",
+      "report": "reconciliation",
+      "excel_rows": 0,
+      "pdf_pages": 1,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "overview",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "summary",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "ledger",
+      "excel_rows": 3,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "valuation",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "purchases",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "sales",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "reorder",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "aging",
+      "excel_rows": 2,
+      "pdf_pages": 2,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "expiry",
+      "excel_rows": 1,
+      "pdf_pages": 2,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "adjustments",
+      "excel_rows": 1,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "transfers",
+      "excel_rows": 2,
+      "pdf_pages": 5,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "dead-stock",
+      "excel_rows": 0,
+      "pdf_pages": 1,
+      "status": "passed"
+    },
+    {
+      "source": "srm",
+      "report": "reconciliation",
+      "excel_rows": 0,
+      "pdf_pages": 1,
+      "status": "passed"
+    }
+  ]
+}

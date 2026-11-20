@@ -1,0 +1,19 @@
+{
+  "invoices": [
+    {
+      "id": 4,
+      "total_amount": 118,
+      "paid_amount": 118,
+      "balance_amount": 0,
+      "status": "paid"
+    }
+  ],
+  "plans": [
+    {
+      "id": 10,
+      "status": "active",
+      "source_key": "sales-order:4:line:4",
+      "offering_id": 3
+    }
+  ]
+}

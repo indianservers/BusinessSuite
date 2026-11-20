@@ -1,0 +1,16 @@
+{
+  "test": "real invalid renewal date leaves plan and audit unchanged",
+  "errors": [],
+  "apiFailures": [
+    "422 /api/v1/customer-plans/10/lifecycle"
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "status": "passed",
+  "expectedHTTP": [
+    "422"
+  ],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

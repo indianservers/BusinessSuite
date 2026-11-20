@@ -1,0 +1,10 @@
+{
+  "test": "real POS recognizes and filters all five offering types",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "id": 39,
+    "sku": "BQA-membership-3-1795095717872",
+    "item_name": "Browser audit membership 3 1795095717872",
+    "product_type": "membership",
+    "track_inventory": 0,
+    "metadata_json": "{\"catalog_branches\": {\"default\": false, \"overrides\": {\"1\": true}}, \"catalog_tags\": [], \"currency\": \"INR\", \"images\": [], \"plan\": {\"tier\": \"\", \"duration\": {\"unit\": \"month\", \"count\": 3, \"start\": null, \"end\": null}, \"activation\": \"purchase\", \"beneficiary_type\": \"person\", \"beneficiary_limit\": 1, \"benefits\": [{\"key\": \"7478bc5c-08de-43ff-9074-e2e089d9d868\", \"type\": \"sessions\", \"label\": \"Audit sessions\", \"allowance\": \"20\", \"value\": \"0\", \"priority\": 0, \"stacking\": \"best\", \"consumption_event\": \"completion\", \"rollover\": false, \"eligibility\": {\"offering_ids\": [], \"locations\": [], \"customer_groups\": [], \"weekdays\": [], \"blackout_dates\": []}}], \"eligibility\": {\"offering_ids\": [], \"locations\": [], \"customer_groups\": [], \"weekdays\": [], \"blackout_dates\": []}, \"renewal\": {\"mode\": \"manual\", \"reminder_days\": [30, 7, 1], \"price\": null}, \"billing\": {\"mode\": \"prepaid\", \"recurring\": false, \"automation\": false, \"interval_unit\": \"month\", \"interval_count\": 1, \"anchor_day\": 1, \"timezone\": \"UTC\", \"setup_fee\": 0, \"refundable_deposit\": 0, \"trial_days\": 0, \"grace_days\": 0, \"proration\": \"none\", \"overage\": \"deny\"}, \"allow_pause\": true, \"allow_transfer\": false, \"employee_ids\": [], \"project_template_id\": null}}"
+  }
+]

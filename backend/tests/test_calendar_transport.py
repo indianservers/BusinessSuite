@@ -72,6 +72,28 @@ def test_provider_error_classification(monkeypatch,status,attribute):
     finally: t.close()
 
 
+def test_provider_calendar_stream_stops_before_reading_oversized_body(monkeypatch):
+    seen = []
+
+    class Page(httpx.SyncByteStream):
+        def __iter__(self):
+            for index in range(4):
+                seen.append(index)
+                yield b"x" * (2 * 1024 * 1024)
+
+    def handler(request):
+        assert request.headers["Accept-Encoding"] == "identity"
+        return httpx.Response(200, stream=Page())
+
+    t = transport(monkeypatch, "google", handler)
+    try:
+        with pytest.raises(CalendarSyncError, match="oversized response"):
+            t.request("GET", t.base)
+        assert seen == [0, 1, 2]
+    finally:
+        t.close()
+
+
 def test_untrusted_continuation_never_receives_credentials(monkeypatch):
     calls = []
     t = transport(monkeypatch,"outlook",lambda request:calls.append(request))

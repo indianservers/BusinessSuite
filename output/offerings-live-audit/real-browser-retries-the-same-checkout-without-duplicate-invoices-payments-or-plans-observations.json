@@ -1,0 +1,10 @@
+{
+  "test": "real browser retries the same checkout without duplicate invoices, payments or plans",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

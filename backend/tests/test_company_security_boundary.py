@@ -479,6 +479,7 @@ def test_customer_portal_is_company_scoped_even_with_a_tainted_old_link(
                 organization_id=index,
                 customer_id=customer.id,
                 invoice_number=f"PORTAL-{index}",
+                status="sent",
             )
         )
     db.commit()

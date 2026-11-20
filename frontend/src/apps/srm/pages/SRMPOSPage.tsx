@@ -1,3 +1,4 @@
+import {posOfferingTabs,matchesOfferingTab} from "../components/pos-offering-types";
 import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import {loadPOSCatalog} from "../pos-catalog-pages";
 import POSBookingSettings, {type POSBookingPresentation} from '../components/POSBookingSettings';
@@ -324,9 +325,9 @@ function productFromRecord(item: SRMRecord): Product {
     mrp: recordNumber(item.mrp, recordNumber(item.sales_rate)),
     taxRate: recordNumber(item.gst_rate),
     stock: recordNumber((item.stock as {available_quantity?:string}|undefined)?.available_quantity, recordNumber(item.current_quantity)),
-    checkoutSupported: item.checkout_supported !== false,
+    checkoutSupported: item.product_type !== "bundle" && item.checkout_supported !== false,
     bookingRequired: Boolean((item.booking_policy as {required?:boolean}|undefined)?.required),
-    unsupportedReason: item.unsupported_reason ? String(item.unsupported_reason) : undefined,
+    unsupportedReason: item.product_type === "bundle" ? "This bundle is not available for checkout." : item.unsupported_reason ? String(item.unsupported_reason) : undefined,
     reorderLevel: recordNumber(item.reorder_level),
     trackInventory: !["service","services","membership","subscription","bundle"].includes(String(item.product_type).toLowerCase()) && item.track_inventory !== false,
     batchTracking: Boolean(item.batch_tracking),
@@ -404,6 +405,7 @@ function posDraftScope() {
   return encodeURIComponent(JSON.stringify(['pos-draft-v3',logicalIntentScope(),securityAuthStamp(user)]));
 }
 function normalizeCart(lines: CartLine[]) { return lines.map(line => ({...line, lineId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(line.lineId) ? line.lineId : crypto.randomUUID(), qty: line.booking ? 1 : line.qty})); }
+function isCustomerPlan(line: Product) { return ["Memberships","Subscriptions"].includes(line.kind); }
 function isService(line: Product) { return ['service','services'].includes(line.kind.toLowerCase()); }
 export default function SRMPOSPage() {
   const [routeParams]=useSearchParams();
@@ -655,7 +657,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     return storeProducts.filter((product) => {
       const categoryMatch = category === "All" || product.category === category;
       const textMatch = !text || [product.name, product.sku, product.barcode, product.category, product.batch || "", ...(product.serials || [])].join(" ").toLowerCase().includes(text);
-      return categoryMatch && textMatch && (catalogTab === "All" || (catalogTab === "Recently Used" ? recentIds.includes(product.id) : catalogTab === "Favorites" ? favoriteIds.includes(product.id) : catalogTab === "Frequently Used" ? (usageCounts[product.id] || 0)>0 : catalogTab === "Services" ? isService(product) : catalogTab === "Products" ? !isService(product) : false));
+      return categoryMatch && textMatch && (catalogTab === "All" || (catalogTab === "Recently Used" ? recentIds.includes(product.id) : catalogTab === "Favorites" ? favoriteIds.includes(product.id) : catalogTab === "Frequently Used" ? (usageCounts[product.id] || 0)>0 : matchesOfferingTab(product,catalogTab)));
     }).sort((a,b) => catalogTab==="Frequently Used" || catalogSort==="frequent" ? (usageCounts[b.id] || 0)-(usageCounts[a.id] || 0) || a.name.localeCompare(b.name) : catalogSort === "price" ? a.rate-b.rate : a.name.localeCompare(b.name));
   }, [category, query, storeProducts, catalogTab, catalogSort, recentIds, favoriteIds, usageCounts]);
 
@@ -732,7 +734,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     setHighlighted(product.id);setScanFeedback(`${product.name} added to cart.`);
     const addedLine = buildCartLine(product);
     setCart((current) => {
-      const existing = current.find((line) => line.id === product.id && !line.serialTracking && !isService(line));
+      const existing = current.find((line) => line.id === product.id && !line.serialTracking && !isService(line) && !isCustomerPlan(line));
       phonePaginationAnchor.current = existing?.lineId || addedLine.lineId;
       if (!existing) return [...current, addedLine];
       return current.map((line) => line.lineId === existing.lineId ? { ...line, qty: line.trackInventory ? Math.min(line.stock, line.qty + 1) : line.qty + 1 } : line);
@@ -1133,7 +1135,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         <section aria-label="Products and services catalogue" className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
           {productsQuery.data?.hasMore&&<div className="flex items-center justify-between gap-2 text-xs"><span>Showing {currentProducts.length} items. Search the catalog or load more.</span><Button type="button" variant="outline" disabled={productsQuery.isFetching} onClick={()=>setCatalogPages(value=>value+1)}>Load more items</Button></div>}
           {phoneWidth<=767 ? <POSMobileCatalogue products={filteredProducts}
-            counts={{All:storeProducts.length,Products:storeProducts.filter(product=>!isService(product)).length,Services:storeProducts.filter(isService).length}}
+            counts={Object.fromEntries(posOfferingTabs.map(tab=>[tab,storeProducts.filter(product=>matchesOfferingTab(product,tab)).length]))}
             cart={cart} query={query} onQuery={setQuery} searchInputRef={searchRef} onScan={scanSearch}
             category={category} categories={categories} onCategory={setCategory} tab={catalogTab} onTab={setCatalogTab} sort={catalogSort} onSort={setCatalogSort}
             favorites={favoriteIds} onFavorite={id=>setFavoriteIds(ids=>ids.includes(id)?ids.filter(value=>value!==id):[...ids,id])}
@@ -1178,8 +1180,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         </div>
 </div>
           <div className="flex flex-wrap items-center gap-2" aria-label="Catalogue filters">
-{["All", "Products", "Services"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : tab === "Services" ? isService(p) : tab === "Products" ? !isService(p) : false)).length})</Button>)}
-<details className="pos-catalog-actions pos-filter-menu"><summary>Filters{!['All','Products','Services'].includes(catalogTab)?` · ${catalogTab}`:''}</summary><div className="flex flex-wrap gap-2">{["Favorites", "Frequently Used", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : tab === "Services" ? isService(p) : tab === "Products" ? !isService(p) : false)).length})</Button>)}
+{posOfferingTabs.map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p=>matchesOfferingTab(p,tab)).length})</Button>)}
+<details className="pos-catalog-actions pos-filter-menu"><summary>Filters{!posOfferingTabs.some(tab=>tab===catalogTab)?` · ${catalogTab}`:''}</summary><div className="flex flex-wrap gap-2">{["Favorites", "Frequently Used", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : matchesOfferingTab(p,tab))).length})</Button>)}
             <NativeSelect aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option><option value="frequent">Most used</option></NativeSelect>
 </div></details>
           </div>
@@ -1212,7 +1214,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     </button>
                     <span className="truncate text-slate-500">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                     <span className="truncate text-slate-500">{product.category}</span>
-                    <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : "Service"}</span>
+                    <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : product.kind.replace(/s$/, "")}</span>
                     <strong className="text-[#6d49d7]">{currency(product.rate)}</strong>
                     <QuantityStepper qty={qty} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
                   </div>
@@ -1232,7 +1234,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                         <strong className="block truncate text-sm text-slate-950">{product.name}</strong>
                         <span className="block truncate text-xs text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} / {product.category} · Tax {product.taxRate}% {product.duration && `· ${product.duration}`}</span>
                       </span>
-                      <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : "Service"}</span>
+                      <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : product.kind.replace(/s$/, "")}</span>
                       <strong className="w-24 text-right text-[#6d49d7]">{currency(product.rate)}</strong>
                     </button>
                     <QuantityStepper qty={qty} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
@@ -1255,7 +1257,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                       <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{isService(product) ? product.bookingRequired ? "Appointment required" : "Appointment options" : product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                       <span className="mt-2 flex items-center justify-between gap-2 px-2 pb-2">
                         <span className="text-xs text-violet-700">{isService(product) ? product.duration : ""}</span>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? `Stock: ${product.stock}` : isService(product) ? `${product.duration || "Service"}${product.bookingRequired ? " · Booking required" : ""}` : "Product"}</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? `Stock: ${product.stock}` : isService(product) ? `${product.duration || "Service"}${product.bookingRequired ? " · Booking required" : ""}` : product.kind.replace(/s$/, "")}</span>
                       </span>
                     </button>
                     {product.checkoutSupported===false && <p className="px-2 pb-2 text-xs text-red-700">{product.unsupportedReason || 'Unavailable for checkout'}</p>}
@@ -1290,8 +1292,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               {cart.length ? cart.map((line,lineIndex) => (
                 <div key={line.lineId} id={`pos-line-${line.lineId}`} onFocusCapture={()=>{phonePaginationAnchor.current=line.lineId;}} data-phone-hidden={lineIndex < safePhonePage*phonePageSize || lineIndex >= (safePhonePage+1)*phonePageSize} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
                   <div className="pos-compact-cart-row">
-                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} price and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">Product · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
-                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
+                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} price and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">{line.kind.slice(0,-1)} · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
+                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line)} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking || isCustomerPlan(line)} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line) || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
                     <strong className="pos-line-amount">{currency(operationalPackKey==='pharma' && line.lotAllocation==='fefo' ? pharmaCheckoutQuote([{quantity:String(line.qty),price:line.rate.toFixed(2),discount:lineDiscount(line).toFixed(2),taxRate:String(line.taxRate)}],'0.00')?.grandTotal ?? lineTotal(line) : lineTotal(line))}</strong>
                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
                   </div>

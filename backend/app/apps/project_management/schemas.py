@@ -1,9 +1,11 @@
 """Pydantic schemas for Project Management (KaryaFlow) module."""
 from datetime import date, datetime
-from typing import Any, Optional, List
+from typing import Any, Literal, Optional, List
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, validator
+
+ProjectStatus = Literal["Draft", "Planned", "Active", "On Hold", "Completed", "Cancelled", "Archived"]
 
 
 # ============= CLIENT SCHEMAS =============
@@ -85,6 +87,14 @@ class PMSProjectBase(BaseModel):
 
 class PMSProjectCreate(PMSProjectBase):
     custom_fields: Optional[dict[str, Any]] = None
+
+
+class PMSProjectCreateRequest(PMSProjectCreate):
+    status: ProjectStatus = "Draft"
+    billing_status: Literal["Unbilled"] = "Unbilled"
+    actual_cost: None = None
+    progress_percent: Literal[0] = 0
+    is_client_visible: Literal[False] = False
 
 
 class PMSProjectUpdate(BaseModel):

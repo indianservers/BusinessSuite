@@ -1,0 +1,2 @@
+import {defineConfig} from 'playwright/test';
+export default defineConfig({testDir:'../playwright',testMatch:'plan-ui-polish-live.spec.ts',workers:1,timeout:120000,expect:{timeout:15000},outputDir:'../output/plan-ui-polish/traces',reporter:[['line'],['json',{outputFile:'../output/plan-ui-polish/results.json'}]],use:{baseURL:'http://127.0.0.1:5198',channel:'chrome',viewport:{width:1600,height:1100},actionTimeout:12000,navigationTimeout:30000,trace:'retain-on-failure',screenshot:'only-on-failure'}});

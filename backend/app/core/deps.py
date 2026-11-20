@@ -80,7 +80,7 @@ def get_current_user(
         expires_at = session.expires_at if session else None
         if expires_at and expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if not session or session.status.lower() != "active" or (expires_at and expires_at <= datetime.now(timezone.utc)):
+        if not session or (session.status or "").lower() != "active" or (expires_at and expires_at <= datetime.now(timezone.utc)):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
         last_seen = session.last_seen_at
         if last_seen and last_seen.tzinfo is None:

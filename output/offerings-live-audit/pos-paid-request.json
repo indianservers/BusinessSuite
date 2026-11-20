@@ -1,0 +1,29 @@
+{
+  "request_id": "62103fa4-6174-4883-9274-82f356a9e1c5",
+  "buyer_mode": "registered",
+  "customer_id": 101,
+  "pos_session_id": 1,
+  "currency": "INR",
+  "billing_mode": "invoice_at_checkout",
+  "note": "",
+  "expected_total": "118.00",
+  "bill_discount_amount": "0.00",
+  "lines": [
+    {
+      "client_line_key": "fd748a08-6ead-40a7-b509-3e5fb036dbf1",
+      "line_kind": "product",
+      "product_id": 3,
+      "quantity": "1",
+      "unit_price": "100.00",
+      "discount_amount": "0.00",
+      "note": ""
+    }
+  ],
+  "payments": [
+    {
+      "payment_key": "e5351b70-deaf-4424-98f5-9bc886d10f5f",
+      "method": "cash",
+      "amount": "118.00"
+    }
+  ]
+}

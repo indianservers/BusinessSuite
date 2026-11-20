@@ -1,0 +1,16 @@
+{
+  "fam": {
+    "product": 8,
+    "warehouse": 8,
+    "sku": "IQA-1795099466761",
+    "quantity": 115,
+    "transferProduct": 9
+  },
+  "srm": {
+    "product": 49,
+    "warehouse": 6,
+    "sku": "IQA-1795099466761",
+    "quantity": 120,
+    "transferProduct": 50
+  }
+}

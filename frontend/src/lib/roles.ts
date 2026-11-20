@@ -606,7 +606,7 @@ function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = 
   if (normalizedPath === '/srm/restaurant-kitchen') return restaurantKitchenNavigation();
   if (normalizedPath === '/srm/accounts-periods') return accountsPeriodsNavigation();
   const normalizedRole = normalizeRole(role);
-  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction"].includes(normalizedPath)) {
+  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction", "/srm/products-services", "/srm/products", "/srm/services", "/srm/pos/products"].includes(normalizedPath)) {
     return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
   }
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;

@@ -3,8 +3,9 @@ from functools import lru_cache
 import mimetypes
 from pathlib import Path
 from urllib.parse import urlsplit, unquote, parse_qs, urlencode
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone, timedelta
+from tempfile import NamedTemporaryFile
 import jwt
 from jwt import PyJWTError as JWTError
 from fastapi import HTTPException
@@ -212,10 +213,27 @@ def upload_exists(path: str) -> bool:
         raise
 
 
-def materialize_file(path: str, *, db=None) -> str:
-    """Fetch private inputs for PDF merging even on a different function instance."""
+def _write_bounded_download(path: Path, chunks, max_bytes: int) -> None:
+    remaining = max_bytes
+    temporary = None
+    try:
+        with NamedTemporaryFile(dir=path.parent, suffix=".tmp", delete=False) as staging:
+            temporary = Path(staging.name)
+            for chunk in chunks:
+                remaining -= len(chunk)
+                if remaining < 0:
+                    raise HTTPException(413, "File exceeds the remaining download size limit")
+                staging.write(chunk)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def materialize_file(path: str, *, db=None, max_bytes: int | None = None) -> str:
+    """Fetch a private file, optionally limiting download bytes before staging it."""
     from app.services.file_storage import materialize, server_photo
-    cloud = materialize(path, db=db)
+    cloud = materialize(path, db=db, max_bytes=max_bytes)
     if cloud: return cloud
     if server_photo(path) and Path(path).is_file(): return path
     if settings.STORAGE_BACKEND != "local":
@@ -225,13 +243,31 @@ def materialize_file(path: str, *, db=None) -> str:
             from vercel.blob.sync import stream_blob, BlobNotFoundError
             try:
                 with blob_session(), stream_blob(storage_key(path), access="private") as download:
-                    with open(path, "wb") as target:
-                        for chunk in download:
-                            target.write(chunk)
+                    if max_bytes is None:
+                        with open(path, "wb") as target:
+                            for chunk in download:
+                                target.write(chunk)
+                    else:
+                        if (download.metadata.size or 0) > max_bytes:
+                            raise HTTPException(413, "File exceeds the remaining download size limit")
+                        _write_bounded_download(Path(path), download, max_bytes)
             except BlobNotFoundError:
                 raise HTTPException(404, "File not found") from None
             return path
-        s3_client().download_file(settings.S3_BUCKET, storage_key(path), str(path))
+        if max_bytes is None:
+            s3_client().download_file(settings.S3_BUCKET, storage_key(path), str(path))
+        else:
+            from botocore.exceptions import ClientError
+            try:
+                response = s3_client().get_object(Bucket=settings.S3_BUCKET, Key=storage_key(path))
+            except ClientError as exc:
+                if str(exc.response.get("Error", {}).get("Code")) in {"404", "NoSuchKey", "NotFound"}:
+                    raise HTTPException(404, "File not found") from None
+                raise
+            with closing(response["Body"]) as body:
+                if (response.get("ContentLength") or 0) > max_bytes:
+                    raise HTTPException(413, "File exceeds the remaining download size limit")
+                _write_bounded_download(Path(path), body.iter_chunks(chunk_size=64 * 1024), max_bytes)
     return path
 
 

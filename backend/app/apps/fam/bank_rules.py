@@ -143,9 +143,10 @@ def apply_rule(ident:int,data:Apply,request:Request,db:Session=Depends(get_db),u
     rule=db.query(ServicePolicy).filter_by(id=data.rule_id,organization_id=company,kind='bank_rule').with_for_update().first()
     if not pair or not rule: raise HTTPException(404,'Statement line or rule not found')
     line,statement=pair
-    existing=db.query(FAMVoucher).filter_by(company_id=company,source_module='fam',source_record_type='bank_rule_line',source_record_id=str(ident)).first()
-    if existing:
-        if existing.status=='posted' and line.matched_voucher_id==existing.id:
+    if line.matched_voucher_id is not None:
+        existing=db.query(FAMVoucher).filter_by(id=line.matched_voucher_id,company_id=company,
+            source_module='fam',source_record_type='bank_rule_line',source_record_id=str(ident)).first()
+        if existing and existing.status=='posted':
             return {'voucher_id':existing.id,'idempotent':True}
         raise HTTPException(409,'This bank line was already categorized; review its original voucher')
     if rule.version!=data.expected_version or line.line_hash!=data.line_hash:

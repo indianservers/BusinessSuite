@@ -25,9 +25,10 @@ def test_access_token_still_uses_current_secret():
     assert verify_access_token(token)["sub"] == "1"
 
 
-def test_production_cors_rejects_wildcard():
+@pytest.mark.parametrize("environment", ["production", "Production", " PROD "])
+def test_production_cors_rejects_wildcard(environment):
     with pytest.raises(ValueError, match="explicit origins"):
-        Settings(_env_file=None,ENVIRONMENT="production", BACKEND_CORS_ORIGINS=["*"])
+        Settings(_env_file=None,ENVIRONMENT=environment, BACKEND_CORS_ORIGINS=["*"])
 
 
 def test_request_id_header_is_returned(client):

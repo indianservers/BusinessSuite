@@ -1,0 +1,16 @@
+{
+  "test": "real second-company browser cannot read the first company catalog",
+  "errors": [],
+  "apiFailures": [
+    "404 /api/v1/catalog/items/membership/3"
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "status": "passed",
+  "expectedHTTP": [
+    "404"
+  ],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

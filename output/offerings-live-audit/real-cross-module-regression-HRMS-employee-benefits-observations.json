@@ -1,0 +1,10 @@
+{
+  "test": "real cross-module regression: HRMS employee benefits",
+  "errors": [],
+  "apiFailures": [],
+  "consoleErrors": [],
+  "status": "passed",
+  "expectedHTTP": [],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

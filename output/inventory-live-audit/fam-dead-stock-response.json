@@ -1,0 +1,46 @@
+{
+  "source": "fam",
+  "report": "dead-stock",
+  "as_of": "2026-11-19",
+  "filters": {
+    "report": "dead-stock",
+    "start_date": null,
+    "end_date": null,
+    "product_id": 8,
+    "warehouse_id": null,
+    "category": "",
+    "search": "",
+    "transaction_type": "",
+    "movement_id": null,
+    "page": 1,
+    "per_page": 25,
+    "days": 90,
+    "sort": "item_name",
+    "descending": false
+  },
+  "quantity_basis": "posted_stock_movements_in_base_unit",
+  "value_basis": "recorded_movement_cost_excluding_sales_tax",
+  "available_reports": [
+    "overview",
+    "summary",
+    "ledger",
+    "valuation",
+    "purchases",
+    "sales",
+    "reorder",
+    "aging",
+    "expiry",
+    "adjustments",
+    "transfers",
+    "dead-stock",
+    "reconciliation"
+  ],
+  "warnings": [
+    "Sales and Finance stock are separate ledgers. No cross-ledger consolidation is applied.",
+    "Unallocated reservations cannot be assigned to an individual warehouse; historical reservation balances are unavailable."
+  ],
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "per_page": 25
+}

@@ -19,7 +19,9 @@ For Google One Tap, set the frontend build variable `VITE_GOOGLE_ONE_TAP_CLIENT_
 
 Google's standard Firebase callback URL is `https://<google-auth-domain>/__/auth/handler`, where `<google-auth-domain>` is `FIREBASE_GOOGLE_AUTH_DOMAIN` when provided, otherwise `FIREBASE_WEB_CONFIG.authDomain`. Register it as an authorized redirect URI for the Google OAuth web client.
 
-For Microsoft, configure the Microsoft provider's client ID and client secret **in Firebase Authentication**, and register `https://<FIREBASE_WEB_CONFIG.authDomain>/__/auth/handler` as the Microsoft Entra application's Web redirect URI. No new Microsoft secret or frontend secret variable is introduced by this change. Existing enterprise OIDC provider entries remain supported with callback `<BACKEND_PUBLIC_URL>/api/v1/auth/sso/callback/oidc/<provider_id>`; their provider configuration and callback/state validation are unchanged.
+For Microsoft, configure the Microsoft provider's client ID and client secret **in Firebase Authentication**, and register `https://<FIREBASE_WEB_CONFIG.authDomain>/__/auth/handler` as the Microsoft Entra application's Web redirect URI.
+
+Enterprise OIDC clients use the callback `<BACKEND_PUBLIC_URL>/api/v1/auth/sso/callback/oidc/<provider_id>`. Configure public HTTPS provider endpoints on port 443. For non-Google enterprise providers, UserInfo must return the standard `email` claim and a Boolean `email_verified` claim set to `true`. A configured email mapping must match the verified address. Providers that omit the verified claim need to enable it or use an authentication integration that can verify the address.
 
 One Tap is rendered exclusively by Google Identity Services. Automatic account selection is disabled. One prompt is attempted per browser-tab session within 24 hours; dismissal/unavailability does not trigger a loop, and the prompt is cancelled when the user starts entering credentials or switches auth views. Browser policy, account eligibility, and Google cooldown can suppress it. The Google button remains the fallback.
 

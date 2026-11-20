@@ -1,0 +1,16 @@
+{
+  "test": "real unsupported bundle checkout is disclosed and cannot write a partial sale",
+  "errors": [],
+  "apiFailures": [
+    "503 /api/v1/srm/sales-orders"
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "status": "passed",
+  "expectedHTTP": [
+    "503"
+  ],
+  "unexpectedHTTP": [],
+  "unexpectedConsole": []
+}

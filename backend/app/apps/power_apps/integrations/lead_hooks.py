@@ -76,7 +76,8 @@ def disable(ident:int,request:Request,expected_version:int,environment:str='deve
     return {'disabled':True}
 
 
-@router.api_route('/lead-hooks/{endpoint}',methods=['GET','POST'])
+@router.get('/lead-hooks/{endpoint}')
+@router.post('/lead-hooks/{endpoint}')
 async def receive(endpoint:str,request:Request,db=Depends(get_db)):
     if len(endpoint)>100: raise HTTPException(404,'Lead notification endpoint not found')
     hook=db.query(ServicePolicy).filter_by(scope_key='lead-hook:'+endpoint,kind='lead_hook').first()

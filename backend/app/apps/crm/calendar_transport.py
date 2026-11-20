@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from . import google_calendar, outlook_calendar
+from .calendar_http import calendar_request
 
 UTC = timezone.utc
 PROPERTY = "String {4a19d149-9d27-4c40-8666-a57867578598} Name BusinessSuiteKey"
@@ -60,7 +61,7 @@ class CalendarTransport:
         self.persist_tokens = persist_tokens
         self.base = ("https://www.googleapis.com/calendar/v3/calendars/primary/events" if self.provider == "google"
                      else "https://graph.microsoft.com/v1.0/me/events")
-        self.client = httpx.Client(timeout=20, follow_redirects=False)
+        self.client = httpx.Client(timeout=20, follow_redirects=False, trust_env=False)
 
     def close(self):
         self.client.close()
@@ -90,24 +91,28 @@ class CalendarTransport:
             if self.provider == "outlook":
                 headers["Prefer"] = 'outlook.timezone="UTC", outlook.body-content-type="text", IdType="ImmutableId"'
             try:
-                response = self.client.request(method, url, headers=headers, **kwargs)
+                status, response_headers, data = calendar_request(
+                    self.client, method, url, expected=(200, 201, 202), headers=headers, **kwargs,
+                )
             except httpx.RequestError:
                 raise CalendarSyncError("Calendar could not be reached. Automatic retry is scheduled.") from None
-            if response.status_code != 401 or attempt:
+            except ValueError:
+                raise CalendarSyncError("Calendar returned an invalid or oversized response.") from None
+            if status != 401 or attempt:
                 break
-        if allow_missing and response.status_code in (404, 410):
+        if allow_missing and status in (404, 410):
             return None
-        if response.status_code == 410:
+        if status == 410:
             raise CalendarSyncError("Calendar checkpoint expired; a fresh scan is scheduled.", reset=True)
-        if response.status_code in (409, 412):
+        if status in (409, 412):
             raise CalendarSyncError("Both copies changed. Review this event's conflict.", conflict=True)
-        if response.status_code >= 400:
+        if status not in (200, 201, 202, 204):
             try:
-                delay = min(86400, max(0, int(response.headers.get("Retry-After", "0"))))
+                delay = min(86400, max(0, int(response_headers.get("Retry-After", "0"))))
             except ValueError:
                 delay = 60
-            raise CalendarSyncError(f"Calendar request failed (HTTP {response.status_code}). Reconnect if access was revoked.", retry_after=delay)
-        return response.json() if response.status_code != 204 else {}
+            raise CalendarSyncError(f"Calendar request failed (HTTP {status}). Reconnect if access was revoked.", retry_after=delay)
+        return data if status != 204 else {}
 
     def get(self, event_id):
         return self.request("GET", f"{self.base}/{quote(event_id, safe='')}", allow_missing=True)

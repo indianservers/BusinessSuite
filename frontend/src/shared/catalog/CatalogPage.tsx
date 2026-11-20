@@ -17,7 +17,7 @@ import { ArrowDownUp, ArrowUpRight, Boxes, BriefcaseBusiness, Clock3, FolderTree
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
-import { catalogApi, catalogChanged, catalogError, money, useCatalogRefresh, useDebounced, type CatalogItem, type CatalogKind, type CatalogSource, type CatalogFeatures } from "./api";
+import { offeringKinds, catalogApi, catalogChanged, catalogError, money, useCatalogRefresh, useDebounced, type CatalogItem, type CatalogKind, type CatalogSource, type CatalogFeatures } from "./api";
 import CatalogEditor from "./CatalogEditor";
 import CatalogBranchReuse from "./CatalogBranchReuse";
 import CatalogActions from "./CatalogActions";
@@ -42,7 +42,7 @@ function ScopedCatalogPage({ source }: { source: CatalogSource }) {
   const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants[source];
   const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
   const [search,setSearch]=useState(""),query=useDebounced(search);
-  const [kind,setKind]=useState<""|CatalogKind>((location.pathname.includes("services")&&!location.pathname.includes("products-services") || new URLSearchParams(location.search).get("kind")==="service")?"service":"");
+  const [kind,setKind]=useState<""|CatalogKind>(()=>{const selected=new URLSearchParams(location.search).get("kind");return offeringKinds.includes(selected as CatalogKind)?selected as CatalogKind:location.pathname.includes("services")&&!location.pathname.includes("products-services")?"service":"";});
   const [status,setStatus]=useState("Active"),[category,setCategory]=useState(""),[tag,setTag]=useState(""),[sort,setSort]=useState("name"),[direction,setDirection]=useState("asc");
   const [page,setPage]=useState(1),[revision,setRevision]=useState(0),[perPage,setPerPage]=useState(24);
   const [data,setData]=useState<CatalogData>(emptyData),[dataKey,setDataKey]=useState("");
@@ -60,7 +60,7 @@ function ScopedCatalogPage({ source }: { source: CatalogSource }) {
   useEffect(()=>{setSelected(current=>current.flatMap(item=>{const fresh=data.items.find(value=>catalogItemKey(value)===catalogItemKey(item));return fresh?[fresh]:[];}));},[data.items]);
 
   const routeKind = new URLSearchParams(location.search).get("kind");
-  useEffect(()=>{setKind((location.pathname.includes("services")&&!location.pathname.includes("products-services") || routeKind==="service")?"service":"");setPage(1);},[location.pathname,routeKind]);
+  useEffect(()=>{setKind(offeringKinds.find(value=>value===routeKind)||(location.pathname.includes("services")&&!location.pathname.includes("products-services")?"service":""));setPage(1);},[location.pathname,routeKind]);
   const refresh=useCallback(()=>setRevision(value=>value+1),[]);
   useCatalogRefresh(refresh);
   useEffect(()=>{
@@ -84,8 +84,12 @@ function ScopedCatalogPage({ source }: { source: CatalogSource }) {
   // A row may be opened while a save-triggered list refresh is still in flight.
   // Load the current record so the preview cannot retain stale tags or prices.
   useEffect(()=>{if(!preview)return;let active=true;catalogApi.get(source,preview.kind,preview.id).then(({data})=>{if(active&&owns())setPreview(data);}).catch(e=>{if(active&&owns())setError(catalogError(e));});return()=>{active=false;};},[source,preview?.kind,preview?.id]);
-  const canCreate=ready&&permits("create")&&Object.values(data.permissions).some(Boolean);
-  const canEdit=(item:CatalogItem)=>item.can_edit!==false&&ready&&permits("edit")&&data.permissions[item.kind]===true;
+  const canCreateDraft=owns()&&permits("create")&&Object.values(data.permissions).some(Boolean);
+  const canEditDraft=(item:CatalogItem)=>owns()&&item.can_edit!==false&&permits("edit")&&data.permissions[item.kind]===true;
+  // A filter projection may be loading while a smart-window draft is open.
+  // Keep that draft mounted; ownership and server permissions still guard it.
+  const canCreate=ready&&canCreateDraft;
+  const canEdit=(item:CatalogItem)=>ready&&canEditDraft(item);
   useCreateIntent(()=>setEditor("new"));
   const open=(item:CatalogItem)=>{personal.recordOpen(catalogItemKey(item));setPreview(item);};
   const select=(item:CatalogItem,checked:boolean)=>setSelected(current=>checked?[...current.filter(row=>catalogItemKey(row)!==catalogItemKey(item)),item]:current.filter(row=>catalogItemKey(row)!==catalogItemKey(item)));
@@ -119,7 +123,7 @@ function ScopedCatalogPage({ source }: { source: CatalogSource }) {
     </section>
     {tagItem&&<CatalogTagsDialog item={tagItem} source={source} close={()=>setTagItem(null)} saved={row=>{if(!owns())return;setTagItem(null);if(preview&&catalogItemKey(preview)===catalogItemKey(row))setPreview(row);refresh();setMessage("Tags saved across the shared catalog.");}}/>}
     {reuseItems && <CatalogBranchReuse items={reuseItems} source={source} close={() => setReuseItems(null)} saved={message => { if(!owns())return;setReuseItems(null); setSelected([]); setMessage(message); refresh(); }}/>}
-    {editor && (editor==="new"?canCreate:canEdit(editor)) && <CatalogEditor key={editor==="new"?"new":`${editor.kind}:${editor.id}`} features={data.features} source={source} initial={editor === "new" ? undefined : editor} defaultKind={routeKind === "product" || routeKind === "service" ? routeKind : kind || (data.permissions.product ? "product" : "service")} close={() => setEditor(null)} saved={(row,configure) => { if(!owns())return;setEditor(configure?row:null); if(preview&&catalogItemKey(preview)===catalogItemKey(row))setPreview(row); refresh(); }}/>}<Dialog.Root open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content className="sc-preview">{preview && <><Dialog.Close className="sc-preview-close" aria-label="Close preview"><X size={20}/></Dialog.Close><span className="sc-eyebrow">{preview.kind} / {preview.code}</span><Dialog.Title>{preview.name}</Dialog.Title><Dialog.Description>{preview.description || "No description added."}</Dialog.Description><div className="sc-item-tags">{preview.tags?.map(tag=><span key={tag}>{tag}</span>)}</div><div className="sc-preview-price">{money(preview.price, preview.currency)}<small>per {preview.unit} · {preview.tax}% tax</small></div>{preview.images.map((url, index) => <img className="sc-preview-image" key={index} src={url} alt={`${preview.name} ${index + 1}`} referrerPolicy="no-referrer"/>)}<OfferingPreviewFields item={preview}/>{preview.pricing_options.map(price => <div className="sc-preview-line" key={price.id}><span>{price.name}</span><strong>{money(Number(price.amount), price.currency)}<small>{price.interval === "once" ? "One-time" : `Every ${price.interval}`}</small></strong></div>)}{Object.entries(preview.custom_fields).map(([name, value]) => <div className="sc-preview-line" key={name}><span>{name}</span><strong>{String(value ?? "—")}</strong></div>)}{canEdit(preview) && <Button onClick={() => { setEditor(preview); setPreview(null); }}><Pencil size={15}/>Edit item</Button>}</>}</Dialog.Content></Dialog.Portal></Dialog.Root>
+    {editor && (editor==="new"?canCreateDraft:canEditDraft(editor)) && <CatalogEditor key={editor==="new"?"new":`${editor.kind}:${editor.id}`} features={data.features} source={source} initial={editor === "new" ? undefined : editor} defaultKind={offeringKinds.find(value=>value===routeKind) || kind || (data.permissions.product ? "product" : "service")} close={() => setEditor(null)} saved={(row,configure) => { if(!owns())return;setEditor(configure?row:null); if(preview&&catalogItemKey(preview)===catalogItemKey(row))setPreview(row); refresh(); }}/>}<Dialog.Root open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content className="sc-preview">{preview && <><Dialog.Close className="sc-preview-close" aria-label="Close preview"><X size={20}/></Dialog.Close><span className="sc-eyebrow">{preview.kind} / {preview.code}</span><Dialog.Title>{preview.name}</Dialog.Title><Dialog.Description>{preview.description || "No description added."}</Dialog.Description><div className="sc-item-tags">{preview.tags?.map(tag=><span key={tag}>{tag}</span>)}</div><div className="sc-preview-price">{money(preview.price, preview.currency)}<small>per {preview.unit} · {preview.tax}% tax</small></div>{preview.images.map((url, index) => <img className="sc-preview-image" key={index} src={url} alt={`${preview.name} ${index + 1}`} referrerPolicy="no-referrer"/>)}<OfferingPreviewFields item={preview}/>{preview.pricing_options.map(price => <div className="sc-preview-line" key={price.id}><span>{price.name}</span><strong>{money(Number(price.amount), price.currency)}<small>{price.interval === "once" ? "One-time" : `Every ${price.interval}`}</small></strong></div>)}{Object.entries(preview.custom_fields).map(([name, value]) => <div className="sc-preview-line" key={name}><span>{name}</span><strong>{String(value ?? "—")}</strong></div>)}{canEdit(preview) && <Button onClick={() => { setEditor(preview); setPreview(null); }}><Pencil size={15}/>Edit item</Button>}</>}</Dialog.Content></Dialog.Portal></Dialog.Root>
     <Dialog.Root open={!!archiveItem} onOpenChange={open => { if (!open && !busy) setArchiveItem(null); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content className="sc-preview"><Dialog.Title>Archive {archiveItem?.name}?</Dialog.Title><Dialog.Description>Existing links and quotations stay intact. This item will no longer appear in active selectors.</Dialog.Description>{error && <p role="alert">{error}</p>}<div className="sc-form-footer"><Button variant="outline" disabled={busy} onClick={() => setArchiveItem(null)}>Cancel</Button><Button disabled={busy} onClick={() => archiveItem && void mutate(archiveItem, "archive")}>{busy ? "Archiving…" : "Archive item"}</Button></div></Dialog.Content></Dialog.Portal></Dialog.Root>
   </main>;
 }

@@ -1,0 +1,63 @@
+{
+  "source": "srm",
+  "report": "expiry",
+  "as_of": "2026-11-19",
+  "filters": {
+    "report": "expiry",
+    "start_date": null,
+    "end_date": null,
+    "product_id": 49,
+    "warehouse_id": null,
+    "category": "",
+    "search": "",
+    "transaction_type": "",
+    "movement_id": null,
+    "page": 1,
+    "per_page": 25,
+    "days": 90,
+    "sort": "item_name",
+    "descending": false
+  },
+  "quantity_basis": "posted_stock_movements_in_base_unit",
+  "value_basis": "recorded_movement_cost_excluding_sales_tax",
+  "available_reports": [
+    "overview",
+    "summary",
+    "ledger",
+    "valuation",
+    "purchases",
+    "sales",
+    "reorder",
+    "aging",
+    "expiry",
+    "adjustments",
+    "transfers",
+    "dead-stock",
+    "reconciliation"
+  ],
+  "warnings": [
+    "Sales and Finance stock are separate ledgers. No cross-ledger consolidation is applied.",
+    "Sales has no stock reservation balance in this ledger. Available quantity is unknown, not assumed equal to physical stock."
+  ],
+  "items": [
+    {
+      "id": 2,
+      "product_id": 49,
+      "warehouse_id": 6,
+      "sku": "IQA-1795099466761",
+      "item_name": "Sales inventory audit item",
+      "currency": "INR",
+      "batch_number": "IQA-1795099466761-BATCH",
+      "manufacture_date": null,
+      "expiry_date": "2026-12-19",
+      "quantity": 120,
+      "stock_value": 1200,
+      "status": "available",
+      "days_until_expiry": 30
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 25,
+  "supported": true
+}
