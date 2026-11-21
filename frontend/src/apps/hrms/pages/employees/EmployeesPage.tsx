@@ -1,3 +1,5 @@
+import "./employee-records-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import {useRouteViewState} from "@/hooks/use-route-view-state";
@@ -20,7 +22,7 @@ import {HRQuickAdd} from "../../workbench/shared";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
 import { useAuthStore as useAccountAdminStore } from "@/store/authStore";
 import FullDetailsExport from "../../components/FullDetailsExport";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -96,6 +98,11 @@ function EmployeesPage() {
   const canDeleteEmployee=!!employeeActor?.is_superuser || !employeeActor?.access?.managed || !!employeeGrant?.enabled&&employeeGrant.actions.includes("delete")&&employeeGrant.permissions.includes("employee_delete");
   const canManageAccounts = useAccountAdminStore(state => state.user?.is_superuser === true);
   const [employeePopup, setEmployeePopup] = useState<{ employee: Employee; editing: boolean } | null>(null);
+  const editOpener = useRef<HTMLElement | null>(null);
+  const openEditor = (employee: Employee) => {
+    editOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setEmployeePopup({ employee, editing: true });
+  };
   const qc = useQueryClient();
   const [quickAdd,setQuickAdd]=useState(false);
   const [search, setSearch] = useHRSession("employee-list-search","");
@@ -106,7 +113,9 @@ function EmployeesPage() {
   const [sortBy, setSortBy] = useRouteViewState("sortBy","name");
   const [sortOrder, setSortOrder] = useRouteViewState("sortOrder","asc");
   const [perPage, setPerPage] = useState(20);
-  const [layout, setLayout] = useState<"cards" | "table">("table");
+  const phone = useMobile();
+  const [preferredLayout, setLayout] = useState<"cards" | "table">();
+  const layout = preferredLayout ?? (phone ? "cards" : "table");
   const { data: filterOptions, isError: optionsError, refetch: reloadOptions } = useQuery({
     queryKey: ["employee-filter-options"],
     queryFn: async () => {
@@ -229,7 +238,7 @@ function EmployeesPage() {
           <IconActionButton action="view" tooltip="Preview employee details" aria-label={`Preview ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: false }); }}>
           </IconActionButton>
           <RecordMaintenance record={info.row.original as unknown as Record<string,unknown>} name={`${info.row.original.first_name} ${info.row.original.last_name}`} endpoint={`/employees/${info.row.original.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>
-          <IconActionButton disabled={!canEditEmployee} action="edit" tooltip="Edit employee details" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
+          <IconActionButton disabled={!canEditEmployee} action="edit" tooltip="Edit employee details" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); openEditor(info.row.original); }}>
           </IconActionButton>
           <label aria-label="Upload employee photo" data-action-tooltip="Upload employee profile photo" className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
             <Camera className="h-3.5 w-3.5" />
@@ -272,22 +281,35 @@ function EmployeesPage() {
   });
   const colSpan = columns.length;
 
+  const sortControls = (
+    <div className="mt-4 flex flex-wrap items-end gap-3 border-t pt-3">
+      <label className="space-y-1 text-xs font-medium"><span>Sort by</span><NativeSelect aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">
+        {[["name", "Name"], ["employee_id", "Employee ID"], ["date_of_joining", "Joining date"], ["city", "City"], ["passout_year", "Passout year"], ["status", "Status"], ["employment_type", "Employment type"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </NativeSelect></label>
+      <label className="space-y-1 text-xs font-medium"><span>Order</span><NativeSelect aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></NativeSelect></label>
+      <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><NativeSelect aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</NativeSelect></label>
+      <Button variant="ghost" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setSortBy("name"); setSortOrder("asc"); setPage(1); }}>Clear filters</Button>
+      <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
+    </div>
+  );
+
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="hrms-employee-records space-y-3">
+      <div className="hrms-employee-records-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">{term("employee", true)}</h1>
           <p className="page-description">
             {data?.total ?? 0} {activeCount || search ? "matching" : "total"} {term("employee", true).toLowerCase()}
           </p>
         </div>
-        <Button asChild variant="outline" size="sm"><Link to="/hrms/service-scheduling">Service schedules &amp; resources</Link></Button>
+        {!phone && <Button asChild variant="outline" size="sm"><Link to="/hrms/service-scheduling">Service schedules &amp; resources</Link></Button>}
         <CompactActions primaryId="quick-add-employee" className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <Button variant="outline" size="sm" aria-label="Refresh employees" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
           <ImportWizard title={`Import ${term('employee', true).toLowerCase()}`} fields={employeeImportFields} onImport={async ({file}) => { const form = new FormData(); form.append("file", file); const response = await employeeApi.importCsv(form); qc.invalidateQueries({queryKey:["employees"]}); return {...response.data, errors: response.data.errors?.map((e: {row:number;errors:string[]})=>({...e,row:e.row-1}))}; }}/>
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
+          {phone && <Button asChild variant="outline" size="sm"><Link to="/hrms/service-scheduling">Service schedules &amp; resources</Link></Button>}
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
           <Link to="/hrms/employee-categories"><Button variant="outline" size="sm">Employee categories</Button></Link><Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create {term("employee").toLowerCase()}</Button>
@@ -300,6 +322,7 @@ function EmployeesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label="Search employees"
               placeholder="Search by name, ID, email..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -307,7 +330,7 @@ function EmployeesPage() {
             />
           </div>
           <Select value={statusFilter || "__all__"} onValueChange={(value) => { setStatusFilter(value === "__all__" ? "" : value); setPage(1); }}>
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger aria-label="Employee status" className="w-full sm:w-48">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -333,17 +356,11 @@ function EmployeesPage() {
               <label key={key} className="space-y-1 text-xs font-medium"><span>{label}</span><Input aria-label={label} type="date" value={filters[key] || ""} onChange={(event) => changeFilter(key, event.target.value)} /></label>
             ))}
           </div>
+          {phone && sortControls}
         </details>
-        <div className="mt-4 flex flex-wrap items-end gap-3 border-t pt-3">
-          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><NativeSelect aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">
-            {[["name", "Name"], ["employee_id", "Employee ID"], ["date_of_joining", "Joining date"], ["city", "City"], ["passout_year", "Passout year"], ["status", "Status"], ["employment_type", "Employment type"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </NativeSelect></label>
-          <label className="space-y-1 text-xs font-medium"><span>Order</span><NativeSelect aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></NativeSelect></label>
-          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><NativeSelect aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</NativeSelect></label>
-          <Button variant="ghost" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setSortBy("name"); setSortOrder("asc"); setPage(1); }}>Clear filters</Button>
-          <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
-        </div>
+        {!phone && sortControls}
       </Card>
+
       {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <Button type="submit" variant="outline" className="underline" onClick={() => void refetch()}>Retry</Button></div>}
 
       <WorkspaceViewBar scope="hrms-employees" label="Employee views" active={layout} views={[{id:"table",label:"Table",description:"Employee records and actions"},{id:"cards",label:"Profiles",description:"Employee profile cards"}]} onChange={id=>setLayout(id as "cards"|"table")} primary={["table","cards"]}/>
@@ -364,7 +381,7 @@ function EmployeesPage() {
               status={{label:employee.status,tone:employee.status.toLowerCase() === "active" ? "positive" : "muted"}}
               tags={[employee.employee_id,...(employee.work_categories || []),...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,2)]}
               onOpen={() => setEmployeePopup({employee,editing:false})}
-              actions={<><ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction>{canEditEmployee&&<ProfileAction onClick={() => setEmployeePopup({employee,editing:true})}>Edit</ProfileAction>}<RecordMaintenance record={employee as unknown as Record<string,unknown>} name={`${employee.first_name} ${employee.last_name}`} endpoint={`/employees/${employee.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
+              actions={<>{phone ? <Button asChild size="sm" className="min-h-11"><Link aria-label={`Open profile for ${name}`} to={`/hrms/employees/${employee.id}`}>Open profile</Link></Button> : <ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction>}{canEditEmployee&&<ProfileAction onClick={() => openEditor(employee)}>Edit</ProfileAction>}<RecordMaintenance record={employee as unknown as Record<string,unknown>} name={`${employee.first_name} ${employee.last_name}`} endpoint={`/employees/${employee.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
 }}/>}
           {!isLoading && !data?.items.length && <div className="p-8 text-center text-muted-foreground">No employees match the current filters.</div>}
         </>}
@@ -436,7 +453,7 @@ function EmployeesPage() {
 
         {/* Pagination */}
         {data && data.pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t">
             <p className="text-xs text-muted-foreground">
               Showing {(page - 1) * perPage + 1}&ndash;{Math.min(page * perPage, data.total)} of {data.total}
             </p>
@@ -468,11 +485,15 @@ function EmployeesPage() {
       {employeePopup && !employeePopup.editing && <EmployeeQuickPreview key={employeePopup.employee.id} employee={employeePopup.employee} options={filterOptions} onClose={() => setEmployeePopup(null)} />}
       {quickAdd&&<HRQuickAdd close={()=>setQuickAdd(false)} saved={async id=>{setQuickAdd(false);void qc.invalidateQueries({queryKey:["employees"]});const r=await employeeApi.get(id);setEmployeePopup({employee:r.data,editing:false});}}/>}
       <Dialog open={!!employeePopup?.editing} onOpenChange={(open) => { if (!open) setEmployeePopup(null); }}>
-        <DialogContent className="flex max-h-[94dvh] w-[calc(100%-1rem)] max-w-7xl flex-col overflow-hidden p-0 sm:w-[calc(100%-3rem)]">
+        <DialogContent onCloseAutoFocus={event => {
+          if (!editOpener.current?.isConnected) return;
+          event.preventDefault();
+          editOpener.current.focus();
+        }} className="hrms-employee-edit-dialog flex max-h-[94dvh] w-[calc(100%-1rem)] max-w-7xl flex-col overflow-hidden p-0 sm:w-[calc(100%-3rem)]">
           <div className="border-b px-5 py-4 pr-12">
             <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>
           </div>
-          <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
+          <div className="hrms-employee-edit-body min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
       {employeePopup && <Suspense fallback={<LoadingState label="Loading Employee Details" variant="form"/>}>
               <EmployeeDetailPage key={`${employeePopup.employee.id}-${employeePopup.editing}`} employeeId={employeePopup.employee.id} initialEditing={employeePopup.editing} onClose={() => setEmployeePopup(null)} />
             </Suspense>}

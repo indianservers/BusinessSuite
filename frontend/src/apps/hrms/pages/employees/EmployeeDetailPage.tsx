@@ -1,3 +1,5 @@
+import "./employee-records-mobile.css";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import EmployeeCategories from "@/shared/EmployeeCategories";
 import { recordScope, useRecordScope } from "@/lib/record-scope";
 import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
@@ -634,7 +636,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
   );
 
   return (
-    <div className="space-y-6">
+    <div className="hrms-employee-profile space-y-6">
       <ConversationLauncher module="HRMS" context={{type:"employee",id:Number(id)}}/>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={closeDetails}>
@@ -643,15 +645,15 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
         </Button>
       </div>
 
-      {activeTab !== "schedule" || scheduleActionsOpen ? <EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/> : (
+      {activeTab !== "schedule" || scheduleActionsOpen ? <MobileDisclosure title="Employee actions"><EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/></MobileDisclosure> : (
         <Card><CardContent className="p-4"><Button variant="outline" onClick={() => setScheduleActionsOpen(true)}>Employee actions</Button></CardContent></Card>
       )}
       {/* Profile header */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <CardContent className="hrms-employee-profile-header p-6">
+          <div className="hrms-employee-profile-summary flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <SuiteAvatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_photo_url} kind="employee" size={80}/>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs hover:bg-muted">
+            <label className="hrms-employee-profile-photo flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs hover:bg-muted">
               <Camera className="h-3.5 w-3.5" />
               Photo
               <input
@@ -665,7 +667,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
                 }}
               />
             </label>
-            <div className="flex-1 space-y-1">
+            <div className="hrms-employee-profile-identity flex-1 space-y-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-2xl font-bold">
                   {emp.first_name} {emp.last_name}
@@ -681,7 +683,7 @@ function ScopedEmployeeDetailPage({ employeeId, initialEditing = false, onClose,
                 <span>Joined {formatDate(emp.date_of_joining)}</span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="hrms-employee-profile-actions flex gap-2">
               <AskAiButton
                 module="HRMS"
                 relatedEntityType="employee"
