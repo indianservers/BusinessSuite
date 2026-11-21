@@ -136,4 +136,20 @@
   }
 
   .hr-daily-work-dialog input { font-size: 16px; }
+
+  .hr-daily-work-disclosure {
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    background: hsl(var(--card));
+    padding-inline: 12px;
+  }
+
+  .hr-daily-work-disclosure summary {
+    min-height: 44px;
+    padding-block: 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .hr-daily-work-disclosure[open] { padding-bottom: 12px; }
 }
