@@ -1323,7 +1323,7 @@ def _native_pos_quantities(db: Session, org_id: int | None, branch: int | None, 
     if branch is None or not product_ids:
         return {}
     balances = (
-        db.query(SRMInventoryBalance.product_id, SRMInventoryBalance.quantity)
+        db.query(SRMInventoryBalance.product_id, func.coalesce(SRMInventoryBalance.quantity, 0))
         .join(SRMProduct, SRMProduct.id == SRMInventoryBalance.product_id)
         .join(SRMWarehouse, SRMWarehouse.id == SRMInventoryBalance.warehouse_id)
         .join(
