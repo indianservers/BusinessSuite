@@ -5,6 +5,42 @@ import {authenticate} from "./srm-test-utils";
 
 const kinds=["product","service","membership","subscription","bundle"];
 const labels=["Products","Services","Memberships","Subscriptions","Bundles"];
+
+test("mobile Sales Report keeps populated results and filters in one view", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await authenticate(page, "admin");
+
+  await page.route("**/api/v1/srm/reporting/offering-sales?**", route => {
+    const params = new URL(route.request().url()).searchParams;
+    const pageNumber = Number(params.get("page") ?? 1);
+    const kind = params.get("kind") ?? "product";
+    return route.fulfill({ json: {
+      start: params.get("start") ?? "2026-11-01",
+      end: params.get("end") ?? "2026-11-21",
+      has_more: pageNumber === 1,
+      totals: [{ currency: "INR", gross: "1500" }],
+      items: [{ kind, name: `QA ${kind} ${pageNumber}`, currency: "INR", quantity: 2, tax: "275", gross: "1500" }],
+    } });
+  });
+
+  await page.goto("/srm/sales-report");
+  const results = page.getByRole("list", { name: "Sales by offering and currency" });
+  await expect(results.getByText("QA product 1", { exact: true })).toBeVisible();
+  const offering = page.getByRole("combobox", { name: /Offering type/ });
+  await offering.selectOption("subscription");
+  await expect(results.getByText("QA subscription 1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(results.getByText("QA subscription 2", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Report dates", exact: true }).click();
+  const dates = page.getByRole("dialog", { name: "Report dates" });
+  await dates.getByLabel("From", { exact: true }).fill("2026-11-10");
+  await dates.getByLabel("To", { exact: true }).fill("2026-11-20");
+  await dates.getByRole("button", { name: "Apply dates", exact: true }).click();
+  await expect(results.getByText("QA subscription 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("2026-11-10 – 2026-11-20", { exact: true })).toBeVisible();
+});
+
 for(const mobile of [false,true])test(`all native catalog types reuse the same views and editor ${mobile?"mobile":"desktop"}`,async({page})=>{
  await page.setViewportSize(mobile?{width:390,height:844}:{width:1440,height:1000});
  await authenticate(page,"admin");
