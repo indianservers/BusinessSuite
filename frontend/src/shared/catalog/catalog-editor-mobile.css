@@ -68,3 +68,20 @@
 @media(max-width:767px) and (max-height:600px){
  .sc-catalog-editor .sc-dialog-heading{padding:7px 10px;align-items:center}.sc-catalog-editor .sc-dialog-heading p{display:none}.sc-catalog-editor .sc-icon{width:26px;height:26px}.sc-catalog-editor .sc-dialog-heading h2{font-size:15px}.sc-mobile-two-page{padding:4px 8px;gap:4px}.sc-mobile-panel{padding:5px}.sc-mobile-field-grid{gap:4px 6px}.sc-mobile-field-grid>label{font-size:9px;line-height:11px}.sc-mobile-panel :is(input,select,[role=combobox]){height:28px;min-height:28px;padding:3px 5px}.sc-mobile-panel button{min-height:28px}.sc-mobile-step-tabs button{min-height:26px;padding:4px 2px;font-size:10px}.sc-mobile-optional-picker{margin-bottom:6px}.sc-mobile-followup .grid{gap:4px!important}.sc-mobile-followup label{font-size:9px;line-height:11px}.sc-mobile-followup .follow-up-toggle{margin-bottom:4px}.sc-catalog-editor .sc-form-footer>button{min-height:31px}.sc-catalog-editor .sc-form-footer{padding-top:3px!important;padding-bottom:5px!important}.sc-catalog-editor .sc-form-footer>span{display:none}
 }
+
+@media (max-width: 767px) {
+  .sc-dialog.sc-catalog-editor[data-catalog-source="srm"] {
+    max-height: none;
+  }
+
+  .sc-catalog-editor[data-catalog-source="srm"] .sc-mobile-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 8px;
+  }
+
+  .sc-catalog-editor[data-catalog-source="srm"] .sc-form-footer > button {
+    min-height: 44px;
+  }
+}
