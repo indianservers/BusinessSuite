@@ -163,7 +163,7 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="page-title">PMS reports</h1><div className="pms-reports-links flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
-          <p className="page-description">Review delivery, sprint performance, and team workload.</p>
+          <p className="page-description">Real task, sprint, status-history, flow, cycle-time, health, and team analytics.</p>
         </div>
         <CompactActions className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void loadReports()} disabled={loading || exporting}><RefreshCw className="h-4 w-4" />Refresh</Button>

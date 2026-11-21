@@ -75,7 +75,7 @@ export default function PortfolioPage() {
       </div>
 
       <Card>
-        <CardContent className="pms-delivery-filters grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+        <CardContent className="pms-delivery-filters grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
           <Filter label="Owner" value={filters.ownerId} onChange={(value) => setFilter("ownerId", value)}>
             <option value="">All owners</option>
             {summary?.filters.owners.map((owner) => <option key={owner.id} value={owner.id}>{owner.name}</option>)}
