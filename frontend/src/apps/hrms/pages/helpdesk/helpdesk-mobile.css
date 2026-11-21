@@ -1,6 +1,5 @@
 @media (max-width: 480px) {
   .hrms-helpdesk-page { min-width: 0; font-size: 14px; }
-  .hrms-helpdesk-page h1 { font-size: 22px; line-height: 1.25; }
   .hrms-helpdesk-page .grid > *, .hrms-helpdesk-page .kf-card, .hrms-helpdesk-page .flex > div { min-width: 0; }
   .hrms-helpdesk-page :is(p, span), .hrms-helpdesk-ticket-sheet :is(p, span, a) { overflow-wrap: anywhere; }
   .hrms-helpdesk-page :is(button, summary), .hrms-helpdesk-ticket-sheet button { min-height: 44px; }

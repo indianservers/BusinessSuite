@@ -1,8 +1,5 @@
 @media (max-width: 480px) {
  .hrms-profile-security { min-width: 0; }
- .hrms-profile-security-header { padding: 12px; }
- .hrms-profile-security-header > p:first-child { display: none; }
- .hrms-profile-security-header h1 { margin-top: 0; font-size: 20px; }
  .hrms-profile-security-nav { display: flex; gap: 6px; }
  .hrms-profile-security-nav button { flex: 1; min-width: 0; padding: 8px; }
  .hrms-profile-security[data-section]:not([data-section="profile"]) > :is(.hrms-profile-security-overview,.hrms-profile-security-change),

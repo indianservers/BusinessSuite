@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { useEffect, useState } from "react";
@@ -36,11 +37,11 @@ export default function ESSPortalPage() {
 
   return (
     <div className="hrms-ess space-y-4 sm:space-y-5">
-      <div className="hrms-ess-header rounded-lg border bg-card p-4 sm:p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Employee Self Service</p>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">ESS Portal</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Profile, leave, attendance, payslips, documents, and requests.</p>
-      </div>
+      <HrmsServiceHeader
+        title="ESS Portal"
+        description="Manage your profile, leave, attendance, payslips, and employee requests."
+        icon={UserRound}
+      />
 
       {phone && !hasEmployeeProfile && <p className="hrms-ess-missing text-sm">No employee profile is linked to this login.</p>}
       {phone && <nav className="hrms-ess-sections" aria-label="ESS sections">{[["overview","Overview"],["files","Files"],...(hasEmployeeProfile?[["assets","Assets"]]:[])].map(([key,label]) => <Button key={key} aria-pressed={section===key} variant={section===key?"default":"outline"} onClick={() => setSection(key)}>{label}</Button>)}</nav>}
@@ -49,7 +50,14 @@ export default function ESSPortalPage() {
         <Card>
           <CardContent className="p-4 sm:p-5">
             <div className="mb-2 flex justify-between text-sm"><span>Profile completeness</span><span className="font-semibold">{phone && !completeness.data?"—":`${completeness.data?.percent ?? 0}%`}</span></div>
-            <div className="h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${completeness.data?.percent ?? 0}%` }} /></div>
+            <div
+              className="h-2 rounded-full bg-muted"
+              role="progressbar"
+              aria-label="Profile completeness"
+              aria-valuenow={completeness.data?.percent}
+            >
+              <div className="h-2 rounded-full bg-primary" style={{ width: `${completeness.data?.percent ?? 0}%` }} />
+            </div>
             {phone && hasEmployeeProfile && completeness.isLoading && <p role="status">Loading profile completeness…</p>}
             {!!completeness.data?.missing?.length && (phone ? <MobileDisclosure maxWidth={480} title={`Missing profile details (${completeness.data.missing.length})`}><ul className="text-xs text-muted-foreground">{completeness.data.missing.map((field:string) => <li key={field}>{field}</li>)}</ul></MobileDisclosure> : <p className="mt-3 text-xs text-muted-foreground">Missing: {completeness.data.missing.slice(0, 5).join(", ")}</p>)}
           </CardContent>
@@ -58,8 +66,11 @@ export default function ESSPortalPage() {
           <CardContent className="hrms-ess-balances grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
             {(phone ? leaveBalance.data || [] : (leaveBalance.data || []).slice(0,4)).map((item: any) => (
               <div key={item.id} className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">{item.leave_type?.code || item.leave_type_id}</p>
-                <p className="text-xl font-semibold">{item.available ?? item.allocated}</p>
+                <p className="text-xs text-muted-foreground">{item.leave_type?.name || item.leave_type?.code || item.leave_type_id}</p>
+                <p className="text-xl font-semibold tabular-nums">
+                  {item.available ?? item.allocated}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">days</span>
+                </p>
               </div>
             ))}
             {phone && hasEmployeeProfile && leaveBalance.isLoading && <p role="status" className="col-span-2">Loading leave balances…</p>}
@@ -75,7 +86,7 @@ export default function ESSPortalPage() {
         {actions.map(([label, detail, Icon, href]) => {
           const content = <><Icon className="mb-4 h-5 w-5 text-primary" /><p className="font-medium">{label as string}</p><p className="mt-1 text-sm text-muted-foreground">{detail as string}</p></>;
           const className="rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md sm:p-5";
-          return phone ? <Link key={label as string} to={href as string} className={className}>{content}</Link> : <a key={label as string} href={href as string} className={className}>{content}</a>;
+          return <Link key={label as string} to={href as string} className={className}>{content}</Link>;
         })}
       </div>
 

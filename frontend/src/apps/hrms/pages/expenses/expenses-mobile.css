@@ -1,11 +1,10 @@
 @media(max-width:480px){
  .hrms-expenses-page{min-width:0;font-size:14px;}
- .hrms-expenses-page h1{font-size:22px;line-height:1.25;}
  .hrms-expenses-page>div.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;}
  .hrms-expenses-page>div.grid>div:first-child{grid-column:1/-1;}
  .hrms-expenses-page .kf-card,.hrms-expenses-page .grid>*,.hrms-expenses-page .flex>div{min-width:0;}
- .hrms-expenses-page dl{grid-template-columns:repeat(3,minmax(0,1fr));padding:10px;gap:8px;}
- .hrms-expenses-page dd{font-size:16px;overflow-wrap:anywhere;}
+ .hrms-expenses-page .hrms-expense-totals{padding:12px;}
+ .hrms-expense-totals dd{font-size:16px;overflow-wrap:anywhere;}
  .hrms-expenses-page :is(p,span){overflow-wrap:anywhere;}
  .hrms-expenses-page>.flex>div{flex-wrap:wrap;}
  .hrms-expenses-page .kf-card>div{padding:12px;}

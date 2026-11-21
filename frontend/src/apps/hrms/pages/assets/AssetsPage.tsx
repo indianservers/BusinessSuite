@@ -265,7 +265,7 @@ export default function AssetsPage() {
       )}
       {tab === "inventory" && (
         <>
-          <AssetMetrics summary={summary.data} onFilter={setStatusFilter} />
+          <AssetMetrics summary={summary.data} selectedStatus={statusFilter} onFilter={setStatusFilter} />
           <div
             className={`grid items-start gap-4 ${canManage ? "xl:grid-cols-[15rem_minmax(0,1fr)]" : ""}`}
           >

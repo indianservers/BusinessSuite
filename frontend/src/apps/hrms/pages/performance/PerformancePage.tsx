@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { selectedBranch } from "@/lib/branch-context";
 import CalibrationParticipantsMobile, { type CalibrationParticipantView } from "./CalibrationParticipantsMobile";
 import "./performance-mobile.css";
@@ -250,18 +251,17 @@ export default function PerformancePage() {
 
   return (
     <div className="hrms-performance-page space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Performance</h1>
-          <p className="page-description">Manage goals, track progress, and submit reviews.</p>
-        </div>
-        {activeTab === "goals" && (
-          <Button size="sm" disabled={!canCreate} onClick={() => setShowGoalForm((v) => !v)}>
-            <Plus className="h-4 w-4 mr-2" />
+      <HrmsServiceHeader
+        title="Performance"
+        description="Manage goals, track progress, and submit reviews."
+        icon={Target}
+        actions={activeTab === "goals" ? (
+          <Button size="sm" disabled={!canCreate} onClick={() => setShowGoalForm((value) => !value)}>
+            <Plus className="h-4 w-4" />
             Add Goal
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Summary */}
       <div className="performance-kpis grid grid-cols-2 sm:grid-cols-4 gap-4">

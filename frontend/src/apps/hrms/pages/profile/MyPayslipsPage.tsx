@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
 import { useAuthStore } from "@/store/authStore";
@@ -159,10 +160,11 @@ function PayslipsContent({ phone, scope }: { phone: boolean; scope: string }) {
 
   return (
     <div ref={root} className="hrms-my-payslips-page space-y-6">
-      <div>
-        <h1 className="page-title">My Payslips</h1>
-        <p className="text-sm text-muted-foreground">View and download payslips from finalized payroll.</p>
-      </div>
+      <HrmsServiceHeader
+        title="My Payslips"
+        description="View and download payslips from finalized payroll."
+        icon={FileText}
+      />
 
       <Card>
         <CardHeader>

@@ -1,8 +1,6 @@
 @media(max-width:480px){
  .hrms-performance-page{min-width:0;max-width:100%;font-size:14px}
  .hrms-performance-page> :not([hidden])~:not([hidden]){margin-top:12px}
- .hrms-performance-page .page-title{font-size:22px;line-height:1.25}
- .hrms-performance-page .page-description{font-size:13px;line-height:1.4}
  .hrms-performance-page .performance-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
  .performance-kpis .kf-card>div{padding:10px 5px}
  .performance-kpis .text-2xl{font-size:20px;line-height:1.2}
@@ -32,6 +30,10 @@
  .smart-create-phone-sheet .performance-rating label:has(input:checked){border-color:hsl(var(--primary));background:hsl(var(--primary)/.06)}
  .smart-create-phone-sheet .performance-rating label:has(input:focus-visible){outline:2px solid hsl(var(--ring));outline-offset:2px}
  .performance-rating-status{font-size:13px;line-height:1.4}
+}
+
+@media(max-width:360px){
+ .hrms-performance-page .performance-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media(max-width:480px){

@@ -1,6 +1,5 @@
 @media (max-width: 480px) {
   .hrms-my-payslips-page { min-width: 0; font-size: 14px; }
-  .hrms-my-payslips-page h1 { font-size: 22px; line-height: 1.25; }
   .hrms-my-payslips-page :is(p, span, strong, button) { overflow-wrap: anywhere; }
   .hrms-my-payslips-page .kf-card, .hrms-my-payslips-page .grid > * { min-width: 0; }
   .hrms-my-payslips-page .kf-card > div { padding: 12px; }

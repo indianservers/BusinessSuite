@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import "./lms-mobile.css";
@@ -143,12 +144,11 @@ export default function LMSPage() {
 
   return (
     <div className="hrms-lms-page space-y-5">
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="page-title">Learning Management</h1>
-          <p className="page-description">Courses, employee assignments, mandatory training, certifications, and renewal tracking.</p>
-        </div>
-        <div className="flex gap-2">
+      <HrmsServiceHeader
+        title="Learning Management"
+        description="Manage courses, training assignments, and certification renewals."
+        icon={GraduationCap}
+        actions={<>
           <Button variant="outline" size="sm" onClick={() => phone ? void Promise.all([coursesQuery.refetch(), assignmentsQuery.refetch()]) : qc.invalidateQueries({ queryKey: ["lms-courses"] })}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
@@ -157,12 +157,12 @@ export default function LMSPage() {
             <Plus className="mr-2 h-4 w-4" />
             New Course
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {phone && [coursesQuery, assignmentsQuery].some(query => query.isError) && <p role="alert" className="text-sm text-destructive">Learning information could not load. <Button variant="outline" onClick={() => { for (const query of [coursesQuery, assignmentsQuery]) if (query.isError) void query.refetch(); }}>Retry learning</Button></p>}
       <details className="hrms-lms-outline rounded-lg border bg-card p-4"><summary>Arrange course sections and lessons</summary><GroupedRecords scope="apps/hrms/pages/lms/LMSPage:cards-1" items={(courses) || []} fields={standardRecordGroups((courses) || [])} gridClassName="space-y-4 mt-4" renderItem={course => <details key={course.id} className="rounded border p-3" onToggle={e=>{if(e.currentTarget.open)setOutlineCourse(course.id);}}><summary>{course.title}</summary>{outlineCourse===course.id&&<CourseCurriculum courseId={course.id} />}</details>}/></details>
-      <div className="hrms-lms-kpis grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="hrms-lms-kpis grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {[
           { label: "Courses", value: phone && courses === undefined ? "—" : courses?.length || 0, icon: GraduationCap },
           { label: "Pending Assignments", value: phone && assignments === undefined ? "—" : pending, icon: BookOpenCheck },

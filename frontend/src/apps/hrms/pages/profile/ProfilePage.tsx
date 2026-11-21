@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { MobileSheet } from "@/components/mobile/MobilePrimitives";
 import { useMobile } from "@/components/mobile/useMobile";
 import "./profile-security-mobile.css";
@@ -408,11 +409,11 @@ export default function ProfilePage() {
 
   return (
     <div className="hrms-profile-security space-y-5" data-section={mobileSection} data-security-view={securityView}>
-      <div className="hrms-profile-security-header rounded-lg border bg-card p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ESS Portal</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">My Profile</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Profile completion, verified documents, and approved master-data changes.</p>
-      </div>
+      <HrmsServiceHeader
+        title="My Profile"
+        description="Manage verified documents, profile changes, and account security."
+        icon={ShieldCheck}
+      />
 
       {phone && <nav className="hrms-profile-security-nav" aria-label="Profile sections">{[["profile", "Profile"], ["files", "Files"], ["security", "Security"], ...(canReviewChanges ? [["reviews", "Reviews"]] : [])].map(([key, label]) => <Button key={key} variant={mobileSection===key ? "default" : "outline"} aria-pressed={mobileSection===key} onClick={() => setMobileSection(key)}>{label}</Button>)}</nav>}
       {phone && mobileSection==="security" && <nav className="hrms-profile-security-nav" aria-label="Security sections">{[["authenticator", "2FA"], ["devices", "Devices"], ["events", "Events"]].map(([key,label]) => <Button key={key} variant={securityView===key ? "default" : "outline"} aria-pressed={securityView===key} onClick={() => setSecurityView(key)}>{label}</Button>)}</nav>}
