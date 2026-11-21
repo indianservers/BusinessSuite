@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -109,7 +110,7 @@ export default function AIOperatorPage() {
     busyRef.current = true; setBusy(true); setError("");
     const data = { project_id: projectId, task_ids: [...selection].sort((a,b)=>a-b), command, provider, input_mode: mode, background: true, execution_mode: executionMode, timezone };
     const fingerprint = JSON.stringify({ ...data, routingMode, dialogue: localDialogue?.state, parent: followUp ? run?.id : null });
-    if (requestRef.current?.fingerprint !== fingerprint) requestRef.current = { fingerprint, key: crypto.randomUUID() };
+    if (requestRef.current?.fingerprint !== fingerprint) requestRef.current = { fingerprint, key: pmsRandomId() };
     const requestKey = requestRef.current!.key;
     try {
       if(!followUp && !localDialogue && routingMode!=='cloud' && brain.current?.hasPendingQuestion() && await brain.current.plan(command,mode)) {

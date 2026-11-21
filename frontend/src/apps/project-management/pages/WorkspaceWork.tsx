@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { Button } from "@/components/ui/button";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -169,7 +170,7 @@ function WorkspaceWorkContent({ tasks, members, projects, view, query, projectFi
     if (!quickTitle.trim() || !createProjectId || adding) return;
     setAdding(true);
     const finish = beginProgress("Creating task");
-    try { await tasksAPI.create(createProjectId, { title: quickTitle.trim(), task_key: `T-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, custom_fields:quickFields, status: status as any, priority: (priority || "Medium") as TaskPriority, assignee_user_id: assigneeFilter && assigneeFilter !== "unassigned" && memberFor(Number(assigneeFilter))?.role !== "Guest" ? Number(assigneeFilter) : undefined }); if (assigneeFilter && memberFor(Number(assigneeFilter))?.role === "Guest") setAssigneeFilter(""); onClearSearch?.(); setQuickTitle(""); setQuickFields({}); setQuickLane(null); await onRefresh(); onNotice("Task created"); finish(); }
+    try { await tasksAPI.create(createProjectId, { title: quickTitle.trim(), task_key: `T-${pmsRandomId().slice(0, 8).toUpperCase()}`, custom_fields:quickFields, status: status as any, priority: (priority || "Medium") as TaskPriority, assignee_user_id: assigneeFilter && assigneeFilter !== "unassigned" && memberFor(Number(assigneeFilter))?.role !== "Guest" ? Number(assigneeFilter) : undefined }); if (assigneeFilter && memberFor(Number(assigneeFilter))?.role === "Guest") setAssigneeFilter(""); onClearSearch?.(); setQuickTitle(""); setQuickFields({}); setQuickLane(null); await onRefresh(); onNotice("Task created"); finish(); }
     catch (e) { finish(false); await onRefresh().catch(() => undefined); onError(workspaceError(e)); } finally { setAdding(false); }
   }
   const filterContext = {query,projectFilter,assigneeFilter,priority,status,workType,focus,personalKind:personalFilter?.kind||null};

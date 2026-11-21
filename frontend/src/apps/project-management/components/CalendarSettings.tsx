@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
@@ -477,7 +478,7 @@ export default function CalendarSettings({
                           sections: [
                             ...draft.sections,
                             {
-                              id: "custom_" + crypto.randomUUID().slice(0, 8),
+                              id: "custom_" + pmsRandomId().slice(0, 8),
                               title: "High priority",
                               enabled: true,
                               filter: "high_priority",

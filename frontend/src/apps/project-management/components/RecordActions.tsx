@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { IconActionButton } from "@/components/actions";
@@ -380,7 +381,7 @@ export default function RecordActions({
           await tasksAPI.create(original.project_id, {
             custom_fields:Object.fromEntries(custom.fields.filter(f=>!f.task_type||f.task_type===workType).map(f=>[f.id,{value:f.value??null,...(f.country_code?{country_code:f.country_code}:{})}])),
             title: `Copy of ${original.title}`.slice(0, 220),
-            task_key: `T-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+            task_key: `T-${pmsRandomId().slice(0, 8).toUpperCase()}`,
             description: original.description,
             priority: original.priority,
             status: "To Do",

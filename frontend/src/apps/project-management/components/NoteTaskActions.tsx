@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import AssigneePicker from "./AssigneePicker";
@@ -31,7 +32,7 @@ export default function NoteTaskActions({ noteId, title, selection, projectId, p
   const base = `/project-management/notes/${noteId}/tasks`;
   useEffect(() => { const abort = new AbortController(); void api.get<CreatedTask[]>(base, { signal: abort.signal }).then(({ data }) => setTasks(data)).catch(e => { if (!abort.signal.aborted) setError(workspaceError(e)); }); return () => abort.abort(); }, [base]);
   function begin() {
-    setTaskTitle((selection.trim().split("\n")[0] || title || "New task").slice(0, 220)); setDescription(""); setProject(projectId ? String(projectId) : ""); setDue(""); setPriority("Medium"); setAssignee([]); setConfirmed(false); setError(""); setNotice(""); requestKey.current = crypto.randomUUID(); setOpen(true);
+    setTaskTitle((selection.trim().split("\n")[0] || title || "New task").slice(0, 220)); setDescription(""); setProject(projectId ? String(projectId) : ""); setDue(""); setPriority("Medium"); setAssignee([]); setConfirmed(false); setError(""); setNotice(""); requestKey.current = pmsRandomId(); setOpen(true);
   }
   async function create() {
     if (sending.current || !confirmed || !project || !taskTitle.trim()) return;
@@ -42,7 +43,7 @@ export default function NoteTaskActions({ noteId, title, selection, projectId, p
     } catch (e) { setError(workspaceError(e)); } finally { sending.current = false; setBusy(false); }
   }
   // Changing the reviewed payload represents a new request; retries of identical data reuse the key.
-  function changed() { requestKey.current = crypto.randomUUID(); setConfirmed(false); }
+  function changed() { requestKey.current = pmsRandomId(); setConfirmed(false); }
   return <section className="note-task-actions" aria-label="Tasks from this note"><header><h2><CheckSquare size={15} />Tasks from this note</h2>{!readOnly && <Button size="sm" variant="outline" onClick={begin}>{selection.trim() ? "Create task from selection" : "Create task"}</Button>}</header>
     <p className="notes-attachment-help">Create a project task from reviewed text. Your original note link is preserved for authorized readers; its files stay private.</p>
     {notice && <p role="status" className="note-task-notice">{notice}</p>}
