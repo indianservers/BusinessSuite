@@ -7135,6 +7135,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
 
 function LeadToCashPage() {
   const navigate = useNavigate();
+  const phone = useMobile();
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
   const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
@@ -7171,7 +7172,15 @@ function LeadToCashPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Lead-to-Cash" description="Convert leads into contacts, companies, deals, quotations, and order/invoice handoff without leaving CRM." action="Review leads for conversion" onAction={() => navigate("/crm/leads")} />
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {phone ? <nav aria-label="Lead-to-cash stages" className="divide-y rounded-lg border bg-card">
+        {flow.map(([label, status, detail, path]) => (
+          <Link key={label} to={path} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-2.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]">
+            <span className="font-semibold">{label}</span>
+            <span className="text-xs text-muted-foreground">{status}</span>
+            <span className="col-span-2 text-xs text-muted-foreground">{detail}</span>
+          </Link>
+        ))}
+      </nav> : <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {flow.map(([label, status, detail, path], index) => (
           <Card key={label}>
             <CardContent className="p-4">
@@ -7185,7 +7194,7 @@ function LeadToCashPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div>}
       <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
         <Card>
           <CardHeader><CardTitle>Conversion Workbench</CardTitle></CardHeader>
