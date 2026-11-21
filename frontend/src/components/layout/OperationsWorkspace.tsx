@@ -1,4 +1,5 @@
 import { LoadingState } from "@/components/ui/state";
+import { useMobile } from "@/components/mobile/useMobile";
 import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import { Suspense, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
@@ -45,6 +46,17 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   useEffect(() => { if (selected) setVisited(current => current.includes(selected) ? current : [...current, selected]); }, [selected]);
   const selectedLabel = pages.find(page => page.path === selected)?.label;
   const workspaceLabel = workspace?.label;
+  const phone = useMobile(480);
+  const operationTabs = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = operationTabs.current;
+    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!phone || !list?.clientWidth || !tab) return;
+    const bounds = list.getBoundingClientRect();
+    const active = tab.getBoundingClientRect();
+    if (active.right > bounds.right) list.scrollLeft += active.right - bounds.right;
+    else if (active.left < bounds.left) list.scrollLeft -= bounds.left - active.left;
+  }, [phone, selected]);
   useEffect(() => {
     if (workspaceLabel && selectedLabel) document.title = `${workspaceLabel} · ${selectedLabel} - Business Suite`;
   }, [workspaceLabel, selectedLabel]);
@@ -77,7 +89,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   return <section aria-label={`${workspace.label} workspace`}>
     {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${compactNavigation ? "ws-operation-navigation" : ""}`}>
       {compactNavigation ? <p className="mb-2 text-sm font-medium text-muted-foreground">{workspace.label}</p> : <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>}
-      <div role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
+      <div ref={operationTabs} role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
         {pages.map(page => <button key={page.path} id={`operation-tab-${page.path}`} type="button" role="tab"
           aria-selected={selected === page.path} aria-controls={`operation-panel-${page.path}`}
           tabIndex={selected === page.path ? 0 : -1}
