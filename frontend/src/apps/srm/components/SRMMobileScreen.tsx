@@ -27,12 +27,13 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
   const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
+  const invoices = /^\/(?:srm|common)\/invoices(?:\/\d+)?\/?$/.test(location.pathname);
   const reports = location.pathname.replace(/\/$/, '') === salesReportsPath;
   const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
   const communications = location.pathname.replace(/\/$/, '') === '/srm/send-reminders';
   const expiry = /^\/srm\/membership-expiry\/?$/.test(location.pathname);
   const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
-  const scrollPage = dashboard || collections || reports || communications || expiry || offeringSales;
+  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
