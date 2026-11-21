@@ -1,0 +1,163 @@
+.fam-dashboard-links {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .fam-finance-page,
+  .fam-finance-page > *,
+  .fam-record-grid {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .fam-finance-page > .suite-page-heading {
+    flex-wrap: wrap;
+  }
+
+  .fam-finance-page .suite-heading-identity,
+  .fam-finance-page .suite-heading-identity > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .fam-dashboard-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fam-dashboard-links a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    color: hsl(var(--primary));
+    background: hsl(var(--card));
+  }
+
+  .fam-record-grid .udg-record-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fam-record-grid :is(.udg-record-field:has([data-fam-amount]), [data-fam-amount]) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fam-record-grid .udg-record-field:has([data-fam-amount]) {
+    grid-column: 1 / -1;
+    font-size: 0.875rem;
+  }
+
+  .fam-record-grid .udg-record-field .udg-adapted-cell :is(a, button) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .fam-record-grid .udg-cell [data-fam-amount] {
+    text-align: end;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .fam-balance-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .fam-balance-summary > div > div {
+    min-width: 0;
+    padding: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .fam-balance-summary .suite-metric {
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .fam-balance-summary .suite-metric > div {
+    min-width: 0;
+  }
+
+  .fam-balance-summary .suite-metric-icon {
+    display: none;
+  }
+
+  .fam-balance-summary :is(strong, .text-lg) {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fam-mobile-statements > .mobile-disclosure > summary {
+    min-height: 44px;
+  }
+
+  .fam-mobile-expense-form > button.fam-financial-save-actions {
+    width: 100%;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Keep the editor and its backdrop above the company setup banner. */
+  [aria-hidden="true"]:has(+ .mobile-experience-sheet .fam-line-editor-footer) {
+    z-index: 64;
+  }
+
+  .mobile-experience-sheet:has(.fam-line-editor-footer) {
+    z-index: 65;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .mobile-experience-sheet :is(.fam-voucher-line-editor, .fam-financial-line-editor) {
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px;
+  }
+
+  .fam-line-editor-footer > button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fam-vendor-payment-form {
+    min-width: 0;
+    padding-inline: 14px;
+  }
+
+  .fam-vendor-payment-form input {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .fam-vendor-payment-actions {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 5;
+    padding: 8px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 10px;
+    background: hsl(var(--background));
+  }
+
+  .fam-vendor-payment-actions > button {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .fam-mobile-statements .fam-statement-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
