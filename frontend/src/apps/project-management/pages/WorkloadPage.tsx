@@ -1,4 +1,5 @@
 import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import "./planning-pages.css";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
@@ -166,37 +167,39 @@ export default function WorkloadPage() {
         <Metric icon={Gauge} label="Near capacity weeks" value={data?.summary.near_capacity || 0} tone="text-amber-600" />
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Filters</CardTitle></CardHeader>
-        <CardContent className="pms-planning-filters grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <Field label={businessTerm('project')}>
-            <NativeSelect className="input" value={filters.projectId} onChange={(event) => setFilter("projectId", event.target.value)}>
-              <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
-              {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
-            </NativeSelect>
-          </Field>
-          <Field label="Sprint">
-            <NativeSelect className="input" value={filters.sprintId} onChange={(event) => setFilter("sprintId", event.target.value)}>
-              <option value="">All sprints</option>
-              {visibleSprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-            </NativeSelect>
-          </Field>
-          <Field label="Team">
-            <NativeSelect className="input" value={filters.teamId} onChange={(event) => setFilter("teamId", event.target.value)}>
-              <option value="">All teams</option>
-            </NativeSelect>
-          </Field>
-          <Field label="Basis">
-            <NativeSelect className="input" value={filters.basis} onChange={(event) => setFilter("basis", event.target.value as WorkloadBasis)}>
-              <option value="hours">Hours</option>
-              <option value="story_points">Story points</option>
-              <option value="task_count">Task count</option>
-            </NativeSelect>
-          </Field>
-          <Field label="From"><Input type="date" value={filters.from} onChange={(event) => setFilter("from", event.target.value)} /></Field>
-          <Field label="To"><Input type="date" value={filters.to} onChange={(event) => setFilter("to", event.target.value)} /></Field>
-        </CardContent>
-      </Card>
+      <MobileDisclosure title="Filters" maxWidth={639} initiallyOpen={false}>
+        <Card>
+          {!compact && <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Filters</CardTitle></CardHeader>}
+          <CardContent className="pms-planning-filters grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <Field label={businessTerm('project')}>
+              <NativeSelect className="input" value={filters.projectId} onChange={(event) => setFilter("projectId", event.target.value)}>
+                <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
+                {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
+              </NativeSelect>
+            </Field>
+            <Field label="Sprint">
+              <NativeSelect className="input" value={filters.sprintId} onChange={(event) => setFilter("sprintId", event.target.value)}>
+                <option value="">All sprints</option>
+                {visibleSprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+              </NativeSelect>
+            </Field>
+            <Field label="Team">
+              <NativeSelect className="input" value={filters.teamId} onChange={(event) => setFilter("teamId", event.target.value)}>
+                <option value="">All teams</option>
+              </NativeSelect>
+            </Field>
+            <Field label="Basis">
+              <NativeSelect className="input" value={filters.basis} onChange={(event) => setFilter("basis", event.target.value as WorkloadBasis)}>
+                <option value="hours">Hours</option>
+                <option value="story_points">Story points</option>
+                <option value="task_count">Task count</option>
+              </NativeSelect>
+            </Field>
+            <Field label="From"><Input type="date" value={filters.from} onChange={(event) => setFilter("from", event.target.value)} /></Field>
+            <Field label="To"><Input type="date" value={filters.to} onChange={(event) => setFilter("to", event.target.value)} /></Field>
+          </CardContent>
+        </Card>
+      </MobileDisclosure>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
