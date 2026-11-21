@@ -36,7 +36,7 @@ function TableView({rows,columns}:{rows:FAMRecord[];columns:string[]}) {
 
 /** Generic children remain unmounted until fresh native and pack identity is proved. */
 export default function RetailWorkspace({fallback,mode,renderTable,receiptTitle='Stock in',header}:{fallback:ReactNode;mode:Mode;renderTable?:Table;receiptTitle?:string;header?:ReactNode}) {
- const scope=useRecordScope(),[mount]=useState(()=>crypto.randomUUID());
+ const scope=useRecordScope(),[mount]=useState(()=>randomUUID());
  const selection=useQuery({queryKey:['srm','retail-selection',scope,mount],retry:false,staleTime:0,gcTime:0,refetchOnWindowFocus:false,queryFn:async()=>{
   const user=useAuthStore.getState().user,owner=recordScope(user),selector=selectedPackContext();
   const config={recordCache:false as const,headers:{'X-Suite-Pack-Context':selector}};
@@ -104,7 +104,7 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
     const product=products.find(row=>row.product_id===Number(draft.product));
     if(!product||product.tracked||!warehouses.some(row=>row.id===Number(draft.warehouse)))throw Error('Choose an available quantity-only item and warehouse.');
     if(!/^(?:\d+\.?\d{0,2}|\.\d{1,2})$/.test(draft.quantity)||Number(draft.quantity)<=0||!/^(?:\d+\.?\d{0,2}|\.\d{1,2})$/.test(draft.rate))throw Error('Enter a positive quantity and nonnegative rate with at most two decimal places.');
-    command={request_key:crypto.randomUUID(),product_id:product.product_id,warehouse_id:Number(draft.warehouse),quantity:draft.quantity,unit_cost:draft.rate,currency:product.currency,received_date:draft.date,reference_number:draft.reference,notes:draft.notes};
+    command={request_key:randomUUID(),product_id:product.product_id,warehouse_id:Number(draft.warehouse),quantity:draft.quantity,unit_cost:draft.rate,currency:product.currency,received_date:draft.date,reference_number:draft.reference,notes:draft.notes};
    }
    saveFinancialIntent(intentKey,{payload:command});pending.current=command;setLocked(true);
    setDraft({product:String(command.product_id),warehouse:String(command.warehouse_id),quantity:command.quantity,rate:command.unit_cost,date:command.received_date,reference:command.reference_number??'',notes:command.notes??''});
@@ -152,3 +152,4 @@ function RetailContent({context,owner,mode,title,renderTable,header}:{context:nu
   {stock.hasNextPage&&<Button variant="outline" onClick={()=>void stock.fetchNextPage()}>More items</Button>}
  </CardContent></Card></div>;
 }
+import { randomUUID } from "@/lib/random-uuid";
