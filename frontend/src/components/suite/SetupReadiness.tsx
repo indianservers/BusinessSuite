@@ -6,6 +6,7 @@ import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import SetupGuide from "./SetupGuide";
 import { Button } from "@/components/ui/button";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { ListChecks } from "lucide-react";
 
 export type Item = {id: string; title: string; description: string; ready: boolean; destination: string; canRepair: boolean; module?: string; required?: boolean};
@@ -56,13 +57,16 @@ export default function SetupReadiness({embedded = false, navigation = false, co
     <strong>{item.title} <span className="text-destructive" aria-label="mandatory">*</span></strong><p className="mb-2 text-sm text-muted-foreground">{item.description}</p>
     {item.canRepair ? <Link className="text-sm font-medium underline" to={item.destination} onClick={()=>setOpen(false)}>Add or repair {item.title.toLowerCase()}</Link> : <p className="text-sm">Ask your company administrator to complete this item.</p>}
   </li>;
-  return <>
-    {!!pageItems.length && <section aria-label="Mandatory setup requirements" className="mx-4 my-3 rounded-lg border border-amber-500/40 bg-background p-4 text-sm">
+  const pageRequirements = !!pageItems.length && <section aria-label="Mandatory setup requirements" className="mx-4 my-3 rounded-lg border border-amber-500/40 bg-background p-4 text-sm">
       <p className="font-semibold"><span className="text-destructive">*</span> Mandatory setup</p>
       <p className="mt-1 text-muted-foreground">{pageItems.some(item => query.data?.items.includes(item)) ? "Required before creating or updating business records. You can continue browsing while setup is incomplete." : "Required before using the operation described below."}</p>
       <ul className="mt-2 space-y-2">{pageItems.map(item => <li key={item.id}><strong>{item.title} *</strong> · {item.ready ? "Complete" : "Missing — action required"}<p className="text-muted-foreground">{item.description}</p>{!item.ready && !item.canRepair && <p>Ask your company administrator to complete this item.</p>}</li>)}</ul>
       <p className="mt-2 text-muted-foreground">Fields marked * are mandatory.</p>
-    </section>}
+    </section>;
+  return <>
+    {pageRequirements && (guidePath === "/pms/projects"
+      ? <MobileDisclosure className="mx-4 shrink-0" title="Mandatory setup requirements">{pageRequirements}</MobileDisclosure>
+      : pageRequirements)}
     {!query.data?.ready && <aside aria-label="Company setup" className="fixed bottom-4 left-1/2 z-[45] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-lg md:z-[60]">
       <div className="min-w-0"><p className="text-sm">{query.isError ? "Company setup status is unavailable." : `Complete company setup · ${missing.length} ${missing.length === 1 ? "item" : "items"} remaining`}</p>{!query.isError && !!missing.length && <p className="mt-1 text-xs text-muted-foreground">Missing: {missing.map(item => item.title).join(", ")}</p>}</div>
       <Button size="sm" onClick={() => query.isError ? void query.refetch() : setOpen(true)}>{query.isError ? "Retry" : "Complete setup"}</Button>
