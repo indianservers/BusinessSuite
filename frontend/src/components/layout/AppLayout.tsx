@@ -84,8 +84,9 @@ function AppLayoutContent() {
       >
         {!mobileLead && <Topbar onMenuClick={() => setSidebarOpen(true)} />}
         <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory || isWorkspaceDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : isDealCollection ? "px-3 py-2 pb-24 lg:px-6" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory || isWorkspaceDirectory || isDealCollection ? null : <Breadcrumbs />}
-          {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
+          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory || isWorkspaceDirectory || isDealCollection
+            ? !mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />
+            : <div className="suite-page-navigation"><Breadcrumbs /><WorkspaceEnhancements /></div>}
           <SetupReadiness embedded />
           <ErrorBoundary resetKey={location.pathname+location.search}>
             <RouteContent><Suspense fallback={<LoadingState />}><FormDefaultsGate required={requiresFormDefaults} unavailableMessage={preferencesUnavailable}><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></RouteContent>
