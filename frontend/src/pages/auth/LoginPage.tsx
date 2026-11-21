@@ -379,11 +379,11 @@ export default function LoginPage({ embedded = false, onSignup }: { embedded?: b
           <p className="suite-login-company">
             Business Suite
           </p>
-          <p className="suite-login-organization" title={branding.data?.company_name}>{branding.data?.company_name||"\u00a0"}</p>
+          {branding.data?.company_name && <p className="suite-login-organization" title={branding.data.company_name}>{branding.data.company_name}</p>}
           <h1 id="login-title" ref={heading} tabIndex={-1}>
             {title}
           </h1>
-          <p>
+          <p className={view === "login" && !mfaToken ? "suite-login-description" : undefined}>
             {mfaToken
               ? method === "totp"
                 ? "Enter the code from your authenticator app."
@@ -402,7 +402,6 @@ export default function LoginPage({ embedded = false, onSignup }: { embedded?: b
             </p>
           )}
           {workspaceChoice && <section className="suite-login-note"><h2>Choose your approved workspace</h2>{workspaceChoice.workspaces?.map(choice=><button className="suite-secondary" disabled={ssoBusy} key={choice.workspace} onClick={async()=>{setSsoBusy(true);try{const {data}=await api.post("/auth/firebase/login",{token:workspaceChoice.identity_token,provider:workspaceChoice.identity_provider,workspace:choice.workspace},{headers:{"X-Suite-Tenant":""}});setWorkspaceChoice(undefined);finish(data)}catch(err){setError(errorMessage(err,"Could not open this workspace. Sign in again."))}finally{setSsoBusy(false)}}}>{choice.name}</button>)}</section>}
-          {!embedded && view==="login" && <p><Link to="/login?application=1">Applied already? Check application status</Link></p>}
           {error && (
             <p
               ref={errorRef}
