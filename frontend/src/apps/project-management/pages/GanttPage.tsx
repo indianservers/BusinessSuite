@@ -1,3 +1,4 @@
+import "./planning-pages.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -76,7 +77,7 @@ export default function GanttPage() {
   const requestSequence = useRef(0);
   const inFlight = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const labelWidth = compact ? 176 : desktopLabelWidth;
+  const labelWidth = compact ? 148 : desktopLabelWidth;
   useEffect(() => { const resize = () => setCompact(window.innerWidth < 640); window.addEventListener("resize", resize); return () => window.removeEventListener("resize", resize); }, []);
   const openEditor = (task: PMSTaskListItem) => { setError(null); setDates({ start: task.start_date || "", due: task.due_date || "" }); setEditor(task); };
   const saveSchedule = async () => {
@@ -207,7 +208,7 @@ export default function GanttPage() {
   const selectedProjectId = filters.projectId || data?.filters.projects[0]?.id;
 
   return (
-    <div className="space-y-6">
+    <div className="pms-planning-page pms-planning-gantt min-w-0 space-y-6">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="page-title">Gantt</h1>
@@ -223,7 +224,7 @@ export default function GanttPage() {
 
       <Card>
         <CardContent className="space-y-4 p-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="pms-planning-filters grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <SelectFilter disabled={!!projectId} label={businessTerm('project')} value={filters.projectId} onChange={(value) => setFilters((current) => ({ ...current, projectId: value, sprintId: "", epicId: "" }))}>
               <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
               {data?.filters.projects.map((item) => <option key={item.id} value={item.id}>{item.project_key || item.name}</option>)}
@@ -258,7 +259,7 @@ export default function GanttPage() {
       {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
       <Card>
-        <CardContent ref={scrollRef} className="max-w-full overflow-auto p-0" aria-label="Scrollable task timeline">
+        <CardContent ref={scrollRef} className="pms-planning-scroll max-w-full overflow-auto p-0" role="region" tabIndex={0} aria-label="Scrollable task timeline">
           {initialLoading ? <div className="skeleton m-5 h-96 rounded-lg" /> : null}
           {!initialLoading && !rows.length ? <div className="m-5 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Add task start or due dates to populate the Gantt timeline.</div> : null}
           {!initialLoading && rows.length ? (
@@ -316,14 +317,14 @@ export default function GanttPage() {
         </CardContent>
       </Card>
 
-      <Dialog.Root open={!!editor} onOpenChange={open => { if (!open && !saving) setEditor(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" /><Dialog.Content onEscapeKeyDown={event => { if (saving) event.preventDefault(); }} onInteractOutside={event => event.preventDefault()} className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border bg-background p-5 shadow-xl"><Dialog.Title className="text-lg font-semibold">Schedule · {editor?.title}</Dialog.Title><Dialog.Description>Choose dates or leave both blank to unschedule. Dependency warnings are checked after saving.</Dialog.Description>{error && <p role="alert" className="my-3 text-destructive">{error}</p>}<CompactForm className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void saveSchedule(); }}><fieldset disabled={saving || !canEditProject(editor?.project_id)} className="grid gap-4 sm:grid-cols-2"><label>Start date<input aria-label="Schedule start date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.start} onChange={event => setDates({ ...dates, start: event.target.value })} /></label><label>Due date<input aria-label="Schedule due date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.due} onChange={event => setDates({ ...dates, due: event.target.value })} /></label></fieldset>{!canEditProject(editor?.project_id) && <p>You have read-only access.</p>}<div className="flex flex-wrap justify-end gap-3">{canEditProject(editor?.project_id) && <Button type="button" variant="outline" disabled={saving} onClick={() => setDates({ start: "", due: "" })}>Clear dates</Button>}<Button type="button" variant="outline" disabled={saving} onClick={() => setEditor(null)}>Close</Button>{canEditProject(editor?.project_id) && <Button disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>}</div></CompactForm></Dialog.Content></Dialog.Portal></Dialog.Root>
+      <Dialog.Root open={!!editor} onOpenChange={open => { if (!open && !saving) setEditor(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" /><Dialog.Content onEscapeKeyDown={event => { if (saving) event.preventDefault(); }} onInteractOutside={event => event.preventDefault()} className="pms-schedule-dialog fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border bg-background p-5 shadow-xl"><Dialog.Title className="text-lg font-semibold">Schedule · {editor?.title}</Dialog.Title><Dialog.Description>Choose dates or leave both blank to unschedule. Dependency warnings are checked after saving.</Dialog.Description>{error && <p role="alert" className="my-3 text-destructive">{error}</p>}<CompactForm className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void saveSchedule(); }}><fieldset disabled={saving || !canEditProject(editor?.project_id)} className="grid gap-4 sm:grid-cols-2"><label>Start date<input aria-label="Schedule start date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.start} onChange={event => setDates({ ...dates, start: event.target.value })} /></label><label>Due date<input aria-label="Schedule due date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.due} onChange={event => setDates({ ...dates, due: event.target.value })} /></label></fieldset>{!canEditProject(editor?.project_id) && <p>You have read-only access.</p>}<div className="flex flex-wrap justify-end gap-3">{canEditProject(editor?.project_id) && <Button type="button" variant="outline" disabled={saving} onClick={() => setDates({ start: "", due: "" })}>Clear dates</Button>}<Button type="button" variant="outline" disabled={saving} onClick={() => setEditor(null)}>Close</Button>{canEditProject(editor?.project_id) && <Button disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>}</div></CompactForm></Dialog.Content></Dialog.Portal></Dialog.Root>
       {filters.projectId && <AdvancedSchedulingPanel key={filters.projectId} projectId={Number(filters.projectId)} canManage={canEditProject(Number(filters.projectId))} onApplied={()=>{void load();}}/>}
       {!filters.projectId && <p className="text-sm text-muted-foreground">Select a project to analyze its critical path, preview dependency cascades and compare schedule baselines.</p>}
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <SmartCreateSection title="Add dependency">{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<CompactForm onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
+            <SmartCreateSection title="Add dependency">{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<CompactForm onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_11rem_6rem_auto]">
               <NativeSelect aria-label="Source task" value={sourceTaskId} onChange={(event) => { setSourceTaskId(event.target.value); setTargetTaskId(""); }} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Source task</option>
                 {tasks.filter(task => canEditProject(task.project_id)).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}

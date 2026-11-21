@@ -1,3 +1,4 @@
+import "./planning-pages.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -148,7 +149,7 @@ export default function BacklogPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pms-planning-page pms-planning-backlog min-w-0 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Backlog</h1>
@@ -161,7 +162,7 @@ export default function BacklogPage() {
       </div>
 
       <Card>
-        <CardContent className="grid gap-3 p-4 lg:grid-cols-[16rem_1fr_12rem_auto] lg:items-end">
+        <CardContent className="pms-planning-filters grid gap-3 p-4 lg:grid-cols-[16rem_1fr_12rem_auto] lg:items-end">
           <Field label={businessTerm('project')}>
             <NativeSelect value={projectId} onChange={(event) => setProjectId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
@@ -186,7 +187,7 @@ export default function BacklogPage() {
         <SmartCreateSection title={<>Create sprint</>} size="standard" autoOpen onClose={() => setShowSprintForm(false)}><Card>
           <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
           <CardContent>
-            <CompactForm onSubmit={createSprint} className="grid gap-3 md:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] md:items-end">
+            <CompactForm onSubmit={createSprint} className="pms-planning-form grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] xl:items-end">
               <Field label="Name"><Input name="name" required /></Field>
               <Field label="Goal"><Input name="goal" /></Field>
               <Field label="Start"><Input name="start_date" type="date" required /></Field>
@@ -315,9 +316,9 @@ function SortableTaskRow({ task }: { task: PMSTaskListItem }) {
 function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem; dragHandle?: Record<string, unknown>; dragging?: boolean }) {
   const tagNames = (task.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name);
   return (
-    <div data-priority-row data-priority={task.priority} className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[36rem] shadow-lg")}>
+    <div data-priority-row data-priority={task.priority} className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[min(36rem,calc(100vw-2rem))] shadow-lg")}>
       <div className="flex items-start gap-3">
-        <button type="button" className="mt-1 rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
+        <button type="button" className="pms-backlog-grip mt-1 inline-flex shrink-0 items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">
@@ -327,7 +328,7 @@ function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem
             <Badge variant="outline">{task.status}</Badge>
             <span className="text-sm text-muted-foreground">{task.story_points ?? 0} pts</span>
           </div>
-          <p className="mt-1 truncate font-medium">{task.title}</p>
+          <p className="mt-1 font-medium sm:truncate">{task.title}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{task.assignee_name || "Unassigned"}</span>
             {tagNames.slice(0, 4).map((tag) => <Badge key={tag} variant="outline" className="h-5 rounded px-1.5 text-[11px]">{tag}</Badge>)}
