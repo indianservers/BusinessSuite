@@ -636,7 +636,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
         {id:"lines",label:"Entry lines",content:<>      <Card className="fam-voucher-lines-card">
         <CardHeader><CardTitle className="text-base">Debit / Credit lines</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {phone&&<><VoucherMobileLineEditor lines={lines} ledgers={listItems(ledgersQuery.data)} loading={ledgersQuery.isFetching} error={ledgersQuery.isError} canEdit={fieldsEditable} onChange={patchLine} onAdd={addLine}/><p className="fam-voucher-scroll-help">Scroll within the full grid for all line fields and tools.</p></>}
+          {phone&&<><VoucherMobileLineEditor lines={lines} ledgers={listItems(ledgersQuery.data)} loading={ledgersQuery.isFetching} error={ledgersQuery.isError} canEdit={fieldsEditable} onChange={patchLine} onAdd={addLine} onRemove={index => patch("lines", lines.filter((_, lineIndex) => lineIndex !== index))}/><p className="fam-voucher-scroll-help">Scroll within the full grid for all line fields and tools.</p></>}
           <div className="overflow-x-auto rounded-lg border fam-voucher-line-table" role={phone?"region":undefined} aria-label={phone?"Voucher entry grid, scroll for all fields":undefined} tabIndex={phone?0:undefined}>
             <GridTable gridId="apps/fam/FAMWorkspacePage:table-2" className="w-full min-w-[860px] text-sm">
               <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-3 py-2">Ledger</th><th className="px-3 py-2">Debit</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Cost Center</th><th className="px-3 py-2">Narration</th></tr></thead>

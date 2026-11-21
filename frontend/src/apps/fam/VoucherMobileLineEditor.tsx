@@ -6,7 +6,7 @@ import {NativeSelect} from '@/components/ui/native-select';
 import {MobileLineAmount} from "./FinancialMobileLineEditor";
 import type {FAMRecord} from './types';
 /** Phone entry for existing line fields; delegates all conversion and accounting rules. */
-export default function VoucherMobileLineEditor({lines,ledgers,loading,error,canEdit,onChange,onAdd}:{lines:FAMRecord[];ledgers:FAMRecord[];loading:boolean;error:boolean;canEdit:boolean;onChange:(index:number,key:string,value:string)=>void;onAdd:()=>void}){
+export default function VoucherMobileLineEditor({lines,ledgers,loading,error,canEdit,onChange,onAdd,onRemove}:{lines:FAMRecord[];ledgers:FAMRecord[];loading:boolean;error:boolean;canEdit:boolean;onChange:(index:number,key:string,value:string)=>void;onAdd:()=>void;onRemove:(index:number)=>void}){
  const[open,setOpen]=useState(false),[selected,setSelected]=useState(0);
  const index=Math.min(selected,Math.max(0,lines.length-1)),line=lines[index];
  return <><Button type="button" variant="outline" onClick={()=>setOpen(true)}>{canEdit?'Edit entry lines':'View entry lines'}</Button>
@@ -24,6 +24,7 @@ export default function VoucherMobileLineEditor({lines,ledgers,loading,error,can
    </div>
    <div className="fam-line-editor-footer fam-voucher-line-actions">
     {canEdit&&<Button type="button" variant="outline" onClick={()=>{onAdd();setSelected(lines.length);}}>Add line</Button>}
+    {canEdit&&lines.length>2&&<Button type="button" variant="outline" onClick={()=>{onRemove(index);setSelected(Math.min(index,lines.length-2));}}>Remove line</Button>}
     <Button type="button" onClick={()=>setOpen(false)}>Done</Button>
    </div>
   </MobileSheet>
