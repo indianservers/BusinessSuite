@@ -1,5 +1,5 @@
 import FollowUpSummary from "./FollowUpSummary";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { CalendarClock, History, MessageSquare, ShoppingBag, SlidersHorizontal } from "lucide-react";
@@ -9,6 +9,8 @@ import { catalogError } from "@/shared/catalog/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/ui/native-select";
+import { MobileSheet } from "@/components/mobile/MobilePrimitives";
+import { useMobile } from "@/components/mobile/useMobile";
 import { Input } from "@/components/ui/input";
 import { canAccessRoute } from "@/lib/roles";
 import { useRecordScope } from "@/lib/record-scope";
@@ -71,7 +73,7 @@ function Center({ scope }: { scope: string }) {
 }
 
 function Purchasers({ scope }: { scope: string }) {
-  const filterId = useId();
+  const phone = useMobile(639);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<Filters>(blankFilters);
   const [filters, setFilters] = useState<Filters>(blankFilters);
@@ -83,27 +85,32 @@ function Purchasers({ scope }: { scope: string }) {
     retry: false,
     queryFn: ({ signal }) => api.get<Audience>(audiencePath, { params: { ...params, page }, signal, recordCache: false }).then(result => result.data),
   });
-  return <section aria-label="Purchasers" className="space-y-4 rounded-xl border bg-card p-4">
-    <Button type="button" variant="outline" className="min-h-11 sm:hidden" aria-expanded={filtersOpen}
-      aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>
-      <SlidersHorizontal className="h-4 w-4" aria-hidden="true"/>Purchaser filters
-      {Object.keys(params).length > 0 && <span>({Object.keys(params).length})</span>}
-    </Button>
-    <form id={filterId} aria-label="Purchaser filters" className={`${filtersOpen ? "grid" : "hidden"} gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4`} onSubmit={event => {
+  const filterForm = (
+    <form aria-label="Purchaser filters" className="grid grid-cols-2 gap-3 lg:grid-cols-4 max-sm:[&_input]:text-base max-sm:[&_select]:text-base" onSubmit={event => {
       event.preventDefault();
       setRecipient(undefined);
       setPage(1);
       setFilters(draft);
       setFiltersOpen(false);
     }}>
-      <label className="grid gap-1 text-sm">Offering type<NativeSelect value={draft.kind} onChange={event => setDraft({ ...draft, kind: event.target.value })}>
+      <label className="col-span-2 grid min-w-0 gap-1 text-sm sm:col-span-1">Offering type<NativeSelect value={draft.kind} onChange={event => setDraft({ ...draft, kind: event.target.value })}>
         <option value="">All offerings</option><option value="product">Products</option><option value="service">Services</option><option value="membership">Memberships</option><option value="subscription">Subscriptions</option>
       </NativeSelect></label>
-      <label className="grid gap-1 text-sm">Customer name<Input value={draft.search} maxLength={100} onChange={event => setDraft({ ...draft, search: event.target.value })}/></label>
-      <label className="grid gap-1 text-sm">Purchased from<Input type="date" max={draft.end || undefined} value={draft.start} onChange={event => setDraft({ ...draft, start: event.target.value })}/></label>
-      <label className="grid gap-1 text-sm">Purchased through<Input type="date" min={draft.start || undefined} value={draft.end} onChange={event => setDraft({ ...draft, end: event.target.value })}/></label>
-      <Button className="min-h-11 justify-self-start" type="submit">Find customers</Button>
+      <label className="col-span-2 grid min-w-0 gap-1 text-sm sm:col-span-1">Customer name<Input value={draft.search} maxLength={100} onChange={event => setDraft({ ...draft, search: event.target.value })}/></label>
+      <label className="grid min-w-0 gap-1 text-sm">Purchased from<Input className="min-w-0" type="date" max={draft.end || undefined} value={draft.start} onChange={event => setDraft({ ...draft, start: event.target.value })}/></label>
+      <label className="grid min-w-0 gap-1 text-sm">Purchased through<Input className="min-w-0" type="date" min={draft.start || undefined} value={draft.end} onChange={event => setDraft({ ...draft, end: event.target.value })}/></label>
+      <Button className="col-span-2 min-h-11 sm:col-span-1 sm:justify-self-start" type="submit">Find customers</Button>
     </form>
+  );
+  return <section aria-label="Purchasers" className="space-y-4 rounded-xl border bg-card p-4">
+    {phone ? <>
+      <Button type="button" variant="outline" className="min-h-11" aria-haspopup="dialog" aria-expanded={filtersOpen}
+        onClick={() => { setDraft(filters); setFiltersOpen(true); }}>
+        <SlidersHorizontal className="h-4 w-4" aria-hidden="true"/>Purchaser filters
+        {Object.keys(params).length > 0 && <span>({Object.keys(params).length})</span>}
+      </Button>
+      <MobileSheet title="Purchaser filters" open={filtersOpen} onClose={() => setFiltersOpen(false)}>{filterForm}</MobileSheet>
+    </> : filterForm}
     {audience.isPending && <p role="status">Loading purchasers…</p>}
     {audience.isError && <div role="alert" className="space-y-2"><p>{catalogError(audience.error)}</p><Button type="button" variant="outline" onClick={() => void audience.refetch()}>Retry</Button></div>}
     {audience.data && (audience.data.items.length === 0 ? <p>No purchasers match these filters.</p> :
