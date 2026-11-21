@@ -149,7 +149,7 @@ export default function BacklogPage() {
   };
 
   return (
-    <div className="pms-planning-page pms-planning-backlog min-w-0 space-y-6">
+    <div className="pms-planning-page pms-planning-backlog max-sm:min-w-0 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Backlog</h1>
@@ -187,7 +187,7 @@ export default function BacklogPage() {
         <SmartCreateSection title={<>Create sprint</>} size="standard" autoOpen onClose={() => setShowSprintForm(false)}><Card>
           <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
           <CardContent>
-            <CompactForm onSubmit={createSprint} className="pms-planning-form grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] xl:items-end">
+            <CompactForm onSubmit={createSprint} className="pms-planning-form grid gap-3 sm:max-md:grid-cols-2 md:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] md:items-end">
               <Field label="Name"><Input name="name" required /></Field>
               <Field label="Goal"><Input name="goal" /></Field>
               <Field label="Start"><Input name="start_date" type="date" required /></Field>
@@ -316,9 +316,9 @@ function SortableTaskRow({ task }: { task: PMSTaskListItem }) {
 function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem; dragHandle?: Record<string, unknown>; dragging?: boolean }) {
   const tagNames = (task.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name);
   return (
-    <div data-priority-row data-priority={task.priority} className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[min(36rem,calc(100vw-2rem))] shadow-lg")}>
+    <div data-priority-row data-priority={task.priority} className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[36rem] max-sm:w-[min(36rem,calc(100vw-2rem))] shadow-lg")}>
       <div className="flex items-start gap-3">
-        <button type="button" className="pms-backlog-grip mt-1 inline-flex shrink-0 items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
+        <button type="button" className="pms-backlog-grip mt-1 rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">

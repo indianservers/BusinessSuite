@@ -1,3 +1,4 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -124,6 +125,7 @@ function saved<T>(key: string, fallback: T): T {
 }
 
 export default function PlannerPage() {
+  const compactControls = useMobile(639);
   const { term: businessTerm } = useBusinessTerms();
   const userId = useAuthStore((s) => s.user?.id || 0);
   const [params, setParams] = useSearchParams();
@@ -781,6 +783,17 @@ export default function PlannerPage() {
       </section>
     );
   }
+  const eventAction = (
+    <button
+      type="button"
+      className="planner-filter-button"
+      onClick={() => openEvent(null, dateKey(anchor))}
+    >
+      <Plus />
+      Event / focus
+    </button>
+  );
+
   return (
     <div
       className={`planner-shell ${compact ? "compact" : ""} grid-${prefs.grid_size} event-${prefs.event_style}`}
@@ -995,6 +1008,7 @@ export default function PlannerPage() {
             </button>
           </div>
           <div className="planner-toolbar-actions">
+            {!compactControls && eventAction}
             <div
               className="planner-view-tabs"
               role="group"
@@ -1012,14 +1026,7 @@ export default function PlannerPage() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className="planner-filter-button"
-              onClick={() => openEvent(null, dateKey(anchor))}
-            >
-              <Plus />
-              Event / focus
-            </button>
+            {compactControls && eventAction}
             <button
               type="button"
               className="planner-icon-button"
@@ -1233,7 +1240,7 @@ export default function PlannerPage() {
         {data && !result.error && (
           <>
             {view === "Month" || view === "Week" ? (
-              <div className="planner-calendar-scroll" role="region" tabIndex={0} aria-label="Scrollable calendar grid">
+              <div className="planner-calendar-scroll" role={compactControls ? "region" : undefined} tabIndex={compactControls ? 0 : undefined} aria-label={compactControls ? "Scrollable calendar grid" : undefined}>
                 <div
                   className={`planner-calendar ${view === "Week" ? "week" : ""}`}
                   style={
