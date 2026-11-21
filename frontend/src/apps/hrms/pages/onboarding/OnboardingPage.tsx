@@ -88,7 +88,7 @@ export default function OnboardingPage() {
 
   const templateForm = (
 <CompactForm compactTabs={phone?false:undefined} onSubmit={submitTemplate} className="hrms-onboarding-template-form flex gap-2">
-                <Input aria-label={phone?"Template name":undefined} disabled={phone && createTemplate.isPending} value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Engineering joining checklist" required />
+                <Input aria-label="Template name" disabled={phone && createTemplate.isPending} value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Engineering joining checklist" required />
                 {phone && templateError && <p role="alert">{templateError}</p>}<Button data-save-action={phone||undefined} aria-busy={phone && createTemplate.isPending || undefined} disabled={phone && createTemplate.isPending} type="submit"><Plus className="h-4 w-4" />{phone && createTemplate.isPending?"Creating…":"Add"}</Button>
               </CompactForm>
   );
@@ -100,19 +100,19 @@ export default function OnboardingPage() {
               {phone && templates.isError && <p role="alert">Template choices could not load. <Button disabled={templates.isFetching} variant="outline" onClick={() => void templates.refetch()}>Retry onboarding templates</Button></p>}
               <div className="space-y-2">
                 <Label><BusinessTerm name="employee"/></Label>
-                <NativeSelect aria-label={phone?"Onboarding employee":undefined} disabled={phone && start.isPending} loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Onboarding employee" disabled={phone && start.isPending} loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {employees.data?.map((e: any) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
                 </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label>Template</Label>
-                <NativeSelect aria-label={phone?"Onboarding template":undefined} disabled={phone && start.isPending} loading={templates.isFetching} error={templates.isError} value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Onboarding template" disabled={phone && start.isPending} loading={templates.isFetching} error={templates.isError} value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">No template</option>
                   {templates.data?.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </NativeSelect>
               </div>
-              <div className="space-y-2"><Label>Start date</Label><Input aria-label={phone?"Onboarding start date":undefined} disabled={phone && start.isPending} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Start date</Label><Input aria-label="Onboarding start date" disabled={phone && start.isPending} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               {phone && startError && <p role="alert">{startError}</p>}<Button data-save-action={phone||undefined} aria-busy={phone && start.isPending || undefined} onClick={() => {if(!phone || !start.isPending)start.mutate();}} disabled={!employeeId || start.isPending}>{phone && start.isPending?"Starting…":"Start"}</Button>
             </CardContent>
           </Card>
