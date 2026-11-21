@@ -29,12 +29,13 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
   const reports = location.pathname.replace(/\/$/, '') === salesReportsPath;
   const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
-  const scrollPage = dashboard || collections || reports;
+  const communications = location.pathname.replace(/\/$/, '') === '/srm/send-reminders';
+  const scrollPage = dashboard || collections || reports || communications;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
   const [model,setModel]=useState({page:0,labels:['Overview']});
-  const [title,setTitle]=useState(dashboard ? 'Sales & POS' : collections ? 'Collections' : titleFor(location.pathname));
+  const [title,setTitle]=useState(dashboard ? 'Sales & POS' : collections ? 'Collections' : communications ? 'Communication Center' : titleFor(location.pathname));
   const [summary,setSummary]=useState('SALES WORKSPACE');
   const [botAvailable,setBotAvailable]=useState(false);
   const [screenHeight,setScreenHeight]=useState(()=>window.visualViewport?.height||window.innerHeight);

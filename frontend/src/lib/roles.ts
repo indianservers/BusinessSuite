@@ -1040,7 +1040,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Reports", icon: BarChart3, to: "/srm/reports", group: "Insights" },
   { label: "Sales Report", icon: BarChart3, to: "/srm/sales-report", group: "Insights" },
   { label: "Membership Expiry Report", icon: BarChart3, to: "/srm/membership-expiry", group: "Insights" },
-  { label: "Reminders", icon: CalendarDays, to: "/srm/send-reminders", group: "Sales & Inventory" },
+  { label: "Communication Center", icon: CalendarDays, to: "/srm/send-reminders", group: "Sales & Inventory" },
   { label: "Settings", icon: Settings, to: "/srm/settings", group: "Admin" },
 ];
 

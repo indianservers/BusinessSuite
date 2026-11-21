@@ -8,11 +8,13 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, ROUND_CEILING
+from typing import Literal
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import and_, or_, case, cast, Date, String, func, literal
+from sqlalchemy import and_, or_, case, cast, Date, String, func, literal, select, tuple_
 
 from app.apps.srm.models import (SRMInvoice as Invoice, SRMInvoiceLine as InvoiceLine,
     SRMSalesOrder as Order, SRMSalesOrderLine as OrderLine, SRMReceipt as Receipt,
@@ -45,6 +47,10 @@ SALES_ISSUES = ('pos_sale','sales_order_issue','delivery_note')
 STOCK_RECEIPTS = ('grn_receipt','purchase_receipt','receipt','stock_in')
 STOCK_RETURNS = ('pos_return','sales_return','customer_return')
 ACTIVE_RECEIPTS = ('confirmed','partially_allocated','allocated')
+OfferingKind = Literal["product", "service", "membership", "subscription"]
+AudienceChannel = Literal["sms", "whatsapp", "email"]
+AUDIENCE_KINDS = ("product", "service", "membership", "subscription")
+AUDIENCE_CHANNELS = ("sms", "whatsapp", "email")
 
 
 class Filters(BaseModel):
@@ -81,8 +87,9 @@ def native(db):
         raise HTTPException(409, 'Use the selected Business Pack reporting surface')
 
 
-def resolved(db, user, filters):
-    native(db)
+def resolved(db, user, filters, *, allow_pack=False):
+    if not allow_pack:
+        native(db)
     today = business_day(db, user)
     if filters.period_preset!='custom':
         end=today-timedelta(days=1) if filters.period_preset=='yesterday' else today
@@ -363,6 +370,297 @@ def customer_details(db,user,f,page,size):
         'average_bill':money(Decimal(str(amount or 0))/visits) if visits else None,'last_purchase':last,'days_inactive':(today-last).days if last else None,
         'inactive':bool(ident and last and (today-last).days>=f.inactive_days),'_url':f'/srm/customers/{ident}/360' if ident else None} for ident,currency,visits,amount,paid,outstanding,last,lifetime in items]
     return result(db,user,f,'customers',rows,total,page,size,['customer','currency','purchases','lifetime_purchases','repeat_customer','total','paid','outstanding','average_bill','last_purchase','days_inactive','inactive'],insight_basis='Purchases, total and paid use the selected period. Lifetime visits and last purchase identify the same customer across currencies; financial balances remain separate by currency. Anonymous sales are not repeat or inactive people.')
+
+
+def offering_line_kind():
+    return case(
+        (OrderLine.service_type.in_(("product", "membership", "subscription", "bundle")), OrderLine.service_type),
+        (Product.product_type.in_(("service", "services")), "service"),
+        (Product.product_type.in_(("membership", "subscription", "bundle")), Product.product_type),
+        (Product.id.is_not(None), "product"),
+        (OrderLine.service_type.in_(("service", "services")), "service"),
+        else_="other",
+    )
+
+
+def offering_sales(db, user, filters, kind, page, size):
+    """Group billed quantities and amounts by offering and invoice currency."""
+    f = resolved(db, user, filters, allow_pack=True)
+    if f.start > f.end or (f.end - f.start).days > 3660:
+        raise HTTPException(422, "Choose a valid reporting period of ten years or less")
+    if db.info.get("business_pack_scope") is None:
+        visible = invoices(db, user, f)
+    else:
+        # Report flags belong to the native reporting workspace. Pack invoices
+        # remain scoped by the selected pack and its invoice read authority.
+        visible = period(invoice_query(db, user), Invoice.issue_date, f, db, user)
+    visible = invoice_ids(visible.filter(Invoice.status.notin_(ISSUED)))
+    kind_column = offering_line_kind()
+    name = func.coalesce(Product.item_name, OrderLine.item_code, InvoiceLine.description)
+    gross = func.sum(InvoiceLine.line_total)
+    query = (
+        db.query(kind_column.label("kind"), name.label("name"), Invoice.currency, func.max(Product.id).label("offering_id"),
+                 func.sum(InvoiceLine.quantity).label("quantity"),
+                 func.sum(InvoiceLine.tax_amount).label("tax"), gross.label("gross"))
+        .select_from(Invoice)
+        .join(InvoiceLine, InvoiceLine.invoice_id == Invoice.id)
+        .outerjoin(OrderLine, and_(InvoiceLine.source_type == "sales_order_line",
+                                  InvoiceLine.source_id == OrderLine.id))
+        .outerjoin(Product, and_(Product.id == OrderLine.product_id,
+                                Product.organization_id == Invoice.organization_id))
+        .filter(Invoice.id.in_(visible))
+    )
+    if kind:
+        query = query.filter(kind_column == kind)
+    grouped = query.group_by(kind_column, OrderLine.product_id, name, Invoice.currency)
+    totals = query.with_entities(Invoice.currency, gross).group_by(Invoice.currency).order_by(Invoice.currency).all()
+    rows = grouped.order_by(gross.desc(), kind_column, name, Invoice.currency, OrderLine.product_id)
+    items = rows.offset((page - 1) * size).limit(size + 1).all()
+    return {
+        "start": f.start,
+        "end": f.end,
+        "has_more": len(items) > size,
+        "totals": [{"currency": currency, "gross": money(amount)} for currency, amount in totals],
+        "items": [
+            {"kind": row.kind, "offering_id": row.offering_id, "name": row.name, "currency": row.currency,
+             "quantity": number(row.quantity), "tax": money(row.tax), "gross": money(row.gross)}
+            for row in items[:size]
+        ],
+    }
+
+
+def audience_purchases(db, user, filters, kind, offering_id, *, customer_id=None):
+    """Purchase evidence comes from scoped, issued invoices with a linked catalog line."""
+    from app.apps.srm.anonymous_cash import installed
+    from app.shared.master_data import companies
+
+    pack = db.info.get("business_pack_scope") is not None
+    visible = invoice_query(db, user) if pack else invoices(db, user, Filters(), dates=False)
+    visible = visible.filter(Invoice.status.notin_(ISSUED), Invoice.issue_date.is_not(None))
+    if filters.start:
+        visible = visible.filter(Invoice.issue_date >= filters.start)
+    if filters.end:
+        visible = visible.filter(Invoice.issue_date <= filters.end)
+
+    parties = companies(db, user, "srm")
+    if filters.search:
+        parties = parties.filter(CRMCompany.name.icontains(filters.search, autoescape=True))
+    if installed(db.connection()):
+        from app.apps.srm.anonymous_cash_models import AnonymousCashAccount
+        table = AnonymousCashAccount.__table__
+        anonymous = db.connection().scalars(select(table.c.customer_id).where(
+            table.c.organization_id == tenant(user), table.c.customer_id.is_not(None),
+        )).all()
+        parties = parties.filter(CRMCompany.id.not_in(anonymous))
+    if customer_id is not None:
+        parties = parties.filter(CRMCompany.id == customer_id)
+
+    if pack:
+        from app.apps.srm.service_checkout_models import POSServiceCheckout
+        from app.shared.catalog_branches import availability_clause, selected_branch
+        offerings = db.query(Product).filter(
+            Product.organization_id == tenant(user), Product.deleted_at.is_(None),
+            availability_clause(Product, selected_branch(user)),
+        )
+        if offering_id is not None:
+            offerings = offerings.filter(Product.id == offering_id)
+    else:
+        offerings = product_query(db, user, Filters(product_id=offering_id))
+    line_kind = offering_line_kind()
+    query = (
+        db.query(Invoice.customer_id.label("customer_id"), Invoice.id.label("invoice_id"),
+                 Invoice.issue_date.label("purchased_on"), Product.id.label("offering_id"),
+                 Product.item_name.label("offering_name"), line_kind.label("kind"))
+        .select_from(Invoice)
+        .join(InvoiceLine, InvoiceLine.invoice_id == Invoice.id)
+        .join(OrderLine, and_(InvoiceLine.source_type == "sales_order_line",
+                              InvoiceLine.source_id == OrderLine.id,
+                              Invoice.sales_order_id == OrderLine.sales_order_id))
+        .join(Product, Product.id == OrderLine.product_id)
+        .filter(Invoice.id.in_(invoice_ids(visible)), InvoiceLine.quantity > 0,
+                Invoice.customer_id.in_(parties.with_entities(CRMCompany.id)),
+                Product.id.in_(offerings.with_entities(Product.id)),
+                line_kind.in_(AUDIENCE_KINDS))
+    )
+    if pack:
+        # Retail checkout validates the catalog and enrolls the complete invoice
+        # graph in its exact pack context. Other purchase producers are not inferred.
+        query = query.join(POSServiceCheckout, POSServiceCheckout.invoice_id == Invoice.id).filter(
+            POSServiceCheckout.state == "committed",
+            POSServiceCheckout.sales_order_id == Invoice.sales_order_id,
+        )
+    return query.filter(line_kind == kind) if kind else query
+
+
+def audience_channels(db, customers, can_prepare, unavailable_reason="Sales export access is required"):
+    from app.apps.communication.models import CommunicationConsent, CommunicationOptOut
+    from app.apps.communication.services.delivery import normalize_email
+    from app.core.input_validation import email_address
+    from app.shared.master_data import normalized_phone
+
+    if not can_prepare:
+        return {row.id: {channel: (None, unavailable_reason) for channel in AUDIENCE_CHANNELS}
+                for row in customers}
+    if not customers:
+        return {}
+
+    destinations = {}
+    emails = set()
+    phones = set()
+    phone_keys = {}
+    for row in customers:
+        try:
+            email = normalize_email(email_address(row.email))
+        except (TypeError, ValueError):
+            email = None
+        try:
+            national, phone = normalized_phone(row.phone, row.phone_country_code)
+            phone_keys[row.id] = {(row.phone, row.phone_country_code), (national, row.phone_country_code)}
+        except (TypeError, ValueError):
+            phone = None
+        if email:
+            emails.add(email)
+        if phone:
+            phones.add(phone)
+        destinations[row.id] = {"email": email, "sms": phone, "whatsapp": phone}
+
+    consent = CommunicationConsent
+    customer_types = ("account", "company", "customer", "companies")
+    matches = [and_(consent.record_type.in_(customer_types), consent.record_id.in_(destinations))]
+    if emails:
+        matches.append(func.lower(consent.email).in_(emails))
+    if phone_keys:
+        phones_by_code = set().union(*phone_keys.values())
+        matches.append(tuple_(consent.phone, consent.phone_country_code).in_(phones_by_code))
+        matches.append(consent.phone.in_(phones))
+    refusals = db.query(consent).filter(
+        consent.consent_type.in_(AUDIENCE_CHANNELS),
+        func.lower(consent.status).in_(("opted_out", "unsubscribed", "denied")),
+        or_(*matches),
+    ).all()
+    blocked_records = {(row.record_id, row.consent_type) for row in refusals if row.record_type in customer_types}
+    blocked_phones = {(row.phone, row.phone_country_code, row.consent_type) for row in refusals if row.phone}
+    blocked_destinations = {(normalize_email(row.email), row.consent_type) for row in refusals if row.email}
+    blocked_destinations.update((row.phone, row.consent_type) for row in refusals if row.phone in phones)
+    opt_out = CommunicationOptOut
+    blocked_destinations.update(db.query(opt_out.email, opt_out.channel).filter(
+        opt_out.email.in_(emails | phones), opt_out.channel.in_(AUDIENCE_CHANNELS),
+    ).all())
+
+    results = {}
+    for row in customers:
+        status = (row.status or "").strip().lower().replace("_", " ").replace("-", " ")
+        channels = {}
+        for channel, destination in destinations[row.id].items():
+            denied = (
+                (row.id, channel) in blocked_records or (destination, channel) in blocked_destinations
+                or (channel != "email" and any((phone, code, channel) in blocked_phones
+                                               for phone, code in phone_keys.get(row.id, ())))
+            )
+            if status in {"do not contact", "blocked", "inactive"} or denied:
+                channels[channel] = (None, "Customer preferences block this channel")
+            elif not destination:
+                missing = "a valid email address" if channel == "email" else "a valid phone number with a country code"
+                channels[channel] = (None, f"Add {missing}")
+            else:
+                channels[channel] = (destination, None)
+        results[row.id] = channels
+    return results
+
+
+def offering_audience(db, user, filters, kind, offering_id, page, size, can_prepare):
+    if db.info.get("business_pack_scope") is not None:
+        return retail_offering_audience(db, user, filters, kind, offering_id, page, size)
+    purchases = audience_purchases(db, user, filters, kind, offering_id).subquery()
+    latest = func.max(purchases.c.purchased_on)
+    summary = (
+        db.query(purchases.c.customer_id, func.count(func.distinct(purchases.c.invoice_id)).label("purchase_count"),
+                 latest.label("last_purchase"))
+        .group_by(purchases.c.customer_id)
+        .subquery()
+    )
+    rows, total = paged(db.query(CRMCompany, summary.c.purchase_count, summary.c.last_purchase)
+                        .join(summary, summary.c.customer_id == CRMCompany.id)
+                        .order_by(summary.c.last_purchase.desc(), CRMCompany.id), page, size)
+    customers = [company for company, _, _ in rows]
+    channels = audience_channels(db, customers, can_prepare)
+    offerings = defaultdict(list)
+    if customers:
+        # Keep a customer's result compact, even if they have purchased hundreds of items.
+        ranked = (
+            db.query(purchases.c.customer_id, purchases.c.offering_id, purchases.c.offering_name, purchases.c.kind,
+                     func.row_number().over(partition_by=purchases.c.customer_id,
+                                            order_by=(latest.desc(), purchases.c.offering_id)).label("position"))
+            .filter(purchases.c.customer_id.in_([row.id for row in customers]))
+            .group_by(purchases.c.customer_id, purchases.c.offering_id, purchases.c.offering_name, purchases.c.kind)
+            .subquery()
+        )
+        for row in db.query(ranked).filter(ranked.c.position <= 13).order_by(ranked.c.customer_id, ranked.c.position):
+            offerings[row.customer_id].append({"id": row.offering_id, "name": row.offering_name, "kind": row.kind})
+    return audience_payload(filters, page, size, rows, total, offerings, channels)
+
+
+def retail_offering_audience(db, user, filters, kind, offering_id, page, size):
+    # Selected-pack ORM guards require mapped sources. Keep the financial
+    # grouping on explicit invoice, checkout, customer and catalog models.
+    purchases = audience_purchases(db, user, filters, kind, offering_id)
+    total = purchases.with_entities(func.count(func.distinct(Invoice.customer_id))).scalar() or 0
+    last = func.max(Invoice.issue_date)
+    rows = (
+        purchases.join(CRMCompany, CRMCompany.id == Invoice.customer_id)
+        .with_entities(CRMCompany, func.count(func.distinct(Invoice.id)), last)
+        .group_by(CRMCompany.id).order_by(last.desc(), CRMCompany.id)
+        .offset((page - 1) * size).limit(size).all()
+    )
+    customers = [company for company, _, _ in rows]
+    groups = defaultdict(list)
+    if customers:
+        line_kind = offering_line_kind()
+        values = (
+            purchases.filter(Invoice.customer_id.in_([customer.id for customer in customers]))
+            .with_entities(Invoice.customer_id, Product.id, Product.item_name, line_kind)
+            .group_by(Invoice.customer_id, Product.id, Product.item_name, line_kind)
+            .order_by(Invoice.customer_id, last.desc(), Product.id)
+        )
+        for customer_id, ident, name, offering_kind in values:
+            if len(groups[customer_id]) < 13:
+                groups[customer_id].append({"id": ident, "name": name, "kind": offering_kind})
+    channels = audience_channels(db, customers, False, "Message drafts are unavailable in the selected Business Pack")
+    return audience_payload(filters, page, size, rows, total, groups, channels)
+
+
+def audience_payload(filters, page, size, rows, total, offerings, channels):
+    return {
+        "start": filters.start, "end": filters.end, "page": page, "page_size": size,
+        "total": total, "has_more": page * size < total,
+        "items": [
+            {"id": company.id, "name": company.name, "purchase_count": count, "last_purchase": last,
+             "offerings": offerings[company.id][:12], "offerings_more": len(offerings[company.id]) > 12,
+             "channels": {channel: {"available": destination is not None, "reason": reason}
+                          for channel, (destination, reason) in channels[company.id].items()}}
+            for company, count, last in rows
+        ],
+    }
+
+
+def offering_audience_draft(db, user, filters, kind, offering_id, customer_id, channel):
+    purchases = audience_purchases(db, user, filters, kind, offering_id, customer_id=customer_id)
+    company = db.query(CRMCompany).filter(CRMCompany.id.in_(purchases.with_entities(Invoice.customer_id))).first()
+    if not company:
+        raise HTTPException(404, "Customer purchase is unavailable in your scope")
+    destination, reason = audience_channels(db, [company], True)[company.id][channel]
+    if not destination:
+        raise HTTPException(422, reason)
+    body = "Hello, we're reaching out to see if you have any questions or need help. Please reply if we can assist."
+    subject = "Checking in"
+    if channel == "whatsapp":
+        compose_url = f"https://wa.me/{destination.lstrip('+')}?text={quote(body, safe='')}"
+    elif channel == "sms":
+        compose_url = f"sms:{destination}?body={quote(body, safe='')}"
+    else:
+        compose_url = f"mailto:{quote(destination, safe='@')}?subject={quote(subject, safe='')}&body={quote(body, safe='')}"
+    return {"customer_id": company.id, "name": company.name, "channel": channel, "compose_url": compose_url,
+            "body": body, "subject": subject if channel == "email" else None}
 
 
 def product_details(db,user,f,page,size):
