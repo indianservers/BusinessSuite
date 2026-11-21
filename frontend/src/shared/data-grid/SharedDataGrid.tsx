@@ -1326,16 +1326,16 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     const actionFields = columns.filter(column => layout.visibility[column.id] !== false && /^(actions?|quick actions)$/i.test(column.title));
     return <article data-grid-record-id={getRowId(record)} data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)}
       onClickCapture={event => {
-        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        if (mobile && !event.currentTarget.contains(event.target as globalThis.Node)) return;
         props.rowProps?.(record)?.onClickCapture?.(event as any);
       }}
       onClick={event => {
-        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        if (mobile && !event.currentTarget.contains(event.target as globalThis.Node)) return;
         props.rowProps?.(record)?.onClick?.(event as any);
         if (!event.defaultPrevented && !(event.target as Element).closest("button,a,input,select,textarea,summary")) selectRecord(record);
       }}
       onDoubleClick={event => {
-        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        if (mobile && !event.currentTarget.contains(event.target as globalThis.Node)) return;
         if (!(event.target as Element).closest("button,a,input,select,textarea,summary")) onOpen?.(record);
       }}>
       {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
