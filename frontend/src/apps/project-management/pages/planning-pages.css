@@ -5,22 +5,19 @@
   --pms-workload-label: 260px;
 }
 
-.pms-planning-scroll {
-  overscroll-behavior-inline: contain;
-}
-.pms-planning-scroll:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: -2px;
-}
-.pms-workload-heatmap {
-  min-width: max(980px, 100%);
-}
 .pms-workload-detail > :first-child,
 .pms-workload-detail > :last-child {
   flex-shrink: 0;
 }
 
 @media (max-width: 639px) {
+  .pms-planning-scroll {
+    overscroll-behavior-inline: contain;
+  }
+  .pms-planning-scroll:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: -2px;
+  }
   .pms-planning-page {
     overflow-wrap: anywhere;
   }
@@ -65,6 +62,10 @@
     min-height: 44px;
   }
   .pms-backlog-grip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
     min-width: 44px;
   }
   .pms-planning-roadmap {

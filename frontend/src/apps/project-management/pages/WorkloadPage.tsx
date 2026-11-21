@@ -1,3 +1,4 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import "./planning-pages.css";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
@@ -59,6 +60,7 @@ function linkedFilters(params: URLSearchParams): WorkloadFilters {
 }
 
 export default function WorkloadPage() {
+  const compact = useMobile(639);
   const { term: businessTerm } = useBusinessTerms();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -97,18 +99,65 @@ export default function WorkloadPage() {
     setFilters((current) => ({ ...current, [key]: value }));
   };
 
+  const CellTitle = compact ? Dialog.Title : "h2";
+  const CellDescription = compact ? Dialog.Description : "p";
+  const cellContent = selectedCell && (
+    <>
+      <div className="border-b p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CellTitle className={compact ? "break-words text-lg font-semibold" : "text-lg font-semibold"}>{selectedCell.userName}</CellTitle>
+            <CellDescription className="text-sm text-muted-foreground">Week of {formatDate(selectedCell.week)}</CellDescription>
+          </div>
+          <Badge className={selectedCell.cell.status === "over" ? "bg-red-100 text-red-700" : selectedCell.cell.status === "near" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}>
+            {selectedCell.cell.utilization_percent}% utilized
+          </Badge>
+        </div>
+      </div>
+      <div className={compact ? "min-h-0 max-h-[65dvh] space-y-3 overflow-auto overscroll-contain p-4" : "max-h-[65vh] space-y-3 overflow-auto p-4"}>
+        <div className={compact ? "grid grid-cols-2 gap-2 text-sm" : "grid grid-cols-4 gap-2 text-sm"}>
+          <MiniStat label="Hours" value={`${selectedCell.cell.planned_hours}/${selectedCell.cell.capacity_hours}`} />
+          <MiniStat label="Points" value={selectedCell.cell.story_points} />
+          <MiniStat label="Tasks" value={selectedCell.cell.task_count} />
+          <MiniStat label="Basis" value={selectedCell.cell.load_unit} />
+        </div>
+        {selectedCell.cell.tasks.map((task) => (
+          <button data-priority-row data-priority={task.priority} key={task.id} type="button" className="w-full rounded-md border p-3 text-left hover:bg-muted/50" onClick={() => navigate(`/pms/tasks/${task.id}`)}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-primary">{task.task_key}</p>
+                <h3 className="font-medium">{task.title}</h3>
+              </div>
+              <Badge data-priority-badge data-priority={task.priority} variant="outline">{task.priority}</Badge>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{task.status} / {task.planned_hours}h / {task.story_points} pts</p>
+          </button>
+        ))}
+        {!selectedCell.cell.tasks.length ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No assigned tasks in this week.</p> : null}
+      </div>
+      <div className="border-t p-4 text-right">{compact ? <Dialog.Close asChild><Button variant="outline">Close</Button></Dialog.Close> : <Button variant="outline" onClick={() => setSelectedCell(null)}>Close</Button>}</div>
+    </>
+  );
+
   return (
-    <div className="pms-planning-page pms-planning-workload min-w-0 space-y-6">
+    <div className="pms-planning-page pms-planning-workload max-sm:min-w-0 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Workload</h1>
           <p className="page-description">Compare weekly assignment load against working hours, dated capacity, holidays and approved leave.</p>
           {filters.workspace_id && <p className="text-sm text-muted-foreground">Workspace {filters.workspace_id}: authorized projects only. Work outside this scope may add load.</p>}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild><Link to="/pms/management">Manage capacity</Link></Button>
-          <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" />Refresh</Button>
-        </div>
+        {compact ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild><Link to="/pms/management">Manage capacity</Link></Button>
+            <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" />Refresh</Button>
+          </div>
+        ) : (
+          <>
+            <Button variant="outline" asChild><Link to="/pms/management">Manage dated capacity & working schedules</Link></Button>
+            <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" />Refresh</Button>
+          </>
+        )}
       </div>
 
       <div className="pms-planning-metrics grid gap-4 md:grid-cols-3">
@@ -161,8 +210,8 @@ export default function WorkloadPage() {
             </div>
           ) : null}
           {!initialLoading && data?.rows.length ? (
-            <div className="pms-planning-scroll overflow-x-auto" role="region" tabIndex={0} aria-label="Weekly workload heatmap">
-              <div className="pms-workload-heatmap" style={{ width: `calc(var(--pms-workload-label) + ${data.weeks.length * 132 + 150}px)` }}>
+            <div className="pms-planning-scroll overflow-x-auto" role={compact ? "region" : undefined} tabIndex={compact ? 0 : undefined} aria-label={compact ? "Weekly workload heatmap" : undefined}>
+              <div className="pms-workload-heatmap min-w-[980px]" style={compact ? { width: `calc(var(--pms-workload-label) + ${data.weeks.length * 132 + 150}px)` } : undefined}>
                 <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: `var(--pms-workload-label) repeat(${data.weeks.length}, minmax(132px, 1fr)) 150px` }}>
                   <div className="pms-planning-row-label border-r p-3 text-xs font-semibold uppercase text-muted-foreground">Assignee</div>
                   {data.weeks.map((week) => <div key={week.week_start} className="border-r p-3 text-xs font-semibold uppercase text-muted-foreground">{week.label}</div>)}
@@ -179,7 +228,7 @@ export default function WorkloadPage() {
                         key={cell.week_start}
                         type="button"
                         className={cn("border-r p-3 text-left transition hover:bg-muted/60", cellTone(cell.status))}
-                        aria-label={`${row.user_name}, week of ${formatDate(cell.week_start)}, ${cell.utilization_percent}% utilized`}
+                        aria-label={compact ? `${row.user_name}, week of ${formatDate(cell.week_start)}, ${cell.utilization_percent}% utilized` : undefined}
                         onClick={event => {
                           cellTrigger.current = event.currentTarget;
                           setSelectedCell({ userName: row.user_name, week: cell.week_start, cell });
@@ -214,7 +263,7 @@ export default function WorkloadPage() {
         load();
       }} /></CardContent></Card>}
 
-      {selectedCell ? (
+      {cellContent && (compact ? (
         <Dialog.Root open onOpenChange={open => { if (!open) setSelectedCell(null); }}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/20" />
@@ -223,43 +272,17 @@ export default function WorkloadPage() {
               event.preventDefault();
               cellTrigger.current.focus();
             }} className="pms-workload-detail fixed bottom-4 right-4 z-50 flex max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-xl flex-col overflow-hidden rounded-lg border bg-background shadow-xl">
-              <div className="border-b p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Dialog.Title className="break-words text-lg font-semibold">{selectedCell.userName}</Dialog.Title>
-                    <Dialog.Description className="text-sm text-muted-foreground">Week of {formatDate(selectedCell.week)}</Dialog.Description>
-                  </div>
-                  <Badge className={selectedCell.cell.status === "over" ? "bg-red-100 text-red-700" : selectedCell.cell.status === "near" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}>
-                    {selectedCell.cell.utilization_percent}% utilized
-                  </Badge>
-                </div>
-              </div>
-              <div className="min-h-0 max-h-[65dvh] space-y-3 overflow-auto overscroll-contain p-4">
-                <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                  <MiniStat label="Hours" value={`${selectedCell.cell.planned_hours}/${selectedCell.cell.capacity_hours}`} />
-                  <MiniStat label="Points" value={selectedCell.cell.story_points} />
-                  <MiniStat label="Tasks" value={selectedCell.cell.task_count} />
-                  <MiniStat label="Basis" value={selectedCell.cell.load_unit} />
-                </div>
-                {selectedCell.cell.tasks.map((task) => (
-                  <button data-priority-row data-priority={task.priority} key={task.id} type="button" className="w-full rounded-md border p-3 text-left hover:bg-muted/50" onClick={() => navigate(`/pms/tasks/${task.id}`)}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold text-primary">{task.task_key}</p>
-                        <h3 className="font-medium">{task.title}</h3>
-                      </div>
-                      <Badge data-priority-badge data-priority={task.priority} variant="outline">{task.priority}</Badge>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">{task.status} / {task.planned_hours}h / {task.story_points} pts</p>
-                  </button>
-                ))}
-                {!selectedCell.cell.tasks.length ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No assigned tasks in this week.</p> : null}
-              </div>
-              <div className="border-t p-4 text-right"><Dialog.Close asChild><Button variant="outline">Close</Button></Dialog.Close></div>
+              {cellContent}
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
-      ) : null}
+      ) : (
+        <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/20 p-4" onClick={() => setSelectedCell(null)}>
+          <div className="w-full max-w-xl rounded-lg border bg-background shadow-xl" onClick={event => event.stopPropagation()}>
+            {cellContent}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
