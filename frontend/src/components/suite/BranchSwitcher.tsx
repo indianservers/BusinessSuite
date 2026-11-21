@@ -17,7 +17,7 @@ type Context = { company_id: number; selected: number | null; all_branches: bool
 
 const detail = (error: any) => error?.response?.data?.detail || "Unable to complete this action.";
 
-export default function BranchSwitcher({icon = 'building'}:{icon?:'building'|'store'|'location'} = {}) {
+export default function BranchSwitcher({icon = 'building', showBusinessPack = true}:{icon?:'building'|'store'|'location';showBusinessPack?:boolean} = {}) {
   const BranchIcon=icon==='store'?Store:icon==='location'?MapPin:Building2;
   const user = useAuthStore(s => s.user);
   const qc = useQueryClient();
@@ -63,7 +63,7 @@ export default function BranchSwitcher({icon = 'building'}:{icon?:'building'|'st
   }
   if (!user) return null;
   return <div className="suite-branch-control" style={packVisible ? {flexWrap:"wrap"} : undefined}>
-    <BusinessPackSwitcher onVisibility={setPackVisible}/>
+    {showBusinessPack && <BusinessPackSwitcher onVisibility={setPackVisible}/>}
     <label className="suite-branch-field">
       <BranchIcon size={icon==='building'?16:20} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>

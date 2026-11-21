@@ -3,6 +3,7 @@ import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import { appointmentLabel } from "../appointment-label";
 import MobileWorkflowPages, { MobileWorkflowSurface } from "../components/MobileWorkflowPages";
 import { useMobile } from "@/components/mobile/useMobile";
+import BranchSwitcher from "@/components/suite/BranchSwitcher";
 import SRMMobileToolbar from "../components/SRMMobileToolbar";
 import {Globe2, Check} from 'lucide-react';
 import PrebookingWorkflows from '@/shared/scheduling/PrebookingWorkflows';
@@ -125,6 +126,7 @@ function AppointmentStartup({scope,children}:{scope:string;children:import('reac
 }
 
 function IndustryWorkspace({ mode, scope, userId, bookingOnly = false, prefill, onClose, onDiscard, panelOpen = true }: { mode: 'salon' | 'appointments' | 'construction'; scope: string; userId?: number; bookingOnly?: boolean; prefill?: BookingSlot; onClose?: () => void; onDiscard?: () => void; panelOpen?: boolean }) {
+  const mobile = useMobile();
   const cache = useQueryClient();
   const location = useLocation();
   const bookingWorkspace = new URLSearchParams(location.search).get('space') || undefined;
@@ -309,7 +311,14 @@ function IndustryWorkspace({ mode, scope, userId, bookingOnly = false, prefill, 
   const draftNotice=kind==='appointment' && <div className="prebooking-draft-status">{scopeNotice && <p role="status">{scopeNotice}</p>}{draftStorageFailed?<p role="alert">Draft recovery storage is unavailable. Your in-memory edits remain; confirmation is blocked until recovery storage works.</p>:creating && (form.customer_id || form.service_id || form.notes || form.customer_notes)?<small>Draft preserved for refresh in this tab and this booking context.</small>:null}</div>;
   const success = confirmation && <><PrebookingSuccess saved={confirmation} capabilities={caps.data || {}} onChanged={()=>void refresh()} onAnother={bookAnother} onLatest={setConfirmation}/></>;
   const formSurface = <PrebookingSurface desktopModal open={(creating || !!confirmation) && !formClosed} onClose={()=>setFormClosed(true)}>{contextLabel}{draftNotice}{undoSelection && <p role="status">Selection changed. <Button type="button" variant="outline" disabled={workflowPending || mutation.isPending || checkingFinal || !!attempt} onClick={undoSelectionChange}>Undo selection change</Button></p>}{bookingForm}{recoveryPanel}{success}</PrebookingSurface>;
-  if (!hasOperationalBranch) return <p role="status">Select one branch to use industry operations.</p>;
+  if (!hasOperationalBranch) {
+    if (!mobile || bookingOnly || mode !== 'appointments') return <p role="status">Select one branch to use industry operations.</p>;
+    return <section aria-label="Appointment branch" className="grid gap-3 rounded-xl border bg-card p-4">
+      <h2 className="font-semibold">Choose a branch</h2>
+      <p className="text-sm text-muted-foreground">Appointments are scheduled for one branch at a time.</p>
+      <BranchSwitcher showBusinessPack={false}/>
+    </section>;
+  }
   if (bookingOnly && !caps.data?.manage) return <aside className="scheduler-prebooking"><p>{caps.isPending ? 'Checking booking permissions…' : caps.isError ? 'Booking permissions could not load.' : 'Your access allows viewing planned engagement. Booking requires appointment management permission.'}</p></aside>;
   if (bookingOnly) return <PrebookingSurface open={panelOpen} onClose={()=>onClose?.()}><aside className="scheduler-prebooking" aria-label="New prebooking">{onClose && <Button type="button" variant="ghost" aria-label="Close prebooking panel" onClick={onClose}>Close</Button>}{!creating && !confirmation && <Button onClick={()=>{clearDraft();setCreating(true);}}>New prebooking</Button>}{contextLabel}{draftNotice}{undoSelection && <p role="status">Selection changed. <Button type="button" variant="outline" disabled={workflowPending || mutation.isPending || checkingFinal || !!attempt} onClick={undoSelectionChange}>Undo selection change</Button></p>}{bookingForm}{recoveryPanel}{success}{workflows}{notice && !confirmation && <p role="status">{notice}</p>}{mutation.isError && <p role="alert">{dealError(mutation.error)}</p>}</aside></PrebookingSurface>;
   const timelineRows:Row[]=[...(rows.data || []),...(kind==='appointment'&&creating&&booking&&chosenService&&chosenCustomer?[{id:-1,title:chosenCustomer.name,kind:'appointment',status:'draft',revision:0,created_by:userId ?? 0,customer_id:chosenCustomer.id,data:{customer_name:chosenCustomer.name,service_name:chosenService.name,starts_at:booking.starts_at,duration_minutes:booking.duration_minutes,resource_ids:[booking.provider_resource_id,...(booking.additional_resource_ids || [])],...(chosenCustomer.avatar_url?{customer_avatar_url:chosenCustomer.avatar_url}:{})}}]:[])];
