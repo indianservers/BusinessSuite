@@ -1,0 +1,19 @@
+@media (max-width: 480px) {
+  .pms-reports-page { min-width: 0; }
+  .pms-reports-page > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .pms-report-shortcuts { padding: 10px; }
+  .pms-reports-links { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .pms-reports-links :is(a, button) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    text-align: start;
+  }
+  .pms-report-shortcuts .pms-reports-links {
+    color: hsl(var(--primary));
+    font-size: .8125rem;
+    row-gap: 0;
+  }
+  .pms-report-types { overscroll-behavior-inline: contain; padding-block: 2px 5px; }
+  .pms-report-types button { min-height: 44px; flex-shrink: 0; }
+}

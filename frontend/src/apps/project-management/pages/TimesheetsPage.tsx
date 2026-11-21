@@ -1,4 +1,7 @@
 import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { useMobile } from "@/components/mobile/useMobile";
+import { pmsRandomId } from "../pms-random-id";
+import "./timesheets-mobile.css";
 import BusinessTerm from "@/components/BusinessTerm";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -11,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatDate, statusColor } from "@/lib/utils";
 import { projectsAPI, pmsUsersAPI, tasksAPI, timesheetsAPI } from "../services/api";
 import type { PMSMentionUser, PMSProject, PMSTask, PMSTimesheet } from "../types";
@@ -27,7 +29,7 @@ type TimesheetRow = {
 };
 
 const emptyRow = (days: string[], projectId = ""): TimesheetRow => ({
-  key: crypto.randomUUID(),
+  key: pmsRandomId(),
   projectId,
   taskId: "",
   description: "",
@@ -38,6 +40,8 @@ const emptyRow = (days: string[], projectId = ""): TimesheetRow => ({
 
 export default function TimesheetsPage() {
   const { term: businessTerm } = useBusinessTerms();
+  const phone = useMobile(480);
+  const [dayIndex, setDayIndex] = useState(0);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, PMSTask[]>>({});
@@ -53,6 +57,7 @@ export default function TimesheetsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)), [weekStart]);
+  const activeDay = days[dayIndex];
   const editable = !sheet || sheet.status === "draft" || sheet.status === "rejected";
 
   useRefreshableEffect(() => {
@@ -114,7 +119,7 @@ export default function TimesheetsPage() {
     setRows((items) => items.map((item) => item.key === rowKey ? { ...item, cells: { ...item.cells, [day]: value } } : item));
   }
 
-  async function saveDraft() {
+  async function saveDraft(submitAfterSave = false) {
     setSaving(true);
     setError(null);
     try {
@@ -136,9 +141,14 @@ export default function TimesheetsPage() {
         : await timesheetsAPI.create({ week_start_date: formatIsoDate(weekStart), entries });
       setSheet(saved);
       setRows(toRows(saved, days));
+      if (submitAfterSave) {
+        const submitted = await timesheetsAPI.submit(saved.id);
+        setSheet(submitted);
+        setRows(toRows(submitted, days));
+      }
       await loadApprovals();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to save timesheet.");
+      setError(err?.response?.data?.detail || (submitAfterSave ? "Unable to submit timesheet." : "Unable to save timesheet."));
     } finally {
       setSaving(false);
     }
@@ -146,11 +156,7 @@ export default function TimesheetsPage() {
 
   async function submit() {
     if (!sheet) return;
-    await saveDraft();
-    const submitted = await timesheetsAPI.submit(sheet.id);
-    setSheet(submitted);
-    setRows(toRows(submitted, days));
-    await loadApprovals();
+    await saveDraft(true);
   }
 
   async function approve(item: PMSTimesheet) {
@@ -172,15 +178,15 @@ export default function TimesheetsPage() {
   }, [days, rows]);
 
   return (
-    <div className="space-y-6">
+    <div className="pms-timesheets space-y-6">
       <div>
         <h1 className="page-title">Weekly timesheets</h1>
         <p className="page-description">Log task hours by week, submit for approval, and review submitted team timesheets.</p>
       </div>
 
-      {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+      {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="pms-timesheet-metrics grid gap-3 md:grid-cols-4">
         <Metric label="Weekly hours" value={`${totals.total.toFixed(1)}h`} />
         <Metric label="Status" value={sheet?.status || "draft"} />
         <Metric label="Billable" value={`${((sheet?.billable_minutes || 0) / 60).toFixed(1)}h`} />
@@ -190,19 +196,57 @@ export default function TimesheetsPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />My weekly grid</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input type="date" value={formatIsoDate(weekStart)} onChange={(event) => setWeekStart(startOfWeek(new Date(`${event.target.value}T00:00:00`)))} className="w-40" />
+            <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />{phone ? "My weekly timesheet" : "My weekly grid"}</CardTitle>
+            <div className="pms-timesheet-actions flex flex-wrap items-center gap-2">
+              <Input aria-label="Timesheet week" type="date" disabled={saving} value={formatIsoDate(weekStart)} onChange={event => { if (event.target.value) setWeekStart(startOfWeek(new Date(`${event.target.value}T00:00:00`))); }} className="w-40" />
               {sheet ? <Badge className={statusColor(sheet.status)}>{sheet.status}</Badge> : null}
-              <Button variant="outline" onClick={() => setRows((items) => [...items, emptyRow(days, projects[0] ? String(projects[0].id) : "")])} disabled={!editable}>Add row</Button>
-              <Button variant="outline" onClick={saveDraft} disabled={!editable || saving}>{saving ? "Saving..." : "Save draft"}</Button>
-              <Button onClick={submit} disabled={!editable || !sheet || saving}><Send className="h-4 w-4" />Submit</Button>
+              <Button variant="outline" onClick={() => setRows((items) => [...items, emptyRow(days, projects[0] ? String(projects[0].id) : "")])} disabled={!editable || loading || saving}>Add row</Button>
+              <Button variant="outline" onClick={() => void saveDraft()} disabled={!editable || loading || saving}>{saving ? "Saving..." : "Save draft"}</Button>
+              <Button onClick={submit} disabled={!editable || loading || !sheet || saving}><Send className="h-4 w-4" />Submit</Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {sheet?.rejection_reason ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Rejected: {sheet.rejection_reason}</div> : null}
-          {initialLoading ? <div className="skeleton h-48 rounded-lg" /> : (
+          {initialLoading ? <div className="skeleton h-48 rounded-lg" /> : phone ? (
+            <section className="pms-timesheet-day" aria-label="Time entry by day">
+              <div className="pms-timesheet-days" role="group" aria-label="Timesheet days">
+                {days.map((day, index) => (
+                  <button key={day} type="button" aria-label={`${shortDay(day)}, ${day}`} aria-pressed={index === dayIndex} onClick={() => setDayIndex(index)}>
+                    {shortDay(day)}<span>{Number(totals.daily[day] || 0).toFixed(1)}h</span>
+                  </button>
+                ))}
+              </div>
+              {rows.map((row, index) => (
+                <fieldset key={row.key} className="pms-timesheet-entry" disabled={!editable || loading || saving}>
+                  <legend>Entry {index + 1}</legend>
+                  <label className="pms-timesheet-lookup">{businessTerm("project")}
+                    <NativeSelect value={row.projectId} onChange={event => {
+                      const projectId = event.target.value;
+                      updateRow(row.key, { projectId, taskId: "" });
+                      if (projectId) void loadTasks(Number(projectId));
+                    }}>
+                      <option value="">Select {businessTerm("project").toLowerCase()}</option>
+                      {projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                    </NativeSelect>
+                  </label>
+                  <label className="pms-timesheet-lookup">Task
+                    <NativeSelect value={row.taskId} onChange={event => updateRow(row.key, { taskId: event.target.value })}>
+                      <option value="">Project time</option>
+                      {(tasksByProject[row.projectId] || []).map(task => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
+                    </NativeSelect>
+                  </label>
+                  <label>Hours for {shortDay(activeDay)}
+                    <Input type="number" min="0" step="0.25" value={row.cells[activeDay] || ""} onChange={event => updateCell(row.key, activeDay, event.target.value)} />
+                  </label>
+                  <label className="pms-timesheet-billable"><input type="checkbox" checked={row.isBillable} onChange={event => updateRow(row.key, { isBillable: event.target.checked })} />Billable</label>
+                  <small>Week total {rowTotal(row, days).toFixed(1)}h</small>
+                  <Button variant="ghost" size="sm" onClick={() => setRows(items => items.filter(item => item.key !== row.key))}>Remove</Button>
+                </fieldset>
+              ))}
+              {!rows.length && <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Add a row to log time for this week.</p>}
+            </section>
+          ) : (
             <div className="overflow-x-auto">
               <GridTable gridId="apps/project-management/pages/TimesheetsPage:table-1" className="min-w-[980px] w-full border-collapse text-sm">
                 <thead>
@@ -255,7 +299,7 @@ export default function TimesheetsPage() {
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <CardTitle>Manager approvals</CardTitle>
-            <div className="grid gap-2 md:grid-cols-3">
+            <div className="pms-timesheet-approval-filters grid gap-2 md:grid-cols-3">
               <Field label="Status">
                 <NativeSelect value={approvalStatus} onChange={(event) => setApprovalStatus(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                   <option value="submitted">Submitted</option>
@@ -270,7 +314,7 @@ export default function TimesheetsPage() {
                   {users.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
                 </NativeSelect>
               </Field>
-              <Field label="Week"><Input type="date" value={formatIsoDate(weekStart)} onChange={(event) => setWeekStart(startOfWeek(new Date(`${event.target.value}T00:00:00`)))} /></Field>
+              <Field label="Week"><Input type="date" disabled={saving} value={formatIsoDate(weekStart)} onChange={event => { if (event.target.value) setWeekStart(startOfWeek(new Date(`${event.target.value}T00:00:00`))); }} /></Field>
             </div>
           </div>
         </CardHeader>
@@ -327,7 +371,10 @@ function addDays(date: Date, days: number) {
 }
 
 function formatIsoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function rowTotal(row: TimesheetRow, days: string[]) {
@@ -343,7 +390,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-1"><Label className="text-xs uppercase text-muted-foreground">{label}</Label>{children}</div>;
+  return <label className="block min-w-0 space-y-1"><span className="block text-xs uppercase text-muted-foreground">{label}</span>{children}</label>;
 }
 
 function Th({ children }: { children: React.ReactNode }) {
