@@ -25,6 +25,7 @@ import type { PMSProject, ProjectPriority, ProjectStatus } from "../types";
 export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?: (project: PMSProject, keepOpen?: boolean) => void; onCancel?: () => void } = {}) {
   const { term } = useBusinessTerms();
   const [step, setStep] = useState(0);
+  const steps = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const { projectId } = useParams();
   const editing = Boolean(projectId);
@@ -134,7 +135,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
   useEffect(()=>{if(editing&&!loading&&customReady&&savedSnapshot.current===undefined)savedSnapshot.current=JSON.stringify(snapshot);},[editing,loading,customReady,snapshot]);
   const auto=useRecordAutosave({value:snapshot,enabled:editing&&canEdit&&!loading&&customReady&&!submitting,dirty:savedSnapshot.current!==undefined&&savedSnapshot.current!==JSON.stringify(snapshot),save:()=>submit(undefined,true)});
   return (
-    <div className={editing ? "mx-auto max-w-3xl space-y-6" : "project-create-studio"}>
+    <div className={editing ? "pms-project-form mx-auto max-w-3xl space-y-6" : "pms-project-form project-create-studio"}>
       {!editing && <aside className="project-create-story"><div className="project-create-brand"><Sparkles/><b>BUSINESS SUITE</b></div><h2>Bring your next<br/>idea to life.</h2><p>Turn a plan into a structured project. Add key details, set up your workspace, and get your team ready to go.</p>{([[Zap,'Quick & guided setup','Create a project in minutes.'],[Users,'Stay connected','Link it to your workspace and team.'],[Layers,'Built for execution','Add the right details now, and keep things organized later.']] as const).map(([Icon,title,copy]) => <div className="project-create-benefit" key={title}><Icon/><div><strong>{title}</strong><p>{copy}</p></div></div>)}<div className="project-create-waves"/></aside>}
       <div className={editing ? "contents" : "project-create-main"}>
       <Button type="button" variant="ghost" onClick={() => !editing && step ? setStep(step - 1) : onCancel ? onCancel() : navigate("/pms/projects")}>
@@ -146,7 +147,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
           {!editing && <p>Set up a new project with the essential details, services, and owners.</p>}
         </CardHeader>
         <CardContent>
-          {!editing && <nav className="project-create-steps" aria-label="Project setup steps">{['Additional details','Products & services','Planning & ownership'].map((label,index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>}
+          {!editing && <nav ref={steps} className="project-create-steps" aria-label="Project setup steps">{['Additional details','Products & services','Planning & ownership'].map((label,index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>}
           <CompactForm compactTabs={editing} className="space-y-5" onInvalidCapture={() => { if (!editing) setStep(0); }} onSubmit={submit}>
             {!editing && workspaceQuery.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><p>Workspaces could not be loaded. {workspaceError(workspaceQuery.error)}</p><Button type="button" variant="outline" disabled={workspaceQuery.isFetching} onClick={() => { void workspaceQuery.refetch(); }}>{workspaceQuery.isFetching ? "Retryingâ€¦" : "Retry loading workspaces"}</Button></div>}
             {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
@@ -201,6 +202,12 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
               </div>
             </div>
             <div className="project-create-actions flex justify-end gap-2">
+              {!editing && step < 2 && <Button type="button" variant="outline" className="project-create-next" onClick={() => {
+                setStep(step + 1);
+                const nextTab = steps.current?.querySelectorAll("button")[step + 1];
+                nextTab?.focus();
+                nextTab?.scrollIntoView({ block: "nearest" });
+              }}>Next</Button>}
                 {!editing && <label className="mr-auto flex items-center gap-2 text-sm"><input type="checkbox" checked={createAnother} onChange={event => setCreateAnother(event.target.checked)}/>Create another after saving</label>}
                 <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : navigate("/pms/projects")}>Cancel</Button>
               <span role="status">{!editing && <CheckCircle2 size={16}/ >}{editing?auto.message:"Draft saved automatically"}</span><Button type="submit" data-save-action disabled={submitting||auto.saving}>{submitting ? "Savingâ€¦" : editing ? "Save changes" : `Create ${term('project').toLowerCase()}`}</Button>

@@ -209,3 +209,63 @@
 .dark .pd-view-intro > a,.dark .pd-member-card,.dark .pd-file-stats > div,.dark .pd-file-toolbar,.dark .pd-file-card,.dark .pd-finance-metrics > div,.dark .pd-commercial-panel { background: #241c31; border-color: #493558; }
 .dark .pd-file-drop,.dark .pd-file-preview,.dark .pd-commercial-panel > summary { background: #2d223a; }
 .dark .pd-tool-content :is(input,select,textarea) { border-color: #513f63; }
+
+@media (max-width: 480px) {
+  .pd-page .pd-hero {
+    min-height: 0;
+    align-items: flex-start;
+    padding-block: 10px;
+  }
+
+  .pd-hero-text,
+  .pd-hero-text .pd-pill,
+  .pd-view-intro > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pd-view-intro > a {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  [data-project-view="board"] .pipeline-toolbar {
+    padding: 8px;
+  }
+
+  [data-project-view="board"] .pipeline-search {
+    flex: 1 0 100%;
+    min-width: 0;
+    order: 1;
+  }
+
+  [data-project-view="board"] .pipeline-toolbar-end {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    order: 2;
+  }
+
+  [data-project-view="board"] .pipeline-toolbar :is(button, select, input) {
+    min-height: 44px;
+  }
+
+  [data-project-view="board"] .pipeline-toolbar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  [data-project-view="board"] .pipeline-lanes {
+    max-width: 100%;
+    scroll-snap-type: inline proximity;
+    overscroll-behavior-inline: contain;
+  }
+
+  [data-project-view="board"] .pipeline-lane {
+    flex: 0 0 88%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+}

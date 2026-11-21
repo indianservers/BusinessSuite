@@ -760,3 +760,35 @@
 .tw-step.active:last-of-type i {
   border-color: #00a979;
 }
+
+@media (max-width: 480px) {
+  .tw-page .tw-title > div,
+  .tw-page .tw-facts > div,
+  .tw-page .tw-layout > *,
+  .tw-page .tw-box {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .tw-page .tw-actionbar,
+  .tw-page .tw-progress,
+  .tw-page .tw-title > .tw-buttons {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .tw-page .tw-progress progress {
+    flex: 1 1 90px;
+    min-width: 0;
+  }
+
+  .tw-page .tw-facts :is(button, select, input) {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .tw-page .tw-box :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [contenteditable="true"]) {
+    max-width: 100%;
+    font-size: 16px;
+  }
+}
