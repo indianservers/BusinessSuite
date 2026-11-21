@@ -260,7 +260,7 @@ function downloadTextFile(fileName: string, content: string, contentType = "text
 function ExportButton({exportType,label}:{exportType:string;label?:string}) { return <DataExportButton label={label||"Export"} filename={exportType} load={async()=>{const job=await famApi.createExport({export_type:exportType,export_format:"csv",filters_json:{}}) as FAMRecord;if(job.status!=="ready")throw Error(text((job.error_json as FAMRecord|undefined)?.message||"Export is not ready"));const file=await famApi.downloadExport(String(job.id)) as FAMRecord;return new Blob([String(file.file_content||"")],{type:"text/csv"});}}/>;}
 
 function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
-  return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={<>{onRefresh ? <Button variant="outline" onClick={onRefresh} disabled={isFetching}><RefreshCw className="h-4 w-4"/>Refresh</Button> : null}</>}/>;
+  return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={<>{onRefresh ? <Button variant="outline" aria-label="Refresh" onClick={onRefresh} disabled={isFetching}><RefreshCw className="h-4 w-4"/><span className="fam-heading-refresh-label">Refresh</span></Button> : null}</>}/>;
 }
 
 function State({ label, isLoading, isError }: { label: string; isLoading?: boolean; isError?: boolean }) {

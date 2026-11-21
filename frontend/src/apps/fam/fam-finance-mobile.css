@@ -78,6 +78,21 @@
 }
 
 @media (max-width: 480px) {
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form)) > .suite-page-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form)) > .suite-page-heading :is(.suite-heading-description, .fam-heading-refresh-label) {
+    display: none;
+  }
+
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form)) > .suite-page-heading .suite-heading-actions button {
+    width: 44px;
+    padding: 0;
+  }
+
   .fam-mobile-balance-list {
     padding: 12px;
   }
