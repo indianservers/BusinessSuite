@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useRecordScope } from '@/lib/record-scope';
 import { useRecordScopeOwner } from '@/hooks/use-record-scope-owner';
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { InvoiceList } from "@/apps/project-management/pages/ProjectBillingPage";
 import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
+import "../sales-record-list.css";
 import { collectionFormError, localReceiptDate } from '../collection-form-utils';
 
 type Row = Record<string, any>;
@@ -89,7 +91,7 @@ function InvoicePaymentSurface({ invoice, onSaved, scope }: { invoice: Row; onSa
     onSettled: () => { sending.current = false; },
   });
   return (
-    <details className="w-full">
+    <details className="srm-invoice-payment w-full">
       <summary>Payment and collection actions</summary>
       <p className="my-2 text-sm text-muted-foreground">
         {term('customer')} #{invoice.customer_id} · {invoice.currency} · Outstanding{" "}
@@ -97,14 +99,14 @@ function InvoicePaymentSurface({ invoice, onSaved, scope }: { invoice: Row; onSa
         currency.
       </p>
       <CompactForm
-        className="flex flex-wrap items-end gap-3"
+        className="srm-collection-form flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (!canCreate || !owns() || sending.current || save.isPending || locked && !attempt.current) return;
           if (!attempt.current && readFinancialIntent<InvoicePaymentAttempt>(key).pending) {
             setLocked(true); setStorageError('Another saved payment exists for this invoice. Reload to recover it before recording another.'); return;
           }
-          const request = attempt.current || {path, body: {request_id: crypto.randomUUID(), amount, reference, payment_method: method, receipt_date: receiptDate}};
+          const request = attempt.current || {path, body: {request_id: randomUUID(), amount, reference, payment_method: method, receipt_date: receiptDate}};
           try { saveFinancialIntent(key, request); } catch { setStorageError('Payment was not sent. Recovery storage is unavailable; restore browser storage before trying again.'); return; }
           sending.current = true; attempt.current = request; setLocked(true); setStorageError(''); save.mutate(request);
         }}
@@ -187,7 +189,7 @@ function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () =
     <p className="text-sm font-medium">{invoice.collection_hold ? "Collections on hold" : "Collection reminders active"}</p>
     {invoice.collection_hold_reason && <p className="text-sm text-muted-foreground">{invoice.collection_hold_reason}</p>}
     {invoice.collection_resume_at && <p className="text-sm">Scheduled resume: {new Date(invoice.collection_resume_at).toLocaleString()}</p>}
-    <form className="mt-2 flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); if(canEdit)control.mutate(); }}>
+    <form className="srm-collection-form mt-2 flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); if(canEdit)control.mutate(); }}>
       <label className="text-sm">Reason<Input required minLength={3} maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} disabled={control.isPending} /></label>
       {!invoice.collection_hold && <label className="text-sm">Resume at (optional)<Input type="datetime-local" value={resumeAt} onChange={e=>setResumeAt(e.target.value)} disabled={control.isPending}/></label>}
       <Button type="submit" variant="outline" disabled={!canEdit||control.isPending || reason.trim().length < 3}>{invoice.collection_hold ? "Resume reminders" : "Pause collections / dispute"}</Button>
@@ -223,7 +225,7 @@ function CollectionsWorkspace({ scope }: { scope: string }) {
       </p>
     );
   return (
-    <div className="space-y-5">
+    <div className="srm-collections-workspace space-y-5">
       <h1 className="page-title">Collections</h1>
       <p className="text-muted-foreground">
         Record actual {term('customer').toLowerCase()} payments against issued invoices. {term('project')} billing

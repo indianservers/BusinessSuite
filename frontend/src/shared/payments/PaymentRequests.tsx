@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useState } from "react";
@@ -37,13 +38,13 @@ function Workspace({ source, sourceId, scope }: Props & {scope: string}) {
   const user = useAuthStore(state => state.user);
   const canUseWhatsApp = canAccessRoute("/crm/whatsapp", user?.role, user?.is_superuser);
   const [amount, setAmount] = useState(""), [instructions, setInstructions] = useState("");
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID()), [notice, setNotice] = useState("");
+  const [requestId, setRequestId] = useState(() => randomUUID()), [notice, setNotice] = useState("");
   const key = ["payment-requests", scope, source, sourceId];
   const params = {source_type: source, source_id: sourceId};
   const context = useQuery({queryKey: [...key, "context"], queryFn: async () => (await api.get<Context>("/payment-requests/context", {params})).data});
   const requests = useQuery({queryKey: [...key, "items"], queryFn: async () => (await api.get<{items: Request[]}>("/payment-requests", {params})).data});
   const save = useMutation({mutationFn: async () => (await api.post<Request>("/payment-requests", {...params, request_id: requestId, amount, instructions})).data,
-    onSuccess: async () => {setRequestId(crypto.randomUUID());setAmount("");setInstructions("");setNotice("Payment request saved. No payment has been recorded.");await cache.invalidateQueries({queryKey:key});}});
+    onSuccess: async () => {setRequestId(randomUUID());setAmount("");setInstructions("");setNotice("Payment request saved. No payment has been recorded.");await cache.invalidateQueries({queryKey:key});}});
   const action = useMutation({mutationFn: async ({id, operation}:{id:number;operation:"link"|"refresh"|"cancel"|"reconcile-receipt"}) => (await api.post<Request>(`/payment-requests/${id}/${operation}`)).data,
     onSuccess: () => {setNotice("Payment request updated. Receipts and accounting remain separate.");},
     onSettled: () => cache.invalidateQueries({queryKey:key})});

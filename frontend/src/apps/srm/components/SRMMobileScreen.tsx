@@ -1,7 +1,7 @@
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 import { LoadingState } from "@/components/ui/state";
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowLeft, ArrowRight, ChevronDown, LayoutGrid, Menu, Search, ShoppingBag, X } from 'lucide-react';
@@ -11,6 +11,7 @@ import SuiteNotificationBell from '@/components/suite/SuiteNotificationBell';
 import { canAccessRoute, getRoleNav } from '@/lib/roles';
 import { useAuthStore } from '@/store/authStore';
 import { applyScreenPage, clearScreenPagination, measureScreenPages, type ScreenPage } from './mobile-screen-pages';
+import { MobileCommercialTools } from './mobile-commercial-tools';
 import './srm-mobile-screen.css';
 
 const titleFor=(path:string)=>path.replace(/\/srm\/?/,'').split('/').filter(value=>value&&!/^\d+$/.test(value)&&!value.startsWith(':')).slice(-2).join(' · ').replace(/-/g,' ').replace(/\b\w/g,value=>value.toUpperCase())||'Sales & Revenue';
@@ -23,6 +24,7 @@ export default function SRMMobileScreen({children,paths,nativePath}:{children:Re
 function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
   const dashboard = /^\/srm\/?$/.test(location.pathname);
+  const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
   const [model,setModel]=useState({page:0,labels:['Overview']});
@@ -93,7 +95,7 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
     <nav className="srm-mobile-shortcuts" aria-label="Sales shortcuts">{canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)&&<Link className="srm-mobile-pos-shortcut" to="/srm/pos/terminal"><ShoppingBag size={16}/>POS</Link>}<ModuleNewMenu/><button type="button" onClick={()=>openSheet('menu')}><LayoutGrid size={16}/>All pages</button></nav>
     {bookingRoute&&<div className="srm-mobile-booking-toolbar"/>}
     <div ref={viewport} className="srm-mobile-viewport" data-scroll={dashboard || undefined} role="region" aria-label={`${title} content`}>
-      <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{children}</Suspense></ErrorBoundary></div>
+      <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{commercialTools}{children}</Suspense></ErrorBoundary></div>
     </div>
     {model.labels.length>1&&<nav className="srm-mobile-pagination" aria-label="Page sections"><button type="button" aria-label="Previous section" disabled={model.page===0} onClick={()=>goto(model.page-1)}><ArrowLeft size={17}/></button><button type="button" className="srm-mobile-current-section" onClick={()=>openSheet('sections')}><span>{model.labels[model.page]}</span><small>{model.page+1} / {model.labels.length}<ChevronDown size={13}/></small></button><button type="button" aria-label="Next section" disabled={model.page>=model.labels.length-1} onClick={()=>goto(model.page+1)}><ArrowRight size={17}/></button></nav>}
     <Dialog.Root open={sheet!==null} onOpenChange={open=>{if(!open)setSheet(null);}}><Dialog.Portal><Dialog.Overlay className="srm-mobile-sheet-overlay"/><Dialog.Content className="srm-mobile-sheet" aria-describedby={undefined}>

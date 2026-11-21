@@ -21,3 +21,57 @@
 .sc-lines-with-tax .sc-selected-line{grid-template-columns:minmax(130px,2fr) repeat(4,minmax(65px,1fr)) auto 20px}
 @media(max-width:1100px){.sc-lines-with-tax .sc-selected-line{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:640px){.sc-lines-with-tax .sc-selected-line{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media (max-width: 767px) {
+  .srm-manual-invoice .srm-invoice-fields,
+  .srm-manual-invoice .srm-invoice-line,
+  .srm-collection-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: end;
+  }
+
+  .srm-manual-invoice label,
+  .srm-collection-form > * {
+    min-width: 0;
+  }
+
+  .srm-manual-invoice .srm-invoice-line > :first-child,
+  .srm-collection-form > button {
+    grid-column: 1 / -1;
+  }
+
+  .srm-manual-invoice :is(input, select),
+  .srm-collection-form :is(input, select) {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .srm-invoice-line-preview table {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .smart-create-window .srm-manual-invoice [data-srm-invoice-submit] {
+    display: none;
+  }
+
+  .srm-collections-workspace .pd-invoice {
+    gap: 8px 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .srm-invoice-payment > summary {
+    display: list-item;
+    padding-block: 8px;
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 380px) {
+  .srm-collection-form > label:has(input[type="datetime-local"]) {
+    grid-column: 1 / -1;
+  }
+}

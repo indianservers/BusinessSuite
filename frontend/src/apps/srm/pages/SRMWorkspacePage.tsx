@@ -1,3 +1,5 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import { randomUUID } from "@/lib/random-uuid";
 import InventoryLowStockAlerts from "../components/InventoryLowStockAlerts";
 import ReportsWorkspace from './ReportsWorkspace';
 import RetailWorkspace from "../components/RetailWorkspace";
@@ -830,7 +832,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
 
 export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialContactId, onBusyChange }: { onBusyChange?:(busy:boolean)=>void;onCreated?: () => void; initialCustomerId?:number;initialContactId?:number }) {
   const createRef = useNewRecordFocus();
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [requestId, setRequestId] = useState(() => randomUUID());
   const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
   const [form, setForm] = useState({
     template: "services",
@@ -895,13 +897,13 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
 
   useEffect(()=>onBusyChange?.(create.isPending),[create.isPending,onBusyChange]);
   return (
-    <SmartCreateSection title="Create invoice" size="large"><Card ref={createRef} id="new-record">
+    <SmartCreateSection title="Create invoice" size="large" mobileSheet><Card ref={createRef} id="new-record" className="srm-manual-invoice">
       <CardHeader>
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
       <CardContent>
         <CompactForm compactTabs={!initialCustomerId} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Template</span>
               <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
@@ -923,7 +925,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
               <Input inputMode="numeric" value={form.engagement_id} onChange={(event) => update("engagement_id", event.target.value)} />
             </label>
           </div>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Currency</span>
               <CurrencySelect value={form.currency} onChange={currency => update("currency", currency)} />
@@ -943,7 +945,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
           </div>
           <div className="space-y-2">
             {lines.map((line, index) => (
-              <div key={index} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
+              <div key={index} className="srm-invoice-line grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
                 <Input aria-label="Line description" placeholder="Line description" value={line.description} onChange={(event) => updateLine(index, "description", event.target.value)} />
                 <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(index, "quantity", event.target.value)} />
                 <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => updateLine(index, "unit_price", event.target.value)} />
@@ -973,7 +975,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
                 <p className="text-2xl font-semibold">{money(total)}</p>
               </div>
             </div>
-            <div className="mt-3 overflow-x-auto">
+            <div className="srm-invoice-line-preview mt-3 overflow-x-auto">
               <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-2" className="w-full min-w-[560px] text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr><th className="py-2">Description</th><th>Qty</th><th>Unit</th><th>Tax</th><th className="text-right">Line total</th></tr>
@@ -1000,8 +1002,8 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={create.isPending || !!savedInvoice}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
-            {savedInvoice && <><Button asChild variant="outline"><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link></Button><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
+            <Button type="submit" data-srm-invoice-submit disabled={create.isPending || !!savedInvoice}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
+            {savedInvoice && <><Button asChild variant="outline"><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link></Button><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
             <ActionMessage message={message} />
           </div>
         </CompactForm>
@@ -1082,6 +1084,7 @@ function InvoiceDraftsView() {
 }
 
 function InvoicesView() {
+  const mobile = useMobile();
   const [invoiceSearchParams]=useSearchParams();
   const accountingCustomer=Number(invoiceSearchParams.get("accounting_customer"))||undefined;
   const canManage = useCanManageRevenue(),canCreate=useCanManageRevenue("create"),canEdit=useCanManageRevenue("edit"),canApprove=useCanManageRevenue("approve"),canExport=useModuleAction("export");
@@ -1093,16 +1096,19 @@ function InvoicesView() {
   const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
   const action = useRevenueAction();
   const invoice = (detail.data || asList(list.data)[0] || {}) as SRMRecord;
+
   const accountingStatus = (invoice.accounting_status || {}) as SRMRecord;
+  const composer = canCreate ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null;
+  const externalInvoices = <ExternalInvoices key={accountingCustomer || "all"} crmCompanyId={accountingCustomer} />;
 
   return (
     <div className="space-y-5">
-      <ExternalInvoices key={accountingCustomer||"all"} crmCompanyId={accountingCustomer}/>
+      {mobile ? <>{composer}<details className="srm-connected-invoices rounded-lg border p-3"><summary>Connected accounting invoices</summary>{externalInvoices}</details></> : externalInvoices}
       <InvoiceList invoices={asList(list.data)} />
       <label className="flex items-center gap-2">Invoice to review<NativeSelect aria-label="Invoice to review" value={invoiceId || ""} onChange={event => setSelectedInvoice(event.target.value)}><option value="" disabled>Select invoice</option>{asList(list.data).map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.invoice_number || item.id)}</option>)}</NativeSelect></label>
       <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
-      {canCreate ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
+      {!mobile && composer}
       {!list.isLoading && !invoiceId ? <p className="rounded-lg border p-4 text-sm text-muted-foreground">No invoices yet. Create an invoice or generate a draft from a sales order to get started.</p> : null}
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Invoice Number" value={invoice.invoice_number} />
@@ -1816,7 +1822,7 @@ function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSa
   if (!["salesOrders", "contracts", "engagements", "billingPlans"].includes(kind)) return null;
 
   return (
-    <SmartCreateSection title={<>Create {viewMeta[kind].title.slice(0, -1)}</>} size="large"><Card ref={createRef} id="new-record" className="scroll-mt-4">
+    <SmartCreateSection title={<>Create {viewMeta[kind].title.slice(0, -1)}</>} size="large" mobileSheet={kind === "salesOrders"}><Card ref={createRef} id="new-record" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
       </CardHeader>
@@ -1899,6 +1905,7 @@ function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSa
 }
 
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
+  const mobileOrders = useMobile() && kind === "salesOrders";
   const location = useLocation();
   const [showCreate,setShowCreate] = useState(false);
   const [recordView,setRecordView] = useState<"board"|"list">("list");
@@ -1964,15 +1971,17 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
     },
   });
 
+  const addRecord = canCreate && <Button type="button" className="srm-create-record" onClick={() => setShowCreate(value => !value)}><Plus size={14}/>{showCreate ? "Close form" : "Add record"}</Button>;
   return (
     <div className="srm-record-workspace space-y-3">
+      {mobileOrders && addRecord}
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       {kind === "billingPlans" && canCreate && <RecurringSchedule plans={records} onSaved={() => { void query.refetch(); }} />}
       <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
-      {canCreate && boardSupported && showCreate && <SmartCreateModal definition={{ entity: kind, title: `Create ${meta.title.replace(/s$/, "")}`, presentation: "page", size: "large" }} onClose={() => setShowCreate(false)}><CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /></SmartCreateModal>}
+      {canCreate && boardSupported && showCreate && <SmartCreateModal definition={{ entity: kind, title: `Create ${meta.title.replace(/s$/, "")}`, presentation: "page", size: "large" }} mobileSheet={kind === "salesOrders"} onClose={() => setShowCreate(false)}><CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /></SmartCreateModal>}
       {canCreate && !boardSupported ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
-      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<Button type="button" className="srm-create-record" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</Button>}</div>}
+      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{!mobileOrders && addRecord}</div>}
       {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={canCreate?()=>setShowCreate(true):undefined} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
       {!query.isError && (!boardSupported || recordView === "list") ? (
         <Card>
