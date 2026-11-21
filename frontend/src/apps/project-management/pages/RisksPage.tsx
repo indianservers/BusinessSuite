@@ -7,6 +7,7 @@ import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -63,6 +64,7 @@ export default function RisksPage() {
   const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.project_management;
   const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
   const [filters, setFilters] = useState<Filters>({ ...defaultFilters, projectId: projectId || "" });
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [users, setUsers] = useState<PMSMentionUser[]>([]);
   const [tasks, setTasks] = useState<PMSTask[]>([]);
@@ -193,6 +195,7 @@ export default function RisksPage() {
         <Button disabled={saving || !permits("create")} onClick={() => setShowForm(true)}><Plus className="h-4 w-4" />Add risk</Button>
       </div>
 
+      <MobileDisclosure title={activeFilterCount ? `Risk filters (${activeFilterCount})` : "Risk filters"} maxWidth={480}>
       <Card>
         <CardContent className="pms-delivery-filters grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
           <Filter disabled={!!projectId} label={businessTerm('project')} value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
@@ -217,6 +220,7 @@ export default function RisksPage() {
           </Filter>
         </CardContent>
       </Card>
+      </MobileDisclosure>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
