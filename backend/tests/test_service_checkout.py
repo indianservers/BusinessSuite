@@ -314,31 +314,37 @@ def test_append_late_failure_preserves_balance_revision_and_receipts(db,scenario
     assert db.get(SRMInvoice,group['invoice']['id']).balance_amount==Decimal(group['invoice']['balance'])
 
 
-def test_custom_rates_line_and_bill_discounts_note_and_followup_preserved(db,scenario):
+def test_catalog_rate_line_and_bill_discounts_note_and_followup_preserved(db,scenario):
     from app.apps.srm.service_checkout_schemas import CheckoutFollowUp
     from app.apps.srm.models import SRMSalesOrderLine
     from app.shared.follow_ups import FollowUp
     user,branch,catalog,basket=scenario;data=basket()
-    data.lines[0].unit_price=Decimal('120');data.lines[0].discount_amount=Decimal('10')
+    data.lines[0].discount_amount=Decimal('10')
     data.lines[0].note='Keep the existing cart instruction'
     data.lines[0].follow_up=CheckoutFollowUp.model_validate({'required':True,'type':'days','reference':'completion','interval_days':45,'notes':'Call for service check'})
     data.bill_discount_amount=Decimal('20')
     with native_writer(db,user,branch):result=checkout(data,db,user)
-    assert Decimal(result['invoice']['total'])==Decimal('342.20')
+    assert Decimal(result['invoice']['total'])==Decimal('318.60')
     assert sum(Decimal(line['discount']) for line in result['lines'])==30
     native=db.get(SRMSalesOrderLine,db.get(POSCheckoutLine,result['lines'][0]['id']).sales_order_line_id)
-    assert native.unit_price==120 and native.metadata_json['note']==data.lines[0].note
+    assert native.unit_price==100 and native.metadata_json['note']==data.lines[0].note
     assert native.metadata_json['follow_up']['notes']=='Call for service check'
     row=db.query(FollowUp).one()
     assert row.order_line_id==native.id and row.configuration['reference']=='completion'
 
 
-def test_pack_price_override_requires_additional_discount_capability(db,scenario):
-    user,branch,catalog,basket=scenario
-    enable_pack(db,user,branch,catalog,role='cashier')
-    data=basket(False);data.lines=[data.lines[0]];data.lines[0].unit_price=Decimal('90')
-    with native_writer(db,user,branch),pytest.raises(HTTPException) as error:checkout(data,db,user)
-    assert error.value.status_code==403 and db.query(SRMSalesOrder).count()==0
+def test_authorized_pack_operator_cannot_override_catalog_price(db, scenario):
+    user, branch, catalog, basket = scenario
+    context, _, _, register = enable_audited_pack(db, user, branch, catalog)
+    data = basket(False)
+    data.pos_session_id = register.id
+    data.lines = [data.lines[0]]
+    data.lines[0].unit_price = Decimal('90')
+    with audited_pack_writer(db, user, branch, context), pytest.raises(HTTPException) as error:
+        checkout(data, db, user)
+    assert error.value.status_code == 409
+    assert 'POS price changed' in error.value.detail
+    assert db.query(SRMSalesOrder).count() == 0
 
 
 def test_unknown_followup_fields_and_untrusted_tax_are_rejected():

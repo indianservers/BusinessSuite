@@ -177,6 +177,9 @@ def test_tc073_return_customer_cannot_be_replaced(client, db, catalog):
 
 
 def test_tc092_zero_price_product_is_zero_billed_but_still_issues_stock(client, db, catalog):
+    product_id = catalog[2][0]
+    db.query(SRMProduct).filter_by(id=product_id).update({'sales_rate': 0})
+    db.commit()
     response = sell(client,catalog,unit_price=0,tax_amount=99,line_total=99)
     assert response.status_code == 201, response.text
     assert Decimal(str(response.json()['total_amount'])) == 0

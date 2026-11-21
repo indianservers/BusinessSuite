@@ -97,3 +97,37 @@ def test_fefo_ties_and_current_day_expiry_are_deterministic():
     rows=[lot(3,today+timedelta(days=1),today),lot(2,today+timedelta(days=1),today),lot(1,today,today)]
     assert [r['id'] for r,_ in split(rows,2,today)]==[2,3]
     with pytest.raises(ValueError):split(rows,3,today)
+
+
+def test_checkout_preserves_each_received_batch_price(client, db, lots):
+    case, receipts, _ = lots
+    response = client.post(BASE, headers=case[0], json={
+        **command(case), 'quantity': '2', 'selling_price': '150',
+        'expiry_date': (date.today() + timedelta(days=120)).isoformat(),
+    })
+    assert response.status_code == 201, response.text
+    newest = response.json()['batch_id']
+    endpoint = '/api/v1/srm/service-checkout'
+    payload = sale(lots, quantity='6')
+    payload['lines'][0]['unit_price'] = '100'
+    rejected = client.post(endpoint, headers=case[0], json=payload)
+    assert rejected.status_code == 409, rejected.text
+    assert lot_quantities(db, lots) == [Decimal('2'), Decimal('3')]
+
+    base = payload['lines'][0]
+    payload['lines'] = [
+        {**base, 'client_line_key': str(uuid4()), 'batch_id': batch_id, 'quantity': quantity, 'unit_price': price}
+        for batch_id, quantity, price in [
+            (receipts[1]['batch_id'], '3', '100'),
+            (receipts[0]['batch_id'], '2', '100'),
+            (newest, '1', '150'),
+        ]
+    ]
+    response = client.post(endpoint, headers=case[0], json=payload)
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result['invoice']['total'] == '767.00'
+    assert [line['unit_price'] for line in result['lines']] == ['100.00', '100.00', '150.00']
+    assert [line['batch_allocations'][0]['batch_id'] for line in result['lines']] == [
+        receipts[1]['batch_id'], receipts[0]['batch_id'], newest,
+    ]

@@ -886,6 +886,7 @@ def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: Us
         if not balance:
             raise HTTPException(status_code=409, detail=f"No stock balance found for {product.item_name}")
         balance.quantity = available - requested
+        rate = line.unit_price if is_pos else line.unit_price or product.sales_rate or 0
         movement = SRMInventoryMovement(
             organization_id=order.organization_id,
             movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", order.organization_id, actor=user),
@@ -894,8 +895,8 @@ def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: Us
             product_id=product.id,
             warehouse_id=warehouse_id,
             quantity_out=requested,
-            rate=line.unit_price or product.sales_rate or 0,
-            value=requested * _decimal(line.unit_price or product.sales_rate or 0),
+            rate=rate,
+            value=requested * _decimal(rate),
             reference_number=order.order_number,
             notes=f"{'POS sale' if is_pos else 'Sales order issue'} {order.order_number}",
             created_by=user.id,
@@ -2656,6 +2657,9 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
     from app.shared.offering_contracts import offering_kind
     if not data.lines:
         raise HTTPException(422, "POS requires at least one catalog item")
+    from app.business_packs.pharma.fefo import supported
+    pos_scope = db.info.get("business_pack_scope")
+    is_pos = (data.metadata_json or {}).get("source") == "pos"
     prepared = []
     cent = Decimal("0.01")
     for line in data.lines:
@@ -2675,8 +2679,7 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
                 raise HTTPException(422, "Warehouse must be a positive identifier")
             _warehouse_or_404(db, org_id, warehouse)
             metadata["warehouse_id"] = warehouse
-        from app.business_packs.pharma.fefo import supported
-        if not supported(db.info.get("business_pack_scope"), product) and line.unit_price != _decimal(product.sales_rate):
+        if is_pos and not supported(pos_scope, product) and line.unit_price != _decimal(product.sales_rate):
             raise HTTPException(409, "POS price changed. Reload the catalogue and review the bill.")
         values = line.model_dump()
         values.update(description=line.description or product.item_name,

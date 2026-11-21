@@ -65,9 +65,9 @@ function PharmaStock({context,owner,renderTable}:{context:number;owner:string;re
   assertOwner();
   if(!canReceive)throw new Error('Receiving permission is required.');
   return api.post('/srm/pharma/batch-receipts',{request_key:requestKey.current,product_id:Number(draft.product),warehouse_id:Number(draft.warehouse),
-   batch_number:draft.number,received_date:draft.received,manufacture_date:draft.manufacture||null,expiry_date:draft.expiry,quantity:draft.quantity,unit_cost:draft.cost,selling_price:draft.sellingPrice},config);
+   batch_number:draft.number,received_date:draft.received,manufacture_date:draft.manufacture||null,expiry_date:draft.expiry,quantity:draft.quantity,unit_cost:draft.cost,selling_price:draft.sellingPrice || null},config);
  },onSuccess:()=>{assertOwner();setDraft(initial());setReceiptCompleted(value=>value+1);requestKey.current=crypto.randomUUID();void qc.invalidateQueries({queryKey:key});void qc.invalidateQueries({queryKey:['srm','inventoryItems','pos']});}});
- const field=(name:keyof typeof draft,label:string,type='text')=><label className="grid min-w-0 gap-1 text-sm">{label}<Input aria-label={label} required={name!=='manufacture'} type={type} value={draft[name]} onChange={e=>update(name,e.target.value)} /></label>;
+ const field=(name:keyof typeof draft,label:string,type='text')=><label className="grid min-w-0 gap-1 text-sm">{label}<Input aria-label={label} required={name!=='manufacture' && name!=='sellingPrice'} type={type} value={draft[name]} onChange={e=>update(name,e.target.value)} /></label>;
  return <div className="grid min-w-0 gap-4 lg:grid-cols-2">
   <div className="min-w-0 space-y-4">
   <SmartCreateSection title="Receive medicine batch" size="compact" completionRevision={receiptCompleted}><Card><CardHeader><CardTitle className="text-base">Receive medicine batch</CardTitle></CardHeader><CardContent>
@@ -79,7 +79,7 @@ function PharmaStock({context,owner,renderTable}:{context:number;owner:string;re
      {field('number','Batch number')}{field('received','Received date','date')}{field('manufacture','Manufacture date','date')}{field('expiry','Expiry date','date')}{field('quantity','Quantity')}{field('cost','Unit cost')}{field('sellingPrice','Batch selling price')}
     </fieldset>
     {options.hasNextPage&&<Button type="button" variant="outline" onClick={()=>void options.fetchNextPage()}>More medicines</Button>}
-    <p className="text-sm text-muted-foreground md:col-span-2">Enable batch and expiry tracking in Products & Services first. Existing stock is not assigned to a lot automatically. Each receipt creates a new batch and updates warehouse stock together.</p>
+    <p className="text-sm text-muted-foreground md:col-span-2">Enable batch and expiry tracking in Products & Services first. Existing stock is not assigned to a lot automatically. Each receipt creates a new batch. Leave the batch selling price blank to use the current product rate for that batch.</p>
     {(save.isError||options.isError)&&<p role="alert" className="text-sm text-destructive md:col-span-2">{catalogError(save.error||options.error)}</p>}
     <Button data-save-action type="submit" disabled={!canReceive||save.isPending||options.isPending}>{save.isPending?'Receiving…':'Receive batch'}</Button>
    </CompactForm>

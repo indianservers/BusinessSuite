@@ -510,7 +510,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [phoneNotice,setPhoneNotice] = useState(false);
   useEffect(()=>{if(!scanFeedback){setPhoneNotice(false);return;}setPhoneNotice(true);const timer=window.setTimeout(()=>setPhoneNotice(false),2500);return()=>window.clearTimeout(timer);},[scanFeedback]);
   const [highlighted,setHighlighted] = useState<number|null>(null);
-  const [undo,setUndo] = useState<{lines:CartLine[];message:string}|null>(null);
+  const [undo,setUndo] = useState<{lines:CartLine[];message:string;customerId?:number}|null>(null);
   const [confirmClear,setConfirmClear] = useState(false);
   const [readinessOpen,setReadinessOpen] = useState(false);
   const [helpOpen,setHelpOpen] = useState(false);
@@ -528,7 +528,6 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [draftCart, setCart] = usePersistedState<CartLine[]>(storage("cart"), []);
   const [phonePanel,setPhonePanel] = useState<'sessions'|'actions'|'customer'|'discounts'|null>(null);
   const [phoneLineId,setPhoneLineId] = useState<string|null>(null);
-  const phoneLine=cart.find(line=>line.lineId===phoneLineId);
   const phonePaginationAnchor=useRef<string|null>(null);
   const [phonePage,setPhonePage] = useState(0);
   const [phonePageSize,setPhonePageSize] = useState(1);
@@ -549,14 +548,14 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       });
       const needed=Math.max(0,...heights.filter((_,index)=>index%2===0).map((height,index)=>height+(heights[index*2+1]||0)))+4;
       const pager=workspaceRef.current?.querySelector<HTMLElement>('.pos-phone-pagination');
-      const reclaimed=cart.length<=2&&pager&&getComputedStyle(pager).display!=='none'?pager.offsetHeight+6:0;
+      const reclaimed=draftCart.length<=2&&pager&&getComputedStyle(pager).display!=='none'?pager.offsetHeight+6:0;
       setPhonePageSize(node.clientHeight+reclaimed>=needed?2:1);
     });
     if(node){observer.observe(node);node.querySelectorAll('.pos-cart-line').forEach(row=>observer.observe(row));}
     return()=>{observer.disconnect();window.removeEventListener('resize',resize);};
-  },[cart]);
-  useLayoutEffect(()=>{const index=cart.findIndex(line=>line.lineId===phonePaginationAnchor.current);if(index>=0)setPhonePage(Math.floor(index/phonePageSize));},[phonePageSize,cart]);
-  const phonePages=Math.max(1,Math.ceil(cart.length/phonePageSize));
+  },[draftCart]);
+  useLayoutEffect(()=>{const index=draftCart.findIndex(line=>line.lineId===phonePaginationAnchor.current);if(index>=0)setPhonePage(Math.floor(index/phonePageSize));},[phonePageSize,draftCart]);
+  const phonePages=Math.max(1,Math.ceil(draftCart.length/phonePageSize));
   const safePhonePage=Math.min(phonePage,phonePages-1);
   useEffect(()=>{setPhonePage(page=>Math.min(page,phonePages-1));},[phonePages]);
 
@@ -611,9 +610,14 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
   const register = (activeRegister.data as {session?:{id:number;session_number?:string;status?:string;opening_cash?:number;register_name?:string}}|undefined)?.session;
   function saveAttempt(value:CheckoutAttempt|null) { if(value) saveFinancialIntent(intentKey,value); else clearFinancialIntent(intentKey); uncertainty.current=value; setUncertain(value); }
-  useEffect(()=>{setCart(current=>normalizeCart(current));},[]);
+  useEffect(() => {
+    setCart(current => normalizeCart(current));
+    // Ignore a saved customer left behind by an older POS when there is no draft bill.
+    if (!draftCart.length) setCustomerId(0);
+  }, []);
   const checkoutBusy = useRef(false);
-  const customer = customers.find((item) => item.id === customerId) || customers[0];
+  const customer = customers.find((item) => item.id === customerId) || walkInCustomer;
+  const customerLabel = customer.id ? customer.name : "Choose customer";
   const serverHeldBills = useMemo(() => listItems(heldBillsQuery.data).map(heldBillFromRecord).filter(bill=>bill.cart.length>0&&bill.cart.every(line=>line.draftScope===draftScope)), [heldBillsQuery.data,draftScope]);
   const heldBills = useMemo(() => selectedPOS ? [] : [...serverHeldBills, ...localHeldBills], [selectedPOS, localHeldBills, serverHeldBills]);
   const currentProducts=useMemo(()=>listItems(productsQuery.data).map(productFromRecord).filter(item=>item.active!==false),[productsQuery.data]);
@@ -627,6 +631,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     return product ? {...line, rate: product.rate, taxRate: product.taxRate, stock: product.stock,
       lotAllocation: product.lotAllocation, lots: product.lots} : line;
   });
+  const phoneLine = cart.find(line => line.lineId === phoneLineId);
   const remainingByLot = new Map<number, number>();
   const pricedLines = new Map<string, CartLine[]>();
   const incompleteLots = new Set<string>();
@@ -837,10 +842,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       if(result.state!=='committed'||!result.invoice?.number||!Number.isSafeInteger(result.id)) throw new Error('Checkout confirmation is incomplete. Retry the same saved checkout.');
       // Persist the known-success reset before removing the recovery payload.
       const nextKey=randomUUID();
-      for(const [key,value] of Object.entries({'cart':[],'bill-discount':0,'coupon':'','note':'','payment-rows':[],'checkout-key':nextKey})) localStorage.setItem(storage(key),JSON.stringify(value));
+      for(const [key,value] of Object.entries({'cart':[],'customer':0,'bill-discount':0,'coupon':'','note':'','payment-rows':[],'checkout-key':nextKey})) localStorage.setItem(storage(key),JSON.stringify(value));
       clearFinancialIntent(intentKey); recovery.sourceKeys.forEach(key=>localStorage.removeItem(key));
       if(!owns()) return;
-      uncertainty.current=null; setUncertain(null); setCheckoutKey(nextKey); setCart([]);setBillDiscount(0);setCoupon('');setNote('');setPaymentRows([]);
+      uncertainty.current=null; setUncertain(null); setCheckoutKey(nextKey); setCart([]);setCustomerId(0);setCustomerProfile(false);setBillDiscount(0);setCoupon('');setNote('');setPaymentRows([]);
       const sale:Sale={...attempt.sale,invoiceNo:result.invoice.number,amount:Number(result.invoice.total),checkoutId:result.id,paid:result.invoice.paid,balance:result.invoice.balance,receiptNumbers:result.receipts.map(row=>row.number),hasBookings:attempt.payload.lines.some(line=>!!line.booking)};
       setUndo(null);setConfirmClear(false);setReadinessOpen(false);setSales(current=>[sale,...current].slice(0,25));setLastSale(sale);setActiveModal('success');
       void syncSrmNow(queryClient,{type:'pos_sale_completed',source:'pos-terminal',ids:{sales_order_id:result.sales_order_id}});
@@ -975,6 +980,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       toast({ title: "Held locally", description: "Could not sync held bill to SRM; it is saved in this browser.", variant: "destructive" });
     }
     setCart([]);
+    setCustomerId(0);
+    setCustomerProfile(false);
     setBillDiscount(0);setCoupon("");
     setNote("");
     toast({ title: "Bill held", description: `${held.holdNo} is ready for recall.` });
@@ -1167,16 +1174,16 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
 
       <div className="pos-phone-feedback" data-notice={phoneNotice} role="status">{scanFeedback ? <><CheckCircle2 size={19}/><span>{scanFeedback}</span><button aria-label="Dismiss item notification" onClick={()=>setScanFeedback('')}><X size={16}/></button></> : <><CheckCircle2 size={19}/><span>{cart.length ? 'Your bill is ready to review.' : 'Add products or services to your bill.'}</span></>}</div>
-      <div className="pos-phone-bill"><button type="button" className="pos-phone-bill-customer" aria-label="Change sale customer" onClick={()=>setPhonePanel("customer")}><FileText size={27}/></button><div><strong>Current Bill <button className="pos-phone-customer-compact" aria-label={`Customer: ${customer.name}`} type="button" onClick={()=>setPhonePanel("customer")}>Customer ›</button></strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button className="pos-phone-trash" variant="outline" aria-label="Clear bill items" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={18}/></Button><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}>Clear</Button></div>
-      <button className="pos-phone-customer-button" aria-label="Change sale customer" type="button" onClick={()=>setPhonePanel('customer')}>Customer: {customer.name}<span>Change ›</span></button>
+      <div className="pos-phone-bill"><button type="button" className="pos-phone-bill-customer" aria-label="Change sale customer" onClick={()=>setPhonePanel("customer")}><FileText size={27}/></button><div><strong>Current Bill <button className="pos-phone-customer-compact" aria-label={customerLabel} type="button" onClick={()=>setPhonePanel("customer")}>{customer.id ? "Customer" : "Choose customer"} ›</button></strong><span>{cart.length} items · {cart.filter(line=>!!line.booking).length} appointment{cart.filter(line=>!!line.booking).length===1?'':'s'}</span></div><Button className="pos-phone-trash" variant="outline" aria-label="Clear bill items" disabled={!cart.length} onClick={()=>setConfirmClear(true)}><Trash2 size={18}/></Button><Button variant="outline" disabled={!cart.length} onClick={()=>setConfirmClear(true)}>Clear</Button></div>
+      <button className="pos-phone-customer-button" aria-label="Change sale customer" type="button" onClick={()=>setPhonePanel('customer')}>{customerLabel}<span>{customer.id ? "Change ›" : "Select ›"}</span></button>
       <div className="pos-guidance px-4 py-2 space-y-2">
         <ol className="flex flex-wrap gap-3 text-xs" aria-label="POS startup progress"><li>1. {branchName}</li><li>2. {register?.id ? `Register ${register.session_number || register.id} open` : 'Register not open'}</li><li>3. {register?.id ? `Opening cash ${currency(Number(register.opening_cash || 0))}` : 'Set opening cash'}</li><li>{register?.id && online ? 'Ready for billing' : 'Setup required'}</li></ol>
         {!register?.id && <Button variant="outline" size="sm" onClick={()=>phoneWidth<=767?setPhonePanel('sessions'):setSessionDetailsOpen(true)}>Set opening cash &amp; open register</Button>}
-        <p className="text-xs">Customer: <strong>{customer.name}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
+        <p className="text-xs">Customer: <strong>{customerLabel}</strong>{customer.phone ? ` - ${customer.phone}` : ''} | Cashier: {cashierName}</p>
         {!online && <p role="alert">Offline. Your basket is retained; reconnect to check availability and take payment.</p>}
         <p role="status" aria-live="polite" className="text-xs">{scanFeedback}</p>
         {helpOpen && <p className="text-sm">F2 Search / scan | F4 Hold (when supported) | F5 Recall (when supported) | F7 Checkout | F8 Print confirmed receipt. Tab moves between fields; Escape closes dialogs.</p>}
-        {undo && <div role="status" className="flex items-center gap-3 text-sm">{undo.message}<Button variant="outline" size="sm" onClick={()=>{setCart(current=>[...current,...undo.lines.filter(line=>!current.some(item=>item.lineId===line.lineId))]);setUndo(null);}}>Undo removal</Button><Button size="sm" variant="ghost" onClick={()=>setUndo(null)}>Dismiss</Button></div>}
+        {undo && <div role="status" className="flex items-center gap-3 text-sm">{undo.message}<Button variant="outline" size="sm" onClick={()=>{setCart(current=>[...current,...undo.lines.filter(line=>!current.some(item=>item.lineId===line.lineId))]);if (!cart.length && !customerId && undo.customerId) setCustomerId(undo.customerId);setUndo(null);}}>Undo removal</Button><Button size="sm" variant="ghost" onClick={()=>setUndo(null)}>Dismiss</Button></div>}
         {readinessOpen && readiness.length>0 && <section aria-label="Checkout readiness" className="rounded border bg-white p-3"><strong>{readiness.length ? `${readiness.length} items to review before payment` : 'Ready for payment'}</strong>{readiness.map(issue=><div key={issue.id} className="flex items-center justify-between gap-2 py-1 text-sm"><span>{issue.text}</span><Button size="sm" variant="outline" onClick={()=>reviewIssue(issue)}>Review</Button></div>)}<p className="text-xs text-slate-500">Stock, appointments and payment permissions are checked again when you confirm.</p></section>}
         {selectedPOS && <p className="text-xs text-slate-500">Hold and Recall are unavailable for this register type. Your active basket is saved on this device.</p>}
       </div>
@@ -1611,7 +1618,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       ) : null}
     </div></fieldset>
     <POSReceipt sale={printSale}/>
-    {confirmClear && <Overlay title="Clear this bill?" onClose={()=>setConfirmClear(false)}><p className="mb-4">Remove {cart.length} items from the current bill? You can undo this before checkout.</p><div className="flex gap-2"><Button variant="outline" onClick={()=>setConfirmClear(false)}>Keep bill</Button><Button variant="destructive" onClick={()=>{setUndo({lines:cart,message:'Bill cleared'});setCart([]);setConfirmClear(false);}}>Clear bill</Button></div></Overlay>}
+    {confirmClear && <Overlay title="Clear this bill?" onClose={()=>setConfirmClear(false)}><p className="mb-4">Remove {cart.length} items from the current bill? You can undo this before checkout.</p><div className="flex gap-2"><Button variant="outline" onClick={()=>setConfirmClear(false)}>Keep bill</Button><Button variant="destructive" onClick={()=>{setUndo({lines:cart,message:'Bill cleared',customerId});setCart([]);setCustomerId(0);setCustomerProfile(false);setConfirmClear(false);}}>Clear bill</Button></div></Overlay>}
     {nativeBusy && !uncertain && <section className="fixed inset-x-3 bottom-24 z-[100] rounded border bg-card p-4" role="status">Processing checkout. Please wait; do not start another payment.</section>}
     {opaqueLock && <section className="fixed inset-x-3 bottom-20 z-[100] rounded-lg border bg-card p-4" role="alert">An unresolved checkout requires reconciliation. New checkout is locked; recovery details are unavailable.</section>}
     {uncertain && <section className="fixed inset-x-3 bottom-20 z-[100] space-y-2 rounded-lg border bg-card p-4 shadow-lg" aria-label="Unresolved POS checkout"><p role="status">{nativeBusy ? "Processing saved checkout. Please wait for confirmation before taking another payment." : "Checkout outcome is unresolved. This basket is frozen. Retry the exact saved checkout before starting another transaction; missing records alone do not prove rejection."}</p>{nativeError&&<p role="alert">{nativeError}</p>}<Button disabled={nativeBusy || !canReplay} onClick={()=>void submitNative(uncertainty.current!,true)}>{nativeBusy?'Confirming checkout...':'Retry same checkout'}</Button>{!canReplay && <Button variant="outline" disabled={recoveryAuthority.isFetching} onClick={()=>void recoveryAuthority.refetch()}>Reload checkout permissions</Button>}</section>}
