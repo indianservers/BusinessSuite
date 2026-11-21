@@ -78,17 +78,17 @@
 }
 
 @media (max-width: 480px) {
-  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report)) > .suite-page-heading {
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report), .fam-mobile-reconciliation-page) > .suite-page-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
-  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report)) > .suite-page-heading :is(.suite-heading-description, .fam-heading-refresh-label) {
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report), .fam-mobile-reconciliation-page) > .suite-page-heading :is(.suite-heading-description, .fam-heading-refresh-label) {
     display: none;
   }
 
-  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report)) > .suite-page-heading .suite-heading-actions button {
+  :is(.fam-mobile-voucher-page, .fam-mobile-purchase-page:has(.fam-mobile-purchase-form), .fam-finance-page:has(> .fam-inventory-report), .fam-mobile-reconciliation-page) > .suite-page-heading .suite-heading-actions button {
     width: 44px;
     padding: 0;
   }
