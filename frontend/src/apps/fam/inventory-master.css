@@ -1,3 +1,69 @@
 .smart-create-body .inventory-movement-submit,
 .smart-create-body .inventory-master-submit,
 .smart-create-body .inventory-master-cancel { display: none; }
+
+@media (max-width: 767px) {
+  .fam-inventory-report :is(button, summary),
+  .fam-inventory-movement-form button {
+    min-height: 44px;
+  }
+
+  .fam-inventory-report summary {
+    align-content: center;
+  }
+
+  .fam-inventory-report :is(button, summary) {
+    height: auto;
+    white-space: normal;
+  }
+
+  .kf-main .fam-inventory-report :is(input:not([type="checkbox"]), select),
+  form.fam-inventory-movement-form.suite-compact-form label > :is(input, select) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .fam-inventory-report .fam-inventory-report-filters,
+  .fam-inventory-report .fam-inventory-report-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .fam-inventory-report :is(label, details, .fam-inventory-report-records),
+  .fam-inventory-movement-form label {
+    min-width: 0;
+  }
+
+  .fam-inventory-report .fam-inventory-report-filters input {
+    max-width: 100%;
+  }
+
+  .fam-inventory-report .fam-inventory-report-filters > label:has(input[type="search"]),
+  .fam-inventory-report .fam-inventory-report-tools > :is(label, details) {
+    grid-column: 1 / -1;
+  }
+
+  .fam-inventory-report .fam-inventory-report-records {
+    overscroll-behavior-inline: contain;
+  }
+
+  .fam-inventory-report .fam-inventory-report-records :is(.udg-native, .native-table-static) {
+    overflow: visible;
+  }
+
+  .fam-inventory-movement-form > .inventory-movement-submit {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 5;
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 360px) {
+  .fam-inventory-report .fam-inventory-report-filters > label:has(input[type="date"]) {
+    grid-column: 1 / -1;
+  }
+}
