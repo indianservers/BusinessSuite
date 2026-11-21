@@ -64,7 +64,7 @@ export default function WorkloadPage() {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<WorkloadFilters>(() => linkedFilters(searchParams));
   const [data, setData] = useState<PMSWorkloadHeatmapResponse | null>(null);
-  const cellTrigger = useRef<HTMLButtonElement>(null);
+  const cellTrigger = useRef<HTMLButtonElement | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ userName: string; week: string; cell: PMSWorkloadHeatmapResponse["rows"][number]["cells"][number] } | null>(null);
   const [loading, setLoading] = useState(true);
   const initialLoading = useInitialLoading(loading);

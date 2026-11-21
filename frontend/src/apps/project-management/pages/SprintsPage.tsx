@@ -35,7 +35,7 @@ export default function SprintsPage() {
   const [velocity, setVelocity] = useState<ProjectVelocity | null>(null);
   const [workload, setWorkload] = useState<WorkloadResponse | null>(null);
   const [backlogTasks, setBacklogTasks] = useState<PMSTaskListItem[]>([]);
-  const reviewTrigger = useRef<HTMLButtonElement>(null);
+  const reviewTrigger = useRef<HTMLButtonElement | null>(null);
   const [completeTarget, setCompleteTarget] = useState<PMSSprint | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
