@@ -995,9 +995,26 @@ function BankStatementDetailView() {
 }
 
 function BankReconciliationView() {
+  const phone = useMobile(480);
   const query = useQuery({ queryKey: ["fam", "bankReconciliation"], queryFn: famApi.bankReconciliation });
   const data = (query.data || {}) as FAMRecord;
-  return <div className="space-y-4"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Unmatched statement lines</p><p className="text-2xl font-semibold">{text(data.unmatched_count)}</p></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Reconciliation sessions</CardTitle></CardHeader><CardContent><State label="bank reconciliation" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.sessions as FAMRecord[] | undefined) || []} columns={["statement_id", "bank_account_id", "book_balance", "bank_statement_balance", "status", "reconciled_at"]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Statements</CardTitle></CardHeader><CardContent><DataTable rows={(data.statements as FAMRecord[] | undefined) || []} columns={["id", "bank_account_id", "status", "statement_period_start", "statement_period_end"]} /></CardContent></Card></div>;
+  const statements = (data.statements as FAMRecord[] | undefined) || [];
+  return <div className="space-y-4">
+    <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Unmatched statement lines</p><p className="text-2xl font-semibold">{text(data.unmatched_count)}</p></CardContent></Card>
+    <Card>
+      <CardHeader><CardTitle className="text-base">Reconciliation sessions</CardTitle></CardHeader>
+      <CardContent>
+        <State label="bank reconciliation" isLoading={query.isLoading} isError={query.isError} />
+        <DataTable rows={(data.sessions as FAMRecord[] | undefined) || []} columns={["statement_id", "bank_account_id", "book_balance", "bank_statement_balance", "status", "reconciled_at"]} />
+      </CardContent>
+    </Card>
+    <MobileDisclosure title={query.isSuccess ? `Statements (${statements.length})` : "Statements"} maxWidth={480} initiallyOpen={false}>
+      <Card>
+        {!phone && <CardHeader><CardTitle className="text-base">Statements</CardTitle></CardHeader>}
+        <CardContent><DataTable rows={statements} columns={["id", "bank_account_id", "status", "statement_period_start", "statement_period_end"]} /></CardContent>
+      </Card>
+    </MobileDisclosure>
+  </div>;
 }
 
 function BookView({ kind }: { kind: "bank" | "cash" }) {
