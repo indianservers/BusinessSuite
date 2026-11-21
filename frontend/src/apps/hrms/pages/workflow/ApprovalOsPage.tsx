@@ -1,3 +1,5 @@
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import "./approval-os-mobile.css";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -102,7 +104,7 @@ export default function ApprovalOsPage() {
   const moduleRows = useMemo(() => Object.entries(summary?.by_module || {}), [summary]);
 
   return (
-    <div className="space-y-5">
+    <div className="hrms-approval-os space-y-5">
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground">Business Operating System</p>
@@ -111,7 +113,7 @@ export default function ApprovalOsPage() {
             One decision queue for CRM, PMS, HRMS, Finance, AI, and system approvals with SLA, escalation, comments, audit, and mobile readiness.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="hrms-approval-scopes flex flex-wrap gap-2">
           <Button variant={scope === "mine" ? "default" : "outline"} onClick={() => (setScope("mine"),setPage(1))}>Assigned to me</Button>
           <Button variant={scope === "submitted" ? "default" : "outline"} onClick={() => (setScope("submitted"),setPage(1))}>Submitted by me</Button>
           {roleKey !== "employee" ? <Button variant={scope === "all" ? "default" : "outline"} onClick={() => (setScope("all"),setPage(1))}>All</Button> : null}
@@ -120,43 +122,47 @@ export default function ApprovalOsPage() {
       </div>
 
       {isError&&<p role="alert" className="text-destructive">Approval statistics unavailable. <Button variant="outline" onClick={()=>refetch()}>Retry</Button></p>}
-      <p className="text-xs text-muted-foreground">Current organization and selected permission scope. Totals include all matching requests before pagination.</p>
-      <div className="grid gap-4 md:grid-cols-5">
-        <Metric icon={Inbox} label="Total" value={isLoading ? "-" : summary?.total ?? "Unavailable"} />
-        <Metric icon={Clock3} label="Pending" value={isLoading ? "-" : summary?.pending ?? "Unavailable"} />
-        <Metric icon={AlertTriangle} label="Overdue SLA" value={isLoading ? "-" : summary?.overdue ?? "Unavailable"} />
-        <Metric icon={History} label="Escalated" value={isLoading ? "-" : summary?.escalated ?? "Unavailable"} />
-        <Metric icon={FileCheck2} label="High Priority" value={isLoading ? "-" : summary?.high_priority ?? "Unavailable"} />
-      </div>
+      <MobileDisclosure title="Approval summary" maxWidth={480}>
+        <p className="hrms-approval-summary-note text-xs text-muted-foreground">Current organization and selected permission scope. Totals include all matching requests before pagination.</p>
+        <div className="hrms-approval-metrics grid gap-4 md:grid-cols-5">
+          <Metric icon={Inbox} label="Total" value={isLoading ? "-" : summary?.total ?? "Unavailable"} />
+          <Metric icon={Clock3} label="Pending" value={isLoading ? "-" : summary?.pending ?? "Unavailable"} />
+          <Metric icon={AlertTriangle} label="Overdue SLA" value={isLoading ? "-" : summary?.overdue ?? "Unavailable"} />
+          <Metric icon={History} label="Escalated" value={isLoading ? "-" : summary?.escalated ?? "Unavailable"} />
+          <Metric icon={FileCheck2} label="High Priority" value={isLoading ? "-" : summary?.high_priority ?? "Unavailable"} />
+        </div>
+      </MobileDisclosure>
 
       <div className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Control Plane</CardTitle>
-            <CardDescription>Filter by module and status.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => (setStatus(event.target.value),setPage(1))}>
-                {["Pending", "Approved", "Rejected", ""].map((item) => <option key={item} value={item}>{item || "Any status"}</option>)}
-              </NativeSelect>
-              <Input value={module} onChange={(event) => (setModule(event.target.value),setPage(1))} placeholder="Module: crm, pms, hrms" />
-            </div>
-            <div className="space-y-2">
-              {moduleRows.length ? moduleRows.map(([name, count]) => (
-                <div key={name} className="flex items-center justify-between rounded-md border p-3">
-                  <span className="text-sm font-medium capitalize">{name}</span>
-                  <Badge variant="outline">{count}</Badge>
-                </div>
-              )) : <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No module mix for this filter.</p>}
-            </div>
-            <div className="grid gap-3">
-              <Control icon={Sparkles} title="AI summaries" detail="Each request can carry an evidence-backed decision summary." />
-              <Control icon={Smartphone} title="Mobile approvals" detail="Approval items expose mobile readiness and compact decision data." />
-              <Control icon={History} title="Audit history" detail="Native Approval OS decisions write immutable history entries." />
-            </div>
-          </CardContent>
-        </Card>
+        <MobileDisclosure title="Filter approvals" maxWidth={480} className="hrms-approval-filters">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Control Plane</CardTitle>
+              <CardDescription>Filter by module and status.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="hrms-approval-filter-fields grid grid-cols-2 gap-3">
+                <NativeSelect aria-label="Approval status" className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => (setStatus(event.target.value),setPage(1))}>
+                  {["Pending", "Approved", "Rejected", ""].map((item) => <option key={item} value={item}>{item || "Any status"}</option>)}
+                </NativeSelect>
+                <Input aria-label="Approval module" value={module} onChange={(event) => (setModule(event.target.value),setPage(1))} placeholder="Module: crm, pms, hrms" />
+              </div>
+              <div className="space-y-2">
+                {moduleRows.length ? moduleRows.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between rounded-md border p-3">
+                    <span className="text-sm font-medium capitalize">{name}</span>
+                    <Badge variant="outline">{count}</Badge>
+                  </div>
+                )) : <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No module mix for this filter.</p>}
+              </div>
+              <div className="grid gap-3">
+                <Control icon={Sparkles} title="AI summaries" detail="Each request can carry an evidence-backed decision summary." />
+                <Control icon={Smartphone} title="Mobile approvals" detail="Approval items expose mobile readiness and compact decision data." />
+                <Control icon={History} title="Audit history" detail="Native Approval OS decisions write immutable history entries." />
+              </div>
+            </CardContent>
+          </Card>
+        </MobileDisclosure>
 
         <Card>
           <CardHeader>
@@ -164,13 +170,13 @@ export default function ApprovalOsPage() {
             <CardDescription>Native Approval OS records plus workflow-engine approvals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data&&<div className="flex flex-wrap items-center gap-3"><span>{data.total} matching requests · Page {page} of {Math.max(1,data.pages)}</span><Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</Button><Button variant="outline" disabled={page>=data.pages} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
+            {data&&<div className="hrms-approval-pagination flex flex-wrap items-center gap-3"><span>{data.total} matching requests · Page {page} of {Math.max(1,data.pages)}</span><Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</Button><Button variant="outline" disabled={page>=data.pages} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
             {isLoading ? <div className="h-32 rounded-lg border bg-muted/30" /> : null}
             {!isLoading && data?.items.map((item) => {
               const id = nativeApprovalId(item);
               const overdue = item.sla_due_at ? new Date(item.sla_due_at).getTime() < Date.now() && item.status.toLowerCase() === "pending" : false;
               return (
-                <div data-priority-row data-priority={item.priority} key={item.id} className="rounded-lg border p-4">
+                <div data-priority-row data-priority={item.priority} key={item.id} className="hrms-approval-record rounded-lg border p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -191,10 +197,11 @@ export default function ApprovalOsPage() {
                       </p>
                     </div>
                     {item.can_decide && id ? (
-                      <div className="flex min-w-[240px] flex-col gap-2">
+                      <div className="hrms-approval-decision flex min-w-[240px] flex-col gap-2">
                         <Input
                           value={reasonById[item.id] || ""}
                           onChange={(event) => setReasonById({ ...reasonById, [item.id]: event.target.value })}
+                          aria-label={`Decision note for ${item.title}`}
                           placeholder="Decision note"
                         />
                         <div className="flex gap-2">
