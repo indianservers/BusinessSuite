@@ -31,7 +31,8 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
   const communications = location.pathname.replace(/\/$/, '') === '/srm/send-reminders';
   const expiry = /^\/srm\/membership-expiry\/?$/.test(location.pathname);
-  const scrollPage = dashboard || collections || reports || communications || expiry;
+  const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
+  const scrollPage = dashboard || collections || reports || communications || expiry || offeringSales;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
