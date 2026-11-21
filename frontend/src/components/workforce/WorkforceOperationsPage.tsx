@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import WorkforcePersonPreview from "./WorkforcePersonPreview";
@@ -38,7 +39,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
   const [profile, setProfile] = useState<Row>();
   function openProfile(person: Row) { setProfile(person); }
   const [jobPage, setJobPage] = useState(1);
-  const requestKey = useRef(crypto.randomUUID());
+  const requestKey = useRef(randomUUID());
   const [views, setViews] = useState<Array<{ name: string; filters: Filters }>>([]);
   const [viewName, setViewName] = useState("");
   const viewKey = `workforce.views.${user?.id}.${context}`;
@@ -62,7 +63,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
   const batchPath = context === "pms" ? "/pms/batches" : "/hrms/interns/batches";
   async function openOperation(operation: typeof modal) {
     setError(""); setResult(""); setPreview(undefined); setBusy(true);
-    try { const response = await api.post(root + "/preview", selection); setPreview(response.data); setModal(operation); setForm({ title: "", message: "", severity: operation === "warning" ? "important" : "normal", reporting_manager_id: "" }); requestKey.current = crypto.randomUUID(); }
+    try { const response = await api.post(root + "/preview", selection); setPreview(response.data); setModal(operation); setForm({ title: "", message: "", severity: operation === "warning" ? "important" : "normal", reporting_manager_id: "" }); requestKey.current = randomUUID(); }
     catch (error) { setError(errorMessage(error)); }
     finally { setBusy(false); }
   }
