@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { api } from "@/services/api";
-import { defaultsScope, installFormDefaults, cachedFormDefaults, cacheFormDefaults, type DefaultsPayload } from "@/lib/form-defaults";
+import { defaultsScope, defaultsWorkspaceScope, installFormDefaults, cachedFormDefaults, cacheFormDefaults, type DefaultsPayload } from "@/lib/form-defaults";
 import { useRecordScope } from "@/lib/record-scope";
 
 /** Load starting values before mounting forms; later refreshes never reset a draft. */
@@ -26,11 +26,20 @@ export default function FormDefaultsGate({ children, required = true, unavailabl
     }
     return data;
   }, initialData:cached?.payload, initialDataUpdatedAt:cached?.savedAt, staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 });
-  if (!required) {
+  const workspace = defaultsWorkspaceScope(query.data);
+  const readyWorkspace = useRef<string>();
+  const alreadyMounted = readyWorkspace.current === workspace;
+  useLayoutEffect(() => {
+    if (query.data) readyWorkspace.current = workspace;
+    else if (!alreadyMounted) readyWorkspace.current = undefined;
+  }, [query.data, workspace, alreadyMounted]);
+
+  // A refreshed grant snapshot changes the query key. Keep existing forms for
+  // this workspace mounted while the new, independently scoped read completes.
+  if (!required || query.data || alreadyMounted) {
     if(query.data)installFormDefaults(query.data);
     return <>{query.isError&&<div role="status" className="px-4 py-2 text-sm">{unavailableMessage} <button type="button" onClick={()=>void query.refetch()} className="underline">Retry preferences</button></div>}{children}</>;
   }
-  if (query.data) { installFormDefaults(query.data); return <>{children}</>; }
   if (query.isError) return <div role="alert" className="p-6">Could not load form defaults. <button type="button" onClick={() => void query.refetch()} className="underline">Retry</button></div>;
   return <div role="status" className="p-6 text-sm text-muted-foreground">Loading workspace preferences…</div>;
 }

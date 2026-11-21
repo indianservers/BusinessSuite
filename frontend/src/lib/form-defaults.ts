@@ -41,6 +41,17 @@ export function defaultsScope() {
   const user = useAuthStore.getState().user;
   return JSON.stringify([user?.id, storedContext("suite-tenant"), storedContext("suite-organization") || user?.access?.companyId, storedContext("suite-branch") || "", selectedPackContext(), securityAuthStamp(user)]);
 }
+/** Identity of the workspace using the defaults, independent of grant refreshes. */
+export function defaultsWorkspaceScope(payload?: DefaultsPayload) {
+  const user = useAuthStore.getState().user;
+  return JSON.stringify([
+    user?.id,
+    storedContext("suite-tenant"),
+    String(storedContext("suite-organization") || user?.access?.companyId || payload?.companyId || ""),
+    String(storedContext("suite-branch") || payload?.branchId || ""),
+    selectedPackContext(),
+  ]);
+}
 export function installFormDefaults(payload: DefaultsPayload) {
   if (payload.branchId && !storedContext("suite-branch")) { try { sessionStorage.setItem("suite-branch", String(payload.branchId)); } catch { /* Preferences still work without browser storage. */ } }
   snapshot = { scope: defaultsScope(), payload };
