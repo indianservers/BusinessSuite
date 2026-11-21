@@ -8,6 +8,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowLeft, ArrowRight, ChevronDown, LayoutGrid, Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMobile } from '@/components/mobile/useMobile';
+import { CreationSurfaceContext } from '@/shared/creation/CreationSurfaceContext';
 import SuiteNotificationBell from '@/components/suite/SuiteNotificationBell';
 import { canAccessRoute, getRoleNav } from '@/lib/roles';
 import { salesReportCalendarHref, salesReportsPath } from '@/lib/navigation-workspaces';
@@ -19,9 +20,10 @@ import './srm-mobile-screen.css';
 const titleFor=(path:string)=>path.replace(/\/srm\/?/,'').split('/').filter(value=>value&&!/^\d+$/.test(value)&&!value.startsWith(':')).slice(-2).join(' · ').replace(/-/g,' ').replace(/\b\w/g,value=>value.toUpperCase())||'Sales & Revenue';
 export default function SRMMobileScreen({children,paths,nativePath}:{children:ReactNode;paths:string[];nativePath?:string}){
   const mobile=useMobile(),location=useLocation();
+  const insideCreation = useContext(CreationSurfaceContext);
   const operation=new URLSearchParams(location.search).get('operation')||nativePath||location.pathname;
   const terminal=/^\/srm\/pos(?:\/terminal)?\/?$/.test(operation);
-  return !mobile||terminal||/^\/srm\/(appointments|service-scheduling)\/?$/.test(operation)?<>{children}</>:<MobileScreen key={location.pathname} paths={paths}>{children}</MobileScreen>;
+  return !mobile||insideCreation||terminal||/^\/srm\/(appointments|service-scheduling)\/?$/.test(operation)?<>{children}</>:<MobileScreen key={location.pathname} paths={paths}>{children}</MobileScreen>;
 }
 function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
