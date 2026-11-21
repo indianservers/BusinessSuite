@@ -1,0 +1,65 @@
+@media (max-width: 480px) {
+  .pms-timesheets { min-width: 0; }
+  .pms-timesheet-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .pms-timesheet-metrics > div > div { padding: 12px; }
+  .pms-timesheet-metrics p + p { margin-top: 3px; font-size: 1.25rem; }
+  .pms-timesheet-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .pms-timesheet-actions input { grid-column: 1 / -1; width: 100%; }
+  .pms-timesheet-actions > div { grid-column: 1 / -1; justify-self: start; }
+  .pms-timesheet-actions button { min-width: 0; padding-inline: 5px; }
+  .pms-timesheet-day { display: grid; gap: 12px; }
+  .pms-timesheet-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+    font-size: .6875rem;
+  }
+  .pms-timesheet-days button {
+    display: grid;
+    align-content: center;
+    min-height: 44px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    line-height: 1.35;
+  }
+  .pms-timesheet-days span { color: hsl(var(--muted-foreground)); }
+  .pms-timesheet-days [aria-pressed="true"] {
+    color: hsl(var(--primary));
+    background: hsl(var(--primary) / .12);
+    border-color: hsl(var(--primary) / .5);
+    font-weight: 600;
+  }
+  .pms-timesheet-entry {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+  }
+  .pms-timesheet-entry legend { padding-inline: 5px; font-size: .75rem; font-weight: 600; }
+  .pms-timesheet-entry label { display: grid; gap: 4px; min-width: 0; font-size: .75rem; }
+  .pms-timesheet-entry .pms-timesheet-lookup { grid-column: 1 / -1; }
+  .pms-timesheet-entry select,
+  .pms-timesheet-entry input[type="number"] { min-width: 0; min-height: 40px; width: 100%; font-size: 16px; }
+  .pms-timesheet-entry select { border: 1px solid hsl(var(--border)); border-radius: 6px; padding-inline: 8px; background: hsl(var(--background)); }
+  .pms-timesheet-entry .pms-timesheet-billable { display: flex; align-items: center; gap: 6px; min-height: 40px; }
+  .pms-timesheet-entry small { align-self: center; color: hsl(var(--muted-foreground)); }
+}
+
+@media (max-width: 480px) {
+  .pms-timesheet-approval-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pms-timesheet-approval-filters > label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .pms-timesheet-approval-filters :is(select, input) {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+}

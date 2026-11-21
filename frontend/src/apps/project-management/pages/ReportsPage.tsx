@@ -1,3 +1,4 @@
+import "./reports-mobile.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {expandedChartContent} from "@/components/mobile/expanded-chart-content";
 import {useMobile} from "@/components/mobile/useMobile";
@@ -156,13 +157,13 @@ export default function ReportsPage() {
   const exportDisabled = loading || exporting || !distribution || !!error || (activeTab === "Burndown" && !selectedSprintId) || (activeTab === "Velocity" && !selectedProjectId);
 
   return (
-    <div className="space-y-6">
+    <div className="pms-reports-page space-y-6">
 
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h1 className="page-title">PMS reports</h1><div className="flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
-          <p className="page-description">Real task, sprint, status-history, flow, cycle-time, health, and team analytics.</p>
+          <h1 className="page-title">PMS reports</h1><div className="pms-reports-links flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
+          <p className="page-description">Review delivery, sprint performance, and team workload.</p>
         </div>
         <CompactActions className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void loadReports()} disabled={loading || exporting}><RefreshCw className="h-4 w-4" />Refresh</Button>
@@ -172,7 +173,25 @@ export default function ReportsPage() {
         </CompactActions>
       </div>
 
-      {distribution && <section className="mobile-only-panel"><div className="mobile-focus-summary"><div><strong>{distribution.total_tasks}</strong><span>Total tasks</span></div><div><strong>{distribution.by_status.filter(row=>["done","completed","closed"].includes(row.name.toLowerCase())).reduce((sum,row)=>sum+row.tasks,0)}</strong><span>Completed tasks</span></div></div><nav className="mobile-stepper" aria-label="Report date range">{[7,30,90].map(days=><button type="button" key={days} onClick={()=>{const end=new Date(),start=new Date();start.setDate(start.getDate()-days+1);setFrom(start.toISOString().slice(0,10));setTo(end.toISOString().slice(0,10));setActiveTab("Distribution");}}>Last {days} days</button>)}</nav><Link className="mobile-filter-trigger" to="/pms/workload">View team workload</Link><Link className="mobile-filter-trigger" to="/pms/my-work?overdue=true">Overdue work</Link><button type="button" className="mobile-filter-trigger" onClick={()=>setActiveTab("Flow")}>Completion trends</button><div className="space-y-2 mt-3">{distribution.by_status.map(row=><div key={row.name} className="text-xs"><div className="flex justify-between"><span>{row.name}</span><strong>{row.tasks} tasks</strong></div><progress className="w-full" max={Math.max(1,distribution.total_tasks)} value={row.tasks}/></div>)}</div></section>}
+      <section className="mobile-only-panel pms-report-shortcuts" aria-label="Report shortcuts">
+        <nav className="mobile-stepper" aria-label="Report date range">
+          {[7, 30, 90].map(days => (
+            <button type="button" key={days} onClick={() => {
+              const end = new Date();
+              const start = new Date();
+              start.setDate(start.getDate() - days + 1);
+              setFrom(localDate(start));
+              setTo(localDate(end));
+              setActiveTab("Distribution");
+            }}>Last {days} days</button>
+          ))}
+        </nav>
+        <div className="pms-reports-links">
+          <Link to="/pms/workload">Team workload</Link>
+          <Link to="/pms/my-work?overdue=true">Overdue work</Link>
+          <button type="button" onClick={() => setActiveTab("Flow")}>Completion trends</button>
+        </div>
+      </section>
       <MobileFilters chips={[selectedProjectId&&`Project ${selectedProjectId}`,from&&`From ${from}`,to&&`To ${to}`].filter(Boolean)} label="Report filters">
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
@@ -203,7 +222,7 @@ export default function ReportsPage() {
         <ReportMetric label="Completion" value={distribution ? Math.round(completedTasks / Math.max(totalTasks, 1) * 100) : "—"} suffix="%" />
       </div>
 
-      <div role="tablist" aria-label="Report types" className="flex gap-2 overflow-x-auto" onKeyDown={event => {
+      <div role="tablist" aria-label="Report types" className="pms-report-types flex gap-2 overflow-x-auto" onKeyDown={event => {
         if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
         const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
         const index = buttons.indexOf(event.target as HTMLButtonElement); if (index < 0) return;
@@ -290,6 +309,11 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
   const phone = useMobile(480);
   const expandedChart = phone ? expandedChartContent(children) : children;
   return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="h-96"><MobileChartZoom title={title} expandedContent={<ResponsiveContainer width="100%" height="100%">{expandedChart}</ResponsiveContainer>} minWidth={title === "Priority distribution" ? 320 : 640}><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></MobileChartZoom></CardContent></Card>;
+}
+
+function localDate(date: Date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
 }
 
 function ReportMetric({ label, value, suffix }: { label: string; value: number | string; suffix?: string }) {

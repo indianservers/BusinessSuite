@@ -13,14 +13,15 @@
  .pms-client-record p{font-size:13px;line-height:1.5}
  .pms-client-record>div:last-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .pms-client-record button{min-width:0;min-height:44px;white-space:normal}
- .pms-client-editor.pms-client-editor{left:0;top:0;transform:none;width:100%;max-width:none;height:100dvh;max-height:100dvh;border-radius:0;padding:calc(16px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+ .pms-client-editor.pms-client-editor{left:0;top:0;transform:none;width:100%;max-width:none;height:var(--mobile-viewport-height,100dvh);max-height:var(--mobile-viewport-height,100dvh);overflow:hidden;border-radius:0;padding:calc(16px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
  .pms-client-editor form{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0}
  .pms-client-editor form>*{margin-top:0}
+ .pms-client-form-fields{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px;}
  .pms-client-editor label{font-size:13px;line-height:1.5}
  .pms-client-editor.pms-client-editor input:not([type=checkbox]):not([type=radio]):not([type=file]),.pms-client-editor select{font-size:16px;min-height:44px;min-width:0;width:100%}
  .pms-client-editor .md-check{min-height:44px;align-items:center}
  .pms-client-editor .md-check input{width:22px;height:22px;flex-shrink:0}
- .pms-client-form-actions{display:flex;gap:8px;position:sticky;bottom:0;margin-top:auto!important;background:hsl(var(--background));padding-block:12px;z-index:2}
+ .pms-client-form-actions{display:flex;gap:8px;flex-shrink:0;background:hsl(var(--background));padding-top:8px}
  .pms-client-form-actions button{flex:1;min-height:44px}
  .pms-client-delete{max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:16px;overflow-wrap:anywhere}
  .pms-client-delete button{min-height:44px}
