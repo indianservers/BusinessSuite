@@ -7,6 +7,7 @@ import HomeApplicationCard from "@/components/suite/HomeApplicationCard";
 import HomeAuthPanel from "@/components/suite/HomeAuthPanel";
 import { homeApplications, homeCategories } from "@/components/suite/homeApplications";
 import { loginDestination } from "@/lib/login";
+import workspaceArtwork from "@/assets/suite/suite-home-workspace.webp";
 import "./suite-welcome.css";
 
 export default function SuiteWelcomePage() {
@@ -99,7 +100,7 @@ export default function SuiteWelcomePage() {
       <div className="home-content">
         <section className="home-hero">
           <div><h1>One workspace. Every possibility.</h1><p>Your people, customers and operations. Beautifully connected.</p><ul><li><Layers3/>Unify operations</li><li><Users/>Empower teams</li><li><ShieldCheck/>Enterprise-grade security</li></ul></div>
-          <img src="/images/suite-home-workspace.webp" alt="" width="600" height="400" fetchPriority="high"/>
+          <img src={workspaceArtwork} alt="" width="600" height="400" fetchPriority="high"/>
         </section>
         <section id="home-applications" aria-labelledby="home-app-title">
           <div className="home-section-heading"><h2 id="home-app-title">Explore your applications</h2><p>Access the tools your organization uses, all in one connected workspace.</p></div>

@@ -1,10 +1,10 @@
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react";
+import { Building2, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
-export default function CompanySwitcher() {
+export default function CompanySwitcher({ compactDisplay = false }: { compactDisplay?: boolean } = {}) {
   const { user, setUser } = useAuthStore();
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
@@ -21,9 +21,13 @@ export default function CompanySwitcher() {
           : `Workspace ${id}`,
     }));
   return (
-    <label className="suite-company">
+    <label className={`suite-company${compactDisplay ? " launcher-company-card" : ""}`}>
       <Building2 size={17} />
       <span className="sr-only">Current company</span>
+      {compactDisplay && <span className="launcher-mobile-company" aria-hidden="true">
+        <strong>{access.companyName || organizations.find(org => org.id === access.companyId)?.name}</strong>
+        <small>{access.organizationId && `${access.organizationId} · `}Active</small>
+      </span>}
       <span className="suite-company-identity">
       <NativeSelect loading={busy}
         aria-label="Current company"
@@ -54,6 +58,7 @@ export default function CompanySwitcher() {
       </NativeSelect>
       {access.organizationId && <small>Org ID: <code>{access.organizationId}</code></small>}
       </span>
+      {compactDisplay && organizations.length > 1 && <ChevronDown className="launcher-company-chevron" size={15} aria-hidden="true"/>}
       {busy && <span role="status">Switching…</span>}
     </label>
   );

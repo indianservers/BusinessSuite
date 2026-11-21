@@ -22,7 +22,7 @@ const access = { companyId: 1, companyName: 'Acme Workspace', organizations: [{ 
       const pathname = url.pathname.replace('/api/v1', '');
       let data = {};
       if (pathname === '/access/homepage-banner/upload') data = { image: 'asset:1-' + 'a'.repeat(64) };
-      else if (pathname.startsWith('/auth/homepage-banner/assets/')) { await route.fulfill({ body: fs.readFileSync(path.resolve(__dirname, '../public/images/suite-office-hero.webp')), contentType: 'image/webp' }); return; }
+      else if (pathname.startsWith('/auth/homepage-banner/assets/')) { await route.fulfill({ body: fs.readFileSync(path.resolve(__dirname, '../src/assets/suite/suite-office-hero.webp')), contentType: 'image/webp' }); return; }
       else if (pathname === '/auth/homepage-banner') data = banner;
       else if (pathname === '/access/homepage-banner') {
         if (route.request().method() === 'PUT') saved = route.request().postDataJSON();
@@ -85,7 +85,7 @@ const access = { companyId: 1, companyName: 'Acme Workspace', organizations: [{ 
     await page.mouse.move(crop.x + 150, crop.y + 80);
     await page.mouse.down(); await page.mouse.move(crop.x + 220, crop.y + 90); await page.mouse.up();
     assert(Number(await page.getByLabel('Horizontal position').inputValue()) < 100);
-    await page.locator('input[type=file]').setInputFiles(path.resolve(__dirname, '../public/images/suite-office-hero.webp'));
+    await page.locator('input[type=file]').setInputFiles(path.resolve(__dirname, '../src/assets/suite/suite-office-hero.webp'));
     await page.getByRole('button', { name: 'Save banner' }).waitFor();
     await page.waitForFunction(() => document.querySelector('.banner-crop img')?.src.startsWith('blob:'));
 

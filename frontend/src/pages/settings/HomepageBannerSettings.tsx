@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Monitor, RotateCcw, Save, Smartphone, Upload } from "lucide-react";
 import { api } from "@/services/api";
-import HomepageBanner, { type BannerAppearance, defaultBanner, useHomepageBanner } from "@/components/suite/HomepageBanner";
+import HomepageBanner, { type BannerAppearance, bannerImageUrl, defaultBanner, useHomepageBanner } from "@/components/suite/HomepageBanner";
 import "./homepage-banner-settings.css";
 
 const limit = 5 * 1024 * 1024;
@@ -57,7 +57,7 @@ export default function HomepageBannerSettings() {
     <p className="banner-editor-help">The frame crops the image while preserving its proportions. Adjust the zoom and position to choose the visible area.</p>
     <div className="banner-editor-columns"><div>
       <h3><ImagePlus size={18} />{mobile ? "Mobile image" : "Banner image"}</h3>
-      <div className="banner-gallery">{[{ image: defaultBanner.image, title: "Glass office" }, { image: "/images/karya-login-hero.webp", title: "City workspace" }].map(item => <button key={item.image} aria-pressed={current === item.image} onClick={() => select(item.image)}><img src={item.image} alt="" /><span>{item.title}</span></button>)}</div>
+      <div className="banner-gallery">{[{ image: defaultBanner.image, title: "Glass office" }, { image: "/images/karya-login-hero.webp", title: "City workspace" }].map(item => <button key={item.image} aria-pressed={current === item.image} onClick={() => select(item.image)}><img src={bannerImageUrl(item.image)} alt="" /><span>{item.title}</span></button>)}</div>
       <label className="banner-upload"><Upload size={18} />Upload an image<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} /></label>
       <p className="banner-editor-help">JPEG, PNG or WebP · Up to 5 MB · Optimized automatically</p>
       <label className="banner-url">External image URL<input type="url" placeholder="https://example.com/banner.webp" value={url} onChange={e => setUrl(e.target.value)} /></label>

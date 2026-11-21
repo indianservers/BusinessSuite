@@ -14,6 +14,7 @@ import { getApiBaseUrl } from "@/config/runtime";
 import { loginDestination } from "@/lib/login";
 import { modules } from "@/lib/moduleCatalog";
 import SuiteBrand from "@/components/suite/SuiteBrand";
+import loginArtwork from "@/assets/suite/suite-login-workspace.png";
 import "./suite-login.css";
 import { useGoogleOneTap } from "@/hooks/use-google-one-tap";
 import GoogleSignInFallback, {googleSignInState} from "./GoogleSignInFallback";
@@ -372,7 +373,7 @@ export default function LoginPage({ embedded = false, onSignup }: { embedded?: b
             <li><span><Layers/></span><div><strong>Streamline business workflows</strong><small>From conversations to closed deals</small></div></li>
             <li><span><ShieldCheck/></span><div><strong>Enterprise-grade security</strong><small>Your data, your controls, always protected</small></div></li>
           </ul>
-          {!embedded && <img className="suite-login-illustration" src="/images/suite-login-workspace.png" alt="" aria-hidden="true"/>}
+          {!embedded && <img className="suite-login-illustration" src={loginArtwork} alt="" aria-hidden="true"/>}
         </section>
         <section className="suite-login-card" aria-labelledby="login-title">
           <p className="suite-login-company">
