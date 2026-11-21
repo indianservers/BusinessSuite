@@ -5800,7 +5800,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
   const createRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
     if(!canCreate || createSaving)return;
     const nextId = records.length + 1;
-    const title = pageTitles[kind].replace("CRM ", "").replace(/s$/, "");
+    const title = recordCreateNoun(kind);
     const record = { id: nextId, ...defaultRecordFor(kind, nextId, title), ...draft };
     if (apiEntity) {
       setCreateSaving(true);
@@ -7932,7 +7932,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
     { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
     { key: "nextFollowUp", label: "Next follow-up", type: "date" as const },
   ];
-  const defaultName = `New ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
+  const defaultName = `New ${recordCreateNoun(kind)}`;
   const initialDraft = useMemo(() => ({
     name: seedName || defaultName,
     subject: defaultName,
@@ -7955,7 +7955,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
     return <CreateDealDialog placement={placement} saving={saving} error={error} onClose={onClose} onCreate={onCreate} />;
   }
   return (
-    <Dialog open onOpenChange={open=>{if(!open&&!saving)onClose();}}><DialogContent className="max-w-lg max-md:top-[calc(var(--mobile-viewport-height,100dvh)/2)] max-md:!max-h-[calc(var(--mobile-viewport-height,100dvh)-1rem)]">
+    <Dialog open onOpenChange={open=>{if(!open&&!saving)onClose();}}><DialogContent className={`max-w-lg max-md:top-[calc(var(--mobile-viewport-height,100dvh)/2)] max-md:!max-h-[calc(var(--mobile-viewport-height,100dvh)-1rem)] ${kind === "activities" ? "max-md:overflow-x-hidden" : ""}`}>
       <Card className="w-full max-w-lg">
         <CardHeader className="flex-row items-start justify-between">
           <div><DialogTitle>{title}</DialogTitle><p className="text-sm text-muted-foreground">Fast-create form with required CRM fields.</p></div>
@@ -8965,8 +8965,12 @@ function descriptionFor(kind: CRMPageKind) {
   return descriptions[kind];
 }
 
+function recordCreateNoun(kind: CRMPageKind) {
+  return kind === "activities" ? "Activity" : pageTitles[kind].replace("CRM ", "").replace(/s$/, "");
+}
+
 function actionFor(kind: CRMPageKind) {
-  if (["leads", "contacts", "companies", "deals", "activities", "tasks", "campaigns", "products", "services", "priceBooks", "quotes", "quotations", "tickets", "cpq", "guidedSelling"].includes(kind)) return `Create ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
+  if (["leads", "contacts", "companies", "deals", "activities", "tasks", "campaigns", "products", "services", "priceBooks", "quotes", "quotations", "tickets", "cpq", "guidedSelling"].includes(kind)) return `Create ${recordCreateNoun(kind)}`;
   if (kind === "approvalSettings") return "Create workflow";
   if (kind === "pipelineSettings") return "Back to board";
   if (kind === "leadScoring") return "Recalculate all";
