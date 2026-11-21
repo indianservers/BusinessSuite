@@ -1,4 +1,5 @@
 import {posOfferingTabs,matchesOfferingTab} from "../components/pos-offering-types";
+import { randomUUID } from "@/lib/random-uuid";
 import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import {loadPOSCatalog} from "../pos-catalog-pages";
 import POSBookingSettings, {type POSBookingPresentation} from '../components/POSBookingSettings';
@@ -370,7 +371,7 @@ function cartBookingConflict(cart: CartLine[], lineId: string, booking: BookingS
 function buildCartLine(product: Product): CartLine {
   return {
     ...product,
-    lineId: crypto.randomUUID(),
+    lineId: randomUUID(),
     qty: 1,
     discount: 0,
     note: "",
@@ -404,7 +405,7 @@ function posDraftScope() {
   const user = useAuthStore.getState().user;
   return encodeURIComponent(JSON.stringify(['pos-draft-v3',logicalIntentScope(),securityAuthStamp(user)]));
 }
-function normalizeCart(lines: CartLine[]) { return lines.map(line => ({...line, lineId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(line.lineId) ? line.lineId : crypto.randomUUID(), qty: line.booking ? 1 : line.qty})); }
+function normalizeCart(lines: CartLine[]) { return lines.map(line => ({...line, lineId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(line.lineId) ? line.lineId : randomUUID(), qty: line.booking ? 1 : line.qty})); }
 function isCustomerPlan(line: Product) { return ["Memberships","Subscriptions"].includes(line.kind); }
 function isService(line: Product) { return ['service','services'].includes(line.kind.toLowerCase()); }
 export default function SRMPOSPage() {
@@ -418,7 +419,7 @@ export default function SRMPOSPage() {
 }
 function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
   const client = useQueryClient();
-  const [mount] = useState(() => crypto.randomUUID());
+  const [mount] = useState(() => randomUUID());
   const [bound,setBound] = useState(false);
   const owner=operationalOwner(), branch=selectedBranch();
   const branchQuery=useQuery({queryKey:['srm','pos-branch-bootstrap',scope,mount],enabled:branch===null,retry:false,staleTime:0,gcTime:0,
@@ -580,7 +581,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
   useEffect(()=>{if(!selectedPOS&&activeModal==="held")void heldBillsQuery.refetch()},[activeModal,selectedPOS]);
   const followUpOptions = useQuery({enabled:!selectedPOS&&cart.length>0,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
-  const [checkoutKey, setCheckoutKey] = usePersistedState(storage("checkout-key"), crypto.randomUUID());
+  const [checkoutKey, setCheckoutKey] = usePersistedState(storage("checkout-key"), randomUUID());
   const intentKey = financialIntentKey("checkout");
   const [recovery] = useState(() => readPOSCheckoutIntent<CheckoutAttempt>(intentKey));
   const [uncertain, setUncertain] = useState<CheckoutAttempt|null>(recovery.payload);
@@ -777,8 +778,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     if(readiness.length) {setMobileView("cart");return;}
     setPaymentMode(nextMode);
     setPaymentRows(nextMode === "Split"
-      ? [{ id: crypto.randomUUID(), mode: "Cash", amount: totals.grandTotal, reference: "" }]
-      : [{ id: crypto.randomUUID(), mode: nextMode === "Credit" ? "Credit" : nextMode, amount: nextMode === "Credit" ? 0 : totals.grandTotal, reference: "" }]);
+      ? [{ id: randomUUID(), mode: "Cash", amount: totals.grandTotal, reference: "" }]
+      : [{ id: randomUUID(), mode: nextMode === "Credit" ? "Credit" : nextMode, amount: nextMode === "Credit" ? 0 : totals.grandTotal, reference: "" }]);
     setActiveModal("payment");
   }
 
@@ -791,7 +792,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       const {data:result}=await api.post<NativeCheckoutResult>('/srm/service-checkout',attempt.payload);
       if(result.state!=='committed'||!result.invoice?.number||!Number.isSafeInteger(result.id)) throw new Error('Checkout confirmation is incomplete. Retry the same saved checkout.');
       // Persist the known-success reset before removing the recovery payload.
-      const nextKey=crypto.randomUUID();
+      const nextKey=randomUUID();
       for(const [key,value] of Object.entries({'cart':[],'bill-discount':0,'coupon':'','note':'','payment-rows':[],'checkout-key':nextKey})) localStorage.setItem(storage(key),JSON.stringify(value));
       clearFinancialIntent(intentKey); recovery.sourceKeys.forEach(key=>localStorage.removeItem(key));
       if(!owns()) return;
@@ -810,7 +811,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       if(!replay&&status!==undefined&&status>=400&&status<500) {
         clearFinancialIntent(intentKey); recovery.sourceKeys.forEach(key=>localStorage.removeItem(key));
         if(!owns())return;
-        uncertainty.current=null;setUncertain(null);setCheckoutKey(crypto.randomUUID());setPaymentError(dealError(error));setActiveModal('payment');
+        uncertainty.current=null;setUncertain(null);setCheckoutKey(randomUUID());setPaymentError(dealError(error));setActiveModal('payment');
         toast({title:'Checkout rejected',description:dealError(error)+' Your basket is retained. Review and reload scheduling before trying again.',variant:'destructive'});
         void activeRegister.refetch();
       } else if(owns()) setNativeError(dealError(error)+' The original checkout is retained; retry the same checkout to confirm its outcome.');
@@ -1301,7 +1302,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
 </div>                  {["Memberships","Subscriptions"].includes(line.kind)&&<label className="mt-2 block text-xs text-slate-500">Plan start date<Input type="date" aria-label={`Plan start date ${line.lineId}`} value={line.planStartDate||""} onChange={event=>updateLine(line.lineId,{planStartDate:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>}<label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
 </details>
-                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling presentation={bookingPresentation==='dialog'?'dialog':'cart'} onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? (phoneWidth<=767 ? 'Edit' : 'Booking details') : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" aria-label="Add another appointment" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:crypto.randomUUID(),qty:1,booking:undefined};phonePaginationAnchor.current=next.lineId;setPhonePage(Math.floor(cart.length/phonePageSize));setCart(current=>[...current,next]);setMobileView('cart');}}>Add another appointment</Button></>}
+                  {isService(line) && line.schedulingConfigured !== false && (!selectedPOS||posFeatures?.appointments_schedule) && <><div className="pos-line-booking mt-3">{line.booking && <BookingSummary start={line.booking.starts_at} minutes={line.booking.duration_minutes} provider={bookingSummaries[line.lineId]?.split(' - ')[0] || `Employee #${line.booking.employee_id}`} zone={bookingSummaries[line.lineId]?.match(/\(([^)]+)\)/)?.[1] || defaultText('timezone','srm') || 'UTC'} resources={bookingSummaries[line.lineId]?.split(' - ').slice(2) || []}/>}<POSServiceScheduling presentation={bookingPresentation==='dialog'?'dialog':'cart'} onResourceCapacities={capacities=>updateLine(line.lineId,{resourceCapacities:capacities})} compactSummary={line.booking ? (phoneWidth<=767 ? 'Edit' : 'Booking details') : requirements[line.lineId] ? 'Choose employee & time' : 'Schedule service (optional)'} productId={line.id} lineKey={line.lineId} value={line.booking} onAvailability={available=>setBookingAvailability(current=>current[line.lineId]===available?current:{...current,[line.lineId]:available})} onSummary={summary=>setBookingSummaries(current=>current[line.lineId]===summary?current:{...current,[line.lineId]:summary})} onChange={booking=>{if(booking && cartBookingConflict(cart,line.lineId,booking,line.resourceCapacities)){toast({title:'Booking conflict',description:'This employee or resource capacity overlaps another booking in this sale.',variant:'destructive'});return;}updateLine(line.lineId,{booking,...(booking?{qty:1}:{})});}} onRequirement={required=>setRequirements(current=>current[line.lineId]===required?current:{...current,[line.lineId]:required})}/></div><Button variant="ghost" size="sm" aria-label="Add another appointment" className="pos-repeat-booking mt-2" onClick={()=>{const next={...line,lineId:randomUUID(),qty:1,booking:undefined};phonePaginationAnchor.current=next.lineId;setPhonePage(Math.floor(cart.length/phonePageSize));setCart(current=>[...current,next]);setMobileView('cart');}}>Add another appointment</Button></>}
 
 
                 </div>
@@ -1388,7 +1389,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                 {paymentModes.map((item) => (
                   <button key={item} type="button" onClick={() => {
                     setPaymentMode(item);
-                    setPaymentRows(item === "Split" ? [{ id: crypto.randomUUID(), mode: "Cash", amount: totals.grandTotal, reference: "" }] : [{ id: crypto.randomUUID(), mode: item === "Credit" ? "Credit" : item, amount: item === "Credit" ? 0 : totals.grandTotal, reference: "" }]);
+                    setPaymentRows(item === "Split" ? [{ id: randomUUID(), mode: "Cash", amount: totals.grandTotal, reference: "" }] : [{ id: randomUUID(), mode: item === "Credit" ? "Credit" : item, amount: item === "Credit" ? 0 : totals.grandTotal, reference: "" }]);
                   }} className={`rounded-md px-3 py-2 text-sm font-medium ${paymentMode === item ? "bg-amber-500 text-slate-950" : "bg-white/5 text-slate-200 hover:bg-white/10"}`}>
                     {item}
                   </button>
@@ -1407,7 +1408,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => { setPaymentMode("Split"); setPaymentRows((current) => [...current, { id: crypto.randomUUID(), mode: "Cash", amount: 0, reference: "" }]); }}><Plus className="h-4 w-4" />Add payment mode</Button>
+              <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => { setPaymentMode("Split"); setPaymentRows((current) => [...current, { id: randomUUID(), mode: "Cash", amount: 0, reference: "" }]); }}><Plus className="h-4 w-4" />Add payment mode</Button>
             </div>
             <div className="pos-payment-summary space-y-3 rounded-lg bg-slate-950 p-4">
               {paymentError && <p role="alert" className="rounded border border-red-400 p-2 text-sm text-red-200">{paymentError}</p>}
@@ -1494,13 +1495,13 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               const sessionId=recovery.pending?pending!.session_id:register!.id;
               const key=recovery.pending?recovery.key!:financialIntentKey('cash_movement',sessionId);
               if(financialIntentKey('cash_movement',sessionId)!==key)throw new Error('Cash recovery context changed. No cash movement was submitted.');
-              const fresh=await api.get<unknown>(recovery.pending?'/srm/pos/sessions':'/srm/pos/sessions/active',{_recordSyncBypass:true,headers:{'Cache-Control':'no-cache, no-store'},params:{_cash_intent_probe:crypto.randomUUID()}});
+              const fresh=await api.get<unknown>(recovery.pending?'/srm/pos/sessions':'/srm/pos/sessions/active',{_recordSyncBypass:true,headers:{'Cache-Control':'no-cache, no-store'},params:{_cash_intent_probe:randomUUID()}});
               const summary=fresh.data as {session?:{id?:number};cash_intent_version?:number};
               const supported=recovery.pending?Array.isArray(fresh.data)&&fresh.data.some(item=>item?.cash_intent_version===119):summary?.session?.id===sessionId&&summary?.cash_intent_version===119;
               if(!owns()||financialIntentKey('cash_movement',sessionId)!==key||!supported)throw new Error('Cash movement recovery is unavailable in this context. Reload after the server update before collecting cash.');
               if(recovery.pending){const current=readFinancialIntent<CashIntent>(key);if(!current.pending||JSON.stringify(current.payload)!==JSON.stringify(pending))throw new Error('Cash recovery storage changed. Retry before submitting another cash movement.');}
               else if(findPendingCashIntent<CashIntent>().pending)throw new Error('A prior cash movement is awaiting recovery. Save again to recover it first.');
-              const payload=recovery.pending?pending!:{session_id:sessionId,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount.toFixed(2),reason:row.reason,request_key:crypto.randomUUID()};
+              const payload=recovery.pending?pending!:{session_id:sessionId,movement_type:row.type==='Withdrawal'?'cash_out':'cash_in',amount:row.amount.toFixed(2),reason:row.reason,request_key:randomUUID()};
               if(!recovery.pending)saveFinancialIntent(key,payload);
               let result;
               try {result=await srmApi.createPosCashMovement(payload);}

@@ -21,11 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { projectsAPI } from "../services/api";
 import type { PMSProject, ProjectPriority, ProjectStatus } from "../types";
+import { randomUUID } from "@/lib/random-uuid";
 
 function generateProjectKey() {
-  const bytes = crypto.getRandomValues(new Uint8Array(5));
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
-  return `P${hex.slice(0, 9).toUpperCase()}`;
+  return `P${randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`;
 }
 
 export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?: (project: PMSProject, keepOpen?: boolean) => void; onCancel?: () => void } = {}) {

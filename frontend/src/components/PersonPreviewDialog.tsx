@@ -1,11 +1,34 @@
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { Home, Layers, CalendarDays, MessageSquare, Copy, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import "./workforce/workforce.css";
 export type PersonPreviewTab = { id: string; label: string; icon?: LucideIcon; content: ReactNode };
 export function PersonPreviewHeader({ name, identifier, status, photoUrl }: { name: string; identifier?: string; status?: ReactNode; photoUrl?: string | null }) {
-  return <header className="wfp-header"><div className="wfp-avatar"><SuiteAvatar name={name} src={photoUrl} size={72}/></div><div className="min-w-0"><DialogTitle className="wfp-title break-words">{name}</DialogTitle><div className="wfp-identity">{identifier && <><span className="break-all">{identifier}</span><button type="button" aria-label="Copy profile identifier" onClick={() => { void navigator.clipboard.writeText(identifier).catch(() => {}); }}><Copy size={16}/></button></>}{status && <span className="wfp-active" data-inactive={typeof status === "string" && /inactive|suspended|terminated|resigned|lost/i.test(status)}>{status}</span>}</div></div></header>;
+  const identifierText = useRef<HTMLSpanElement>(null);
+  const [copyStatus, setCopyStatus] = useState("");
+
+  async function copyIdentifier() {
+    if (!identifier) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(identifier);
+        setCopyStatus("Profile identifier copied.");
+        return;
+      }
+    } catch {
+      // Keep the visible identifier available for manual copying.
+    }
+    const selection = window.getSelection();
+    if (!selection || !identifierText.current) return;
+    const range = document.createRange();
+    range.selectNodeContents(identifierText.current);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    setCopyStatus("Profile identifier selected. Copy the selected text.");
+  }
+
+  return <header className="wfp-header"><div className="wfp-avatar"><SuiteAvatar name={name} src={photoUrl} size={72}/></div><div className="min-w-0"><DialogTitle className="wfp-title break-words">{name}</DialogTitle><div className="wfp-identity">{identifier && <><span ref={identifierText} className="break-all select-text">{identifier}</span><button type="button" aria-label="Copy profile identifier" onClick={() => void copyIdentifier()}><Copy size={16}/></button><span className="sr-only" role="status">{copyStatus}</span></>}{status && <span className="wfp-active" data-inactive={typeof status === "string" && /inactive|suspended|terminated|resigned|lost/i.test(status)}>{status}</span>}</div></div></header>;
 }
 export function PersonPreviewTabs({ tabs, value, onChange }: { tabs: PersonPreviewTab[]; value: string; onChange: (value: string) => void }) {
   const uid = useId();

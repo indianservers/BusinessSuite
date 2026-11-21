@@ -63,7 +63,7 @@ export default function SetupReadiness({embedded = false, navigation = false, co
       <ul className="mt-2 space-y-2">{pageItems.map(item => <li key={item.id}><strong>{item.title} *</strong> · {item.ready ? "Complete" : "Missing — action required"}<p className="text-muted-foreground">{item.description}</p>{!item.ready && !item.canRepair && <p>Ask your company administrator to complete this item.</p>}</li>)}</ul>
       <p className="mt-2 text-muted-foreground">Fields marked * are mandatory.</p>
     </section>}
-    {!query.data?.ready && <aside aria-label="Company setup" className="fixed bottom-4 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-lg">
+    {!query.data?.ready && <aside aria-label="Company setup" className="fixed bottom-4 left-1/2 z-[45] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-lg md:z-[60]">
       <div className="min-w-0"><p className="text-sm">{query.isError ? "Company setup status is unavailable." : `Complete company setup · ${missing.length} ${missing.length === 1 ? "item" : "items"} remaining`}</p>{!query.isError && !!missing.length && <p className="mt-1 text-xs text-muted-foreground">Missing: {missing.map(item => item.title).join(", ")}</p>}</div>
       <Button size="sm" onClick={() => query.isError ? void query.refetch() : setOpen(true)}>{query.isError ? "Retry" : "Complete setup"}</Button>
     </aside>}

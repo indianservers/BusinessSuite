@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { randomUUID } from "@/lib/random-uuid";
 import { createPath, parsePath, matchRoutes, UNSAFE_LocationContext, UNSAFE_NavigationContext, type Location, type Navigator, type To, useLocation } from "react-router-dom";
 import { editNavigationActive, markEditNavigation } from "@/lib/edit-navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -56,7 +57,7 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
     // Parent frames remain mounted, so their drafts and selected fields survive.
     const path = edit?.destination||contextualDestination(url.pathname + url.search + url.hash, active.current?.location || location);
     const resolved = parsePath(path);
-    const next: Frame = { key: crypto.randomUUID(), definition: creationDefinition(path) || definition, location: { pathname: resolved.pathname!, search: resolved.search || "", hash: resolved.hash || "", state: null, key: "creation" }, scope: creationScope(), previousTitle: document.title, onCreated, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null, existingDialogs: Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')) };
+    const next: Frame = { key: randomUUID(), definition: creationDefinition(path) || definition, location: { pathname: resolved.pathname!, search: resolved.search || "", hash: resolved.hash || "", state: null, key: "creation" }, scope: creationScope(), previousTitle: document.title, onCreated, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null, existingDialogs: Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')) };
     framesRef.current = [...framesRef.current, next]; active.current = next; setFrames(framesRef.current); return true;
   }
   const currentOpen = useRef(open); currentOpen.current = open;
@@ -155,12 +156,12 @@ function CreationHost({ frame, routes, close }: { frame: Frame; routes: Frontend
     // Scope hydration can retain the same creation intent while adding its workspace.
     // Keep that internal route update in this form instead of opening another copy.
     if ((!path.pathname || path.pathname === local.pathname) && nextIntent && nextIntent === new URLSearchParams(local.search).get('new')) {
-      setLocal(current => ({ ...current, ...path, key: crypto.randomUUID() })); return;
+      setLocal(current => ({ ...current, ...path, key: randomUUID() })); return;
     }
     if (creationDefinition(destinationPath(to)) && creation?.open(destinationPath(to))) return;
     // Creation intent consumers remove ?new after opening. Keep their page-scoped location isolated.
     if ((!path.pathname || path.pathname === local.pathname) && !path.search?.includes('new=')) {
-      setLocal(current => ({ ...current, ...path, search: path.search || "", key: crypto.randomUUID() })); return;
+      setLocal(current => ({ ...current, ...path, search: path.search || "", key: randomUUID() })); return;
     }
     if (confirmed.current) completeRef.current(); else setRequestClose(n => n + 1);
   };

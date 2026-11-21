@@ -8,3 +8,11 @@
 .wfp-management [role=tablist]{display:flex;gap:8px;border-bottom:1px solid #e8e2f5}.wfp-management [role=tab]{min-height:50px;border-radius:10px 10px 0 0;border-bottom:3px solid transparent}.wfp-management [role=tab][data-state=active]{background:#ede5ff;border-color:#7c3aed;color:#5720b3}.wfp-management section{border:1px solid #e5dff7;border-radius:12px;padding:16px;background:#7950f205}.wfp-management section h3{margin-bottom:10px}
 
 .wfp-active[data-inactive=true]{background:#f3e8eb;color:#95354b}
+@media (max-width: 767px) {
+  .wf-preview {
+    --preview-height: var(--mobile-viewport-height, 100dvh);
+    --preview-top: max(0px, calc(100dvh - var(--preview-height) - var(--mobile-keyboard-inset, 0px)));
+    top: calc(var(--preview-top) + var(--preview-height) / 2);
+    max-height: calc(var(--preview-height) - 16px) !important;
+  }
+}

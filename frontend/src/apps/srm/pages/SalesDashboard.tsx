@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useQueries, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
@@ -51,6 +51,13 @@ export default function SalesDashboard() {
  const update=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);next.delete("metric");next.delete("section");setParams(next);};
  const drill=(section:Section,metric?:string,currency?:string)=>{const next=new URLSearchParams(params);next.set("section",section);if(metric)next.set("metric",metric);else next.delete("metric");if(currency)next.set("currency",currency);return `?${next}#sales-dashboard-details`;};
  const allowed=!!ctx&&ctx.sections.includes(selected)&&valid;
+ const { hash, search } = useLocation();
+ useEffect(() => {
+  if (!allowed || hash !== "#sales-dashboard-details") return;
+  const section = document.querySelector<HTMLElement>(".srm-mobile-viewport[data-scroll] #sales-dashboard-details");
+  section?.focus({ preventScroll: true });
+  section?.scrollIntoView({ block: "start" });
+ }, [allowed, hash, search]);
  const detailFilters={...filters,metric:params.get("metric")||undefined,currency:params.get("currency")||undefined};
  const detail=useQuery({queryKey:["srm","dashboard-workspace","details",...identity,selected,detailFilters,ctx?.business_date],queryFn:({signal})=>api.get<Data>(base+"/"+selected,{params:detailFilters,signal,progress:false}).then(r=>r.data),enabled:allowed,retry:false});
  const [planning,setPlanning]=useState<RecordRow>();const [promise,setPromise]=useState({date:"",amount:"",next_action:"",owner_id:""});const [saving,setSaving]=useState(false),[saveError,setSaveError]=useState("");

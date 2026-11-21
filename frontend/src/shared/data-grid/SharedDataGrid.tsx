@@ -1324,7 +1324,20 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     });
     const more = expandedCards.includes(getRowId(record));
     const actionFields = columns.filter(column => layout.visibility[column.id] !== false && /^(actions?|quick actions)$/i.test(column.title));
-    return <article data-grid-record-id={getRowId(record)} data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{props.rowProps?.(record)?.onClick?.(event as any);if(!event.defaultPrevented && !(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))onOpen?.(record);}}>
+    return <article data-grid-record-id={getRowId(record)} data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)}
+      onClickCapture={event => {
+        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        props.rowProps?.(record)?.onClickCapture?.(event as any);
+      }}
+      onClick={event => {
+        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        props.rowProps?.(record)?.onClick?.(event as any);
+        if (!event.defaultPrevented && !(event.target as Element).closest("button,a,input,select,textarea,summary")) selectRecord(record);
+      }}
+      onDoubleClick={event => {
+        if (mobile && !event.currentTarget.contains(event.target as Node)) return;
+        if (!(event.target as Element).closest("button,a,input,select,textarea,summary")) onOpen?.(record);
+      }}>
       {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
       {mobile && (selecting || selection.length > 0) && props.selectionEnabled !== false && <label className="udg-card-select"><input type="checkbox" aria-label={`Select record ${getRowId(record)}`} checked={selection.includes(getRowId(record))} onChange={event => emitSelection(event.target.checked ? [...new Set([...selection, getRowId(record)])] : selection.filter(id => id !== getRowId(record)))} />Select</label>}
       {mobile && columns.filter(column => /^(select|selection)$/i.test(column.title)).map(column => <div className="udg-card-select" key={column.id}>{displayFor(record, column)}</div>)}
