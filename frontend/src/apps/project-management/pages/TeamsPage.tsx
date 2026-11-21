@@ -1,8 +1,9 @@
+import "./PeopleManagementMobile.css";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import PeopleDirectoryPage from "@/components/PeopleDirectoryPage";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,12 @@ function ManageTeamsPage() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const teamForm = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (editing && window.matchMedia("(max-width: 480px)").matches) {
+      teamForm.current?.scrollIntoView({ block: "start" });
+    }
+  }, [editing]);
   useEffect(() => {
     let active = true;
     api.get<Workspace[]>("/project-management/workspaces").then(({ data }) => { if (active) { setWorkspaces(data); setSelected(data.find(row => row.id === Number(params.get("workspace")))?.id || data[0]?.id || 0); if (!data.length) setLoading(false); } }).catch(error => { if (active) { setError(workspaceError(error)); setLoading(false); } });
@@ -39,17 +46,17 @@ function ManageTeamsPage() {
     return () => { active = false; };
   }, [selected]);
   const visible = teams.filter(team => `${team.name} ${team.alias}`.toLowerCase().includes(search.trim().toLowerCase()));
-  return <div className="mx-auto max-w-5xl space-y-5">
+  return <div className="pms-team-management mx-auto max-w-5xl space-y-5">
     <header><h1 className="page-title">Teams</h1><Link className="text-sm text-violet-600 hover:underline" to="/pms/analytics/team">Team analytics →</Link><Link className="ml-4 text-sm text-violet-600 hover:underline" to={`/pms/org-chart?workspace=${selected}`}>Organization chart →</Link><p className="page-description">Organize workspace collaborators into named groups. Teams do not change anyone's workspace permissions.</p></header>
     <Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link>
-    <label className="block text-sm">Workspace<NativeSelect aria-label="Teams workspace" disabled={busy} className="ml-3 rounded-md border bg-background p-2" value={selected} onChange={event => setSelected(Number(event.target.value))}><option value={0} disabled>Choose workspace</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</NativeSelect></label>
+    <label className="pms-team-workspace block text-sm">Workspace<NativeSelect aria-label="Teams workspace" disabled={busy} className="ml-3 rounded-md border bg-background p-2" value={selected} onChange={event => setSelected(Number(event.target.value))}><option value={0} disabled>Choose workspace</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</NativeSelect></label>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}
     {loading ? <p role="status">Loading teams…</p> : !selected ? <p>Create or join a workspace first.</p> : <>
       <Input aria-label="Search teams" placeholder="Search team names or aliases…" value={search} onChange={event => setSearch(event.target.value)} />
       <p className="text-sm text-muted-foreground">{visible.length} teams shown</p>
-      {visible.map(team => <article className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-4" key={team.id}><div><h2 className="font-semibold">{team.name}</h2><p className="text-sm text-muted-foreground">@{team.alias} · {team.member_ids.length} members</p><ul className="mt-2 text-sm">{team.member_ids.map(id => <li key={id}>{people.find(person => person.user_id === id)?.email || `Member ${id}`}</li>)}</ul></div>{manage && <Button variant="outline" disabled={busy} onClick={() => { setEditing(team.id); setDraft({ name: team.name, alias: team.alias, member_ids: [...team.member_ids] }); }}>Edit {team.name}</Button>}</article>)}
+      {visible.map(team => <article className="pms-team-card flex flex-wrap items-start justify-between gap-3 rounded-lg border p-4" key={team.id}><div><h2 className="font-semibold">{team.name}</h2><p className="text-sm text-muted-foreground">@{team.alias} · {team.member_ids.length} members</p><ul className="mt-2 text-sm">{team.member_ids.map(id => <li key={id}>{people.find(person => person.user_id === id)?.email || `Member ${id}`}</li>)}</ul></div>{manage && <Button variant="outline" disabled={busy} onClick={() => { setEditing(team.id); setDraft({ name: team.name, alias: team.alias, member_ids: [...team.member_ids] }); }}>Edit {team.name}</Button>}</article>)}
       {!visible.length && <p className="rounded border border-dashed p-6">{teams.length ? "No teams match your search." : "No teams in this workspace yet."}</p>}
-      {manage && <SmartCreateSection title="Create team" inline={!!editing}><CompactForm className="space-y-4 rounded-lg border p-5" onSubmit={event => {
+      {manage && <SmartCreateSection title="Create team" inline={!!editing}><CompactForm ref={teamForm} className="pms-team-form space-y-4 rounded-lg border p-5" onSubmit={event => {
         event.preventDefault(); if (busy) return; setBusy(true); setError(""); setNotice("");
         const url = `/project-management/workspaces/${selected}/teams${editing ? `/${editing}` : ""}`;
         void (editing ? api.put<Team>(url, draft) : api.post<Team>(url, draft)).then(({ data }) => { setTeams(current => [...current.filter(team => team.id !== data.id), data].sort((a, b) => a.name.localeCompare(b.name))); setDraft(empty); setEditing(null); setNotice("Team saved"); }).catch(error => setError(workspaceError(error))).finally(() => setBusy(false));
