@@ -159,3 +159,28 @@
   body:has(.pos-booking-workspace) :is(.suite-app-bar,.mobile-module-dock,.suite-mobile-tools-trigger,.mobile-module-add,.action-bot-launcher,.page-work-tools,[aria-label="Page actions"],[aria-label="Team workspace"]){display:none!important}
   .product-shell .pos-booking-workspace{inset:0!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important}
 }
+
+.pos-phone-register { display: none; }
+
+@media (max-width: 767px) {
+  .pos-phone-register {
+    display: inline-block;
+    max-width: 100%;
+    padding: 4px 0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 650;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .srm-pos-dialog {
+    bottom: var(--pos-keyboard-offset, 0px) !important;
+    max-height: calc(var(--pos-visible-height, 100dvh) - 12px) !important;
+    overscroll-behavior: contain;
+  }
+  .srm-pos-dialog:has(.pos-payment-layout) {
+    height: calc(var(--pos-visible-height, 100dvh) - 12px);
+  }
+  .srm-pos-dialog .pos-payment-layout { scroll-padding-block: 12px; }
+}

@@ -458,7 +458,7 @@ function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
     return cleanup;
   },[verified.data,owner]);
   const pin=currentPOSOperationalPin();
-  if(branch === "all") return <POSBranchSelection/>;
+  if (branch === "all" || (branch === null && branchQuery.isSuccess)) return <POSBranchSelection/>;
   if(!verified.data || !bound || verified.isError || pin?.owner!==owner) {
     const error=verified.error || branchQuery.error;
     return <div className="p-4"><div role={error ? 'alert' : 'status'} className="rounded-lg border bg-white p-4 text-sm">
@@ -680,7 +680,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const branchName = branchDisplay.data?.branches?.find(branch=>String(branch.id)===selectedBranch())?.name || (authUser?.access as {branchName?:string}|undefined)?.branchName || `Branch ${selectedBranch()}`;
   const readiness: {id:string;text:string;lineId?:string}[] = [];
   if (!online) readiness.push({id:'connection',text:'Reconnect before taking payment. Your basket is retained.'});
-  if (!register?.id || register.status && register.status!=='open') readiness.push({id:'register',text:'Open a register in Session & actions.'});
+  if (!register?.id || register.status && register.status!=='open') readiness.push({id:'register',text:phoneWidth<=767?'Tap Open register at the top of POS.':'Open a register in Session & actions.'});
   if (productsQuery.isError || !productsQuery.data) readiness.push({id:'catalog',text:'Reload the catalog to verify stock and service availability.'});
   if (customerId > 0 && !customers.some(item=>item.id===customerId)) readiness.push({id:'customer',text:'Choose an available customer.'});
   if (!customerId && cart.some(line=>line.booking || line.followUp || isService(line) && requirements[line.lineId])) readiness.push({id:'customer',text:'Select a registered customer for appointments and follow-ups.'});
@@ -1032,6 +1032,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               <span className="pos-workspace-eyebrow">Sales workspace</span>
               <h1 className="truncate text-xl font-semibold" title={presentation.title}>{phoneWidth<=767?"Billing & POS":presentation.title}</h1>
               <p className="text-sm text-slate-500">{branchName} · {register?.register_name || "Register not open"} · {register?.session_number || (register ? `#${register.id}` : "Not open")}</p>
+              <button type="button" className="pos-phone-register" onClick={()=>setPhonePanel('sessions')}>
+                {register?.id ? 'Register session' : 'Open register'}
+              </button>
             </div>
             <div className="pos-phone-header-tools"><ModuleNewMenu>{actions=><NewMenu actions={[...actions,{label:'Register setup',description:'Open or manage the billing register',icon:Calculator,group:'POS tools',onSelect:()=>setPhonePanel('sessions')},{label:'Bill tools',description:'Customer, cash drawer, receipts and held bills',icon:Settings,group:'POS tools',onSelect:()=>setPhonePanel('actions')}]} iconOnly/>}</ModuleNewMenu><SuiteNotificationBell/><Link to="/srm/profile" aria-label="My profile" className="pos-phone-profile">{(authUser?.name || cashierName || "User").split(" ").slice(0,2).map(word=>word[0]).join("")}</Link></div>
           </div>
@@ -1680,10 +1683,26 @@ function FooterMetric({ label, value }: { label: string; value: string }) {
 
 function Overlay({ title, onClose, children, wide, titleClassName }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean; titleClassName?:string }) {
   const returnFocus=useRef<HTMLElement | null>(document.activeElement instanceof HTMLElement?document.activeElement:null);
+  const [dialog, setDialog] = useState<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const viewport = window.visualViewport;
+    if (!dialog || !viewport) return;
+    const updateViewport = () => {
+      dialog.style.setProperty('--pos-visible-height', `${viewport.height}px`);
+      dialog.style.setProperty('--pos-keyboard-offset', `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`);
+    };
+    updateViewport();
+    viewport.addEventListener('resize', updateViewport);
+    viewport.addEventListener('scroll', updateViewport);
+    return () => {
+      viewport.removeEventListener('resize', updateViewport);
+      viewport.removeEventListener('scroll', updateViewport);
+    };
+  }, [dialog]);
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-      <Dialog.Content onCloseAutoFocus={event=>{event.preventDefault();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.querySelector<HTMLInputElement>('[aria-label="Search or scan items"]')?.focus();}} aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
+      <Dialog.Content ref={setDialog} onCloseAutoFocus={event=>{event.preventDefault();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.querySelector<HTMLInputElement>('[aria-label="Search or scan items"]')?.focus();}} aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <Dialog.Title className={`text-lg font-semibold ${titleClassName||""}`}>{title}</Dialog.Title>
           <Button size="icon" variant="ghost" aria-label={`Close ${title}`} className="shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onClose}><X className="h-4 w-4" /></Button>
