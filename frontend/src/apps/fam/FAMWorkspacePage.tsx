@@ -2040,7 +2040,7 @@ function AuditRow({ item }: { item: FAMRecord }) {
   return <div className="flex items-center justify-between rounded-md border p-3 text-sm"><span>{text(item.action)} {text(item.record_type)} #{text(item.record_id)}</span><span className="text-xs text-muted-foreground">{text(item.performed_at)}</span></div>;
 }
 
-export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
+export default function FAMWorkspacePage({ kind, embedded = false }: { kind: FAMViewKind; embedded?: boolean }) {
   let meta = viewMeta[kind];
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -2168,7 +2168,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
 
   return (
     <section className={`space-y-5${isSrmInventoryContext ? "" : " fam-finance-page"}${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}${["bankStatements","bankStatementDetail","bankReconciliation"].includes(kind) ? " fam-mobile-bank-page" : ""}`}>
-      <PageHeader meta={meta} onRefresh={() => { void queryClient.invalidateQueries({ queryKey: ["fam"] }); if (isSrmInventoryContext && retailMode) void queryClient.invalidateQueries({ queryKey: ["srm", "retail"] }); }} />
+      {!embedded && <PageHeader meta={meta} onRefresh={() => { void queryClient.invalidateQueries({ queryKey: ["fam"] }); if (isSrmInventoryContext && retailMode) void queryClient.invalidateQueries({ queryKey: ["srm", "retail"] }); }} />}
       {content}
     </section>
   );

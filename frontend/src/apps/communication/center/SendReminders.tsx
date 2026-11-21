@@ -11,7 +11,7 @@ import { errorText, useCenterScope } from "./shared";
 
 type Recipient = { id: number; key: string; entity: string; name: string; phone?: string; phone_country_code?: string; due?: string; status?: string };
 
-export default function SendReminders() {
+export default function SendReminders({ embedded = false }: { embedded?: boolean } = {}) {
   const scope = useCenterScope();
   const [entity, setEntity] = useState("contacts"), [bucket, setBucket] = useState("today"), [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Recipient>();
@@ -22,6 +22,7 @@ export default function SendReminders() {
   const phone = selected ? phoneLinks(selected.phone, selected.phone_country_code)?.call.slice(4) : "";
   return <section className="space-y-5">
     <div><h2 className="text-xl font-semibold">Send reminders</h2><p className="text-sm text-muted-foreground">Choose a follow-up, then send an approved WhatsApp template or write a text message. Text messages require an open 24-hour reply window.</p></div>
+    {!embedded && <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/crm/membership-expiry">Membership Expiry Report</Link></Button><Button asChild variant="outline"><Link to="/crm/follow-ups">Scheduled follow-ups</Link></Button></div>}
     <div className="grid gap-3 sm:grid-cols-3">
       <label>Record type<NativeSelect aria-label="Reminder record type" value={entity} onChange={e => { setEntity(e.target.value); setSelected(undefined); }}><option value="contacts">Contacts</option><option value="leads">Leads</option><option value="deals">Deals</option></NativeSelect></label>
       <label>Follow-up due<NativeSelect aria-label="Reminder due date" value={bucket} onChange={e => { setBucket(e.target.value); setSelected(undefined); }}><option value="today">Today</option><option value="overdue">Overdue</option><option value="upcoming">Upcoming</option><option value="all">All active relationships</option></NativeSelect></label>

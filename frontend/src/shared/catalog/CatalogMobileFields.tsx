@@ -1,6 +1,7 @@
 import { randomUUID } from "@/lib/random-uuid";
 import CatalogCategoryFields from "./CatalogCategoryFields";
-import ServiceEmployeeCategoryFields from '@/shared/ServiceEmployeeCategoryFields';
+import ServiceSchedulingFields from "./ServiceSchedulingFields";
+import type { ReactNode } from "react";
 import {NativeSelect} from '@/components/ui/native-select';
 import {CurrencySelect} from '@/lib/validation/business';
 import BranchAvailability from '@/shared/BranchAvailability';
@@ -10,7 +11,7 @@ import type {CatalogItem,CatalogFeatures,CatalogSource} from './api';
 export type CatalogScheduleDraft={mode:string;duration:number;categories:string;subcategories:string;revision?:number;policyId?:number};
 type Draft=Omit<CatalogItem,'id'>&{id?:number};
 export type CatalogMobileSection='details'|'stock'|'branches'|'pricing'|'followup'|'images'|'custom';
-type Props={source:CatalogSource;draft:Draft;patch:<K extends keyof Draft>(key:K,value:Draft[K])=>void;priceInput:string;setPrice:(value:string)=>void;tags:string;setTags:(value:string)=>void;inclusive:boolean;setInclusive:(value:boolean)=>void;step:number;setStep:(step:number)=>void;section:CatalogMobileSection;setSection:(section:CatalogMobileSection)=>void;schedule:CatalogScheduleDraft;setSchedule:(value:CatalogScheduleDraft)=>void;busy:boolean;editing:boolean;canConfigure:boolean;supports:(key:keyof CatalogFeatures)=>boolean;features?:CatalogFeatures;workspaces:{id:number;name:string}[];warehouses:{id:number;warehouse_name:string}[];employees:{id:number;name:string}[];teams:{id:number;name:string}[];row:number;setRow:(row:number)=>void;image:string;setImage:(value:string)=>void;uploading:boolean;upload:(file?:File)=>void;customName:string;setCustomName:(value:string)=>void;customValue:string;setCustomValue:(value:string)=>void;selectedContext:boolean};
+type Props={source:CatalogSource;draft:Draft;patch:<K extends keyof Draft>(key:K,value:Draft[K])=>void;priceInput:string;setPrice:(value:string)=>void;tags:string;setTags:(value:string)=>void;inclusive:boolean;setInclusive:(value:boolean)=>void;step:number;setStep:(step:number)=>void;section:CatalogMobileSection;setSection:(section:CatalogMobileSection)=>void;schedule:CatalogScheduleDraft;setSchedule:(value:CatalogScheduleDraft)=>void;busy:boolean;editing:boolean;canConfigure:boolean;staffFields?:ReactNode;supports:(key:keyof CatalogFeatures)=>boolean;features?:CatalogFeatures;workspaces:{id:number;name:string}[];warehouses:{id:number;warehouse_name:string}[];employees:{id:number;name:string}[];teams:{id:number;name:string}[];row:number;setRow:(row:number)=>void;image:string;setImage:(value:string)=>void;uploading:boolean;upload:(file?:File)=>void;customName:string;setCustomName:(value:string)=>void;customValue:string;setCustomValue:(value:string)=>void;selectedContext:boolean};
 /** Two deliberate pages. Optional editors share the second page without adding workflow steps. */
 export default function CatalogMobileFields(p:Props){
  const {draft:d,patch}=p;const service=d.kind==='service',recurring=d.pricing_options.find(x=>x.interval!=='once');
@@ -30,7 +31,9 @@ export default function CatalogMobileFields(p:Props){
  {field(service?'Billing unit *':'Stock unit *','unit','text',{required:true,maxLength:40})}{field('Tax %','tax','number',{min:0,max:100,step:'0.01',required:true})}
  <CatalogCategoryFields source={p.source} draft={d} patch={patch}/>
  {service?select('Billing',recurring?.interval||'once',recurrence,[['once','One-time'],['day','Daily'],['week','Weekly'],['month','Monthly'],['year','Yearly']]):select('Inventory',d.track_inventory===false?'off':'on',v=>patch('track_inventory',v==='on'),[['on','Track stock'],['off','No stock tracking']])}<label>Tags<input aria-label="Catalog tags" maxLength={1000} value={p.tags} onChange={e=>p.setTags(e.target.value)} placeholder="Comma separated"/></label>
- {service&&p.canConfigure&&<>{select('Appointments',p.schedule.mode,v=>p.setSchedule({...p.schedule,mode:v}),[['none','No booking'],['optional','Optional booking'],['required','Booking required']])}<label>Duration (min)<input aria-label="Duration (minutes)" type="number" min={5} max={720} step={1} disabled={p.schedule.mode==='none'} value={p.schedule.duration} onChange={e=>p.setSchedule({...p.schedule,duration:Number(e.target.value)})}/></label><ServiceEmployeeCategoryFields categories={p.schedule.categories} subcategories={p.schedule.subcategories} onChange={(categories,subcategories)=>p.setSchedule({...p.schedule,categories,subcategories})}/></>}
+ {service&&p.canConfigure&&<div className="sc-mobile-wide space-y-2">
+   <ServiceSchedulingFields value={p.schedule} onChange={p.setSchedule}/>{p.staffFields}
+ </div>}
  </div></fieldset>
  <fieldset className="sc-mobile-panel" data-catalog-step="2" hidden={p.step!==2} disabled={p.busy}>
  <div className="sc-mobile-optional-picker">{select('Optional settings',p.section,v=>{p.setSection(v as CatalogMobileSection);p.setRow(0);},groups)}<span>Defaults are ready. Save at any time.</span></div>

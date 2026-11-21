@@ -606,12 +606,12 @@ function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = 
   if (normalizedPath === '/srm/restaurant-kitchen') return restaurantKitchenNavigation();
   if (normalizedPath === '/srm/accounts-periods') return accountsPeriodsNavigation();
   const normalizedRole = normalizeRole(role);
-  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction", "/srm/products-services", "/srm/products", "/srm/services", "/srm/pos/products"].includes(normalizedPath)) {
+  if (["/srm/appointments", "/srm/scheduled-services", "/srm/salon", "/srm/construction", "/srm/inventory/stock-management", "/srm/products-services", "/srm/products", "/srm/services", "/srm/pos/products"].includes(normalizedPath)) {
     return isSrmSalesRole(role, isSuperuser) || isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
   }
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
-  if (normalizedPath === "/srm/settings") return true;
-  if (normalizedPath === "/srm/reports") return isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  if (normalizedPath === "/srm/settings" || normalizedPath === "/srm/membership-expiry" || normalizedPath === "/srm/send-reminders") return true;
+  if (normalizedPath === "/srm/reports" || normalizedPath === "/srm/sales-report") return isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
   if (srmCollectionOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
     return isSrmCollectionRole(role, isSuperuser);
   }
@@ -865,6 +865,8 @@ const employeeNav: RoleNavItem[] = [
 const crmNav: RoleNavItem[] = [
   { label: "Service setup & availability", icon: CalendarDays, to: "/crm/service-scheduling", group: "Sales" },
   { label: "Appointment Scheduler", icon: CalendarDays, to: "/crm/appointments", group: "Sales" },
+ {label:"Membership Expiry Report",icon:BarChart3,to:"/crm/membership-expiry",group:"Insights"},
+ {label:"Reminders",icon:MessageCircle,to:"/crm/reminders",group:"Communication"},
  {label:"Send reminders",icon:MessageCircle,to:"/crm/send-reminders",group:"Communication"},
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
@@ -1020,6 +1022,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
   { label: "Inventory Dashboard", icon: Package, to: "/srm/inventory/dashboard", group: "Sales & Inventory" },
   { label: "Products & Services", icon: Package, to: "/srm/products-services", group: "Sales & Inventory" },
+  { label: "Stock Management", icon: Package, to: "/srm/inventory/stock-management", group: "Sales & Inventory" },
   { label: "Price Lists", icon: Receipt, to: "/srm/inventory/price-lists", group: "Sales & Inventory" },
   { label: "Warehouses", icon: Building2, to: "/srm/inventory/warehouses", group: "Sales & Inventory" },
   { label: "Stock Summary", icon: BookOpen, to: "/srm/inventory/stock-summary", group: "Sales & Inventory" },
@@ -1035,6 +1038,9 @@ const srmNav: RoleNavItem[] = [
   { label: "Complete Inventory Reports", icon: BarChart3, to: "/srm/inventory/reports/complete", group: "Sales & Inventory" },
   { label: "Inventory & POS Source", icon: FileSearch, to: "/srm/inventory/source", group: "Sales & Inventory" },
   { label: "Reports", icon: BarChart3, to: "/srm/reports", group: "Insights" },
+  { label: "Sales Report", icon: BarChart3, to: "/srm/sales-report", group: "Insights" },
+  { label: "Membership Expiry Report", icon: BarChart3, to: "/srm/membership-expiry", group: "Insights" },
+  { label: "Reminders", icon: CalendarDays, to: "/srm/send-reminders", group: "Sales & Inventory" },
   { label: "Settings", icon: Settings, to: "/srm/settings", group: "Admin" },
 ];
 

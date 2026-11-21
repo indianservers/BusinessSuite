@@ -478,7 +478,34 @@ function POSAuthority({scope,draftScope}:{scope:string;draftScope:string}) {
 function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:string;draftScope:string;selectedPOS:boolean;operationalPackKey:string|null}) {
   const owns = useRecordScopeOwner();
   const workspaceRef=useRef<HTMLDivElement>(null), checkoutFooterRef=useRef<HTMLElement>(null), cartScrollRef=useRef<HTMLDivElement>(null);
-  useLayoutEffect(()=>{const root=workspaceRef.current,footer=checkoutFooterRef.current,scroll=cartScrollRef.current;if(!root||!footer||!scroll)return;const measure=()=>{root.style.setProperty('--pos-footer-height',`${footer.getBoundingClientRect().height}px`);const main=root.querySelector('main'),cart=root.querySelector('.srm-pos-cart');if(main&&cart){const style=getComputedStyle(cart);const pieces=Array.from(cart.children).filter(el=>!el.classList.contains('pos-cart-items')&&!el.classList.contains('pos-cart-scroll-hint')&&getComputedStyle(el).display!=='none');const minimum=pieces.reduce((sum,el)=>sum+el.getBoundingClientRect().height,0)+340+18+(parseFloat(style.rowGap)||10)*pieces.length+parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);root.style.setProperty('--pos-main-height',`${Math.max(minimum,window.innerHeight-main.getBoundingClientRect().top-14)}px`);}scroll.dataset.overflow=String(scroll.scrollHeight>scroll.clientHeight+2);};const observer=new ResizeObserver(measure);observer.observe(footer);observer.observe(scroll);root.querySelector('.srm-pos-cart')?.querySelectorAll(':scope > *').forEach(el=>{if(!el.classList.contains('pos-cart-items')&&!el.classList.contains('pos-cart-scroll-hint'))observer.observe(el);});root.querySelectorAll('.pos-shell-header,.pos-guidance').forEach(el=>observer.observe(el));window.addEventListener('resize',measure);if(scroll.firstElementChild)observer.observe(scroll.firstElementChild);measure();return()=>{observer.disconnect();window.removeEventListener('resize',measure);};},[]);
+  useLayoutEffect(() => {
+    const root = workspaceRef.current;
+    const footer = checkoutFooterRef.current;
+    const main = root?.querySelector('main');
+    const items = cartScrollRef.current;
+    if (!root || !footer || !main || !items) return;
+    const measure = () => {
+      root.style.setProperty('--pos-footer-height', `${footer.getBoundingClientRect().height}px`);
+      const top = main.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      const viewportTop = Math.max(0, root.getBoundingClientRect().top);
+      root.style.setProperty('--pos-main-height', `${window.innerHeight - viewportTop - top}px`);
+      items.dataset.overflow = String(items.scrollHeight > items.clientHeight + 2);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(footer);
+    observer.observe(items);
+    if (items.firstElementChild) observer.observe(items.firstElementChild);
+    for (const element of Array.from(root.children)) {
+      if (element === main) break;
+      observer.observe(element);
+    }
+    window.addEventListener('resize', measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
   const { term, profile } = useBusinessTerms();
   const presentation = posPresentation(operationalPackKey || profile.business_type);
   const storage = (key:string) => `business-suite-srm-pos-v2:${draftScope}:${key}`;
@@ -1218,7 +1245,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
               {(authUser?.is_superuser || (authUser?.access?.grants.srm?.enabled && authUser.access.grants.srm.actions.includes("create")) || (!authUser?.access?.managed && ["admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(authUser?.role).toLowerCase()))) && <><Button asChild variant="outline"><Link to="/srm/inventory/products?new=item&kind=product"><Plus size={16}/>Add product</Link></Button><Button asChild variant="outline"><Link to="/srm/inventory/products?new=item&kind=service"><Plus size={16}/>Add service</Link></Button></>}
             </div></details>
-<details className="pos-catalog-actions"><summary><Settings size={16}/>View &amp; manage</summary><div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/srm/inventory/products">Manage catalog</Link></Button>              <ViewModeButton active={productView === "tiles"} icon={LayoutGrid} label="Tiles" onClick={() => setProductView("tiles")} />
+<details className="pos-catalog-actions"><summary><Settings size={16}/>View &amp; manage</summary><div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/srm/inventory/stock-management">Stock Management</Link></Button>              <ViewModeButton active={productView === "tiles"} icon={LayoutGrid} label="Tiles" onClick={() => setProductView("tiles")} />
               <ViewModeButton active={productView === "list"} icon={List} label="List" onClick={() => setProductView("list")} />
               <ViewModeButton active={productView === "details"} icon={Table2} label="Details" onClick={() => setProductView("details")} />
 </div></details>
@@ -1337,6 +1364,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         </section>
 
         <aside className="srm-pos-cart space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
+          <div className="pos-cart-content">
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="min-w-0"><CardTitle className="text-base">{presentation.bill}</CardTitle><p className="pos-cart-caption">{cart.length} {cart.length === 1 ? "line" : "lines"}{cart.some(line=>!!line.booking) ? ` - ${cart.filter(line=>!!line.booking).length} appointment drafts` : " - Products & services"}</p></div>
               <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-950" onClick={() => setConfirmClear(true)} disabled={!cart.length}><Trash2 className="h-4 w-4" />Clear</Button>
@@ -1412,6 +1440,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               </div>
 </details>            </CardContent>
           </Card>
+          </div>
       <footer ref={checkoutFooterRef} className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
         <p id="pos-checkout-reason" className="pos-checkout-reason" data-blocked={!online||locked||readiness.length>0} role="status">{!online ? 'Reconnect before collecting payment.' : locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
         <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Split size={16}/> : method === "UPI" ? <svg className="pos-upi-icon" width="20" height="22" viewBox="0 0 20 24" aria-hidden="true"><path fill="#f28b13" d="M8 1 18 12 2 23Z"/><path fill="#15944c" d="m12 1 8 11-14 11Z"/></svg> : <CreditCard size={16}/>} {method}</Button>)}</div>
@@ -1520,21 +1549,23 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       ) : null}
 
       {activeModal === "success" && lastSale ? (
-        <Overlay title="Sale Completed" titleClassName="text-slate-100" onClose={() => setActiveModal(null)}>
-          <div className="text-center">
-            <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-400" />
-            <h2 className={`mt-3 text-2xl font-semibold ${lastSale.checkoutId?"text-slate-100":""}`}>{lastSale.invoiceNo}</h2>
-            <p className="text-slate-400">{lastSale.customer} · {currency(lastSale.amount)} · {lastSale.mode}</p>
-            {lastSale.checkoutId && <section className="pos-confirmed-sale" aria-label="Confirmed sale summary"><dl><div><dt>Invoice</dt><dd>{lastSale.invoiceNo}</dd></div><div><dt>Paid</dt><dd>{currency(Number(lastSale.paid))}</dd></div><div><dt>Remaining balance</dt><dd>{currency(Number(lastSale.balance))}</dd></div><div><dt>Receipt numbers</dt><dd>{lastSale.receiptNumbers?.join(', ') || 'No payment received'}</dd></div></dl>{lastSale.hasBookings && <><p role="status">Appointments confirmed with this sale.</p><ul>{lastSale.lines?.filter(line=>line.appointment).map((line,index)=><li key={index}><strong>{line.name}</strong> · {line.appointment}</li>)}</ul><Button variant="outline" onClick={()=>navigate('/srm/appointments')}>View confirmed appointments</Button></>}</section>}
-            {lastSale.checkoutId&&<details className="mt-4 rounded-lg bg-card p-3 text-left text-foreground"><summary>Payment details &amp; adjustments</summary><ServiceCheckoutBillingPanel checkoutId={lastSale.checkoutId} canCollect={!!paymentCaps.data?.collect} onChanged={()=>{const id=lastSale.checkoutId;void api.get<NativeCheckoutResult>(`/srm/service-checkout/${id}`).then(({data})=>{if(owns())setLastSale(current=>current&&current.checkoutId===id?{...current,paid:data.invoice.paid,balance:data.invoice.balance,receiptNumbers:data.receipts.map(row=>row.number)}:current);}).catch(error=>{if(owns())toast({title:"Checkout refresh failed",description:dealError(error),variant:"destructive"});});void activeRegister.refetch();}}/>{paymentCaps.isError&&<p role="alert">Payment permissions could not load. <Button variant="outline" onClick={()=>void paymentCaps.refetch()}>Reload payment permissions</Button></p>}</details>}
-            {lastSale.checkoutId&&operationalPackKey==='retail'&&posFeatures&&'retail_returns' in posFeatures&&posFeatures.retail_returns===true&&<RetailReturnPanel checkoutId={lastSale.checkoutId} sessionId={register?.id||null} onChanged={()=>{void productsQuery.refetch();void activeRegister.refetch();}}/>}
-            {!lastSale.checkoutId&&<p className="mt-2 text-xs text-slate-400">Sales order reference. Payment is not confirmed for this older sale.</p>}
-            <div className="mt-5 grid gap-2 md:grid-cols-2">
+        <Overlay completed title="Sale Completed" titleClassName="text-slate-100" onClose={() => setActiveModal(null)}>
+          <div className="pos-completed-content">
+            <div className="pos-completed-summary text-center">
+              <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-400" />
+              <h2 className={`mt-3 text-2xl font-semibold ${lastSale.checkoutId?"text-slate-100":""}`}>{lastSale.invoiceNo}</h2>
+              <p className="text-slate-400">{lastSale.customer} · {currency(lastSale.amount)} · {lastSale.mode}</p>
+              {lastSale.checkoutId && <section className="pos-confirmed-sale" aria-label="Confirmed sale summary"><dl><div><dt>Invoice</dt><dd>{lastSale.invoiceNo}</dd></div><div><dt>Paid</dt><dd>{currency(Number(lastSale.paid))}</dd></div><div><dt>Remaining balance</dt><dd>{currency(Number(lastSale.balance))}</dd></div><div><dt>Receipt numbers</dt><dd>{lastSale.receiptNumbers?.join(', ') || 'No payment received'}</dd></div></dl>{lastSale.hasBookings && <><p role="status">Appointments confirmed with this sale.</p><ul>{lastSale.lines?.filter(line=>line.appointment).map((line,index)=><li key={index}><strong>{line.name}</strong> · {line.appointment}</li>)}</ul><Button variant="outline" onClick={()=>navigate('/srm/appointments')}>View confirmed appointments</Button></>}</section>}
+              {lastSale.checkoutId&&<details className="mt-4 rounded-lg bg-card p-3 text-left text-foreground"><summary>Payment details &amp; adjustments</summary><ServiceCheckoutBillingPanel checkoutId={lastSale.checkoutId} canCollect={!!paymentCaps.data?.collect} onChanged={()=>{const id=lastSale.checkoutId;void api.get<NativeCheckoutResult>(`/srm/service-checkout/${id}`).then(({data})=>{if(owns())setLastSale(current=>current&&current.checkoutId===id?{...current,paid:data.invoice.paid,balance:data.invoice.balance,receiptNumbers:data.receipts.map(row=>row.number)}:current);}).catch(error=>{if(owns())toast({title:"Checkout refresh failed",description:dealError(error),variant:"destructive"});});void activeRegister.refetch();}}/>{paymentCaps.isError&&<p role="alert">Payment permissions could not load. <Button variant="outline" onClick={()=>void paymentCaps.refetch()}>Reload payment permissions</Button></p>}</details>}
+              {lastSale.checkoutId&&operationalPackKey==='retail'&&posFeatures&&'retail_returns' in posFeatures&&posFeatures.retail_returns===true&&<RetailReturnPanel checkoutId={lastSale.checkoutId} sessionId={register?.id||null} onChanged={()=>{void productsQuery.refetch();void activeRegister.refetch();}}/>}
+              {!lastSale.checkoutId&&<p className="mt-2 text-xs text-slate-400">Sales order reference. Payment is not confirmed for this older sale.</p>}
+            </div>
+            <div className="pos-completed-actions grid grid-cols-2 gap-2">
               <Button disabled={!lastSale?.checkoutId} onClick={() => printReceipt(lastSale)}><Printer className="h-4 w-4" />Print Receipt</Button>
               <Button disabled={!lastSale?.checkoutId} variant="outline" onClick={()=>downloadReceipt(lastSale!)}>Download receipt</Button>
-              <Button disabled={!lastSale?.checkoutId} variant="outline" onClick={()=>void shareReceipt(lastSale!)}>Share receipt</Button>
+              <Button disabled={!lastSale?.checkoutId} variant="outline" className="border-violet-200 bg-white text-violet-900 hover:bg-violet-50 hover:text-violet-950 disabled:opacity-75" onClick={()=>void shareReceipt(lastSale!)}>Share receipt</Button>
               <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => {setActiveModal(null);setReadinessOpen(false);setScanFeedback('');setMobileView('products');searchRef.current?.focus();}}>New Sale</Button>
-              {shareNotice && <p role="status">{shareNotice}</p>}
+              {shareNotice && <p className="col-span-2 break-words text-sm" role="status">{shareNotice}</p>}
             </div>
           </div>
         </Overlay>
@@ -1732,7 +1763,7 @@ function FooterMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Overlay({ title, onClose, children, wide, titleClassName }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean; titleClassName?:string }) {
+function Overlay({ title, onClose, children, wide, titleClassName, completed }: { completed?: boolean; title: string; onClose: () => void; children: React.ReactNode; wide?: boolean; titleClassName?:string }) {
   const returnFocus=useRef<HTMLElement | null>(document.activeElement instanceof HTMLElement?document.activeElement:null);
   const [dialog, setDialog] = useState<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
@@ -1753,7 +1784,7 @@ function Overlay({ title, onClose, children, wide, titleClassName }: { title: st
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-      <Dialog.Content ref={setDialog} onCloseAutoFocus={event=>{event.preventDefault();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.querySelector<HTMLInputElement>('[aria-label="Search or scan items"]')?.focus();}} aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
+      <Dialog.Content ref={setDialog} onCloseAutoFocus={event=>{event.preventDefault();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.querySelector<HTMLInputElement>('[aria-label="Search or scan items"]')?.focus();}} aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"} ${completed ? "pos-completed-dialog" : ""}`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <Dialog.Title className={`text-lg font-semibold ${titleClassName||""}`}>{title}</Dialog.Title>
           <Button size="icon" variant="ghost" aria-label={`Close ${title}`} className="shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onClose}><X className="h-4 w-4" /></Button>

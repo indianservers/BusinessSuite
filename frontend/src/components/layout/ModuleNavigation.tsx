@@ -136,10 +136,13 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       {(moduleKey === 'srm' ? [
         ['/srm/appointments', 'Appointments'],
         ['/srm/service-scheduling?view=schedule', 'Scheduling'], ['/srm/customers', term('customer', true)],
-        ['/srm/invoices', 'Transactions'], ['/srm/reports', 'Reports'],
+        ['/srm/invoices', 'Transactions'], ['/srm/sales-report', 'Sales Report'],
+        ['/srm/membership-expiry', 'Membership Expiry Report'], ['/srm/send-reminders', 'Reminders'],
+        ['/srm/reports', 'Reports'], ['/srm/inventory/stock-management', 'Stock Management'],
       ] : [
         ['/crm/appointments', 'Appointment Scheduler'], ['/crm/contacts', 'Contacts'],
         ['/crm/leads', 'Leads'], ['/crm/calendar', 'Calendar'],
+        ['/crm/membership-expiry', 'Membership Expiry Report'], ['/crm/reminders', 'Reminders'],
       ]).filter(([to]) => canAccessRoute(to, user?.role, user?.is_superuser)).map(([to, label]) =>
         <Link key={to} to={workspacePageHref(to, location.search, workspaceId)} onClick={onNavigate}
           title={label} aria-label={label} aria-current={isCurrent(to) ? 'page' : undefined}
