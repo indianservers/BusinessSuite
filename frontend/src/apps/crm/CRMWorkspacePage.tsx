@@ -7950,7 +7950,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
     return <CreateDealDialog placement={placement} saving={saving} error={error} onClose={onClose} onCreate={onCreate} />;
   }
   return (
-    <Dialog open onOpenChange={open=>{if(!open&&!saving)onClose();}}><DialogContent className="max-w-lg">
+    <Dialog open onOpenChange={open=>{if(!open&&!saving)onClose();}}><DialogContent className="max-w-lg max-md:top-[calc(var(--mobile-viewport-height,100dvh)/2)] max-md:!max-h-[calc(var(--mobile-viewport-height,100dvh)-1rem)]">
       <Card className="w-full max-w-lg">
         <CardHeader className="flex-row items-start justify-between">
           <div><DialogTitle>{title}</DialogTitle><p className="text-sm text-muted-foreground">Fast-create form with required CRM fields.</p></div>
