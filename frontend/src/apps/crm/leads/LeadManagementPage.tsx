@@ -534,7 +534,7 @@ function LeadWorkbench() {
         </div>
       </header>
       <details className="lm-workbench-extras" open={!mobile}>
-      <summary>Related tools & sales process</summary>
+      <summary>Lead health & related tools</summary>
       {mobile && <div className="lm-actions">{transferTools}{workflowSettings}</div>}
       <nav className="lm-links" aria-label="Related CRM tools">
         <Link to={potential ? "/crm/leads" : "/crm/potential-clients"}>{potential ? "Leads" : "Potential Clients"}</Link>
@@ -545,7 +545,6 @@ function LeadWorkbench() {
         <Link to="/crm/duplicates?entity=lead">Duplicate review & merge</Link>
       </nav>
       {!potential && bootstrap && <SalesProcessPanel bootstrap={bootstrap} search={search} stage={stage} owner={owner} revision={revision} changed={refresh}/>}
-      </details>
       <section className="lm-metrics lm-health-metrics" aria-label={search || stage || owner ? "Lead health within current filters" : "Lead health"}>
         {[
           ["active", "Active leads"],
@@ -579,6 +578,7 @@ function LeadWorkbench() {
           </button>
         ))}
       </section>
+      </details>
       <div className="lm-tabs" role="group" aria-label="Lead queues">
         {queues.map(([key, label]) => (
           <button
