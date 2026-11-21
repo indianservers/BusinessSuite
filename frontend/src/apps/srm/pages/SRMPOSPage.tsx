@@ -9,6 +9,7 @@ import NewMenu from "@/components/app/NewMenu";
 import POSMobileCatalogue from "../components/POSMobileCatalogue";
 import POSCatalogueQuantity from "../components/POSCatalogueQuantity";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
+import WorkspaceEnhancements from "@/components/app/WorkspaceEnhancements";
 import POSCustomerIdentity from "../components/POSCustomerIdentity";
 import { BookingSummary } from "@/shared/scheduling/BookingUX";
 import PrebookingPOSVisit from '../industry/PrebookingPOSVisit';
@@ -76,6 +77,7 @@ import {
   DoorClosed,
   LayoutGrid,
   List,
+  MessageSquare,
   Minus,
   PauseCircle,
   Plus,
@@ -1330,7 +1332,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
                 {register?.id ? 'Register session' : 'Open register'}
               </button>
             </div>
-            <div className="pos-phone-header-tools"><ModuleNewMenu>{actions=><NewMenu actions={[...actions,{label:'Register setup',description:'Open or manage the billing register',icon:Calculator,group:'POS tools',onSelect:()=>setPhonePanel('sessions')},{label:'Bill tools',description:'Customer, cash drawer, receipts and held bills',icon:Settings,group:'POS tools',onSelect:()=>setPhonePanel('actions')}]} iconOnly/>}</ModuleNewMenu><SuiteNotificationBell/><Link to="/srm/profile" aria-label="My profile" className="pos-phone-profile">{(authUser?.name || cashierName || "User").split(" ").slice(0,2).map(word=>word[0]).join("")}</Link></div>
+            <div className="pos-phone-header-tools"><ModuleNewMenu>{actions=><NewMenu actions={[...actions,{label:'Register setup',description:'Open or manage the billing register',icon:Calculator,group:'POS tools',onSelect:()=>setPhonePanel('sessions')},{label:'Bill tools',description:'Customer, cash drawer, receipts and held bills',icon:Settings,group:'POS tools',onSelect:()=>setPhonePanel('actions')}]} iconOnly/>}</ModuleNewMenu>
+              {phoneWidth <= 767 && <WorkspaceEnhancements trigger={<button type="button" className="pos-phone-team-trigger" aria-label="Team workspace"><MessageSquare size={18} aria-hidden="true" /></button>} />}
+              <SuiteNotificationBell/><Link to="/srm/profile" aria-label="My profile" className="pos-phone-profile">{(authUser?.name || cashierName || "User").split(" ").slice(0,2).map(word=>word[0]).join("")}</Link></div>
           </div>
           <div className="pos-header-actions">
             <nav aria-label="Sales and scheduling" className="pos-workspace-links">

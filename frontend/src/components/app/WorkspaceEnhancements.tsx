@@ -3,7 +3,7 @@ import { pmsWorkspaceOptions } from "@/shared/workspace/pms-workspace-options";
 import { workspaceDataScope } from "@/shared/workspace/workspace-management-types";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, MessageSquare, Plus, X } from "lucide-react";
@@ -18,11 +18,11 @@ import "@/apps/project-management/pages/workspaces.css";
 
 type Workspace = { id: number; name: string; role: string };
 const base = "/project-management";
-export default function WorkspaceEnhancements({ terminal = false }: { terminal?: boolean }) {
+export default function WorkspaceEnhancements({ terminal = false, trigger }: { terminal?: boolean; trigger?: ReactElement }) {
   const [open, setOpen] = useState(false);
   const userId = useAuthStore(s => s.user?.id);
   return <Dialog.Root open={open} onOpenChange={setOpen}>
-    <Dialog.Trigger asChild><button className={`workspace-team-trigger fixed ${terminal ? "top-20 right-4" : "bottom-5 right-5"} z-30 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-3 text-sm font-medium shadow-md hover:bg-accent`}><MessageSquare size={17} /><span>Team workspace</span></button></Dialog.Trigger>
+    <Dialog.Trigger asChild>{trigger ?? <button className={`workspace-team-trigger fixed ${terminal ? "top-20 right-4" : "bottom-5 right-5"} z-30 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-3 text-sm font-medium shadow-md hover:bg-accent`}><MessageSquare size={17} /><span>Team workspace</span></button>}</Dialog.Trigger>
     <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/30" /><Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l bg-background p-5 shadow-xl">
       <header className="mb-4 flex items-start justify-between gap-4"><div><Dialog.Title className="text-lg font-semibold">Team workspace</Dialog.Title><Dialog.Description className="mt-1 text-xs text-muted-foreground">Shared tasks, quick notes, and conversations. Available from every module.</Dialog.Description></div><Dialog.Close aria-label="Close team workspace" className="rounded-md p-2 hover:bg-muted"><X size={18} /></Dialog.Close></header>
       {open && <Suspense fallback={<p role="status">Loading team workspace…</p>}><TeamWork key={userId} /></Suspense>}
