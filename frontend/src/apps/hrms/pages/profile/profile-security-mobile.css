@@ -1,3 +1,12 @@
+.hrms-profile-security > .grid > *,
+.hrms-profile-security :is(.hrms-profile-security-sessions, .hrms-profile-security-reviews) {
+ min-width: 0;
+}
+
+.hrms-profile-security .overflow-x-auto {
+ max-width: 100%;
+}
+
 @media (max-width: 480px) {
  .hrms-profile-security { min-width: 0; }
  .hrms-profile-security-nav { display: flex; gap: 6px; }
@@ -17,7 +26,6 @@
  .hrms-profile-security :is(button,a,summary,label[for="profile-photo"]) { min-height: 44px; height: auto; }
  .hrms-profile-security button { white-space: normal; }
  .hrms-profile-security :is(input,textarea,select) { min-height: 44px; font-size: 16px; max-width: 100%; }
- .hrms-profile-security .overflow-x-auto { max-width: 100%; }
  .hrms-profile-security .grid > * { min-width: 0; }
  .hrms-profile-security-overview > :last-child .grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .hrms-profile-security-files .flex > div { min-width: 0; }
