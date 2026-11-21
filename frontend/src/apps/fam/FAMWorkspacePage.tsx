@@ -583,7 +583,8 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const lines = ((effective.lines as FAMRecord[] | undefined) || []) as FAMRecord[];
   const debitTotal = lines.reduce((sum, line) => sum + Number(line.debit_amount || 0), 0);
   const creditTotal = lines.reduce((sum, line) => sum + Number(line.credit_amount || 0), 0);
-  const difference = debitTotal - creditTotal;
+  // Voucher amounts are stored to two decimal places. Ignore floating-point noise in the UI.
+  const difference = Number((debitTotal - creditTotal).toFixed(2));
   const voucherId = String(effective.id || params.id || "");
   const saveMutation = useMutation({
     mutationFn: () => (mode === "detail" && voucherId ? famApi.updateVoucher(voucherId, { ...effective, total_debit: debitTotal, total_credit: creditTotal }) : famApi.createVoucher({ ...effective, total_debit: debitTotal, total_credit: creditTotal })),
