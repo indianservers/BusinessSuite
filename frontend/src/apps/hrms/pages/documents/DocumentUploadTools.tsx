@@ -1,6 +1,6 @@
 import BusinessTerm from "@/components/BusinessTerm";
 import { useMobile } from "@/components/mobile/useMobile";
-import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { MobileDisclosure, MobileSheet } from "@/components/mobile/MobilePrimitives";
 import "./documents-mobile.css";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -74,6 +74,7 @@ export default function DocumentUploadTools({
 }) {
   const qc = useQueryClient();
   const phone = useMobile(480);
+  const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState("");
   const [params] = useSearchParams();
@@ -399,6 +400,7 @@ export default function DocumentUploadTools({
                 aria-pressed={String(employee.id) === effectiveEmployeeId}
                 onClick={() => {
                   setEmployeeId(String(employee.id));
+                  setEmployeePickerOpen(false);
                 }}
                 className={`flex w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50 ${
                   String(employee.id) === effectiveEmployeeId
@@ -521,7 +523,21 @@ export default function DocumentUploadTools({
           className="space-y-4"
           onSubmit={submitUpload}
         >
-          {canChooseEmployee && (
+          {canChooseEmployee && (phone ? (
+            <>
+              <Button type="button" variant="outline" className="min-h-11 w-full justify-start whitespace-normal text-left"
+                aria-haspopup="dialog" aria-expanded={employeePickerOpen}
+                disabled={uploadMutation.isPending}
+                onClick={() => setEmployeePickerOpen(true)}>
+                {selectedEmployee
+                  ? `${selectedEmployee.first_name} ${selectedEmployee.last_name} · ${selectedEmployee.employee_id}`
+                  : effectiveEmployeeId ? "Change employee" : "Select employee"}
+              </Button>
+              <MobileSheet title="Select employee" open={employeePickerOpen} onClose={() => setEmployeePickerOpen(false)}>
+                {employeeChooser}
+              </MobileSheet>
+            </>
+          ) : (
             <details open={!effectiveEmployeeId}>
               <summary className="cursor-pointer text-sm font-medium">
                 {selectedEmployee
@@ -530,7 +546,7 @@ export default function DocumentUploadTools({
               </summary>
               {employeeChooser}
             </details>
-          )}
+          ))}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
