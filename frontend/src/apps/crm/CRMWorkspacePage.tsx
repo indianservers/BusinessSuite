@@ -7253,6 +7253,8 @@ function SalesAutomationPage() {
 }
 
 function ForecastingPage() {
+  const phone = useMobile();
+  const [breakdown, setBreakdown] = useState("Owner");
   const [forecast, setForecast] = useState<{ summary: CRMApiRecord; items: CRMApiRecord[] } | null>(null);
   const [teamRows, setTeamRows] = useState<CRMApiRecord[]>([]);
   const [territoryRows, setTerritoryRows] = useState<CRMApiRecord[]>([]);
@@ -7274,6 +7276,11 @@ function ForecastingPage() {
   useEffect(load, []);
   const summary = forecast?.summary || {};
   const scenarios = (summary.scenarios as CRMApiRecord) || {};
+  const breakdowns = [
+    { label: "Owner", rows: forecast?.items || [], columns: ["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount", "invoicedAmount", "collectedAmount"] },
+    { label: "Team", rows: teamRows, columns: ["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"] },
+    { label: "Territory", rows: territoryRows, columns: ["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"] },
+  ];
   const snapshot = () => {
     crmApi.createForecastSnapshot({ snapshotName: "Manual CRM forecast snapshot" }).then(load).catch((err) => setError(err?.response?.data?.detail || "Forecast snapshot could not be created."));
   };
@@ -7305,9 +7312,12 @@ function ForecastingPage() {
       </Card>
       {initialLoading ? <p className="text-sm text-muted-foreground">Loading forecast...</p> : null}
       <div className="grid gap-4 xl:grid-cols-3">
-        <ReportTable title="Forecast by Owner" rows={forecast?.items || []} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount", "invoicedAmount", "collectedAmount"]} />
-        <ReportTable title="Forecast by Team" rows={teamRows} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"]} />
-        <ReportTable title="Forecast by Territory" rows={territoryRows} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"]} />
+        {phone && <div role="group" aria-label="Forecast breakdown" className="grid grid-cols-3 gap-2">
+          {breakdowns.map(({ label }) => <Button key={label} type="button" variant={breakdown === label ? "default" : "outline"} aria-pressed={breakdown === label} className="min-h-11 px-2" onClick={() => setBreakdown(label)}>{label}</Button>)}
+        </div>}
+        {breakdowns.filter(({ label }) => !phone || label === breakdown).map(({ label, rows, columns }) => (
+          <ReportTable key={label} title={`Forecast by ${label}`} rows={rows} columns={columns} />
+        ))}
       </div>
     </div>
   );
