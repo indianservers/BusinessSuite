@@ -31,8 +31,12 @@ export default function BankRulesPage(){
   const apply=useMutation({mutationFn:(row:Suggestion)=>api.post<{voucher_id:number}>(`/fam/bank-rules/lines/${row.line_id}/apply`,{rule_id:row.rule_id,expected_version:row.rule_version,line_hash:row.line_hash}),onSuccess:()=>{cache.invalidateQueries({queryKey:['fam','bank-rule-preview']});cache.invalidateQueries({queryKey:['fam','bankStatements']});}});
   const ruleActions=<><Button disabled={!canManage||save.isPending}>{editing?'Save rule changes':'Create rule'}</Button>{editing&&<Button type="button" variant="outline" onClick={()=>{setEditing(null);setForm(blank);}}>Cancel editing</Button>}</>;
   const accountName=(id:number)=>ledgers.data?.find(l=>l.id===id)?.ledger_name||String(id);
+  const closeRuleEditor=()=>{
+    if(phone&&editing)setForm(blank);
+    setEditing(null);
+  };
   return <section className="space-y-5 fam-mobile-bank-rules"><h1 className="text-2xl font-semibold">Bank transaction rules</h1><p>Preview and categorize simple expense withdrawals or income deposits. Applying a reviewed suggestion posts a native voucher and confirms its reconciliation match. Use the existing tax and customer/vendor workflows for tax splits and settlements.</p>
-    <SmartCreateSection title={editing ? "Edit bank rule" : "Create bank rule"} completionRevision={completedCreations} autoOpen={!!editing} onClose={() => setEditing(null)}><form className="grid gap-3 rounded border p-4 md:grid-cols-3 fam-bank-rule-form" onSubmit={e=>{e.preventDefault();if(canManage)save.mutate();}}>
+    <SmartCreateSection title={editing ? "Edit bank rule" : "Create bank rule"} completionRevision={completedCreations} autoOpen={!!editing} onClose={closeRuleEditor}><form className="grid gap-3 rounded border p-4 md:grid-cols-3 fam-bank-rule-form" onSubmit={e=>{e.preventDefault();if(canManage)save.mutate();}}>
       <label>Rule name<Input required maxLength={150} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
       <label>Bank account<NativeSelect className="block h-10 w-full rounded border bg-background px-3" required value={form.bank_account_id} onChange={e=>setForm({...form,bank_account_id:e.target.value})}><option value="">Select bank</option>{banks.data?.map(b=><option value={b.id} key={b.id}>{b.bank_name} · {b.account_number_masked}</option>)}</NativeSelect></label>
       <label>Direction<NativeSelect className="block h-10 w-full rounded border bg-background px-3" value={form.direction} onChange={e=>setForm({...form,direction:e.target.value,counter_ledger_id:''})}><option value="withdrawal">Withdrawal</option><option value="deposit">Deposit</option></NativeSelect></label>
