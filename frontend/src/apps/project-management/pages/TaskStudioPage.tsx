@@ -1,6 +1,7 @@
 import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import { CreationSurfaceContext } from "@/shared/creation/CreationSurfaceContext";
 import { Button } from "@/components/ui/button";
 import { MobileActionBar } from "@/components/mobile/MobileActionBar";
 import {useRecordAutosave} from "@/hooks/use-record-autosave";
@@ -9,7 +10,7 @@ import { defaultOwner } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm, {revealFormField} from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { guardTaskEnter } from "@/shared/creation/task-keyboard";
 import {
   Link,
@@ -370,6 +371,7 @@ function PeoplePicker({
 }
 export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask,keepOpen?:boolean)=>Promise<void>;onClose?:()=>void}={}) {
   const { term: businessTerm } = useBusinessTerms();
+  const insideCreationDialog = useContext(CreationSurfaceContext);
   const { taskId } = useParams();
   const id = embedded?0:Number(taskId) || 0;
   const navigate = useNavigate();
@@ -2189,7 +2191,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           </section>
         </aside>
       </CompactForm>
-      {!embedded && <MobileActionBar label="Task actions">
+      {!embedded && !insideCreationDialog && <MobileActionBar label="Task actions">
         <Button variant="outline" type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</Button>
         <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
       </MobileActionBar>}
