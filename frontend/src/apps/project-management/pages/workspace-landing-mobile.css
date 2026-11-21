@@ -1,0 +1,98 @@
+@media (max-width: 600px) {
+  .pms-mobile-overview,
+  .pms-mobile-management,
+  .pms-mobile-tools {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pms-mobile-overview .pms-overview-header,
+  .pms-mobile-management > header,
+  .pms-mobile-tools > header {
+    gap: 10px;
+  }
+
+  .pms-mobile-overview .pms-overview-header h1 {
+    font-size: clamp(21px, 6vw, 27px);
+    line-height: 1.2;
+  }
+
+  .pms-mobile-overview .pms-overview-header > div,
+  .pms-mobile-management > header > div,
+  .pms-mobile-tools > header > div {
+    min-width: 0;
+  }
+
+  .pms-mobile-overview .pms-overview-header > div {
+    gap: 10px;
+  }
+
+  .pms-mobile-overview .pms-overview-header > div > div:first-child {
+    flex-shrink: 0;
+    padding: 8px;
+  }
+
+  .pms-mobile-overview .pms-overview-header svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .pms-mobile-overview .pms-overview-header > button {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  .pms-mobile-overview .pms-overview-projects {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pms-mobile-overview .pms-overview-empty {
+    padding: 24px 12px;
+  }
+
+  .pms-mobile-management .pms-management-views,
+  .pms-mobile-tools .pms-tool-views {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .pms-mobile-management .pms-management-views > button,
+  .pms-mobile-tools .pms-tool-views > button {
+    flex: none;
+    min-height: 44px;
+  }
+
+  .pms-mobile-management .pms-management-filters {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pms-management-filters > input {
+    grid-column: 1 / -1;
+  }
+
+  .pms-management-filters :is(input, select),
+  .pms-mobile-tools :is(input:not([type=checkbox]):not([type=radio]), select) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .pms-mobile-tools .pms-tool-project {
+    padding: 12px;
+    background: hsl(var(--card));
+    border-radius: 12px;
+  }
+
+  .pms-tool-project > strong {
+    flex-basis: 100%;
+  }
+}

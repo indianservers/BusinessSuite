@@ -1,3 +1,5 @@
+import "./workspace-landing-mobile.css";
+import { pmsRandomId } from "../pms-random-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useQueryClient } from "@tanstack/react-query";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
@@ -93,14 +95,14 @@ function ScopedWorkspaceToolsPage() {
     if (busy) return; setBusy(true); setError(""); setNotice(""); const finish = beginProgress(label);
     try { await action(); applyData(await load()); finish(); } catch (e) { finish(false); setError(workspaceError(e)); } finally { setBusy(false); }
   }
-  function start(tool: Tool) { setError(""); setRequest({ request_id: crypto.randomUUID(), title: "", description: "" }); setApplying(tool); }
+  function start(tool: Tool) { setError(""); setRequest({ request_id: pmsRandomId(), title: "", description: "" }); setApplying(tool); }
   function customizeBlueprint(blueprint: Blueprint) {
     setError("");
-    setEditingBlueprint({ initial: { name: blueprint.name, project_id: projects.length === 1 ? projects[0].id : 0, description: blueprintDescription(blueprint), task_titles: blueprint.task_titles }, requestId: crypto.randomUUID() });
+    setEditingBlueprint({ initial: { name: blueprint.name, project_id: projects.length === 1 ? projects[0].id : 0, description: blueprintDescription(blueprint), task_titles: blueprint.task_titles }, requestId: pmsRandomId() });
   }
   function customizeSaved(tool: Tool) {
     setError("");
-    setEditingBlueprint({ initial: { name: tool.name, project_id: tool.project_id, description: tool.description, task_titles: tool.task_titles }, tool, requestId: crypto.randomUUID() });
+    setEditingBlueprint({ initial: { name: tool.name, project_id: tool.project_id, description: tool.description, task_titles: tool.task_titles }, tool, requestId: pmsRandomId() });
   }
   function saveBlueprint(draft: BlueprintDraft) {
     if (!editingBlueprint) return;
@@ -125,18 +127,18 @@ function ScopedWorkspaceToolsPage() {
     });
   }
 
-  return <div className="max-w-6xl space-y-5">
+  return <div className="pms-mobile-tools max-w-6xl space-y-5">
     <header className="flex flex-wrap justify-between gap-3"><div><h1 className="page-title">{tab === "template" ? "Blueprints" : tab === "goal" ? "Goals" : tab === "intake" ? "Intake forms" : "Workspace tools"}</h1><p className="page-description">Goals track actual task completion. Templates and authenticated intake forms create tasks in your workspace.</p></div><Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link></header>
     <label className="block max-w-md">Workspace<NativeSelect className={control} aria-label="Tools workspace" disabled={busy} value={selected} onChange={e => { setError(""); setSelected(Number(e.target.value)); }}><option value={0} disabled>Choose workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name} · {w.role}</option>)}</NativeSelect></label>
     {error && <div role="alert" className="rounded border border-destructive p-3 text-destructive">{error}<Button variant="outline" disabled={busy} onClick={() => void act("Refreshing workspace tools", async () => { if (!workspaces.length) await loadWorkspaces(); })}>Retry</Button></div>}
     {notice && <p role="status">{notice}</p>}
     {!!created.length && <div className="flex flex-wrap gap-3" aria-label="Created tasks">{created.map(id => <Button asChild variant="outline"><Link className="text-primary underline" key={id} to={`/pms/workspaces?workspace=${selected}&task=${id}`}>Open created task #{id}</Link></Button>)}</div>}
     {workspaceLoading || initialLoading ? <p role="status">Loading workspace tools…</p> : !workspace ? <p>Create or join a workspace first.</p> : <Tabs value={tab} onValueChange={value => { setTab(value); setDraft(initial); setError(""); }}>
-      <TabsList className="flex h-auto flex-wrap justify-start">{[["overview", "Overview"], ["goal", "Goals"], ["template", "Blueprints"], ["intake", "Intake forms"]].map(([value, label]) => <TabsTrigger disabled={busy} className="min-h-11 rounded px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" key={value} value={value}>{label}</TabsTrigger>)}</TabsList>
+      <TabsList className="pms-tool-views flex h-auto flex-wrap justify-start">{[["overview", "Overview"], ["goal", "Goals"], ["template", "Blueprints"], ["intake", "Intake forms"]].map(([value, label]) => <TabsTrigger disabled={busy} className="min-h-11 rounded px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" key={value} value={value}>{label}</TabsTrigger>)}</TabsList>
       <TabsContent value="overview" className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">{[["Projects", projects.length], ["Open tasks", tasks.filter(t => taskBucket(t.status) !== "Done").length], ["Completed tasks", tasks.filter(t => taskBucket(t.status) === "Done").length]].map(([label, count]) => <div className="rounded border p-5" key={label}><strong className="text-2xl">{count}</strong><p>{label}</p></div>)}</div>
         <CompactActions className="flex flex-wrap gap-4"><Link className="text-primary underline" to="/pms/backlog">Backlog and sprints</Link><Link className="text-primary underline" to="/pms/workload">Workload</Link><Link className="text-primary underline" to="/pms/portfolio">Portfolio</Link>{manages && <Link className="text-primary underline" to={`/pms/automation?workspace=${selected}`}>Task automation</Link>}</CompactActions>
-        <h2 className="text-lg font-semibold">Project planning and reports</h2>{projects.map(project => <article key={project.id} className="flex flex-wrap justify-between gap-3 rounded border p-4"><strong>{project.name}</strong><div className="flex flex-wrap gap-4">{[["board", "Board"], ["gantt", "Gantt and dependencies"], ["reports", "Reports"]].map(([path, label]) => <Link className="text-primary underline" key={path} to={`/pms/projects/${project.id}/${path}`}>{label}</Link>)}</div></article>)}
+        <h2 className="text-lg font-semibold">Project planning and reports</h2>{projects.map(project => <article key={project.id} className="pms-tool-project flex flex-wrap justify-between gap-3 rounded border p-4"><strong>{project.name}</strong><div className="flex flex-wrap gap-4">{[["board", "Board"], ["gantt", "Gantt and dependencies"], ["reports", "Reports"]].map(([path, label]) => <Link className="text-primary underline" key={path} to={`/pms/projects/${project.id}/${path}`}>{label}</Link>)}</div></article>)}
         {manages && <WorkflowFeedPanel key={selected} workspaceId={selected} />}
         <p className="text-sm text-muted-foreground">Custom workflow builders, marketplace connections, and enterprise identity provisioning require separate integrations. This page shows saved workspace data.</p>
       </TabsContent>

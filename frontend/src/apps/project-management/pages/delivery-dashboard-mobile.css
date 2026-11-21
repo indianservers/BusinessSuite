@@ -1,0 +1,120 @@
+@media (max-width: 600px) {
+  .pms-delivery-dashboard {
+    min-width: 0;
+  }
+
+  .pms-delivery-dashboard > * + * {
+    margin-top: 16px;
+  }
+
+  .pms-delivery-dashboard .pms-delivery-heading {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pms-delivery-dashboard .pms-delivery-heading > button {
+    min-height: 44px;
+    align-self: flex-start;
+  }
+
+  .pms-delivery-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .pms-delivery-filters label,
+  .pms-delivery-filters select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pms-delivery-filters select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .pms-delivery-metrics {
+    display: grid;
+    grid-auto-columns: minmax(125px, 42%);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 4px;
+    scroll-snap-type: inline proximity;
+  }
+
+  .pms-delivery-metrics > * {
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .pms-delivery-metrics .pms-delivery-metric {
+    min-height: 74px;
+    padding: 10px;
+    gap: 6px;
+    overflow-wrap: anywhere;
+  }
+
+  .pms-delivery-metric svg {
+    flex-shrink: 0;
+  }
+
+  .pms-delivery-chart {
+    height: 220px;
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  .pms-risk-panels,
+  .pms-risk-panels > * {
+    min-width: 0;
+  }
+
+  .pms-risk-panels > :has(.pd-risk-register) {
+    grid-row: 1;
+  }
+
+  .pms-risk-panels .pd-risk-matrix {
+    padding: 12px;
+  }
+
+  .pms-risk-panels .pd-risk-matrix > div {
+    grid-template-columns: 26px repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .pms-risk-register button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .pms-financials .wm-financial-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pms-financials .wm-financial-metrics > div {
+    min-width: 0;
+    padding: 11px;
+  }
+
+  .pms-financials .wm-financial-metrics strong {
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pms-financials .wm-header a,
+  .pms-financials .wm-controls :is(button, select, input) {
+    min-height: 44px;
+  }
+
+  .pms-financials .wm-controls :is(select, input) {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+}
