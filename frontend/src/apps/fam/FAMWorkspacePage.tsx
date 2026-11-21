@@ -915,54 +915,56 @@ function BankStatementsView() {
   );
   return (
     <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
-      <Card>
-        <CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader>
-        <CardContent className="space-y-3 fam-bank-import">
-          {phone && statementChooser}
-          <div className="grid gap-3 fam-bank-import-fields">
-            {phone && <div className="space-y-2">
-              <Field label="Bank account">
-                <NativeSelect aria-label="Bank account" className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
-                  loading={accounts.isPending} error={accounts.isError} disabled={!accounts.isSuccess || activeAccounts.length === 0}
-                  value={String(draft.bank_account_id || "")}
-                  onChange={event => setDraft(current => ({ ...current, bank_account_id: Number(event.target.value) || "" }))}>
-                  <option value="">Choose a bank account</option>
-                  {activeAccounts.map(row => <option key={String(row.id)} value={String(row.id)}>
-                    {[row.bank_name, row.account_number_masked, row.branch_name].filter(Boolean).join(" · ")}
-                  </option>)}
-                </NativeSelect>
+      <MobileDisclosure title="Upload statement" maxWidth={480} initiallyOpen={false}>
+        <Card>
+          {!phone && <CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader>}
+          <CardContent className="space-y-3 fam-bank-import">
+            {phone && statementChooser}
+            <div className="grid gap-3 fam-bank-import-fields">
+              {phone && <div className="space-y-2">
+                <Field label="Bank account">
+                  <NativeSelect aria-label="Bank account" className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
+                    loading={accounts.isPending} error={accounts.isError} disabled={!accounts.isSuccess || activeAccounts.length === 0}
+                    value={String(draft.bank_account_id || "")}
+                    onChange={event => setDraft(current => ({ ...current, bank_account_id: Number(event.target.value) || "" }))}>
+                    <option value="">Choose a bank account</option>
+                    {activeAccounts.map(row => <option key={String(row.id)} value={String(row.id)}>
+                      {[row.bank_name, row.account_number_masked, row.branch_name].filter(Boolean).join(" · ")}
+                    </option>)}
+                  </NativeSelect>
+                </Field>
+                {accounts.isError && <Button variant="outline" onClick={() => void accounts.refetch()}>Retry loading accounts</Button>}
+                {accounts.isSuccess && activeAccounts.length === 0 && <Link className="text-sm underline" to="/fam/bank-accounts">Open bank accounts</Link>}
+              </div>}
+              {[...(!phone ? ["bank_account_id"] : []), "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
+                <Field key={field} label={field.replace(/_/g, " ")}>
+                  <Input
+                    type={field.includes("period") ? "date" : "text"}
+                    inputMode={field === "bank_account_id" ? "numeric" : undefined}
+                    value={String(draft[field] ?? "")}
+                    onChange={event => setDraft(current => ({
+                      ...current,
+                      [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value,
+                    }))}
+                  />
+                </Field>
+              ))}
+            </div>
+            {!phone && statementChooser}
+            <MobileDisclosure title="Enter or review CSV content" maxWidth={480} keepMounted>
+              <Field label="CSV content">
+                <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => {
+                  setHasEnteredContent(true);
+                  setDraft(current => ({ ...current, file_content: event.target.value }));
+                }} />
               </Field>
-              {accounts.isError && <Button variant="outline" onClick={() => void accounts.refetch()}>Retry loading accounts</Button>}
-              {accounts.isSuccess && activeAccounts.length === 0 && <Link className="text-sm underline" to="/fam/bank-accounts">Open bank accounts</Link>}
-            </div>}
-            {[...(!phone ? ["bank_account_id"] : []), "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
-              <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input
-                  type={field.includes("period") ? "date" : "text"}
-                  inputMode={field === "bank_account_id" ? "numeric" : undefined}
-                  value={String(draft[field] ?? "")}
-                  onChange={event => setDraft(current => ({
-                    ...current,
-                    [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value,
-                  }))}
-                />
-              </Field>
-            ))}
-          </div>
-          {!phone && statementChooser}
-          <MobileDisclosure title="Enter or review CSV content" maxWidth={480} keepMounted>
-            <Field label="CSV content">
-              <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => {
-                setHasEnteredContent(true);
-                setDraft(current => ({ ...current, file_content: event.target.value }));
-              }} />
-            </Field>
-          </MobileDisclosure>
-          <p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p>
-          {phone && !mobileImportReady && <p className="text-xs text-muted-foreground">Add statement content, a bank account, and a valid date range to enable import.</p>}
-          <Button className="w-full" disabled={mutation.isPending || (phone && !mobileImportReady)} onClick={() => mutation.mutate()}>Import statement</Button>
-        </CardContent>
-      </Card>
+            </MobileDisclosure>
+            <p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p>
+            {phone && !mobileImportReady && <p className="text-xs text-muted-foreground">Add statement content, a bank account, and a valid date range to enable import.</p>}
+            <Button className="w-full" disabled={mutation.isPending || (phone && !mobileImportReady)} onClick={() => mutation.mutate()}>Import statement</Button>
+          </CardContent>
+        </Card>
+      </MobileDisclosure>
       <Card>
         <CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader>
         <CardContent>
