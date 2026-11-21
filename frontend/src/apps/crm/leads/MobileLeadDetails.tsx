@@ -4,7 +4,7 @@ import { canAccessRoute } from "@/lib/roles";
 import { useState, type ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRightLeft, BarChart3, Building2, CalendarCheck, CalendarDays, ChevronRight, FileText, Flag, Handshake, Home, Layers, LayoutGrid, ListTodo, MapPin, MoreVertical, Pencil, Pin, Star, Tag, UserRound, Users, Zap } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRightLeft, BarChart3, Building2, CalendarCheck, CalendarDays, ChevronRight, FileText, Flag, Handshake, Home, Layers, LayoutGrid, ListTodo, MapPin, MoreVertical, Pencil, Star, Tag, UserRound, Users, Zap } from "lucide-react";
 import { ActionButton, ConfirmActionDialog, type ActionSpec } from "@/components/actions";
 import { MobileSheet } from "@/components/mobile/MobilePrimitives";
 import GlobalSearch from "@/components/app/GlobalSearch";
@@ -58,7 +58,7 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
   const tabs = [["overview", "Overview", Home], ["details", "Details", FileText], ["activity", "Activity", Activity], ["related", "Related", Layers]] as const;
   return <div className="mobile-lead-page">
     <header className="ml-header">
-      <Link to={leadList} aria-label="Back to leads" className="ml-header-back"><ArrowLeft /></Link>
+      <Link to={leadList} aria-label="Back to leads" className="ml-header-back"><ArrowLeft aria-hidden="true" /></Link>
       <nav aria-label="Lead breadcrumb"><Link to="/crm">CRM</Link><ChevronRight/><Link to={leadList}>{leadList.startsWith("/crm/potential-clients") ? "Potential Clients" : "Leads"}</Link><ChevronRight/><strong>{title}</strong></nav>
       <div className="ml-header-tools"><GlobalSearch compact/><ModuleNewMenu/><SuiteNotificationBell/></div>
     </header>
@@ -67,10 +67,21 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
         <div className="ml-identity">
           <div className="ml-avatar">{typeof avatar === "string" && avatar && !avatarFailed ? <img src={assetUrl(avatar)} alt={title} onError={() => setAvatarFailed(true)}/> : <span aria-label={`${title} initials`}>{title.split(/\s+/).slice(0, 2).map(word => word[0]).join("")}</span>}</div>
           <div className="ml-identity-text"><h1>{title}</h1><div className="ml-badges"><span>{converted ? "Customer" : /prospect/i.test(record.classification || "") ? "Prospect" : "Lead"}</span><span className={inactive ? "inactive" : "active"}><i/>{inactive ? "Inactive" : "Active"}</span></div></div>
-          <div className="ml-profile-tools"><button aria-label={pinned ? "Unpin lead" : "Pin lead"} aria-pressed={pinned} onClick={onPin}><Star fill={pinned ? "currentColor" : "none"}/></button><Button data-overflow-trigger type="button" variant="outline" aria-label="Open lead actions" onClick={() => setMore(true)}><MoreVertical/></Button></div>
+          <div className="ml-profile-tools"><button aria-label={pinned ? "Unpin lead" : "Pin lead"} aria-pressed={pinned} onClick={onPin}><Star fill={pinned ? "currentColor" : "none"}/></button><Button data-overflow-trigger type="button" variant="outline" aria-label="Open lead actions" aria-haspopup="dialog" onClick={() => setMore(true)}><MoreVertical/></Button></div>
         </div>
-        <div className="ml-business"><span><Building2/>{company || "No company linked"}</span><span><MapPin/>{location || "Location not added"}</span></div>
-        <div className="ml-communications" role="group" aria-label="Lead contact actions">{["whatsapp", "email", "call"].map(id => { const item = action(id); return item && item.available !== false && <ActionButton key={id} action={item.kind} disabled={item.disabled} disabledReason={item.disabledReason} tooltip={item.tooltip} onClick={() => run(item)}>{id === "whatsapp" ? "WhatsApp" : id === "email" ? "Email" : "Call"}</ActionButton>; })}<ActionButton action="more" onClick={() => setMore(true)} aria-haspopup="dialog">More</ActionButton></div>
+        {(company || location) && (
+          <div className="ml-business">
+            {company && <span><Building2 aria-hidden="true" />{company}</span>}
+            {location && <span><MapPin aria-hidden="true" />{location}</span>}
+          </div>
+        )}
+        <div className="ml-communications" role="group" aria-label="Lead contact actions">
+          {["whatsapp", "email", "call"].map(id => {
+            const item = action(id);
+            return item && <ActionButton key={id} action={item.kind} disabled={item.disabled}
+              disabledReason={item.disabledReason} tooltip={item.tooltip} onClick={() => run(item)} />;
+          })}
+        </div>
         {convert && <button className="ml-convert" disabled={convert.disabled || convert.loading} aria-busy={convert.loading} onClick={() => run(convert)}><ArrowRightLeft/>{convert.loading ? "Converting…" : convert.label}</button>}
         {templates&&<div className="ml-template-action">{templates}</div>}
       </section>
@@ -80,8 +91,8 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
           <section className="ml-card"><div className="ml-card-heading"><h2><BarChart3/>Lead Summary</h2>{edit && <Button type="button" variant="outline" disabled={edit.disabled || edit.loading} onClick={() => run(edit)}><Pencil/>Edit</Button>}</div>
             <div className="ml-summary"><div><UserRound/><div><span>Assigned Employee</span>{assignment}</div></div><div><CalendarCheck/><div><span>Last Update</span><strong>{formatDate(record.updatedAt || record.updated_at || record.created_at)}</strong></div></div><div><Tag/><div><span>Source</span><strong className="ml-source">{record.source || "Not recorded"}</strong></div></div><div><Flag/><div><span>Priority</span><strong className="ml-priority">{record.priority || record.rating || "Not recorded"}</strong></div></div><div><Activity/><div><span>Current Status</span><strong>{record.status || "Not recorded"}</strong></div></div>{(record.next_follow_up_at || record.next_followup_at || record.next_follow_up_date) && <div><CalendarDays/><div><span>Next Follow-up</span><strong>{formatDate(record.next_follow_up_at || record.next_followup_at || record.next_follow_up_date)}</strong></div></div>}</div>
           </section>
-          <section className="ml-card"><h2><Zap/>Quick Actions</h2><div className="ml-quick"><button onClick={onPin} aria-pressed={pinned}><Pin/>{pinned ? "Pinned" : "Pin"}</button><div>{discussion}</div><div>{ai}</div>{task && <Button type="button" variant="default" disabled={task.disabled || task.loading} className="suite-task-button" onClick={() => run(task)}><FileText/>Add Task</Button>}</div></section>
-          <section className="ml-card"><h2><ListTodo/>Lead Actions</h2><div className="ml-action-rows">{followUp && <Button type="button" variant="outline" disabled={followUp.disabled || followUp.loading} onClick={() => run(followUp)}><CalendarDays/>Schedule Follow-up<ChevronRight/></Button>}{note && <Button type="button" variant="default" disabled={note.disabled || note.loading} onClick={() => run(note)}><FileText/>Add Note / Update<ChevronRight/></Button>}<button onClick={() => setMore(true)}><LayoutGrid/>All lead actions<ChevronRight/></button></div></section>
+          <section className="ml-card"><h2><Zap/>Quick Actions</h2><div className="ml-quick"><div>{discussion}</div><div>{ai}</div>{task && <Button type="button" variant="default" disabled={task.disabled || task.loading} className="suite-task-button" onClick={() => run(task)}><FileText/>Add Task</Button>}</div></section>
+          <section className="ml-card"><h2><ListTodo/>Lead Actions</h2><div className="ml-action-rows">{followUp && <Button type="button" variant="outline" disabled={followUp.disabled || followUp.loading} onClick={() => run(followUp)}><CalendarDays/>Schedule Follow-up<ChevronRight/></Button>}{note && <Button type="button" variant="default" disabled={note.disabled || note.loading} onClick={() => run(note)}><FileText/>Add Note / Update<ChevronRight/></Button>}</div></section>
           <details className="ml-detail-group"><summary>AI insights</summary>{insights}</details>
         </Tabs.Content>
         <Tabs.Content value="details" forceMount hidden={tab !== "details"}>{details}</Tabs.Content>
