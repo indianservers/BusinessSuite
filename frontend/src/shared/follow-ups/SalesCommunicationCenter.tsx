@@ -145,7 +145,7 @@ function PurchaseDraft({ scope, row, channel, params, close }: { scope: string; 
   const composeUrl = draft.data?.compose_url;
   const href = composeUrl && body.trim() && editComposeUrl(composeUrl, channel, body);
   return <Dialog open onOpenChange={open => { if (!open) close(); }}>
-    <DialogContent>
+    <DialogContent className="max-sm:top-[calc(var(--mobile-viewport-height,100dvh)/2)] max-sm:max-h-[calc(var(--mobile-viewport-height,100dvh)-1rem)]">
       <DialogTitle>Prepare {label} follow-up</DialogTitle>
       <DialogDescription>Review the message for {row.name} before opening {label}.</DialogDescription>
       {draft.isFetching && <p role="status">Checking customer contact preferences…</p>}
