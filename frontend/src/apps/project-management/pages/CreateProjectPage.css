@@ -3,3 +3,62 @@
 @media(max-width:800px){.project-create-studio{grid-template-columns:1fr}.project-create-story{display:none}.project-create-main{padding:22px}.project-create-steps button{white-space:normal;font-size:11px;gap:5px}.project-create-steps span{flex:none;width:24px;height:24px}.project-create-studio .project-create-main>div>div:first-child h3{font-size:25px}.project-create-studio .project-create-main>div>div:first-child p{margin-left:0}.project-create-actions [role=status]{order:3;width:100%}.project-create-actions>label{width:100%}.project-create-actions>button{flex:1}.project-create-note{padding:16px 22px}.project-create-dates:has(.project-create-budget:not([hidden])){grid-template-columns:1fr}}
 .project-create-studio select{display:block;width:100%;margin-top:8px;border:1px solid #dcd2ec;padding:0 12px}.project-create-basics label[for=project-name]::after{content:' *';color:#dc3151}.project-create-custom>section{position:relative;min-height:80px}.project-create-custom>section>div:first-child{padding-left:0}.project-create-custom>section h3>svg{width:44px;height:44px;padding:10px}.project-create-custom>section>div:nth-child(2):empty{display:none}.project-create-custom>section>p:last-child{margin-top:0;padding-left:56px;font-size:12px}.project-create-custom>section>div:first-child>button{border:1px solid #ddc7ff;border-radius:14px;background:#f7efff;padding:10px 16px;color:#6c13cf}
 .project-create-studio label[for=project-name]::after,.project-create-studio label[for=project-key]::after{content:' *';color:#db3050}
+
+@media (max-width: 480px) {
+  .project-create-main {
+    padding: 12px;
+  }
+
+  .project-create-main > button {
+    min-height: 44px;
+    margin-bottom: 12px;
+  }
+
+  .project-create-studio .project-create-main > div > div:first-child {
+    padding-bottom: 12px;
+  }
+
+  .project-create-steps {
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .project-create-steps button {
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .project-create-steps span {
+    display: none;
+  }
+
+  .pms-project-form :is(fieldset, input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pms-project-form :is(input:not([type="checkbox"]), select, textarea, [contenteditable="true"]) {
+    font-size: 16px;
+  }
+
+  .pms-project-form .project-create-actions {
+    gap: 8px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pms-project-form .project-create-actions button {
+    min-height: 44px;
+    white-space: normal;
+  }
+}
+
+.project-create-actions .project-create-next {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .project-create-actions .project-create-next {
+    display: inline-flex;
+    order: 2;
+  }
+}

@@ -1430,3 +1430,29 @@
 .dark .project-portfolio :is(.portfolio-kpi,.portfolio-viewbar nav button:not(.active),.portfolio-mobile-more button) { background:hsl(var(--card)); color:color-mix(in srgb,var(--tone,#a78bfa) 55%,white); }
 @media(max-width:1100px) { .project-portfolio .portfolio-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media(max-width:760px) { .project-portfolio .portfolio-kpis { display:flex; overflow-x:auto; gap:10px; } .project-portfolio .portfolio-kpi { flex:0 0 165px; min-width:165px; } .project-portfolio .portfolio-viewbar nav button { min-height:44px; } }
+
+@media (max-width: 480px) {
+  .project-portfolio .portfolio-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .project-portfolio .portfolio-actions > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .project-portfolio .portfolio-actions > :is(a, button) {
+    min-height: 44px;
+  }
+
+  .project-portfolio .portfolio-actions .portfolio-new-desktop {
+    display: inline;
+  }
+
+  .project-portfolio .portfolio-actions .portfolio-new-mobile {
+    display: none;
+  }
+
+  .project-portfolio .portfolio-heading h1 {
+    overflow-wrap: anywhere;
+  }
+}

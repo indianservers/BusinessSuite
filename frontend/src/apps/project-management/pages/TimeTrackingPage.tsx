@@ -9,6 +9,7 @@ import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RunningTimer from "../components/RunningTimer";
+import "./TimeTrackingPage.css";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Timer, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -144,6 +145,11 @@ export default function TimeTrackingPage() {
     }
   };
 
+  const formHeading = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (editingId) formHeading.current?.focus();
+  }, [editingId]);
+
   const editLog = (log: PMSTimeLog) => {
     if(!canEdit || !mutableLog(log))return;
     setEditingId(log.id);
@@ -178,21 +184,21 @@ export default function TimeTrackingPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pms-time-tracking space-y-6">
       <div>
         <h1 className="page-title">Time tracking</h1>
         <p className="page-description">Log task effort from the PMS backend and review billable/non-billable totals.</p>
       </div>
 
       <RunningTimer projects={projects} onSaved={() => { void loadLogs(form.projectId ? Number(form.projectId) : undefined); }} />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="pms-time-metrics grid gap-4 md:grid-cols-3">
         <Metric label="Total logged" minutes={totals.total} />
         <Metric label="Billable" minutes={totals.billable} />
         <Metric label="Non-billable" minutes={totals.nonBillable} />
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" />{editingId ? "Edit time log" : "Log time"}</CardTitle></CardHeader>
+        <CardHeader ref={formHeading} tabIndex={-1}><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" />{editingId ? "Edit time log" : "Log time"}</CardTitle></CardHeader>
         <CardContent>
           {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
           <CompactForm onSubmit={submit} className="space-y-4">
@@ -221,7 +227,7 @@ export default function TimeTrackingPage() {
               </Field>
               <Field label="Description"><Input value={form.description} onChange={(event) => updateForm({ description: event.target.value })} placeholder="What did you work on?" /></Field>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="pms-time-actions flex flex-wrap justify-end gap-2">
               {editingId ? <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button> : null}
               <Button type="submit" disabled={saving || !canSave}>{saving ? "Saving..." : editingId ? "Save time log" : "Log time"}</Button>
             </div>
@@ -235,7 +241,7 @@ export default function TimeTrackingPage() {
           {initialLoading ? <div className="skeleton h-32 rounded-lg" /> : null}
           {!initialLoading && !logs.length ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">No time logs found.</div> : null}
           {logs.map((log) => (
-            <div key={log.id} className="rounded-lg border p-3 text-sm">
+            <div key={log.id} className="rounded-lg border p-3 text-sm [overflow-wrap:anywhere]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">

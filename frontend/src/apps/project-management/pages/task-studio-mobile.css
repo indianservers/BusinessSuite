@@ -49,3 +49,29 @@
   .task-studio .suite-auto-form-tabs button { padding: 8px 4px; font-size: 12px; }
   .task-studio .ts-add-person { position: static; display: inline-flex; align-items: center; margin-block: 6px; }
 }
+
+@media (max-width: 480px) {
+  .task-studio .ts-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .task-studio .ts-compact-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .task-studio .ts-title-actions { flex-wrap: wrap; }
+  .task-studio .ts-title-actions > button { white-space: normal; }
+}
+
+@media (max-width: 480px) {
+  .task-studio .ts-assignee-dropdown {
+    position: static;
+    max-height: none;
+    margin-top: 8px;
+    box-shadow: none;
+  }
+
+  .task-studio .ts-assignee-dropdown .ts-picker-list {
+    overscroll-behavior: auto;
+  }
+}
