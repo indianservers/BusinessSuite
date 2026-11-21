@@ -1,0 +1,93 @@
+@media (max-width: 767px) {
+  .hrms-employee-records-header {
+    align-items: flex-start;
+  }
+
+  .hrms-employee-records-header .suite-compact-actions {
+    width: 100%;
+  }
+
+  .hrms-employee-records :is(.employee-list-filters input, .employee-list-filters select) {
+    min-height: 44px;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .hrms-employee-records :is(.suite-compact-actions button, .employee-list-filters button, .profile-list-action) {
+    min-height: 44px;
+  }
+
+  .hrms-employee-records .employee-list-filters summary {
+    min-height: 36px;
+    align-content: center;
+  }
+
+  .hrms-employee-records .profile-list-content,
+  .hrms-employee-records .profile-list-heading > h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-employee-profile {
+    min-width: 0;
+  }
+
+  .hrms-employee-profile-header {
+    padding: 12px;
+  }
+
+  .hrms-employee-profile-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 8px 12px;
+  }
+
+  .hrms-employee-profile-summary > :first-child {
+    max-inline-size: 56px;
+    max-block-size: 56px;
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .hrms-employee-profile-identity {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-employee-profile-identity h2 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  .hrms-employee-profile-photo {
+    grid-row: 2;
+    grid-column: 1;
+    min-height: 44px;
+    padding-inline: 6px;
+  }
+
+  .hrms-employee-profile-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .hrms-employee-profile-actions button {
+    min-height: 44px;
+  }
+
+  .hrms-employee-profile :is(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+    font-size: 16px;
+  }
+
+  .hrms-employee-edit-dialog[role="dialog"] {
+    top: calc((100dvh - var(--mobile-keyboard-inset, 0px)) / 2);
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 16px);
+  }
+
+  .hrms-employee-edit-body {
+    scroll-padding-block: 12px;
+  }
+}
