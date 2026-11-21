@@ -54,6 +54,7 @@ function DocumentRegister({context}:{context:Context}) {
   const scope=useRecordScope();
   const [search,setSearch]=useState(''),[page,setPage]=useState(1),[removed,setRemoved]=useState(false);
   const [expanded, setExpanded] = useState(false);
+  const showToggle = useMobile() && context.module === "srm";
   const panelId = useId();
   useEffect(()=>{
     const paths=context.entity==='quotations'?['/crm/quotes','/crm/quotations']:context.entity==='purchase-orders'?['/srm/procurement/purchase-orders']:[`/srm/${context.entity}`];
@@ -63,9 +64,9 @@ function DocumentRegister({context}:{context:Context}) {
   },[context.entity,scope,queryClient]);
   const query=useQuery({queryKey:['document-register',context.entity,scope,search,page,removed],staleTime:0,refetchOnMount:'always',queryFn:async()=>{const {data}=await api.get(`/srm/documents/${context.entity}`,{params:{search,page,include_removed:removed},recordCache:false});if(!Array.isArray(data?.items))throw Error('The document register returned an invalid response');return data;}});
   return <section aria-label="Saved document register" className="commercial-document-register my-4 rounded-xl border bg-card p-4" data-sales={context.module === "srm"}>
-    <Button className="commercial-document-toggle" variant="ghost" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
+    {showToggle && <Button className="commercial-document-toggle" variant="ghost" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
       Saved documents <span aria-hidden="true">{expanded ? "−" : "+"}</span>
-    </Button>
+    </Button>}
     <div id={panelId} className="commercial-document-panel space-y-3" data-expanded={expanded}>
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="commercial-document-heading text-lg font-semibold">Saved documents</h2><Button variant="outline" onClick={()=>query.refetch()}>Refresh saved documents</Button></div>
     <p className="text-sm text-muted-foreground">Find issued documents and drafts, open their history, resend a copy, or prepare a revision.</p>
@@ -83,6 +84,7 @@ function DocumentTools({context,id,children}:{context:Context;id:number;children
   const scope=useRecordScope();
   const [actionVersion,setActionVersion]=useState('');
   const [expanded, setExpanded] = useState(false);
+  const showToggle = useMobile() && context.module === "srm";
   const panelId = useId();
   const queryClient=useQueryClient(),navigate=useNavigate();
   const [mode,setMode]=useState(''),[reason,setReason]=useState(''),[recipient,setRecipient]=useState(''),[changes,setChanges]=useState<Value>({}),[lines,setLines]=useState<Value[]>([]),[requestId,setRequestId]=useState(()=>randomUUID()),[notice,setNotice]=useState('');
@@ -124,9 +126,9 @@ function DocumentTools({context,id,children}:{context:Context;id:number;children
   const data=query.data,row=data.record;
   const active=!data.removed&&!['cancelled','declined','rejected'].includes(String(row.status).toLowerCase());
   const tools = <section aria-label="Document history and actions" className="commercial-document-tools my-4 rounded-xl border bg-card p-4" data-sales={context.module === "srm"}>
-    <Button className="commercial-document-toggle" variant="ghost" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
+    {showToggle && <Button className="commercial-document-toggle" variant="ghost" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
       Record history and actions <span aria-hidden="true">{expanded ? "−" : "+"}</span>
-    </Button>
+    </Button>}
     <div id={panelId} className="commercial-document-panel space-y-4" data-expanded={expanded}>
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="commercial-document-heading text-lg font-semibold">Record history and actions</h2><p className="text-sm text-muted-foreground">{data.number} · {data.removed?'Archived':row.status} · Created {row.created_at?new Date(row.created_at).toLocaleString():'previously'}</p></div><Button variant="outline" onClick={()=>query.refetch()}>Refresh document controls</Button></div>
     <fieldset disabled={query.isFetching || action.isPending} className="flex flex-wrap gap-2">

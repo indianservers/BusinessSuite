@@ -831,6 +831,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
 }
 
 export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialContactId, onBusyChange }: { onBusyChange?:(busy:boolean)=>void;onCreated?: () => void; initialCustomerId?:number;initialContactId?:number }) {
+  const mobile = useMobile();
   const createRef = useNewRecordFocus();
   const [requestId, setRequestId] = useState(() => randomUUID());
   const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
@@ -903,7 +904,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
       </CardHeader>
       <CardContent>
         <CompactForm compactTabs={!initialCustomerId} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
-          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4">
+          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4" data-form-section-label={mobile ? "Invoice details" : undefined}>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Template</span>
               <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
@@ -925,7 +926,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
               <Input inputMode="numeric" value={form.engagement_id} onChange={(event) => update("engagement_id", event.target.value)} />
             </label>
           </div>
-          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4">
+          <div className="srm-invoice-fields grid gap-3 md:grid-cols-4" data-form-section-label={mobile ? "Invoice details" : undefined}>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Currency</span>
               <CurrencySelect value={form.currency} onChange={currency => update("currency", currency)} />
@@ -943,13 +944,13 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
               <Input value={form.terms} onChange={(event) => update("terms", event.target.value)} />
             </label>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2" data-form-section-label={mobile ? "Line items" : undefined}>
             {lines.map((line, index) => (
               <div key={index} className="srm-invoice-line grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
                 <Input aria-label="Line description" placeholder="Line description" value={line.description} onChange={(event) => updateLine(index, "description", event.target.value)} />
-                <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(index, "quantity", event.target.value)} />
-                <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => updateLine(index, "unit_price", event.target.value)} />
-                <Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => updateLine(index, "tax_amount", event.target.value)} />
+                <label><span className="srm-invoice-line-field-label">Quantity</span><Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(index, "quantity", event.target.value)} /></label>
+                <label><span className="srm-invoice-line-field-label">Unit price</span><Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => updateLine(index, "unit_price", event.target.value)} /></label>
+                <label><span className="srm-invoice-line-field-label">Tax amount</span><Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => updateLine(index, "tax_amount", event.target.value)} /></label>
                 <Button type="button" variant="outline" size="icon" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))} aria-label="Remove invoice line">
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -959,11 +960,11 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
               <Plus className="h-4 w-4" />Add Line
             </Button>
           </div>
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm" data-form-section-label={mobile ? "Review" : undefined}>
             <span className="font-medium">Notes</span>
             <RichTextField className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.notes} onChange={(event) => update("notes", event.target.value)} />
           </label>
-          <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="rounded-lg border bg-muted/30 p-4" data-form-section-label={mobile ? "Review" : undefined}>
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-sm font-semibold">{form.template.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</p>
