@@ -1,3 +1,4 @@
+import { taskDraftId } from "../task-draft-id";
 import { Button } from "@/components/ui/button";
 import {useRecordDraft} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
@@ -13,7 +14,7 @@ export default function ProjectQuickTask({initialTitle="",initialWorkType="Task"
  useEffect(()=>{let active=true;api.get("/project-management/task-studio/options",{params:{project_id:projectId,compact:true}}).then(({data})=>{if(active){setPeople(data.people||[]);setReady(true);}}).catch(e=>{if(active)setError(workspaceError(e));});return()=>{active=false;};},[projectId]);
  const clearDraft=useRecordDraft(`project-task:${projectId}:${initialWorkType}`,d,setD,ready);
  const select=(label:string,k:keyof typeof d,choices:string[])=><label>{label}<select aria-label={label} value={d[k]} onChange={e=>set(k,e.target.value)}>{choices.map(v=><option key={v}>{v}</option>)}</select></label>;
- return <form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();if(busy||!canCreate)return;setBusy(true);onBusy(true);setError("");try{await api.post(`/project-management/projects/${projectId}/tasks`,{title:d.title.trim(),description:d.description||null,status:d.status,priority:d.priority,work_type:d.work_type,assignee_user_id:d.assignee?Number(d.assignee):null,start_date:d.start_date||null,due_date:d.due_date||null,story_points:d.story_points?Number(d.story_points):null,estimated_hours:d.estimated_hours?Number(d.estimated_hours):null,task_key:`TASK-${crypto.randomUUID().slice(0,12)}`});clearDraft();await onCreated();}catch(e){setError(workspaceError(e));}finally{setBusy(false);onBusy(false);}}}>
+ return <form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();if(busy||!canCreate)return;setBusy(true);onBusy(true);setError("");try{await api.post(`/project-management/projects/${projectId}/tasks`,{title:d.title.trim(),description:d.description||null,status:d.status,priority:d.priority,work_type:d.work_type,assignee_user_id:d.assignee?Number(d.assignee):null,start_date:d.start_date||null,due_date:d.due_date||null,story_points:d.story_points?Number(d.story_points):null,estimated_hours:d.estimated_hours?Number(d.estimated_hours):null,task_key:`TASK-${taskDraftId()}`});clearDraft();await onCreated();}catch(e){setError(workspaceError(e));}finally{setBusy(false);onBusy(false);}}}>
  <p className="text-sm text-muted-foreground">{projectName} · Only the task title is required. Other fields have sensible defaults.</p>
  <fieldset disabled={busy||!canCreate} className="space-y-4 border-0 p-0 m-0 min-w-0">
  <label>Task title *<input autoFocus required maxLength={255} placeholder="What needs to be done?" value={d.title} onChange={e=>set("title",e.target.value)}/></label>

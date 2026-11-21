@@ -1,3 +1,4 @@
+import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -36,7 +37,7 @@ export default function QuickTaskCapture({ close, subtask = false }: { close: ()
     if (!projects.some(project => project.id === Number(form.projectId)) || !optionsReady || subtask && !parents.some(parent => parent.id === Number(form.parentId))) { setError("Choose an accessible project and parent task before saving."); return; }
     lock.current = true; setBusy(true); setError("");
     try {
-      const task = await tasksAPI.create(Number(form.projectId), { title: form.title.trim(), task_key: `TSK-${crypto.randomUUID().slice(0, 12)}`, description: form.description, work_type: subtask ? "Sub-task" : "Task", status: "To Do", priority: "Medium", assignee_user_id: form.owner ? Number(form.owner) : undefined, due_date: form.due || undefined, sprint_id: form.sprint ? Number(form.sprint) : undefined, parent_task_id: subtask ? Number(form.parentId) : undefined });
+      const task = await tasksAPI.create(Number(form.projectId), { title: form.title.trim(), task_key: `TSK-${taskDraftId()}`, description: form.description, work_type: subtask ? "Sub-task" : "Task", status: "To Do", priority: "Medium", assignee_user_id: form.owner ? Number(form.owner) : undefined, due_date: form.due || undefined, sprint_id: form.sprint ? Number(form.sprint) : undefined, parent_task_id: subtask ? Number(form.parentId) : undefined });
       if (!owns()) return;
       draft();
       if (contentRef.current) contentRef.current.dataset.smartCreateDirty = "false";
