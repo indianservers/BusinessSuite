@@ -28,7 +28,7 @@ test.describe("CRM quotes UI", () => {
     await authenticateCrm(page);
     await expectCrmListPage(page, "/crm/quotes", "Quotes", "QT-001");
     await page.goto("/crm/quotes/1/builder", { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(/\/crm\/quotes\/1\/builder/);
+    await expect(page).toHaveURL(/\/common\/quotations\/1\/builder\?module=crm$/);
     await expect(page.getByRole("heading", { name: "Quote Builder" })).toBeVisible();
   });
 });
