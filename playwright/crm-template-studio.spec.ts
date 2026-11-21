@@ -31,7 +31,7 @@ test('design, placeholders, saved email, invoice output and mail merge gallery',
     errors.push(e.message);
   });
   await page.goto('/crm/templates');
-  await expect(page.getByRole('heading', { name: 'Make every message yours.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Template Studio', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create template', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Create template', exact: true }).click();
   await expect(page.locator('.ts-paper')).toContainText('Welcome aboard');

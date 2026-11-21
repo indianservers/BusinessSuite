@@ -247,7 +247,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   }, [config.entity, recordId]);
 
   const title = useMemo(() => titleFor(record, config.nameKeys, config.singular), [record, config]);
-  const mobileListPath = kind === "accounts" && pathname.startsWith("/crm/accounts/") ? "/crm/accounts" : config.listPath;
+  const listPath = kind === "accounts" && pathname.startsWith("/crm/accounts/") ? "/crm/accounts" : config.listPath;
   const statusBadges = config.statusKeys.map((key) => valueText(record?.[key])).filter(Boolean);
   const approval = approvalFor(record);
   const approvalStatus = valueText(approval?.status);
@@ -424,18 +424,18 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
           ]}/>) : null;
 
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="crm-record-detail min-w-0 space-y-5">
       {mobile && kind !== "leads" && <nav aria-label="Record navigation">
-        <Link to={mobileListPath} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium">
+        <Link to={listPath} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {config.label}
         </Link>
       </nav>}
-      {!mobile && <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      {!mobile && <nav aria-label="Record navigation" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Link to="/crm" className="hover:text-foreground">CRM</Link>
         <ChevronRight className="h-4 w-4" />
-        <Link to={config.listPath} className="hover:text-foreground">{config.label}</Link>
+        <Link to={listPath} className="hover:text-foreground">{config.label}</Link>
         <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground">{title}</span>
+        <span className="min-w-0 break-words text-foreground" aria-current="page">{title}</span>
       </nav>}
 
       {error && !editOpen ? <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
@@ -456,25 +456,29 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             activity={<><Record360Workspace key={recordId} kind="lead" id={recordId} onAction={setAction}/><CommunicationTimeline recordType="lead" recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/></>}
             related={<><CatalogAssociations source="crm" target="lead" id={recordId}/><RelatedRecords related={record.related || {}}/></>}
           /> : <>
-          <header className="rounded-lg border bg-card p-3 sm:p-5">
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="min-w-0 break-words text-xl font-semibold sm:truncate sm:text-2xl">{title}</h1><IconActionButton action="pin" aria-label="Pin record" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}/>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
-                  {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
-                  <AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt}/>
+          <header className="crm-record-header rounded-xl border bg-card p-4 sm:p-5">
+            <div className="crm-record-identity min-w-0">
+              <h1 className="crm-record-title text-xl font-semibold sm:text-2xl">{title}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                   {statusBadges.map((status) => <Badge key={status} className={statusColor(status)}>{status}</Badge>)}
                   {approvalStatus ? <Badge className={statusColor(approvalStatus)}>Approval {labelFor(approvalStatus)}</Badge> : null}
                   {kind === "quotations" ? <Badge className={statusColor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}>PDF {labelFor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}</Badge> : null}
                   {duplicateCount ? <Badge className="bg-amber-100 text-amber-800"><GitMerge className="mr-1 h-3.5 w-3.5" />{duplicateCount} possible duplicate{duplicateCount === 1 ? "" : "s"}</Badge> : null}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
                   {kind === "leads" ? <LeadEmployeeAssignment leadId={recordId} ownerId={Number(record.ownerId || record.owner_user_id) || undefined} onAssigned={loadRecord} /> : <span className="flex items-center gap-1"><UserRound className="h-4 w-4" />Owner {valueText(record.ownerId || record.owner_user_id) || "Unassigned"}</span>}
                   <span>Last updated {formatDate(valueText(record.updatedAt || record.updated_at || record.createdAt || record.created_at))}</span>
-                </div>
               </div>
+            </div>
+            <div className="crm-record-actions">
               <ActionToolbar label={`${config.singular} actions`} actions={recordActions}/>
-
+            </div>
+            <div className="crm-record-tools">
+              <IconActionButton action="pin" aria-label="Pin record" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}/>
+              {kind === "deals" && <Button variant="outline" size="sm" onClick={() => setStageOpen(true)}>Review stage move</Button>}
+              {stageOpen && <CRMStageDialog id={recordId} close={() => setStageOpen(false)} saved={loadRecord}/>}
+              {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
+              <AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt}/>
             </div>
           </header>
 

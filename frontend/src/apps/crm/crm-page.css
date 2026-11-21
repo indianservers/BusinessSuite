@@ -1,0 +1,200 @@
+.crm-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(110deg, hsl(var(--primary) / .055), transparent 70%), hsl(var(--card));
+}
+
+.crm-page-identity {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.crm-page-identity :is(h1, h2) {
+  color: hsl(var(--foreground));
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 680;
+  letter-spacing: -.035em;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
+.crm-page-identity p {
+  max-width: 62ch;
+  margin-top: .45rem;
+  color: hsl(var(--muted-foreground));
+  font-size: .875rem;
+  line-height: 1.55;
+}
+
+.crm-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.crm-page-header-subsection {
+  padding: 0 0 1rem;
+  border: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  border-radius: 0;
+  background: transparent;
+}
+
+.crm-page-header-subsection h2 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+.crm-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: .75rem;
+}
+
+.crm-metric-value {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.crm-report-link {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  min-width: 0;
+  height: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: .875rem;
+  background: hsl(var(--card));
+  padding: 1rem;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.crm-report-link:hover,
+.crm-report-link:focus-visible {
+  border-color: hsl(var(--primary) / .45);
+  background: hsl(var(--primary) / .045);
+}
+
+.ws-crm > .ws-workspace-navigation {
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.ws-crm > .ws-workspace-navigation > span {
+  flex: 1;
+}
+
+.ws-crm > .ws-workspace-navigation > .ws-directory-link {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.crm-workspace-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: .35rem .75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: .5rem;
+  background: hsl(var(--card));
+}
+
+.crm-workspace-link[aria-current="page"] {
+  border-color: hsl(var(--primary) / .35);
+  background: hsl(var(--primary) / .09);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.crm-file-upload input[type="file"] {
+  display: block;
+  margin: .75rem auto 0;
+  font-size: .875rem;
+}
+
+.crm-file-upload input[type="file"]::file-selector-button {
+  min-height: 2.75rem;
+  margin-inline-end: .65rem;
+  padding-inline: .8rem;
+  border: 0;
+  border-radius: .5rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font: inherit;
+}
+
+.crm-calendar-grid-scroll {
+  overflow-x: auto;
+}
+
+.ws-crm .sc-page .sc-hero {
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(110deg, hsl(var(--primary) / .055), transparent 70%), hsl(var(--card));
+}
+
+.ws-crm .sc-page .sc-tabs {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .ws-crm > .ws-workspace-navigation {
+    padding-inline: .625rem;
+    gap: .5rem;
+  }
+
+  .ws-crm > .ws-workspace-navigation :is(a, button) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  .crm-page-actions :is(button, a) {
+    min-height: 2.75rem;
+  }
+
+  .crm-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+
+  .crm-contact-toolbar-row > .crm-contact-view {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .crm-contact-toolbar-actions > .crm-contact-mobile button {
+    min-width: 2.75rem;
+  }
+
+  .crm-calendar-grid-scroll > div {
+    min-width: 32rem;
+  }
+
+  .crm-calendar-views button {
+    min-height: 2.75rem;
+  }
+
+  .crm-calendar-event-dialog button {
+    min-height: 2.75rem;
+  }
+
+  .ws-crm .sc-page .sc-tabs button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crm-report-link {
+    transition: none;
+  }
+}

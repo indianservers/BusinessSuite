@@ -43,9 +43,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import {
-  UserRound, UserRoundPlus, Zap, BarChart3, Target, Flag, FileText, ChevronRight, Building2,
+  UserRoundPlus, FileText, ChevronRight,
   ArrowRight,
-  Check,
   Download,
   FileSpreadsheet,
   Loader2,
@@ -513,12 +512,10 @@ function LeadWorkbench() {
       )}
       <header className="lm-header">
         <div>
-          <div className="lm-eyebrow">CUSTOMER RELATIONSHIPS</div>
           <h1>
             {potential ? "Potential Clients" : "Lead workbench"}{" "}
             <span className="lm-count">{result?.total ?? "—"}</span>
           </h1>
-          <p>Know where every enquiry stands. Make the next move.</p>
         </div>
         <div className="lm-actions">
           {!mobile && transferTools}
@@ -1222,6 +1219,10 @@ export function CaptureDialog({
     sessionStorage.setItem(key, JSON.stringify(values));
   }, [values, key]);
   const dismiss = () => {if(!saving)close();};
+  const saveDraft = () => {
+    sessionStorage.setItem(key, JSON.stringify(values));
+    dismiss();
+  };
   const clearFullDraft=useRecordDraft(`${potential?"potential":"lead"}:capture`,{values,catalogLines,customValues:customFieldForm.values,sharedConfirmed,sharedReason},draft=>{setValues(draft.values);setCatalogLines(draft.catalogLines||[]);customFieldForm.setValues(draft.customValues||{});setSharedConfirmed(draft.sharedConfirmed);setSharedReason(draft.sharedReason);},!customFieldForm.loading);
   const [step, setStep] = useState(0);
   const [captureErrors,setCaptureErrors]=useState<Record<string,string>>({});
@@ -1230,7 +1231,16 @@ export function CaptureDialog({
   useEffect(() => {
     if (captureBody.current) captureBody.current.scrollTop = 0;
   }, [step]);
+  const canSubmit = !saving && !customFieldForm.loading && !customFieldForm.error;
+  const submitLabel = potential ? "Create potential client" : "Create lead";
   const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
+  const stepHelp = [
+    quickCapture ? "Add a name and at least one contact method." : "Only the name is required.",
+    "",
+    "",
+    automaticRouting ? "Use assignment rules or choose an employee." : "",
+    "Link items from your catalog.",
+  ][step];
   const priority = values.capture_priority || "Medium";
   const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
   const update = (name: string, value: string) => {
@@ -1252,22 +1262,13 @@ export function CaptureDialog({
     try{customFieldForm.validate();}catch(error){setError(error instanceof Error?error.message:"Check the custom fields.");return;}
     setStep(step+1);
   };
-  const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><UserRound size={19}/><input aria-label={label} aria-invalid={!!captureErrors[name]} aria-describedby={captureErrors[name]?`lead-capture-error-${name}`:undefined} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span>{captureErrors[name]&&<small id={`lead-capture-error-${name}`} role="alert" className="text-destructive">{captureErrors[name]}</small>}</label>;
+  const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><input aria-label={label} aria-invalid={!!captureErrors[name]} aria-describedby={captureErrors[name]?`lead-capture-error-${name}`:undefined} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span>{captureErrors[name]&&<small id={`lead-capture-error-${name}`} role="alert" className="text-destructive">{captureErrors[name]}</small>}</label>;
   return <Dialog open onOpenChange={open => {if (!open) dismiss();}}>
     <DialogContent className="lead-create-dialog" overlayClassName="lead-create-overlay">
-      <aside className="lead-create-aside">
-        <div className="lead-create-emblem"><UserRoundPlus size={34}/></div>
-        <DialogTitle>{potential ? "Create Potential Client" : "Create New Lead"}</DialogTitle>
-        <p className="lead-create-intro">Capture potential business opportunities and start the conversation.</p>
-        <div className="lead-create-benefits">{[[Zap, "Quick & Easy", "Add essential details in seconds"], [Users, "Organize Better", "Keep all lead information in one place"], [BarChart3, "Convert Faster", "Track and move leads through pipeline"]].map(([Icon, title, text]) => {const Glyph = Icon as typeof Zap; return <div key={String(title)}><span><Glyph size={28}/></span><p><strong>{String(title)}</strong><small>{String(text)}</small></p></div>;})}</div>
-        <div className="lead-create-art" aria-hidden="true">
-          <div className="lead-art-card"><UserRound size={32}/><i/><i/><i/></div>
-          <div className="lead-art-chart"><BarChart3 size={43}/></div>
-          <div className="lead-art-target"><div><div><div/></div></div></div>
-          <div className="lead-art-arrow"><span/><i/></div>
-          <div className="lead-art-check"><Check size={29}/></div>
-        </div>
-      </aside>
+      <header className="lead-create-header">
+        <span className="lead-create-icon"><UserRoundPlus size={20} aria-hidden="true" /></span>
+        <DialogTitle>{submitLabel}</DialogTitle>
+      </header>
       <CompactForm compactTabs={false} noValidate ref={captureForm} className="lead-create-main"
           onSubmit={async (e) => {
             e.preventDefault();
@@ -1329,29 +1330,76 @@ export function CaptureDialog({
               </NativeSelect>
             </label>
           ) : (
-            <nav className="lead-create-steps" role="tablist" aria-label="Lead creation sections" onKeyDown={event => { const next = event.key === "ArrowRight" ? (step + 1) % captureTabs.length : event.key === "ArrowLeft" ? (step - 1 + captureTabs.length) % captureTabs.length : event.key === "Home" ? 0 : event.key === "End" ? captureTabs.length - 1 : -1; if (next >= 0) { event.preventDefault(); setStep(next); event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus(); } }}>{captureTabs.map((title, index) => <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`} aria-controls="lead-capture-panel" aria-selected={step === index} tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}><span aria-hidden="true">{index + 1}</span>{title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}</button>)}</nav>
+            <nav
+              className="lead-create-steps"
+              role="tablist"
+              aria-label="Lead creation sections"
+              aria-orientation="vertical"
+              onKeyDown={event => {
+                const last = captureTabs.length - 1;
+                let next: number;
+                switch (event.key) {
+                  case "ArrowDown": case "ArrowRight": next = step === last ? 0 : step + 1; break;
+                  case "ArrowUp": case "ArrowLeft": next = step === 0 ? last : step - 1; break;
+                  case "Home": next = 0; break;
+                  case "End": next = last; break;
+                  default: return;
+                }
+                event.preventDefault();
+                setStep(next);
+                event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+              }}
+            >
+              {captureTabs.map((title, index) => (
+                <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`}
+                  aria-controls="lead-capture-panel" aria-selected={step === index}
+                  tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}>
+                  {title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}
+                </button>
+              ))}
+            </nav>
           )}
           <div className="lead-create-body" ref={captureBody} id="lead-capture-panel" role={mobile ? "region" : "tabpanel"} aria-labelledby={mobile ? "lead-capture-section-title" : `lead-capture-tab-${step}`}>
-            <h3 id="lead-capture-section-title">{["Basic Information", "Contact Information", "Company Details", "Additional Information", "Products & services"][step]}</h3>
-            <p className="lead-create-subtitle">{quickCapture && step === 0 ? "Add a name and either a phone number or email. Reveal more details when needed." : ["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
-            {error && <ErrorNotice message={error}/>}
+            <h3 id="lead-capture-section-title">{captureTabs[step]}</h3>
+            {stepHelp && <p className="lead-create-subtitle">{stepHelp}</p>}
+            {(error || customFieldForm.error) && <ErrorNotice message={error || customFieldForm.error || ""}/>}
+            {customFieldForm.loading && <p className="lead-create-subtitle" role="status">Loading custom fields…</p>}
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
               {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput error={captureErrors.phone} value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}
-              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field">Lead Source<span className="lead-create-control"><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
               {(mobile || quickCapture) && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
-              {(!(mobile || quickCapture) || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
-              <label className="lead-create-field">Priority<span data-priority-badge data-priority={priority} className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
-              <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
+              {(!(mobile || quickCapture) || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field">Priority<span data-priority-badge data-priority={priority} className="lead-create-control"><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
             </div>}
             {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput error={captureErrors.phone} value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}<BusinessProfileFields services={values.services_offered} types={values.business_types} onChange={update} disabled={saving}/></div>}
-            {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><NativeSelect aria-label="Assign to employee" value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}<fieldset className="lead-create-grid"><legend className="lead-create-subtitle">Location</legend>{field("city", "City")}{field("country", "Country")}</fieldset></>}
+            {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><NativeSelect aria-label="Assign to employee" value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}<fieldset className="lead-create-grid"><legend className="lead-create-subtitle">Location</legend>{field("city", "City")}{field("country", "Country")}</fieldset></>}
             <SharedNumberConfirmation phone={values.phone} countryCode={values.phone_country_code} email={values.email} confirmed={sharedConfirmed} reason={sharedReason} onChange={(a,b)=>{setSharedConfirmed(a);setSharedReason(b);}}/>{duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
             {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             <CrmRecordFields state={customFieldForm}/>
           </div>
-          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={nextStep} disabled={saving||customFieldForm.loading||!!customFieldForm.error}>Next<ArrowRight size={16}/></Button>}<Button type="submit" data-save-action disabled={saving||customFieldForm.loading||!!customFieldForm.error}>{saving ? "Saving…" : "Create lead"}</Button>{customFieldForm.loading&&<span role="status">Loading custom fields...</span>}{customFieldForm.error&&<p role="alert">{customFieldForm.error}</p>}</div></footer>
+          <footer className="lead-create-footer">
+            <Button type="button" variant="outline" onClick={saveDraft} disabled={saving}>
+              <FileText size={16} aria-hidden="true" />Save as Draft
+            </Button>
+            <div>
+              {step > 0 && (
+                <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>
+                  Back
+                </Button>
+              )}
+              {step < captureTabs.length - 1 && (
+                <Button type="button" variant="outline" onClick={nextStep} disabled={!canSubmit}>
+                  Next <ArrowRight size={16} aria-hidden="true" />
+                </Button>
+              )}
+              <Button type="submit" data-save-action disabled={!canSubmit}>
+                {saving ? "Saving…" : submitLabel}
+              </Button>
+            </div>
+          </footer>
         </CompactForm>
     </DialogContent>
   </Dialog>;

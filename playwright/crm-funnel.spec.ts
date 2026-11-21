@@ -6,7 +6,7 @@ test.describe("CRM funnel Phase 2", () => {
     await authenticateCrm(page);
     await page.goto("/crm/funnel", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Sales Funnel" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "SRM Invoice Generated" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "Receipt Collected" })).toBeVisible();
+    await expect(page.getByRole("gridcell", { name: "SRM Invoice Generated", exact: true })).toBeVisible();
+    await expect(page.getByRole("gridcell", { name: "Receipt Collected", exact: true })).toBeVisible();
   });
 });

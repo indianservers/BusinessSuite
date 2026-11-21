@@ -1,3 +1,68 @@
+.crm-record-header {
+  display: grid;
+  grid-template-areas:
+    "identity tools"
+    "actions actions";
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+}
+
+.crm-record-identity {
+  grid-area: identity;
+}
+
+.crm-record-title {
+  overflow-wrap: anywhere;
+}
+
+.crm-record-tools {
+  grid-area: tools;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.crm-record-actions {
+  grid-area: actions;
+  min-width: 0;
+}
+
+.crm-record-preview[role=dialog] {
+  inset: 0 0 0 auto;
+  transform: none;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 42rem);
+  max-width: none;
+  max-height: 100dvh;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.crm-record-preview-header {
+  padding: 1rem 3.5rem 1rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.crm-record-preview-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.crm-record-preview-body {
+  padding: 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+
 .crm-detail-dialog {
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0;
@@ -28,9 +93,44 @@
 }
 
 @media (max-width: 767px) {
+  .crm-record-header {
+    grid-template-areas: "identity" "actions" "tools";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .crm-record-tools {
+    justify-content: flex-start;
+  }
+
+  .crm-record-tools :is(button, a),
+  .crm-record-preview-nav :is(button, a),
+  .crm-record-detail .r360-actions :is(button, a),
+  .crm-record-detail .r360-composer :is(button, a) {
+    min-height: 44px;
+  }
+
+  .crm-record-detail .r360-header {
+    flex-wrap: wrap;
+  }
+
+  .crm-record-detail .r360-details > summary {
+    min-height: 44px;
+    padding-block: 12px;
+  }
+
+  .crm-record-preview-header {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .crm-record-preview-body {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
   .crm-detail-dialog {
     width: calc(100% - 1rem);
-    max-height: calc(100dvh - 1rem);
+    top: calc(var(--mobile-viewport-height, 100dvh) / 2);
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 1rem);
   }
 
   .crm-detail-dialog-header {

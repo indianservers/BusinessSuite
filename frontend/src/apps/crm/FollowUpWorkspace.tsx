@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { crmTimestamp } from "./dateTime";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import PhoneActions from "@/components/PhoneActions";
@@ -314,7 +315,7 @@ function BulkEditor({ action, records, owners, close, saved, changed }: { change
     setBusy(true); setError("");
     const payload = { recipients: remaining.map(row => ({ entity: row.entity, id: row.id })), action, owner_id: owner ? Number(owner) : null, due_at: due ? new Date(due).toISOString() : null };
     const fingerprint = JSON.stringify(payload);
-    if (request.current.fingerprint !== fingerprint) request.current = { fingerprint, id: crypto.randomUUID() };
+    if (request.current.fingerprint !== fingerprint) request.current = { fingerprint, id: randomUUID() };
     try {
       const response = await api.post(`${root}/follow-ups/bulk`, { ...payload, request_id: request.current.id });
       const failed = response.data.items.filter((row: { saved: boolean }) => !row.saved);

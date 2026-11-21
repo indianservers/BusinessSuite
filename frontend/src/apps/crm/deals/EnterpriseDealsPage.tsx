@@ -45,6 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { affectsResource, publishGridRecord, removeGridRecords, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import { crmApi } from "../api";
 import CRMStageDialog from "../CRMStageDialog";
+import CRMPageHeader from "../CRMPageHeader";
 import { dealError, dealMoney, dealOptions, label } from "./deal-utils";
 import "./deals.css";
 import * as Popover from "@radix-ui/react-popover";
@@ -787,26 +788,21 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         />
         No next action
       </label>
-      <button
-        type="button"
-        className="ed-text-button"
-        disabled={mobile && !activeFilterCount}
-        onClick={clearDealFilters}
-      >
-        Clear filters
-      </button>
+      {!mobile && (
+        <button
+          type="button"
+          className="ed-text-button"
+          onClick={clearDealFilters}
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   );
   return (
     <main className={`ed-workspace ed-collection ${mode === "kanban" ? "ed-pipeline-workspace" : ""}`} aria-busy={loading}>
-      <header className="ed-header">
-        <div className="ed-collection-heading">
-          <h1>Deals</h1>
-          <p className="ed-muted">
-            Permitted opportunities
-          </p>
-        </div>
-        <div className="ed-actions">
+      <CRMPageHeader title={initialView === "kanban" ? "Pipeline" : "Deals"} actions={
+        <>
           <div ref={setSavedViewsHost} className="ed-saved-views"/>
           {canCreate && (
             <Button onClick={() => setCreate(true)}>
@@ -814,22 +810,17 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
               Create deal
             </Button>
           )}
-          <MobileDisclosure title="More" keepMounted maxWidth={650} className="ed-secondary-actions">
-          <Link className="ed-link-button" to="/crm/pipeline-settings">
-            <Settings2 size={16} />
-            Pipelines
-          </Link>
-          <Button
-            variant="outline"
-            onClick={() => setReload((v) => v + 1)}
-            aria-label="Refresh deals"
-          >
-            <RefreshCw size={16} />
-          </Button>
-          {canCreate && <CRMDataTransfer entity="deals" importOnly onImported={()=>setReload(v=>v+1)}/>}
+          <MobileDisclosure title="More" keepMounted className="ed-secondary-actions">
+            <Button variant="outline" asChild>
+              <Link to="/crm/pipeline-settings"><Settings2 size={16} />Pipeline settings</Link>
+            </Button>
+            <Button variant="outline" onClick={() => setReload(value => value + 1)} aria-label="Refresh deals">
+              <RefreshCw size={16} />
+            </Button>
+            {canCreate && <CRMDataTransfer entity="deals" importOnly onImported={() => setReload(value => value + 1)} />}
           </MobileDisclosure>
-        </div>
-      </header>
+        </>
+      }/>
       {error && (
         <div role="alert" className="ed-error">
           {error}
@@ -886,9 +877,9 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
       </details>}
       {personalFilter?.kind&&<p role="status" className="text-xs text-muted-foreground">{personalFilter.kind==="favorites"?"Favorites":"Frequent"} applies across deal views. <button type="button" className="underline" onClick={()=>personalFilter.apply(null)}>Show all matching deals</button></p>}
       <WorkspaceViewBar scope="crm-deals" label="Deal views" active={mode} views={dealViews} onChange={setMode} primary={["grid","kanban","forecast"]}/>
-      <section className="ed-controls">
+      <section aria-label="Deal filters and search" className="ed-controls">
         <div className="ed-toolbar">
-          {mode !== "grid" && (!mobile || mode !== "kanban") && (
+          {mode !== "grid" && mode !== "kanban" && (
             <div className="ed-search">
               <Search size={16} />
               <Input
@@ -930,7 +921,10 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
                 {quickDealFilters}
                 {advancedDealFilters}
               </div>
-              <Button type="button" className="mobile-primary-action" onClick={() => setFilterSheetOpen(false)}>Show deals</Button>
+              <footer className="ed-filter-sheet-footer">
+                <Button type="button" variant="outline" disabled={!activeFilterCount} onClick={clearDealFilters}>Clear filters</Button>
+                <Button type="button" onClick={() => setFilterSheetOpen(false)}>Show deals</Button>
+              </footer>
             </MobileSheet>
           </>
         ) : (

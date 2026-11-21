@@ -1,4 +1,5 @@
 import { lazyRoute } from "@/lib/lazy-route";
+import "./crm-page.css";
 const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
 const AppointmentScheduler = lazyRoute(() => import("@/apps/srm/industry/IndustryOperationsPage"));
 const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
