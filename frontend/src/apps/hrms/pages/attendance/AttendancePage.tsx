@@ -322,6 +322,17 @@ export default function AttendancePage() {
         </div>
       </div>
 
+      {phone && (
+        <nav aria-label="Attendance sections" className="grid grid-cols-2 gap-2">
+          <Button asChild variant="outline" className="min-h-11">
+            <a href="#attendance-register">Register</a>
+          </Button>
+          <Button asChild variant="outline" className="min-h-11">
+            <a href="#attendance-records">Records</a>
+          </Button>
+        </nav>
+      )}
+
       {/* Today's action card */}
       <Card>
         <CardContent className="p-6">
@@ -427,7 +438,7 @@ export default function AttendancePage() {
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle className="text-base">Attendance Register</CardTitle>
+              <CardTitle id="attendance-register" tabIndex={phone ? -1 : undefined} className="scroll-mt-3 text-base">Attendance Register</CardTitle>
               <CardDescription>HR can manually enter and bulk save attendance for payroll.</CardDescription>
             </div>
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
@@ -627,7 +638,7 @@ export default function AttendancePage() {
       {/* Recent records table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Attendance Records</CardTitle>
+          <CardTitle id="attendance-records" tabIndex={phone ? -1 : undefined} className="scroll-mt-3 text-base">Attendance Records</CardTitle>
           <CardDescription>
             {new Date(viewYear, viewMonth - 1).toLocaleString("en", { month: "long", year: "numeric" })}
           </CardDescription>
