@@ -1572,6 +1572,7 @@ function POSSessionView() {
 }
 
 function CashierClosingView() {
+  const mobile = useMobile();
   const queryClient = useQueryClient();
   const canManage = useCanManageRevenue();
   const [countedCash, setCountedCash] = useState("");
@@ -1581,6 +1582,7 @@ function CashierClosingView() {
   const session = (activeData.session || null) as SRMRecord | null;
   const expected = cashNumber(activeData.expected_cash);
   const counted = cashNumber(countedCash);
+  const variance = Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0 ? money(counted - expected) : "-";
   const canCloseSession = Boolean(session?.id) && !activeData.reconciliation_required && Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0;
   const close = useMutation({
     mutationFn: () => {
@@ -1596,15 +1598,19 @@ function CashierClosingView() {
     <div className="space-y-5">
       <PageHeader meta={viewMeta.cashierClosing} isFetching={active.isFetching} onRefresh={() => active.refetch()} />
       <SectionState label="active POS session" isLoading={active.isLoading} isError={active.isError} onRetry={() => active.refetch()} />
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className={mobile ? "grid grid-cols-2 gap-3" : "grid gap-3 md:grid-cols-4"}>
         <MetricCard label="Session" value={session ? session.session_number : "No open session"} />
         <MetricCard label="Opening cash" value={money(session?.opening_cash)} />
-        <MetricCard label="Expected cash" value={cashMoney(expected)} />
-        <MetricCard label="Variance preview" value={Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0 ? money(counted - expected) : "-"} />
+        {!mobile && <MetricCard label="Expected cash" value={cashMoney(expected)} />}
+        {!mobile && <MetricCard label="Variance preview" value={variance} />}
       </div>
       <Card>
         <CardHeader><CardTitle className="text-base">Close active session</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          {mobile && <dl className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-sm">
+            <div><dt className="text-muted-foreground">Expected cash</dt><dd className="font-semibold">{cashMoney(expected)}</dd></div>
+            <div><dt className="text-muted-foreground">Variance preview</dt><dd className="font-semibold" aria-live="polite">{variance}</dd></div>
+          </dl>}
           <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
           <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
           <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !canCloseSession}>Close Session</Button>
