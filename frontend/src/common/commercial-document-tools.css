@@ -1,10 +1,10 @@
 @media (max-width: 767px) {
-  :is(.commercial-document-register, .commercial-document-tools)[data-sales="true"] {
+  :is(.commercial-document-register, .commercial-document-tools)[data-compact="true"] {
     margin-block: 8px;
     padding: 0;
   }
 
-  [data-sales="true"] .commercial-document-toggle {
+  [data-compact="true"] .commercial-document-toggle {
     display: flex;
     justify-content: space-between;
     width: 100%;
@@ -12,28 +12,28 @@
     text-align: left;
   }
 
-  [data-sales="true"] .commercial-document-panel {
+  [data-compact="true"] .commercial-document-panel {
     border-top: 1px solid hsl(var(--border));
     padding: 12px;
     overflow-wrap: anywhere;
   }
 
-  [data-sales="true"] .commercial-document-panel[data-expanded="false"],
-  [data-sales="true"] .commercial-document-heading {
+  [data-compact="true"] .commercial-document-panel[data-expanded="false"],
+  [data-compact="true"] .commercial-document-heading {
     display: none;
   }
 
-  [data-sales="true"] .commercial-document-pages,
-  [data-sales="true"] .commercial-document-action-footer {
+  [data-compact="true"] .commercial-document-pages,
+  [data-compact="true"] .commercial-document-action-footer {
     flex-wrap: wrap;
   }
 
-  [data-sales="true"] .commercial-document-pages button {
+  [data-compact="true"] .commercial-document-pages button {
     padding-inline: 10px;
     font-size: 0.8125rem;
   }
 
-  [data-sales="true"] .commercial-document-action-footer button {
+  [data-compact="true"] .commercial-document-action-footer button {
     min-height: 44px;
     white-space: normal;
   }
