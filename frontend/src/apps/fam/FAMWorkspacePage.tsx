@@ -885,11 +885,25 @@ function BankStatementsView() {
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const phone = useMobile(480);
+  const statementChooser = (
+    <ImportWizard
+      title="Map bank statement"
+      label="Choose Excel or CSV"
+      fields={bankStatementFields}
+      confirmLabel="Use mapped statement"
+      onImport={async ({ rows, filename }) => {
+        setDraft(current => ({ ...current, imported_file_name: filename.replace(/\.[^.]+$/, ".csv"), file_content: csvText(rows) }));
+        return { created: rows.length, message: "Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted." };
+      }}
+    />
+  );
   return (
     <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
       <Card>
         <CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader>
         <CardContent className="space-y-3 fam-bank-import">
+          {phone && statementChooser}
           <div className="grid gap-3 fam-bank-import-fields">
             {["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
               <Field key={field} label={field.replace(/_/g, " ")}>
@@ -905,16 +919,7 @@ function BankStatementsView() {
               </Field>
             ))}
           </div>
-          <ImportWizard
-            title="Map bank statement"
-            label="Choose Excel or CSV"
-            fields={bankStatementFields}
-            confirmLabel="Use mapped statement"
-            onImport={async ({ rows, filename }) => {
-              setDraft(current => ({ ...current, imported_file_name: filename.replace(/\.[^.]+$/, ".csv"), file_content: csvText(rows) }));
-              return { created: rows.length, message: "Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted." };
-            }}
-          />
+          {!phone && statementChooser}
           <MobileDisclosure title="Enter or review CSV content" maxWidth={480} keepMounted>
             <Field label="CSV content">
               <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => setDraft(current => ({ ...current, file_content: event.target.value }))} />
@@ -2146,7 +2151,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   if (isSrmInventoryContext && retailMode) content = <RetailWorkspace mode={retailMode} receiptTitle={kind === "inventoryStockIn" ? "Stock in" : "Purchase receipt"} fallback={content} renderTable={(rows,columns)=><DataTable gridId={`business-packs/retail:${kind}:${columns.join("-")}`} preview={false} rows={rows} columns={columns}/>}/>;
 
   return (
-    <section className={`space-y-5${isSrmInventoryContext ? "" : " fam-finance-page"}${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}${kind === "bankReconciliation" ? " fam-mobile-reconciliation-page" : ""}`}>
+    <section className={`space-y-5${isSrmInventoryContext ? "" : " fam-finance-page"}${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}${["bankStatements","bankStatementDetail","bankReconciliation"].includes(kind) ? " fam-mobile-bank-page" : ""}`}>
       <PageHeader meta={meta} onRefresh={() => { void queryClient.invalidateQueries({ queryKey: ["fam"] }); if (isSrmInventoryContext && retailMode) void queryClient.invalidateQueries({ queryKey: ["srm", "retail"] }); }} />
       {content}
     </section>
