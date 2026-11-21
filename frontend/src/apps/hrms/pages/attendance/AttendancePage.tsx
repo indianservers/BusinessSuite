@@ -577,6 +577,7 @@ export default function AttendancePage() {
       </Card>
 
       {/* Calendar */}
+      <MobileDisclosure title="Attendance calendar" maxWidth={480}>
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -640,6 +641,7 @@ export default function AttendancePage() {
           </div>
         </CardContent>
       </Card>
+      </MobileDisclosure>
 
       {/* Recent records table */}
       <Card>
