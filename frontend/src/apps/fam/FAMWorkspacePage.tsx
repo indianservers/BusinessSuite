@@ -1715,7 +1715,7 @@ function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {
 
 function InventoryBatchesView() {
   const location=useLocation();
-  return location.pathname.startsWith('/srm/inventory') ? <PharmaInventory fallback={<NativeInventoryBatchesView/>} renderTable={rows=><DataTable gridId="business-packs/pharma:batches" preview={false} rows={rows} columns={["batch_number","item_name","warehouse_name","expiry_date","quantity","available_quantity","status","fefo_eligible"]}/>}/> : <NativeInventoryBatchesView/>;
+  return location.pathname.startsWith('/srm/inventory') ? <PharmaInventory fallback={<NativeInventoryBatchesView/>} renderTable={rows=><DataTable gridId="business-packs/pharma:batches" preview={false} rows={rows} columns={["batch_number","item_name","warehouse_name","expiry_date","quantity","available_quantity","selling_price","status","fefo_eligible"]}/>}/> : <NativeInventoryBatchesView/>;
 }
 
 function NativeInventoryBatchesView() {

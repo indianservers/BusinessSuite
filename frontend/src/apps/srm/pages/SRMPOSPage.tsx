@@ -100,6 +100,8 @@ type PosMode = "Retail" | "Supermarket" | "Restaurant" | "Services" | "Wholesale
 type PaymentMode = "Cash" | "Card" | "UPI" | "Wallet" | "Credit" | "Split";
 type ProductViewMode = "tiles" | "list" | "details";
 
+type POSLot = { id: number; number: string; quantity: string; rate: string };
+
 type Product = {
   id: number;
   name: string;
@@ -124,6 +126,7 @@ type Product = {
   batchTracking?: boolean;
   serialTracking?: boolean;
   lotAllocation?: "fefo";
+  lots?: POSLot[];
   decimalAllowed?: boolean;
   batch?: string;
   serials?: string[];
@@ -311,6 +314,7 @@ function heldBillFromRecord(item: SRMRecord): HeldBill {
 }
 
 function productFromRecord(item: SRMRecord): Product {
+  const lots = Array.isArray(item.lots) ? item.lots as POSLot[] : undefined;
   return {
     id: recordNumber(item.id),
     name: String(item.item_name || item.name || "Unnamed product"),
@@ -323,7 +327,8 @@ function productFromRecord(item: SRMRecord): Product {
     sku: String(item.sku || ""),
     barcode: String(item.barcode || item.sku || ""),
     category: String(item.category_name || (item.category as SRMRecord | undefined)?.category_name || "General"),
-    rate: recordNumber(item.sales_rate),
+    rate: recordNumber(lots?.[0]?.rate, recordNumber(item.sales_rate)),
+    lots,
     mrp: recordNumber(item.mrp, recordNumber(item.sales_rate)),
     taxRate: recordNumber(item.gst_rate),
     stock: recordNumber((item.stock as {available_quantity?:string}|undefined)?.available_quantity, recordNumber(item.current_quantity)),
@@ -519,7 +524,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [configurationOpen, setConfigurationOpen] = useState(false);
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [category, setCategory] = useState("All");
-  const [cart, setCart] = usePersistedState<CartLine[]>(storage("cart"), []);
+  const [draftCart, setCart] = usePersistedState<CartLine[]>(storage("cart"), []);
   const [phonePanel,setPhonePanel] = useState<'sessions'|'actions'|'customer'|'discounts'|null>(null);
   const [phoneLineId,setPhoneLineId] = useState<string|null>(null);
   const phoneLine=cart.find(line=>line.lineId===phoneLineId);
@@ -578,10 +583,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   } });
   const customers = [walkInCustomer, ...(customersQuery.data || [])];
   const posFeatures = productsQuery.data?.features;
-  const heldBillsQuery = useQuery({ enabled:!selectedPOS && (productsQuery.isSuccess || activeModal === "held" || cart.length > 0), queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: activeModal === "held" ? 30000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const heldBillsQuery = useQuery({ enabled:!selectedPOS && (productsQuery.isSuccess || activeModal === "held" || draftCart.length > 0), queryKey: ["srm", "posHeldBills", scope], queryFn: () => srmApi.posHeldBills(), refetchInterval: activeModal === "held" ? 30000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
 
   useEffect(()=>{if(!selectedPOS&&activeModal==="held")void heldBillsQuery.refetch()},[activeModal,selectedPOS]);
-  const followUpOptions = useQuery({enabled:!selectedPOS&&cart.length>0,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
+  const followUpOptions = useQuery({enabled:!selectedPOS&&draftCart.length>0,queryKey:["follow-up-options",scope],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
   const [checkoutKey, setCheckoutKey] = usePersistedState(storage("checkout-key"), randomUUID());
   const intentKey = financialIntentKey("checkout");
   const [recovery] = useState(() => readPOSCheckoutIntent<CheckoutAttempt>(intentKey));
@@ -596,7 +601,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [openingCash, setOpeningCash] = useState('0'), [opening, setOpening] = useState(false);
   const registerQueryKey = ['srm','pos-active-session',scope] as const;
   const readActiveRegister = (signal: AbortSignal) => api.get<SRMRecord>('/srm/pos/sessions/active',{signal,recordCache:false}).then(response=>response.data);
-  const activeRegister = useQuery({enabled:productsQuery.isSuccess || cart.length>0 || activeModal!==null || phonePanel==='sessions',queryKey:registerQueryKey,queryFn:({signal})=>readActiveRegister(signal),retry:false});
+  const activeRegister = useQuery({enabled:productsQuery.isSuccess || draftCart.length>0 || activeModal!==null || phonePanel==='sessions',queryKey:registerQueryKey,queryFn:({signal})=>readActiveRegister(signal),retry:false});
   const paymentCaps = useQuery({queryKey:['srm','pos-checkout-payment-capabilities',scope],queryFn:()=>api.get<{collect:boolean}>('/srm/industry/capabilities').then(response=>response.data),enabled:!!lastSale?.checkoutId,retry:false});
   type CheckoutAuthority = {invoice?:boolean;collect?:boolean;checkout_create?:boolean;checkout_collect?:boolean};
   const recoveryAuthority = useQuery({queryKey:['srm','pos-checkout-recovery-authority',scope],queryFn:({signal})=>api.get<CheckoutAuthority>('/srm/industry/capabilities',{signal,recordCache:false}).then(response=>response.data),retry:false,enabled:!!uncertain,placeholderData:undefined});
@@ -614,8 +619,43 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const knownProducts=useRef<{scope:string;items:Map<number,Product>}>({scope,items:new Map()});
   if(knownProducts.current.scope!==scope)knownProducts.current={scope,items:new Map()};
   for(const item of currentProducts)knownProducts.current.items.set(item.id,item);
-  for(const id of knownProducts.current.items.keys()){if(knownProducts.current.items.size<=1000)break;if(!cart.some(line=>line.id===id))knownProducts.current.items.delete(id);}
+  for(const id of knownProducts.current.items.keys()){if(knownProducts.current.items.size<=1000)break;if(!draftCart.some(line=>line.id===id))knownProducts.current.items.delete(id);}
   const dbProducts=[...knownProducts.current.items.values()];
+  const cart = draftCart.map(line => {
+    const product = knownProducts.current.items.get(line.id);
+    return product ? {...line, rate: product.rate, taxRate: product.taxRate, stock: product.stock,
+      lotAllocation: product.lotAllocation, lots: product.lots} : line;
+  });
+  const remainingByLot = new Map<number, number>();
+  const pricedLines = new Map<string, CartLine[]>();
+  const incompleteLots = new Set<string>();
+  for (const line of cart) {
+    if (line.lotAllocation !== "fefo") {
+      pricedLines.set(line.lineId, [line]);
+      continue;
+    }
+    const parts: CartLine[] = [];
+    // Allocate in thousandths so fractional stock does not leave a rounding remainder.
+    let remaining = Math.round(line.qty * 1000);
+    for (const lot of line.lots || []) {
+      if (!remaining) break;
+      const available = remainingByLot.get(lot.id) ?? Math.round(Number(lot.quantity) * 1000);
+      const take = Math.min(available, remaining);
+      if (!take) continue;
+      parts.push({...line, qty: take / 1000, rate: Number(lot.rate), batchNo: lot.number});
+      remainingByLot.set(lot.id, available - take);
+      remaining -= take;
+    }
+    if (remaining) incompleteLots.add(line.lineId);
+    pricedLines.set(line.lineId, parts);
+  }
+  const checkoutLines = [...pricedLines.values()].flat();
+  function displayRate(line: CartLine) {
+    return line.lotAllocation === "fefo"
+      ? (pricedLines.get(line.lineId) || []).map(part =>
+          `Batch ${part.batchNo} · ${part.qty} × ${currency(part.rate)}`).join(" / ") || "No eligible batch stock"
+      : currency(line.rate);
+  }
   const productSource=currentProducts;
   const storeProducts=productSource;
   const [catalogTab, setCatalogTab] = useState("All");
@@ -624,20 +664,20 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   const [favoriteIds,setFavoriteIds] = usePersistedState<number[]>(storage("favorite-catalog"), []);
   const [recentIds, setRecentIds] = usePersistedState<number[]>(storage("recent-catalog"), []);
   const categories = useMemo(() => ["All", ...Array.from(new Set(storeProducts.map((item) => item.category)))], [storeProducts]);
-  const couponDiscount = coupon.trim().toUpperCase() === "WELCOME10" ? Math.min(250, Math.max(0, cart.reduce((sum, item) => sum + lineTaxable(item), 0) * 0.1)) : 0;
+  const couponDiscount = coupon.trim().toUpperCase() === "WELCOME10" ? Math.min(250, Math.max(0, checkoutLines.reduce((sum, item) => sum + lineTaxable(item), 0) * 0.1)) : 0;
 
   const totals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + lineBase(item), 0);
-    const lineDiscountTotal = cart.reduce((sum, item) => sum + lineDiscount(item), 0);
-    const taxableBeforeBill = cart.reduce((sum, item) => sum + lineTaxable(item), 0);
+    const subtotal = checkoutLines.reduce((sum, item) => sum + lineBase(item), 0);
+    const lineDiscountTotal = checkoutLines.reduce((sum, item) => sum + lineDiscount(item), 0);
+    const taxableBeforeBill = checkoutLines.reduce((sum, item) => sum + lineTaxable(item), 0);
     const safeBillDiscount = Math.min(Math.max(billDiscount, 0), taxableBeforeBill);
     const taxable = Math.max(taxableBeforeBill - safeBillDiscount - couponDiscount, 0);
-    const taxBeforeScale = cart.reduce((sum, item) => sum + lineTax(item), 0);
+    const taxBeforeScale = checkoutLines.reduce((sum, item) => sum + lineTax(item), 0);
     const tax = taxableBeforeBill ? taxBeforeScale * (taxable / taxableBeforeBill) : 0;
     const unrounded = taxable + tax;
     const grandTotal = Math.max(Math.round((unrounded + Number.EPSILON) * 100) / 100, 0);
-    const nativeQuote = operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo")
-      ? pharmaCheckoutQuote(cart.map(line => ({quantity: String(line.qty), price: line.rate.toFixed(2),
+    const nativeQuote = operationalPackKey === "pharma" && checkoutLines.some(line => line.lotAllocation === "fefo")
+      ? pharmaCheckoutQuote(checkoutLines.map(line => ({quantity: String(line.qty), price: line.rate.toFixed(2),
           discount: lineDiscount(line).toFixed(2), taxRate: String(line.taxRate)})),
           (safeBillDiscount + couponDiscount).toFixed(2)) : null;
     return {
@@ -649,10 +689,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       tax,
       roundOff: grandTotal - unrounded,
       grandTotal,
-      qty: cart.reduce((sum, item) => sum + item.qty, 0),
+      qty: checkoutLines.reduce((sum, item) => sum + item.qty, 0),
       ...(nativeQuote ? {...nativeQuote, qty: nativeQuote.quantity, roundOff: 0} : {}),
     };
-  }, [billDiscount, cart, couponDiscount, operationalPackKey]);
+  }, [billDiscount, checkoutLines, couponDiscount, operationalPackKey]);
 
   const filteredProducts = useMemo(() => {
     const text = query.trim().toLowerCase();
@@ -687,6 +727,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
   if (!customerId && cart.some(line=>line.booking || line.followUp || isService(line) && requirements[line.lineId])) readiness.push({id:'customer',text:'Select a registered customer for appointments and follow-ups.'});
   for (const line of cart) {
     const current = dbProducts.find(product=>product.id===line.id);
+    if (incompleteLots.has(line.lineId)) readiness.push({id:`batch-${line.lineId}`,lineId:line.lineId,text:`${line.name}: reduce the quantity to available batch stock.`});
     if (!current || current.checkoutSupported===false) readiness.push({id:`item-${line.lineId}`,lineId:line.lineId,text:`${line.name}: ${current?.unsupportedReason || 'reload or remove this unavailable item'}.`});
     if (line.trackInventory && line.qty > (current?.stock ?? line.stock)) readiness.push({id:`stock-${line.lineId}`,lineId:line.lineId,text:`${line.name}: only ${current?.stock ?? line.stock} in stock.`});
     if (isService(line) && line.schedulingConfigured !== false && (!selectedPOS || posFeatures?.appointments_schedule) && (!(line.lineId in requirements) || requirements[line.lineId] && !line.booking)) readiness.push({id:`booking-${line.lineId}`,lineId:line.lineId,text:`${line.name}: ${line.lineId in requirements ? 'apply the required appointment details' : 'wait for scheduling rules to load'}.`});
@@ -816,6 +857,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         uncertainty.current=null;setUncertain(null);setCheckoutKey(randomUUID());setPaymentError(dealError(error));setActiveModal('payment');
         toast({title:'Checkout rejected',description:dealError(error)+' Your basket is retained. Review and reload scheduling before trying again.',variant:'destructive'});
         void activeRegister.refetch();
+        void productsQuery.refetch();
       } else if(owns()) setNativeError(dealError(error)+' The original checkout is retained; retry the same checkout to confirm its outcome.');
     } finally {checkoutBusy.current=false;if(owns())setNativeBusy(false);}
   }
@@ -824,6 +866,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
     try { const stored=readFinancialIntent<CheckoutAttempt>(intentKey); if(stored.pending) { if(stored.payload?.payload?.request_id) { uncertainty.current=stored.payload;setUncertain(stored.payload); } else setOpaqueLock(true); setActiveModal(null);return; } } catch { toast({title:'Checkout recovery unavailable',description:'Local recovery storage must be available before checkout.',variant:'destructive'});return; }
     if(selectedPOS&&(productsQuery.isFetching||productsQuery.isError||cart.some(line=>{const item=dbProducts.find(item=>item.id===line.id);return !item||item.checkoutSupported===false||!!line.followUp||(!posFeatures?.appointments_schedule&&!!line.booking);}))){toast({title:'Review POS availability',description:'Reload the catalogue and remove unsupported follow-up or unavailable items before checkout.',variant:'destructive'});return;}
     if(cart.some(line=>isService(line)&&(!selectedPOS||!!posFeatures?.appointments_schedule)&&(!(line.lineId in requirements)||(requirements[line.lineId]&&!line.booking)))) {toast({title:'Complete service scheduling',description:'Wait for each service policy and apply booking details for every required service.',variant:'destructive'});return;}
+    if (incompleteLots.size || checkoutLines.length > 100) {
+      setPaymentError(incompleteLots.size ? 'Reduce the quantities to available batch stock.' : 'Split this sale into smaller bills. Checkout supports up to 100 lines.');
+      return;
+    }
     if(cart.some(line=>!isService(line)&&(line.serialTracking||(line.batchTracking&&line.lotAllocation!=="fefo")))) {toast({title:'Tracking checkout unavailable',description:'This checkout does not support batch or serial selection yet. Keep this basket for a supported stock workflow.',variant:'destructive'});return;}
     if(paymentRows.some(row=>row.mode==='Wallet'&&row.amount>0)||paymentMode==='Wallet') {toast({title:'Wallet is not supported for native checkout',description:'Choose cash, card, UPI or credit.',variant:'destructive'});return;}
     checkoutBusy.current=true;setNativeBusy(true);
@@ -843,8 +889,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         if(!configuration.schema_ready||!configuration.configured||!configuration.enabled)throw new Error('A company administrator must enable the explicit walk-in counter account before checkout.');
       }
       const payload:NativeCheckoutPayload={request_id:checkoutKey,...(customerId>0?{buyer_mode:'registered' as const,customer_id:customerId}:{buyer_mode:'anonymous_cash' as const}),pos_session_id:session.id,currency:'INR',billing_mode:'invoice_at_checkout',note,expected_total:totals.grandTotal.toFixed(2),bill_discount_amount:(totals.billDiscount+totals.couponDiscount).toFixed(2),
-        lines:cart.map(line=>({client_line_key:line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
-      const attempt:CheckoutAttempt={payload,after,sale:{id:checkoutKey,invoiceNo:'',customer:customer.name,amount:totals.grandTotal,mode:paymentMode,createdAt:new Date().toISOString(),items:cart.length,lines:cart.map(line=>({name:line.name,qty:line.qty,rate:line.rate,...(line.booking?{appointment:bookingSummaries[line.lineId] || `${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleString()}`}:{})}))}};
+        lines:checkoutLines.map(line=>({client_line_key:line.lotAllocation === "fefo" ? randomUUID() : line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
+      const attempt:CheckoutAttempt={payload,after,sale:{id:checkoutKey,invoiceNo:'',customer:customer.name,amount:totals.grandTotal,mode:paymentMode,createdAt:new Date().toISOString(),items:cart.length,lines:checkoutLines.map(line=>({name:line.batchNo ? `${line.name} · Batch ${line.batchNo}` : line.name,qty:line.qty,rate:line.rate,...(line.booking?{appointment:bookingSummaries[line.lineId] || `${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleString()}`}:{})}))}};
       saveAttempt(attempt);checkoutBusy.current=false;setNativeBusy(false);await submitNative(attempt);
     } catch(error) {if(owns()){const message=error instanceof Error?error.message:dealError(error);setPaymentError(message);toast({title:'Checkout not started',description:message,variant:'destructive'});}checkoutBusy.current=false;if(owns())setNativeBusy(false);}
   }
@@ -1303,12 +1349,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
               {cart.length ? cart.map((line,lineIndex) => (
                 <div key={line.lineId} id={`pos-line-${line.lineId}`} onFocusCapture={()=>{phonePaginationAnchor.current=line.lineId;}} data-phone-hidden={lineIndex < safePhonePage*phonePageSize || lineIndex >= (safePhonePage+1)*phonePageSize} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
                   <div className="pos-compact-cart-row">
-                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} price and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">{line.kind.slice(0,-1)} · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
+                    <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} discount and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">{line.kind.slice(0,-1)} · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
                     <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line)} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking || isCustomerPlan(line)} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line) || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
-                    <strong className="pos-line-amount">{currency(operationalPackKey==='pharma' && line.lotAllocation==='fefo' ? pharmaCheckoutQuote([{quantity:String(line.qty),price:line.rate.toFixed(2),discount:lineDiscount(line).toFixed(2),taxRate:String(line.taxRate)}],'0.00')?.grandTotal ?? lineTotal(line) : lineTotal(line))}</strong>
+                    <strong className="pos-line-amount">{currency(line.lotAllocation === 'fefo' ? (pricedLines.get(line.lineId) || []).reduce((total, part) => total + lineTotal(part), 0) : lineTotal(line))}</strong>
                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
                   </div>
-                  <details className="mt-2"><summary className="cursor-pointer text-xs font-medium">Price, discount &amp; note</summary><div className="grid grid-cols-2 gap-2 py-2">                    <label className="text-xs text-slate-500">Rate<Input type="number" min="0" value={line.rate} onChange={(event) => updateLine(line.lineId, { rate: Math.max(0, Number(event.target.value) || 0) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
+                  <details className="mt-2"><summary className="cursor-pointer text-xs font-medium">Rate, discount &amp; note</summary><div className="grid grid-cols-2 gap-2 py-2">                    <div className="text-xs text-slate-500">Rate<div>{displayRate(line)}</div></div>
                     <label className="text-xs text-slate-500">Disc %<Input type="number" min="0" max="50" value={line.discount} onChange={(event) => updateLine(line.lineId, { discount: Math.min(50, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 border-slate-200 bg-slate-50 text-slate-950" /></label>
 </div>                  {["Memberships","Subscriptions"].includes(line.kind)&&<label className="mt-2 block text-xs text-slate-500">Plan start date<Input type="date" aria-label={`Plan start date ${line.lineId}`} value={line.planStartDate||""} onChange={event=>updateLine(line.lineId,{planStartDate:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>}<label className="mt-2 block text-xs text-slate-500">Line note<Input aria-label={`Line note ${line.lineId}`} value={line.note} onChange={event=>updateLine(line.lineId,{note:event.target.value})} className="mt-1 border-slate-200 bg-slate-50 text-slate-950"/></label>
 </details>
@@ -1373,7 +1419,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
 
 
-      {phoneLine && <Overlay title={`Edit ${phoneLine.name}`} onClose={()=>setPhoneLineId(null)}><div className="space-y-3"><label className="block">Rate<Input type="number" min="0" value={phoneLine.rate} onChange={event=>updateLine(phoneLine.lineId,{rate:Math.max(0,Number(event.target.value)||0)})}/></label><label className="block">Discount %<Input type="number" min="0" max="50" value={phoneLine.discount} onChange={event=>updateLine(phoneLine.lineId,{discount:Math.min(50,Math.max(0,Number(event.target.value)||0))})}/></label><label className="block">Line note<Input value={phoneLine.note} onChange={event=>updateLine(phoneLine.lineId,{note:event.target.value})}/></label>{phoneLine.booking&&<p>Quantity is fixed at one per appointment. Use Add another appointment for a second booking.</p>}<Button onClick={()=>setPhoneLineId(null)}>Done</Button></div></Overlay>}
+      {phoneLine && <Overlay title={`Edit ${phoneLine.name}`} onClose={()=>setPhoneLineId(null)}><div className="space-y-3"><div>Rate<div>{displayRate(phoneLine)}</div></div><label className="block">Discount %<Input type="number" min="0" max="50" value={phoneLine.discount} onChange={event=>updateLine(phoneLine.lineId,{discount:Math.min(50,Math.max(0,Number(event.target.value)||0))})}/></label><label className="block">Line note<Input value={phoneLine.note} onChange={event=>updateLine(phoneLine.lineId,{note:event.target.value})}/></label>{phoneLine.booking&&<p>Quantity is fixed at one per appointment. Use Add another appointment for a second booking.</p>}<Button onClick={()=>setPhoneLineId(null)}>Done</Button></div></Overlay>}
       {phonePanel && <Overlay title={phonePanel==='sessions'?'Register session':phonePanel==='actions'?'POS actions':phonePanel==='customer'?'Sale customer':'Discounts & coupons'} onClose={()=>setPhonePanel(null)}>
         {phonePanel==='sessions' && <div className="pos-phone-session space-y-3"><p>{branchName} · {register?.register_name || activeStoreProfile.register}</p><p>Cashier: {cashierName}</p>{register?.id?<><p>Session {register.session_number || register.id} · Open</p><p>Opening cash {currency(Number(register.opening_cash||0))}</p><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button variant="outline" onClick={()=>{setPhonePanel(null);setActiveModal('close');}}>Close session</Button></>:<form className="space-y-3" onSubmit={event=>{event.preventDefault();void openRegister();}}><p className="text-sm">Open the register before collecting payment.</p><label className="block text-sm">Opening cash<Input aria-label="Mobile POS opening cash" required type="number" min="0" step="0.01" value={openingCash} onChange={event=>setOpeningCash(event.target.value)}/></label><Button type="submit" disabled={locked||opening||!online||activeRegister.isPending||activeRegister.isFetching}>{opening?'Opening register…':'Open POS register'}</Button></form>}{activeRegister.isError&&<Button variant="outline" onClick={()=>void activeRegister.refetch()}>Reload POS register</Button>}</div>}
         {phonePanel==='actions' && <div className="grid grid-cols-2 gap-3"><Button onClick={()=>setPhonePanel("customer")}>Sale customer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('cash');}}>Cash drawer</Button><Button onClick={()=>{setPhonePanel(null);setActiveModal('profile');}}>Register settings</Button><Button disabled={!lastSale?.checkoutId&&!sales.some(sale=>!!sale.checkoutId)} onClick={()=>printReceipt()}>Print last receipt</Button><Button disabled={selectedPOS} onClick={()=>{setPhonePanel(null);setActiveModal('held');}}>Recall held bill</Button><Button onClick={()=>{setPhonePanel(null);setReadinessOpen(true);}}>Review bill</Button><Button disabled={!cart.length} onClick={()=>{setPhonePanel(null);setConfirmClear(true);}}>Clear bill</Button></div>}

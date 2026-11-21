@@ -409,8 +409,8 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                         bound=bound.replace(tzinfo=timezone.utc) if bound.tzinfo is None else bound
                         if (is_lower and start<bound) or (not is_lower and end>bound):fail('Specialist is unavailable for this interval',409)
             rate=line.unit_price if line.unit_price is not None else (product.sales_rate or Decimal(0))
-            if scope and (Decimal(rate)!=Decimal(product.sales_rate or 0) or line.discount_amount>0) and scope.pack_key+'.discounts.approve' not in scope.capabilities:
-                fail('Assigned Business Pack role cannot override prices or approve discounts',403)
+            if scope and line.discount_amount > 0 and scope.pack_key+'.discounts.approve' not in scope.capabilities:
+                fail('Assigned Business Pack role cannot approve discounts',403)
             prepared.append({'product_id':product.id,'quantity':line.quantity,'unit_price':rate,'discount_amount':line.discount_amount,
                 'description':product.item_name,'metadata_json':{'checkout_line_key':str(line.client_line_key),'note':line.note,
                     **({'plan_start_date':line.plan_start_date.isoformat()} if line.plan_start_date else {}),

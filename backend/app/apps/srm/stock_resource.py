@@ -172,7 +172,7 @@ def issue_for_order(order,db,actor):
     movements=[]
     from app.apps.srm.services.commercial_numbering import reserve_number
     for line,key,product,quantity in selected:
-        rate=Decimal(line.unit_price or product['sales_rate'] or 0)
+        rate=Decimal(line.unit_price)
         movement=SRMInventoryMovement(organization_id=company,
             movement_number=reserve_number(db,SRMInventoryMovement,'INV','movement_number',company,actor=actor),
             movement_type='pos_sale',movement_date=date.today(),product_id=key[0],warehouse_id=key[1],

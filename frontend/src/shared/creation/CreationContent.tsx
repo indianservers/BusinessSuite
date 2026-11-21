@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 import type { CreationDefinition } from "./registry";
-import type { CatalogSource } from "@/shared/catalog/api";
+import { offeringKinds, type CatalogSource } from "@/shared/catalog/api";
 import { LoadingState } from "@/components/ui/state";
 const Workspace = lazy(() => import("@/shared/workspace/WorkspaceCreateContent"));
 const Task = lazy(() => import("@/apps/project-management/pages/TaskStudioPage"));
@@ -32,7 +32,10 @@ export function CreationContent({ definition, routes, close, complete, busy }: {
   else if (entity === "project") content = <Project onCreated={complete} onCancel={close} />;
   else if (entity === "employee") content = <Employee onCreated={complete} />;
   else if (entity === "workspace" || entity === "invitation") content = <Workspaces creationWindow />;
-  else if (entity === "catalog") content = <Catalog source={module as CatalogSource} defaultKind={location.pathname.includes("services") && !location.pathname.includes("products-services") ? "service" : "product"} close={close} saved={complete} />;
+  else if (entity === "catalog") {
+    const kind = offeringKinds.find(value => value === params.get("kind"));
+    content = <Catalog source={module as CatalogSource} defaultKind={kind || (location.pathname.includes("services") && !location.pathname.includes("products-services") ? "service" : "product")} close={close} saved={complete} />;
+  }
   else if (["company", "customer", "vendor"].includes(entity) && module !== "fam") content = <Company source={module as "crm" | "srm"} recordLabel={entity} roles={[entity === "vendor" ? "Vendor" : entity === "customer" ? "Customer" : "Prospect"]} defaultEntityKind={entity === "customer" ? "Individual" : "Company"} onClose={close} onSaved={(record, keepOpen) => { if (!keepOpen) complete(record); }} />;
   else if (module === "crm" && entity === "contact") content = <Contact initialValues={contactContext} close={close} saved={complete} />;
   else if (module === "crm" && entity === "deal") content = <Deal initialValues={contactContext} draftScope={contextId("company_id") || contextId("contact_id") ? `context:${contextId("company_id") || ""}:${contextId("contact_id") || ""}` : undefined} close={close} saved={complete} />;

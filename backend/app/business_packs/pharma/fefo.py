@@ -31,6 +31,37 @@ def split(rows,requested,stock_date):
     return result
 
 
+def eligible_batches(scope, product, warehouse):
+    b = SRMInventoryBatch.__table__
+    a = PackBatchAvailability.__table__
+    native = BranchOwnership.__table__
+    return select(b).join(a, a.c.batch_id == b.c.id).join(native,
+        (native.c.resource_table == b.name) & (native.c.resource_key == b.c.id.cast(String))
+    ).where(
+        b.c.organization_id == scope.company_id, b.c.product_id == product, b.c.warehouse_id == warehouse,
+        a.c.organization_id == scope.company_id, a.c.branch_id == scope.branch_id,
+        a.c.pack_context_id == scope.context_id, a.c.active.is_(True),
+        native.c.company_id == scope.company_id, native.c.branch_id == scope.branch_id,
+        b.c.status == 'available', b.c.expiry_date > date.today(), b.c.available_quantity > 0,
+    )
+
+
+def batch_rate(batch, catalog_rate):
+    return Decimal(batch['selling_price'] if batch['selling_price'] is not None else catalog_rate or 0)
+
+
+def pos_batches(db, scope, product, warehouse_id):
+    b = SRMInventoryBatch.__table__
+    rows = db.connection().execute(eligible_batches(scope, product.id, warehouse_id)
+        .order_by(b.c.expiry_date, b.c.received_date.asc().nulls_last(), b.c.id)
+        .limit(MAX_ALLOCATIONS + 1)).mappings().all()
+    return [
+        {'id': row['id'], 'number': row['batch_number'], 'quantity': str(row['available_quantity']),
+         'rate': str(batch_rate(row, product.sales_rate))}
+        for row in rows
+    ]
+
+
 def plan(db,scope,selected,*,consume=False):
     """Called only after native company/product/balance locks and authority proof."""
     tracked=[item for item in selected if supported(scope,item[2])]
@@ -39,25 +70,23 @@ def plan(db,scope,selected,*,consume=False):
     from .models import MODELS
     from sqlalchemy import inspect
     if not all(inspect(db.connection()).has_table(m.__tablename__) for m in MODELS):fail('Install the Pharma stock extension first',503)
-    b=SRMInventoryBatch.__table__;a=PackBatchAvailability.__table__;native=BranchOwnership.__table__
+    b=SRMInventoryBatch.__table__
     by_key={}
     for line,key,product,quantity in tracked:
         if quantity!=quantity.quantize(Decimal('.001')):fail('Lot quantities support at most three decimal places',422)
-        by_key.setdefault(key,[]).append((line,quantity))
+        by_key.setdefault(key,[]).append((line, quantity, product['sales_rate']))
     result={}
     for (product,warehouse),lines in sorted(by_key.items()):
         # Lock IDs deterministically, then sort the actual locked snapshots FEFO.
-        rows=db.connection().execute(select(b).join(a,a.c.batch_id==b.c.id).join(native,
-            (native.c.resource_table==b.name)&(native.c.resource_key==b.c.id.cast(String)))
-            .where(b.c.organization_id==scope.company_id,b.c.product_id==product,b.c.warehouse_id==warehouse,
-                a.c.organization_id==scope.company_id,a.c.branch_id==scope.branch_id,a.c.pack_context_id==scope.context_id,a.c.active.is_(True),
-                native.c.company_id==scope.company_id,native.c.branch_id==scope.branch_id,b.c.status=='available',b.c.expiry_date>date.today(),b.c.available_quantity>0)
-            .order_by(b.c.id).limit(MAX_ALLOCATIONS+1).with_for_update(of=b)).mappings().all()
+        rows = db.connection().execute(eligible_batches(scope, product, warehouse)
+            .order_by(b.c.id).limit(MAX_ALLOCATIONS + 1).with_for_update(of=b)).mappings().all()
         if len(rows)>MAX_ALLOCATIONS:fail('This medicine exceeds the supported eligible batch allocation capacity; reconcile stock before checkout',409)
         remaining={row['id']:dict(row) for row in rows}
-        for line,quantity in lines:
+        for line, quantity, catalog_rate in lines:
             try:allocations=split(remaining.values(),quantity,date.today())
             except ValueError as error:fail(str(error),409)
+            if any(batch_rate(row, catalog_rate) != line.unit_price for row, _ in allocations):
+                fail('POS batch price changed. Reload the catalogue and review the bill.', 409)
             result[id(line)]=[(dict(row),take) for row,take in allocations]
             if sum(len(items) for items in result.values())>MAX_ALLOCATIONS:fail('This cart exceeds the supported batch allocation capacity; split the sale',409)
             for row,take in allocations:remaining[row['id']]['available_quantity']=Decimal(row['available_quantity'])-take

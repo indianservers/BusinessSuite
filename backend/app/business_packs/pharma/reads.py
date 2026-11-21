@@ -62,7 +62,7 @@ def batches(db,actor,*,search='',after=0,limit=30):
     from .recall_models import PharmaBatchControl
     control=PharmaBatchControl.__table__
     revision=func.coalesce(select(control.c.revision).where(control.c.organization_id==company,control.c.batch_id==b.c.id).scalar_subquery(),0) if _recall_ready(db) else literal(0)
-    query=select(b.c.id,b.c.batch_number,b.c.product_id,b.c.warehouse_id,b.c.manufacture_date,b.c.expiry_date,b.c.received_date,b.c.quantity,b.c.available_quantity,b.c.status,
+    query=select(b.c.id,b.c.batch_number,b.c.product_id,b.c.warehouse_id,b.c.manufacture_date,b.c.expiry_date,b.c.received_date,b.c.quantity,b.c.available_quantity,b.c.status,b.c.selling_price,
         p.c.item_name,w.c.warehouse_name,revision.label('state_revision')).select_from(b.join(a,a.c.batch_id==b.c.id).join(p,p.c.id==b.c.product_id).join(w,w.c.id==b.c.warehouse_id).join(n,
         (n.c.resource_table==b.name)&(n.c.resource_key==b.c.id.cast(String)))).where(b.c.organization_id==company,b.c.id>after,a.c.organization_id==company,
         a.c.branch_id==branch,a.c.pack_context_id==scope.context_id,a.c.active.is_(True),p.c.organization_id==company,w.c.organization_id==company,

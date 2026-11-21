@@ -49,7 +49,7 @@ function PharmaStock({context,owner,renderTable}:{context:number;owner:string;re
  const nativeWrite=useFinanceWrite(['srm_manage','srm_admin'],'create');
  const nativeEdit=useFinanceWrite(['srm_manage','srm_admin'],'edit');
  const [search,setSearch]=useState(''),[productSearch,setProductSearch]=useState('');
- const initial=()=>({product:'',warehouse:'',number:'',received:defaultToday('srm'),manufacture:'',expiry:'',quantity:'',cost:'0'});
+ const initial=()=>({product:'',warehouse:'',number:'',received:defaultToday('srm'),manufacture:'',expiry:'',quantity:'',cost:'0',sellingPrice:''});
  const [draft,setDraft]=useState(initial),requestKey=useRef(crypto.randomUUID());
  const [receiptCompleted,setReceiptCompleted]=useState(0);
  const batches=useInfiniteQuery({queryKey:[...key,search],initialPageParam:0,retry:false,
@@ -65,8 +65,8 @@ function PharmaStock({context,owner,renderTable}:{context:number;owner:string;re
   assertOwner();
   if(!canReceive)throw new Error('Receiving permission is required.');
   return api.post('/srm/pharma/batch-receipts',{request_key:requestKey.current,product_id:Number(draft.product),warehouse_id:Number(draft.warehouse),
-   batch_number:draft.number,received_date:draft.received,manufacture_date:draft.manufacture||null,expiry_date:draft.expiry,quantity:draft.quantity,unit_cost:draft.cost},config);
- },onSuccess:()=>{assertOwner();setDraft(initial());setReceiptCompleted(value=>value+1);requestKey.current=crypto.randomUUID();void qc.invalidateQueries({queryKey:key});void qc.invalidateQueries({queryKey:['srm','pos-catalog']});}});
+   batch_number:draft.number,received_date:draft.received,manufacture_date:draft.manufacture||null,expiry_date:draft.expiry,quantity:draft.quantity,unit_cost:draft.cost,selling_price:draft.sellingPrice},config);
+ },onSuccess:()=>{assertOwner();setDraft(initial());setReceiptCompleted(value=>value+1);requestKey.current=crypto.randomUUID();void qc.invalidateQueries({queryKey:key});void qc.invalidateQueries({queryKey:['srm','inventoryItems','pos']});}});
  const field=(name:keyof typeof draft,label:string,type='text')=><label className="grid min-w-0 gap-1 text-sm">{label}<Input aria-label={label} required={name!=='manufacture'} type={type} value={draft[name]} onChange={e=>update(name,e.target.value)} /></label>;
  return <div className="grid min-w-0 gap-4 lg:grid-cols-2">
   <div className="min-w-0 space-y-4">
@@ -76,7 +76,7 @@ function PharmaStock({context,owner,renderTable}:{context:number;owner:string;re
      <label className="grid min-w-0 gap-1 text-sm md:col-span-2">Find medicine<Input aria-label="Find medicine" value={productSearch} onChange={e=>setProductSearch(e.target.value)} /></label>
      <label className="grid min-w-0 gap-1 text-sm">Medicine<NativeSelect className="min-w-0 w-full max-w-full" aria-label="Medicine" required value={draft.product} onChange={e=>update('product',e.target.value)}><option value="">Choose medicine</option>{products.map(row=><option key={row.id} value={row.id}>{row.item_name} · {row.sku}</option>)}</NativeSelect></label>
      <label className="grid min-w-0 gap-1 text-sm">Warehouse<NativeSelect className="min-w-0 w-full max-w-full" aria-label="Warehouse" required value={draft.warehouse} onChange={e=>update('warehouse',e.target.value)}><option value="">Choose warehouse</option>{warehouses.map(row=><option key={row.id} value={row.id}>{row.warehouse_name}</option>)}</NativeSelect></label>
-     {field('number','Batch number')}{field('received','Received date','date')}{field('manufacture','Manufacture date','date')}{field('expiry','Expiry date','date')}{field('quantity','Quantity')}{field('cost','Unit cost')}
+     {field('number','Batch number')}{field('received','Received date','date')}{field('manufacture','Manufacture date','date')}{field('expiry','Expiry date','date')}{field('quantity','Quantity')}{field('cost','Unit cost')}{field('sellingPrice','Batch selling price')}
     </fieldset>
     {options.hasNextPage&&<Button type="button" variant="outline" onClick={()=>void options.fetchNextPage()}>More medicines</Button>}
     <p className="text-sm text-muted-foreground md:col-span-2">Enable batch and expiry tracking in Products & Services first. Existing stock is not assigned to a lot automatically. Each receipt creates a new batch and updates warehouse stock together.</p>

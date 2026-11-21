@@ -47,7 +47,7 @@ def _resources(db,scope,product_id,warehouse_id):
     company,branch=scope.company_id,scope.branch_id
     p=SRMProduct.__table__;w=SRMWarehouse.__table__
     product=db.connection().execute(select(p.c.id,p.c.active,p.c.deleted_at,p.c.product_type,p.c.track_inventory,
-        p.c.batch_tracking,p.c.serial_tracking,p.c.expiry_tracking,p.c.metadata_json).where(p.c.id==product_id,p.c.organization_id==company).with_for_update()).mappings().first()
+        p.c.sales_rate,p.c.batch_tracking,p.c.serial_tracking,p.c.expiry_tracking,p.c.metadata_json).where(p.c.id==product_id,p.c.organization_id==company).with_for_update()).mappings().first()
     if product is None:fail('Eligible medicine is unavailable',404)
     _source_scope(db,scope,company,branch,SRMProduct,product_id,master=True)
     from .reads import workspace_bound
@@ -84,14 +84,16 @@ def create(data,db,actor,*,commit=True):
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db,actor)
     if authority(db,actor)!=(company,branch,scope):fail('Pharma receipt authorization changed')
-    fingerprint=sha256(json.dumps(data.model_dump(mode='json'),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    command = data.model_dump(mode='json', exclude={'selling_price'} if data.selling_price is None else None)
+    fingerprint=sha256(json.dumps(command,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     prior=db.query(PharmaBatchReceipt).filter_by(organization_id=company,branch_id=branch,pack_context_id=scope.context_id,request_key=str(data.request_key)).one_or_none()
     if prior is not None:
         if prior.created_by!=actor.id or prior.request_sha256!=fingerprint:fail('Receipt request key was already used for another command',409)
         return _result(prior,db,scope)
     with db.begin_nested():
         if data.received_date>date.today() or data.expiry_date<=date.today():fail('Receipt date cannot be future and expiry must follow the current stock date',422)
-        _resources(db,scope,data.product_id,data.warehouse_id)
+        product = _resources(db,scope,data.product_id,data.warehouse_id)
+        selling_price = data.selling_price if data.selling_price is not None else Decimal(product['sales_rate'] or 0)
         batch=SRMInventoryBatch.__table__;balance=SRMInventoryBalance.__table__
         # Batch uniqueness is company/product/number in the native schema. A
         # duplicate remains a generic conflict even if its private context differs.
@@ -104,7 +106,7 @@ def create(data,db,actor,*,commit=True):
             if db.connection().scalar(select(anchor.c.id).where(anchor.c.resource_table==balance.name,anchor.c.resource_key==str(current.id))):fail('Canonical stock cannot adopt a privately owned balance')
         batch_id=db.connection().execute(batch.insert().values(organization_id=company,product_id=data.product_id,warehouse_id=data.warehouse_id,
             batch_number=data.batch_number,manufacture_date=data.manufacture_date,expiry_date=data.expiry_date,received_date=data.received_date,
-            quantity=data.quantity,available_quantity=data.quantity,unit_cost=data.unit_cost,status='available',created_by=actor.id)).inserted_primary_key[0]
+            quantity=data.quantity,available_quantity=data.quantity,unit_cost=data.unit_cost,selling_price=selling_price,status='available',created_by=actor.id)).inserted_primary_key[0]
         # This row was created here after the canonical warehouse branch proof;
         # native FK guards require its own creation-only ownership anchor too.
         from app.branches.models import BranchOwnership

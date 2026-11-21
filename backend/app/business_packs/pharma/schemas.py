@@ -14,6 +14,7 @@ class ReceiptInput(BaseModel):
     expiry_date:date
     received_date:date
     quantity:Decimal=Field(gt=0,max_digits=14,decimal_places=3,allow_inf_nan=False)
+    selling_price: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=2, allow_inf_nan=False)
     unit_cost:Decimal=Field(ge=0,max_digits=14,decimal_places=4,allow_inf_nan=False)
 
     @field_validator('batch_number')

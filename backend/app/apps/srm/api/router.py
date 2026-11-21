@@ -2675,6 +2675,9 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
                 raise HTTPException(422, "Warehouse must be a positive identifier")
             _warehouse_or_404(db, org_id, warehouse)
             metadata["warehouse_id"] = warehouse
+        from app.business_packs.pharma.fefo import supported
+        if not supported(db.info.get("business_pack_scope"), product) and line.unit_price != _decimal(product.sales_rate):
+            raise HTTPException(409, "POS price changed. Reload the catalogue and review the bill.")
         values = line.model_dump()
         values.update(description=line.description or product.item_name,
                       tax_rate=product.gst_rate or 0,

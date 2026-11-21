@@ -530,6 +530,7 @@ class SRMInventoryBatch(Base):
     quantity = Column(Numeric(14, 3), default=0)
     available_quantity = Column(Numeric(14, 3), default=0)
     unit_cost = Column(Numeric(14, 4), default=0)
+    selling_price = Column(Numeric(14, 2), nullable=True)
     status = Column(String(40), default="available", index=True)
     notes = Column(Text)
     metadata_json = Column(JSON)

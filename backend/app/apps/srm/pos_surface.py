@@ -110,16 +110,19 @@ def catalog(db,actor,selected=None,*,after=0,limit=200,search=''):
         stock=capacity(db,row,company,branch,scope) if physical else None
         required=bool((row.metadata_json or {}).get('follow_up',{}).get('required')) if isinstance((row.metadata_json or {}).get('follow_up'),dict) else False
         tracked=not service and any((row.batch_tracking,row.serial_tracking,row.expiry_tracking))
-        from app.business_packs.pharma.fefo import supported
+        from app.business_packs.pharma.fefo import MAX_ALLOCATIONS, pos_batches, supported
         pharma_lot=supported(scope,row)
         policy=policies.get(row.id) if service else None
         reason=('Scheduling is inactive for this service' if policy and not policy.active else 'Appointment scheduling permission is required for this service' if policy and policy.booking_required and not feature_values['appointments_schedule'] else 'Required follow-up workflow is not integrated in this POS' if required else 'Tracked stock requires an allocation workflow' if tracked and not pharma_lot else 'No eligible stock warehouse is available' if physical and stock is None else None)
+        lots = pos_batches(db, scope, row, stock['warehouse_id']) if pharma_lot and stock is not None else []
+        if len(lots) > MAX_ALLOCATIONS:
+            reason = 'Too many eligible batches. Reconcile stock before checkout.'
         items.append({key:getattr(row,key) for key in ('id','item_name','sku','barcode','category_name','product_type','sales_rate','mrp','gst_rate','unit_code')}|{
             'images':[value for value in (row.metadata_json or {}).get('images', []) if isinstance(value, str)][:10] if isinstance((row.metadata_json or {}).get('images'), list) else [],
             'duration_minutes':policy.default_duration_minutes if policy else None,
             'active':True,'track_inventory':physical,'batch_tracking':bool(row.batch_tracking and not service),'serial_tracking':bool(row.serial_tracking and not service),
             'expiry_tracking':bool(row.expiry_tracking and not service),'stock':stock,'booking_policy':({'required':policy.booking_required,'active':policy.active,'revision':policy.revision} if policy else None),'checkout_supported':reason is None,'unsupported_reason':reason,
-            **({'lot_allocation':'fefo'} if pharma_lot and stock is not None else {})})
+            **({'lot_allocation':'fefo','lots':lots[:MAX_ALLOCATIONS]} if pharma_lot and stock is not None else {})})
     return {'items':items,'next':rows[limit-1].id if len(rows)>limit else None,'has_more':len(rows)>limit,'features':feature_values}
 
 
