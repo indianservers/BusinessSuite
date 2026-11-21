@@ -461,10 +461,12 @@ function ChartView() {
   const ledgersByGroup = useMemo(() => new Map((data.groups || []).map((group) => [Number(group.id), (data.ledgers || []).filter((ledger) => Number(ledger.ledger_group_id) === Number(group.id))])), [data.groups, data.ledgers]);
   return (
     <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
-      <Card><CardHeader><CardTitle className="text-base">Ledger group tree</CardTitle></CardHeader><CardContent className="space-y-2">
-        <State label="chart of accounts" isLoading={query.isLoading} isError={query.isError} />
-        {(data.groups || []).map((group) => <div key={String(group.id)} className="rounded-md border p-3"><div className="flex items-center justify-between gap-2"><span className="font-medium">{text(group.group_name)}</span><Badge variant="outline">{text(group.nature)}</Badge></div><p className="text-xs text-muted-foreground">{ledgersByGroup.get(Number(group.id))?.length || 0} ledgers {group.system_group ? "System group" : ""}</p></div>)}
-      </CardContent></Card>
+      <MobileDisclosure title={query.isSuccess ? `Ledger groups (${data.groups?.length ?? 0})` : "Ledger groups"} maxWidth={480}>
+        <Card><CardHeader><CardTitle className="text-base">Ledger group tree</CardTitle></CardHeader><CardContent className="space-y-2">
+          <State label="chart of accounts" isLoading={query.isLoading} isError={query.isError} />
+          {(data.groups || []).map((group) => <div key={String(group.id)} className="rounded-md border p-3"><div className="flex items-center justify-between gap-2"><span className="font-medium">{text(group.group_name)}</span><Badge variant="outline">{text(group.nature)}</Badge></div><p className="text-xs text-muted-foreground">{ledgersByGroup.get(Number(group.id))?.length || 0} ledgers {group.system_group ? "System group" : ""}</p></div>)}
+        </CardContent></Card>
+      </MobileDisclosure>
       <Card><CardHeader><CardTitle className="text-base">Ledgers</CardTitle></CardHeader><CardContent><DataTable rows={data.ledgers || []} columns={["ledger_code", "ledger_name", "nature", "ledger_type", "active"]} /></CardContent></Card>
     </div>
   );
