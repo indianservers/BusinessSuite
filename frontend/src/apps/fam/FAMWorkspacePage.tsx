@@ -881,11 +881,22 @@ function PaymentModesView() {
 }
 
 function BankStatementsView() {
+  const phone = useMobile(480);
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
-  const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
+  const [draft, setDraft] = useState<FAMRecord>(() => ({
+    bank_account_id: defaultId("bank_account_id", "fam") || "",
+    statement_period_start: phone ? "" : "2026-06-01",
+    statement_period_end: phone ? "" : "2026-06-30",
+    imported_file_name: phone ? "manual-import.csv" : "hdfc-june.csv",
+    file_content: phone ? "" : "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000",
+  }));
+  const [hasEnteredContent, setHasEnteredContent] = useState(false);
+  const hasReviewableContent = hasEnteredContent && Boolean(String(draft.file_content ?? "").trim());
+  const mobileImportReady = hasReviewableContent && Number(draft.bank_account_id) > 0 &&
+    Boolean(draft.statement_period_start && draft.statement_period_end) &&
+    String(draft.statement_period_start) <= String(draft.statement_period_end);
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  const phone = useMobile(480);
   const statementChooser = (
     <ImportWizard
       title="Map bank statement"
@@ -893,6 +904,7 @@ function BankStatementsView() {
       fields={bankStatementFields}
       confirmLabel="Use mapped statement"
       onImport={async ({ rows, filename }) => {
+        setHasEnteredContent(true);
         setDraft(current => ({ ...current, imported_file_name: filename.replace(/\.[^.]+$/, ".csv"), file_content: csvText(rows) }));
         return { created: rows.length, message: "Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted." };
       }}
@@ -922,11 +934,15 @@ function BankStatementsView() {
           {!phone && statementChooser}
           <MobileDisclosure title="Enter or review CSV content" maxWidth={480} keepMounted>
             <Field label="CSV content">
-              <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => setDraft(current => ({ ...current, file_content: event.target.value }))} />
+              <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => {
+                setHasEnteredContent(true);
+                setDraft(current => ({ ...current, file_content: event.target.value }));
+              }} />
             </Field>
           </MobileDisclosure>
           <p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p>
-          <Button className="w-full" disabled={mutation.isPending} onClick={() => mutation.mutate()}>Import statement</Button>
+          {phone && !mobileImportReady && <p className="text-xs text-muted-foreground">Add statement content, a bank account, and a valid date range to enable import.</p>}
+          <Button className="w-full" disabled={mutation.isPending || (phone && !mobileImportReady)} onClick={() => mutation.mutate()}>Import statement</Button>
         </CardContent>
       </Card>
       <Card>
