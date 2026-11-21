@@ -224,12 +224,17 @@ function CollectionsWorkspace({ scope }: { scope: string }) {
         <Button onClick={() => query.refetch()}>Retry</Button>
       </p>
     );
+  const canRecord = query.data.can_record && (canCreate || canEdit);
+  const hasOutstandingBalance = (row: Row) => row.document_status === "issued" && Number(row.balance_amount) > 0;
   return (
     <div className="srm-collections-workspace space-y-5">
       <h1 className="page-title">Collections</h1>
       <p className="text-muted-foreground">
         Record actual {term('customer').toLowerCase()} payments against issued invoices. {term('project')} billing
         and {term('customer').toLowerCase()} history use these same receipt records.
+        {canRecord && !query.data.items.some(hasOutstandingBalance) && (
+          <span className="mt-2 block font-medium md:hidden">No issued invoices have a balance due.</span>
+        )}
       </p>
       <Card>
         <CardHeader>
@@ -239,9 +244,7 @@ function CollectionsWorkspace({ scope }: { scope: string }) {
           <InvoiceList
             invoices={query.data.items}
             actions={(row) =>
-              query.data.can_record && (canCreate||canEdit) &&
-              row.document_status === "issued" &&
-              Number(row.balance_amount) > 0 ? (
+              canRecord && hasOutstandingBalance(row) ? (
                 <>{canCreate&&<PaymentRequestButton source="srm_invoice" sourceId={Number(row.id)}/>}<InvoicePaymentForm
                   key={`${scope}-${row.id}`}
                   invoice={row}
