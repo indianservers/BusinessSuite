@@ -321,3 +321,23 @@
 .suite-login-illustration{mask-image:radial-gradient(ellipse 70% 80% at 50% 50%,#000 38%,#000b 58%,transparent 77%)}
 @media(min-width:1450px){.suite-login-main{grid-template-columns:minmax(0,600px) 548px}.suite-login-illustration{right:-90px}.suite-login-main>footer{right:66px}}
 .suite-login-illustration{mask-image:linear-gradient(to bottom,transparent,#000 18%,#000 85%,transparent),linear-gradient(to right,transparent,#000 12%,#000 85%,transparent);mask-composite:intersect;opacity:.9}
+
+@media (max-width: 540px) {
+  .suite-login:not(.suite-login-embedded) > header {
+    min-height: 64px;
+    padding-block: 12px;
+  }
+
+  .suite-login:not(.suite-login-embedded) .suite-login-intro,
+  .suite-login:not(.suite-login-embedded) .suite-login-company {
+    display: none;
+  }
+
+  .suite-login:not(.suite-login-embedded) .suite-login-card {
+    padding-block: 18px;
+  }
+
+  .suite-login:not(.suite-login-embedded) .suite-email-login {
+    margin-top: 12px;
+  }
+}

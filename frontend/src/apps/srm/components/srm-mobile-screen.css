@@ -28,6 +28,7 @@
  .srm-mobile-document .kf-button[data-variant=default]{background:linear-gradient(115deg,#a72ce5,#7411b5);color:white}
  .srm-mobile-document .kf-button[data-variant=outline]{border-color:#dfceeb;color:#8124ad;background:#fcf8ff}
  .srm-mobile-document :is(.grid,.sales-dash-kpis,.sales-dash-filters,.sales-dash-records,.md-profile-grid,.bookings-content){grid-template-columns:minmax(0,1fr)!important;column-gap:8px;row-gap:10px}
+ .srm-mobile-document .sales-communication-sections{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .srm-mobile-document :is(.grid,.sales-dash-kpis)>*{grid-column:auto!important}
  .srm-mobile-document :is(.sales-dashboard,.bookings-workspace,.bookings-main,.appointment-reference-shell,.appointment-reference-body,.appointment-reference-content){position:static!important;display:block!important;min-height:0!important;height:auto!important;width:auto!important;margin:0!important;padding:0!important;overflow:visible!important}
  .srm-mobile-document :is(.bookings-more,.bookings-heading,.sales-dash-heading,.sales-dash-section){margin-block:0 10px;padding:10px;border-radius:12px;background:#fff;border:1px solid #e7ddec}

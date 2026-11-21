@@ -53,7 +53,7 @@ function Center({ scope }: { scope: string }) {
         {canAccessRoute("/crm/delivery-logs", user?.role, user?.is_superuser) && <Button asChild variant="outline"><Link to="/crm/delivery-logs"><History className="h-4 w-4"/>Delivery history</Link></Button>}
       </div>
     </div>
-    <nav aria-label="Sales communication sections" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+    <nav aria-label="Sales communication sections" className="sales-communication-sections grid grid-cols-2 gap-2 lg:grid-cols-4">
       {sections.map(({ id, label, Icon }) => <Button key={id} type="button" variant={section === id ? "default" : "outline"}
         aria-pressed={section === id} className="h-auto min-h-11 justify-start whitespace-normal px-2 text-left sm:px-3" onClick={() => setSection(id)}>
         <Icon className="h-4 w-4 shrink-0" aria-hidden="true"/>{label}
