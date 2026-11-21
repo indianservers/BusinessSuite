@@ -53,6 +53,7 @@ import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobileSessionState } from "@/components/mobile/useMobileSessionState";
 import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { FormSectionTabs } from "@/components/forms/CompactForm";
 import MergeWizardModal from "./MergeWizardModal";
 import { openRecordPreview, recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -7417,20 +7418,22 @@ function FunnelAnalyticsPage() {
     <div className="space-y-6">
       <PageHeader title="Sales Funnel" description="Lead-to-cash funnel from lead qualification through SRM sales orders, invoice generation, and receipt collection." action={rows.length && !error ? "Export funnel" : undefined} onAction={() => exportRows("crm-sales-funnel.csv", rows)} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      <Card>
-        <CardHeader><CardTitle>Lead-to-Cash Conversion</CardTitle></CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} layout="vertical" margin={{ left: 28 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="stage" width={140} />
-              <Tooltip formatter={(value, name) => name === "amount" ? formatCurrency(Number(value)) : value} />
-              <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <MobileDisclosure title="Conversion chart" initiallyOpen={false}>
+        <Card>
+          <CardHeader><CardTitle>Lead-to-Cash Conversion</CardTitle></CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={rows} layout="vertical" margin={{ left: 28 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="stage" width={140} />
+                <Tooltip formatter={(value, name) => name === "amount" ? formatCurrency(Number(value)) : value} />
+                <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </MobileDisclosure>
       <ReportTable title="Funnel Details" rows={rows} columns={["stage", "count", "amount", "conversionRate", "stageToStageRate"]} />
     </div>
   );
