@@ -1,7 +1,10 @@
+import "./workflow-designer-mobile.css";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useMobile } from "@/components/mobile/useMobile";
 import { NativeSelect } from "@/components/ui/native-select";
 import OrderedList from "@/components/interaction/OrderedList";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Copy, Edit2, GitBranch, GripVertical, MoreHorizontal, Plus, Save, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +93,8 @@ export default function WorkflowDesignerPage() {
   const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
   const [dragToIndex, setDragToIndex] = useState<number | null>(null);
   const [stepToDelete, setStepToDelete] = useState<WorkflowStep | null>(null);
+  const phone = useMobile(767);
+  const stepEditor = useRef<HTMLElement>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const definitionsQuery = useQuery({
@@ -213,9 +218,14 @@ export default function WorkflowDesignerPage() {
     },
   });
 
+  function openStepEditor(id: number) {
+    setSelectedStepId(id);
+    if (phone) requestAnimationFrame(() => stepEditor.current?.focus());
+  }
+
   return (
-    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-lg border bg-background">
-      <aside className="flex w-[260px] shrink-0 flex-col border-r bg-muted/20">
+    <div className="hrms-workflow-designer flex h-[calc(100vh-7rem)] overflow-hidden rounded-lg border bg-background">
+      <aside className="hrms-workflow-designer-list flex w-[260px] shrink-0 flex-col border-r bg-muted/20">
         <div className="border-b p-3">
           <div className="flex items-center justify-between gap-2">
             <h1 className="font-semibold">Workflows</h1>
@@ -223,7 +233,7 @@ export default function WorkflowDesignerPage() {
           </div>
           <div className="relative mt-3">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" />
+            <Input aria-label="Search workflows" className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" />
           </div>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-3">
@@ -242,12 +252,13 @@ export default function WorkflowDesignerPage() {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 items-center justify-between gap-3 border-b px-4">
+      <main className="hrms-workflow-designer-canvas flex min-w-0 flex-1 flex-col">
+        <div className="hrms-workflow-designer-toolbar flex h-14 items-center justify-between gap-3 border-b px-4">
           {selectedDefinition ? (
             <>
               <div className="flex min-w-0 items-center gap-2">
                 <Input
+                  aria-label="Workflow name"
                   value={definitionName}
                   onChange={(e) => { setDefinitionName(e.target.value); setIsDirty(true); }}
                   onBlur={() => isDirty && updateDefinition.mutate({ name: definitionName })}
@@ -264,7 +275,7 @@ export default function WorkflowDesignerPage() {
           ) : <span className="text-sm text-muted-foreground">No workflow selected</span>}
         </div>
 
-        <div className="flex-1 overflow-auto bg-muted/10 p-6">
+        <div className="hrms-workflow-designer-steps flex-1 overflow-auto bg-muted/10 p-6">
           {!selectedDefinition ? (
             <div className="flex h-full items-center justify-center text-center text-muted-foreground">Select a workflow to design it, or create a new one.</div>
           ) : (
@@ -287,10 +298,10 @@ export default function WorkflowDesignerPage() {
                 <div key={step.id}>
                   <div
                     ref={(node) => { cardRefs.current[index] = node; }}
-                    onClick={() => setSelectedStepId(step.id)}
+                    onClick={() => openStepEditor(step.id)}
                     className={cn("rounded-xl border bg-card p-4 shadow-sm transition-all", selectedStepId === step.id && "border-primary shadow-md", dragFromIndex === index && "opacity-50")}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="hrms-workflow-designer-step flex items-start gap-3">
                       <button type="button" onPointerDown={(event) => { event.preventDefault(); setDragFromIndex(index); setDragToIndex(index); }} style={{touchAction:"none"}} aria-label={`Drag workflow step ${step.name}` } className="mt-1 text-muted-foreground"><GripVertical className="h-5 w-5" /></button>
                       <Badge className="mt-0.5">S{index + 1}</Badge>
                       <div className="min-w-0 flex-1">
@@ -308,8 +319,8 @@ export default function WorkflowDesignerPage() {
                           {step.action_type && <Badge variant="outline">action</Badge>}
                         </div>
                       </div>
-                      <Button size="icon" variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedStepId(step.id); }}><Edit2 className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" className="text-destructive" onClick={(event) => { event.stopPropagation(); setStepToDelete(step); }}><Trash2 className="h-4 w-4" /></Button>
+                      <Button aria-label={`Edit step ${step.name}`} size="icon" variant="ghost" onClick={(event) => { event.stopPropagation(); openStepEditor(step.id); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button aria-label={`Delete step ${step.name}`} size="icon" variant="ghost" className="text-destructive" onClick={(event) => { event.stopPropagation(); setStepToDelete(step); }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                   <Connector onAdd={() => createStep.mutate(index + 2)} active={dragToIndex === index + 1} />
@@ -321,7 +332,7 @@ export default function WorkflowDesignerPage() {
         </div>
       </main>
 
-      <aside className="w-[320px] shrink-0 overflow-y-auto border-l bg-card">
+      <aside ref={stepEditor} tabIndex={phone ? -1 : undefined} aria-label="Workflow step editor" className="hrms-workflow-designer-editor w-[320px] shrink-0 overflow-y-auto border-l bg-card">
         <StepEditor definitionId={selectedDefinitionId} step={selectedStep} />
       </aside>
 
@@ -490,7 +501,7 @@ function DefinitionCard({ definition, selected, onSelect, onDuplicate, onDelete,
 }
 
 function Connector({ onAdd, active }: { onAdd: () => void; active?: boolean }) {
-  return <div className={cn("relative mx-auto h-10 w-px bg-border", active && "bg-blue-500")}><Button type="button" size="icon" variant="outline" className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" onClick={onAdd}><Plus className="h-3 w-3" /></Button></div>;
+  return <div className={cn("hrms-workflow-designer-connector relative mx-auto h-10 w-px bg-border", active && "bg-blue-500")}><Button type="button" size="icon" variant="outline" className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" aria-label="Add approval step" onClick={onAdd}><Plus className="h-3 w-3" /></Button></div>;
 }
 
 function NewDefinitionDialog({ onClose, onCreate, pending }: { onClose: () => void; onCreate: (data: Partial<WorkflowDefinition>) => void; pending: boolean }) {
@@ -513,19 +524,37 @@ function ConfirmDialog({ title, description, onCancel, onConfirm, pending }: { t
 }
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-md rounded-lg bg-background p-5 shadow-lg"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">{title}</h2><Button variant="ghost" size="sm" onClick={onClose}>Close</Button></div>{children}</div></div>;
+  const opener = useRef<HTMLElement | null>(null);
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent
+        className="hrms-workflow-designer-dialog max-w-md"
+        onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
+        onCloseAutoFocus={event => {
+          if (opener.current?.isConnected) {
+            event.preventDefault();
+            opener.current.focus();
+          }
+        }}
+      >
+        <DialogTitle className="pr-12 font-semibold">{title}</DialogTitle>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return <button type="button" onClick={onChange} className={cn("h-6 w-11 rounded-full p-0.5 transition-colors", checked ? "bg-primary" : "bg-muted-foreground/30")}><span className={cn("block h-5 w-5 rounded-full bg-background transition-transform", checked && "translate-x-5")} /></button>;
+  return <button type="button" role="switch" aria-label="Workflow active" aria-checked={checked} onClick={onChange} className={cn("h-6 w-11 rounded-full p-0.5 transition-colors", checked ? "bg-primary" : "bg-muted-foreground/30")}><span className={cn("block h-5 w-5 rounded-full bg-background transition-transform", checked && "translate-x-5")} /></button>;
 }
 
-function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
-  return <NativeSelect value={value || options[0]} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{options.map((option) => <option key={option} value={option}>{option.replace(/_/g, " ")}</option>)}</NativeSelect>;
+function Select({ id, value, options, onChange }: { id?: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  return <NativeSelect id={id} value={value || options[0]} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{options.map((option) => <option key={option} value={option}>{option.replace(/_/g, " ")}</option>)}</NativeSelect>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
+  const id = useId();
+  return <div className="space-y-1.5"><Label htmlFor={id}>{label}</Label>{isValidElement<{ id?: string }>(children) ? cloneElement(children, { id }) : children}</div>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

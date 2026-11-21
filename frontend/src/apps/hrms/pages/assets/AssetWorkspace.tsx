@@ -87,11 +87,11 @@ export type AssetSummary = {
 
 export function AssetMetrics({
   summary,
-
+  selectedStatus,
   onFilter,
 }: {
   summary?: AssetSummary;
-
+  selectedStatus: string;
   onFilter: (status: string) => void;
 }) {
   return (
@@ -129,6 +129,8 @@ export function AssetMetrics({
       ].map(([label, status, count], i) => (
         <button
           key={String(label)}
+          type="button"
+          aria-pressed={selectedStatus === status}
           onClick={() => onFilter(String(status))}
           className="asset-metric"
         >

@@ -1,3 +1,5 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import "./recruitment-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -16,7 +18,7 @@ import PipelineBoard, { PipelineViewSwitch } from "@/shared/pipeline/PipelineBoa
 import { useAuthStore } from "@/store/authStore";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -76,7 +78,10 @@ export default function RecruitmentPage() {
   const user = useAuthStore(s=>s.user);
   const canCreate=useDefinitionPermission(["recruitment_manage"],"create"),canManage=useDefinitionPermission(["recruitment_manage"],"edit"),canDelete=useDefinitionPermission(["recruitment_manage"],"delete");
   const canConfigure=useDefinitionPermission(["recruitment_manage"],"configure"),canConvert=useDefinitionPermission(["employee_create"],"create");
-  const [candidateView,setCandidateView] = useState<"board"|"list">("board");
+  const mobile = useMobile();
+  const phoneSheet = useMobile(480);
+  const candidateOpener = useRef<HTMLButtonElement | null>(null);
+  const [candidateView,setCandidateView] = useState<"board"|"list">(mobile ? "list" : "board");
   const [pendingMove,setPendingMove] = useState<{id:number;name:string;status:string}>();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<"jobs" | "candidates">("jobs");
@@ -157,15 +162,15 @@ export default function RecruitmentPage() {
     },
   });
 
-  const candidateToolbar=<><PipelineViewSwitch view={candidateView} onChange={setCandidateView}/><div className="pipeline-toolbar-end"><NativeSelect aria-label="Hiring job" value={selectedJob} onChange={e=>setSelectedJob(e.target.value?Number(e.target.value):"")}><option value="">All Jobs</option>{(jobs as Job[])?.map(job=><option key={job.id} value={job.id}>{job.title}</option>)}</NativeSelect><NativeSelect aria-label="Candidate status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">All Statuses</option>{CANDIDATE_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</NativeSelect><button type="button" className="pipeline-icon-button" aria-label="Refresh candidates" onClick={()=>void refetchCandidates()}><RefreshCw size={15}/></button>{!!selectedJob&&canConfigure&&<button type="button" onClick={()=>setConfigure(true)}>Customize pipeline</button>}</div></>;
+  const candidateToolbar=<><PipelineViewSwitch view={candidateView} onChange={setCandidateView}/><div className="pipeline-toolbar-end hrms-hiring-filters"><NativeSelect aria-label="Hiring job" value={selectedJob} onChange={e=>setSelectedJob(e.target.value?Number(e.target.value):"")}><option value="">All Jobs</option>{(jobs as Job[])?.map(job=><option key={job.id} value={job.id}>{job.title}</option>)}</NativeSelect><NativeSelect aria-label="Candidate status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">All Statuses</option>{CANDIDATE_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</NativeSelect><button type="button" className="pipeline-icon-button" aria-label="Refresh candidates" onClick={()=>void refetchCandidates()}><RefreshCw size={15}/></button>{!!selectedJob&&canConfigure&&<button type="button" onClick={()=>setConfigure(true)}>Customize pipeline</button>}</div></>;
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="hrms-recruitment space-y-6">
+      <header className="hrms-recruitment-header flex items-center justify-between">
         <div>
           <h1 className="page-title">Recruitment</h1>
           <p className="page-description">Manage job postings, candidates, and hiring pipeline.</p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="hrms-recruitment-actions flex flex-wrap justify-end gap-2">
           <AskAiButton
             module="HRMS"
             relatedEntityType={activeTab === "candidates" ? "candidate" : "job"}
@@ -174,16 +179,16 @@ export default function RecruitmentPage() {
             defaultPrompt="Screen this candidate against the job requirement."
           />
           {activeTab === "jobs" && (
-            <Button size="sm" disabled={!canCreate} onClick={() => setShowJobForm((v) => !v)}>
+            <Button className="hrms-recruitment-post" size="sm" disabled={!canCreate} onClick={() => setShowJobForm((v) => !v)}>
               <Plus className="h-4 w-4 mr-2" />
               Post Job
             </Button>
           )}
         </div>
-      </div>
+      </header>
 
       {/* Stats */}
-      {(activeTab!=="candidates"||candidateView!=="board")&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {(activeTab!=="candidates"||candidateView!=="board")&&<div className="hrms-recruitment-stats grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Open Positions", value: (jobs as Job[])?.filter((j) => j.status === "Open").length ?? 0, color: "text-blue-600" },
           { label: "Total Candidates", value: (candidates as Candidate[])?.length ?? 0, color: "text-purple-600" },
@@ -200,10 +205,12 @@ export default function RecruitmentPage() {
       </div>}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b">
+      <nav aria-label="Recruitment sections" className="hrms-recruitment-sections flex gap-2 border-b">
         {(["jobs", "candidates"] as const).map((tab) => (
           <button
             key={tab}
+            aria-pressed={activeTab === tab}
+            type="button"
             onClick={() => setActiveTab(tab)}
             className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
@@ -214,16 +221,16 @@ export default function RecruitmentPage() {
             {tab === "jobs" ? "Job Openings" : "Candidates"}
           </button>
         ))}
-      </div>
+      </nav>
 
       {/* Create Job Form */}
       {activeTab === "jobs" && showJobForm && (
-        <SmartCreateSection title={<>New Job Posting</>} size="standard" autoOpen onClose={() => setShowJobForm(false)}><Card>
+        <SmartCreateSection title={<>New Job Posting</>} size="standard" autoOpen mobileSheet={phoneSheet} onClose={() => setShowJobForm(false)}><Card className="hrms-recruitment-job-editor">
           <CardHeader><CardTitle className="text-base">New Job Posting</CardTitle></CardHeader>
           <CardContent>
             <CompactForm
               onSubmit={handleJobSubmit((data) => createJobMutation.mutate(data))}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              className="hrms-recruitment-job-form grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Job Title *</Label>
@@ -257,8 +264,8 @@ export default function RecruitmentPage() {
                 <Label>Requirements</Label>
                 <Controller name="requirements" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Requirements" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
-              <div className="sm:col-span-2 flex gap-3">
-                <Button type="submit" disabled={!canCreate || createJobMutation.isPending}>
+              <div className="hrms-recruitment-job-actions sm:col-span-2 flex gap-3">
+                <Button data-save-action={phoneSheet ? "" : undefined} type="submit" disabled={!canCreate || createJobMutation.isPending}>
                   {createJobMutation.isPending ? "Posting..." : "Post Job"}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowJobForm(false)}>Cancel</Button>
@@ -319,12 +326,12 @@ export default function RecruitmentPage() {
       {/* Candidates tab */}
       {activeTab === "candidates" && (
         <div className="space-y-4">
-          {candidateView === "list"&&<div className="flex flex-wrap items-center gap-3">{candidateToolbar}</div>}
+          {candidateView === "list"&&<div className="hrms-hiring-toolbar flex flex-wrap items-center gap-3">{candidateToolbar}</div>}
           {candidateView === "board" && <PipelineBoard toolbar={candidateToolbar} title={hiringConfig.data?.name||"Hiring pipeline"} description="Bring the right people forward. Keep every candidate, conversation and hiring stage connected." label="Hiring pipeline" viewState={{job:String(selectedJob||""),status:statusFilter}} onApplyView={v=>{setSelectedJob(Number(v.job)||"");setStatusFilter(String(v.status||""));}} renderDetails={record=><HiringCandidateDetails candidate={((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))!} canManage={canManage} onSaved={()=>{void refetchCandidates();void qc.invalidateQueries({queryKey:["employees"]});}}/>} context={{module:"hrms",scope:`job:${selectedJob||"all"}`,kind:"candidate"}} onAdd={canCreate&&selectedJob?stage=>{setQuickStage(stage);setCandidateError("");}:undefined} loading={loadingCandidates} disabled={(!canManage&&!canCreate) || updateStatusMutation.isPending} reorder={false}
             notice="Showing loaded candidates for the selected job and status. Hired is a status change; employee conversion remains a separate action."
             stages={hiringConfig.data?.stages?.length?hiringConfig.data.stages.map(s=>({id:s.name,name:s.name,canAdd:!s.require_interview&&!s.require_offer&&!(s.required||[]).includes("resume_url"),wipLimit:s.wip_limit||undefined,agingDays:s.aging_days||14})): [...new Set([...CANDIDATE_STATUSES,...((candidates||[]) as Candidate[]).map(c=>c.status==="Offered"?"Offer":c.status)])].map(status=>({id:status,name:status}))}
             records={((candidates||[]) as Candidate[]).map(c=>({id:String(c.id),disabled:!canManage,stageId:c.status==="Offered"&&!hiringConfig.data?.stages.some(s=>s.name==="Offered")?"Offer":c.status,title:c.name,isClosed:["Hired","Rejected","Withdrawn"].includes(c.status),subtitle:c.job?.title||c.email,value:c.source||"Applicant"}))}
-            onOpen={record=>setSelectedCandidate(((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))||null)}
+            onOpen={record=>{candidateOpener.current = null;setSelectedCandidate(((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))||null);}}
             onMove={({record,stageId})=>setPendingMove({id:Number(record.id),name:record.title,status:stageId})}
             actions={canManage?[{id:"reject",label:"Reject",tone:"danger",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Rejected"})},{id:"withdraw",label:"Withdraw",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Withdrawn"})}]:[]}
           />}
@@ -332,10 +339,15 @@ export default function RecruitmentPage() {
           <PipelineDrawer open={!!quickStage} onClose={()=>{if(!candidateSaving)setQuickStage(undefined);}} title={`Add candidate to ${quickStage||"stage"}`}><SmartCreateSection title="Add candidate" size="compact"><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCandidateSaving(true);setCandidateError("");try{await api.post(`/pipeline-workspaces/hrms/jobs/${selectedJob}/candidates`,{...candidateDraft,stage:quickStage});await refetchCandidates();setCandidateDraft({first_name:"",last_name:"",email:"",phone:"",phone_country_code:"+91",source:""});setQuickStage(undefined);}catch(e){setCandidateError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not add candidate. Check the fields and stage requirements.");}finally{setCandidateSaving(false);}}}>{(["first_name","last_name","email","source"] as const).map(field=><label key={field}>{field.replace(/_/g," ")}<input required={field!=="source"} type={field==="email"?"email":"text"} value={candidateDraft[field]} onChange={e=>setCandidateDraft(d=>({...d,[field]:e.target.value}))}/></label>)}<PhoneInput value={candidateDraft.phone} countryCode={candidateDraft.phone_country_code} onChange={phone=>setCandidateDraft(d=>({...d,phone}))} onCountryCodeChange={phone_country_code=>setCandidateDraft(d=>({...d,phone_country_code}))}/>{candidateError&&<p role="alert">{candidateError}</p>}<Button variant="default" type="submit" className="pipeline-primary" disabled={candidateSaving}>Add candidate</Button></form></SmartCreateSection></PipelineDrawer>
           <PipelineDrawer open={!!converting} onClose={()=>setConverting(null)} title="Create employee handoff">{converting&&<HiringCandidateDetails key={converting.id} candidate={converting} canManage={canManage} startConvert onSaved={()=>{void refetchCandidates();void qc.invalidateQueries({queryKey:["employees"]});}}/>}</PipelineDrawer>
           <Dialog open={!!pendingMove} onOpenChange={open=>{if(!open&&!updateStatusMutation.isPending)setPendingMove(undefined);}}><DialogContent><DialogTitle>Move candidate to {pendingMove?.status}</DialogTitle><p className="text-sm text-muted-foreground">Update {pendingMove?.name}'s hiring stage. This does not issue an offer or create an employee account.</p><div className="flex justify-end gap-2"><Button variant="outline" disabled={updateStatusMutation.isPending} onClick={()=>setPendingMove(undefined)}>Cancel</Button><Button disabled={updateStatusMutation.isPending} onClick={()=>{if(pendingMove)void updateStatusMutation.mutateAsync({id:pendingMove.id,status:pendingMove.status}).then(()=>setPendingMove(undefined)).catch(()=>undefined);}}>Confirm move</Button></div></DialogContent></Dialog>
-          <Dialog open={!!selectedCandidate} onOpenChange={open=>{if(!open)setSelectedCandidate(null);}}><DialogContent><DialogTitle>{selectedCandidate?.name}</DialogTitle><dl className="grid grid-cols-2 gap-3 text-sm"><dt>Email</dt><dd>{selectedCandidate?.email}</dd><dt>Phone</dt><dd>{selectedCandidate?.phone||"—"}</dd><dt>Job</dt><dd>{selectedCandidate?.job?.title||"—"}</dd><dt>Status</dt><dd>{selectedCandidate?.status}</dd><dt>Source</dt><dd>{selectedCandidate?.source||"—"}</dd></dl>{canManage&&<Button onClick={()=>{setSelectedCandidate(null);setCandidateView("list");}}>Open candidate actions in list</Button>}</DialogContent></Dialog>
+          <Dialog open={!!selectedCandidate} onOpenChange={open=>{if(!open)setSelectedCandidate(null);}}><DialogContent className="hrms-recruitment-candidate-dialog" onCloseAutoFocus={event => {
+            if (candidateOpener.current?.isConnected) {
+              event.preventDefault();
+              candidateOpener.current.focus();
+            }
+          }}><DialogTitle className="min-w-0 pr-10">{selectedCandidate?.name}</DialogTitle><dl className="hrms-candidate-details grid grid-cols-2 gap-3 text-sm"><dt>Email</dt><dd>{selectedCandidate?.email}</dd><dt>Phone</dt><dd>{selectedCandidate?.phone||"—"}</dd><dt>Job</dt><dd>{selectedCandidate?.job?.title||"—"}</dd><dt>Status</dt><dd>{selectedCandidate?.status}</dd><dt>Source</dt><dd>{selectedCandidate?.source||"—"}</dd></dl>{canManage&&candidateView === "board" && <Button onClick={()=>{setSelectedCandidate(null);setCandidateView("list");}}>Open candidate actions in list</Button>}</DialogContent></Dialog>
           {candidateView === "list" && <Card>
 
-            <CardContent className="p-0">
+            <CardContent className="hrms-candidate-list p-0">
               <div className="overflow-x-auto">
                 <GridTable gridId="apps/hrms/pages/recruitment/RecruitmentPage:table-1" className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
@@ -365,7 +377,10 @@ export default function RecruitmentPage() {
                       (candidates as Candidate[]).map((c) => (
                         <tr {...recordPreviewProps(c)} key={c.id} className="border-b hover:bg-muted/30">
                           <td className="px-4 py-3">
-                            <p className="font-medium">{c.name}</p>
+                            {mobile ? <Button className="hrms-candidate-open" variant="link" aria-label={`View ${c.name}`} onClick={event => {
+                              candidateOpener.current = event.currentTarget;
+                              setSelectedCandidate(c);
+                            }}>{c.name}</Button> : <p className="font-medium">{c.name}</p>}
                             <p className="text-xs text-muted-foreground">{c.email}</p>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">{c.job?.title || "—"}</td>
@@ -377,7 +392,7 @@ export default function RecruitmentPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="hrms-candidate-actions flex flex-wrap items-center gap-2">
                               <NativeSelect
                                 value={c.status}
                                 aria-label={`Hiring status for ${c.name}`}

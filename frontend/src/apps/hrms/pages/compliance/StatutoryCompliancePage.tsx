@@ -121,7 +121,6 @@ const money = (value: unknown) =>
 
 export default function StatutoryCompliancePage() {
   usePageTitle("Statutory Compliance");
-  const phone = useMobile(480);
   const [tab, setTab] = useState<(typeof TABS)[number]>(new URLSearchParams(window.location.search).get("tab") === "form16" ? "Form 16" : "Compliance Calendar");
 
   return (
@@ -130,11 +129,11 @@ export default function StatutoryCompliancePage() {
         <h1 className="page-title">Statutory Compliance</h1>
         <p className="page-description">Track due dates, generate statutory files, and monitor portal submission status.</p>
       </div>
-      <div className="hrms-statutory-tabs flex flex-wrap gap-2 border-b">
+      <nav aria-label="Statutory compliance sections" className="hrms-statutory-tabs flex flex-wrap gap-2 border-b">
         {TABS.map((item) => (
           <button
             key={item}
-            aria-pressed={phone ? tab === item : undefined}
+            aria-pressed={tab === item}
             type="button"
             onClick={() => setTab(item)}
             className={cn("border-b-2 px-3 py-2 text-sm font-medium", tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground")}
@@ -142,7 +141,7 @@ export default function StatutoryCompliancePage() {
             {item}
           </button>
         ))}
-      </div>
+      </nav>
       {tab === "Compliance Calendar" && <CalendarTab />}
       {tab === "Generate Files" && <GenerateTab />}
       {tab === "Form 16" && <Form16Tab />}

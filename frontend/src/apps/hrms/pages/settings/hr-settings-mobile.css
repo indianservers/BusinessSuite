@@ -1,0 +1,69 @@
+@media (max-width: 767px) {
+  .hrms-settings-index,
+  .hrms-settings-detail {
+    padding: 0;
+  }
+
+  .hrms-settings-index .hrms-settings-link {
+    background: hsl(var(--card));
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-settings-detail > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .hrms-settings-editor .hrms-settings-section-nav,
+  .hrms-settings-editor .hrms-settings-secondary-add {
+    display: none;
+  }
+
+  .hrms-settings-editor .hrms-settings-header > button {
+    min-height: 44px;
+  }
+
+  .hrms-settings-editor :is(td, .udg-adapted-cell) {
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-settings-dialog.mobile-experience-sheet[role="dialog"] {
+    top: auto;
+    left: 50%;
+    width: calc(100% - 20px);
+    transform: translateX(-50%);
+    bottom: calc(8px + var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 16px - env(safe-area-inset-bottom, 0px));
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .hrms-settings-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .hrms-settings-fields {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 12px;
+  }
+
+  .hrms-settings-form .hrms-settings-actions {
+    position: static;
+    flex-shrink: 0;
+    padding-inline: 16px !important;
+  }
+
+  .hrms-settings-actions button {
+    min-height: 44px;
+  }
+
+  .hrms-settings-actions button:last-child {
+    flex: 1;
+  }
+}

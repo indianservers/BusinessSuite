@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -152,7 +153,7 @@ export default function InternTaskProgramsPanel({
   const [selection, setSelection] = useState<Record<number, Level>>({});
   const [packPreview, setPackPreview] = useState<Row | null>(null);
   const [packPreviewKey, setPackPreviewKey] = useState("");
-  const [packRequest, setPackRequest] = useState(() => crypto.randomUUID());
+  const [packRequest, setPackRequest] = useState(() => randomUUID());
   const [page, setPage] = useState(1);
   const [chosen, setChosen] = useState<Record<string, Assignment>>({});
   const [deadline, setDeadline] = useState("");
@@ -160,7 +161,7 @@ export default function InternTaskProgramsPanel({
   const [deadlinePreview, setDeadlinePreview] = useState<Row | null>(null);
   const [deadlinePreviewKey, setDeadlinePreviewKey] = useState("");
   const [deadlineRequest, setDeadlineRequest] = useState(() =>
-    crypto.randomUUID(),
+    randomUUID(),
   );
   const queryPrefix = ["intern-management", "task-programs"];
   const packs = useQuery<Pack[]>({
@@ -237,12 +238,12 @@ export default function InternTaskProgramsPanel({
   useEffect(() => {
     setPackPreview(null);
     setPackPreviewKey("");
-    setPackRequest(crypto.randomUUID());
+    setPackRequest(randomUUID());
   }, [project, packId, batchId, startDate, reviewer, selection]);
   useEffect(() => {
     setDeadlinePreview(null);
     setDeadlinePreviewKey("");
-    setDeadlineRequest(crypto.randomUUID());
+    setDeadlineRequest(randomUUID());
   }, [project, chosen, deadline, reason]);
   useEffect(() => {
     setEdit(null);
@@ -1001,7 +1002,7 @@ export default function InternTaskProgramsPanel({
                           )
                         ).data;
                         setPackPreview(null);
-                        setPackRequest(crypto.randomUUID());
+                        setPackRequest(randomUUID());
                         await refresh();
                         setMessage(
                           `Published ${result.assignments} assignments for ${result.interns} interns. Notifications are available in their accounts.`,
@@ -1276,7 +1277,7 @@ export default function InternTaskProgramsPanel({
                         ).data;
                         setChosen({});
                         setDeadlinePreview(null);
-                        setDeadlineRequest(crypto.randomUUID());
+                        setDeadlineRequest(randomUUID());
                         await refresh();
                         setMessage(
                           `Extended ${result.count} deadlines and notified the affected interns.`,

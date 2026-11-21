@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
 import {useMobile} from "@/components/mobile/useMobile";
 import {MobileChartZoom} from "@/components/mobile/MobileChartZoom";
@@ -117,11 +118,11 @@ export default function EngagementPage() {
 
   return (
     <div className="hrms-engagement-page space-y-5">
-      <div className="rounded-lg border bg-card p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Engagement</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Announcements & Engagement</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Pinned announcements, pulse polls, recognition wall, and people moment notifications.</p>
-      </div>
+      <HrmsServiceHeader
+        title="Announcements & Engagement"
+        description="Read announcements, vote in polls, and recognize colleagues."
+        icon={Megaphone}
+      />
 
       {announcements.data?.filter((item: any) => item.is_published).slice(0, 1).map((item: any) => (
         <div key={item.id} className="rounded-lg border border-primary/30 bg-primary/5 p-4">

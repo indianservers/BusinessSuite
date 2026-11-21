@@ -1,8 +1,6 @@
 @media (max-width: 480px) {
-  .hrms-statutory-page { min-width: 0; }
   .hrms-statutory-page > div:first-child h1 { font-size: 22px; line-height: 1.25; }
   .hrms-statutory-page .hrms-statutory-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-  .hrms-statutory-tabs > button { min-height: 44px; padding: 8px; white-space: normal; }
   .hrms-statutory-calendar { min-width: 0; }
   .hrms-statutory-calendar .grid > *, .hrms-statutory-calendar .kf-card { min-width: 0; }
   .hrms-statutory-calendar :is(p, span) { overflow-wrap: anywhere; }
@@ -17,4 +15,10 @@
   .hrms-statutory-calendar button { white-space: normal; }
   .smart-create-phone-sheet .hrms-statutory-filed-actions { display: none; }
   .smart-create-phone-sheet:has(.hrms-statutory-filed-form) .smart-create-header p { display: none; }
+}
+
+@media (max-width: 767px) {
+  .hrms-statutory-page { min-width: 0; }
+  .hrms-statutory-tabs > button { min-height: 44px; padding: 8px; white-space: normal; }
+  .hrms-statutory-page.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
 }

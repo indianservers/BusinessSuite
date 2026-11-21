@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { useMobile } from "@/components/mobile/useMobile";
 import "./notifications-mobile.css";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
@@ -81,15 +82,11 @@ export default function NotificationsPage() {
 
   return (
     <div className="hrms-notifications space-y-5">
-      <div className="hrms-notification-header flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notifications</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Inbox and delivery hooks</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track in-app alerts now, with email/SMS delivery log hooks ready for providers.
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <HrmsServiceHeader
+        title="Notifications"
+        description="Read your alerts and open the records they refer to."
+        icon={Bell}
+        actions={<>
           <Button disabled={phone && notifications.isFetching} variant="outline" onClick={() => notifications.refetch()}>
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -98,8 +95,8 @@ export default function NotificationsPage() {
             <CheckCheck className="h-4 w-4" />
             Mark all read
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {phone && actionError && <p role="alert" className="text-sm text-destructive">{actionError}</p>}
       <Card className="hrms-notification-list">
@@ -147,16 +144,14 @@ export default function NotificationsPage() {
                         Mark read
                       </Button>
                     )}
-                    {item.action_url && (phone ? (
-                      <Button asChild size="sm"><Link to={hrmsActionUrl(item.action_url)} onClick={() => { if (!item.is_read) readNotification(item.id); }}><ExternalLink className="h-4 w-4" />Open</Link></Button>
-                    ) : (
-                      <Link to={hrmsActionUrl(item.action_url)} onClick={() => { if (!item.is_read) readNotification(item.id); }}>
-                        <Button size="sm">
+                    {item.action_url && (
+                      <Button asChild size="sm">
+                        <Link to={hrmsActionUrl(item.action_url)} onClick={() => { if (!item.is_read) readNotification(item.id); }}>
                           <ExternalLink className="h-4 w-4" />
                           Open
-                        </Button>
-                      </Link>
-                    ))}
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

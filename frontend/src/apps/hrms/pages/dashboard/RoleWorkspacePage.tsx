@@ -222,26 +222,26 @@ export default function RoleWorkspacePage() {
 
   return (
     <main className="space-y-6">
-      <section className="rounded-lg border bg-card p-6 shadow-sm">
+      <section className="rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl space-y-3">
             <Badge variant="outline" className="w-fit">{roleLabel}</Badge>
             <div>
-              <h1 className="text-2xl font-semibold tracking-normal text-foreground">{config.title}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl text-foreground">{config.title}</h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{config.subtitle}</p>
             </div>
           </div>
-          <Button asChild className="h-11 shrink-0">
+          <Button asChild className="h-11 w-full shrink-0 sm:w-fit">
             <Link to={config.primaryAction.href}>
               <config.primaryAction.icon className="mr-2 h-4 w-4" />
               {config.primaryAction.label}
             </Link>
           </Button>
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
           {config.stats.map((stat) => (
-            <div key={stat.label} className="rounded-md border bg-background p-4">
-              <p className="text-xs font-medium uppercase text-muted-foreground">{stat.label}</p>
+            <div key={stat.label} className="min-w-0 rounded-xl border bg-background/90 p-3 sm:p-4">
+              <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
               <span className={cn("mt-3 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold", stat.tone)}>{stat.value}</span>
             </div>
           ))}
@@ -250,26 +250,25 @@ export default function RoleWorkspacePage() {
 
       {config.sections.map((section) => (
         <section key={section.title} className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">{section.title}</h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <h2 className="text-base font-semibold text-foreground">{section.title}</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {section.items.map((item) => (
-              <Card key={item.href} className="transition-colors hover:border-primary/40">
-                <CardHeader className="space-y-0 pb-3">
+              <Link key={item.href} to={item.href} className="group rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+              <Card className="h-full transition-colors group-hover:border-primary/50">
+                <CardHeader className="space-y-0 p-4 pb-2">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <item.icon className="h-5 w-5" />
                     </div>
                     {item.badge && <Badge variant="secondary">{item.badge}</Badge>}
                   </div>
-                  <CardTitle className="pt-4 text-base">{item.label}</CardTitle>
+                  <CardTitle className="pt-3 text-base group-hover:text-primary">{item.label}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="min-h-12 text-sm leading-6 text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={item.href}>Open</Link>
-                  </Button>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-sm leading-6 text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         </section>

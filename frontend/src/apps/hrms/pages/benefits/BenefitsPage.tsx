@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import {useMobile} from "@/components/mobile/useMobile";
 import "./benefits-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -125,12 +126,11 @@ export default function BenefitsPage() {
 
   return (
     <div className="hrms-benefits-page space-y-5">
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="page-title">Benefits Administration</h1>
-          <p className="page-description">Manage group health, NPS, flexi-benefits, ESOP grants, claims, and payroll deductions.</p>
-        </div>
-        <div className="flex gap-2">
+      <HrmsServiceHeader
+        title="Benefits Administration"
+        description="Manage benefit plans, employee enrollments, claims, and payroll deductions."
+        icon={HeartPulse}
+        actions={<>
           <Button variant="outline" size="sm" onClick={() => {if(phone){for(const key of ["benefits-plans","benefits-enrollments","benefits-claims","benefits-esop-grants"])void qc.invalidateQueries({queryKey:[key]});}else void qc.invalidateQueries({ queryKey: ["benefits-plans"] });}}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
@@ -139,8 +139,8 @@ export default function BenefitsPage() {
             <Plus className="mr-2 h-4 w-4" />
             New Plan
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="hrms-benefits-kpis grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[

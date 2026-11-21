@@ -1,7 +1,5 @@
 @media(max-width:480px){
  .hrms-engagement-page{min-width:0;font-size:14px;}
- .hrms-engagement-page>div:first-child{padding:12px;}
- .hrms-engagement-page h1{font-size:22px;line-height:1.25;margin-top:4px;}
  .hrms-engagement-page .grid>*,.hrms-engagement-page .kf-card,.hrms-engagement-page .flex>div{min-width:0;}
  .hrms-engagement-page .hrms-people-moments>div:first-child{display:none;}
  .hrms-engagement-page .kf-card>div{padding:12px;}

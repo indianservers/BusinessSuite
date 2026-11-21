@@ -1,7 +1,5 @@
 @media (max-width: 480px) {
   .hrms-lms-page { min-width: 0; font-size: 14px; }
-  .hrms-lms-page > div:first-child { padding: 12px; }
-  .hrms-lms-page h1 { font-size: 22px; line-height: 1.25; }
   .hrms-lms-page .grid > *, .hrms-lms-page .kf-card, .hrms-lms-page .flex > div { min-width: 0; }
   .hrms-lms-page :is(p, span, strong, summary) { overflow-wrap: anywhere; }
   .hrms-lms-page :is(button, summary) { min-height: 44px; }

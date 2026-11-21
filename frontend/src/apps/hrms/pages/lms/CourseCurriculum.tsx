@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
@@ -89,7 +90,7 @@ function CurriculumEditor({ courseId, phone, scope, keepDraft }: { courseId: num
       if (kind === "section") {
         await save([
           ...sections,
-          { id: crypto.randomUUID(), title: section.trim(), lessons: [] },
+          { id: randomUUID(), title: section.trim(), lessons: [] },
         ]);
         if (keepDraft) draftStorage.persist({ ...draft, section: "" });
         setSection("");
@@ -103,7 +104,7 @@ function CurriculumEditor({ courseId, phone, scope, keepDraft }: { courseId: num
                   lessons: [
                     ...s.lessons,
                     {
-                      id: crypto.randomUUID(),
+                      id: randomUUID(),
                       title: lesson.trim(),
                       content: "",
                     },

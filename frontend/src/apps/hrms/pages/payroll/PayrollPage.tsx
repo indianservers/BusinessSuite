@@ -1,3 +1,5 @@
+import "./payroll-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
 import BusinessTerm from "@/components/BusinessTerm";
 import SalaryAdvanceReviewButtons from "./SalaryAdvanceReviewButtons";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
@@ -241,7 +243,25 @@ const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase(
 
 type PayrollTab = "policies" | "templates" | "payouts" | "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
 
+const payrollTabLabel: Record<PayrollTab, string> = {
+  guided: "Guided Payroll",
+  wizard: "Setup Wizard",
+  policies: "Payroll Policies",
+  run: "Run Payroll",
+  viewer: "Payslip Viewer",
+  templates: "Payslip Templates",
+  payouts: "Salary Payouts",
+  variance: "Variance",
+  inputs: "Inputs",
+  setup: "Salary Setup",
+  statutory: "Statutory",
+  tax: "Tax",
+  tools: "Payroll Tools",
+  casebook: "Real Cases",
+};
+
 export default function PayrollPage() {
+  const phone = useMobile(600);
   usePageTitle("Payroll");
   const qc = useQueryClient();
   const { user } = useAuthStore();
@@ -1147,27 +1167,41 @@ export default function PayrollPage() {
     setDispatchChannels((current) => current.includes(channel) ? current.filter((item) => item !== channel) : [...current, channel]);
   };
 
+  function openPayrollTab(tab: PayrollTab) {
+    setActiveTab(tab);
+    if (location.search) navigate({ pathname: location.pathname, search: "" }, { replace: true });
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="hrms-payroll space-y-6">
       <div>
         <h1 className="page-title">Payroll</h1>
         <p className="page-description">Configure salary setup, run monthly payroll, publish payslips, and review variance.</p>
         {!isEmployee && <Button asChild variant="link" className="px-0"><Link to="/hrms/statutory-compliance?tab=form16">Open Form 16 &amp; Statutory Compliance</Link></Button>}
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b">
+      {visibleTabs.length > 1 && (
+        <label className="hrms-payroll-view hidden text-sm">
+          Payroll view
+          <NativeSelect searchable={false} value={activeTab} onChange={event => openPayrollTab(event.target.value as PayrollTab)} className="w-full rounded-md border bg-background px-3">
+            {visibleTabs.map(tab => <option key={tab} value={tab}>{payrollTabLabel[tab]}</option>)}
+          </NativeSelect>
+        </label>
+      )}
+      <div className="hrms-payroll-tabs flex flex-wrap gap-2 border-b">
         {visibleTabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveTab(tab); if (location.search) navigate({ pathname: location.pathname, search: "" }, { replace: true }); }}
+            type="button"
+            aria-pressed={activeTab === tab}
+            onClick={() => openPayrollTab(tab)}
             className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "policies" ? "Payroll Policies" : tab === "templates" ? "Payslip Templates" : tab === "payouts" ? "Salary Payouts" : tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
+            {payrollTabLabel[tab]}
           </button>
         ))}
       </div>
@@ -1180,13 +1214,13 @@ export default function PayrollPage() {
         <div className="space-y-4">
           {/* Month navigator */}
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevSlipMonth}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Previous payslip month" onClick={prevSlipMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-medium w-40 text-center">
               {MONTHS[slipMonth - 1]} {slipYear}
             </span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextSlipMonth}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Next payslip month" onClick={nextSlipMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -2340,7 +2374,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">LOP Adjustment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SmartCreateSection title="Create lop adjustment" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={lopEmployeeId} onChange={setLopEmployeeId} />
+                <SmartCreateSection title="Create lop adjustment" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={lopEmployeeId} onChange={setLopEmployeeId} />
                 <Input placeholder="Days" value={lopDays} onChange={(event) => setLopDays(event.target.value)} />
                 <Button onClick={() => lopMutation.mutate()} disabled={!selectedInputPeriod || !lopEmployeeId}>
                   Add LOP
@@ -2353,7 +2387,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Overtime Pay</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SmartCreateSection title="Create overtime pay" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={otEmployeeId} onChange={setOtEmployeeId} />
+                <SmartCreateSection title="Create overtime pay" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={otEmployeeId} onChange={setOtEmployeeId} />
                 <Input placeholder="Hours" value={otHours} onChange={(event) => setOtHours(event.target.value)} />
                 <Button onClick={() => otMutation.mutate()} disabled={!selectedInputPeriod || !otEmployeeId}>
                   Add OT
@@ -2366,7 +2400,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Leave Encashment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SmartCreateSection title="Create leave encashment" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={encashEmployeeId} onChange={setEncashEmployeeId} />
+                <SmartCreateSection title="Create leave encashment" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={encashEmployeeId} onChange={setEncashEmployeeId} />
                 <Input placeholder="Days" value={encashDays} onChange={(event) => setEncashDays(event.target.value)} />
                 <Button onClick={() => encashMutation.mutate()} disabled={!selectedInputPeriod || !encashEmployeeId}>
                   Add Encashment
@@ -2530,7 +2564,7 @@ export default function PayrollPage() {
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("cutoff")} disabled={payrollOperationMutation.isPending}>Cutoff Reminder</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("periods")} disabled={payrollOperationMutation.isPending}>Auto Periods</Button>
                 </CompactActions>
-                <SmartCreateSection title="Create Bonus"><div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <SmartCreateSection title="Create Bonus" mobileSheet={phone}><div className="hrms-payroll-create-form grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <Input value={bankFileName} onChange={(event) => setBankFileName(event.target.value)} placeholder="Bank name" />
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-file")} disabled={!selectedRun || payrollOperationMutation.isPending}>Validate File</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bonus-create")} disabled={payrollOperationMutation.isPending}>Create Bonus</Button>
@@ -2562,7 +2596,7 @@ export default function PayrollPage() {
                       <SalaryAdvanceReviewButtons item={item} canReview={canRunPayroll} busy={reviewSalaryAdvanceMutation.isPending} onReview={value => reviewSalaryAdvanceMutation.mutate(value)}/>
                     </div>
                   )}/>
-                <SmartCreateSection title="Create Query"><div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
+                <SmartCreateSection title="Create Query" mobileSheet={phone}><div className="hrms-payroll-create-form grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
                   <Input placeholder="Record ID" value={queryRecordId} onChange={(event) => setQueryRecordId(event.target.value)} />
                   <Input placeholder="Subject" value={querySubject} onChange={(event) => setQuerySubject(event.target.value)} />
                   <Input placeholder="Description" value={queryDescription} onChange={(event) => setQueryDescription(event.target.value)} />
@@ -2685,7 +2719,7 @@ export default function PayrollPage() {
                   <CardDescription>Required for statutory filings, Form 16, challans, and payroll grouping.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SmartCreateSection title="Create legal entity" size="standard"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create legal entity" size="standard" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Legal name</Label><Input value={legalName} onChange={(event) => setLegalName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>State</Label><Input value={legalState} onChange={(event) => setLegalState(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>PAN</Label><Input value={legalPan} onChange={(event) => setLegalPan(event.target.value.toUpperCase())} /></div>
@@ -2704,7 +2738,7 @@ export default function PayrollPage() {
                   <CardDescription>Defines pay frequency, cutoffs, tax regime, and legal entity mapping.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SmartCreateSection title="Create pay group" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create pay group" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Pay group name</Label><Input value={payGroupName} onChange={(event) => setPayGroupName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Code</Label><Input value={payGroupCode} onChange={(event) => setPayGroupCode(event.target.value.toUpperCase())} /></div>
                   </div>
@@ -2721,7 +2755,7 @@ export default function PayrollPage() {
                   <CardDescription>Create earnings, deductions, reimbursements, and statutory payslip lines.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SmartCreateSection title="Create salary components" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create salary components" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Name</Label><Input value={componentName} onChange={(event) => setComponentName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Code</Label><Input value={componentCode} onChange={(event) => setComponentCode(event.target.value.toUpperCase())} /></div>
                     <div className="space-y-1.5">
@@ -2745,7 +2779,7 @@ export default function PayrollPage() {
                   <CardDescription>Build a structure from active components. Formula and cap/floor rules remain in backend setup.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SmartCreateSection title="Create salary structure" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create salary structure" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Structure name</Label><Input value={structureName} onChange={(event) => setStructureName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Version</Label><Input value={structureVersion} onChange={(event) => setStructureVersion(event.target.value)} /></div>
                   </div>
@@ -2776,7 +2810,7 @@ export default function PayrollPage() {
                   <CardDescription>Bind PF/ESI/PT/TDS registration details to the legal entity.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <SmartCreateSection title="Create statutory profiles" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create statutory profiles" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>State / TAN circle</Label><Input value={legalState} onChange={(event) => setLegalState(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Effective from</Label><Input type="date" value={ruleEffectiveFrom} onChange={(event) => setRuleEffectiveFrom(event.target.value)} /></div>
                   </div>
@@ -2815,7 +2849,7 @@ export default function PayrollPage() {
               <CardDescription>Set up monthly payroll groups before running payroll.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SmartCreateSection title="Create pay groups and calendar" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+              <SmartCreateSection title="Create pay groups and calendar" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Pay group name</Label>
                   <Input value={payGroupName} onChange={(event) => setPayGroupName(event.target.value)} />
@@ -2843,7 +2877,7 @@ export default function PayrollPage() {
               <CardDescription>Create salary structure shells and assign components from backend setup.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SmartCreateSection title="Create salary templates" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+              <SmartCreateSection title="Create salary templates" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Template name</Label>
                   <Input value={templateName} onChange={(event) => setTemplateName(event.target.value)} />
@@ -3035,7 +3069,7 @@ export default function PayrollPage() {
               <CardDescription>Declare investments and submit proof links for payroll verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SmartCreateSection title="Create tax declarations" size="compact"><div className="space-y-4">{!activeTaxCycle ? (
+              <SmartCreateSection title="Create tax declarations" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4">{!activeTaxCycle ? (
                 <Button onClick={() => taxCycleMutation.mutate()} disabled={taxCycleMutation.isPending}>
                   Open current FY cycle
                 </Button>
@@ -3081,7 +3115,7 @@ export default function PayrollPage() {
               <CardTitle className="text-base">Proof Workflow</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <SmartCreateSection title="Create proof workflow" size="compact"><div className="space-y-4"><Input
+              <SmartCreateSection title="Create proof workflow" size="compact" mobileSheet={phone}><div className="hrms-payroll-create-form space-y-4"><Input
                 value={taxProofUrl}
                 onChange={(event) => setTaxProofUrl(event.target.value)}
                 placeholder="/uploads/tax/80c-proof.pdf"

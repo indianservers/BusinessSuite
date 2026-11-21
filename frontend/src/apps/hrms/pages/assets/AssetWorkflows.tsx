@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -462,7 +463,7 @@ export function AssetHandoverButton({ onSaved }: { onSaved?: () => void }) {
     [condition, setCondition] = useState("Good"),
     [accessories, setAccessories] = useState(""),
     [remarks, setRemarks] = useState(""),
-    [key, setKey] = useState(() => crypto.randomUUID()),
+    [key, setKey] = useState(() => randomUUID()),
     [result, setResult] = useState<{ assignment_ids: number[] } | null>(null);
   const [handoverPhotos, setHandoverPhotos] = useState<
     Record<number, number[]>
@@ -526,7 +527,7 @@ export function AssetHandoverButton({ onSaved }: { onSaved?: () => void }) {
           setResult(null);
           setIds([]);
           setHandoverPhotos({});
-          setKey(crypto.randomUUID());
+          setKey(randomUUID());
           setOpen(true);
         }}
       >

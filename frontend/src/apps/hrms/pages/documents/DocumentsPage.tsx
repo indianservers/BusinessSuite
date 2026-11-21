@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { useMobile } from "@/components/mobile/useMobile";
 import { lazy, Suspense, useMemo, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -650,22 +651,16 @@ export default function DocumentsPage() {
   const stats = insights.data;
   return (
     <div className="document-management dv-workspace">
-      <header className="dm-hero">
-        <span className="dm-hero-icon">
-          <FolderOpen size={30} />
-        </span>
-        <div>
-          <p className="dm-eyebrow">DOCUMENTS / EMPLOYEE DOCUMENT VAULT</p>
-          <h1>Employee Document Vault</h1>
-          <p>
-            Collect, verify and track employee documents in one secure
-            workspace.
-          </p>
-        </div>
-        <Link className="dm-hero-link" to="/hrms/letters-certificates">
-          Letters & Certificates Studio →
-        </Link>
-      </header>
+      <HrmsServiceHeader
+        title="Employee Document Vault"
+        description="Collect employee documents, verify records, and track expirations."
+        icon={FolderOpen}
+        actions={
+          <Button variant="outline" asChild>
+            <Link to="/hrms/letters-certificates">Letters &amp; Certificates Studio</Link>
+          </Button>
+        }
+      />
       <div className="dv-kpis">
         {[
           { key: "employees", label: "Total Employees", icon: Users },

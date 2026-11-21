@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import "./assets-mobile.css";
 import "./assets-workspace.css";
 import { useEffect, useState } from "react";
@@ -193,27 +194,18 @@ export default function AssetsPage() {
   });
   return (
     <div className="hrms-assets-page space-y-5">
-      <header className="asset-page-heading">
-        <div className="flex gap-3 items-center">
-          <span className="asset-symbol">
-            <Box size={26} />
-          </span>
-          <div>
-            <h1>Company Assets</h1>
-            <p>
-              Bikes, laptops, phones and equipment: handovers, custody, returns
-              and exit clearance.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <HrmsServiceHeader
+        title="Company Assets"
+        description="Track equipment, handovers, returns, and exit clearance."
+        icon={Box}
+        actions={<>
           {canManage && <AssetPolicyButton />}
           <Button variant="outline" onClick={() => void refresh()}>
             <RefreshCw size={15} />
             Refresh
           </Button>
-        </div>
-      </header>
+        </>}
+      />
       <nav aria-label="Asset views" className="asset-view-tabs flex flex-wrap gap-2">
         {[
           ["inventory", "Inventory"],
@@ -265,7 +257,7 @@ export default function AssetsPage() {
       )}
       {tab === "inventory" && (
         <>
-          <AssetMetrics summary={summary.data} onFilter={setStatusFilter} />
+          <AssetMetrics summary={summary.data} selectedStatus={statusFilter} onFilter={setStatusFilter} />
           <div
             className={`grid items-start gap-4 ${canManage ? "xl:grid-cols-[15rem_minmax(0,1fr)]" : ""}`}
           >

@@ -1,3 +1,5 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
+import { Receipt } from "lucide-react";
 import {useMobile} from "@/components/mobile/useMobile";
 import {SmartCreateModal} from "@/shared/creation/SmartCreateModal";
 import "./expenses-mobile.css";
@@ -51,14 +53,38 @@ export default function ExpensesPage() {
   };
   const reviewContent=review?(<Card className="hrms-expense-review-form"><CardHeader><CardTitle className="text-base">{review.claim.claim_number} · {review.action.replace(/-/g, " ")}</CardTitle></CardHeader><CardContent><CompactForm className="space-y-3" onSubmit={e => { e.preventDefault(); mutation.mutate(); }}>{phone&&mutation.isError&&<p role="alert" className="text-destructive">Expense update failed. {errorText(mutation.error)}</p>}{review.action === "reimburse" ? <label className="block text-sm">Bank / payment reference<Input required value={reference} onChange={e => setReference(e.target.value)} /></label> : <><label className="block text-sm">Decision<NativeSelect className="ml-2 rounded border bg-background p-2" value={reference} onChange={e => setReference(e.target.value)}><option value={review.action === "manager-review" ? "manager_approved" : "finance_approved"}>Approve</option><option value="rejected">Reject</option></NativeSelect></label><label className="block text-sm">Approved amount ({review.claim.currency})<Input required type="number" min="0" max={review.claim.amount} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></label></>}
         <label className="block text-sm">Review notes / reason<Input required minLength={3} value={notes} onChange={e => setNotes(e.target.value)} /></label><div className="flex gap-2"><Button disabled={mutation.isPending || notes.trim().length < 3}>Save expense update</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setReview(null)}>Cancel</Button></div></CompactForm></CardContent></Card>):null;
-  return <div className="hrms-expenses-page space-y-5"><header><h1 className="text-2xl font-semibold">Employee expense statements</h1><p className="text-sm text-muted-foreground">Claims, final approvals, outstanding reimbursements and payments, separated by currency.</p></header>
+  return <div className="hrms-expenses-page space-y-5">
+    <HrmsServiceHeader
+      title="Employee expense statements"
+      description="Review claims and track approved amounts, reimbursements, and payments by currency."
+      icon={Receipt}
+    />
     <div className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-3"><EmployeeSearchSelect endpoint="/expenses/employees" value={employee} onChange={setEmployee} /><label className="text-sm">From date<Input type="date" value={dates.from_date} onChange={e => setDates({ ...dates, from_date: e.target.value })} /></label><label className="text-sm">To date<Input type="date" value={dates.to_date} onChange={e => setDates({ ...dates, to_date: e.target.value })} /></label></div>
     {!employee && <p className="text-sm text-muted-foreground">Select an employee to view their statement.</p>}
     {employee && statement.isPending && <p role="status">Loading expense statement…</p>}{statement.isError && <div role="alert"><p>Statement could not load. {errorText(statement.error)}</p><Button onClick={() => statement.refetch()}>Retry statement</Button></div>}
     {statement.data && !statement.isError && <><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{statement.data.employee_name}</h2><div className="flex gap-2"><Button variant="outline" onClick={() => statement.refetch()}>Refresh statement</Button><Button variant="outline" disabled={!canExport} onClick={download}>Export statement</Button></div></div>
       {statement.data.can_submit && canCreate && <ExpenseClaimForm key={`${user?.id}-${employee}`} employeeId={Number(employee)} />}
       <p className="text-xs text-muted-foreground">Approved means finance approved. Outstanding is the approved amount not yet paid; pending review and rejected amounts are separate.</p>
-      {statement.data.totals.map(total => <dl key={total.currency} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">{[["Claimed", total.claimed], ["Approved", total.approved], ["Outstanding", total.outstanding], ["Paid", total.paid], ["Pending review", total.pending_review], ["Rejected", total.rejected]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label} · {total.currency}</dt><dd className="text-lg font-semibold">{formatCurrency(Number(value), total.currency)}</dd></div>)}</dl>)}
+      {statement.data.totals.map(total => (
+        <section key={total.currency} aria-label={`${total.currency} statement totals`} className="hrms-expense-totals rounded-xl border bg-card p-4">
+          <h3 className="text-sm font-semibold text-foreground">{total.currency} totals</h3>
+          <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              ["Claimed", total.claimed],
+              ["Approved", total.approved],
+              ["Outstanding", total.outstanding],
+              ["Paid", total.paid],
+              ["Pending review", total.pending_review],
+              ["Rejected", total.rejected],
+            ].map(([label, value]) => (
+              <div key={label} className="min-w-0 rounded-lg bg-muted/45 p-3">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="mt-1 break-words text-lg font-semibold tabular-nums">{formatCurrency(Number(value), total.currency)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
       <Card><CardHeader><CardTitle className="text-base">Claims</CardTitle></CardHeader><CardContent className="space-y-3"><label className="block text-sm">Claim status<NativeSelect aria-label={phone?"Claim status":undefined} loading={statement.isFetching} error={statement.isError} className="ml-2 rounded border bg-background p-2" value={status} onChange={e => setStatus(e.target.value)}><option value="all">All statuses</option>{phone&&status!=="all"&&!statement.data.claims.some(claim=>claim.status===status)&&<option value={status}>{status.replace(/_/g," ")} (no matching claims)</option>}{[...new Set(statement.data.claims.map(c => c.status))].map(s => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}</NativeSelect></label>
         {phone&&status!=="all"&&!statement.data.claims.some(claim=>claim.status===status)&&<p role="status" className="text-sm">No claims match the selected status. <Button type="button" variant="outline" onClick={()=>setStatus("all")}>Clear status filter</Button></p>}
         {<GroupedRecords scope="apps/hrms/pages/expenses/ExpensesPage:records-1" items={(statement.data.claims.filter(c => status === "all" || c.status === status)) || []} fields={standardRecordGroups((statement.data.claims.filter(c => status === "all" || c.status === status)) || [])} gridClassName="space-y-3" renderItem={c => <article key={c.id} className="space-y-2 rounded-lg border p-4"><div className="flex flex-wrap justify-between gap-3"><p className="font-medium">{c.claim_number} · {c.claim_type}</p><Badge variant="outline">{c.status.replace(/_/g, " ")}</Badge></div><p className="text-sm">{formatDate(c.expense_date)} · Claimed {formatCurrency(Number(c.amount), c.currency)} · Approved {formatCurrency(Number(c.approved_amount), c.currency)}</p>{c.remarks && <p className="break-words text-sm text-muted-foreground">Review notes: {c.remarks}</p>}{c.reimbursement_reference && <p className="break-all text-sm">Paid reference: {c.reimbursement_reference}</p>}{c.reimbursed_at && <p className="text-xs">Paid {formatDate(c.reimbursed_at)}</p>}{c.payroll_run_id && <Link className="text-sm underline" to="/hrms/payroll">Included in payroll run #{c.payroll_run_id}</Link>}

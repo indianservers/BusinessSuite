@@ -1,8 +1,14 @@
+.hrms-profile-security > .grid > *,
+.hrms-profile-security :is(.hrms-profile-security-sessions, .hrms-profile-security-reviews) {
+ min-width: 0;
+}
+
+.hrms-profile-security .overflow-x-auto {
+ max-width: 100%;
+}
+
 @media (max-width: 480px) {
  .hrms-profile-security { min-width: 0; }
- .hrms-profile-security-header { padding: 12px; }
- .hrms-profile-security-header > p:first-child { display: none; }
- .hrms-profile-security-header h1 { margin-top: 0; font-size: 20px; }
  .hrms-profile-security-nav { display: flex; gap: 6px; }
  .hrms-profile-security-nav button { flex: 1; min-width: 0; padding: 8px; }
  .hrms-profile-security[data-section]:not([data-section="profile"]) > :is(.hrms-profile-security-overview,.hrms-profile-security-change),
@@ -20,7 +26,6 @@
  .hrms-profile-security :is(button,a,summary,label[for="profile-photo"]) { min-height: 44px; height: auto; }
  .hrms-profile-security button { white-space: normal; }
  .hrms-profile-security :is(input,textarea,select) { min-height: 44px; font-size: 16px; max-width: 100%; }
- .hrms-profile-security .overflow-x-auto { max-width: 100%; }
  .hrms-profile-security .grid > * { min-width: 0; }
  .hrms-profile-security-overview > :last-child .grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .hrms-profile-security-files .flex > div { min-width: 0; }

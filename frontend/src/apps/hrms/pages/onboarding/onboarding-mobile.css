@@ -36,3 +36,10 @@
  .hrms-onboarding-template .move-handle { width: 44px; min-width: 44px; }
  .hrms-onboarding-template .move-card-actions button { min-width: 44px; }
 }
+
+@media (max-width: 767px) {
+ .hrms-onboarding .hrms-onboarding-layout { grid-template-columns: minmax(0, 1fr); }
+ .hrms-onboarding-layout > * { min-width: 0; }
+ .hrms-onboarding-record :is(p, strong) { overflow-wrap: anywhere; }
+ .hrms-onboarding-primary { min-height: 44px; width: 100%; }
+}

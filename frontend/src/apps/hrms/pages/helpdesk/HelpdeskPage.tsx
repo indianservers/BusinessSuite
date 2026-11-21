@@ -1,3 +1,4 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
 import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import TicketSavedViews, {type TicketView} from './TicketSavedViews';
 import {useAuthStore} from '@/store/authStore';
@@ -318,16 +319,17 @@ function ScopedHelpdeskPage({ scope }: { scope: string }) {
 
   return (
     <div className="hrms-helpdesk-page space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="page-title">Helpdesk</h1>
-          <p className="page-description">Raise, resolve, and measure HR support tickets with SLA and CSAT visibility.</p>
-        </div>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
-      </div>
+      <HrmsServiceHeader
+        title="Helpdesk"
+        description="Submit HR support requests, track replies, and review response times."
+        icon={LifeBuoy}
+        actions={
+          <Button size="sm" onClick={() => setShowForm((value) => !value)}>
+            <Plus className="h-4 w-4" />
+            New Ticket
+          </Button>
+        }
+      />
 
       {canViewAnalytics && <div className="hrms-helpdesk-kpis grid grid-cols-2 gap-4 lg:grid-cols-6">
         {[

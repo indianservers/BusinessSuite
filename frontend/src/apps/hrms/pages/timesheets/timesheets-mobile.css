@@ -30,3 +30,24 @@
  .smart-create-phone-sheet .hrms-timesheet-entry-fields>label{min-height:44px;font-size:14px}
  .smart-create-phone-sheet .hrms-timesheet-entry-fields>button,.smart-create-phone-sheet .hrms-timesheet-project-form>button,.smart-create-phone-sheet .hrms-timesheet-create-card>div:last-child>button{display:none}
 }
+
+@media (max-width: 480px) {
+  .hrms-timesheets-page .hrms-timesheet-records {
+    display: grid;
+    gap: 8px;
+  }
+
+  .hrms-timesheet-record {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-timesheet-record dt {
+    color: hsl(var(--muted-foreground));
+  }
+}

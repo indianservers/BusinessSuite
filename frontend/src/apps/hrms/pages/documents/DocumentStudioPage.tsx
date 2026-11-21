@@ -1,3 +1,5 @@
+import HrmsServiceHeader from "../../components/HrmsServiceHeader";
+import { randomUUID } from "@/lib/random-uuid";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import "./document-management.css";
 import { ImportWizard } from "@/shared/data-transfer";
@@ -210,7 +212,7 @@ export default function DocumentStudioPage({
   const [preview, setPreview] = useState("");
   const [previewFile, setPreviewFile] = useState<Blob | null>(null);
   const [previewKey, setPreviewKey] = useState("");
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
+  const [requestKey, setRequestKey] = useState(() => randomUUID());
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
   const [editHead, setEditHead] = useState<Head | null>(null);
   const [issuedPreview, setIssuedPreview] = useState<{
@@ -329,7 +331,7 @@ export default function DocumentStudioPage({
     setPreview("");
     setPreviewFile(null);
     setPreviewKey("");
-    setRequestKey(crypto.randomUUID());
+    setRequestKey(randomUUID());
   }, [templateId, headId, kind, recipientId, issueDate, variables]);
   useEffect(() => {
     if (
@@ -489,30 +491,17 @@ export default function DocumentStudioPage({
     return <Navigate replace to={`/settings/documents?${params.toString()}`} />;
   return (
     <div className="document-management studio-workspace space-y-5">
-      <div className="dm-hero">
-        <span className="dm-hero-icon">
-          <FileText size={30} />
-        </span>
-        <div>
-          <p className="dm-eyebrow">DOCUMENTS / LETTERS & CERTIFICATES</p>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <FileText className="h-6 w-6" />
-            Letters & Certificates Studio
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create documents from live records, reusable templates and your
-            company letterheads.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => void run(refresh)}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <HrmsServiceHeader
+        title="Letters & Certificates Studio"
+        description="Create documents from live records, reusable templates, and company letterheads."
+        icon={FileText}
+        actions={
+          <Button variant="outline" disabled={busy} onClick={() => void run(refresh)}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
       {notice && (
         <div
           role="alert"
@@ -913,7 +902,7 @@ export default function DocumentStudioPage({
                           const result = (
                             await api.post(`${base}/issue`, payload)
                           ).data as Issued;
-                          setRequestKey(crypto.randomUUID());
+                          setRequestKey(randomUUID());
                           setPreview("");
                           setPreviewFile(null);
                           setPreviewKey("");
