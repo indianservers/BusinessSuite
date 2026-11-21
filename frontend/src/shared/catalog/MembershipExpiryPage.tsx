@@ -12,6 +12,7 @@ import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { catalogError } from "./api";
 import "./catalog.css";
+import "./membership-expiry.css";
 
 type Kind = "membership" | "subscription";
 type Source = "crm" | "srm";
@@ -50,15 +51,15 @@ function ExpiryReport({ source, scope, kind, embedded }: { source: Source; scope
   });
   const report = query.data;
   const actionsFor = (row: Expiry) => <div className="flex flex-wrap gap-2">
-    <Button variant="outline" size="sm" disabled={!row.has_phone} onClick={() => setAction({ row, type: "sms" })}>SMS</Button>
-    <Button variant="outline" size="sm" disabled={!row.has_phone} onClick={() => setAction({ row, type: "whatsapp" })}>WhatsApp</Button>
-    {report?.can_remind && row.expiry >= report.today && <Button variant="outline" size="sm" onClick={() => setAction({ row, type: "reminder" })}>Set reminder</Button>}
+    <Button variant="outline" size="sm" className="max-md:min-h-11" disabled={!row.has_phone} onClick={() => setAction({ row, type: "sms" })}>SMS</Button>
+    <Button variant="outline" size="sm" className="max-md:min-h-11" disabled={!row.has_phone} onClick={() => setAction({ row, type: "whatsapp" })}>WhatsApp</Button>
+    {report?.can_remind && row.expiry >= report.today && <Button variant="outline" size="sm" className="max-md:min-h-11" onClick={() => setAction({ row, type: "reminder" })}>Set reminder</Button>}
   </div>;
 
-  return <section className="sc-page space-y-4" aria-label={`${label} expiry`}>
+  return <section className="sc-page expiry-report space-y-4" aria-label={`${label} expiry`}>
     {!embedded && <header className="sc-hero">
       <div><h1>{label} Expiry Report<span><CalendarClock size={23}/></span></h1><p>Review expiring {label.toLowerCase()}s and follow up with customers.</p></div>
-      <Button asChild variant="outline"><Link to={source === "crm" ? "/crm/reminders" : "/srm/send-reminders"}>Reminders</Link></Button>
+      <Button asChild variant="outline" className="min-h-11"><Link to={source === "crm" ? "/crm/reminders" : "/srm/send-reminders"}>Reminders</Link></Button>
     </header>}
     <div className="sc-catalog-bar"><div className="sc-tabs" role="group" aria-label="Expiry period">
       {periods.map(option => <button key={option.id} type="button" aria-pressed={option.id === period} onClick={() => {
@@ -70,41 +71,35 @@ function ExpiryReport({ source, scope, kind, embedded }: { source: Source; scope
         setPage(1);
       }}>{option.label}</button>)}
     </div></div>
-    {period === "custom" && <form className="flex flex-wrap items-end gap-3" onSubmit={event => {
-      event.preventDefault(); setRange(values); setPage(1);
+    {period === "custom" && <form className="expiry-range flex flex-wrap items-end gap-3" onSubmit={event => {
+      event.preventDefault();
+      if (values.start > values.end) return;
+      setRange(values); setPage(1);
     }}>
-      <label className="grid gap-1 text-sm">Expiry from<Input type="date" required max={values.end || undefined} value={values.start} onChange={event => setValues({ ...values, start: event.target.value })}/></label>
-      <label className="grid gap-1 text-sm">Expiry to<Input type="date" required min={values.start || undefined} value={values.end} onChange={event => setValues({ ...values, end: event.target.value })}/></label>
-      <Button type="submit">Apply dates</Button>
+      <label className="grid min-w-0 gap-1 text-sm">Expiry from<Input className="min-h-11 w-full min-w-0 text-base" type="date" required max={values.end || undefined} value={values.start} onChange={event => setValues({ ...values, start: event.target.value })}/></label>
+      <label className="grid min-w-0 gap-1 text-sm">Expiry to<Input className="min-h-11 w-full min-w-0 text-base" type="date" required min={values.start || undefined} value={values.end} onChange={event => setValues({ ...values, end: event.target.value })}/></label>
+      <Button className="min-h-11" type="submit">Apply dates</Button>
+      {values.start && values.end && values.start > values.end && <p className="text-sm text-destructive" role="alert">The end date must be on or after the start date.</p>}
     </form>}
     {query.isFetching && <p role="status">Loading {label.toLowerCase()}s…</p>}
     {query.isError && <div role="alert"><p>{catalogError(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div>}
     {report && <>
       <p className="text-sm text-muted-foreground">{report.start} to {report.end}, inclusive</p>
-      {report.items.length === 0 ? <p>No {label.toLowerCase()}s expire in this date range.</p> : <>
-      {embedded && <ul className="grid gap-2 sm:hidden" aria-label={`Expiring ${label.toLowerCase()}s`}>
-        {report.items.map(row => <li key={row.id} className="space-y-2 rounded-lg border bg-card p-3">
-          <Link className="break-words font-semibold underline underline-offset-2" to={`/${source}/customers/${row.customer_id}/360`}>{row.customer}</Link>
-          <p className="break-words text-sm">{row.subscription ?? row.membership}</p>
-          <p className="text-sm text-muted-foreground">Expires <time dateTime={row.expiry}>{row.expiry}</time> · <span className="capitalize">{row.status}</span></p>
-          {actionsFor(row)}
-        </li>)}
-      </ul>}
-      <div className={`overflow-x-auto rounded-lg border bg-card ${embedded ? "hidden sm:block" : ""}`}>
-        <table className="w-full text-left text-sm">
+      {report.items.length === 0 ? <p>No {label.toLowerCase()}s expire in this date range.</p> : <div className="overflow-x-auto rounded-lg border bg-card">
+        <table role="table" className="expiry-results w-full text-left text-sm">
           <caption className="sr-only">{label}s by expiry date</caption>
-          <thead><tr className="border-b bg-muted/50">
-            {["Customer", label, "Expiry date", "Status", "Actions"].map(label => <th key={label} scope="col" className="px-3 py-2">{label}</th>)}
+          <thead role="rowgroup"><tr role="row" className="border-b bg-muted/50">
+            {["Customer", label, "Expiry date", "Status", "Actions"].map(label => <th key={label} role="columnheader" scope="col" className="px-3 py-2">{label}</th>)}
           </tr></thead>
-          <tbody>{report.items.map(row => <tr key={row.id} className="border-b last:border-0">
-            <th scope="row" className="px-3 py-2 font-medium"><Link className="underline underline-offset-2" to={`/${source}/customers/${row.customer_id}/360`}>{row.customer}</Link></th>
-            <td className="px-3 py-2">{row.subscription ?? row.membership}<small className="block text-muted-foreground">{row.number}</small></td>
-            <td className="whitespace-nowrap px-3 py-2">{row.expiry}</td>
-            <td className="px-3 py-2 capitalize">{row.status}</td>
-            <td className="px-3 py-2">{actionsFor(row)}</td>
+          <tbody role="rowgroup">{report.items.map(row => <tr key={row.id} role="row" className="border-b last:border-0">
+            <th role="rowheader" scope="row" className="px-3 py-2 font-medium"><Link className="underline underline-offset-2" to={`/${source}/customers/${row.customer_id}/360`}>{row.customer}</Link></th>
+            <td role="cell" className="px-3 py-2">{row.subscription ?? row.membership}<small className="block text-muted-foreground">{row.number}</small></td>
+            <td role="cell" className="whitespace-nowrap px-3 py-2"><span className="md:hidden">Expires </span><time dateTime={row.expiry}>{row.expiry}</time></td>
+            <td role="cell" className="px-3 py-2 capitalize">{row.status}</td>
+            <td role="cell" className="expiry-actions px-3 py-2">{actionsFor(row)}</td>
           </tr>)}</tbody>
         </table>
-      </div></>}
+      </div>}
       {(page > 1 || report.has_more) && <nav className="flex items-center gap-3" aria-label={`${label} report pages`}>
         <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</Button>
         <span>Page {page}</span>
@@ -137,7 +132,7 @@ function ExpiryAction({ row, type, source, kind, close }: { row: Expiry; type: A
   const channel = type === "sms" ? "SMS" : "WhatsApp";
   const messageHref = number && (type === "sms" ? `sms:${number}?body=${encodeURIComponent(body)}` : `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(body)}`);
   return <Dialog open onOpenChange={open => { if (!open && !reminder.isPending) close(); }}>
-    <DialogContent className={connected ? "max-h-[calc(100dvh-2rem)] max-w-5xl overflow-y-auto" : undefined}>
+    <DialogContent className={`w-[calc(100%-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg ${connected ? "max-w-5xl" : ""}`}>
       <DialogTitle>{type === "reminder" ? "Set expiry reminder" : `${channel} renewal message`}</DialogTitle>
       <DialogDescription>{row.customer} / {row.subscription ?? row.membership} / {row.expiry}</DialogDescription>
       {type === "reminder" ? <form className="space-y-3" onSubmit={event => { event.preventDefault(); if (owns()) reminder.mutate(); }}>
@@ -155,12 +150,12 @@ function ExpiryAction({ row, type, source, kind, close }: { row: Expiry; type: A
         {message.data && connected && number && !message.isError ? <Suspense fallback={<p role="status">Loading WhatsApp composer…</p>}>
           <WhatsAppCloudPanel embedded initialDraft={{key: `${kind}-expiry:${row.id}`, to: number, body}}/>
         </Suspense> : message.data && <>
-          <label className="grid gap-1">Message<textarea className="rounded border bg-background p-2" value={body} rows={4} maxLength={1000} onChange={event => setDraft(event.target.value)}/></label>
+          <label className="grid gap-1">Message<textarea className="w-full rounded border bg-background p-2 text-base" value={body} rows={4} maxLength={1000} onChange={event => setDraft(event.target.value)}/></label>
           <p className="text-sm text-muted-foreground">Review and send to {number} in your messaging app.</p>
           {messageHref && body.trim() && !message.isError && !message.isFetching && <div className="flex flex-wrap gap-2">
-            <Button asChild><a href={messageHref} target={type === "whatsapp" ? "_blank" : undefined} rel="noopener noreferrer">Open {channel}</a></Button>
+            <Button asChild className="min-h-11 max-sm:w-full"><a href={messageHref} target={type === "whatsapp" ? "_blank" : undefined} rel="noopener noreferrer">Open {channel}</a></Button>
             {type === "whatsapp" && canAccessRoute("/crm/whatsapp", user?.role, user?.is_superuser) &&
-              <Button variant="outline" onClick={() => setConnected(true)}>Use connected WhatsApp</Button>}
+              <Button className="min-h-11 max-sm:w-full" variant="outline" onClick={() => setConnected(true)}>Use connected WhatsApp</Button>}
           </div>}
         </>}
       </>}
