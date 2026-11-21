@@ -883,6 +883,9 @@ function PaymentModesView() {
 function BankStatementsView() {
   const phone = useMobile(480);
   const queryClient = useQueryClient();
+  const scope = useRecordScope();
+  const accounts = useQuery({ queryKey: ["fam", "bankAccounts", scope], queryFn: famApi.bankAccounts, enabled: phone });
+  const activeAccounts = listItems(accounts.data).filter(row => row.active !== false);
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
   const [draft, setDraft] = useState<FAMRecord>(() => ({
     bank_account_id: defaultId("bank_account_id", "fam") || "",
@@ -893,7 +896,7 @@ function BankStatementsView() {
   }));
   const [hasEnteredContent, setHasEnteredContent] = useState(false);
   const hasReviewableContent = hasEnteredContent && Boolean(String(draft.file_content ?? "").trim());
-  const mobileImportReady = hasReviewableContent && Number(draft.bank_account_id) > 0 &&
+  const mobileImportReady = hasReviewableContent && accounts.isSuccess && activeAccounts.some(row => Number(row.id) === Number(draft.bank_account_id)) &&
     Boolean(draft.statement_period_start && draft.statement_period_end) &&
     String(draft.statement_period_start) <= String(draft.statement_period_end);
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
@@ -917,7 +920,22 @@ function BankStatementsView() {
         <CardContent className="space-y-3 fam-bank-import">
           {phone && statementChooser}
           <div className="grid gap-3 fam-bank-import-fields">
-            {["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
+            {phone && <div className="space-y-2">
+              <Field label="Bank account">
+                <NativeSelect aria-label="Bank account" className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
+                  loading={accounts.isPending} error={accounts.isError} disabled={!accounts.isSuccess || activeAccounts.length === 0}
+                  value={String(draft.bank_account_id || "")}
+                  onChange={event => setDraft(current => ({ ...current, bank_account_id: Number(event.target.value) || "" }))}>
+                  <option value="">Choose a bank account</option>
+                  {activeAccounts.map(row => <option key={String(row.id)} value={String(row.id)}>
+                    {[row.bank_name, row.account_number_masked, row.branch_name].filter(Boolean).join(" · ")}
+                  </option>)}
+                </NativeSelect>
+              </Field>
+              {accounts.isError && <Button variant="outline" onClick={() => void accounts.refetch()}>Retry loading accounts</Button>}
+              {accounts.isSuccess && activeAccounts.length === 0 && <Link className="text-sm underline" to="/fam/bank-accounts">Open bank accounts</Link>}
+            </div>}
+            {[...(!phone ? ["bank_account_id"] : []), "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
               <Field key={field} label={field.replace(/_/g, " ")}>
                 <Input
                   type={field.includes("period") ? "date" : "text"}
