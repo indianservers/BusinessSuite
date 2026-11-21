@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
+import { useMobile } from "@/components/mobile/useMobile";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { appendRichMarkdown } from "@/components/rich-text/content";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -22,6 +23,8 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sync, setSync] = useState("Connecting…");
+  const [unavailable, setUnavailable] = useState(false);
+  const mobile = useMobile();
   const mounted = useRef(true);
   const end = useRef<HTMLDivElement>(null);
   const url = `${workspaceBase}/workspaces/${workspaceId}/entries`;
@@ -33,13 +36,25 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
     const refresh = async () => {
       try {
         const { data } = await api.get<Entry[]>(url);
-        if (active) { setEntries(data); setSync("Updated just now"); }
-      } catch { if (active) setSync("Reconnecting…"); }
-      finally { if (active) timer = setTimeout(refresh, document.hidden ? 15000 : 3000); }
+        if (!active) return;
+        setEntries(data);
+        setUnavailable(false);
+        setSync("Updated just now");
+      } catch (failure) {
+        if (!active) return;
+        const status = (failure as { response?: { status?: number } } | null)?.response?.status;
+        if (mobile && (status === 403 || status === 404)) {
+          setEntries([]);
+          setUnavailable(true);
+          return;
+        }
+        setSync("Reconnecting…");
+      }
+      if (active) timer = setTimeout(refresh, document.hidden ? 15000 : 3000);
     };
     void refresh();
     return () => { active = false; mounted.current = false; clearTimeout(timer); };
-  }, [url, enabled]);
+  }, [url, enabled, mobile]);
   const visibleEntries = entries.filter(entry => entry.kind === tab && (!linkedOnly || entry.task_id !== null)
     && [entry.body, entry.author, personName(entry.author), tasks.find(task => task.id === entry.task_id)?.title || ""].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
   useEffect(() => { if (tab === "chat" && !search && !linkedOnly) end.current?.scrollIntoView({ block: "nearest" }); }, [entries.length, tab, search, linkedOnly]);
@@ -56,6 +71,16 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
       if (mounted.current) setEntries(data);
     } catch (e) { if (mounted.current) setError(workspaceError(e)); }
     finally { if (mounted.current) setBusy(false); }
+  }
+  if (mobile && unavailable) {
+    return (
+      <aside className="ws-collaboration space-y-3 p-4" aria-label="Team collaboration">
+        <p role="alert">Chat and notes are unavailable for this workspace.</p>
+        <Button asChild variant="outline">
+          <Link to="/pms/workspaces">Choose another workspace</Link>
+        </Button>
+      </aside>
+    );
   }
   return <aside className="ws-collaboration" aria-label="Team collaboration"><Button asChild variant="outline"><Link className="ws-collab-sync" to={`/pms/messages?workspace=${workspaceId}`}>Open channels, messages & threads ↗</Link></Button>
     <div className="ws-collab-tabs" role="tablist" aria-label="Collaboration views">
