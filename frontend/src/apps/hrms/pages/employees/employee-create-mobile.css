@@ -107,6 +107,10 @@
 }
 
 @media (max-width: 480px) {
+  body:has(.hrms-employee-create:not(.smart-create-body *)) :is(.mobile-module-add, .mobile-tools-trigger, .action-bot-launcher) {
+    display: none;
+  }
+
   .hrms-employee-create:not(.smart-create-body *) {
     padding-bottom: 68px;
   }
