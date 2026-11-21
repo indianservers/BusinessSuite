@@ -1,0 +1,97 @@
+@media (max-width: 480px) {
+  .hrms-attendance,
+  .hrms-attendance :is(.kf-card, input, select) {
+    min-width: 0;
+  }
+
+  .hrms-attendance .kf-card > div {
+    padding: 12px;
+  }
+
+  .hrms-attendance :is(button, summary) {
+    min-height: 44px;
+  }
+
+  .hrms-attendance :is(select, input:not([type="checkbox"])) {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .hrms-attendance .hrms-attendance-lock .kf-card {
+    box-shadow: none;
+  }
+
+  .hrms-attendance .hrms-attendance-lock > div {
+    padding: 8px;
+  }
+
+  .hrms-attendance-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px;
+  }
+
+  .hrms-attendance .hrms-attendance-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .hrms-attendance-register {
+    display: grid;
+    gap: 8px;
+  }
+
+  .hrms-attendance-record {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-attendance-record dt,
+  .hrms-attendance-record summary {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .hrms-attendance-record summary {
+    padding-block: 10px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .hrms-attendance-person {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .hrms-attendance-person input {
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+
+  .hrms-attendance-field,
+  .hrms-attendance-fields label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    font-size: 14px;
+  }
+
+  .hrms-attendance-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hrms-attendance-fields label:last-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -62,3 +62,38 @@
 @media(max-width:480px){.smart-create-body .leave-account-create :is(input,select){font-size:16px;min-height:44px!important;min-width:0}.leave-account-create label{font-size:12px;margin-bottom:-6px}.leave-account-create button{min-height:44px}.leave-account-create p{overflow-wrap:anywhere}.leave-account-sources .leave-source-feedback{display:grid;gap:8px;font-size:12px;margin-bottom:12px}}
 
 @media(max-width:480px){.leave-maintenance-feedback{overflow-wrap:anywhere;min-width:0}}
+
+@media (max-width: 480px) {
+  .leave-page .leave-header-actions > .leave-apply-action {
+    grid-column: 1 / -1;
+  }
+
+  .leave-request-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .leave-request-card {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .leave-request-card :is(dt, summary) {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .leave-request-card summary {
+    min-height: 44px;
+    padding-block: 10px;
+    cursor: pointer;
+  }
+
+  .leave-request-card > button {
+    justify-self: start;
+  }
+}

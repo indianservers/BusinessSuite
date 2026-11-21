@@ -1,3 +1,6 @@
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { useMobile } from "@/components/mobile/useMobile";
+import "./attendance-mobile.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -61,6 +64,15 @@ interface RegisterRow {
   remarks?: string | null;
 }
 
+interface AttendanceRecord {
+  id: number;
+  attendance_date: string;
+  status: string;
+  check_in?: string;
+  check_out?: string;
+  total_hours?: number;
+}
+
 const statusDotColor: Record<string, string> = {
   Present: "bg-green-500",
   Absent: "bg-red-400",
@@ -71,6 +83,7 @@ const statusDotColor: Record<string, string> = {
 };
 
 export default function AttendancePage() {
+  const phone = useMobile(480);
   const { term } = useBusinessTerms();
   usePageTitle("Attendance");
   const qc = useQueryClient();
@@ -265,8 +278,31 @@ export default function AttendancePage() {
     });
   }
 
+  function registerControls(row: RegisterRow) {
+    const edit = editFor(row);
+    return {
+      selected: (
+        <input aria-label={`Select ${row.employee_name}`} type="checkbox" checked={edit.selected} onChange={(event) => setRegisterEdits(current=>({...current,[row.employee_id]:{...editFor(row),selected:event.target.checked}}))} />
+      ),
+      status: (
+        <NativeSelect aria-label={`Status for ${row.employee_name}`} value={edit.status} onChange={(event) => updateRegisterRow(row.employee_id, { status: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+          {edit.status === "Not marked" && <option value="Not marked" disabled>Not marked</option>}{REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+        </NativeSelect>
+      ),
+      hours: (
+        <Input aria-label={`Hours worked for ${row.employee_name}`} className="h-9 w-24" type="number" min="0" step="0.5" value={edit.hours_worked} onChange={(event) => updateRegisterRow(row.employee_id, { hours_worked: event.target.value })} />
+      ),
+      overtime: (
+        <Input aria-label={`Overtime hours for ${row.employee_name}`} className="h-9 w-24" type="number" min="0" step="0.5" value={edit.ot_hours} onChange={(event) => updateRegisterRow(row.employee_id, { ot_hours: event.target.value })} />
+      ),
+      remarks: (
+        <Input aria-label={`Remarks for ${row.employee_name}`} className="h-9 min-w-48" value={edit.remarks} onChange={(event) => updateRegisterRow(row.employee_id, { remarks: event.target.value })} placeholder="Remarks" />
+      ),
+    };
+  }
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="hrms-attendance space-y-4 sm:space-y-6">
       {selectionParams.get("returnTo")==="/hrms/payroll"&&<Link className="block rounded border p-3 text-sm underline" to="/hrms/payroll">Return to saved payroll run and review step</Link>}
       <div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -357,6 +393,7 @@ export default function AttendancePage() {
         </div>
       )}
 
+      <MobileDisclosure title="Attendance lock" maxWidth={480} className="hrms-attendance-lock">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Attendance Lock</CardTitle>
@@ -384,6 +421,8 @@ export default function AttendancePage() {
         </CardContent>
       </Card>
 
+      </MobileDisclosure>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -393,8 +432,8 @@ export default function AttendancePage() {
             </div>
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
               <NativeSelect aria-label="Filter attendance status" value={registerStatus} onChange={e=>setRegisterStatus(e.target.value)} className="rounded border bg-background px-3 py-2 text-sm"><option value="">All attendance statuses</option>{[...REGISTER_STATUSES,"Not marked","On Leave"].map(status=><option key={status}>{status}</option>)}</NativeSelect>
-              <Input type="date" value={registerDate} onChange={(event) => setRegisterDate(event.target.value)} />
-              <Input value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder={`Search ${term('employee').toLowerCase()}`} />
+              <Input aria-label="Register date" type="date" value={registerDate} onChange={(event) => setRegisterDate(event.target.value)} />
+              <Input aria-label="Search attendance register" value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder={`Search ${term('employee').toLowerCase()}`} />
               <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["attendance-register"] })}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
@@ -403,7 +442,8 @@ export default function AttendancePage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+          <MobileDisclosure title="Register summary" maxWidth={480}>
+          <div className="hrms-attendance-counts grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
             {[
               ["Present", attendanceRegister?.present ?? 0],
               ["Not marked", attendanceRegister?.not_marked ?? 0],
@@ -421,7 +461,9 @@ export default function AttendancePage() {
             ))}
           </div>
 
-          <div className="ui-toolbar">
+          </MobileDisclosure>
+
+          <div className="ui-toolbar hrms-attendance-toolbar">
             {selectedRegisterIds.length > 0 && <>
             <label className="sr-only" htmlFor="bulk-attendance-status">Bulk attendance status</label>
             <NativeSelect id="bulk-attendance-status" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -438,52 +480,82 @@ export default function AttendancePage() {
             </Button>
           </div>
 
-          <div className="ui-table-wrap">
-            <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-1" className="ui-table min-w-[1120px]">
-              <thead>
-                <tr>
-                  {["", "Employee Code", "Employee Name", "Department", "Branch", "Date", "Status", "Hours Worked", "OT Hours", "Remarks"].map((h) => (
-                    <th key={h} className={h === "" ? "w-10" : undefined}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loadingRegister ? (
-                  <tr><td colSpan={10}><LoadingState label="Loading attendance register" className="border-0" /></td></tr>
-                ) : !registerRows.length ? (
-                  <tr><td colSpan={10}><EmptyState title="No employees found" description="Adjust the search or confirm that employees are active for this register date." className="border-0" /></td></tr>
-                ) : registerRows.map((row) => {
-                  const edit = editFor(row);
-                  return (
-                    <tr {...recordPreviewProps(row)} key={row.employee_id}>
-                      <td>
-                        <input aria-label={`Select ${row.employee_name}`} type="checkbox" checked={edit.selected} onChange={(event) => setRegisterEdits(current=>({...current,[row.employee_id]:{...editFor(row),selected:event.target.checked}}))} />
-                      </td>
-                      <td className="font-medium">{row.employee_code || "-"}</td>
-                      <td>{row.employee_name}</td>
-                      <td className="text-muted-foreground">{row.department || "-"}</td>
-                      <td className="text-muted-foreground">{row.branch || "-"}</td>
-                      <td>{registerDate}</td>
-                      <td>
-                        <NativeSelect aria-label={`Status for ${row.employee_name}`} value={edit.status} onChange={(event) => updateRegisterRow(row.employee_id, { status: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                          {edit.status === "Not marked" && <option value="Not marked" disabled>Not marked</option>}{REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                        </NativeSelect>
-                      </td>
-                      <td>
-                        <Input aria-label={`Hours worked for ${row.employee_name}`} className="h-9 w-24" type="number" min="0" step="0.5" value={edit.hours_worked} onChange={(event) => updateRegisterRow(row.employee_id, { hours_worked: event.target.value })} />
-                      </td>
-                      <td>
-                        <Input aria-label={`Overtime hours for ${row.employee_name}`} className="h-9 w-24" type="number" min="0" step="0.5" value={edit.ot_hours} onChange={(event) => updateRegisterRow(row.employee_id, { ot_hours: event.target.value })} />
-                      </td>
-                      <td>
-                        <Input aria-label={`Remarks for ${row.employee_name}`} className="h-9 min-w-48" value={edit.remarks} onChange={(event) => updateRegisterRow(row.employee_id, { remarks: event.target.value })} placeholder="Remarks" />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </GridTable>
-          </div>
+          {phone ? (
+            <div className="hrms-attendance-register">
+              {loadingRegister ? <LoadingState label="Loading attendance register" /> : !registerRows.length ? (
+                <EmptyState title="No employees found" description="Adjust the search or confirm that employees are active for this register date." />
+              ) : registerRows.map((row) => {
+                const controls = registerControls(row);
+                return (
+                  <article key={row.employee_id} className="hrms-attendance-record">
+                    <label className="hrms-attendance-person">
+                      {controls.selected}
+                      <span>
+                        <strong>{row.employee_name}</strong>
+                        <span className="block text-sm text-muted-foreground">
+                          {[row.employee_code, row.department, row.branch].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="hrms-attendance-field">Status{controls.status}</label>
+                    <details>
+                      <summary>Hours and remarks</summary>
+                      <div className="hrms-attendance-fields">
+                        <label>Hours worked{controls.hours}</label>
+                        <label>Overtime hours{controls.overtime}</label>
+                        <label>Remarks{controls.remarks}</label>
+                      </div>
+                    </details>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="ui-table-wrap">
+              <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-1" className="ui-table min-w-[1120px]">
+                <thead>
+                  <tr>
+                    {["", "Employee Code", "Employee Name", "Department", "Branch", "Date", "Status", "Hours Worked", "OT Hours", "Remarks"].map((h) => (
+                      <th key={h} className={h === "" ? "w-10" : undefined}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingRegister ? (
+                    <tr><td colSpan={10}><LoadingState label="Loading attendance register" className="border-0" /></td></tr>
+                  ) : !registerRows.length ? (
+                    <tr><td colSpan={10}><EmptyState title="No employees found" description="Adjust the search or confirm that employees are active for this register date." className="border-0" /></td></tr>
+                  ) : registerRows.map((row) => {
+                    const controls = registerControls(row);
+                    return (
+                      <tr {...recordPreviewProps(row)} key={row.employee_id}>
+                        <td>
+                          {controls.selected}
+                        </td>
+                        <td className="font-medium">{row.employee_code || "-"}</td>
+                        <td>{row.employee_name}</td>
+                        <td className="text-muted-foreground">{row.department || "-"}</td>
+                        <td className="text-muted-foreground">{row.branch || "-"}</td>
+                        <td>{registerDate}</td>
+                        <td>
+                          {controls.status}
+                        </td>
+                        <td>
+                          {controls.hours}
+                        </td>
+                        <td>
+                          {controls.overtime}
+                        </td>
+                        <td>
+                          {controls.remarks}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </GridTable>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -495,10 +567,10 @@ export default function AttendancePage() {
               {new Date(viewYear, viewMonth - 1).toLocaleString("en", { month: "long", year: "numeric" })}
             </CardTitle>
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+              <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Previous month" onClick={prevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+              <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Next month" onClick={nextMonth}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -561,53 +633,66 @@ export default function AttendancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="ui-table-wrap border-0">
-            <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-2" className="ui-table min-w-[640px]">
-              <thead>
-                <tr>
-                  {["Date", "Status", "Check In", "Check Out", "Hours"].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {!records || records.length === 0 ? (
+          {phone ? (
+            <div className="hrms-attendance-register p-3">
+              {records?.length ? [...records].reverse().map((r: AttendanceRecord) => (
+                <article key={r.id} className="hrms-attendance-record">
+                  <header className="flex flex-wrap items-center justify-between gap-2">
+                    <strong>{new Date(r.attendance_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</strong>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(r.status)}`}>
+                      {r.status}
+                    </span>
+                  </header>
+                  <dl className="grid grid-cols-3 gap-2 text-sm">
+                    <div><dt>Check in</dt><dd>{r.check_in ? new Date(r.check_in).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}</dd></div>
+                    <div><dt>Check out</dt><dd>{r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}</dd></div>
+                    <div><dt>Hours</dt><dd>{r.total_hours != null ? `${r.total_hours.toFixed(1)}h` : "-"}</dd></div>
+                  </dl>
+                </article>
+              )) : <EmptyState title="No records for this period" description="Attendance will appear here after check-in, biometric import, or HR register save." />}
+            </div>
+          ) : (
+            <div className="ui-table-wrap border-0">
+              <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-2" className="ui-table min-w-[640px]">
+                <thead>
                   <tr>
-                    <td colSpan={5}><EmptyState title="No records for this period" description="Attendance will appear here after check-in, biometric import, or HR register save." className="border-0" /></td>
+                    {["Date", "Status", "Check In", "Check Out", "Hours"].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
                   </tr>
-                ) : (
-                  [...records].reverse().map((r: {
-                    id: number;
-                    attendance_date: string;
-                    status: string;
-                    check_in?: string;
-                    check_out?: string;
-                    total_hours?: number;
-                  }) => (
-                    <tr {...recordPreviewProps(r)} key={r.id}>
-                      <td>
-                        {new Date(r.attendance_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                      </td>
-                      <td>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(r.status)}`}>
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="text-muted-foreground">
-                        {r.check_in ? new Date(r.check_in).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
-                      </td>
-                      <td className="text-muted-foreground">
-                        {r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
-                      </td>
-                      <td>
-                        {r.total_hours != null ? `${r.total_hours.toFixed(1)}h` : "-"}
-                      </td>
+                </thead>
+                <tbody>
+                  {!records || records.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}><EmptyState title="No records for this period" description="Attendance will appear here after check-in, biometric import, or HR register save." className="border-0" /></td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </GridTable>
-          </div>
+                  ) : (
+                    [...records].reverse().map((r: AttendanceRecord) => (
+                      <tr {...recordPreviewProps(r)} key={r.id}>
+                        <td>
+                          {new Date(r.attendance_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                        </td>
+                        <td>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(r.status)}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="text-muted-foreground">
+                          {r.check_in ? new Date(r.check_in).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                        </td>
+                        <td className="text-muted-foreground">
+                          {r.check_out ? new Date(r.check_out).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                        </td>
+                        <td>
+                          {r.total_hours != null ? `${r.total_hours.toFixed(1)}h` : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </GridTable>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

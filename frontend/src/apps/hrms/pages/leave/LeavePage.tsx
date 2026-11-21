@@ -505,6 +505,26 @@ function LeaveSurface({ scope }: { scope: string }) {
     event.currentTarget.querySelector<HTMLButtonElement>(`[data-leave-tab="${tabs[next]}"]`)?.focus();
   }
 
+  function cancelRequestButton(id: number) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 text-xs text-red-500 hover:text-red-700"
+        disabled={!canCancel || cancelMutation.isPending}
+        onClick={() => {
+          if (phone) {
+            if (!canCancel || cancelMutation.isPending || cancelSubmitting.current) return;
+            cancelSubmitting.current = true;
+          }
+          cancelMutation.mutate(id);
+        }}
+      >
+        Cancel
+      </Button>
+    );
+  }
+
   return (
     <div className="leave-page space-y-4 sm:space-y-6">
       <div className="leave-page-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -528,7 +548,7 @@ function LeaveSurface({ scope }: { scope: string }) {
               </Button>
             </>
           ) : null}
-          <Button ref={applyOpener} size="sm" className="w-full sm:w-auto" disabled={!canApply} onClick={() => { if (!phone || !applyMutation.isPending) setShowApplyForm((v) => !v); }}>
+          <Button ref={applyOpener} size="sm" className="leave-apply-action w-full sm:w-auto" disabled={!canApply} onClick={() => { if (!phone || !applyMutation.isPending) setShowApplyForm((v) => !v); }}>
             <Plus className="mr-2 h-4 w-4" />
             Apply Leave
           </Button>
@@ -857,7 +877,29 @@ function LeaveSurface({ scope }: { scope: string }) {
               <p>Leave request #{cancelMutation.variables}: {cancelMutation.isPending ? "cancelling…" : String((cancelMutation.error as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Could not cancel this request. Please retry from its actions.")}</p>
             </div>}
             {phone && hasEmployeeProfile && <LeaveSourceNotice label="my leave requests" source={myRequestsSource} hasData={myRequests!==undefined}/>}{phone && !hasEmployeeProfile && <p role="status" className="p-3">Link an employee profile to load your leave requests.</p>}
-            {(!phone || hasEmployeeProfile && myRequests!==undefined) && <div className="overflow-x-auto">
+            {phone && hasEmployeeProfile && myRequests !== undefined && (
+              <div className="leave-request-list p-3">
+                {myRequests.length ? myRequests.map(request => (
+                  <article key={request.id} className="leave-request-card">
+                    <header className="flex flex-wrap items-center justify-between gap-2">
+                      <strong>{request.leave_type?.name || "Leave"}</strong>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(request.status)}`}>{request.status}</span>
+                    </header>
+                    <p className="text-sm">{formatDate(request.from_date)} – {formatDate(request.to_date)} · {Number(request.days_count).toFixed(1)} days</p>
+                    <details className="text-sm">
+                      <summary>Request details</summary>
+                      <dl className="grid gap-2">
+                        <div><dt>Applied on</dt><dd>{formatDate(request.applied_at)}</dd></div>
+                        <div><dt>Reason</dt><dd>{request.reason || "–"}</dd></div>
+                        {request.review_remarks && <div><dt>Review reason</dt><dd>{request.review_remarks}</dd></div>}
+                      </dl>
+                    </details>
+                    {request.status === "Pending" && cancelRequestButton(request.id)}
+                  </article>
+                )) : <p className="text-sm text-muted-foreground">{myRequestsSource.isError ? "No leave requests in the last loaded result" : "No leave requests yet"}</p>}
+              </div>
+            )}
+            {!phone && <div className="overflow-x-auto">
               <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-2" className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
@@ -898,16 +940,7 @@ function LeaveSurface({ scope }: { scope: string }) {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          {r.status === "Pending" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs text-red-500 hover:text-red-700"
-                              disabled={!canCancel||cancelMutation.isPending} onClick={() => { if(phone) { if(!canCancel || cancelMutation.isPending || cancelSubmitting.current) return; cancelSubmitting.current=true; } cancelMutation.mutate(r.id); }}
-                            >
-                              Cancel
-                            </Button>
-                          )}
+                          {r.status === "Pending" && cancelRequestButton(r.id)}
                         </td>
                       </tr>
                     ))

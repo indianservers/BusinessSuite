@@ -1,0 +1,73 @@
+@media (max-width: 480px) {
+  .hrms-approval-os,
+  .hrms-approval-os :is(.kf-card, input, select) {
+    min-width: 0;
+  }
+
+  .hrms-approval-os > div:first-child,
+  .hrms-approval-os .kf-card > div {
+    padding: 12px;
+  }
+
+  .hrms-approval-os :is(input, select) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .hrms-approval-os :is(button, summary) {
+    min-height: 44px;
+  }
+
+  .hrms-approval-os :is(.hrms-approval-scopes, .hrms-approval-pagination) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hrms-approval-scopes button {
+    padding-inline: 8px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .hrms-approval-pagination > span {
+    grid-column: 1 / -1;
+    font-size: 14px;
+  }
+
+  .hrms-approval-os .hrms-approval-summary-note {
+    padding: 8px 12px;
+  }
+
+  .hrms-approval-os .hrms-approval-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 12px 12px;
+  }
+
+  .hrms-approval-filters > div {
+    padding: 0 8px 8px;
+  }
+
+  .hrms-approval-filters .kf-card {
+    box-shadow: none;
+  }
+
+  .hrms-approval-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hrms-approval-os .hrms-approval-record {
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-approval-os .hrms-approval-decision {
+    min-width: 0;
+  }
+
+  .hrms-approval-decision > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
