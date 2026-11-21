@@ -7,7 +7,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import Response
-from sqlalchemy import and_, case, func, select
+from sqlalchemy import String, and_, case, cast, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
@@ -1315,14 +1315,53 @@ def create_srm_warehouse(data: SRMWarehouseCreate, db: Session = Depends(get_db)
     return _serialize(row)
 
 
+def _native_pos_quantities(db: Session, org_id: int | None, branch: int | None, products: list[SRMProduct]) -> dict[int, Decimal]:
+    """Read the default-warehouse balance used by native POS checkout."""
+    from app.branches.models import BranchOwnership
+
+    product_ids = [product.id for product in products if _tracks_physical_inventory(product)]
+    if branch is None or not product_ids:
+        return {}
+    balances = (
+        db.query(SRMInventoryBalance.product_id, SRMInventoryBalance.quantity)
+        .join(SRMProduct, SRMProduct.id == SRMInventoryBalance.product_id)
+        .join(SRMWarehouse, SRMWarehouse.id == SRMInventoryBalance.warehouse_id)
+        .join(
+            BranchOwnership,
+            and_(
+                BranchOwnership.resource_table == SRMWarehouse.__tablename__,
+                BranchOwnership.resource_key == cast(SRMWarehouse.id, String),
+                BranchOwnership.company_id == org_id,
+                BranchOwnership.branch_id == branch,
+            ),
+        )
+        .filter(
+            SRMInventoryBalance.organization_id == org_id,
+            SRMProduct.organization_id == org_id,
+            SRMWarehouse.organization_id == org_id,
+            SRMInventoryBalance.product_id.in_(product_ids),
+            SRMInventoryBalance.warehouse_id == SRMProduct.default_warehouse_id,
+        )
+    )
+    return dict(balances.all())
+
+
 @router.get("/inventory/items")
-def list_srm_products(search: str | None = None, page: int | None = None, per_page: int = 200, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+def list_srm_products(
+    search: str | None = None,
+    page: int | None = None,
+    per_page: int = 200,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin")),
+    pos_stock: bool = False,
+):
     org_id = _org(current_user)
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
     from app.shared.catalog import restrict_workspaces
     query = restrict_workspaces(query, SRMProduct, db, current_user)
     from app.shared.catalog_branches import availability_clause, selected_branch
-    query = query.filter(availability_clause(SRMProduct, selected_branch(current_user)))
+    branch = selected_branch(current_user)
+    query = query.filter(availability_clause(SRMProduct, branch))
     if search:
         normalized = search.lower()
         query = query.filter(
@@ -1331,7 +1370,7 @@ def list_srm_products(search: str | None = None, page: int | None = None, per_pa
             | func.lower(SRMProduct.category_name).contains(normalized, autoescape=True)
             | func.lower(SRMProduct.barcode).contains(normalized, autoescape=True)
         )
-    if (page is not None and page < 1) or per_page < 1 or per_page > 500:
+    if (pos_stock and page is None) or (page is not None and page < 1) or per_page < 1 or per_page > 500:
         raise HTTPException(422, "Invalid catalogue page")
     total = query.count()
     query = query.order_by(SRMProduct.item_name, SRMProduct.id)
@@ -1340,7 +1379,13 @@ def list_srm_products(search: str | None = None, page: int | None = None, per_pa
     # Scoped relationship reads in two batches instead of one per category/warehouse.
     from sqlalchemy.orm import selectinload
     rows = query.options(selectinload(SRMProduct.category), selectinload(SRMProduct.default_warehouse)).all()
-    return {"items": [_product_payload(row) for row in rows], "total": total, "page": page, "per_page": per_page}
+    items = [_product_payload(row) for row in rows]
+    if pos_stock:
+        quantities = _native_pos_quantities(db, org_id, branch, rows)
+        for row, item in zip(rows, items):
+            if _tracks_physical_inventory(row):
+                item["stock"] = {"available_quantity": str(quantities.get(row.id, 0))}
+    return {"items": items, "total": total, "page": page, "per_page": per_page}
 
 
 @router.post("/inventory/items", status_code=201)

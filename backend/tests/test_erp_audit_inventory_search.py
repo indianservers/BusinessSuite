@@ -35,3 +35,37 @@ def test_sales_item_search_is_literal(client,procurement,needle):
     assert [x['id'] for x in result.json()['items']]==[rows[0]['id']]
     normal=client.get('/api/v1/srm/inventory/items',headers=headers,params={'search':'qaplain'})
     assert {x['id'] for x in normal.json()['items']}=={rows[1]['id']}
+
+
+def test_native_pos_catalog_uses_only_sellable_default_warehouse_stock(client, procurement):
+    headers, line, _ = procurement
+    overflow_warehouse = client.post(
+        '/api/v1/srm/inventory/warehouses', headers=headers,
+        json={'warehouse_code': 'OVERFLOW', 'warehouse_name': 'Overflow'},
+    )
+    assert overflow_warehouse.status_code == 201
+    overflow = client.post(
+        '/api/v1/srm/inventory/opening-stock', headers=headers,
+        json={'product_id': line['product_id'], 'warehouse_id': overflow_warehouse.json()['id'], 'quantity': 85},
+    )
+    assert overflow.status_code == 201
+
+    params = {'search': 'AUDIT-PAPER', 'page': 1}
+    endpoint = '/api/v1/srm/inventory/items'
+    ordinary = client.get(endpoint, headers=headers, params=params)
+    assert ordinary.status_code == 200
+    assert ordinary.json()['items'][0]['current_quantity'] == 85
+    assert 'stock' not in ordinary.json()['items'][0]
+
+    pos = client.get(endpoint, headers=headers, params={**params, 'pos_stock': True})
+    assert pos.status_code == 200
+    assert float(pos.json()['items'][0]['stock']['available_quantity']) == 0
+
+    default = client.post(
+        '/api/v1/srm/inventory/opening-stock', headers=headers,
+        json={'product_id': line['product_id'], 'warehouse_id': line['warehouse_id'], 'quantity': 3},
+    )
+    assert default.status_code == 201
+    pos = client.get(endpoint, headers=headers, params={**params, 'pos_stock': True})
+    assert pos.status_code == 200
+    assert float(pos.json()['items'][0]['stock']['available_quantity']) == 3
