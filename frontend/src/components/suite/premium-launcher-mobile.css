@@ -105,6 +105,10 @@
 
   .launcher-authenticated :is(.launcher-nav-home, .launcher-app-menu summary) { min-height: 36px; }
   .launcher-authenticated .launcher-app-menu summary > svg:last-child { display: none; }
+  .launcher-authenticated .launcher-nav:has(.launcher-app-menu[open]) {
+    position: relative;
+    z-index: 2;
+  }
   .launcher-authenticated .launcher-app-menu > div {
     position: fixed;
     top: calc(var(--launcher-brand-row) + var(--launcher-nav-row));
@@ -113,7 +117,9 @@
     min-width: 0;
     max-height: calc(100dvh - 204px);
     overflow: auto;
+    overscroll-behavior: contain;
   }
+  .launcher-authenticated .launcher-app-menu > div > a { min-height: 44px; white-space: normal; }
 
   .launcher-authenticated .launcher-search-box {
     grid-column: 1 / -1;

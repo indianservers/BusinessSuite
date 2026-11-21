@@ -1,9 +1,11 @@
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import {useModuleAction} from "@/hooks/use-module-action";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useMobile } from "@/components/mobile/useMobile";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
+import "./pipeline.css";
 
 export type PipelineContext = { module:"crm"|"project_management"|"srm"|"hrms"; scope:string; kind?:"deal"|"task"|"candidate"|"sales_order" };
 export type CardField = "subtitle"|"owner"|"value"|"activity"|"age"|"content";
@@ -33,9 +35,32 @@ export function usePipelinePreferences(context:PipelineContext|undefined,label:s
   return {preferences,update,views,applyView,canShare:canShare&&allowCreate,canSave:!context||allowEdit,canSaveView:!!context&&allowCreate,error,notice,busy,save,saveView,userId:user?.id,context};
 }
 export function PipelineDrawer({open,onClose,title,children,wide=false,returnFocus}:{open:boolean;onClose:()=>void;title:string;children:ReactNode;wide?:boolean;returnFocus?:HTMLElement|null}){
+  const mobile=useMobile();
   const opener=useRef<HTMLElement|null>(null);
+  const focusHeading=useCallback((heading:HTMLHeadingElement|null)=>{
+    if(!mobile||!heading)return;
+    const active=document.activeElement;
+    if(active instanceof HTMLElement&&!heading.closest('[role="dialog"]')?.contains(active))opener.current=active;
+    heading.focus({preventScroll:true});
+  },[mobile]);
   if (/^(create|new|add|invite)\b/i.test(title)) return open ? <SmartCreateModal definition={{entity:title,title,presentation:"page",size:wide?"large":"standard"}} onClose={onClose}>{children}</SmartCreateModal> : null;
-  return <Dialog open={open} onOpenChange={v=>{if(!v)onClose();}}><DialogContent className="pipeline-drawer" onOpenAutoFocus={()=>{opener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;}} onCloseAutoFocus={event=>{const target=opener.current?.isConnected&&opener.current!==document.body?opener.current:returnFocus?.isConnected?returnFocus:null;if(target){event.preventDefault();target.focus();}}} style={{left:"auto",right:0,top:0,transform:"none",height:"100dvh",maxHeight:"100dvh",width:wide?"min(1280px,100vw)":"min(680px,100vw)",maxWidth:wide?"1280px":"680px",borderRadius:0,display:"block",overflowY:"auto"}}><DialogTitle className="text-lg font-semibold mb-5 pr-9">{title}</DialogTitle>{children}</DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={value=>{if(!value)onClose();}}>
+    <DialogContent
+      className="pipeline-drawer"
+      onOpenAutoFocus={event=>{
+        if(mobile)event.preventDefault();
+        else opener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+      }}
+      onCloseAutoFocus={event=>{
+        const target=opener.current?.isConnected&&opener.current!==document.body?opener.current:returnFocus?.isConnected?returnFocus:null;
+        if(target){event.preventDefault();target.focus();}
+      }}
+      style={{left:"auto",right:0,top:"var(--pipeline-drawer-top, 0px)",transform:"none",height:"var(--pipeline-drawer-height, 100dvh)",maxHeight:"var(--pipeline-drawer-height, 100dvh)",width:wide?"min(1280px,100vw)":"min(680px,100vw)",maxWidth:wide?"1280px":"680px",borderRadius:0,display:"block",overflowY:"auto"}}
+    >
+      <DialogTitle ref={focusHeading} tabIndex={mobile?-1:undefined} className="text-lg font-semibold mb-5 pr-9">{title}</DialogTitle>
+      {children}
+    </DialogContent>
+  </Dialog>;
 }
 export function PipelinePreferencesPanel({state,audienceLabel="this board"}:{state:ReturnType<typeof usePipelinePreferences>;audienceLabel?:string}){
   const {preferences:p,update}=state;const [name,setName]=useState(""),[shared,setShared]=useState(false);

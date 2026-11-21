@@ -55,3 +55,10 @@
 .pipeline-compact-overview>summary{cursor:pointer;padding:6px 12px;font-size:12px;color:hsl(var(--muted-foreground))}
 .pipeline-compact-overview>summary:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px}
 @media(max-width:650px){.pipeline-compact-overview>summary{min-height:44px;display:flex;align-items:center}}
+@media(max-width:767px){
+ .pipeline-drawer{
+  --pipeline-drawer-height:var(--mobile-viewport-height,100dvh);
+  --pipeline-drawer-top:max(0px,calc(100dvh - var(--pipeline-drawer-height) - var(--mobile-keyboard-inset,0px)));
+  scroll-padding-block:12px;
+ }
+}

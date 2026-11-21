@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { createDescriptions, createGroup, createPriority } from "./create-menu-model";
 import "./new-menu.css";
 import MobileCreateMenu from "@/components/mobile/MobileCreateMenu";
+import { useMobile } from "@/components/mobile/useMobile";
 
 export type NewAction = { label: string; description: string; icon: LucideIcon; onSelect: () => void; disabled?: boolean; menuPaths?: string[]; group?: string; keywords?: string };
 export default function NewMenu({ actions, disabled, floating = false, iconOnly = false, label = "Create" }: { label?:string; actions: NewAction[]; disabled?: boolean; floating?: boolean; iconOnly?: boolean }) {
@@ -14,7 +15,8 @@ export default function NewMenu({ actions, disabled, floating = false, iconOnly 
   const selecting = useRef(false);
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (!open) return; const frame = requestAnimationFrame(() => searchInput.current?.focus()); return () => cancelAnimationFrame(frame); }, [open]);
+  const mobile = useMobile();
+  useEffect(() => { if (!open || mobile) return; const frame = requestAnimationFrame(() => searchInput.current?.focus()); return () => cancelAnimationFrame(frame); }, [open, mobile]);
   const location = useLocation(), user = useAuthStore(s => s.user);
   const module = moduleContextPath(location.pathname, location.search).split("/")[1];
   const prepared = actions.map(action => ({ ...action, group: action.group || createGroup(action.label, module), description: module === "crm" ? createDescriptions[action.label] || action.description : action.description })).sort((a, b) => createPriority(a.label, module, user?.role === "employee") - createPriority(b.label, module, user?.role === "employee"));

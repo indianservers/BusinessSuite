@@ -20,8 +20,28 @@
 @media(max-width:480px){.smart-create-footer>button{min-width:0;white-space:normal;height:auto;min-height:44px;overflow-wrap:anywhere;line-height:1.35}}
 .smart-discard-window>div{flex-wrap:wrap}
 .smart-discard-window>div>button{min-width:0;white-space:normal;height:auto;min-height:40px}
+@media(max-width:767px){
+ :is(.smart-create-window,.smart-discard-window,.smart-create-pending){
+  --smart-create-visible-height:var(--mobile-viewport-height,100dvh);
+  --smart-create-hidden-bottom:var(--mobile-keyboard-inset,0px);
+  --smart-create-visible-top:max(0px,calc(100dvh - var(--smart-create-visible-height) - var(--smart-create-hidden-bottom)));
+ }
+ .smart-create-window{
+  inset:calc(var(--smart-create-visible-top) + 8px) 8px calc(var(--smart-create-hidden-bottom) + 8px);
+  max-height:calc(var(--smart-create-visible-height) - 16px);
+  width:auto;
+  transform:none;
+ }
+ .smart-discard-window{
+  top:calc(var(--smart-create-visible-top) + var(--smart-create-visible-height) / 2);
+  max-height:calc(var(--smart-create-visible-height) - 16px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+ }
+ .smart-create-pending{top:calc(var(--smart-create-visible-top) + 24px)}
+}
 @media(max-width:480px){
- .smart-create-window.smart-create-phone-sheet{inset:auto 8px calc(8px + env(safe-area-inset-bottom,0px) + max(0px,100dvh - var(--mobile-viewport-height,100dvh)));height:auto;max-height:calc(var(--mobile-viewport-height,100dvh) - 16px - env(safe-area-inset-bottom,0px));border-radius:18px}
+ .smart-create-window.smart-create-phone-sheet{inset:auto 8px calc(8px + env(safe-area-inset-bottom,0px) + var(--smart-create-hidden-bottom));height:auto;max-height:calc(var(--smart-create-visible-height) - 16px - env(safe-area-inset-bottom,0px));border-radius:18px}
  .smart-create-phone-sheet .smart-create-body{max-height:calc(var(--mobile-viewport-height,100dvh) - 180px - env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
  /* Preserve the original form submit element/handler; its visible action is the shared sticky footer. */
  .smart-create-phone-sheet>.smart-create-layout>.smart-create-body>div>.suite-report-schedule-form>button,

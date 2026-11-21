@@ -22,10 +22,11 @@ export default function SRMMobileScreen({children,paths,nativePath}:{children:Re
 }
 function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
+  const dashboard = /^\/srm\/?$/.test(location.pathname);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
   const [model,setModel]=useState({page:0,labels:['Overview']});
-  const [title,setTitle]=useState(titleFor(location.pathname));
+  const [title,setTitle]=useState(dashboard ? 'Sales & POS' : titleFor(location.pathname));
   const [summary,setSummary]=useState('SALES WORKSPACE');
   const [botAvailable,setBotAvailable]=useState(false);
   const [screenHeight,setScreenHeight]=useState(()=>window.visualViewport?.height||window.innerHeight);
@@ -55,7 +56,7 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
       const labels=next.map(entry=>entry.label);
       setModel(current=>current.page===page&&JSON.stringify(current.labels)===JSON.stringify(labels)?current:{page,labels});
     };
-    const schedule=()=>{if(!frame.current)frame.current=requestAnimationFrame(measure);};
+    const schedule=()=>{if(!dashboard&&!frame.current)frame.current=requestAnimationFrame(measure);};
     const mutations=new MutationObserver(records=>{
       if(pendingActionAt.current&&Date.now()-pendingActionAt.current<15000){
         for(const record of records){
@@ -64,13 +65,14 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
         }
       }
       schedule();
-    });mutations.observe(documentRoot,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-selected']});
-    const resize=new ResizeObserver(schedule);resize.observe(view);resize.observe(documentRoot);
+    });
+    const resize=new ResizeObserver(schedule);
+    if(!dashboard){mutations.observe(documentRoot,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['open','hidden','aria-expanded','aria-selected']});resize.observe(view);resize.observe(documentRoot);}
     const height=()=>{const pixels=window.visualViewport?.height||window.innerHeight;setScreenHeight(pixels);const value=`${pixels}px`;screen.current?.style.setProperty('--srm-screen-height',value);document.body.style.setProperty('--srm-visual-height',value);schedule();};
-    window.addEventListener('resize',height);window.visualViewport?.addEventListener('resize',height);height();measure();
+    window.addEventListener('resize',height);window.visualViewport?.addEventListener('resize',height);height();if(!dashboard)measure();
     return()=>{disposed=true;if(previousHeight)document.body.style.setProperty('--srm-visual-height',previousHeight);else document.body.style.removeProperty('--srm-visual-height');cancelAnimationFrame(frame.current);mutations.disconnect();resize.disconnect();window.removeEventListener('resize',height);window.visualViewport?.removeEventListener('resize',height);clearScreenPagination(documentRoot);};
-  },[]);
-  useEffect(()=>{goto(0);},[location.search,goto]);
+  },[dashboard]);
+  useEffect(()=>{if(!dashboard)goto(0);},[dashboard,location.search,goto]);
   const nativeInvalid=(event:React.InvalidEvent<HTMLDivElement>)=>{
     const target=event.target as HTMLElement;
     const index=pages.current.findIndex(page=>page.units.some(unit=>unit===target||unit.contains(target)));
@@ -87,10 +89,10 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const openSheet=(value:'menu'|'sections')=>{setSearch('');setMenuPage(0);setSheet(value);};
   const bookingRoute=/^\/srm\/(appointments|scheduled-services|service-scheduling)/.test(location.pathname);
   return <div ref={screen} className="srm-mobile-screen" data-booking-route={bookingRoute} data-pages={model.labels.length}>
-    <header className="srm-mobile-header"><button type="button" aria-label="Back to Sales" onClick={()=>navigate('/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={title}>{title}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
+    <header className="srm-mobile-header"><button type="button" aria-label={dashboard ? 'Back to Business Suite' : 'Back to Sales'} onClick={()=>navigate(dashboard ? '/dashboard' : '/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={title}>{title}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
     <nav className="srm-mobile-shortcuts" aria-label="Sales shortcuts">{canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)&&<Link className="srm-mobile-pos-shortcut" to="/srm/pos/terminal"><ShoppingBag size={16}/>POS</Link>}<ModuleNewMenu/><button type="button" onClick={()=>openSheet('menu')}><LayoutGrid size={16}/>All pages</button></nav>
     {bookingRoute&&<div className="srm-mobile-booking-toolbar"/>}
-    <div ref={viewport} className="srm-mobile-viewport" role="region" aria-label={`${title} content`}>
+    <div ref={viewport} className="srm-mobile-viewport" data-scroll={dashboard || undefined} role="region" aria-label={`${title} content`}>
       <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{children}</Suspense></ErrorBoundary></div>
     </div>
     {model.labels.length>1&&<nav className="srm-mobile-pagination" aria-label="Page sections"><button type="button" aria-label="Previous section" disabled={model.page===0} onClick={()=>goto(model.page-1)}><ArrowLeft size={17}/></button><button type="button" className="srm-mobile-current-section" onClick={()=>openSheet('sections')}><span>{model.labels[model.page]}</span><small>{model.page+1} / {model.labels.length}<ChevronDown size={13}/></small></button><button type="button" aria-label="Next section" disabled={model.page>=model.labels.length-1} onClick={()=>goto(model.page+1)}><ArrowRight size={17}/></button></nav>}

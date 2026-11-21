@@ -63,7 +63,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Leads", UserRoundPlus, "/crm/leads", [["Add lead", "/crm/leads?new=leads"], ["Find leads", "/crm/leads"], ["View lead pipeline", "/crm/leads?view=board"], ["Lead performance", "/crm/reports"]]),
 
-    item("Customers", Users, "/crm/companies", [["Add contact", "/crm/contacts?new=contacts"], ["Add company", "/crm/companies?new=companies"], ["Find customers", "/crm/companies"], ["Customer 360", "/crm/customer-360"]]),
+    item("Customers", Users, "/crm/companies", [["Contacts", "/crm/contacts"], ["Find customers", "/crm/companies"], ["Customer 360", "/crm/customer-360"], ["Add contact", "/crm/contacts?new=contacts"], ["Add company", "/crm/companies?new=companies"]]),
 
     item("Deals", Handshake, "/crm/deals", [["Create deal", "/crm/deals?new=deals"], ["View pipeline", "/crm/pipeline"], ["View quotes", "/crm/quotes"], ["Sales forecast", "/crm/forecasting"]]),
 

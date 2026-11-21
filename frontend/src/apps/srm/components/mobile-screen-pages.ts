@@ -3,8 +3,17 @@ export type ScreenPage = { units: HTMLElement[]; label: string };
 const ignored = 'script,style,link,template,thead,[hidden],[role="dialog"],[data-srm-mobile-ignore]';
 const atomic = 'input,textarea,select,button,a,p,label,legend,h1,h2,h3,h4,h5,h6,svg,canvas,iframe,.udg-scroll,.scheduler-scroll,[contenteditable="true"],[data-srm-mobile-keep]';
 const labelOf = (element:HTMLElement) => (element.querySelector('h2,h3,h4,legend,caption')?.textContent || element.getAttribute('aria-label') || element.innerText?.split('\n').find(text=>text.trim()) || 'Details').trim().slice(0,65);
+const scrollFallbacks = new WeakMap<HTMLElement, { viewport: HTMLElement; value: string; priority: string }>();
+
+function restoreViewportOverflow(root:HTMLElement) {
+  const fallback=scrollFallbacks.get(root);
+  if(!fallback)return;
+  fallback.viewport.style.setProperty('overflow-y',fallback.value,fallback.priority);
+  scrollFallbacks.delete(root);
+}
 
 export function clearScreenPagination(root:HTMLElement) {
+  restoreViewportOverflow(root);
   root.querySelectorAll<HTMLElement>('[data-srm-page-hidden],[data-srm-page-unit],[data-srm-page-oversize],[data-srm-flow-container],[data-srm-native-scroller]').forEach(element=>{
     element.removeAttribute('data-srm-page-hidden');element.removeAttribute('data-srm-page-unit');element.removeAttribute('data-srm-page-oversize');element.removeAttribute('data-srm-flow-container');element.removeAttribute('data-srm-native-scroller');element.style.removeProperty('--srm-unit-height');
   });
@@ -27,15 +36,19 @@ export function measureScreenPages(root:HTMLElement, viewport:HTMLElement):Scree
   });
   // Expand capped record lists before measuring their parents. Native virtual
   // tables, conversations, editors and time canvases retain bounded panning.
-  root.querySelectorAll<HTMLElement>('div,section,article,ul,ol').forEach(element=>{
-    if(!element.getClientRects().length)return;
+  const nativeScrollers:HTMLElement[]=[];
+  const flowContainers:HTMLElement[]=[];
+  for(const element of root.querySelectorAll<HTMLElement>('div,section,article,ul,ol')){
+    if(!element.getClientRects().length)continue;
     const style=getComputedStyle(element);
     const horizontal=/auto|scroll/.test(style.overflowX)&&element.scrollWidth>element.clientWidth+2;
     const vertical=/auto|scroll/.test(style.overflowY)&&element.scrollHeight>element.clientHeight+2;
     const native=element.matches('.udg-scroll,.scheduler-scroll,[role="grid"]')||/gantt|scheduler|calendar|virtual|editor|chat|message|conversation|thread/.test(element.className);
-    if(element.matches('.udg-scroll,.scheduler-scroll,[role="grid"]')||horizontal||native&&vertical)element.dataset.srmNativeScroller='true';
-    else if(vertical)element.dataset.srmFlowContainer='true';
-  });
+    if(element.matches('.udg-scroll,.scheduler-scroll,[role="grid"]')||horizontal||native&&vertical)nativeScrollers.push(element);
+    else if(vertical)flowContainers.push(element);
+  }
+  nativeScrollers.forEach(element=>{element.dataset.srmNativeScroller='true';});
+  flowContainers.forEach(element=>{element.dataset.srmFlowContainer='true';});
   const units:HTMLElement[]=[];
   const collect=(element:HTMLElement)=>{
     if(element.matches(ignored))return;
@@ -55,38 +68,37 @@ export function measureScreenPages(root:HTMLElement, viewport:HTMLElement):Scree
   const pages:ScreenPage[]=[];
   let used=0;
   for(const unit of units){
-    unit.dataset.srmPageUnit='true';
     const style=getComputedStyle(unit);
     const height=unit.getBoundingClientRect().height+(parseFloat(style.marginTop)||0)+(parseFloat(style.marginBottom)||0)+12;
     if(!pages.length||used+height>budget){pages.push({units:[],label:labelOf(unit)});used=0;}
     pages[pages.length-1].units.push(unit);used+=height;
   }
-  if(!pages.length)return [{units:[],label:'Overview'}];
-  // Account for real card padding and layout gaps, rather than assuming uniform rows.
-  for(let index=0;index<pages.length;index++){
-    const page=pages[index];applyScreenPage(root,viewport,pages,index);
-    let overflow=viewport.scrollHeight-viewport.clientHeight;
-    while(overflow>2&&page.units.length>1){
-      const last=page.units.pop()!;
-      if(!pages[index+1])pages.push({units:[],label:labelOf(last)});
-      pages[index+1].units.unshift(last);pages[index+1].label=labelOf(pages[index+1].units[0]);
-      applyScreenPage(root,viewport,pages,index);overflow=viewport.scrollHeight-viewport.clientHeight;
-    }
-    if(overflow>2&&page.units.length===1){
-      const unit=page.units[0];unit.dataset.srmPageOversize='true';
-      unit.style.setProperty('--srm-unit-height',`${Math.max(56,unit.getBoundingClientRect().height-overflow-8)}px`);
-    }
-  }
-  return pages;
+  units.forEach(unit=>{unit.dataset.srmPageUnit='true';});
+  return pages.length?pages:[{units:[],label:'Overview'}];
 }
 
 export function applyScreenPage(root:HTMLElement,viewport:HTMLElement,pages:ScreenPage[],index:number){
-  const all=pages.flatMap(page=>page.units),active=pages[index]?.units||[];
-  const parents=new Set<HTMLElement>();
-  all.forEach(unit=>{
-    unit.dataset.srmPageHidden=String(!active.includes(unit));
-    for(let parent=unit.parentElement;parent&&parent!==root;parent=parent.parentElement)parents.add(parent);
+  const active=pages[index]?.units||[];
+  const visible=new Set<HTMLElement>();
+  const ancestors=(unit:HTMLElement,seen:Set<HTMLElement>)=>{
+    for(let node:HTMLElement|null=unit;node&&node!==root&&!seen.has(node);node=node.parentElement)seen.add(node);
+  };
+  active.forEach(unit=>ancestors(unit,visible));
+  const managed=new Set<HTMLElement>();
+  pages.forEach(page=>page.units.forEach(unit=>ancestors(unit,managed)));
+  managed.forEach(element=>{
+    const hidden=visible.has(element)?'false':'true';
+    if(element.dataset.srmPageHidden!==hidden)element.dataset.srmPageHidden=hidden;
   });
-  parents.forEach(parent=>{parent.dataset.srmPageHidden=String(!active.some(unit=>parent.contains(unit)));});
+  // Parent padding and gaps can make a page taller after its siblings are hidden.
+  // Check only the rendered page and keep any extra content reachable.
+  if(viewport.scrollHeight>viewport.clientHeight+2){
+    if(!scrollFallbacks.has(root)){
+      scrollFallbacks.set(root,{viewport,value:viewport.style.getPropertyValue('overflow-y'),priority:viewport.style.getPropertyPriority('overflow-y')});
+      viewport.style.setProperty('overflow-y','auto');
+    }
+  }else{
+    restoreViewportOverflow(root);
+  }
   viewport.scrollTop=0;viewport.scrollLeft=0;
 }
