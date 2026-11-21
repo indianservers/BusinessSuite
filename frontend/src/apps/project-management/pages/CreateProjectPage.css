@@ -64,11 +64,11 @@
 }
 
 @media (max-width: 480px) {
-  .smart-create-window.smart-create-phone-sheet:has(.project-create-studio) .smart-create-footer {
+  .smart-create-window:has(.project-create-studio) .smart-create-footer {
     display: flex;
   }
 
-  .smart-create-window.smart-create-phone-sheet .project-create-studio .project-create-actions > :is(.project-create-cancel, [data-save-action]) {
+  .smart-create-window .project-create-studio .project-create-actions > :is(.project-create-cancel, [data-save-action]) {
     display: none;
   }
 }
