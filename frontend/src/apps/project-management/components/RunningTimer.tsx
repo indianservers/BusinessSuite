@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {useModuleAction} from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -50,7 +51,7 @@ export default function RunningTimer({ projects, onSaved, fixedTask }: { project
     if (!canCreate || (action==="start" && !canStart) || (action==="stop" && !canStop) || lock.current) return; lock.current = true; setBusy(true); setError(""); setNotice("");
     try {
       if (action === "start") {
-        startKey.current ||= crypto.randomUUID();
+        startKey.current ||= pmsRandomId();
         const { data } = await api.post<Timer>("/project-management/timer/start", { project_id: fixedTask?.project_id || Number(project), task_id: fixedTask?.id || (task ? Number(task) : null), description: note, is_billable: billable, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", session_key: startKey.current });
         setTimer(data); startKey.current = null;
       } else if (timer) {

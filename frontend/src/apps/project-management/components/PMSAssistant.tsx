@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { Button } from "@/components/ui/button";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -175,7 +176,7 @@ function Assistant() {
         id = r.data.id;
         setChat(id);
       }
-      requestKey.current ||= crypto.randomUUID();
+      requestKey.current ||= pmsRandomId();
       const payload: Row = {
         text: value,
         project_id: projectId,

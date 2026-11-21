@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Link } from 'react-router-dom';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -49,7 +50,7 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
     if(!props.projectId){setError('Choose a project to give the local brain scoped context and memory.');return true;}
     busyRef.current=true;setBusy(true);setError('');const current=++sequence.current;
     const abort=new AbortController();controller.current=abort;
-    const key=crypto.randomUUID();
+    const key=pmsRandomId();
     try {
       if(!ready && (!props.allowCloud || !cloudFallback || !props.cloudEnabled))
         throw new LocalBrainError('unavailable','Connect the server-local model to reason locally. No LLM request was sent.');
