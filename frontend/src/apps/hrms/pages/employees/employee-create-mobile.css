@@ -20,6 +20,11 @@
     min-height: 44px;
   }
 
+  .hrms-employee-create-header .page-description,
+  .hrms-employee-create > progress {
+    display: none;
+  }
+
   .hrms-employee-step-summary {
     scroll-margin-top: 72px;
   }
@@ -98,5 +103,28 @@
 
   .hrms-employee-quick-actions > button:last-child {
     flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .hrms-employee-create:not(.smart-create-body *) {
+    padding-bottom: 68px;
+  }
+
+  /* The standalone wizard uses the visual viewport when the keyboard is open. */
+  .hrms-employee-create:not(.smart-create-body *) .hrms-employee-step-actions,
+  .mobile-keyboard-open.mobile-experience .kf-main .hrms-employee-create:not(.smart-create-body *) .hrms-employee-step-actions {
+    position: fixed;
+    inset: auto 0 calc(var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom, 0px));
+    z-index: 35;
+    margin: 0;
+    padding: 8px 12px;
+    padding-inline: 12px !important;
+    border-top: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+  }
+
+  body:has(.mobile-module-dock):not(.mobile-keyboard-open) .hrms-employee-create:not(.smart-create-body *) .hrms-employee-step-actions {
+    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
   }
 }
