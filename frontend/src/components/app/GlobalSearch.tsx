@@ -5,6 +5,7 @@ import {
   KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -50,6 +51,7 @@ export default function GlobalSearch({ compact = false, shortcuts = true, placeh
   );
 
   const [open, setOpen] = useState(false);
+  const mobileSearchTrigger = useRef<HTMLButtonElement | null>(null);
 
   const [query, setQuery] = useState("");
 
@@ -67,6 +69,7 @@ export default function GlobalSearch({ compact = false, shortcuts = true, placeh
   useEffect(() => { setQuery(''); setDebouncedQuery(''); setFocusedIndex(-1); setOpen(false); setHistoryRevision(value => value + 1); }, [historyScope]);
   function chooseResult(item: Result) {
     try { sessionStorage.setItem(historyKey, JSON.stringify({ queries: query.trim() ? [query.trim(), ...history.queries.filter(q => q !== query.trim())].slice(0, 5) : history.queries, records: [item, ...history.records.filter(r => r.url !== item.url)].slice(0, 5) })); } catch { /* Search remains available without history. */ }
+    mobileSearchTrigger.current = null;
     navigate(item.url); setOpen(false);
   }
 
@@ -684,7 +687,10 @@ export default function GlobalSearch({ compact = false, shortcuts = true, placeh
       <button
         type="button"
         className={`inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground ${compact ? "" : "sm:hidden"}`}
-        onClick={() => setOpen(true)}
+        onClick={event => {
+          if (window.matchMedia("(max-width: 767px)").matches) mobileSearchTrigger.current = event.currentTarget;
+          setOpen(true);
+        }}
         aria-label="Open search"
         title="Search"
       >
@@ -694,7 +700,17 @@ export default function GlobalSearch({ compact = false, shortcuts = true, placeh
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-          <Dialog.Content className="kf-command-dialog">
+          <Dialog.Content
+            className="kf-command-dialog"
+            onCloseAutoFocus={event => {
+              const trigger = mobileSearchTrigger.current;
+              mobileSearchTrigger.current = null;
+              if (trigger?.isConnected && trigger.getClientRects().length) {
+                event.preventDefault();
+                trigger.focus({ preventScroll: true });
+              }
+            }}
+          >
             <Dialog.Title className="px-4 pt-4 text-sm font-semibold">
               Search Business Suite
             </Dialog.Title>
