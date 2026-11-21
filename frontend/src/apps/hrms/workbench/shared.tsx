@@ -19,8 +19,12 @@ export function HRQuickAdd({close,saved}:{close:()=>void;saved:(id:number)=>void
   attempted.current=true;
   const destination="/hrms/employees/new";
   // The shared launcher requires randomUUID, which is unavailable on HTTP LAN origins.
-  const handled=typeof globalThis.crypto?.randomUUID === "function"
-    && creation?.open(destination,record=>{const employee=record as {id?:number}|undefined;if(employee?.id)saved(employee.id);});
+  if (typeof globalThis.crypto?.randomUUID !== "function") {
+    close();
+    navigate(destination, { state: { suiteCanonicalRedirect: true } });
+    return;
+  }
+  const handled=creation?.open(destination,record=>{const employee=record as {id?:number}|undefined;if(employee?.id)saved(employee.id);});
   close();
   if(!handled)navigate(destination);
  },[creation,navigate,close,saved]);
