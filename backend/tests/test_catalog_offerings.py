@@ -62,13 +62,13 @@ def test_invalid_offerings_rejected(client,headers,payload):
     assert response.status_code==422,response.text
 
 
-def purchased(client,db,headers,activation='purchase'):
-    offering=create(client,headers,item('membership',plan=config(activation=activation)))
+def purchased(client,db,headers,activation='purchase',kind='membership'):
+    offering=create(client,headers,item(kind,plan=config(activation=activation)))
     buyer=CRMCompany(name='Plan customer',organization_id=1)
     db.add(buyer)
     from test_identity_utils import own_workflow_records
     own_workflow_records(db,buyer);db.commit()
-    payload={'offering_id':offering['id'],'kind':'membership','customer_id':buyer.id,'request_key':'purchase-0001'}
+    payload={'offering_id':offering['id'],'kind':kind,'customer_id':buyer.id,'request_key':'purchase-0001'}
     response=client.post('/api/v1/customer-plans?source=pms',headers=headers,json=payload)
     assert response.status_code==201,response.text
     return response.json(),payload
@@ -190,13 +190,15 @@ def test_customer_plan_views_filter_states_and_effective_dates_before_pagination
     assert client.get('/api/v1/customer-plans',params={**params,'view':'renewals'},headers=headers).json()['total']==0
 
 
-def test_membership_expiry_report_and_reminder_in_both_modules(client, db, headers, monkeypatch):
+@pytest.mark.parametrize("kind", ["membership", "subscription"])
+def test_plan_expiry_report_and_reminder_in_both_modules(client, db, headers, monkeypatch, kind):
     from datetime import timedelta
     from app.services.metrics import queries
 
     today = date.today()
     monkeypatch.setattr(queries, "business_day", lambda *_: today)
-    plan, _ = purchased(client, db, headers)
+    plan, _ = purchased(client, db, headers, kind=kind)
+    kind_query = {} if kind == "membership" else {"kind": kind}
     customer = db.get(CRMCompany, plan["customer_id"])
     customer.phone = "9876543210"
     customer.phone_country_code = "+91"
@@ -204,29 +206,30 @@ def test_membership_expiry_report_and_reminder_in_both_modules(client, db, heade
     expiry = "/api/v1/customer-plans/expiry-report"
     target = f"{expiry}/{plan['id']}"
 
-    # The fixture issues a six-month membership, outside both presets.
+    # The fixture issues a six-month plan, outside both presets.
     for source in ("crm", "srm"):
         for period in ("two_weeks", "two_months"):
-            response = client.get(expiry, params={"source": source, "period": period}, headers=headers)
+            response = client.get(expiry, params={**kind_query, "source": source, "period": period}, headers=headers)
             assert response.status_code == 200, response.text
             data = response.json()
             assert data["items"] == []
             expected = today + timedelta(days=14) if period == "two_weeks" else end_date(today, Duration(unit="month", count=2))
             assert data["end"] == str(expected)
         response = client.get(expiry, params={
-            "source": source, "period": "custom", "start": plan["end_date"], "end": plan["end_date"],
+            **kind_query, "source": source, "period": "custom", "start": plan["end_date"], "end": plan["end_date"],
         }, headers=headers)
         assert response.status_code == 200, response.text
         result, = response.json()["items"]
         assert result["id"] == plan["id"] and result["customer"] == customer.name
+        assert result[kind]
         for channel in ("sms", "whatsapp"):
-            message = client.post(f"{target}/message", params={"source": source}, headers=headers, json={"channel": channel})
+            message = client.post(f"{target}/message", params={**kind_query, "source": source}, headers=headers, json={"channel": channel})
             assert message.status_code == 200, message.text
             assert message.json()["destination"] == "+919876543210"
-            assert "membership expires" in message.json()["body"]
+            assert f"{kind} expires" in message.json()["body"]
 
     responses = [
-        client.post(f"{target}/reminder", params={"source": source}, headers=headers, json={"lead_days": 14})
+        client.post(f"{target}/reminder", params={**kind_query, "source": source}, headers=headers, json={"lead_days": 14})
         for source in ("srm", "crm")
     ]
     assert all(result.status_code == 200 for result in responses), [result.text for result in responses]
@@ -234,7 +237,7 @@ def test_membership_expiry_report_and_reminder_in_both_modules(client, db, heade
 
     from app.models.notification import Notification
     from app.shared.follow_ups import FollowUp, dispatch
-    early = client.post(f"{target}/reminder", headers=headers, json={"lead_days": 365})
+    early = client.post(f"{target}/reminder", params=kind_query, headers=headers, json={"lead_days": 365})
     assert early.status_code == 200, early.text
     dispatch(db)
     notification = db.query(Notification).filter_by(related_entity_id=early.json()["id"], related_entity_type="follow_up").one()
@@ -250,5 +253,5 @@ def test_membership_expiry_report_and_reminder_in_both_modules(client, db, heade
     from app.apps.communication.models import CommunicationOptOut
     db.add(CommunicationOptOut(email="+919876543210", channel="sms"))
     db.commit()
-    blocked = client.post(f"{target}/message", headers=headers, json={"channel": "sms"})
+    blocked = client.post(f"{target}/message", params=kind_query, headers=headers, json={"channel": "sms"})
     assert blocked.status_code == 409, blocked.text
