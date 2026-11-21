@@ -1,9 +1,10 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import BankResultsImport from "@/apps/hrms/workbench/BankResultsImport";
 import {useHRSession} from "@/apps/hrms/workbench/useHRSession";
-import { useState,useEffect,useSyncExternalStore } from "react";
+import { useState, useEffect, useId, useSyncExternalStore } from "react";
 import { recordScope } from "@/lib/record-scope";
 import { useRecordScopeOwner } from "@/hooks/use-record-scope-owner";
 import { Link } from "react-router-dom";
@@ -38,7 +39,8 @@ export default function GuidedPayroll(props: GuidedProps) {
 }
 function GuidedPayrollState({ onOpenTool, scope }: GuidedProps & { scope: string }) {
   const owns = useRecordScopeOwner();
-  const [readGeneration] = useState(() => crypto.randomUUID());
+  const readGeneration = useId();
+  const phone = useMobile(600);
   const userId = useAuthStore(s => s.user?.id);
   const qc = useQueryClient();
   const [runId, setRunId] = useHRSession(`payroll-guided-run:${scope}`,"");
@@ -59,17 +61,30 @@ function GuidedPayrollState({ onOpenTool, scope }: GuidedProps & { scope: string
   const readyNote = remarks.trim().length >= 3;
   const currentRun = runs.data?.find(r => r.id === selectedId);
   const repair = (key: string) => /attendance|lop|leave/.test(key) ? "/hrms/attendance" : /bank|pan|salary/.test(key) ? "/hrms/employees" : "/hrms/payroll";
-  return <div className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Guided payroll</h2><p className="text-sm text-muted-foreground">Fix blockers → review changes → approve → prepare payment → reconcile.</p></div><Button variant="outline" disabled={overview.isFetching} onClick={refresh}>Refresh payroll journey</Button></div>
-    <div className="flex flex-wrap items-end gap-3"><label className="text-sm">Payroll run<NativeSelect loading={runs.isFetching} error={runs.isError} className="ml-2 rounded-md border bg-background p-2" value={selectedId || ""} onChange={e => { setRunId(e.target.value); setStep(0); setResults({}); setConfirmReview(false); setRemarks(""); }}><option value="">Select run</option>{runs.data?.map(r => <option key={r.id} value={r.id}>{r.month}/{r.year} · Run #{r.id} · {r.status}</option>)}</NativeSelect></label><Button variant="outline" onClick={() => onOpenTool("run")}>Calculate / create payroll</Button></div>
+  return <div className="hrms-guided-payroll space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Guided payroll</h2><p className="text-sm text-muted-foreground">Fix blockers → review changes → approve → prepare payment → reconcile.</p></div><Button variant="outline" disabled={overview.isFetching} onClick={refresh}>Refresh payroll journey</Button></div>
+    <div className="hrms-guided-run flex flex-wrap items-end gap-3"><label className="text-sm">Payroll run<NativeSelect loading={runs.isFetching} error={runs.isError} className="ml-2 rounded-md border bg-background p-2" value={selectedId || ""} onChange={e => { setRunId(e.target.value); setStep(0); setResults({}); setConfirmReview(false); setRemarks(""); }}><option value="">Select run</option>{runs.data?.map(r => <option key={r.id} value={r.id}>{r.month}/{r.year} · Run #{r.id} · {r.status}</option>)}</NativeSelect></label><Button variant="outline" onClick={() => onOpenTool("run")}>Calculate / create payroll</Button></div>
     {runs.isError && <p role="alert">Payroll runs could not load. <button className="underline" onClick={() => runs.refetch()}>Retry runs</button></p>}
     {!selectedId && !runs.isPending && <p>Select or calculate a payroll run to begin.</p>}
     {selectedId > 0 && overview.isPending && <p role="status">Checking payroll readiness and payment state…</p>}
     {overview.isError && <p role="alert">Journey could not load. {errorText(overview.error)} <button className="underline" onClick={() => overview.refetch()}>Retry journey</button></p>}
     {data && !overview.isError && <><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{currentRun?.month}/{currentRun?.year} · {data.status}</Badge><Badge variant={data.blocked ? "warning" : "success"}>{data.blocked ? "Blockers need attention" : "Readiness checks passed"}</Badge>{data.status === "paid" && <Badge variant="success">Payments reconciled</Badge>}</div>
-      <nav aria-label="Payroll steps" className="flex flex-wrap gap-2">{["1. Fix blockers", "2. Review changes", "3. Approve & lock", "4. Prepare payment", "5. Reconcile"].map((label, i) => <Button key={label} variant={step === i ? "default" : "outline"} aria-pressed={step === i} onClick={() => setStep(i)}>{label}</Button>)}</nav>
+      <nav aria-label="Payroll steps" className="hrms-guided-steps flex flex-wrap gap-2">{["1. Fix blockers", "2. Review changes", "3. Approve & lock", "4. Prepare payment", "5. Reconcile"].map((label, i) => <Button key={label} variant={step === i ? "default" : "outline"} aria-pressed={step === i} onClick={() => setStep(i)}>{label}</Button>)}</nav>
       <Card><CardHeader><CardTitle className="text-base">{["Resolve payroll readiness", "Review calculated employee changes", "Approve and lock the run", "Prepare the bank file", "Reconcile employee payments"][step]}</CardTitle></CardHeader><CardContent className="space-y-4">
         {step === 0 && <>{data.issues.map(issue => <div key={issue.key} className="rounded-lg border p-3"><p className="font-medium">{issue.key.replace(/_/g, " ")} · {issue.count} affected</p><p className="text-xs">Owner: {/attendance|lop|leave/.test(issue.key)?"Attendance / HR team":/bank|pan/.test(issue.key)?"Employee / HR": "Payroll operator"}</p><p className="text-sm text-muted-foreground">{issue.message || issue.severity}</p><div className="mt-2 flex flex-wrap gap-2">{issue.employee_ids?.map(id => <Link className="text-sm underline" key={id} to={`/hrms/employees/${id}?returnTo=${encodeURIComponent("/hrms/payroll")}`}>{data.records.find(r => r.employee_id === id)?.employee_name || `Employee #${id}`}</Link>)}<Button asChild variant="outline"><Link className="text-sm underline" to={`${repair(issue.key)}?returnTo=${encodeURIComponent("/hrms/payroll")}&month=${currentRun?.month||""}&year=${currentRun?.year||""}`}>Open correction workspace</Link></Button></div></div>)}{data.blockers.map((text, i) => <p key={i} className="rounded border p-3 text-sm">{text}</p>)}{!data.blocked && <p className="text-sm">No blocking issues detected for this run.</p>}<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => onOpenTool("inputs")}>Fix attendance inputs</Button><Button variant="outline" onClick={() => onOpenTool("run")}>Recalculate payroll</Button><Button onClick={() => setStep(1)} disabled={data.blocked}>Review changes</Button></div></>}
-        {step === 1 && <><p className="text-sm text-muted-foreground">Review every employee's calculation and month-on-month variance before acknowledging the changes.</p><div className="max-h-[32rem] overflow-auto"><GridTable gridId="apps/hrms/pages/payroll/GuidedPayroll:table-1" className="w-full text-left text-sm"><caption className="sr-only">Calculated employee gross pay, deductions and net pay</caption><thead><tr>{["Employee", "Gross", "Deductions", "Net"].map(h => <th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>{data.records.map(r => <tr {...recordPreviewProps(r)} key={r.id} className="border-t"><td className="p-2"><Link to={`/hrms/employees/${r.employee_id}?returnTo=${encodeURIComponent("/hrms/payroll")}`} className="underline">{r.employee_name}</Link></td><td className="p-2">{formatCurrency(Number(r.gross), r.currency)}</td><td className="p-2">{formatCurrency(Number(r.deductions), r.currency)}</td><td className="p-2">{formatCurrency(Number(r.net), r.currency)}</td></tr>)}</tbody></GridTable></div>
+        {step === 1 && <><p className="text-sm text-muted-foreground">Review every employee's calculation and month-on-month variance before acknowledging the changes.</p>{phone ? (
+          <div className="hrms-guided-records">
+            {data.records.map(record => (
+              <article key={record.id} className="space-y-2 rounded-md border p-3">
+                <Link to={`/hrms/employees/${record.employee_id}?returnTo=${encodeURIComponent("/hrms/payroll")}`} className="font-medium underline">{record.employee_name}</Link>
+                <dl className="grid grid-cols-2 gap-2 text-sm">
+                  <div><dt>Gross</dt><dd>{formatCurrency(Number(record.gross), record.currency)}</dd></div>
+                  <div><dt>Deductions</dt><dd>{formatCurrency(Number(record.deductions), record.currency)}</dd></div>
+                  <div className="col-span-2 font-semibold"><dt>Net pay</dt><dd>{formatCurrency(Number(record.net), record.currency)}</dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        ) : <div className="max-h-[32rem] overflow-auto"><GridTable gridId="apps/hrms/pages/payroll/GuidedPayroll:table-1" className="w-full text-left text-sm"><caption className="sr-only">Calculated employee gross pay, deductions and net pay</caption><thead><tr>{["Employee", "Gross", "Deductions", "Net"].map(h => <th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>{data.records.map(r => <tr {...recordPreviewProps(r)} key={r.id} className="border-t"><td className="p-2"><Link to={`/hrms/employees/${r.employee_id}?returnTo=${encodeURIComponent("/hrms/payroll")}`} className="underline">{r.employee_name}</Link></td><td className="p-2">{formatCurrency(Number(r.gross), r.currency)}</td><td className="p-2">{formatCurrency(Number(r.deductions), r.currency)}</td><td className="p-2">{formatCurrency(Number(r.net), r.currency)}</td></tr>)}</tbody></GridTable></div>}
           {variance.isPending && <p role="status">Loading prior-month variance…</p>}{variance.isError && <p role="alert">Variance could not load. <button className="underline" onClick={() => variance.refetch()}>Retry variance</button></p>}{variance.data?.map(v => <div key={v.id} className="flex flex-wrap justify-between gap-2 border-t pt-2 text-sm"><span>{data.records.find(r => r.employee_id === v.employee_id)?.employee_name || `Employee #${v.employee_id}`}: {formatCurrency(Number(v.previous_net),v.previous_currency||data.currency)} → {formatCurrency(Number(v.current_net),v.current_currency||data.currency)} ({Number(v.net_delta_percent).toFixed(1)}%)</span><Badge variant="outline">{v.severity}</Badge><p className="w-full text-xs">{v.reason}</p></div>)}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={confirmReview} onChange={e => setConfirmReview(e.target.checked)} />I reviewed calculations and changes for this run.</label><Button disabled={!confirmReview || !readyNote || data.blocked || !data.can_review || busy || !variance.isSuccess} onClick={() => advance.mutate("review")}>Save reviewed changes</Button>
         </>}

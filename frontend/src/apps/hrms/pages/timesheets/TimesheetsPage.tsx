@@ -10,7 +10,7 @@ import RecordMaintenance from "@/components/RecordMaintenance";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, FolderKanban, Plus, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ export default function TimesheetsPage() {
 function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
   const owns = useRecordScopeOwner();
   // A remount must authorize via native GET, including when a prior stamp returns.
-  const [readGeneration] = useState(() => crypto.randomUUID());
+  const readGeneration = useId();
   function fromOwner<T>(request:()=>Promise<T>):Promise<T> {
     if (!owns()) return Promise.reject(new Error("Timesheet context changed. Reload before saving."));
     return request();
@@ -233,6 +233,48 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
     };
   }, [sheets]);
 
+  const sheetDetails = useRef<HTMLDivElement>(null);
+  const requestedSheet = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (requestedSheet.current !== null && requestedSheet.current === selectedSheet?.id) {
+      requestedSheet.current = null;
+      sheetDetails.current?.focus();
+    }
+  }, [selectedSheet?.id]);
+
+  function openSheetEntries(id: number) {
+    if (id === selectedSheet?.id) {
+      sheetDetails.current?.focus();
+    } else {
+      requestedSheet.current = id;
+      setSelectedSheetId(id);
+    }
+  }
+
+  function sheetActions(sheet: Timesheet) {
+    return <>
+      {sheet.status === "Draft" && canCreateSheet && (
+        <Button size="sm" variant="outline" className="h-8" disabled={phone && submitSheet.isPending} onClick={() => submitSheet.mutate(sheet.id)}>
+          <Send className="h-3.5 w-3.5 mr-1" />
+          Submit
+        </Button>
+      )}
+      {sheet.status === "Submitted" && canApprove && (
+        <>
+          <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700 text-white" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Approved" })}>
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+            Approve
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-red-600 border-red-200" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Rejected" })}>
+            <XCircle className="h-3.5 w-3.5 mr-1" />
+            Reject
+          </Button>
+        </>
+      )}
+    </>;
+  }
+
   return (
     <div className="hrms-timesheets-page space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -357,6 +399,33 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
               <CardTitle className="text-base">Timesheet Register</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              {phone ? (
+                <div className="hrms-timesheet-records">
+                  {sheets.length ? (sheets as Timesheet[]).map(sheet => {
+                    const project = projectById.get(sheet.project_id);
+                    return (
+                      <article key={sheet.id} className="hrms-timesheet-record">
+                        <header className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{project?.name || `Project #${sheet.project_id}`}</p>
+                            <p className="text-xs text-muted-foreground">{project?.client_name || project?.code}</p>
+                          </div>
+                          <Badge variant="outline" className={statusTone(sheet.status)}>{sheet.status}</Badge>
+                        </header>
+                        <p className="text-sm text-muted-foreground">{sheet.period_start} to {sheet.period_end}</p>
+                        <dl className="grid grid-cols-2 gap-2 text-sm">
+                          <div><dt>Total hours</dt><dd>{Number(sheet.total_hours || 0).toFixed(1)}</dd></div>
+                          <div><dt>Billable hours</dt><dd>{Number(sheet.billable_hours || 0).toFixed(1)}</dd></div>
+                        </dl>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openSheetEntries(sheet.id)}>View entries</Button>
+                          {sheetActions(sheet)}
+                        </div>
+                      </article>
+                    );
+                  }) : <p className="text-sm text-muted-foreground">No timesheets found</p>}
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <GridTable gridId="apps/hrms/pages/timesheets/TimesheetsPage:table-1" className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
@@ -392,24 +461,7 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex flex-wrap gap-2">
-                                {sheet.status === "Draft" && canCreateSheet && (
-                                  <Button size="sm" variant="outline" className="h-8" disabled={phone && submitSheet.isPending} onClick={() => submitSheet.mutate(sheet.id)}>
-                                    <Send className="h-3.5 w-3.5 mr-1" />
-                                    Submit
-                                  </Button>
-                                )}
-                                {sheet.status === "Submitted" && canApprove && (
-                                  <>
-                                    <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700 text-white" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Approved" })}>
-                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="h-8 text-red-600 border-red-200" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Rejected" })}>
-                                      <XCircle className="h-3.5 w-3.5 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
+                                {sheetActions(sheet)}
                               </div>
                             </td>
                           </tr>
@@ -419,6 +471,7 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
                   </tbody>
                 </GridTable>
               </div>
+              )}
             </CardContent>
           </Card>}
 
@@ -456,9 +509,22 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
           {selectedSheet && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Entries</CardTitle>
+                <div ref={sheetDetails} tabIndex={-1}>
+                  <CardTitle className="text-base">Entries</CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
+                {phone ? (
+                  <div className="hrms-timesheet-records">
+                    {selectedSheet.entries.length ? selectedSheet.entries.map(entry => (
+                      <article key={entry.id} className="hrms-timesheet-record">
+                        <p className="font-medium">{entry.task_name || "General work"}</p>
+                        <p className="text-sm text-muted-foreground">{entry.work_date} · {entry.is_billable ? "Billable" : "Non-billable"}</p>
+                        <p className="text-sm">{Number(entry.hours).toFixed(1)} hours</p>
+                      </article>
+                    )) : <p className="text-sm text-muted-foreground">No entries added</p>}
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <GridTable gridId="apps/hrms/pages/timesheets/TimesheetsPage:table-2" className="w-full text-sm">
                     <thead className="border-b bg-muted/50">
@@ -488,6 +554,7 @@ function ScopedTimesheetsPage({authorityScope}:{authorityScope:string}) {
                     </tbody>
                   </GridTable>
                 </div>
+                )}
               </CardContent>
             </Card>
           )}

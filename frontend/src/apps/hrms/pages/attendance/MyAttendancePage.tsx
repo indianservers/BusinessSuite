@@ -132,7 +132,24 @@ export default function MyAttendancePage() {
         <CardContent>
           {phone&&attendance.isError&&<p role="alert" className="mb-3 text-sm text-destructive">Attendance history unavailable. <Button variant="outline" disabled={attendance.isFetching} onClick={()=>attendance.refetch()}>Retry history</Button></p>}
           {phone&&attendance.isPending&&<p role="status">Loading attendance history…</p>}
-          {(!phone||!!attendance.data)&&<div className="overflow-x-auto">
+          {phone && attendance.data && (
+            <div className="hrms-my-attendance-records">
+              {rows.length ? rows.map((row, index) => (
+                <article key={row.id || `${row.date}-${index}`} className="grid gap-2 rounded-md border p-3">
+                  <header className="flex flex-wrap items-center justify-between gap-2">
+                    <strong>{row.attendance_date || row.date || "–"}</strong>
+                    <Badge className={statusColor(row.status || "Not Marked")}>{row.status || "Not Marked"}</Badge>
+                  </header>
+                  <dl className="grid grid-cols-2 gap-2 text-sm">
+                    <div><dt>Hours worked</dt><dd>{row.hours_worked ?? "–"}</dd></div>
+                    <div><dt>Overtime hours</dt><dd>{row.overtime_hours ?? 0}</dd></div>
+                    {row.remarks && <div className="col-span-2"><dt>Remarks</dt><dd>{row.remarks}</dd></div>}
+                  </dl>
+                </article>
+              )) : <p className="text-sm text-muted-foreground">No attendance found for this period.</p>}
+            </div>
+          )}
+          {!phone && <div className="overflow-x-auto">
             <GridTable gridId="apps/hrms/pages/attendance/MyAttendancePage:table-1" className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">

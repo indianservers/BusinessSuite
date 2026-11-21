@@ -1,0 +1,69 @@
+@media screen and (max-width: 600px) {
+  .hrms-payroll,
+  .hrms-payroll :is(.kf-card, .grid > *, .flex > *, input, select, textarea) {
+    min-width: 0;
+  }
+
+  .hrms-payroll {
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-payroll .hrms-payroll-tabs {
+    display: none;
+  }
+
+  .hrms-payroll .hrms-payroll-view,
+  .hrms-guided-run label {
+    display: grid;
+    gap: 6px;
+  }
+
+  .hrms-payroll .kf-card > div {
+    padding: 12px;
+  }
+
+  .hrms-payroll .kf-card > div + div {
+    padding-top: 0;
+  }
+
+  .hrms-payroll :is(select, input:not([type="checkbox"]):not([type="radio"]), textarea) {
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .hrms-payroll .kf-button {
+    min-height: 44px;
+    height: auto;
+    max-width: 100%;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  .hrms-guided-payroll .hrms-guided-run,
+  .hrms-guided-payroll .hrms-guided-records {
+    display: grid;
+    gap: 8px;
+  }
+
+  .hrms-guided-run label select {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .hrms-guided-payroll .hrms-guided-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hrms-guided-records dt {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .hrms-payroll-create-form :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+}

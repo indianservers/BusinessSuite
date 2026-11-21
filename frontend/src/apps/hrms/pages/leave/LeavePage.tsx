@@ -769,7 +769,26 @@ function LeaveSurface({ scope }: { scope: string }) {
           </div></div></SmartCreateSection>
 
           {phone && <LeaveSourceNotice label="encashment requests" source={encashmentSource} hasData={encashmentRequests!==undefined}/>}
-            {(!phone || encashmentRequests!==undefined) && <div className="overflow-x-auto">
+          {phone && encashmentRequests !== undefined && (
+            <div className="leave-request-list">
+              {encashmentRequests.length ? encashmentRequests.map(request => (
+                <article key={request.id} className="leave-request-card">
+                  <header className="flex flex-wrap items-center justify-between gap-2">
+                    <strong>{request.leaveTypeName || "Leave encashment"}</strong>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(request.status)}`}>{request.status}</span>
+                  </header>
+                  <dl className="grid grid-cols-2 gap-2 text-sm">
+                    <div><dt>Days</dt><dd>{Number(request.daysToEncash).toFixed(2)}</dd></div>
+                    <div><dt>Amount</dt><dd>₹{Number(request.amount || 0).toLocaleString("en-IN")}</dd></div>
+                    <div><dt>Rate</dt><dd>₹{Number(request.encashmentRate || 0).toLocaleString("en-IN")}</dd></div>
+                    <div><dt>Requested</dt><dd>{request.requestedAt ? formatDate(request.requestedAt) : "–"}</dd></div>
+                    {request.remarks && <div className="col-span-2"><dt>Remarks</dt><dd>{request.remarks}</dd></div>}
+                  </dl>
+                </article>
+              )) : <p className="text-sm text-muted-foreground">{encashmentSource.isError ? "No encashment requests in the last loaded result" : "No leave encashment requests yet"}</p>}
+            </div>
+          )}
+          {!phone && <div className="overflow-x-auto">
             <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-1" className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
@@ -780,9 +799,9 @@ function LeaveSurface({ scope }: { scope: string }) {
               </thead>
               <tbody>
                 {!encashmentRequests?.length ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{phone && encashmentSource.isError ? "No encashment requests in the last loaded result" : "No leave encashment requests yet"}</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No leave encashment requests yet</td></tr>
                 ) : (
-                  encashmentRequests.slice(0, phone ? undefined : 5).map((item) => (
+                  encashmentRequests.slice(0, 5).map((item) => (
                     <tr {...recordPreviewProps(item)} key={item.id} className="border-b">
                       <td className="px-4 py-3 font-medium">{item.leaveTypeName || "-"}</td>
                       <td className="px-4 py-3">{Number(item.daysToEncash).toFixed(2)}</td>

@@ -1,0 +1,97 @@
+@media (max-width: 767px) {
+  .hrms-workflow-designer.flex {
+    display: block;
+    height: auto;
+    overflow: visible;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-workflow-designer :is(.hrms-workflow-designer-list, .hrms-workflow-designer-editor) {
+    width: auto;
+    border-inline: 0;
+  }
+
+  .hrms-workflow-designer-list [data-overflow-trigger] {
+    width: 44px;
+  }
+
+  .hrms-workflow-designer-list button + [data-overflow-trigger] {
+    right: 4px;
+  }
+
+  .hrms-workflow-designer-list button:has(+ [data-overflow-trigger]) {
+    padding-right: 48px;
+  }
+
+  .hrms-workflow-designer-connector {
+    height: 56px;
+  }
+
+  .hrms-workflow-designer-connector button {
+    width: 44px;
+  }
+
+  .hrms-workflow-designer-list > div:last-child {
+    max-height: 240px;
+  }
+
+  .hrms-workflow-designer-editor {
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .hrms-workflow-designer .hrms-workflow-designer-toolbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
+  .hrms-workflow-designer-toolbar > div:first-child {
+    flex-wrap: wrap;
+    flex: 1 1 220px;
+  }
+
+  .hrms-workflow-designer-toolbar input {
+    flex-basis: 100%;
+  }
+
+  .hrms-workflow-designer .hrms-workflow-designer-steps {
+    overflow: visible;
+    padding: 12px;
+  }
+
+  .hrms-workflow-designer .hrms-workflow-designer-step {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .hrms-workflow-designer-step > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .hrms-workflow-designer-step > button:nth-last-child(2) {
+    grid-column: 4;
+  }
+
+  .hrms-workflow-designer :is(.kf-button, summary),
+  .hrms-workflow-designer-dialog .kf-button {
+    min-height: 44px;
+  }
+
+  .hrms-workflow-designer :is(input, select, textarea),
+  .hrms-workflow-designer-dialog :is(input, select, textarea) {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .hrms-workflow-designer-dialog[role="dialog"] {
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset, 0px));
+    max-height: min(90dvh, calc(var(--mobile-viewport-height, 100dvh) - 20px));
+    transform: translateX(-50%);
+  }
+}
