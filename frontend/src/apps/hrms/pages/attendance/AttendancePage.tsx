@@ -301,6 +301,12 @@ export default function AttendancePage() {
     };
   }
 
+  const jumpToAttendanceSection = (id: string) => {
+    const heading = document.getElementById(id);
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: "start" });
+  };
+
   return (
     <div className="hrms-attendance space-y-4 sm:space-y-6">
       {selectionParams.get("returnTo")==="/hrms/payroll"&&<Link className="block rounded border p-3 text-sm underline" to="/hrms/payroll">Return to saved payroll run and review step</Link>}
@@ -324,11 +330,11 @@ export default function AttendancePage() {
 
       {phone && (
         <nav aria-label="Attendance sections" className="grid grid-cols-2 gap-2">
-          <Button asChild variant="outline" className="min-h-11">
-            <a href="#attendance-register">Register</a>
+          <Button type="button" variant="outline" className="min-h-11" onClick={() => jumpToAttendanceSection("attendance-register")}>
+            Register
           </Button>
-          <Button asChild variant="outline" className="min-h-11">
-            <a href="#attendance-records">Records</a>
+          <Button type="button" variant="outline" className="min-h-11" onClick={() => jumpToAttendanceSection("attendance-records")}>
+            Records
           </Button>
         </nav>
       )}
