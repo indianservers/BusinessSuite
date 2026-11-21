@@ -29,7 +29,9 @@
   .pos-phone-bill>div{flex:1;min-width:0}.pos-phone-bill strong{display:block;font-size:17px;line-height:1.3}.pos-phone-bill>div>span{display:block;color:#716779;font-size:11px;line-height:1.4}
   .pos-booking-workspace .pos-phone-bill .kf-button{min-height:32px;height:32px;padding:4px 10px;border:1px solid #e5deed;border-radius:10px;background:#f8f4ff;color:#8021b7;font-size:12px;font-weight:700}
   .pos-booking-workspace .pos-phone-bill .pos-phone-trash{width:34px;padding:0;color:#514064;background:transparent}
-  .pos-phone-customer-button,.pos-phone-customer-compact{display:none!important}
+  .pos-phone-customer-button{display:none!important}
+  .pos-phone-bill strong{display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .pos-phone-customer-compact{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#6621a8;font-size:11px}
   .pos-booking-workspace .pos-guidance{display:none}
   .pos-booking-workspace .srm-pos-mobile-tabs{position:static;display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0;padding:0;background:transparent;box-shadow:none}
   .pos-booking-workspace .srm-pos-mobile-tabs button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:38px;padding:4px;border:1px solid #fff;border-radius:13px;background:#ffffffb0;box-shadow:0 4px 8px #4426660a;font-size:14px;font-weight:700}
