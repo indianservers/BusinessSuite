@@ -1,4 +1,10 @@
 export type CreateGroup = "Work" | "Sales" | "People & requests" | "Content" | "Collaboration" | "Configuration";
+export const srmCatalogCreateItems = [
+  { kind: "product", label: "Add product", plural: "Products" },
+  { kind: "service", label: "Add service", plural: "Services" },
+  { kind: "membership", label: "Add membership", plural: "Memberships" },
+  { kind: "subscription", label: "Add subscription", plural: "Subscriptions" },
+] as const;
 export function createGroup(label: string, module: string): CreateGroup {
   if (/field|tag|dashboard|view list|whiteboard|asset|form/i.test(label)) return "Configuration";
   if (/conversation|invitation|workspace|space/i.test(label)) return "Collaboration";
@@ -6,7 +12,7 @@ export function createGroup(label: string, module: string): CreateGroup {
   return module === "hrms" ? "People & requests" : ["crm","srm"].includes(module) ? "Sales" : "Work";
 }
 export function createPriority(label: string, module: string, employee = false) {
-  const order = module === "srm" ? ["POS", "Add product", "Add service", "Sales order", "Customer", "Invoice draft", "Contract", "Engagement", "Billing plan", "Vendor"] : module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
+  const order = module === "srm" ? ["POS", ...srmCatalogCreateItems.map(item => item.label), "Sales order", "Customer", "Invoice draft", "Contract", "Engagement", "Billing plan", "Vendor"] : module === "pms" ? ["Task", "Quick task", "Subtask", "Project", "Document"] : module === "crm" ? ["Add Lead", "Contact", "Company", "Add Customer", "Deal", "Reminder"] : employee ? ["Apply for leave", "Submit expense", "Support ticket", "Correct attendance"] : ["Add employee", "Bulk add employees", "Correct attendance", "Generate letter", "Apply for leave"];
   const index = order.indexOf(label);
   return index < 0 ? 100 : index;
 }

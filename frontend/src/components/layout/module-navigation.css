@@ -38,3 +38,8 @@ body:has(.module-menu[data-module=srm]) .suite-sidebar{background:linear-gradien
 .module-menu-pos-primary>a{display:flex;align-items:center;gap:11px;flex:1;min-width:0;min-height:48px;padding:6px 10px;color:white}.module-menu-pos-primary strong{display:block;font-size:16px}.module-menu-pos-primary small{display:block;font-size:10px;color:#f0dcff}.module-menu-pos-primary .module-menu-create{width:34px;min-height:34px;color:white;background:#ffffff15;border-radius:8px}.module-menu.is-collapsed .module-menu-pos-primary{margin-inline:3px;padding:2px}.module-menu.is-collapsed .module-menu-pos-primary .module-menu-create{display:none}
 
 .module-menu[data-module=srm] nav[aria-label="Sticky shortcuts"]{position:static}
+.module-menu-catalog-create>summary{list-style:none;cursor:pointer}
+.module-menu-catalog-create>summary::-webkit-details-marker{display:none}
+.module-menu-catalog-create:not([open])>summary>svg:last-child{transform:rotate(-90deg)}
+.module-menu-catalog-create li>button{display:block;width:100%;min-height:44px;padding:8px 9px;border-radius:8px;text-align:left}
+.module-menu-catalog-create li>button:hover{background:var(--menu-wash)}

@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleKey } from "@/lib/roles";
 import NewMenu, { type NewAction } from "./NewMenu";
+import { srmCatalogCreateItems } from "./create-menu-model";
 import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMenu";
 import WorkspaceCreateMenu from "./WorkspaceCreateMenu";
 import { contextualDestination } from "@/shared/creation/registry";
@@ -98,8 +99,9 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(role));
     add("Customer", "Create a customer", UserPlus, "/srm/customers?new=company", manages);
     add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
-    add("Add product", "Create a product in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=product", manages);
-    add("Add service", "Create a service in your catalog", ShoppingBag, "/srm/inventory/products?new=item&kind=service", manages);
+    for (const { kind, label } of srmCatalogCreateItems) {
+      add(label, `Create a ${kind} in your catalog`, ShoppingBag, `/srm/inventory/products?new=item&kind=${kind}`, manages);
+    }
     const catalogAction = actions.find(action => action.label === "Add product");
     if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
   }

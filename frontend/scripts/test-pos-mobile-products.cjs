@@ -1,5 +1,4 @@
 const path = require('node:path');
-const fs = require('node:fs');
 const {chromium, expect: base} = require('playwright/test');
 const expect = base.configure({timeout:15000});
 
@@ -9,7 +8,7 @@ const expect = base.configure({timeout:15000});
   const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});
   await server.listen();const browser=await chromium.launch();
   try {
-    for(const [width,height] of [[320,568],[360,640],[390,844],[426,640],[430,932],[767,1024],[430,1280]]) {
+    for(const [width,height] of [[1440,900],[1024,768],[320,568],[360,640],[390,844],[426,640],[430,932],[767,1024],[430,1280]]) {
       const page=await browser.newPage({viewport:{width,height},acceptDownloads:true});
       const errors=[];page.on('pageerror',error=>errors.push(error.message));
       const posts=[];let succeed=false;
@@ -21,10 +20,13 @@ const expect = base.configure({timeout:15000});
         if(p.endsWith('/auth/me')||p.endsWith('/access/me')){const native=await page.evaluate(()=>window.nativeIdentity());return route.fulfill({json:p.endsWith('/auth/me')?native.identity:native.access});}
         if(p.endsWith('/industry/capabilities'))return route.fulfill({json:{checkout_create:true,checkout_collect:true,operational_scope:cap}});
         if(p.endsWith('/branches/context'))return route.fulfill({json:{company_id:1,selected:1,branches:[{id:1,name:'City branch',can_write:true}]}});
+        if(p.endsWith('/access/settings/defaults/effective'))return route.fulfill({json:{values:{timezone:'UTC',currency:'INR'},modules:{},companyId:1,branchId:1}});
         if(p.endsWith('/pos/sessions/active'))return route.fulfill({json:{session:{id:81,status:'open',opening_cash:100,session_number:'POS-81',register_name:'Front desk'},expected_cash:100}});
         if(p.endsWith('/pos/catalog')){
-          const items=Array.from({length:27},(_,index)=>({id:200+index,item_name:index===26?'Zero stock product':index===25?'Very long product name with multiple words and a large package size':`Product ${String(index+1).padStart(2,'0')}`,sku:`MOB${index}`,barcode:`9000${index}`,category_name:index%2?'Wellness':'Retail',product_type:index%5===0?'service':'product',sales_rate:20+index,gst_rate:0,current_quantity:index===26?0:8,track_inventory:index%5!==0,checkout_supported:true,active:true}));
-          const offset=Number(url.searchParams.get('after')||0);return route.fulfill({json:{items:items.slice(offset,offset+10),next:offset+10<items.length?offset+10:null,features:{appointments_schedule:true,customers_register:false,countries:[]}}});
+          const catalogue=Array.from({length:27},(_,index)=>({id:200+index,item_name:index===26?'Zero stock product':index===25?'Very long product name with multiple words and a large package size':`Product ${String(index+1).padStart(2,'0')}`,sku:`MOB${index}`,barcode:`9000${index}`,category_name:index%2?'Wellness':'Retail',product_type:index%5===0?'service':'product',sales_rate:20+index,gst_rate:0,current_quantity:index===26?0:8,track_inventory:index%5!==0,checkout_supported:true,active:true}));
+          const search=(url.searchParams.get('search')||'').toLowerCase();
+          const items=catalogue.filter(item=>item.item_name.toLowerCase().includes(search));
+          return route.fulfill({json:{items,next:null,features:{appointments_schedule:true,customers_register:false,countries:[]}}});
         }
         if(p.endsWith('/pos/customers'))return route.fulfill({json:{items:[{id:12,name:'Jane Customer',phone:'9999999999'}],next:null}});
         if(p.endsWith('/options/availability')){const day=url.searchParams.get('day');return route.fulfill({json:{timezone:'UTC',slots:[{starts_at:`${day}T10:00:00Z`,label:'10:00'}],selection_available:url.searchParams.has('starts_at')?true:null,resources:[{id:30,available:true}]}});}
@@ -43,34 +45,37 @@ const expect = base.configure({timeout:15000});
       await page.goto(server.resolvedUrls.local[0]+'pos-uix-qa?mode=pos');
 
 
-      await expect(page.getByRole('heading',{name:'Billing & POS'})).toBeVisible();
-      const grid=page.getByRole('region',{name:'Paginated products',exact:true});
+      await expect(page.getByRole('heading',{name:/^(Billing & POS|POS Terminal)$/})).toBeVisible();
+      const grid=page.getByRole('region',{name:'Catalogue items',exact:true});
       await expect(grid.locator('article').first()).toBeVisible();
       const fit=async()=>{
         const metrics=await page.evaluate(()=>{const panel=document.querySelector('.pos-mobile-catalogue'),grid=document.querySelector('.pos-mobile-products-grid'),footer=document.querySelector('.srm-pos-checkout');const r=grid.getBoundingClientRect();return {width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,panelHeight:panel.clientHeight,panelContent:panel.scrollHeight,gridHeight:grid.clientHeight,gridContent:grid.scrollHeight,bottom:footer.getBoundingClientRect().bottom,rows:[...grid.querySelectorAll('article')].map(el=>({top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom,scroll:el.scrollHeight,height:el.clientHeight})),gridBottom:r.bottom};});
-        expect(metrics.width).toBeLessThanOrEqual(width);expect(metrics.height).toBeLessThanOrEqual(height);expect(metrics.bottom).toBeLessThanOrEqual(height+1);expect(metrics.panelContent).toBeLessThanOrEqual(metrics.panelHeight+2);expect(metrics.gridContent).toBeLessThanOrEqual(metrics.gridHeight+2);for(const row of metrics.rows){expect(row.bottom).toBeLessThanOrEqual(metrics.gridBottom+1);expect(row.scroll).toBeLessThanOrEqual(row.height+2);}
+        expect(metrics.width).toBeLessThanOrEqual(width);expect(metrics.height).toBeLessThanOrEqual(height);expect(metrics.bottom).toBeLessThanOrEqual(height+1);expect(metrics.panelContent).toBeLessThanOrEqual(metrics.panelHeight+2);for(const row of metrics.rows){expect(row.scroll).toBeLessThanOrEqual(row.height+2);}
       };
-      await fit();await page.screenshot({path:path.resolve('../output',`pos-mobile-products-${width}x${height}.png`),fullPage:true});
-      const firstName=await grid.locator('article strong').first().textContent();
-      await page.getByRole('button',{name:'Next product page',exact:true}).click();
-      await expect(grid.locator('article strong').first()).not.toHaveText(firstName);
-      await expect(page.getByRole('button',{name:'Previous product page',exact:true})).toBeEnabled();
-      const card=grid.locator('article').first();await card.getByRole('button',{name:/to cart$/}).click();
-      await expect(page.locator('.pos-cart-count')).toHaveText('1');await expect(card.getByRole('button',{name:/to cart$/})).toContainText('1');
-      const favorite=card.getByRole('button',{name:/^Favorite /});await favorite.click();await expect(favorite).toHaveAttribute('aria-pressed','true');
-      await page.screenshot({path:path.resolve('../output',`pos-mobile-products-page2-${width}x${height}.png`),fullPage:true});
+      if(width<768)await fit();
+      await expect(grid.locator('article')).toHaveCount(27);
       const search=page.getByRole('textbox',{name:'Search or scan items',exact:true});
-      await search.fill('Very long product');await expect(grid.locator('article')).toHaveCount(1);await fit();await expect(page.getByRole('navigation',{name:'Product pages'})).toBeHidden();
+      const searchTop=(await search.boundingBox()).y;
+      const card=grid.locator('article').nth(-2);
+      await grid.hover({position:{x:25,y:25}});
+      await page.mouse.wheel(0, 4000);
+      await expect.poll(()=>grid.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+      expect((await search.boundingBox()).y).toBe(searchTop);
+      if(width>=768){expect(errors).toEqual([]);console.log(`Products ${width}x${height}: scrolling passed`);await page.close();continue;}
+      await card.getByRole('button',{name:/to cart$/}).click();
+      await expect(page.locator('.pos-cart-count')).toHaveText('1');await expect(card.getByRole('group',{name:/quantity$/})).toHaveText('1');await fit();
+      const favorite=card.getByRole('button',{name:/^Favorite /});await favorite.click();await expect(favorite).toHaveAttribute('aria-pressed','true');
+      await search.fill('Very long product');await expect(grid.locator('article')).toHaveCount(1);await fit();expect(await grid.evaluate(el=>el.scrollTop)).toBe(0);
       await search.fill('Zero stock product');await expect(grid.locator('article')).toHaveCount(1);await expect(grid.getByRole('button',{name:/to cart$/})).toBeDisabled();
       await search.fill('missing item xyz');await expect(page.getByText('No matching items',{exact:true})).toBeVisible();await fit();
       await page.getByRole('button',{name:'Clear search & filters',exact:true}).click();await expect(grid.locator('article').first()).toBeVisible();
       await page.getByRole('button',{name:'Product filters',exact:true}).click();const filters=page.getByRole('dialog',{name:'Product filters',exact:true});await expect(filters).toBeVisible();
       await filters.getByLabel('Product category',{exact:true}).selectOption('Wellness');await filters.getByLabel('Sort catalogue',{exact:true}).selectOption('price');await filters.getByRole('button',{name:/^Show /}).click();
-      await expect(page.locator('.pos-mobile-catalogue-caption')).toContainText('Wellness');await expect(page.getByRole('button',{name:'Previous product page',exact:true,includeHidden:true})).toBeDisabled();await fit();
+      await expect(page.locator('.pos-mobile-catalogue-caption')).toContainText('Wellness');expect(await grid.evaluate(el=>el.scrollTop)).toBe(0);await fit();
       await page.getByRole('button',{name:'Product filters',exact:true}).click();await filters.getByRole('button',{name:'Reset filters',exact:true}).click();await filters.getByRole('button',{name:/^Show /}).click();
       await page.getByRole('navigation',{name:'Catalogue filters'}).getByRole('button',{name:/^Services /}).click();await expect(grid.locator('article').first()).toHaveClass(/is-service/);await fit();
       await page.locator('.srm-pos-mobile-tabs button').last().click();await expect(page.getByRole('region',{name:'Sale items, paginated'})).toBeVisible();await expect(page.locator('.pos-cart-count')).toHaveText('1');
-      await page.locator('.srm-pos-mobile-tabs button').first().click();await expect(grid).toBeVisible();await fit();expect(errors).toEqual([]);console.log(`Products ${width}x${height}: fit, pagination, search, filters and cart passed`);await page.close();
+      await page.locator('.srm-pos-mobile-tabs button').first().click();await expect(grid).toBeVisible();await fit();expect(errors).toEqual([]);console.log(`Products ${width}x${height}: fit, scrolling, search, filters and cart passed`);await page.close();
     }
   } finally {await browser.close();await server.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

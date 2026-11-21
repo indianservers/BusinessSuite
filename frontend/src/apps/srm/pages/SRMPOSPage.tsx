@@ -6,6 +6,7 @@ import POSBookingSettings, {type POSBookingPresentation} from '../components/POS
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
 import NewMenu from "@/components/app/NewMenu";
 import POSMobileCatalogue from "../components/POSMobileCatalogue";
+import POSCatalogueQuantity from "../components/POSCatalogueQuantity";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import POSCustomerIdentity from "../components/POSCustomerIdentity";
 import { BookingSummary } from "@/shared/scheduling/BookingUX";
@@ -744,7 +745,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 
   function removeProduct(productId: number) {
     if(locked)return;
-    const existing=cart.find(line=>line.id===productId);
+    const matching = cart.filter(line => line.id === productId).reverse();
+    const existing = matching.find(line => !line.booking) ?? matching[0];
     if(!existing)return;
     if(existing.qty<=1)removeLine(existing.lineId);else updateLine(existing.lineId,{qty:existing.qty-1});
   }
@@ -1143,7 +1145,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
             cart={cart} query={query} onQuery={setQuery} searchInputRef={searchRef} onScan={scanSearch}
             category={category} categories={categories} onCategory={setCategory} tab={catalogTab} onTab={setCatalogTab} sort={catalogSort} onSort={setCatalogSort}
             favorites={favoriteIds} onFavorite={id=>setFavoriteIds(ids=>ids.includes(id)?ids.filter(value=>value!==id):[...ids,id])}
-            onAdd={addProduct} isService={isService} formatMoney={currency} loading={productsQuery.isLoading} error={productsQuery.isError} onRetry={()=>void productsQuery.refetch()} locked={locked}
+            onAdd={addProduct} onRemove={removeProduct} isService={isService} formatMoney={currency} loading={productsQuery.isLoading} error={productsQuery.isError} onRetry={()=>void productsQuery.refetch()} locked={locked}
             canCreate={!!(authUser?.is_superuser || (authUser?.access?.grants.srm?.enabled && authUser.access.grants.srm.actions.includes('create')) || (!authUser?.access?.managed && ['admin','srm_admin','srm_sales_manager','srm_sales_executive'].includes(String(authUser?.role).toLowerCase())))}/>
           : <>
 
@@ -1190,6 +1192,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
 </div></details>
           </div>
           <nav className="pos-category-chips" aria-label="Product categories">{categories.map(item => <Button key={item} size="sm" variant={category === item ? "default" : "outline"} onClick={() => setCategory(item)}><LayoutGrid size={15}/>{item === "All" ? "All categories" : item}</Button>)}</nav>
+          <div className="pos-catalog-results" role="region" aria-label="Catalogue items" tabIndex={0}>
           {productsQuery.isLoading && <div role="status" aria-label="Loading products and services" aria-busy="true"><span className="sr-only">Loading products and services</span><div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 motion-safe:animate-pulse">{Array.from({length:10},(_,i)=><div key={i} className="overflow-hidden rounded-xl border bg-white"><div className="h-20 bg-slate-100"/><div className="space-y-3 p-3"><div className="h-3 w-4/5 rounded bg-slate-100"/><div className="h-3 w-1/2 rounded bg-slate-100"/><div className="h-4 w-1/3 rounded bg-slate-100"/></div></div>)}</div></div>}
           {productsQuery.isError && <p role="alert">Unable to load the catalog. <Button variant="outline" type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</Button></p>}
 
@@ -1220,7 +1223,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     <span className="truncate text-slate-500">{product.category}</span>
                     <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : product.kind.replace(/s$/, "")}</span>
                     <strong className="text-[#6d49d7]">{currency(product.rate)}</strong>
-                    <QuantityStepper qty={qty} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
+                    <POSCatalogueQuantity product={product} quantity={qty} locked={locked} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
                   </div>
                 );
               })}
@@ -1241,7 +1244,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                       <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : product.kind.replace(/s$/, "")}</span>
                       <strong className="w-24 text-right text-[#6d49d7]">{currency(product.rate)}</strong>
                     </button>
-                    <QuantityStepper qty={qty} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
+                    <POSCatalogueQuantity product={product} quantity={qty} locked={locked} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
                   </article>
                 );
               })}
@@ -1266,12 +1269,16 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
                     </button>
                     {product.checkoutSupported===false && <p className="px-2 pb-2 text-xs text-red-700">{product.unsupportedReason || 'Unavailable for checkout'}</p>}
                     <Button type="button" variant="outline" size="sm" className="pos-favorite-toggle" aria-label={`Favorite ${product.name}`} aria-pressed={favoriteIds.includes(product.id)} onClick={()=>setFavoriteIds(ids=>ids.includes(product.id)?ids.filter(id=>id!==product.id):[...ids,product.id])}><span aria-hidden="true">{favoriteIds.includes(product.id)?'★':'☆'}</span><span className="sr-only">{favoriteIds.includes(product.id)?'Remove favorite':'Add favorite'}</span></Button>
-                    <div className="pos-product-action flex items-center justify-between p-3"><strong>{shortCurrency(product.rate)}</strong><Button variant="outline" size="sm" onClick={() => addProduct(product)} data-product-id={product.id} disabled={product.checkoutSupported===false || product.trackInventory && product.stock<=0}><ShoppingCart size={16}/>Add{qty ? ` (${qty})` : ''}</Button></div>
+                    <div className="pos-product-action flex flex-wrap items-center justify-between gap-1 p-3">
+                      <strong>{shortCurrency(product.rate)}</strong>
+                      <POSCatalogueQuantity product={product} quantity={qty} locked={locked} onRemove={() => removeProduct(product.id)} onAdd={() => addProduct(product)} />
+                    </div>
                   </article>
                 );
               })}
             </div>
           )}
+          </div>
           </>}
         </section>
 
@@ -1605,16 +1612,6 @@ function ProductMark({ product, lowStock }: { product: Product; lowStock: boolea
   return (
     <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xs font-bold ${lowStock ? "border-red-100 bg-red-50 text-red-600" : "border-slate-100 bg-slate-50 text-slate-600"}`}>
       {product.image ? <img src={product.image} alt={product.name} className="h-full w-full rounded-lg object-cover" referrerPolicy="no-referrer" /> : initials}
-    </span>
-  );
-}
-
-function QuantityStepper({ qty, onRemove, onAdd }: { qty: number; onRemove: () => void; onAdd: () => void }) {
-  return (
-    <span className="flex shrink-0 items-center justify-end gap-1">
-      <Button size="icon" variant="ghost" aria-label="Decrease quantity" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onRemove} disabled={!qty}><Minus className="h-3.5 w-3.5" /></Button>
-      <strong className="min-w-8 text-center text-sm text-slate-900">{qty}</strong>
-      <Button size="icon" variant="ghost" aria-label="Increase quantity" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onAdd}><Plus className="h-3.5 w-3.5" /></Button>
     </span>
   );
 }

@@ -21,6 +21,7 @@ const expect = base.configure({timeout:15000});
         if(p.endsWith('/auth/me')||p.endsWith('/access/me')){const native=await page.evaluate(()=>window.nativeIdentity());return route.fulfill({json:p.endsWith('/auth/me')?native.identity:native.access});}
         if(p.endsWith('/industry/capabilities'))return route.fulfill({json:{checkout_create:true,checkout_collect:true,operational_scope:cap}});
         if(p.endsWith('/branches/context'))return route.fulfill({json:{company_id:1,selected:1,branches:[{id:1,name:'City branch',can_write:true}]}});
+        if(p.endsWith('/access/settings/defaults/effective'))return route.fulfill({json:{values:{timezone:'UTC',currency:'INR'},modules:{},companyId:1,branchId:1}});
         if(p.endsWith('/pos/sessions/active'))return route.fulfill({json:{session:{id:81,status:'open',opening_cash:100,session_number:'POS-81',register_name:'Front desk'},expected_cash:100}});
         if(p.endsWith('/pos/catalog'))return route.fulfill({json:{items:[{id:1,item_name:'Retail item',sku:'SKU1',barcode:'12345',unit_code:'PCS',product_type:'product',sales_rate:100,gst_rate:0,current_quantity:5,track_inventory:true,checkout_supported:true,active:true},{id:9,item_name:'Consultation service',sku:'SVC9',product_type:'service',sales_rate:45,gst_rate:0,track_inventory:false,checkout_supported:true,active:true,booking_policy:{required:true}}],next:null,features:{appointments_schedule:true,customers_register:false,countries:[]}}});
         if(p.endsWith('/pos/customers'))return route.fulfill({json:{items:[{id:12,name:'Jane Customer',phone:'9999999999'}],next:null}});
@@ -38,7 +39,21 @@ const expect = base.configure({timeout:15000});
       });
       await page.route('**/pos-uix-qa*',route=>route.fulfill({contentType:'text/html',body:'<script>window.__AI_HRMS_CONFIG__={apiBaseUrl:"/api/v1"};</script><div id="root"></div><script type="module">import R from "/@react-refresh";R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import("/scripts/fixtures/security-scope.tsx");</script>'}));
       await page.goto(server.resolvedUrls.local[0]+'pos-uix-qa?mode=pos');
-      await expect(page.getByRole('heading',{name:'Billing & POS'})).toBeVisible();
+      await expect(page.getByRole('heading',{name:/^(Billing & POS|POS Terminal)$/})).toBeVisible();
+      for (const item of ['Retail item', 'Consultation service']) {
+        const stepper = page.getByRole('group', {name: `${item} quantity`, exact: true});
+        const add = stepper.getByRole('button', {name: `Add ${item} to cart`});
+        const remove = stepper.getByRole('button', {name: `Remove one ${item} from cart`});
+        await expect(remove).toBeDisabled();
+        await add.click();
+        await add.click();
+        await expect(stepper).toHaveText('2');
+        await remove.click();
+        await expect(stepper).toHaveText('1');
+        await remove.click();
+        await expect(stepper).toHaveText('0');
+        await expect(remove).toBeDisabled();
+      }
       await expect(page.getByText(/City branch · Front desk · POS-81/)).toBeVisible();
       await expect(page.getByRole('button',{name:'Print Last',exact:true,includeHidden:true})).toBeDisabled();
       await expect(page.getByRole('button',{name:/^Collect /})).toHaveCount(1);

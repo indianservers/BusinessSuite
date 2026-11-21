@@ -70,7 +70,7 @@ window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statist
 function PortalRoot() {
   const {pathname} = useLocation();
   if (pathname.startsWith("/platform")) return <React.Suspense fallback={<div role="status">Loading platform…</div>}><PlatformApp/></React.Suspense>;
-  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && import.meta.env.VITE_SHOW_CACHE_DIAGNOSTICS === "true" && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

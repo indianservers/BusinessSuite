@@ -1,4 +1,5 @@
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
+import { srmCatalogCreateItems } from "@/components/app/create-menu-model";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 import { LoadingState } from "@/components/ui/state";
 import { Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -102,6 +103,13 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
     {model.labels.length>1&&<nav className="srm-mobile-pagination" aria-label="Page sections"><button type="button" aria-label="Previous section" disabled={model.page===0} onClick={()=>goto(model.page-1)}><ArrowLeft size={17}/></button><button type="button" className="srm-mobile-current-section" onClick={()=>openSheet('sections')}><span>{model.labels[model.page]}</span><small>{model.page+1} / {model.labels.length}<ChevronDown size={13}/></small></button><button type="button" aria-label="Next section" disabled={model.page>=model.labels.length-1} onClick={()=>goto(model.page+1)}><ArrowRight size={17}/></button></nav>}
     <Dialog.Root open={sheet!==null} onOpenChange={open=>{if(!open)setSheet(null);}}><Dialog.Portal><Dialog.Overlay className="srm-mobile-sheet-overlay"/><Dialog.Content className="srm-mobile-sheet" aria-describedby={undefined}>
       <div className="srm-mobile-sheet-heading"><Dialog.Title>{sheet==='sections'?'Page sections':'Sales navigation'}</Dialog.Title><Dialog.Close aria-label="Close Sales navigation"><X size={20}/></Dialog.Close></div>
+      {sheet === 'menu' && <ModuleNewMenu>{actions => {
+        const choices = srmCatalogCreateItems.flatMap(item => {
+          const action = actions.find(candidate => candidate.label === item.label);
+          return action ? [{ ...item, action }] : [];
+        });
+        return choices.length > 0 && <details className="mb-2 rounded-lg border px-3"><summary className="cursor-pointer py-3 font-semibold">Create</summary><ul>{choices.map(({kind, plural, action}) => <li key={kind}><button type="button" className="min-h-11 w-full px-3 text-left" disabled={action.disabled} onClick={() => {setSheet(null);action.onSelect();}}>{plural}</button></li>)}</ul></details>;
+      }}</ModuleNewMenu>}
       <label className="srm-mobile-menu-search"><Search size={17}/><input aria-label="Search Sales pages" value={search} onChange={event=>{setSearch(event.target.value);setMenuPage(0);}} placeholder="Search pages or sections"/></label>
       <div className="srm-mobile-menu-items">{filtered.slice(safeMenuPage*menuSize,(safeMenuPage+1)*menuSize).map(item=><button type="button" key={item.key} onClick={()=>{item.activate();setSheet(null);}}><span>{item.label}<small>{item.detail}</small></span><ArrowRight size={16}/></button>)}{!filtered.length&&<p>No matching pages.</p>}</div>
       {menuPages>1&&<nav className="srm-mobile-menu-pages" aria-label="Navigation pages"><button type="button" aria-label="Previous navigation page" disabled={!safeMenuPage} onClick={()=>setMenuPage(safeMenuPage-1)}><ArrowLeft size={17}/></button><span>{safeMenuPage+1} / {menuPages}</span><button type="button" aria-label="Next navigation page" disabled={safeMenuPage>=menuPages-1} onClick={()=>setMenuPage(safeMenuPage+1)}><ArrowRight size={17}/></button></nav>}

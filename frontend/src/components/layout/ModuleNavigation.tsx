@@ -5,11 +5,12 @@ import { sharedNotesPath } from "@/lib/shared-notes";
 import { FileText } from "lucide-react";
 import MenuItemMore, { MenuItemIcon } from "./MenuItemMore";
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
+import { srmCatalogCreateItems } from "@/components/app/create-menu-model";
 import MenuQuickAdd from "./MenuQuickAdd";
 import type { NewAction } from "@/components/app/NewMenu";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
+import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Plus, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
 import { canAccessRoute, getRoleNav, type RoleNavItem } from "@/lib/roles";
 import { activeWorkspace, getOperationWorkspace, navigationOperationPath, workspacePageHref } from "@/lib/navigation-workspaces";
 import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation, moduleMenuNavigation } from "@/lib/navigation-menu";
@@ -110,6 +111,15 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
   return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
+    {moduleKey === "srm" && !collapsed && srmCatalogCreateItems.some(item => moduleActions.some(action => action.label === item.label)) && (
+      <details className="module-menu-catalog-create">
+        <summary className="module-menu-heading"><Plus size={18} /><span className="module-menu-category-name">Create</span><ChevronDown size={16} /></summary>
+        <ul className="module-menu-links">{srmCatalogCreateItems.map(item => {
+          const action = moduleActions.find(candidate => candidate.label === item.label);
+          return action && <li key={item.kind}><button type="button" disabled={action.disabled} onClick={() => { onNavigate?.(); action.onSelect(); }}>{item.plural}</button></li>;
+        })}</ul>
+      </details>
+    )}
     {moduleKey==='srm' && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser) && <nav className="module-menu-pos-primary" aria-label="Primary Sales action"><Link to={workspacePageHref('/srm/pos/terminal',location.search,workspaceId)} onClick={onNavigate} aria-label="POS" aria-current={isCurrent('/srm/pos/terminal')?'page':undefined} title="POS · Billing & point of sale"><ShoppingCart size={22}/>{!collapsed&&<span><strong>POS</strong><small>Billing & point of sale</small></span>}</Link><MenuQuickAdd actions={createActions} paths={['/srm/pos/terminal','/srm/pos']} label="POS" onNavigate={onNavigate}/></nav>}
     {!collapsed && <>
       <label className="module-menu-search"><Search size={16} /><input type="search" aria-label="Search menu items" placeholder="Search menu items..." value={query}

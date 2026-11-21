@@ -213,3 +213,12 @@
 .pos-booking-workspace .pos-customer-identity>.kf-button{min-width:88px}
 .pos-booking-workspace{padding-bottom:124px}
 }
+
+@media(min-width:768px){
+  .pos-booking-workspace .srm-pos-catalog{display:flex;flex-direction:column;overflow:hidden}
+  .pos-booking-workspace .srm-pos-catalog > :not(.pos-catalog-results){flex-shrink:0}
+  .pos-booking-workspace .srm-pos-catalog > .pos-catalog-results{min-height:0;max-height:55dvh}
+}
+@media(min-width:1280px){
+  .pos-booking-workspace .srm-pos-catalog > .pos-catalog-results{max-height:none}
+}
