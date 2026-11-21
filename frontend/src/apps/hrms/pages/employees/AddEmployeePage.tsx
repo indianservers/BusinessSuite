@@ -17,15 +17,18 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, BookOpen, Check, ChevronLeft, ChevronRight, HeartPulse, Loader2, Plus, Save, Settings, Users, X } from "lucide-react";
+import { AlertCircle, BookOpen, Check, ChevronLeft, ChevronRight, HeartPulse, Loader2, Plus, Save, Settings, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { employeeApi, companyApi, attendanceApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { loadManagerOptions } from "./employeeJobOptions";
+import { useMobile } from "@/components/mobile/useMobile";
 import { usePageTitle } from "@/hooks/use-page-title";
+import "./employee-create-mobile.css";
 
 const schema = z.object({
   work_categories: z.array(z.string().max(80)).max(20).optional(),
@@ -123,7 +126,11 @@ const stepFields: Array<Array<keyof FormData>> = [
 
 export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: { id: number }) => void } = {}) {
   const { term } = useBusinessTerms();
+  const mobile = useMobile();
   const submitting=useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const stepSummaryRef = useRef<HTMLParagraphElement>(null);
+  const quickOpener = useRef<HTMLButtonElement | null>(null);
   const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
   const customFieldForm=useCrmFieldForm("employees","create");
   const navigate = useNavigate();
@@ -256,13 +263,16 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
           const messages=stepFields[index].map(field=>getFieldState(field).error?.message).filter(Boolean);
           setSubmitError(messages.join('; ') || 'Complete the highlighted fields before continuing.');
           const first=stepFields[index].find(field=>getFieldState(field).invalid);
-          if(first)requestAnimationFrame(()=>document.querySelector<HTMLInputElement>(`[name="${first}"]`)?.focus());
+          if(first)requestAnimationFrame(()=>formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus());
           return;
         }
       }
     }
     setSubmitError(null);
     setCurrentStep(target);
+    if (target !== currentStep && mobile) {
+      requestAnimationFrame(() => stepSummaryRef.current?.focus());
+    }
   };
 
   const onSubmit = (data: FormData) => {
@@ -278,7 +288,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
     if (stepIndex >= 0) setCurrentStep(stepIndex);
   };
 
-  const openQuick = (type: QuickType) => {
+  const openQuick = (type: QuickType, opener: HTMLButtonElement) => {
+    quickOpener.current = opener;
     const defaults: Record<QuickType, Record<string, any>> = {
       company: { country: "India" },
       branch: { company_id: companies?.[0]?.id || "", country: "India" },
@@ -293,8 +304,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
   const toggleSection = (key: string) => setOpenSections((s) => ({ ...s, [key]: !s[key] }));
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="hrms-employee-create mx-auto max-w-5xl space-y-6">
+      <div className="hrms-employee-create-header flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
@@ -311,9 +322,9 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
 
       <EmployeeDuplicateWarning values={{personal_email:watch("personal_email"),phone_number:watch("phone_number"),phone_number_country_code:watch("phone_number_country_code")}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>
       {/* Step indicator */}
-      <p role="status" className="text-sm text-muted-foreground">Step {currentStep + 1} of {steps.length} · {steps[currentStep]}. Your progress is saved for this session.</p>
+      <p ref={stepSummaryRef} tabIndex={-1} role="status" className="hrms-employee-step-summary text-sm text-muted-foreground">Step {currentStep + 1} of {steps.length} · {steps[currentStep]}</p>
       <progress aria-label="Employee onboarding progress" value={currentStep + 1} max={steps.length} className="h-2 w-full accent-primary"/>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+      <nav aria-label="Employee form steps" className="hrms-employee-steps flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
         {steps.map((step, i) => (
           <div key={step} className="flex items-center gap-2">
             <button
@@ -328,7 +339,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               }`}
               aria-current={i === currentStep ? "step" : undefined}
             >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-xs text-foreground">
+              <span aria-hidden="true" className="hrms-employee-step-number flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-xs text-foreground">
                 {i < currentStep ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span>{step}</span>
@@ -338,18 +349,25 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
             )}
           </div>
         ))}
-      </div>
+      </nav>
 
-      <CompactForm compactTabs={false}
-        onSubmit={handleSubmit(onSubmit, (formErrors) => {
-          jumpToFirstInvalidStep(formErrors);
-          const firstError = Object.values(formErrors)[0]?.message;
-          toast({
-            title: "Please check employee details",
-            description: String(firstError || "Some required or optional fields are invalid."),
-            variant: "destructive",
-          });
-        })}
+      <CompactForm compactTabs={false} ref={formRef}
+        onSubmit={(event) => {
+          if (currentStep < steps.length - 1) {
+            event.preventDefault();
+            void goToStep(currentStep + 1);
+            return;
+          }
+          void handleSubmit(onSubmit, (formErrors) => {
+            jumpToFirstInvalidStep(formErrors);
+            const firstError = Object.values(formErrors)[0]?.message;
+            toast({
+              title: "Please check employee details",
+              description: String(firstError || "Some required or optional fields are invalid."),
+              variant: "destructive",
+            });
+          })(event);
+        }}
       >
         {clearEmployeeDraft.status !== "idle" && <p role="status" className="mb-3 text-xs text-muted-foreground">{clearEmployeeDraft.status === "unavailable" ? "Browser draft storage is unavailable. Keep this form open until you save." : clearEmployeeDraft.status === "restored" ? "Your employee draft was restored. Review the details before saving. Login passwords must be entered again." : "Draft saved for this session. Login passwords are excluded."}</p>}
         {submitError && (
@@ -417,8 +435,9 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Branch</Label>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("branch")}>
+                  <Button type="button" size="sm" variant="ghost" aria-label="Add branch" className="hrms-employee-quick-trigger h-7 px-2" onClick={event => openQuick("branch", event.currentTarget)}>
                     <Plus className="h-3.5 w-3.5" />
+                    <span aria-hidden="true" className="md:hidden">Add</span>
                   </Button>
                 </div>
                 <NativeSelect aria-label="Branch"
@@ -436,8 +455,9 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Department</Label>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("department")}>
+                  <Button type="button" size="sm" variant="ghost" aria-label="Add department" className="hrms-employee-quick-trigger h-7 px-2" onClick={event => openQuick("department", event.currentTarget)}>
                     <Plus className="h-3.5 w-3.5" />
+                    <span aria-hidden="true" className="md:hidden">Add</span>
                   </Button>
                 </div>
                 <NativeSelect aria-label="Department"
@@ -454,8 +474,9 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Designation</Label>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("designation")}>
+                  <Button type="button" size="sm" variant="ghost" aria-label="Add designation" className="hrms-employee-quick-trigger h-7 px-2" onClick={event => openQuick("designation", event.currentTarget)}>
                     <Plus className="h-3.5 w-3.5" />
+                    <span aria-hidden="true" className="md:hidden">Add</span>
                   </Button>
                 </div>
                 <NativeSelect aria-label="Designation"
@@ -479,8 +500,9 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Shift</Label>
-                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("shift")}>
+                  <Button type="button" size="sm" variant="ghost" aria-label="Add shift" className="hrms-employee-quick-trigger h-7 px-2" onClick={event => openQuick("shift", event.currentTarget)}>
                     <Plus className="h-3.5 w-3.5" />
+                    <span aria-hidden="true" className="md:hidden">Add</span>
                   </Button>
                 </div>
                 <NativeSelect aria-label="Shift" {...register("shift_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -609,11 +631,11 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
 
         <CrmRecordFields state={customFieldForm}/>
         {/* Navigation buttons */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="hrms-employee-step-actions flex items-center justify-between mt-4">
           <Button
             type="button"
             variant="outline"
-            onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+            onClick={() => void goToStep(currentStep - 1)}
             disabled={currentStep === 0}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -622,9 +644,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
 
           {currentStep < steps.length - 1 ? (
             <Button
-              type="button"
+              type="submit"
               key="next-step"
-              onClick={event => { event.preventDefault(); void goToStep(Math.min(steps.length - 1,currentStep+1)); }}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -641,22 +662,33 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
           )}
         </div>
       </CompactForm>
-      {quickType && (
-        <QuickCreateModal
-          type={quickType}
-          form={quickForm}
-          setForm={setQuickForm}
-          companies={companies || []}
-          branches={branches || []}
-          departments={departments || []}
-          onClose={() => setQuickType(null)}
-          onSubmit={(e) => {
-            e.preventDefault();
-            quickMutation.mutate({ type: quickType, data: quickForm });
+      <Dialog open={!!quickType} onOpenChange={open => { if (!open && !quickMutation.isPending) setQuickType(null); }}>
+        <DialogContent
+          className="hrms-employee-quick-create mobile-experience-sheet max-w-xl gap-0 p-0 sm:p-0"
+          onCloseAutoFocus={event => {
+            if (quickOpener.current?.isConnected) {
+              event.preventDefault();
+              quickOpener.current.focus();
+            }
           }}
-          saving={quickMutation.isPending}
-        />
-      )}
+        >
+          {quickType && <QuickCreateModal
+            type={quickType}
+            mobile={mobile}
+            form={quickForm}
+            setForm={setQuickForm}
+            companies={companies || []}
+            branches={branches || []}
+            departments={departments || []}
+            onClose={() => setQuickType(null)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              quickMutation.mutate({ type: quickType, data: quickForm });
+            }}
+            saving={quickMutation.isPending}
+          />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -705,7 +737,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function OptionalSection({ icon: Icon, title, open, onToggle, children }: { icon: React.ElementType; title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
     <Card>
-      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between p-4 text-left">
+      <button type="button" aria-expanded={open} onClick={onToggle} className="flex w-full items-center justify-between p-4 text-left">
         <span className="flex items-center gap-3 font-semibold"><Icon className="h-4 w-4 text-primary" />{title}</span>
         <ChevronRight className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
@@ -716,6 +748,7 @@ function OptionalSection({ icon: Icon, title, open, onToggle, children }: { icon
 
 function QuickCreateModal({
   type,
+  mobile,
   form,
   setForm,
   companies,
@@ -726,6 +759,7 @@ function QuickCreateModal({
   saving,
 }: {
   type: QuickType;
+  mobile: boolean;
   form: Record<string, any>;
   setForm: (v: Record<string, any>) => void;
   companies: any[];
@@ -743,28 +777,23 @@ function QuickCreateModal({
     </NativeSelect>
   );
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-      <CompactForm compactTabs={false} onSubmit={onSubmit} className="w-full max-w-xl rounded-t-lg border bg-background shadow-xl sm:rounded-lg">
-        <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-semibold">Add {type}</h2>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
-        </div>
-        <div className="grid gap-4 p-5 sm:grid-cols-2">
-          <Field label="Name *"><Input list={type === "designation" ? "designation-suggestions" : undefined} value={form.name || ""} onChange={(e) => update("name", e.target.value)} /></Field>
-          <datalist id="designation-suggestions">{["Intern", "Software Architect", "Marketing"].map((name) => <option key={name} value={name} />)}</datalist>
-          {type !== "company" && type !== "shift" && <Field label="Code"><Input value={form.code || ""} onChange={(e) => update("code", e.target.value)} /></Field>}
-          {type === "branch" && <Field label="Company *">{select("company_id", companies)}</Field>}
-          {type === "department" && <Field label="Branch *">{select("branch_id", branches)}</Field>}
-          {type === "designation" && <Field label="Department *">{select("department_id", departments)}</Field>}
-          {type === "designation" && <Field label="Level"><Input type="number" min={1} value={form.level || 1} onChange={(e) => update("level", e.target.value)} /></Field>}
-          {type === "shift" && <><Field label="Start"><Input type="time" value={form.start_time || ""} onChange={(e) => update("start_time", e.target.value)} /></Field><Field label="End"><Input type="time" value={form.end_time || ""} onChange={(e) => update("end_time", e.target.value)} /></Field><Field label="Grace Minutes"><Input type="number" value={form.grace_minutes || 10} onChange={(e) => update("grace_minutes", e.target.value)} /></Field><Field label="Working Hours"><Input type="number" step="0.5" value={form.working_hours || "8.0"} onChange={(e) => update("working_hours", e.target.value)} /></Field></>}
-          {(type === "company" || type === "branch") && <><Field label="Email"><Input value={form.email || ""} onChange={(e) => update("email", e.target.value)} /></Field><Field label="City"><Input value={form.city || ""} onChange={(e) => update("city", e.target.value)} /></Field></>}
-        </div>
-        <div className="flex justify-end gap-2 border-t px-5 py-4">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-        </div>
-      </CompactForm>
-    </div>
+    <CompactForm compactTabs={false} onSubmit={onSubmit} className="hrms-employee-quick-form">
+      <DialogTitle tabIndex={mobile ? 0 : undefined} className="border-b px-5 py-4 pr-14 font-semibold">Add {type}</DialogTitle>
+      <div className="hrms-employee-quick-fields grid gap-4 p-5 sm:grid-cols-2">
+        <Field label="Name *"><Input aria-label="Name" required list={type === "designation" ? "designation-suggestions" : undefined} value={form.name || ""} onChange={(e) => update("name", e.target.value)} /></Field>
+        <datalist id="designation-suggestions">{["Intern", "Software Architect", "Marketing"].map((name) => <option key={name} value={name} />)}</datalist>
+        {type !== "company" && type !== "shift" && <Field label="Code"><Input value={form.code || ""} onChange={(e) => update("code", e.target.value)} /></Field>}
+        {type === "branch" && <Field label="Company *">{select("company_id", companies)}</Field>}
+        {type === "department" && <Field label="Branch *">{select("branch_id", branches)}</Field>}
+        {type === "designation" && <Field label="Department *">{select("department_id", departments)}</Field>}
+        {type === "designation" && <Field label="Level"><Input type="number" min={1} value={form.level || 1} onChange={(e) => update("level", e.target.value)} /></Field>}
+        {type === "shift" && <><Field label="Start"><Input type="time" value={form.start_time || ""} onChange={(e) => update("start_time", e.target.value)} /></Field><Field label="End"><Input type="time" value={form.end_time || ""} onChange={(e) => update("end_time", e.target.value)} /></Field><Field label="Grace Minutes"><Input type="number" value={form.grace_minutes || 10} onChange={(e) => update("grace_minutes", e.target.value)} /></Field><Field label="Working Hours"><Input type="number" step="0.5" value={form.working_hours || "8.0"} onChange={(e) => update("working_hours", e.target.value)} /></Field></>}
+        {(type === "company" || type === "branch") && <><Field label="Email"><Input value={form.email || ""} onChange={(e) => update("email", e.target.value)} /></Field><Field label="City"><Input value={form.city || ""} onChange={(e) => update("city", e.target.value)} /></Field></>}
+      </div>
+      <div className="hrms-employee-quick-actions flex justify-end gap-2 border-t px-5 py-4">
+        <Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </div>
+    </CompactForm>
   );
 }
