@@ -78,7 +78,17 @@ function Form({checkoutId,sessionId,onChanged,scope}:{checkoutId:number;sessionI
   return <details className="mt-3 rounded-lg border bg-card p-3 text-left text-foreground" open={open} onToggle={event=>setOpen(event.currentTarget.open)}>
     <summary className="cursor-pointer text-sm font-medium">Return physical items and refund</summary>
     <div className="mt-3 space-y-3 text-sm">
-      {result&&<div role="status" className="space-y-1"><p>Refund completed: {result.refund_amount} {result.currency}</p><p>{result.return_number} · {result.accounting.credit_note.number} · {result.accounting.refund.number}</p><Button variant="outline" onClick={()=>{setResult(null);setLineId('');setQuantity('1');setReason('');}}>Return another item</Button></div>}
+      {result&&<div className="space-y-3">
+        <div role="status" className="space-y-2">
+          <p className="font-semibold">Refund completed: {result.refund_amount} {result.currency}</p>
+          <dl className="space-y-1">
+            <div><dt className="font-medium">Return</dt><dd className="break-all">{result.return_number}</dd></div>
+            <div><dt className="font-medium">Credit note</dt><dd className="break-all">{result.accounting.credit_note.number}</dd></div>
+            <div><dt className="font-medium">Refund</dt><dd className="break-all">{result.accounting.refund.number}</dd></div>
+          </dl>
+        </div>
+        <Button variant="outline" onClick={()=>{setResult(null);setLineId('');setQuantity('1');setReason('');setReference('');}}>Return another item</Button>
+      </div>}
       {locked&&<div className="space-y-2"><p role="status">A saved refund must be resolved before creating another.</p>{attempt.current?<div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={busy} onClick={()=>void recover()}>Check saved refund</Button><Button type="button" disabled={busy} onClick={()=>attempt.current&&void send(attempt.current)}>Retry saved refund</Button></div>:<p role="alert">Refund recovery data cannot be read. Keep this sale locked and ask an authorized administrator to review its returns.</p>}</div>}
       {options.isPending&&<p role="status">Loading original sale…</p>}
       {options.isError&&<p role="alert">{dealError(options.error)} <Button variant="outline" onClick={()=>void options.refetch()}>Reload</Button></p>}
@@ -88,7 +98,7 @@ function Form({checkoutId,sessionId,onChanged,scope}:{checkoutId:number;sessionI
         if(!/^\d+(?:\.\d{1,2})?$/.test(quantity)||Number(quantity)<=0||Number(quantity)>Number(line.remaining_quantity)){setError('Enter a quantity within the original sale’s remaining quantity, with at most two decimal places.');return;}
         if(!reason.trim()){setError('Enter a return reason.');return;}
         void send({payload:{checkout_id:checkoutId,expected_checkout_revision:options.data.revision,request_key:crypto.randomUUID(),
-          lines:[{checkout_line_id:line.id,quantity,restock}],refund:{method,session_id:sessionId,reference},reason:reason.trim()}});
+          lines:[{checkout_line_id:line.id,quantity,restock}],refund:{method,session_id:sessionId,reference:method==='card'?reference:''},reason:reason.trim()}});
       }}><fieldset className="space-y-3" disabled={busy||!options.data.ready||!sessionId}>
         <label className="grid gap-1">Original sale item<NativeSelect aria-label="Retail return item" value={lineId} onChange={event=>{setLineId(event.target.value);setQuantity('1');}}><option value="">Select a physical item</option>{options.data.lines.map(item=><option key={item.id} value={item.id}>{item.description} · {item.remaining_quantity} returnable</option>)}</NativeSelect></label>
         {line&&<p>Original issued total: {line.issued_total} {options.data.currency}. The refund uses the original invoice price and tax.</p>}
