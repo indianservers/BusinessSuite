@@ -1,0 +1,102 @@
+@media (max-width: 767px) {
+  .hrms-employee-create > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 12px;
+  }
+
+  .hrms-employee-create-header {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .hrms-employee-create-header > div {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .hrms-employee-create-header > button {
+    min-height: 44px;
+  }
+
+  .hrms-employee-step-summary {
+    scroll-margin-top: 72px;
+  }
+
+  .hrms-employee-steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .hrms-employee-steps button {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding-inline: 2px;
+    font-size: .75rem;
+  }
+
+  .hrms-employee-steps .hrms-employee-step-number,
+  .hrms-employee-steps > div > div {
+    display: none;
+  }
+
+  .hrms-employee-quick-trigger {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .hrms-employee-create .hrms-employee-step-actions {
+    position: static;
+    gap: 8px;
+  }
+
+  .hrms-employee-step-actions > button {
+    min-height: 44px;
+  }
+
+  .hrms-employee-step-actions > button:last-child {
+    flex: 1;
+  }
+
+  .hrms-employee-quick-create.mobile-experience-sheet[role="dialog"] {
+    top: auto;
+    left: 50%;
+    width: calc(100% - 20px);
+    transform: translateX(-50%);
+    bottom: calc(8px + var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 16px - env(safe-area-inset-bottom, 0px));
+    padding: 0;
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .hrms-employee-quick-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .hrms-employee-quick-fields {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 12px;
+  }
+
+  .hrms-employee-quick-form .hrms-employee-quick-actions {
+    position: static;
+    flex-shrink: 0;
+  }
+
+  .hrms-employee-quick-actions > button {
+    min-height: 44px;
+  }
+
+  .hrms-employee-quick-actions > button:last-child {
+    flex: 1;
+  }
+}
