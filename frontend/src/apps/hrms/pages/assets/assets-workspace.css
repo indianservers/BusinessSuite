@@ -480,13 +480,6 @@
   outline: 2px solid #7c3aed;
   outline-offset: 3px;
 }
-.asset-page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .asset-quick-actions {
   display: flex;
   gap: 8px;
@@ -723,12 +716,6 @@
   .asset-condition-comparison {
     gap: 8px;
   }
-  .asset-page-heading > .flex {
-    align-items: flex-start;
-  }
-  .asset-page-heading .asset-symbol {
-    display: none;
-  }
 }
 .asset-metrics {
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -859,16 +846,6 @@
   }
 }
 @media (max-width: 650px) {
-  .hrms-assets-page > .asset-page-heading {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  .hrms-assets-page .asset-page-heading > .flex {
-    width: 100%;
-    min-width: 0;
-  }
   .hrms-assets-page .asset-quick-actions {
     display: flex;
     flex-wrap: wrap;
