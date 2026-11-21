@@ -30,6 +30,8 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const invoices = /^\/(?:srm|common)\/invoices(?:\/\d+)?\/?$/.test(location.pathname);
   const reports = location.pathname.replace(/\/$/, '') === salesReportsPath;
   const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
+  const reportTitle = reportOperation === '/srm/revenue-recognition' ? 'Revenue Recognition'
+    : reportOperation === '/srm/profitability' ? 'Profitability' : undefined;
   const communications = location.pathname.replace(/\/$/, '') === '/srm/send-reminders';
   const expiry = /^\/srm\/membership-expiry\/?$/.test(location.pathname);
   const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
@@ -41,6 +43,7 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
   const [model,setModel]=useState({page:0,labels:['Overview']});
   const [title,setTitle]=useState(dashboard ? 'Sales & POS' : collections ? 'Collections' : communications ? 'Communication Center' : titleFor(location.pathname));
+  const screenTitle = reportTitle ?? title;
   const [summary,setSummary]=useState('SALES WORKSPACE');
   const [botAvailable,setBotAvailable]=useState(false);
   const [screenHeight,setScreenHeight]=useState(()=>window.visualViewport?.height||window.innerHeight);
@@ -106,10 +109,10 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const openSheet=(value:'menu'|'sections')=>{setSearch('');setMenuPage(0);setSheet(value);};
   const bookingRoute=/^\/srm\/(appointments|scheduled-services|service-scheduling)/.test(location.pathname);
   return <div ref={screen} className="srm-mobile-screen" data-booking-route={bookingRoute} data-pages={model.labels.length}>
-    <header className="srm-mobile-header"><button type="button" aria-label={dashboard ? 'Back to Business Suite' : 'Back to Sales'} onClick={()=>navigate(dashboard ? '/dashboard' : '/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={title}>{title}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
+    <header className="srm-mobile-header"><button type="button" aria-label={dashboard ? 'Back to Business Suite' : 'Back to Sales'} onClick={()=>navigate(dashboard ? '/dashboard' : '/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={screenTitle}>{screenTitle}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
     <nav className="srm-mobile-shortcuts" aria-label="Sales shortcuts">{canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)&&<Link className="srm-mobile-pos-shortcut" to="/srm/pos/terminal"><ShoppingBag size={16}/>POS</Link>}<ModuleNewMenu/><button type="button" onClick={()=>openSheet('menu')}><LayoutGrid size={16}/>All pages</button></nav>
     {bookingRoute&&<div className="srm-mobile-booking-toolbar"/>}
-    <div ref={viewport} className="srm-mobile-viewport" data-scroll={scrollPage || undefined} data-sales-reports={reports || undefined} role="region" aria-label={`${title} content`}>
+    <div ref={viewport} className="srm-mobile-viewport" data-scroll={scrollPage || undefined} data-sales-reports={reports || undefined} role="region" aria-label={`${screenTitle} content`}>
       <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{commercialTools}{children}</Suspense></ErrorBoundary></div>
     </div>
     {model.labels.length>1&&<nav className="srm-mobile-pagination" aria-label="Page sections"><button type="button" aria-label="Previous section" disabled={model.page===0} onClick={()=>goto(model.page-1)}><ArrowLeft size={17}/></button><button type="button" className="srm-mobile-current-section" onClick={()=>openSheet('sections')}><span>{model.labels[model.page]}</span><small>{model.page+1} / {model.labels.length}<ChevronDown size={13}/></small></button><button type="button" aria-label="Next section" disabled={model.page>=model.labels.length-1} onClick={()=>goto(model.page+1)}><ArrowRight size={17}/></button></nav>}
