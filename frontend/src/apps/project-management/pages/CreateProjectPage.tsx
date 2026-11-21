@@ -221,7 +221,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
                 nextTab?.scrollIntoView({ block: "nearest" });
               }}>Next</Button>}
                 {!editing && <label className="mr-auto flex items-center gap-2 text-sm"><input type="checkbox" checked={createAnother} onChange={event => setCreateAnother(event.target.checked)}/>Create another after saving</label>}
-                <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : navigate("/pms/projects")}>Cancel</Button>
+                <Button type="button" variant="outline" className="project-create-cancel" onClick={() => onCancel ? onCancel() : navigate("/pms/projects")}>Cancel</Button>
               <span role="status">{!editing && <CheckCircle2 size={16}/ >}{editing?auto.message:"Draft saved automatically"}</span><Button type="submit" data-save-action disabled={submitting||auto.saving}>{submitting ? "Savingâ€¦" : editing ? "Save changes" : `Create ${term('project').toLowerCase()}`}</Button>
             </div>
           </fieldset></CompactForm>
