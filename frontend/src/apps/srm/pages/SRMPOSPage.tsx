@@ -47,6 +47,7 @@ import QuickAddCustomer, { type PosCustomerRecord } from "../components/QuickAdd
 import { ScheduleFields, newDefaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import "./srm-pos-mobile.css";
 import "./pos-ux25.css";
@@ -983,6 +984,21 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     setCategory("All");
   }
 
+  const latestOpenPayment = useRef(openPayment);
+  useLayoutEffect(() => { latestOpenPayment.current = openPayment; });
+
+  function collectPayment(method: PaymentMode) {
+    const active = document.activeElement;
+    if (phoneWidth <= 767 && active instanceof HTMLInputElement && active.hasAttribute("data-pos-mobile-quantity")) {
+      // Some mobile browsers keep the input focused when a button is activated.
+      // Commit the quantity and let the payment action read the resulting cart.
+      flushSync(() => active.blur());
+      latestOpenPayment.current(method);
+      return;
+    }
+    openPayment(method);
+  }
+
   function openPayment(nextMode: PaymentMode = "Cash") {
     if(locked || !online && (nextMode !== "Cash" || !canUseLocalCash)) return;
     if (!cart.length) {
@@ -1280,7 +1296,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
       }
       if (event.key === "F7" && !activeModal) {
         event.preventDefault();
-        openPayment("Cash");
+        collectPayment("Cash");
       }
       if (event.key === "F8") {
         event.preventDefault();
@@ -1574,7 +1590,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
                 <div key={line.lineId} id={`pos-line-${line.lineId}`} className={`pos-cart-line ${line.booking ? "has-appointment" : ""} rounded-md border border-slate-200 bg-white p-3 ${line.id===highlighted ? "pos-added" : ""}`}>
                   <div className="pos-compact-cart-row">
                     <button type="button" className="pos-phone-line-icon" aria-label={`Edit ${line.name} discount and note`} onClick={()=>setPhoneLineId(line.lineId)}>{line.image ? <img src={line.image} alt=""/> : isService(line) ? <Stethoscope size={27}/> : <ShoppingBag size={27}/>}</button><div className="pos-line-identity"><strong title={line.name}>{line.name}</strong><small>{isService(line) ? `Service${line.duration ? ` · ${line.duration}` : ''}` : <><span className="pos-desktop-product-prefix">{line.kind.slice(0,-1)} · </span>{line.sku}</>}{line.batchNo ? ` · Batch ${line.batchNo}` : ''}</small></div>
-                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line)} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button><Input disabled={!!line.booking || isCustomerPlan(line)} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/><Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line) || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
+                    <div className="pos-inline-quantity" title={line.booking ? "One appointment per line. Use Add another appointment to book again." : undefined}><Button type="button" size="icon" variant="ghost" aria-label={`Decrease ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line)} onClick={()=>line.qty<=1?removeLine(line.lineId):updateLine(line.lineId,{qty:line.qty-1})}><Minus size={14}/></Button>{phoneWidth <= 767 ? <MobileCartQuantity label={`Quantity ${line.name}`} value={line.qty} decimal={!!line.decimalAllowed} disabled={!!line.booking || isCustomerPlan(line)} onCommit={qty => updateLine(line.lineId, {qty})}/> : <Input disabled={!!line.booking || isCustomerPlan(line)} type="number" aria-label={`Quantity ${line.name}`} min={line.decimalAllowed?'0.001':'1'} step={line.decimalAllowed?'0.001':'1'} value={line.qty} onChange={event=>updateLine(line.lineId,{qty:Math.max(line.decimalAllowed ? 0.001 : 1,Number(event.target.value)||1)})}/>}<Button type="button" size="icon" variant="ghost" aria-label={`Increase ${line.name} quantity`} disabled={!!line.booking || isCustomerPlan(line) || line.trackInventory && line.qty>=line.stock} onClick={()=>updateLine(line.lineId,{qty:line.qty+1})}><Plus size={14}/></Button></div>
                     <strong className="pos-line-amount">{currency(line.lotAllocation === 'fefo' ? (pricedLines.get(line.lineId) || []).reduce((total, part) => total + lineTotal(part), 0) : lineTotal(line))}</strong>
                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${line.name}`} onClick={()=>removeLine(line.lineId)}><X size={16}/></Button>
                   </div>
@@ -1638,13 +1654,13 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
           </div>
       <footer className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
         <p id="pos-checkout-reason" className="pos-checkout-reason" data-blocked={locked||readiness.length>0} role="status">{locked ? 'Finish or recover the pending checkout before starting another.' : !cart.length ? 'Add a product or service to start a sale.' : readiness[0]?.text || 'Ready to collect payment.'}</p>
-        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online && (method !== "Cash" || !canUseLocalCash)} onClick={() => openPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Split size={16}/> : method === "UPI" ? <svg className="pos-upi-icon" width="20" height="22" viewBox="0 0 20 24" aria-hidden="true"><path fill="#f28b13" d="M8 1 18 12 2 23Z"/><path fill="#15944c" d="m12 1 8 11-14 11Z"/></svg> : <CreditCard size={16}/>} {method}</Button>)}</div>
+        <div className="pos-tender-shortcuts">{(["Cash", "UPI", "Card", "Split"] as PaymentMode[]).map(method => <Button key={method} variant="outline" disabled={!cart.length || locked || !online && (method !== "Cash" || !canUseLocalCash)} onClick={() => collectPayment(method)}>{method === "Cash" ? <Banknote size={16}/> : method === "Split" ? <Split size={16}/> : method === "UPI" ? <svg className="pos-upi-icon" width="20" height="22" viewBox="0 0 20 24" aria-hidden="true"><path fill="#f28b13" d="M8 1 18 12 2 23Z"/><path fill="#15944c" d="m12 1 8 11-14 11Z"/></svg> : <CreditCard size={16}/>} {method}</Button>)}</div>
         <FooterMetric label="Items" value={String(cart.length)} />
         <FooterMetric label="Quantity" value={String(totals.qty)} />
         <FooterMetric label="Payable" value={operationalPackKey === "pharma" && cart.some(line => line.lotAllocation === "fefo") && !Number.isInteger(totals.grandTotal) ? currency(totals.grandTotal) : shortCurrency(totals.grandTotal)} />
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={selectedPOS} title={selectedPOS?"Held bills are not integrated in this Business Pack POS yet":undefined} onClick={() => setActiveModal("held")}><RotateCcw className="h-4 w-4" />Recall</Button>
         <Button variant="outline" className="border-slate-200 text-slate-700" disabled={!sales.some(sale=>!!sale.checkoutId) && !lastSale?.checkoutId && !lastSale?.localCash && !recoverableReceipt} onClick={() => printReceipt()}><Printer className="h-4 w-4" />Print Last</Button>
-        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online && !canUseLocalCash} onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & Book` : `Collect ${currency(totals.grandTotal)}`}<ArrowRight className="pos-collect-arrow" size={21}/></Button>
+        <Button className="bg-[#6d49d7] text-white hover:bg-[#5934bd]" aria-describedby="pos-checkout-reason" disabled={!cart.length || locked || !online && !canUseLocalCash} onClick={() => collectPayment("Cash")}><CreditCard className="h-4 w-4" />{cart.some(line => !!line.booking) ? `Collect ${currency(totals.grandTotal)} & Book` : `Collect ${currency(totals.grandTotal)}`}<ArrowRight className="pos-collect-arrow" size={21}/></Button>
       </footer>
         </aside>
       </main>
@@ -1980,6 +1996,44 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
       <span className="opacity-65">{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function MobileCartQuantity({ label, value, decimal, disabled, onCommit }: {
+  label: string;
+  value: number;
+  decimal: boolean;
+  disabled: boolean;
+  onCommit: (quantity: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      data-pos-mobile-quantity=""
+      type="text"
+      aria-label={label}
+      inputMode={decimal ? "decimal" : "numeric"}
+      enterKeyHint="done"
+      disabled={disabled}
+      value={draft ?? String(value)}
+      onChange={event => setDraft(event.currentTarget.value)}
+      onBlur={event => {
+        const text = event.currentTarget.value.trim().replace(",", ".");
+        const quantity = Number(text);
+        const valid = decimal ? /^(?:\d+(?:\.\d{0,3})?|\.\d{1,3})$/.test(text) : /^\d+$/.test(text);
+        if (valid && quantity >= (decimal ? 0.001 : 1) &&
+            Number.isSafeInteger(decimal ? Math.round(quantity * 1000) : quantity) && quantity !== value) {
+          onCommit(quantity);
+        }
+        setDraft(null);
+      }}
+      onKeyDown={event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 

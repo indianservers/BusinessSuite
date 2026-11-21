@@ -301,6 +301,12 @@ export default function AttendancePage() {
     };
   }
 
+  const jumpToAttendanceSection = (id: string) => {
+    const heading = document.getElementById(id);
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: "start" });
+  };
+
   return (
     <div className="hrms-attendance space-y-4 sm:space-y-6">
       {selectionParams.get("returnTo")==="/hrms/payroll"&&<Link className="block rounded border p-3 text-sm underline" to="/hrms/payroll">Return to saved payroll run and review step</Link>}
@@ -321,6 +327,17 @@ export default function AttendancePage() {
           </div>
         </div>
       </div>
+
+      {phone && (
+        <nav aria-label="Attendance sections" className="grid grid-cols-2 gap-2">
+          <Button type="button" variant="outline" className="min-h-11" onClick={() => jumpToAttendanceSection("attendance-register")}>
+            Register
+          </Button>
+          <Button type="button" variant="outline" className="min-h-11" onClick={() => jumpToAttendanceSection("attendance-records")}>
+            Records
+          </Button>
+        </nav>
+      )}
 
       {/* Today's action card */}
       <Card>
@@ -427,7 +444,7 @@ export default function AttendancePage() {
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle className="text-base">Attendance Register</CardTitle>
+              <CardTitle id="attendance-register" tabIndex={phone ? -1 : undefined} className="scroll-mt-3 text-base">Attendance Register</CardTitle>
               <CardDescription>HR can manually enter and bulk save attendance for payroll.</CardDescription>
             </div>
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
@@ -627,7 +644,7 @@ export default function AttendancePage() {
       {/* Recent records table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Attendance Records</CardTitle>
+          <CardTitle id="attendance-records" tabIndex={phone ? -1 : undefined} className="scroll-mt-3 text-base">Attendance Records</CardTitle>
           <CardDescription>
             {new Date(viewYear, viewMonth - 1).toLocaleString("en", { month: "long", year: "numeric" })}
           </CardDescription>

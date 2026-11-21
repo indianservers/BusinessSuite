@@ -95,7 +95,11 @@ function InvoiceWorkspace({ id, scope }: { id?: string; scope: string }) {
   return (
     <div className="space-y-5">
       <Link to="/srm/invoices">← Sales invoices</Link>
-      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="page-title">{r.invoice_number}</h1><Suspense fallback={null}><RecordTemplatePicker entity="invoice" recordId={Number(id)} source="srm"/></Suspense></div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="page-title">{r.invoice_number}</h1>
+        <Suspense fallback={null}><RecordTemplatePicker entity="invoice" recordId={Number(id)} source="srm"/></Suspense>
+        {allowExport && <MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/>}
+      </div>
       {r.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${r.customer_id}/360`}>Open customer 360</Link></Button>}
       {r.project_id && (
         <Button asChild variant="outline"><Link
@@ -105,7 +109,7 @@ function InvoiceWorkspace({ id, scope }: { id?: string; scope: string }) {
           Open originating project
         </Link></Button>
       )}
-      <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol><MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/></div>
+      <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol></div>
       <Card>
         <CardContent className="flex flex-wrap gap-6 p-5">
           <p>Document: {r.document_status}</p>

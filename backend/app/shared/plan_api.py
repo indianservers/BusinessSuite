@@ -16,6 +16,8 @@ from app.apps.srm.services.commercial import customer, tenant
 
 router = APIRouter(prefix="/customer-plans", tags=["Customer plans"])
 
+ExpiryKind = Literal["membership", "subscription"]
+
 
 class Input(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -199,7 +201,7 @@ def list_plans(customer_id: int = Query(gt=0), source: Source = "srm", page: int
     return {"items": [{**output(row), **presentation.summary(row, offerings[row.offering_id], balances.get(row.id,[]))} for row in rows], "total": total, "can_issue":can_issue, "server_date":date.today()}
 
 
-def membership_expiries(db, user, source):
+def plan_expiries(db, user, source, kind: ExpiryKind):
     guard(db, user, source)
     from app.apps.crm.models import CRMCompany
     from app.apps.srm.models import SRMProduct
@@ -209,7 +211,7 @@ def membership_expiries(db, user, source):
     visible_customers = companies(db, user, source).with_entities(CRMCompany.id)
     query = db.query(CustomerPlan, CRMCompany, SRMProduct.item_name).join(CRMCompany, CRMCompany.id == CustomerPlan.customer_id).join(
         SRMProduct, SRMProduct.id == CustomerPlan.offering_id).filter(
-        CustomerPlan.organization_id == tenant(user), CustomerPlan.kind == "membership",
+        CustomerPlan.organization_id == tenant(user), CustomerPlan.kind == kind,
         CustomerPlan.status.in_(("active", "paused", "suspended", "expired")),
         CustomerPlan.end_date.is_not(None), CRMCompany.id.in_(visible_customers),
         SRMProduct.organization_id == tenant(user), SRMProduct.deleted_at.is_(None),
@@ -227,11 +229,11 @@ def membership_expiries(db, user, source):
 def expiry_report(
     source: Literal["crm", "srm"] = "srm", period: Literal["two_weeks", "two_months", "custom"] = "two_weeks",
     start: date | None = None, end: date | None = None, page: int = Query(1, ge=1, le=10000),
-    db=Depends(get_db), user=Depends(get_current_user),
+    db=Depends(get_db), user=Depends(get_current_user), kind: ExpiryKind = "membership",
 ):
     from app.services.metrics.queries import business_day
     from app.shared import follow_ups
-    query = membership_expiries(db, user, source)
+    query = plan_expiries(db, user, source, kind)
     today = business_day(db, user)
     if period != "custom":
         start = today
@@ -250,7 +252,7 @@ def expiry_report(
         can_remind = False
     return {"start": start, "end": end, "today": today, "has_more": len(rows) > size, "can_remind": can_remind,
             "items": [{"id": plan.id, "customer_id": company.id, "customer": company.name,
-                       "membership": plan.price_snapshot.get("name") or name, "number": plan.number, "expiry": plan.end_date,
+                       kind: plan.price_snapshot.get("name") or name, "number": plan.number, "expiry": plan.end_date,
                        "has_phone": bool(company.phone), "status": presentation.state(plan, today)}
                       for plan, company, name in rows[:size]]}
 
@@ -260,12 +262,15 @@ class ExpiryMessage(BaseModel):
 
 
 @router.post("/expiry-report/{ident}/message")
-def expiry_message(ident: int, data: ExpiryMessage, source: Literal["crm", "srm"] = "srm", db=Depends(get_db), user=Depends(get_current_user)):
+def expiry_message(
+    ident: int, data: ExpiryMessage, source: Literal["crm", "srm"] = "srm",
+    db=Depends(get_db), user=Depends(get_current_user), kind: ExpiryKind = "membership",
+):
     from app.apps.communication.services.delivery import is_opted_out
     from app.shared.master_data import normalized_phone
-    row = membership_expiries(db, user, source).filter(CustomerPlan.id == ident).first()
+    row = plan_expiries(db, user, source, kind).filter(CustomerPlan.id == ident).first()
     if not row:
-        raise HTTPException(404, "Membership is unavailable in your scope")
+        raise HTTPException(404, f"{kind.capitalize()} is unavailable in your scope")
     plan, company, name = row
     try:
         destination = normalized_phone(company.phone, company.phone_country_code)[1]
@@ -275,7 +280,7 @@ def expiry_message(ident: int, data: ExpiryMessage, source: Literal["crm", "srm"
         raise HTTPException(409, "The customer's communication preferences block this channel")
     from app.services.metrics.queries import business_day
     verb = "expires" if plan.end_date >= business_day(db, user) else "expired"
-    body = f"Hi {company.name}, your {plan.price_snapshot.get('name') or name} membership {verb} on {plan.end_date:%d %b %Y}. Reply if you'd like help renewing."
+    body = f"Hi {company.name}, your {plan.price_snapshot.get('name') or name} {kind} {verb} on {plan.end_date:%d %b %Y}. Reply if you'd like help renewing."
     return {"destination": destination, "body": body}
 
 
@@ -284,7 +289,10 @@ class ExpiryReminder(BaseModel):
 
 
 @router.post("/expiry-report/{ident}/reminder")
-def expiry_reminder(ident: int, data: ExpiryReminder, source: Literal["crm", "srm"] = "srm", db=Depends(get_db), user=Depends(get_current_user)):
+def expiry_reminder(
+    ident: int, data: ExpiryReminder, source: Literal["crm", "srm"] = "srm",
+    db=Depends(get_db), user=Depends(get_current_user), kind: ExpiryKind = "membership",
+):
     from app.apps.srm.services.commercial import lock_tenant
     from app.services.metrics.queries import business_context
     from app.shared import follow_ups
@@ -293,15 +301,16 @@ def expiry_reminder(ident: int, data: ExpiryReminder, source: Literal["crm", "sr
     lock_tenant(db, user)
     context = business_context(db, user)
     today = date.fromisoformat(context["business_date"])
-    row = membership_expiries(db, user, source).filter(CustomerPlan.id == ident, CustomerPlan.end_date >= today).first()
+    row = plan_expiries(db, user, source, kind).filter(CustomerPlan.id == ident, CustomerPlan.end_date >= today).first()
     if not row:
-        raise HTTPException(404, "Upcoming membership expiry is unavailable in your scope")
+        raise HTTPException(404, f"Upcoming {kind} expiry is unavailable in your scope")
     plan, company, name = row
     zone = ZoneInfo(context["timezone"])
     due = datetime.combine(plan.end_date, time(9), zone)
+    # The follow-up dispatcher uses these legacy source markers to cancel stale plan reminders.
     key = f"membership-expiry:{plan.id}:{company.id}:{plan.end_date}:{data.lead_days}:{user.id}"
     reminder = follow_ups.create(db, user, follow_ups.CreateFollowUp(
-        customer_id=company.id, title=f"Membership expiry: {plan.price_snapshot.get('name') or name} ({plan.number})"[:220],
+        customer_id=company.id, title=f"{kind.capitalize()} expiry: {plan.price_snapshot.get('name') or name} ({plan.number})"[:220],
         type="date", due_at=due, timezone=zone.key, reminder_days=data.lead_days, purpose="Renewal",
     ), source_key=key)
     if not reminder.configuration.get("membership_expiry"):
