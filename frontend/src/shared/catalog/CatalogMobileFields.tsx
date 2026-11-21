@@ -26,7 +26,7 @@ export default function CatalogMobileFields(p:Props){
  <nav className="sc-mobile-step-tabs" aria-label="Catalog steps"><button type="button" aria-current={p.step===1?'step':undefined} onClick={()=>p.setStep(1)}>1 · Essentials</button><button type="button" aria-current={p.step===2?'step':undefined} onClick={()=>p.setStep(2)}>2 · Optional settings</button></nav>
  <fieldset className="sc-mobile-panel" data-catalog-step="1" hidden={p.step!==1} disabled={p.busy} onInvalidCapture={()=>p.setStep(1)}>
  <div className="sc-mobile-field-grid">
- {field(service?'Service name *':'Product name *','name','text',{required:true,maxLength:180,autoFocus:true})}{field(service?'Service code *':'SKU / code *','code','text',{required:true,maxLength:80})}
+ {field(service?'Service name *':'Product name *','name','text',{required:true,maxLength:180})}{field(service?'Service code *':'SKU / code *','code','text',{required:true,maxLength:80})}
  <label>Price *<input aria-label="Price" required type="number" min="0" max="9999999999" step="0.01" value={p.priceInput} onChange={e=>{p.setPrice(e.target.value);if(recurring)patch('pricing_options',d.pricing_options.map(x=>x.id===recurring.id?{...x,amount:Number(e.target.value)}:x));}}/></label><label>Currency<CurrencySelect value={d.currency} onChange={v=>{patch('currency',v);if(recurring)patch('pricing_options',d.pricing_options.map(x=>x.id===recurring.id?{...x,currency:v}:x));}}/></label>
  {field(service?'Billing unit *':'Stock unit *','unit','text',{required:true,maxLength:40})}{field('Tax %','tax','number',{min:0,max:100,step:'0.01',required:true})}
  <CatalogCategoryFields source={p.source} draft={d} patch={patch}/>
