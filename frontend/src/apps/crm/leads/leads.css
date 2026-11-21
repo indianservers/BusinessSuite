@@ -1527,8 +1527,11 @@
 
   .lead-create-dialog[role="dialog"] {
     width: calc(100% - 16px);
-    height: min(700px, calc(100dvh - 16px));
-    max-height: calc(100dvh - 16px);
+    --lead-visible-height: var(--mobile-viewport-height, 100dvh);
+    --lead-visible-top: max(0px, calc(100dvh - var(--lead-visible-height) - var(--mobile-keyboard-inset, 0px)));
+    top: calc(var(--lead-visible-top) + var(--lead-visible-height) / 2);
+    height: min(700px, calc(var(--lead-visible-height) - 16px));
+    max-height: calc(var(--lead-visible-height) - 16px);
   }
 
   .lead-create-header {
