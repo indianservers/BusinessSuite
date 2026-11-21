@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Building2, Ellipsis, FolderKanban, Layers3, LayoutGrid, List, Plus, Search, ShieldCheck, Star, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -61,13 +62,7 @@ function DirectoryContent({ module, title, description, icon: Icon, entries, act
   const allTasksKnown = entries.length > 0 && entries.every(entry => entry.tasks != null);
   const canSortCreated = entries.some(entry => entry.createdAt);
   const toggleFavorite = (id: string) => update({ ...preferences, favorites: preferences.favorites.includes(id) ? preferences.favorites.filter(value => value !== id) : [...preferences.favorites, id] });
-  return <main className="workspace-directory" aria-busy={loading || undefined}>
-    <nav className="wd-breadcrumb" aria-label="Breadcrumb"><Link to={`/${module}`}>Home</Link><span aria-hidden="true">/</span><span>Workspaces</span></nav>
-    <header className="wd-hero">
-      <span className="wd-hero-icon"><Icon size={30} /></span>
-      <div className="wd-hero-copy"><h1>{title}</h1><p>{description}</p><div className="wd-context">{company && <span><Building2 size={14} />{company}</span>}{branch && <span>{branchLabel || `Branch ${branch}`}</span>}<span><ShieldCheck size={14} />Your authorized spaces</span></div></div>
-      <div className="wd-illustration" aria-hidden="true"><div className="wd-illustration-window"><i /><i /><i /><div>{[Icon, Users, Layers3, ShieldCheck].map((Tile, index) => <span key={index}><Tile size={22} /><b /></span>)}</div></div><span className="wd-illustration-orbit"><Icon size={26} /></span></div>
-    </header>
+  const summary = (
     <section className="wd-summary" aria-label="Workspace summary">
       <div><Layers3 /><span>{enableManagement ? "Total workspaces" : module === "pms" ? "Available workspaces" : "Operational workspaces"}<strong>{(loading || error) && !entries.length ? "—" : entries.length}</strong></span></div>
       <div><Star /><span>Favorites<strong>{favorites.length}</strong></span></div>
@@ -76,6 +71,16 @@ function DirectoryContent({ module, title, description, icon: Icon, entries, act
       {metrics.map(metric => <div key={metric.label}><metric.icon /><span>{metric.label}<strong className={typeof metric.value === "string" ? "wd-summary-label" : undefined}>{metric.value}</strong></span></div>)}
       {!metrics.length && <div><ShieldCheck /><span>Access<strong className="wd-summary-label">Your current access</strong></span></div>}
     </section>
+  );
+
+  return <main className="workspace-directory" aria-busy={loading || undefined}>
+    <nav className="wd-breadcrumb" aria-label="Breadcrumb"><Link to={`/${module}`}>Home</Link><span aria-hidden="true">/</span><span>Workspaces</span></nav>
+    <header className="wd-hero">
+      <span className="wd-hero-icon"><Icon size={30} /></span>
+      <div className="wd-hero-copy"><h1>{title}</h1><p>{description}</p><div className="wd-context">{company && <span><Building2 size={14} />{company}</span>}{branch && <span>{branchLabel || `Branch ${branch}`}</span>}<span><ShieldCheck size={14} />Your authorized spaces</span></div></div>
+      <div className="wd-illustration" aria-hidden="true"><div className="wd-illustration-window"><i /><i /><i /><div>{[Icon, Users, Layers3, ShieldCheck].map((Tile, index) => <span key={index}><Tile size={22} /><b /></span>)}</div></div><span className="wd-illustration-orbit"><Icon size={26} /></span></div>
+    </header>
+    {module === "pms" ? <MobileDisclosure title="Workspace summary" maxWidth={480}>{summary}</MobileDisclosure> : summary}
     {notice && <p className="wd-notice">{notice}</p>}
     <div className="wd-toolbar">
       <label className="wd-search"><Search size={19} /><Input aria-label="Search workspaces" placeholder="Find a workspace by name or description…" value={query} onChange={event => setQuery(event.target.value)} /></label>
