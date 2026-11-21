@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { CheckCircle2, Circle, ArrowRight, RefreshCw, ChevronDown } from "lucide-react";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import type { Item } from "./SetupReadiness";
 import "./setup-guide.css";
 
-type Props = {data?: {items:Item[]; moduleItems?:Item[]; recommendations?:Item[]}; module?:string; loading:boolean; error:boolean; refreshing:boolean; refresh:()=>void};
+type Props = {data?: {items:Item[]; moduleItems?:Item[]; recommendations?:Item[]}; module?:string; loading:boolean; error:boolean; refreshing:boolean; refresh:()=>void; collapseOnMobile?:boolean};
 const labels:Record<string,string> = {company:"Company essentials", crm:"CRM · Sales process", srm:"SRM · Sales & inventory", project_management:"PMS · Project delivery", hrms:"HRMS · People & payroll", fam:"Finance · Accounting"};
-export default function SetupGuide({data,module,loading,error,refreshing,refresh}:Props) {
+export default function SetupGuide({data,module,loading,error,refreshing,refresh,collapseOnMobile}:Props) {
   const items = [...(data?.items || []), ...(data?.moduleItems || []), ...(data?.recommendations || [])].filter(i=>!module || i.module === "company" || i.module === module);
   const required = items.filter(i=>i.required !== false);
   const missing = required.filter(i=>!i.ready);
@@ -14,7 +15,7 @@ export default function SetupGuide({data,module,loading,error,refreshing,refresh
     .filter((group,index,all)=>all.indexOf(group)===index && items.some(i=>(i.module || "company")===group));
   if (loading || error || !data || !missing.length) return null;
 
-  return <section className="setup-guide" aria-label="Workspace setup guide">
+  const guide = <section className="setup-guide" aria-label="Workspace setup guide">
     {(!module || module === 'crm') && <div className="mb-4 rounded-lg border p-4"><strong>Set up your industry</strong><p className="text-sm">Install CRM stages, fields, published follow-up workflows and reports for your business.</p><Link className="text-sm underline" to="/crm/pipeline-templates">Choose an industry pack</Link></div>}
     <header className="setup-guide-header"><div><p className="setup-guide-eyebrow">YOUR SETUP GUIDE</p><h2>{module ? `${(labels[module] || module).split(" · ")[0]} setup` : "Let's get your workspace ready"}</h2><p>Start with shared essentials, then complete the setup for each module.</p>{items.some(i=>i.id === "administrator" && i.canRepair) && <Link className="text-sm font-medium underline" to="/settings/starter-values">Add starter setup values <ArrowRight size={14} className="inline"/></Link>}</div><button disabled={refreshing} onClick={refresh}><RefreshCw size={15}/>{refreshing ? "Checking…" : "Check again"}</button></header>
     {loading ? <p role="status">Checking current configuration…</p> : error ? <p role="alert">Setup status is unavailable. Check again to retry.</p> : <>
@@ -30,4 +31,7 @@ export default function SetupGuide({data,module,loading,error,refreshing,refresh
       </details>})}
     </>}
   </section>;
+  return collapseOnMobile
+    ? <MobileDisclosure title={`Workspace setup · ${missing.length} required ${missing.length === 1 ? "item" : "items"}`}>{guide}</MobileDisclosure>
+    : guide;
 }
