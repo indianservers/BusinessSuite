@@ -105,7 +105,7 @@ function InvoiceWorkspace({ id, scope }: { id?: string; scope: string }) {
           Open originating project
         </Link></Button>
       )}
-      <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol><MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/></div>
+      <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol>{allowExport && <MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/>}</div>
       <Card>
         <CardContent className="flex flex-wrap gap-6 p-5">
           <p>Document: {r.document_status}</p>
