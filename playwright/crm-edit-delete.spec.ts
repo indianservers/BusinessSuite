@@ -56,6 +56,10 @@ for(const width of [1440,390]) for(const kind of ["contacts","companies","deals"
       return route.fulfill({json:body});
     });
     await page.goto(`/${module}/${kind}`);
+    if (kind === "contacts" || kind === "companies") {
+      // Start after the local workspace and its lazy form dependencies settle.
+      await page.waitForLoadState("networkidle");
+    }
     const add=kind==="contacts"?"Create contact":kind==="companies"?"Create company":kind==="deals"?"Create deal":kind==="projects"?"New Project":"Add Task";
     await expect(page.getByRole("button",{name:add,exact:true}).first()).toBeVisible({timeout:20000});
     if (kind === "companies") await expect(page.getByText(/^company records/).first()).toBeVisible();

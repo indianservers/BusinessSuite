@@ -14,6 +14,7 @@ for (const [width, height] of [[320, 510], [1440, 900]]) {
       }
     });
     await page.goto("/crm/contacts/1", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: "Nisha Rao", level: 1 })).toBeVisible();
     if (width < 768) await expect(page.getByRole("navigation", { name: "Record navigation" }).getByRole("link", { name: "Contacts" })).toBeVisible();
     const actions = page.getByRole("group", { name: "Contact actions" });

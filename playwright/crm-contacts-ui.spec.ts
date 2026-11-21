@@ -7,6 +7,7 @@ test.describe("CRM contacts UI", () => {
       await page.setViewportSize({ width, height: 900 });
       await authenticateCrm(page);
       await expectCrmListPage(page, "/crm/contacts", "Contacts", "Nisha Rao");
+      await page.waitForLoadState("networkidle");
       const view = page.getByRole("button", {name: "Open Nisha Rao popup", exact: true});
       const edit = page.getByRole("button", {name: "Edit Nisha Rao", exact: true});
       await view.scrollIntoViewIfNeeded();
