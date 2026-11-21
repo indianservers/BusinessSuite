@@ -5,3 +5,61 @@
 @media(prefers-reduced-motion:reduce){.planner-shell *{transition:none!important;animation:none!important}}
 .planner-side-task{font-size:12px}.planner-day-heading>button:first-child{font-size:11px}.planner-weekdays span{font-size:12px}@media(min-width:1000px){.planner-chip{font-size:11px}}
 .planner-shell.grid-large .planner-day{min-height:190px}.planner-shell.grid-xl .planner-day{min-height:240px}.planner-shell .planner-chip{border-left:3px solid var(--calendar-color,#7c3aed);color:var(--calendar-color,#7c3aed)}.planner-shell.event-solid .planner-chip{background:var(--calendar-color,#7c3aed);color:white;border-color:transparent}.planner-shell .planner-chip.event{border-left-color:#2563eb;background:#eff6ff;color:#2563eb}.planner-shell.event-solid .planner-chip.event{background:#2563eb;color:white}.planner-upcoming{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:10px 0;color:#8b5cf6;font-size:12px}.planner-upcoming button{background:#f3edff;border:1px solid #e5d7ff;border-radius:8px;padding:8px 12px;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.planner-upcoming a{white-space:nowrap}.planner-week-number{font-size:11px;color:#a18bac;text-align:right;margin:8px}.planner-toolbar-actions{flex-wrap:wrap}.planner-detail .planner-filter-button{margin-top:15px}.planner-chip.event svg{flex-shrink:0}
+
+@media (max-width: 639px) {
+  .planner-toolbar {
+    gap: .625rem;
+  }
+  .planner-toolbar-actions,
+  .planner-view-tabs {
+    width: 100%;
+  }
+  .planner-view-tabs button {
+    flex: 1;
+  }
+  .planner-period > button:not(.planner-today) {
+    width: 44px;
+    height: 44px;
+  }
+  .planner-today,
+  .planner-icon-button,
+  .planner-filter-button,
+  .planner-toolbar-actions .planner-view-tabs button,
+  .planner-mobile-tasks {
+    min-height: 44px;
+  }
+  .planner-icon-button {
+    min-width: 44px;
+  }
+  .planner-search-row .planner-search {
+    flex-basis: 100%;
+    min-height: 44px;
+  }
+  .planner-search input,
+  .planner-filters select {
+    font-size: 16px;
+  }
+  .planner-filters select {
+    min-height: 44px;
+  }
+  .planner-calendar-scroll {
+    overscroll-behavior-inline: contain;
+  }
+  .planner-agenda-item .planner-chip {
+    flex-basis: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .planner-upcoming {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .planner-detail {
+    padding: 1rem;
+  }
+}
+
+.planner-calendar-scroll:focus-visible {
+  outline: 2px solid #8250df;
+  outline-offset: -2px;
+}

@@ -995,14 +995,6 @@ export default function PlannerPage() {
             </button>
           </div>
           <div className="planner-toolbar-actions">
-            <button
-              type="button"
-              className="planner-filter-button"
-              onClick={() => openEvent(null, dateKey(anchor))}
-            >
-              <Plus />
-              Event / focus
-            </button>
             <div
               className="planner-view-tabs"
               role="group"
@@ -1020,6 +1012,14 @@ export default function PlannerPage() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="planner-filter-button"
+              onClick={() => openEvent(null, dateKey(anchor))}
+            >
+              <Plus />
+              Event / focus
+            </button>
             <button
               type="button"
               className="planner-icon-button"
@@ -1233,7 +1233,7 @@ export default function PlannerPage() {
         {data && !result.error && (
           <>
             {view === "Month" || view === "Week" ? (
-              <div className="planner-calendar-scroll">
+              <div className="planner-calendar-scroll" role="region" tabIndex={0} aria-label="Scrollable calendar grid">
                 <div
                   className={`planner-calendar ${view === "Week" ? "week" : ""}`}
                   style={
