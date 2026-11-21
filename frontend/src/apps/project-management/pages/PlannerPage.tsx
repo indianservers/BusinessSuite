@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -124,11 +124,12 @@ function saved<T>(key: string, fallback: T): T {
   }
 }
 
-export default function PlannerPage() {
+export default function PlannerPage({ hostPath }: { hostPath?: string } = {}) {
   const compactControls = useMobile(639);
   const { term: businessTerm } = useBusinessTerms();
   const userId = useAuthStore((s) => s.user?.id || 0);
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const client = useQueryClient();
   const preferencesQuery = useQuery({
     queryKey: ["pms-calendar-preferences", userId],
@@ -289,13 +290,18 @@ export default function PlannerPage() {
   }, [pins, userId]);
 
   function changeMany(values: Record<string, string>) {
-    setParams((old) => {
+    const update = (old: URLSearchParams) => {
       const next = new URLSearchParams(old);
       Object.entries(values).forEach(([key, value]) =>
         value ? next.set(key, value) : next.delete(key),
       );
       return next;
-    });
+    };
+    if (hostPath) {
+      navigate({ pathname: hostPath, search: update(params).toString() });
+    } else {
+      setParams(update);
+    }
   }
   function change(key: string, value: string) {
     changeMany({ [key]: value });
@@ -1176,7 +1182,7 @@ export default function PlannerPage() {
             <button
               type="button"
               onClick={() => {
-                setParams({ date: dateKey(anchor), view });
+                changeMany({ date: dateKey(anchor), view, q: "", project: "", person: "" });
                 setItemType("all");
                 setIncludeDone(true);
               }}

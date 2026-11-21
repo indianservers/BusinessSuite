@@ -10,6 +10,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMobile } from '@/components/mobile/useMobile';
 import SuiteNotificationBell from '@/components/suite/SuiteNotificationBell';
 import { canAccessRoute, getRoleNav } from '@/lib/roles';
+import { salesReportCalendarHref, salesReportsPath } from '@/lib/navigation-workspaces';
 import { useAuthStore } from '@/store/authStore';
 import { applyScreenPage, clearScreenPagination, measureScreenPages, type ScreenPage } from './mobile-screen-pages';
 import { MobileCommercialTools } from './mobile-commercial-tools';
@@ -26,7 +27,9 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
   const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
-  const scrollPage = dashboard || collections;
+  const reports = location.pathname.replace(/\/$/, '') === salesReportsPath;
+  const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
+  const scrollPage = dashboard || collections || reports;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
@@ -78,6 +81,9 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
     return()=>{disposed=true;if(previousHeight)document.body.style.setProperty('--srm-visual-height',previousHeight);else document.body.style.removeProperty('--srm-visual-height');cancelAnimationFrame(frame.current);mutations.disconnect();resize.disconnect();window.removeEventListener('resize',height);window.visualViewport?.removeEventListener('resize',height);clearScreenPagination(documentRoot);};
   },[scrollPage]);
   useEffect(()=>{if(!scrollPage)goto(0);},[scrollPage,location.search,goto]);
+  useLayoutEffect(() => {
+    if (reports && viewport.current) viewport.current.scrollTop = 0;
+  }, [reports, reportOperation]);
   const nativeInvalid=(event:React.InvalidEvent<HTMLDivElement>)=>{
     const target=event.target as HTMLElement;
     const index=pages.current.findIndex(page=>page.units.some(unit=>unit===target||unit.contains(target)));
@@ -88,7 +94,7 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
     const destinations=[...paths,...(/^\/srm\/(appointments|service-scheduling|scheduled-services)/.test(location.pathname)?['/srm/appointments?resources=1','/srm/service-scheduling?view=schedule&mode=Calendar']:[])];
     return [...new Set(destinations)].filter(path=>!path.includes(':')&&canAccessRoute(path,user?.role,user?.is_superuser)).map(path=>({path,label:path.includes('resources=1')?'Employees & resources':path.includes('mode=Calendar')?'Calendar':known.find(item=>item.to.split('?')[0]===path)?.label||titleFor(path)}));
   },[paths,user,location.pathname]);
-  const choices=sheet==='sections'?model.labels.map((label,index)=>({key:String(index),label,detail:`Section ${index+1}`,activate:()=>goto(index)})):nav.map(entry=>({key:entry.path,label:entry.label,detail:entry.path.replace('/srm','Sales'),activate:()=>navigate(entry.path)}));
+  const choices=sheet==='sections'?model.labels.map((label,index)=>({key:String(index),label,detail:`Section ${index+1}`,activate:()=>goto(index)})):nav.map(entry=>({key:entry.path,label:entry.label,detail:entry.path.replace('/srm','Sales'),activate:()=>navigate(salesReportCalendarHref(entry.path,location.pathname,location.search))}));
   const filtered=choices.filter(item=>`${item.label} ${item.detail}`.toLowerCase().includes(search.toLowerCase()));
   const menuSize=Math.max(1,Math.min(screenHeight<700?4:7,Math.floor((screenHeight-190)/48))),menuPages=Math.max(1,Math.ceil(filtered.length/menuSize)),safeMenuPage=Math.min(menuPage,menuPages-1);
   const openSheet=(value:'menu'|'sections')=>{setSearch('');setMenuPage(0);setSheet(value);};
@@ -97,7 +103,7 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
     <header className="srm-mobile-header"><button type="button" aria-label={dashboard ? 'Back to Business Suite' : 'Back to Sales'} onClick={()=>navigate(dashboard ? '/dashboard' : '/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={title}>{title}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
     <nav className="srm-mobile-shortcuts" aria-label="Sales shortcuts">{canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)&&<Link className="srm-mobile-pos-shortcut" to="/srm/pos/terminal"><ShoppingBag size={16}/>POS</Link>}<ModuleNewMenu/><button type="button" onClick={()=>openSheet('menu')}><LayoutGrid size={16}/>All pages</button></nav>
     {bookingRoute&&<div className="srm-mobile-booking-toolbar"/>}
-    <div ref={viewport} className="srm-mobile-viewport" data-scroll={scrollPage || undefined} role="region" aria-label={`${title} content`}>
+    <div ref={viewport} className="srm-mobile-viewport" data-scroll={scrollPage || undefined} data-sales-reports={reports || undefined} role="region" aria-label={`${title} content`}>
       <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{commercialTools}{children}</Suspense></ErrorBoundary></div>
     </div>
     {model.labels.length>1&&<nav className="srm-mobile-pagination" aria-label="Page sections"><button type="button" aria-label="Previous section" disabled={model.page===0} onClick={()=>goto(model.page-1)}><ArrowLeft size={17}/></button><button type="button" className="srm-mobile-current-section" onClick={()=>openSheet('sections')}><span>{model.labels[model.page]}</span><small>{model.page+1} / {model.labels.length}<ChevronDown size={13}/></small></button><button type="button" aria-label="Next section" disabled={model.page>=model.labels.length-1} onClick={()=>goto(model.page+1)}><ArrowRight size={17}/></button></nav>}

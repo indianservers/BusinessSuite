@@ -1,7 +1,7 @@
 import SRMMobileScreen from "./components/SRMMobileScreen";
 import { lazyRoute } from "@/lib/lazy-route";
 const ServiceSchedulingWorkspace = lazyRoute(() => import("@/shared/scheduling/ServiceSchedulingWorkspace"));
-import { getOperationWorkspace } from "@/lib/navigation-workspaces";
+import { getOperationWorkspace, salesReportsPath, salesReportCalendarPath } from "@/lib/navigation-workspaces";
 import SRMRouteWorkspace from "./components/SRMRouteWorkspace";
 const PurchaseOrderDetailPage = lazyRoute(() => import("@/common/PurchaseOrderDetailPage"));
 const IndustryOperationsPage = lazyRoute(() => import("./industry/IndustryOperationsPage"));
@@ -37,6 +37,7 @@ const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
 const MembershipExpiryPage = lazyRoute(() => import("@/shared/catalog/MembershipExpiryPage"));
 const RemindersPage = lazyRoute(() => import("@/shared/follow-ups/RemindersPage"));
 const SalesReportPage = lazyRoute(() => import("./pages/SalesReportPage"));
+const CalendarPage = lazyRoute(() => import("@/apps/project-management/pages/CalendarPage"));
 const CatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
 
 const inventoryStockPanels = {
@@ -169,6 +170,7 @@ const nativeSrmRoutes: FrontendRoute[] = [
   inventorySourceRoute("srm/inventory/source"),
   inventorySourceRoute("srm/sales-inventory/source"),
   route("srm/reports", "reports"),
+  { path: salesReportCalendarPath.slice(1), element: <CalendarPage hostPath={salesReportsPath} /> },
   { path: "srm/membership-expiry", element: <MembershipExpiryPage source="srm" /> },
   { path: "srm/send-reminders", element: <RemindersPage source="srm" /> },
   { path: "srm/sales-report", element: <SalesReportPage /> },

@@ -3,6 +3,18 @@ import { commonRouteContext, commonNavigationHref, isCommercialEntity } from "./
 type Link = { to: string; label: string; group?: string };
 export type WorkspaceNavigation<T> = T & { pages?: T[] };
 
+export const salesReportsPath = "/srm/reports";
+export const salesReportCalendarPath = "/srm/reports/calendar";
+
+export function salesReportCalendarHref(to: string, pathname: string, search: string) {
+  const context = commonRouteContext(to);
+  const sharedSalesCalendar = context?.entity === "calendar" && context.module === "srm";
+  if (pathname !== salesReportsPath || (!sharedSalesCalendar && to !== salesReportCalendarPath)) return to;
+  const params = new URLSearchParams(search);
+  params.set("operation", salesReportCalendarPath);
+  return `${salesReportsPath}?${params}`;
+}
+
 export function workspacePageHref(to: string, search: string, workspaceId?: number) {
   if (!to.startsWith("/pms") && !to.startsWith("/common/")) return to;
   const [path, query = ""] = to.split("?");
@@ -40,7 +52,7 @@ const srmWorkspaces: [string, string[]][] = [
   ["Stock movements", ["/srm/inventory/stock-in", "/srm/inventory/stock-out", "/srm/inventory/stock-transfers", "/srm/inventory/stock-adjustments", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes"]],
   ["Purchasing", ["/srm/inventory/purchase-orders", "/srm/inventory/purchase-receipts", "/srm/inventory/gantt"]],
   ["Invoices & payments", ["/srm/invoices", "/srm/invoice-drafts", "/srm/billing-plans", "/srm/payment-requests", "/srm/collections"]],
-  ["Sales reports", ["/srm/reports", "/srm/profitability", "/srm/revenue-recognition"]],
+  ["Sales reports", [salesReportsPath, salesReportCalendarPath, "/srm/profitability", "/srm/revenue-recognition"]],
   ["Stock reports", ["/srm/inventory/reports/complete", "/srm/inventory/valuation", "/srm/inventory/gross-margin", "/srm/inventory/reconciliation", "/srm/inventory/audit"]],
 ];
 

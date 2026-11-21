@@ -1434,6 +1434,9 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false): boolean {
+  if (pathname.split(/[?#]/)[0].replace(/\/$/, "") === "/srm/reports/calendar") {
+    return canAccessRoute("/srm/reports", role, isSuperuser) && canAccessRoute("/common/calendar?module=srm", role, isSuperuser);
+  }
   if (pathname.startsWith("/common/")) {
     const context = commonRouteContext(pathname);
     return Boolean(context && canAccessRoute(context.contextPath, role, isSuperuser) && canAccessRoute(context.nativePath, role, isSuperuser));

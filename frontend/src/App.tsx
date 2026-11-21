@@ -14,7 +14,7 @@ import SetupReadiness from "@/components/suite/SetupReadiness";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
 import RouteTitle from "@/components/app/RouteTitle";
-import { getOperationWorkspace } from "@/lib/navigation-workspaces";
+import { getOperationWorkspace, salesReportsPath } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
 const StatisticsAuditPage=lazyRoute(()=>import("@/features/access/StatisticsAuditPage"));
@@ -294,9 +294,14 @@ export default function App() {
             }
           >
             <Route path="setup-guide" element={<ProtectedRoute><></></ProtectedRoute>} />
-            {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><CommonCommercialEntry>{getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element}</CommonCommercialEntry></Suspense></ProtectedRoute>} caseSensitive={route.caseSensitive} />
-            ))}
+            {routes.map((route) => {
+              const pathname = `/${route.path}`;
+              // The Sales reports route puts its own workspace inside the mobile screen.
+              const element = pathname !== salesReportsPath && getOperationWorkspace(pathname)
+                ? <OperationsWorkspace key={route.path} route={route} routes={routes} />
+                : route.element;
+              return <Route key={route.path} path={route.path} element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><CommonCommercialEntry>{element}</CommonCommercialEntry></Suspense></ProtectedRoute>} caseSensitive={route.caseSensitive} />;
+            })}
             <Route path="*" element={<div role="alert" className="rounded-xl border p-6"><h1 className="text-lg font-semibold">Page not found</h1><p>This page is unavailable. Choose a page from the menu or <Link className="underline" to="/dashboard">open all applications</Link>.</p></div>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -156,3 +156,25 @@
 @media(max-width:767px){body:has(.srm-mobile-screen[data-booking-route=true]) .action-bot-launcher{display:none!important}}
 
 @media(max-width:767px){.srm-mobile-header h1{color:#fff!important}}
+
+@media (max-width: 767px) {
+  .srm-mobile-viewport[data-sales-reports] .suite-operation-navigation {
+    display: block !important;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 12px;
+    padding: 6px 0;
+    background: hsl(var(--card));
+  }
+
+  .srm-mobile-viewport[data-sales-reports] .suite-operation-navigation [role="tablist"] {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .srm-mobile-viewport[data-sales-reports] .suite-operation-navigation [role="tab"] {
+    flex: none;
+    min-height: 44px;
+  }
+}

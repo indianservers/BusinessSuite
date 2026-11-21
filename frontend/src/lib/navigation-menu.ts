@@ -90,6 +90,7 @@ export function moduleLandingNavigation<T extends MenuItem>(items: readonly T[],
   };
 }
 const labels: Record<string, string> = {
+  "/srm/reports/calendar": "Calendar",
   "/pms": "Workspace board", "/pms/tasks": "All tasks", "/pms/my-work": "My work",
   "/pms/work-hub": "Work pipeline", "/pms/live": "Live work board",
   "/pms/command-center": "Workspace overview", "/pms/enterprise-engine": "Project blueprints",
