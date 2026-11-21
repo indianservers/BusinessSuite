@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { api } from "@/services/api";
 export type DashboardFilters = {
   project_ids: number[];
@@ -145,7 +146,7 @@ export const emptyConfig = (): Configuration => ({
 export const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export function makeWidget(spec: Spec, existing: Widget[]): Widget {
   return {
-    id: "w_" + crypto.randomUUID().replace(/-/g, ""),
+    id: "w_" + pmsRandomId().replace(/-/g, ""),
     type: spec.id,
     title: spec.title,
     description: "",

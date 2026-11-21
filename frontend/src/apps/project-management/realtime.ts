@@ -1,3 +1,4 @@
+import { pmsRandomId } from "./pms-random-id";
 import { selectedBranch } from "@/lib/branch-context";
 import { useRecordScope } from "@/lib/record-scope";
 import { useEffect, useRef } from "react";
@@ -66,7 +67,7 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
   publish: (event) => {
     const fullEvent: PMSRealtimeEvent = {
       ...event,
-      id: crypto.randomUUID(),
+      id: pmsRandomId(),
       type: "local.activity",
       actor: event.actor,
       message: `${event.actor} ${event.action}`,

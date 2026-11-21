@@ -1,3 +1,4 @@
+import "./delivery-dashboard-mobile.css";
 import BusinessTerm from "@/components/BusinessTerm";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -21,7 +22,6 @@ type PortfolioFilters = {
   clientId: string;
   status: string;
   health: string;
-  teamId: string;
 };
 
 const defaultFilters: PortfolioFilters = {
@@ -29,7 +29,6 @@ const defaultFilters: PortfolioFilters = {
   clientId: "",
   status: "",
   health: "",
-  teamId: "",
 };
 
 export default function PortfolioPage() {
@@ -62,21 +61,21 @@ export default function PortfolioPage() {
       })
       .catch((err) => setError(err?.response?.data?.detail || "Unable to load portfolio."))
       .finally(() => setLoading(false));
-  }, [filters.ownerId, filters.clientId, filters.status, filters.health, filters.teamId]);
+  }, [filters.ownerId, filters.clientId, filters.status, filters.health]);
 
   const setFilter = (key: keyof PortfolioFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pms-delivery-dashboard space-y-6">
       <div>
         <h1 className="page-title">Portfolio</h1>
         <p className="page-description">Executive view of project health, progress, delivery risk, workload, milestones, and open work.</p>
       </div>
 
       <Card>
-        <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
+        <CardContent className="pms-delivery-filters grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
           <Filter label="Owner" value={filters.ownerId} onChange={(value) => setFilter("ownerId", value)}>
             <option value="">All owners</option>
             {summary?.filters.owners.map((owner) => <option key={owner.id} value={owner.id}>{owner.name}</option>)}
@@ -93,9 +92,6 @@ export default function PortfolioPage() {
             <option value="">All health</option>
             {summary?.filters.health.map((item) => <option key={item}>{item}</option>)}
           </Filter>
-          <Filter label="Team" value={filters.teamId} onChange={(value) => setFilter("teamId", value)}>
-            <option value="">All teams</option>
-          </Filter>
         </CardContent>
       </Card>
 
@@ -104,7 +100,7 @@ export default function PortfolioPage() {
 
       {!initialLoading && summary ? (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="pms-delivery-metrics grid gap-4 md:grid-cols-4" aria-label="Portfolio metrics" role="group">
             <Metric icon={FolderKanban} label="Total projects" value={summary.total_projects} />
             <Metric icon={BriefcaseBusiness} label="Active projects" value={summary.active_projects} />
             <Metric icon={Clock} label="Overdue projects" value={summary.overdue_projects} tone="text-red-600" />
@@ -213,7 +209,7 @@ export default function PortfolioPage() {
 function Metric({ icon: Icon, label, value, suffix, tone = "text-primary" }: { icon: typeof FolderKanban; label: string; value: number; suffix?: string; tone?: string }) {
   return (
     <Card>
-      <CardContent className="flex items-center justify-between p-4">
+      <CardContent className="pms-delivery-metric flex items-center justify-between p-4">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className={cn("text-2xl font-semibold", tone)}>{value}{suffix || ""}</p>
@@ -234,7 +230,7 @@ function Filter({ label, value, onChange, children }: { label: string; value: st
 }
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
-  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="h-80">{children}</CardContent></Card>;
+  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="pms-delivery-chart h-80">{children}</CardContent></Card>;
 }
 
 function healthTone(health: string) {

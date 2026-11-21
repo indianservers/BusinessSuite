@@ -1,3 +1,4 @@
+import "./delivery-dashboard-mobile.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import {useAuthStore} from "@/store/authStore";
@@ -181,8 +182,8 @@ export default function RisksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="pms-delivery-dashboard space-y-6">
+      <div className="pms-delivery-heading flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Risk Register</h1>
           <p className="page-description">Track project-level probability, impact, mitigation plans, owners, and delivery health risk.</p>
@@ -191,7 +192,7 @@ export default function RisksPage() {
       </div>
 
       <Card>
-        <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+        <CardContent className="pms-delivery-filters grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
           <Filter disabled={!!projectId} label={businessTerm('project')} value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
             <option value="">All accessible projects</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
@@ -217,7 +218,7 @@ export default function RisksPage() {
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="pms-delivery-metrics grid gap-4 md:grid-cols-3" aria-label="Risk metrics" role="group">
         <Metric icon={ShieldAlert} label="Open high risks" value={openHighRisks.length} tone="text-red-600" />
         <Metric icon={AlertTriangle} label="Total risks" value={risks.length} />
         <Metric icon={ShieldAlert} label="Average score" value={avgScore} tone={avgScore >= 15 ? "text-red-600" : avgScore >= 8 ? "text-amber-600" : "text-emerald-600"} />
@@ -299,7 +300,7 @@ export default function RisksPage() {
         </Card></SmartCreateSection>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+      <div className="pms-risk-panels grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card>
           <CardHeader><CardTitle>Risk Matrix</CardTitle></CardHeader>
           <CardContent className="pd-risk-matrix">
@@ -398,7 +399,7 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
 function Metric({ icon: Icon, label, value, tone = "text-primary" }: { icon: typeof ShieldAlert; label: string; value: string | number; tone?: string }) {
   return (
     <Card>
-      <CardContent className="flex items-center justify-between p-4">
+      <CardContent className="pms-delivery-metric flex items-center justify-between p-4">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className={cn("text-2xl font-semibold", tone)}>{value}</p>

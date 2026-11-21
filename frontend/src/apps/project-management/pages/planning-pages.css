@@ -1,0 +1,116 @@
+.pms-planning-roadmap {
+  --pms-roadmap-label: 360px;
+}
+.pms-planning-workload {
+  --pms-workload-label: 260px;
+}
+
+.pms-workload-detail > :first-child,
+.pms-workload-detail > :last-child {
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .pms-planning-scroll {
+    overscroll-behavior-inline: contain;
+  }
+  .pms-planning-scroll:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: -2px;
+  }
+  .pms-planning-page {
+    overflow-wrap: anywhere;
+  }
+  .pms-planning-page > :not([hidden]) ~ :not([hidden]) {
+    margin-block-start: 1rem;
+  }
+  .pms-planning-filters,
+  .pms-planning-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .625rem;
+  }
+  .pms-planning-page .grid > *,
+  .pms-planning-page fieldset,
+  .pms-planning-filters > *,
+  .pms-planning-metrics > *,
+  .pms-planning-form > * {
+    min-width: 0;
+  }
+  .pms-planning-metrics > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .pms-planning-metrics > * > * {
+    align-items: flex-start;
+    gap: .5rem;
+    padding: .75rem;
+  }
+  .pms-planning-metrics svg {
+    flex-shrink: 0;
+  }
+  .pms-planning-page :is(input:not([type=checkbox]):not([type=radio]), select),
+  .pms-schedule-dialog input {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .pms-planning-page > :first-child :is(button, a),
+  .pms-schedule-dialog button,
+  .pms-workload-detail button,
+  .pms-sprint-review-actions button,
+  .pms-backlog-grip {
+    min-height: 44px;
+  }
+  .pms-backlog-grip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+  }
+  .pms-planning-roadmap {
+    --pms-roadmap-label: 148px;
+  }
+  .pms-planning-workload {
+    --pms-workload-label: 124px;
+  }
+  .pms-roadmap-timeline {
+    min-width: 100%;
+  }
+  .pms-workload-heatmap {
+    min-width: 100%;
+  }
+  .pms-planning-row-label {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 2;
+    min-width: 0;
+    padding-inline: .625rem;
+    background-color: hsl(var(--background));
+  }
+  .pms-planning-row-label svg {
+    flex-shrink: 0;
+  }
+  .pms-schedule-dialog {
+    padding: 1rem;
+    overflow-wrap: anywhere;
+  }
+  .pms-schedule-dialog fieldset > * {
+    min-width: 0;
+  }
+  .pms-workload-detail {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pms-sprint-review,
+  .pms-schedule-dialog {
+    top: calc(var(--mobile-viewport-height, 100dvh) / 2);
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 2rem);
+    overscroll-behavior-y: contain;
+  }
+  .pms-sprint-review-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding: .75rem;
+  }
+}

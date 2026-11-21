@@ -1,3 +1,4 @@
+import "./pages/workspace-landing-mobile.css";
 import BusinessTerm from "@/components/BusinessTerm";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { Button } from "@/components/ui/button";
@@ -101,11 +102,11 @@ const ProjectManagementHomePage: React.FC = () => {
   if (loading) return <LoadingState label="Loading Project Workspace"/>;
 
   return (
-    <div className="space-y-6">
+    <div className="pms-mobile-overview space-y-6">
       {/* Header */}
       <div className="bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="pms-overview-header flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-primary p-3 rounded-lg">
                 <Kanban className="text-white" size={32} />
@@ -217,14 +218,14 @@ const ProjectManagementHomePage: React.FC = () => {
         </div>
 
         </details>
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="pms-overview-projects mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-foreground"><BusinessTerm name="project" plural/></h2>
           {canAccessRoute("/pms/projects", user?.role, user?.is_superuser) && (
             <Link to="/pms/projects" className="text-sm font-medium text-primary hover:underline">View all projects</Link>
           )}
         </div>
         {projects.length === 0 ? (
-          <div className="bg-card rounded-xl border-2 border-dashed border-gray-300 p-16 text-center shadow-sm">
+          <div className="pms-overview-empty bg-card rounded-xl border-2 border-dashed border-gray-300 p-16 text-center shadow-sm">
             <Kanban className="mx-auto h-16 w-16 text-gray-300 mb-4" />
             <h3 className="text-2xl font-bold text-foreground mb-2">
               No projects yet

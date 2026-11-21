@@ -1,0 +1,74 @@
+@media (max-width: 480px) {
+  .pms-members,
+  .pms-team-management {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pms-members-actions,
+  .pms-member-destination,
+  .pms-invitation-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    gap: 8px;
+  }
+
+  .pms-members-actions > a[href="#invitations"] {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .pms-members :is(button, input:not([type="checkbox"]), select, a),
+  .pms-team-management :is(button, input:not([type="checkbox"]), select) {
+    max-width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .pms-members :is(input:not([type="checkbox"]), select),
+  .pms-team-management :is(input:not([type="checkbox"]), select) {
+    font-size: 16px;
+  }
+
+  .pms-members :is(button, a),
+  .pms-team-management button {
+    white-space: normal;
+  }
+
+  .pms-member-destination > label,
+  .pms-invitation-form > label,
+  .pms-team-form fieldset {
+    min-width: 0;
+  }
+
+  .pms-member-destination select,
+  .pms-invitation-form select,
+  .pms-team-workspace select {
+    width: 100%;
+  }
+
+  .pms-team-workspace select {
+    display: block;
+    margin: 4px 0 0;
+  }
+
+  .pms-team-card > div {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  .pms-team-card,
+  .pms-team-form {
+    padding: 12px;
+  }
+
+  .pms-team-form {
+    scroll-margin-top: 12px;
+  }
+
+  .pms-team-form fieldset input[type="checkbox"] {
+    flex-shrink: 0;
+  }
+}

@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -1100,7 +1101,7 @@ export default function DashboardsPage() {
                                     ...copy(w),
                                     id:
                                       "w_" +
-                                      crypto.randomUUID().replace(/-/g, ""),
+                                      pmsRandomId().replace(/-/g, ""),
                                     title: w.title + " copy",
                                     y: Math.max(
                                       0,

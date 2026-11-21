@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import BusinessTerm from "@/components/BusinessTerm";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -256,7 +257,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
     try {
       return (
         JSON.parse(sessionStorage.getItem(draftKey) || "null") || {
-          request_id: crypto.randomUUID(),
+          request_id: pmsRandomId(),
           lines: [
             { description: "", quantity: 1, unit_price: 0, tax_amount: 0 },
           ],
@@ -267,7 +268,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
       );
     } catch {
       return {
-        request_id: crypto.randomUUID(),
+        request_id: pmsRandomId(),
         lines: [],
         time_log_ids: [],
         hourly_rate: 0,
@@ -289,7 +290,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
       setCreated(response.data);
       sessionStorage.removeItem(draftKey);
       setDraft({
-        request_id: crypto.randomUUID(),
+        request_id: pmsRandomId(),
         lines: [{ description: "", quantity: 1, unit_price: 0, tax_amount: 0 }],
         time_log_ids: [],
         time_minutes: {},

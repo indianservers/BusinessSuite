@@ -1,3 +1,5 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import "./planning-pages.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -37,6 +39,7 @@ const zoomConfig: Record<ZoomLevel, { columnWidth: number; daysPerColumn: number
 };
 
 export default function RoadmapPage() {
+  const compact = useMobile(639);
   const { term: businessTerm } = useBusinessTerms();
   const navigate = useNavigate();
   const [data, setData] = useState<PMSRoadmapResponse | null>(null);
@@ -94,7 +97,7 @@ export default function RoadmapPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pms-planning-page pms-planning-roadmap max-sm:min-w-0 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Roadmap</h1>
@@ -116,7 +119,7 @@ export default function RoadmapPage() {
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Roadmap filters</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <CardContent className="pms-planning-filters grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <SelectField label={businessTerm('project')} value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
             <option value="">{`All ${businessTerm('project', true).toLowerCase()}`}</option>
             {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
@@ -156,10 +159,10 @@ export default function RoadmapPage() {
             </div>
           ) : null}
           {!initialLoading && scheduledEpics.length ? (
-            <div className="overflow-x-auto">
-              <div className="min-w-[980px]" style={{ width: timeline.width + 360 }}>
-                <div className="sticky top-0 z-10 grid border-b bg-background" style={{ gridTemplateColumns: `360px ${timeline.width}px` }}>
-                  <div className="border-r p-3 text-xs font-semibold uppercase text-muted-foreground">Epic</div>
+            <div className="pms-planning-scroll overflow-x-auto" role={compact ? "region" : undefined} tabIndex={compact ? 0 : undefined} aria-label={compact ? "Roadmap timeline" : undefined}>
+              <div className="pms-roadmap-timeline min-w-[980px]" style={{ width: `calc(var(--pms-roadmap-label) + ${timeline.width}px)` }}>
+                <div className="sticky top-0 z-10 grid border-b bg-background" style={{ gridTemplateColumns: `var(--pms-roadmap-label) ${timeline.width}px` }}>
+                  <div className="pms-planning-row-label border-r p-3 text-xs font-semibold uppercase text-muted-foreground">Epic</div>
                   <div className="relative h-12">
                     {timeline.columns.map((column) => (
                       <div key={column.key} className="absolute top-0 flex h-12 items-center border-r px-2 text-xs font-medium text-muted-foreground" style={{ left: column.x, width: column.width }}>
@@ -173,6 +176,7 @@ export default function RoadmapPage() {
                     <EpicRoadmapRow
                       key={epic.id}
                       epic={epic}
+                      compact={compact}
                       expanded={expandedEpicIds.includes(epic.id)}
                       saving={savingEpicId === epic.id}
                       timeline={timeline}
@@ -223,6 +227,7 @@ export default function RoadmapPage() {
 
 function EpicRoadmapRow({
   epic,
+  compact,
   expanded,
   saving,
   timeline,
@@ -233,6 +238,7 @@ function EpicRoadmapRow({
   onDateChange,
 }: {
   epic: PMSEpic;
+  compact: boolean;
   expanded: boolean;
   saving: boolean;
   timeline: ReturnType<typeof buildTimeline>;
@@ -267,9 +273,9 @@ function EpicRoadmapRow({
   };
 
   return (
-    <div className="grid border-b" style={{ gridTemplateColumns: `360px ${timeline.width}px`, minHeight: rowHeight }}>
-      <div className="border-r p-3">
-        <button type="button" onClick={onToggle} className="flex w-full items-start gap-2 text-left">
+    <div className="grid border-b" style={{ gridTemplateColumns: `var(--pms-roadmap-label) ${timeline.width}px`, minHeight: rowHeight }}>
+      <div className="pms-planning-row-label border-r p-3">
+        <button type="button" onClick={onToggle} aria-expanded={compact ? expanded : undefined} className="flex w-full items-start gap-2 text-left">
           {expanded ? <ChevronDown className="mt-0.5 h-4 w-4" /> : <ChevronRight className="mt-0.5 h-4 w-4" />}
           <div className="min-w-0">
             <p className="text-xs font-semibold text-primary">{epic.epic_key} - {epic.project_key || epic.project_name}</p>

@@ -1,3 +1,6 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import "./planning-pages.css";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -6,7 +9,7 @@ import SprintMoveBoard from "../components/SprintMoveBoard";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import type React from "react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Flame, Gauge, Play, RotateCcw, TrendingUp } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,7 @@ import { projectsAPI, reportsAPI, sprintsAPI, tasksAPI } from "../services/api";
 import type { PMSProject, PMSSprint, PMSSprintActionItem, PMSTaskListItem, ProjectVelocity, SprintBurndown, WorkloadResponse } from "../types";
 
 export default function SprintsPage() {
+  const compact = useMobile(639);
   const { term: businessTerm } = useBusinessTerms();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [projectId, setProjectId] = useState("");
@@ -33,6 +37,7 @@ export default function SprintsPage() {
   const [velocity, setVelocity] = useState<ProjectVelocity | null>(null);
   const [workload, setWorkload] = useState<WorkloadResponse | null>(null);
   const [backlogTasks, setBacklogTasks] = useState<PMSTaskListItem[]>([]);
+  const reviewTrigger = useRef<HTMLButtonElement | null>(null);
   const [completeTarget, setCompleteTarget] = useState<PMSSprint | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,13 +204,81 @@ export default function SprintsPage() {
   const completeTasks = completeTarget ? backlogTasks.filter((task) => task.sprint_id === completeTarget.id && ["Done", "Completed", "Closed", "Resolved"].includes(task.status)) : [];
   const incompleteTasks = completeTarget ? backlogTasks.filter((task) => task.sprint_id === completeTarget.id && !["Done", "Completed", "Closed", "Resolved"].includes(task.status)) : [];
 
+  const ReviewTitle = compact ? Dialog.Title : "h2";
+  const ReviewDescription = compact ? Dialog.Description : "p";
+  const reviewContent = completeTarget && (
+    <>
+      <div className="border-b p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <ReviewTitle className="text-lg font-semibold">{completeTarget.status === "Completed" ? "Sprint review" : "Complete sprint"}: {completeTarget.name}</ReviewTitle>
+            <ReviewDescription className="text-sm text-muted-foreground">Capture review outcomes, retrospective notes, and follow-up action items.</ReviewDescription>
+          </div>
+          <Button variant="ghost" disabled={compact && actionSprintId === completeTarget.id} onClick={() => setCompleteTarget(null)}>Close</Button>
+        </div>
+      </div>
+      <div className="grid gap-5 p-5 lg:grid-cols-[1fr_1.1fr]">
+        <div className="space-y-4">
+          <TaskSummary title="Completed tasks" tasks={completeTasks} empty="No completed tasks in this sprint." />
+          <TaskSummary title="Incomplete tasks" tasks={incompleteTasks} empty="No incomplete tasks." />
+          {completeTarget.status !== "Completed" ? (
+            <Field label="Incomplete task handling">
+              <NativeSelect value={completeDraft.incompleteAction} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, incompleteAction: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <option value="move_to_backlog">Move to backlog</option>
+                <option value="move_to_next_sprint">Move to next sprint</option>
+                <option value="keep_in_sprint">Keep in current sprint</option>
+              </NativeSelect>
+            </Field>
+          ) : null}
+          {completeDraft.incompleteAction === "move_to_next_sprint" && completeTarget.status !== "Completed" ? (
+            <Field label="Next sprint">
+              <NativeSelect value={completeDraft.carryForwardSprintId} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, carryForwardSprintId: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <option value="">Select sprint</option>
+                {sprints.filter((sprint) => sprint.id !== completeTarget.id && sprint.status === "Planned").map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+              </NativeSelect>
+            </Field>
+          ) : null}
+        </div>
+        <div className="space-y-4">
+          {reviewLoading ? <div className="rounded-md border p-3 text-sm text-muted-foreground">Loading saved review notes...</div> : null}
+          <TextareaField label="Sprint outcome" value={completeDraft.outcome} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, outcome: value }))} />
+          <TextareaField label="Review notes" value={completeDraft.reviewNotes} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, reviewNotes: value }))} />
+          <TextareaField label="What went well" value={completeDraft.whatWentWell} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, whatWentWell: value }))} />
+          <TextareaField label="What did not go well" value={completeDraft.whatDidNotGoWell} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, whatDidNotGoWell: value }))} />
+          <TextareaField label="Retrospective notes" value={completeDraft.retrospectiveNotes} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, retrospectiveNotes: value }))} />
+          <div className="space-y-2">
+            <Label>Action items</Label>
+            {completeDraft.actionItems.map((item, index) => (
+              <div key={index} className="grid gap-2 md:grid-cols-[1fr_10rem_auto]">
+                <Input placeholder="Follow-up action" value={item.title} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.map((current, itemIndex) => itemIndex === index ? { ...current, title: event.target.value } : current) }))} />
+                <Input type="date" value={item.due_date || ""} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.map((current, itemIndex) => itemIndex === index ? { ...current, due_date: event.target.value } : current) }))} />
+                <Button type="button" variant="outline" onClick={() => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.filter((_, itemIndex) => itemIndex !== index) }))}>Remove</Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={() => setCompleteDraft((draft) => ({ ...draft, actionItems: [...draft.actionItems, { title: "", due_date: "" }] }))}>Add action item</Button>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={completeDraft.createActionItemTasks} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, createActionItemTasks: event.target.checked }))} />
+              Create action items as backlog tasks
+            </label>
+          </div>
+        </div>
+      </div>
+      <div className={compact ? "pms-sprint-review-actions flex flex-wrap justify-end gap-2 border-t bg-background p-5" : "flex justify-end gap-2 border-t p-5"}>
+        <Button variant="outline" disabled={compact && actionSprintId === completeTarget.id} onClick={() => setCompleteTarget(null)}>Cancel</Button>
+        <Button onClick={saveSprintReview} disabled={actionSprintId === completeTarget.id || (completeTarget.status !== "Completed" && completeDraft.incompleteAction === "move_to_next_sprint" && !completeDraft.carryForwardSprintId)}>
+          {actionSprintId === completeTarget.id ? "Saving..." : completeTarget.status === "Completed" ? "Save review" : "Complete sprint"}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="pms-planning-page pms-planning-sprints max-sm:min-w-0 space-y-6">
       <div>
         <h1 className="page-title">Sprints</h1>
         <p className="page-description">Plan agile delivery windows, commitment snapshots, carry-forward scope, capacity, burndown, and velocity.</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="pms-planning-metrics grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Metric icon={Activity} label="Sprints" value={sprints.length} />
         <Metric icon={Play} label="Active" value={sprints.filter((sprint) => sprint.status === "Active").length} />
         <Metric icon={TrendingUp} label="Avg velocity" value={`${Math.round(velocity?.average_velocity_points || 0)} pts`} />
@@ -214,7 +287,7 @@ export default function SprintsPage() {
       <SmartCreateSection title={<>Create sprint</>} size="standard"><Card>
         <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
         <CardContent>
-          <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
+          <CompactForm onSubmit={submit} className="pms-planning-form grid gap-4 sm:max-md:grid-cols-2 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
             <Field label={businessTerm('project')}><NativeSelect value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></Field>
             <Field label="Sprint name"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="Goal"><Input value={goal} onChange={(event) => setGoal(event.target.value)} /></Field>
@@ -278,7 +351,7 @@ export default function SprintsPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => startSprint(sprint)} disabled={actionSprintId === sprint.id || sprint.status === "Active" || sprint.status === "Completed"}><Play className="h-4 w-4" />Start</Button>
-                <Button size="sm" variant="outline" onClick={() => openSprintReview(sprint)}><CheckCircle2 className="h-4 w-4" />{sprint.status === "Completed" ? "Review" : "Complete"}</Button>
+                <Button size="sm" variant="outline" onClick={event => { reviewTrigger.current = event.currentTarget; void openSprintReview(sprint); }}><CheckCircle2 className="h-4 w-4" />{sprint.status === "Completed" ? "Review" : "Complete"}</Button>
                 <Button size="sm" variant="ghost" onClick={() => sprintsAPI.burndown(sprint.id).then(setBurndown)}><BarChart3 className="h-4 w-4" />Burndown</Button>
               </div>
               {(sprint.outcome || sprint.review_notes || sprint.retrospective_notes) ? (
@@ -292,73 +365,29 @@ export default function SprintsPage() {
         ))}
         {!sprints.length ? <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">Create your first sprint to unlock lifecycle controls.</div> : null}
       </div>
-      {completeTarget ? (
+      {completeTarget && (compact ? (
+        <Dialog.Root open onOpenChange={open => { if (!open && actionSprintId !== completeTarget.id) setCompleteTarget(null); }}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+            <Dialog.Content
+              onInteractOutside={event => event.preventDefault()}
+              onCloseAutoFocus={event => {
+                if (!reviewTrigger.current?.isConnected) return;
+                event.preventDefault();
+                reviewTrigger.current.focus();
+              }}
+              className="pms-sprint-review fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg bg-background shadow-xl">
+              {reviewContent}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-background shadow-xl">
-            <div className="border-b p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold">{completeTarget.status === "Completed" ? "Sprint review" : "Complete sprint"}: {completeTarget.name}</h2>
-                  <p className="text-sm text-muted-foreground">Capture review outcomes, retrospective notes, and follow-up action items.</p>
-                </div>
-                <Button variant="ghost" onClick={() => setCompleteTarget(null)}>Close</Button>
-              </div>
-            </div>
-            <div className="grid gap-5 p-5 lg:grid-cols-[1fr_1.1fr]">
-              <div className="space-y-4">
-                <TaskSummary title="Completed tasks" tasks={completeTasks} empty="No completed tasks in this sprint." />
-                <TaskSummary title="Incomplete tasks" tasks={incompleteTasks} empty="No incomplete tasks." />
-                {completeTarget.status !== "Completed" ? (
-                  <Field label="Incomplete task handling">
-                    <NativeSelect value={completeDraft.incompleteAction} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, incompleteAction: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
-                      <option value="move_to_backlog">Move to backlog</option>
-                      <option value="move_to_next_sprint">Move to next sprint</option>
-                      <option value="keep_in_sprint">Keep in current sprint</option>
-                    </NativeSelect>
-                  </Field>
-                ) : null}
-                {completeDraft.incompleteAction === "move_to_next_sprint" && completeTarget.status !== "Completed" ? (
-                  <Field label="Next sprint">
-                    <NativeSelect value={completeDraft.carryForwardSprintId} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, carryForwardSprintId: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
-                      <option value="">Select sprint</option>
-                      {sprints.filter((sprint) => sprint.id !== completeTarget.id && sprint.status === "Planned").map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-                    </NativeSelect>
-                  </Field>
-                ) : null}
-              </div>
-              <div className="space-y-4">
-                {reviewLoading ? <div className="rounded-md border p-3 text-sm text-muted-foreground">Loading saved review notes...</div> : null}
-                <TextareaField label="Sprint outcome" value={completeDraft.outcome} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, outcome: value }))} />
-                <TextareaField label="Review notes" value={completeDraft.reviewNotes} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, reviewNotes: value }))} />
-                <TextareaField label="What went well" value={completeDraft.whatWentWell} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, whatWentWell: value }))} />
-                <TextareaField label="What did not go well" value={completeDraft.whatDidNotGoWell} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, whatDidNotGoWell: value }))} />
-                <TextareaField label="Retrospective notes" value={completeDraft.retrospectiveNotes} onChange={(value) => setCompleteDraft((draft) => ({ ...draft, retrospectiveNotes: value }))} />
-                <div className="space-y-2">
-                  <Label>Action items</Label>
-                  {completeDraft.actionItems.map((item, index) => (
-                    <div key={index} className="grid gap-2 md:grid-cols-[1fr_10rem_auto]">
-                      <Input placeholder="Follow-up action" value={item.title} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.map((current, itemIndex) => itemIndex === index ? { ...current, title: event.target.value } : current) }))} />
-                      <Input type="date" value={item.due_date || ""} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.map((current, itemIndex) => itemIndex === index ? { ...current, due_date: event.target.value } : current) }))} />
-                      <Button type="button" variant="outline" onClick={() => setCompleteDraft((draft) => ({ ...draft, actionItems: draft.actionItems.filter((_, itemIndex) => itemIndex !== index) }))}>Remove</Button>
-                    </div>
-                  ))}
-                  <Button type="button" variant="outline" onClick={() => setCompleteDraft((draft) => ({ ...draft, actionItems: [...draft.actionItems, { title: "", due_date: "" }] }))}>Add action item</Button>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={completeDraft.createActionItemTasks} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, createActionItemTasks: event.target.checked }))} />
-                    Create action items as backlog tasks
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 border-t p-5">
-              <Button variant="outline" onClick={() => setCompleteTarget(null)}>Cancel</Button>
-              <Button onClick={saveSprintReview} disabled={actionSprintId === completeTarget.id || (completeTarget.status !== "Completed" && completeDraft.incompleteAction === "move_to_next_sprint" && !completeDraft.carryForwardSprintId)}>
-                {actionSprintId === completeTarget.id ? "Saving..." : completeTarget.status === "Completed" ? "Save review" : "Complete sprint"}
-              </Button>
-            </div>
+            {reviewContent}
           </div>
         </div>
-      ) : null}
+      ))}
     </div>
   );
 }

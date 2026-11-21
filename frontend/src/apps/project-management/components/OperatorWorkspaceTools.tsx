@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from 'react';
@@ -40,7 +41,7 @@ export function OperatorWorkspaceTools({ projectId, workspaceId, command, provid
         <label className="block"><input type="checkbox" checked={newProject} disabled={busy} onChange={e => setNewProject(e.target.checked)} /> Create a new project in the selected project’s workspace</label>
         <label className="block">Optional template project ID<input aria-label="Operator template ID" type="number" min="1" className="ml-2 rounded border bg-background p-2" value={templateId} onChange={e => setTemplateId(e.target.value)} /></label>
         <Button disabled={busy || !projectId || command.trim().length < 3} onClick={() => void action(async () => {
-          const data = (await api.post('/ai-operator/setup/preview', { brief: command, provider, request_key: crypto.randomUUID(),
+          const data = (await api.post('/ai-operator/setup/preview', { brief: command, provider, request_key: pmsRandomId(),
             workspace_id: workspaceId || null, project_id: newProject ? null : projectId, template_id: templateId ? Number(templateId) : null }, { timeout: 65000 })).data;
           setProposal(data);
         })}>Preview project setup</Button>

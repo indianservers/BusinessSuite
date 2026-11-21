@@ -1,3 +1,4 @@
+import "./delivery-dashboard-mobile.css";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import BusinessTerm from "@/components/BusinessTerm";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export default function ProjectFinancials() {
   const all = query.data?.items || [];
   const rows = all.filter(row=>(!project||String(row.project_id)===project)&&`${row.project_name} ${row.project_key} ${row.billing_status}`.toLowerCase().includes(search.toLowerCase()));
   const sum = (key:keyof FinancialRow) => rows.reduce((total,row)=>total+number(row[key]),0);
-  return <section className="wm-workspace" aria-label="Project financials">
+  return <section className="wm-workspace pms-financials" aria-label="Project financials">
     <header className="wm-header"><div><span className="wm-eyebrow">DELIVERY PERFORMANCE</span><h1>Project financials</h1><p>Recorded budgets, costs and billable effort for the projects you can access.</p></div><Button asChild variant="outline"><Link className="wm-secondary" to="/pms/reports">Open reports</Link></Button></header>
     <div className="wm-controls"><label className="wm-project"><span><BusinessTerm name="project"/></span><NativeSelect aria-label="Financial project" value={project} onChange={event=>setProject(event.target.value)}><option value="">All accessible projects</option>{all.map(row=><option key={row.project_id} value={row.project_id}>{row.project_name}</option>)}</NativeSelect></label><label className="wm-search"><Search size={15}/><input aria-label="Search project financials" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search projects, codes or billing status…"/></label><Button type="submit" variant="outline" className="wm-secondary" disabled={query.isFetching} onClick={()=>void query.refetch()}><RefreshCw size={14}/>Refresh</Button>{(search||project)&&<button className="wm-secondary" onClick={()=>{setSearch("");setProject("");}}>Clear filters</button>}</div>
     {query.isError&&<p role="alert" className="wm-error">{workspaceError(query.error)} <Button type="submit" variant="outline" onClick={()=>void query.refetch()}>Retry</Button></p>}

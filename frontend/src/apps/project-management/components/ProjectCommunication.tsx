@@ -1,3 +1,4 @@
+import { pmsRandomId } from "../pms-random-id";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -84,7 +85,7 @@ function ProjectChat({ project, tasks, scope }: { project: PMSProject; tasks: PM
   async function send() {
     if (!canWrite || busy || (!draft.trim() && !files.length)) return;
     const body = draft.trim(), ids = files.map(f => f.id);
-    if (!request.current || request.current.body !== body || request.current.ids !== ids.join(",")) request.current = { body, ids: ids.join(","), client_id: crypto.randomUUID() };
+    if (!request.current || request.current.body !== body || request.current.ids !== ids.join(",")) request.current = { body, ids: ids.join(","), client_id: pmsRandomId() };
     const client_id = request.current.client_id;
     await action(async () => {
       await api.post(`${roomUrl}/messages`, { body, client_id, attachment_ids: ids, parent_id: null });
