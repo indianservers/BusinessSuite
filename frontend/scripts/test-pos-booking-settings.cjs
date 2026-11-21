@@ -19,6 +19,7 @@ const expect = base.configure({timeout:15000});
       await page.route('**/api/v1/**',async route=>{
         const request=route.request(),url=new URL(request.url()),p=url.pathname;
         if(p.endsWith('/auth/me')||p.endsWith('/access/me')){const native=await page.evaluate(()=>window.nativeIdentity());return route.fulfill({json:p.endsWith('/auth/me')?native.identity:native.access});}
+        if(p.endsWith('/access/settings/defaults/effective'))return route.fulfill({json:{values:{timezone:'UTC',currency:'INR'},modules:{},companyId:1,branchId:1}});
         if(p.endsWith('/industry/capabilities'))return route.fulfill({json:{checkout_create:true,checkout_collect:true,operational_scope:cap}});
         if(p.endsWith('/branches/context'))return route.fulfill({json:{company_id:1,selected:1,branches:[{id:1,name:'City branch',can_write:true}]}});
         if(p.endsWith('/pos/sessions/active'))return route.fulfill({json:{session:{id:81,status:'open',opening_cash:100,session_number:'POS-81',register_name:'Front desk'},expected_cash:100}});
@@ -41,7 +42,6 @@ const expect = base.configure({timeout:15000});
 
       await expect(page.getByRole('heading',{name:'Billing & POS'})).toBeVisible();
       await page.locator('.srm-pos-catalog article').filter({hasText:'Consultation service'}).locator('button[data-product-id]').first().click();
-      if(width<768)await page.locator('.srm-pos-mobile-tabs button').last().click();
       const inline=page.locator('.pos-compact-booking[data-presentation=cart]');await expect(inline).toBeVisible();await expect(page.locator('.pos-booking-window')).toHaveCount(0);
       const optional=inline.getByRole('checkbox',{name:'Schedule this service',exact:true});if(width===320)await optional.check();
       async function assertCartFits(){const m=await inline.evaluate(node=>({line:node.closest('.pos-cart-line').getBoundingClientRect().height,scroll:node.closest('.pos-cart-items').scrollHeight,height:node.closest('.pos-cart-items').clientHeight}));expect(m.line).toBeLessThanOrEqual(m.height);expect(m.scroll).toBeLessThanOrEqual(m.height+1);}
@@ -50,7 +50,7 @@ const expect = base.configure({timeout:15000});
       await page.screenshot({path:path.resolve('../output',`pos-inline-booking-initial-${width}.png`)});
       async function settings(){if(width<768){await page.locator('.pos-phone-header-tools').getByRole('button',{name:'Add new record',exact:true}).click();await page.getByRole('menuitem',{name:/Bill tools/}).click();await page.getByRole('button',{name:'Register settings',exact:true}).click();}else{const session=page.getByRole('button',{name:/^Session & actions/});if(await session.isVisible()&&await session.getAttribute('aria-expanded')==='false')await session.click();const direct=page.getByRole('button',{name:'Settings',exact:true});if(!await direct.isVisible())await page.getByRole('button',{name:'More actions',exact:true}).first().click();await direct.click();}await expect(page.getByLabel('Service booking layout')).toBeVisible();}
       await settings();await expect(page.getByLabel('Service booking layout')).toHaveValue('cart');await page.getByLabel('Service booking layout').selectOption('dialog');await page.getByRole('button',{name:'Close POS Settings & Layout',exact:true}).click();
-      await expect(page.locator('.pos-booking-trigger')).toBeVisible();await page.reload();if(width<768)await page.locator('.srm-pos-mobile-tabs button').last().click();await expect(page.locator('.pos-booking-trigger')).toBeVisible();
+      await expect(page.locator('.pos-booking-trigger')).toBeVisible();await page.reload();await expect(page.locator('.pos-booking-trigger')).toBeVisible();
       await settings();await expect(page.getByLabel('Service booking layout')).toHaveValue('dialog');await page.getByRole('button',{name:'Close POS Settings & Layout',exact:true}).click();
       await page.locator('.pos-booking-trigger').click();const dialog=page.getByRole('dialog',{name:'Service booking',exact:true});await expect(dialog).toBeVisible();await expect(dialog.getByRole('button',{name:'Use these booking details',exact:true})).toBeEnabled();
       const metrics=await dialog.evaluate(node=>({scroll:node.scrollHeight,height:node.clientHeight,top:node.getBoundingClientRect().top,bottom:node.getBoundingClientRect().bottom}));expect(metrics.scroll).toBeLessThanOrEqual(metrics.height+1);expect(metrics.top).toBeGreaterThanOrEqual(0);expect(metrics.bottom).toBeLessThanOrEqual(height);

@@ -3,6 +3,18 @@ import { commonRouteContext, commonNavigationHref, isCommercialEntity } from "./
 type Link = { to: string; label: string; group?: string };
 export type WorkspaceNavigation<T> = T & { pages?: T[] };
 
+export const salesReportsPath = "/srm/reports";
+export const salesReportCalendarPath = "/srm/reports/calendar";
+
+export function salesReportCalendarHref(to: string, pathname: string, search: string) {
+  const context = commonRouteContext(to);
+  const sharedSalesCalendar = context?.entity === "calendar" && context.module === "srm";
+  if (pathname !== salesReportsPath || (!sharedSalesCalendar && to !== salesReportCalendarPath)) return to;
+  const params = new URLSearchParams(search);
+  params.set("operation", salesReportCalendarPath);
+  return `${salesReportsPath}?${params}`;
+}
+
 export function workspacePageHref(to: string, search: string, workspaceId?: number) {
   if (!to.startsWith("/pms") && !to.startsWith("/common/")) return to;
   const [path, query = ""] = to.split("?");
@@ -35,12 +47,12 @@ const srmWorkspaces: [string, string[]][] = [
   ["POS sessions & returns", ["/srm/pos/sessions", "/srm/pos/cashier-closing", "/srm/pos/returns"]],
   ["Customers & suppliers", ["/srm/customers", "/srm/vendors", "/srm/companies", "/srm/customer-360"]],
   ["Sales orders & contracts", ["/srm/sales-orders", "/srm/contracts", "/srm/engagements"]],
-  ["Products & pricing", ["/srm/products-services", "/srm/inventory/price-lists", "/srm/inventory/batches", "/srm/inventory/stock-groups", "/srm/inventory/units"]],
+  ["Products & pricing", ["/srm/products-services", "/srm/inventory/stock-management", "/srm/inventory/price-lists", "/srm/inventory/batches", "/srm/inventory/stock-groups", "/srm/inventory/units"]],
   ["Stock & warehouses", ["/srm/inventory", "/srm/inventory/stock-summary", "/srm/inventory/warehouses", "/srm/inventory/reorder-alerts"]],
   ["Stock movements", ["/srm/inventory/stock-in", "/srm/inventory/stock-out", "/srm/inventory/stock-transfers", "/srm/inventory/stock-adjustments", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes"]],
   ["Purchasing", ["/srm/inventory/purchase-orders", "/srm/inventory/purchase-receipts", "/srm/inventory/gantt"]],
   ["Invoices & payments", ["/srm/invoices", "/srm/invoice-drafts", "/srm/billing-plans", "/srm/payment-requests", "/srm/collections"]],
-  ["Sales reports", ["/srm/reports", "/srm/profitability", "/srm/revenue-recognition"]],
+  ["Sales reports", [salesReportsPath, salesReportCalendarPath, "/srm/profitability", "/srm/revenue-recognition"]],
   ["Stock reports", ["/srm/inventory/reports/complete", "/srm/inventory/valuation", "/srm/inventory/gross-margin", "/srm/inventory/reconciliation", "/srm/inventory/audit"]],
 ];
 
@@ -70,7 +82,7 @@ const workspaces: [string, string[]][] = [
   ["Intern Management", ["/hrms/interns", "/hrms/interns/applications", "/hrms/interns/batches", "/hrms/interns/tasks", "/hrms/interns/reviews", "/hrms/interns/performance"]],
   ["Deals", ["/crm/deals", "/crm/pipeline", "/crm/templates"]],
   ["Activities & Planning", ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"]],
-  ["Communication", ["/crm/communication-hub", "/crm/send-reminders", "/crm/birthdays", "/crm/email-templates", "/crm/emails", "/crm/forms", "/crm/webforms", "/crm/campaigns", "/crm/consents", "/crm/whatsapp", "/crm/whatsapp/inbox", "/crm/whatsapp/sent", "/crm/whatsapp/templates", "/crm/whatsapp/profile", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline"]],
+  ["Communication", ["/crm/communication-hub", "/crm/reminders", "/crm/send-reminders", "/crm/birthdays", "/crm/email-templates", "/crm/emails", "/crm/forms", "/crm/webforms", "/crm/campaigns", "/crm/consents", "/crm/whatsapp", "/crm/whatsapp/inbox", "/crm/whatsapp/sent", "/crm/whatsapp/templates", "/crm/whatsapp/profile", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline"]],
   ["Catalog", ["/crm/products-services", "/crm/products", "/crm/services", "/crm/price-books"]],
   ["Quoting", ["/crm/quotes", "/crm/cpq", "/crm/guided-selling", "/crm/quote-approvals"]],
   ["Sales Insights", ["/crm/reports", "/crm/forecasting", "/crm/targets", "/crm/sales-performance", "/crm/funnel", "/crm/lost-analysis"]],

@@ -36,9 +36,10 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
       const buttons = Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button') || []).filter(button => !button.closest('[data-smart-create-footer]'));
       const button = buttons.find(button => button.hasAttribute('data-save-action') && button.type === 'submit' && !!button.form) || buttons.find(button => button.hasAttribute('data-save-action')) || buttons.find(button => button.type === 'submit' && button.form && /^(create|save|submit|raise|register|invite|schedule|request|apply|generate|publish|record|assign)\b/i.test(button.textContent?.trim() || '')) || buttons.find(button => /^(create|save|submit|raise)\b/i.test(button.textContent?.trim() || '') && !/draft|subtask|checklist|template|field|folder/i.test(button.textContent || '')) || buttons.find(button => /^(next|continue)$/i.test(button.textContent?.trim() || '')) || buttons.find(button => /^(invite|schedule|request|apply|generate|publish|record|assign)\b/i.test(button.textContent?.trim() || '')) || buttons.find(button => /^add\b/i.test(button.textContent?.trim() || '') && (button.type === 'submit' && !!button.form || !/another|more|existing|line|row|subtask|checklist|template|field|folder|lesson|question|section|condition|filter/i.test(button.textContent || ''))) || buttons.find(button => /^save (as )?draft$/i.test(button.textContent?.trim() || ''));
       primary.current = button;
-      if (button && !button.disabled) submitting.current = false;
+      const disabled = button?.matches(':disabled') ?? false;
+      if (button && !disabled) submitting.current = false;
       previous.current = definition.entity === 'employee' ? buttons.find(button => /^previous$/i.test(button.textContent?.trim() || '')) : undefined;
-      const next = button ? { label: button.textContent!.trim(), disabled: button.disabled, previous: previous.current ? { disabled: previous.current.disabled } : undefined } : undefined;
+      const next = button ? { label: button.textContent!.trim(), disabled, previous: previous.current ? { disabled: previous.current.matches(':disabled') } : undefined } : undefined;
       setAction(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     };
     const observer = new MutationObserver(inspect);
@@ -46,7 +47,7 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
     inspect(); return () => observer.disconnect();
   }, [element, definition.entity]);
   function requestClose() {
-    const saving = busy || submitting.current && !!primary.current?.disabled || !!content.current?.querySelector('form[aria-busy="true"],[data-save-action][aria-busy="true"]') || Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button:disabled') || []).some(button => /^(creating|saving|uploading|processing|submitting)\b/i.test(button.textContent?.trim() || ""));
+    const saving = busy || submitting.current && !!primary.current?.matches(':disabled') || !!content.current?.querySelector('form[aria-busy="true"],[data-save-action][aria-busy="true"]') || Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button:disabled') || []).some(button => /^(creating|saving|uploading|processing|submitting)\b/i.test(button.textContent?.trim() || ""));
     if (saving) return;
     if (dirty) setConfirm(true); else onClose();
   }
@@ -67,7 +68,7 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
         submitFromClick.current = button.type === 'submit' && !!button.form;
       }
       if (button?.closest('.smart-create-body') && /^(cancel|close)$/i.test(button.textContent?.trim() || '')) { event.preventDefault(); event.stopPropagation(); requestClose(); }
-    }} onPointerDownOutside={event => event.preventDefault()} onKeyDown={event => {
+    }} onPointerDownOutside={event => event.preventDefault()} onFocusOutside={event => event.preventDefault()} onKeyDown={event => {
       if (definition.entity === "task") { guardTaskEnter(event); if (event.isPropagationStopped()) return; }
       if (event.defaultPrevented || event.repeat) return;
       if (!content.current?.contains(event.target as Node)) return;

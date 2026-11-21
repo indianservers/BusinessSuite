@@ -48,8 +48,12 @@ export function SmartCreateSection({ title, children, size = "standard", autoOpe
     if (inside || !open || !closeOnRecordSaved) return;
     const saved = (event: Event) => {
       const change = (event as CustomEvent<RecordSaved>).detail;
-      const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).filter(dialog => dialog.getClientRects().length > 0);
-      if (!submitted.current || dialogs[dialogs.length - 1] !== body.current?.closest('[role="dialog"]') || change.method.toLowerCase() !== 'post' || !(change.record?.id || (change.record?.task as { id?: number } | undefined)?.id)) return;
+      if (!submitted.current || change.method.toLowerCase() !== 'post' || !(change.record?.id || (change.record?.task as { id?: number } | undefined)?.id) || change.record.success === false || change.record.saved === false || change.record.ok === false) return;
+      const dialog = body.current?.closest('[role="dialog"]');
+      if (!dialog) return;
+      // Record sync can hide the submitting dialog until its request settles.
+      const origin = change.origin ?? Array.from(document.querySelectorAll('[role="dialog"]')).filter(candidate => candidate.getClientRects().length > 0).pop();
+      if (origin !== dialog) return;
       latestClose.current();
     };
     window.addEventListener(recordSavedEvent, saved); return () => window.removeEventListener(recordSavedEvent, saved);

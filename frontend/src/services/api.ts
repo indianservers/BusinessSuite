@@ -1,6 +1,6 @@
 import { currentPOSOperationalPin, operationalOwner, isPOSOperationalRequest } from '@/lib/pos-operational-context';
 import { securityAuthStamp } from "@/lib/security-auth-stamp";
-import { startRecordSync, finishRecordSync, confirmRecoveredSync } from "@/shared/record-sync/store";
+import { startRecordSync, finishRecordSync, confirmRecoveredSync, recordSyncOrigin } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import {startupReadPriority} from '@/lib/startup-read-priority';
@@ -162,7 +162,11 @@ api.interceptors.response.use(
     const method=(response.config.method||"get").toLowerCase();
     if(response.config._recordMutationScope === mutationScope() && response.config.readOnlyPreview !== true && !["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
     if (response.config._recordMutationScope === mutationScope() && response.config.readOnlyPreview !== true && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
-    if (response.config.readOnlyPreview !== true && response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: confirmedMutation(response.config.url||"",method,response.config.data,response.data) }));
+    if (response.config.readOnlyPreview !== true && response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) {
+      const change = confirmedMutation(response.config.url || "", method, response.config.data, response.data);
+      change.origin = recordSyncOrigin(response.config._recordSyncId);
+      window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: change }));
+    }
     return response;
   },
   async (error: AxiosError) => {

@@ -27,6 +27,8 @@ const CRMWorkspacePage = lazyRoute(() => import("./CRMWorkspacePage"));
 const TemplateStudio = lazyRoute(() => import("./templates/TemplateStudio"));
 const CRMRecordDetailPage = lazyRoute(() => import("./CRMRecordDetailPage"));
 const LeadManagementPage = lazyRoute(() => import("./leads/LeadManagementPage"));
+const MembershipExpiryPage = lazyRoute(() => import("@/shared/catalog/MembershipExpiryPage"));
+const RemindersPage = lazyRoute(() => import("@/shared/follow-ups/RemindersPage"));
 const CommunicationHubPage = lazyRoute(() => import("@/apps/communication/CommunicationHubPage"));
 const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
 
@@ -95,6 +97,8 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/calendar", element: <CRMWorkspacePage kind="calendar" /> },
   { path: "crm/calendar-integrations", element: <CRMWorkspacePage kind="calendarIntegrations" /> },
   { path: "crm/webhooks", element: <CentralSettingsRedirect section="crm-webhooks" /> },
+  { path: "crm/membership-expiry", element: <MembershipExpiryPage source="crm" /> },
+  { path: "crm/reminders", element: <RemindersPage source="crm" /> },
   { path: "crm/send-reminders", element: <CommunicationHubPage /> },
   { path: "crm/communication-hub", element: <CommunicationHubPage /> },
   { path: "crm/email-templates", element: <TemplateStudio /> },

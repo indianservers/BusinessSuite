@@ -425,7 +425,26 @@ def dispatch(db):
 
     quotations = linked_sources(CRMQuotation, 'quotation_id')
     invoices = linked_sources(SRMInvoice, 'invoice_id')
+    from app.shared.plan_models import CustomerPlan
+    expiry_keys = {(row.configuration["membership_expiry"]["id"], row.organization_id)
+                   for row in rows if row.source_key and row.source_key.startswith("membership-expiry:")
+                   and row.configuration.get("membership_expiry")}
+    expiry_plans = {}
+    expiry_keys = list(expiry_keys)
+    for start in range(0, len(expiry_keys), 400):
+        for plan in db.query(CustomerPlan).filter(tuple_(CustomerPlan.id, CustomerPlan.organization_id).in_(expiry_keys[start:start+400])):
+            expiry_plans[(plan.id, plan.organization_id)] = plan
     for row in rows:
+        expiry = row.configuration.get("membership_expiry") if row.source_key and row.source_key.startswith("membership-expiry:") else None
+        module = 'crm'
+        if expiry:
+            plan = expiry_plans.get((expiry["id"], row.organization_id))
+            if (not plan or plan.customer_id != row.customer_id or str(plan.end_date) != expiry["expiry"]
+                    or plan.status not in {"active", "paused", "suspended", "expired"}):
+                row.status = 'Cancelled'
+                audit(db, row, None, 'source_changed', {'membership_plan_id': expiry["id"]})
+                continue
+            module = 'srm' if expiry["source"] == 'srm' else 'crm'
         if row.quotation_id:
             quote = quotations.get((row.quotation_id, row.organization_id))
             if not quote or str(quote.status or '').lower() in {'accepted', 'rejected', 'declined', 'cancelled', 'superseded', 'expired'}:
@@ -455,7 +474,7 @@ def dispatch(db):
             db.flush()
         try:
             with db.begin_nested():
-                notification = Notification(company_id=row.organization_id, user_id=row.assigned_user_id, title=f'Follow-up {phase}: {row.title}', message=f"Due {due.isoformat()} · {row.configuration.get('notes', '')}", module='crm', event_type='service_follow_up', related_entity_type='follow_up', related_entity_id=row.id, action_url=f'/crm/follow-ups/{row.id}', priority=row.priority.lower(), channels=['in_app'])
+                notification = Notification(company_id=row.organization_id, user_id=row.assigned_user_id, title=f'Follow-up {phase}: {row.title}', message=f"Due {due.isoformat()} · {row.configuration.get('notes', '')}", module=module, event_type='service_follow_up', related_entity_type='follow_up', related_entity_id=row.id, action_url=f'/{module}/follow-ups/{row.id}', priority=row.priority.lower(), channels=['in_app'])
                 db.add(notification)
                 db.flush()
                 db.add(NotificationDeliveryLog(notification_id=notification.id, channel='in_app', status='delivered', delivered_at=now))

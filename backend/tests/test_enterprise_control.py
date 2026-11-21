@@ -97,6 +97,14 @@ def test_licensing_reuses_plans_and_enforces_native_api(client, db, shared_setup
     )
     assert response.status_code == 200, response.text
     assert client.get("/api/v1/crm/leads", headers=headers).status_code == 200
+    for source, status in (("crm", 200), ("srm", 403), ("pms", 403)):
+        preview = client.post(
+            "/api/v1/customer-plans/validity-preview",
+            params={"source": source},
+            headers=headers,
+            json={"duration": {"unit": "month", "count": 1}},
+        )
+        assert preview.status_code == status, preview.text
     assert (
         client.get("/api/v1/project-management/projects", headers=headers).status_code
         == 403

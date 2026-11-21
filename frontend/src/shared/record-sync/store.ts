@@ -32,6 +32,9 @@ export function syncScope(){const u=useAuthStore.getState().user;const scope=[u?
 const emit=()=>listeners.forEach(fn=>fn());
 const visible=()=>items;
 export const subscribeSync=(listener:()=>void)=>{listeners.add(listener);return()=>{listeners.delete(listener);};};
+export function recordSyncOrigin(id: string | undefined) {
+  return id ? items.find(item => item.id === id && item.scope === syncScope())?.origin : undefined;
+}
 export function useRecordSync(){useAuthStore(s=>JSON.stringify([s.user?.id,s.user?.access?.companyId,securityAuthStamp(s.user)]));return useSyncExternalStore(subscribeSync,visible,visible).filter(item=>item.scope===syncScope());}
 
 let database:Promise<IDBDatabase>|undefined;

@@ -34,6 +34,7 @@ def providers(search: str = Query('', max_length=100), selected: str | None = He
 
 
 @router.get('')
-def options(employee_id: int | None = Query(None, gt=0), service_id: int = Query(..., gt=0), search: str = Query('', max_length=100), offset: int = Query(0, ge=0, le=10000), selected: str | None = Header(None, alias='X-Suite-Pack-Context'),
+def options(employee_id: int | None = Query(None, gt=0), service_id: int = Query(..., gt=0), search: str = Query('', max_length=100), offset: int = Query(0, ge=0, le=10000), staff_assignments: bool = False, selected: str | None = Header(None, alias='X-Suite-Pack-Context'),
         db=Depends(get_db), actor=Depends(get_current_user)):
-    return service_options(db, actor, service_id, selected=selected, search=search, offset=offset, employee_id=employee_id)
+    return service_options(db, actor, service_id, selected=selected, search=search, offset=offset, employee_id=employee_id,
+                           staff_assignments=staff_assignments)

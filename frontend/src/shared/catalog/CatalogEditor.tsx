@@ -4,6 +4,7 @@ import CatalogCategoryFields from "./CatalogCategoryFields";
 import {effectiveEmployeeCategories} from '@/shared/employee-category-taxonomy';
 import CatalogCompactEditor from "./CatalogCompactEditor";
 import ServiceSchedulingFields from "./ServiceSchedulingFields";
+import CatalogServiceStaff, { type CatalogProvider, type StaffDraft } from "./CatalogServiceStaff";
 import CatalogOptions from "./CatalogOptions";
 import { selectedPackContext } from "@/lib/pack-context";
 import { recordScope } from "@/lib/record-scope";
@@ -33,14 +34,71 @@ import "./catalog-editor-mobile.css";
 const empty = (kind: CatalogKind): Omit<CatalogItem, "id"> => ({ kind, name: "", code: "", category: "", description: "", price: 0, currency: defaultText("currency"), tax: defaultNumber("tax_rate"), unit: defaultText("unit_of_measure"), status: "Active", workspace_id: null, images: [], custom_fields: {}, pricing_options: [], version: 0 });
 function ServiceCatalogEditor({ source, initial, defaultKind = "product", features, close, saved }: { source: CatalogSource; initial?: CatalogItem; defaultKind?: CatalogKind; features?: CatalogFeatures; close: () => void; saved: (item: CatalogItem,configure?:boolean) => void }) {
   const owns=useRecordScopeOwner();
+  const selectedContext=!!features?.selected_context||selectedPackContext()!==null;
+  const canConfigure=(!selectedContext||features?.scheduling_configure===true)&&(!initial||initial.status==="Active");
   const mobile=useMobile();
   const dialogRef=useRef<HTMLDivElement>(null);
   const [mobileStep,setMobileStep]=useState(1),[mobileSection,setMobileSection]=useState<CatalogMobileSection>('details'),[mobileRow,setMobileRow]=useState(0);
   const [mobileSchedule,setMobileSchedule]=useState<CatalogScheduleDraft>({mode:'none',duration:30,categories:'',subcategories:String(initial?.custom_fields.employee_subcategories||'')});
   const policySnapshot=useRef('');
+  const [assignedStaff, setAssignedStaff] = useState<CatalogProvider[]>([]);
+  const [staffChanges, setStaffChanges] = useState<StaffDraft[]>([]);
   const [scheduleReady,setScheduleReady]=useState(!initial),[scheduleError,setScheduleError]=useState('');
   const [scheduleReload,setScheduleReload]=useState(0);
-  useEffect(()=>{if(source!=='srm'||initial?.kind!=='service')return;if(!(Number(sessionStorage.getItem('suite-branch'))>0)){setScheduleReady(false);setScheduleError('Select one branch to configure service scheduling.');return;}let active=true;setScheduleReady(false);setScheduleError('');void api.get('/srm/service-checkout/options',{params:{service_id:initial.id},progress:false,recordCache:false}).then(({data})=>{if(!active||!owns())return;const p=data.policy;const next:CatalogScheduleDraft=p?{mode:p.active?(p.booking_required?'required':'optional'):'none',duration:p.default_duration_minutes,categories:JSON.stringify(p.employee_categories||[]),subcategories:'',revision:p.revision,policyId:p.id}:{mode:'none',duration:30,categories:'',subcategories:''};setMobileSchedule(next);policySnapshot.current=JSON.stringify(next);setScheduleReady(true);}).catch(e=>{if(active&&owns())setScheduleError(catalogError(e));});return()=>{active=false;};},[source,initial?.id,scheduleReload]);
+  const serviceId = initial?.kind === "service" && initial.status === "Active" ? initial.id : undefined;
+  useEffect(() => {
+    if (source !== "srm" || !serviceId || !canConfigure) {
+      setScheduleReady(true);
+      return;
+    }
+    if (!(Number(sessionStorage.getItem("suite-branch")) > 0)) {
+      setScheduleReady(false);
+      setScheduleError("Select one branch to configure service scheduling.");
+      return;
+    }
+    const controller = new AbortController();
+    setScheduleReady(false);
+    setScheduleError("");
+    const load = async () => {
+      const read = (offset = 0) => api.get<{
+        policy: { id: number; revision: number; active: boolean; booking_required: boolean; default_duration_minutes: number; employee_categories?: string[] } | null;
+        specialists: CatalogProvider[];
+        next_offset: number | null;
+      }>("/srm/service-checkout/options", {
+        params: { service_id: serviceId, staff_assignments: true, offset },
+        signal: controller.signal,
+        progress: false,
+        recordCache: false,
+      }).then(response => response.data);
+
+      const first = await read();
+      const providers = [...(first.specialists ?? [])];
+      let offset = first.next_offset;
+      while (offset && offset <= 10000) {
+        const page = await read(offset);
+        providers.push(...page.specialists);
+        offset = page.next_offset;
+      }
+      if (controller.signal.aborted || !owns()) return;
+      const policy = first.policy;
+      const next: CatalogScheduleDraft = policy ? {
+        mode: policy.active ? (policy.booking_required ? "required" : "optional") : "none",
+        duration: policy.default_duration_minutes,
+        categories: JSON.stringify(policy.employee_categories ?? []),
+        subcategories: "",
+        revision: policy.revision,
+        policyId: policy.id,
+      } : { mode: "none", duration: 30, categories: "", subcategories: "" };
+      setMobileSchedule(next);
+      setAssignedStaff(providers);
+      policySnapshot.current = JSON.stringify(next);
+      setScheduleReady(true);
+    };
+    void load().catch(error => {
+      if (!controller.signal.aborted && owns()) setScheduleError(catalogError(error));
+    });
+    return () => controller.abort();
+  }, [source, serviceId, canConfigure, scheduleReload]);
   useEffect(()=>{
     const viewport=window.visualViewport;
     const measure = () => {
@@ -54,9 +112,7 @@ function ServiceCatalogEditor({ source, initial, defaultKind = "product", featur
     measure();viewport?.addEventListener('resize',measure);viewport?.addEventListener('scroll',measure);window.addEventListener('resize',measure);
     return()=>{viewport?.removeEventListener('resize',measure);viewport?.removeEventListener('scroll',measure);window.removeEventListener('resize',measure);};
   },[]);
-  const selectedContext=!!features?.selected_context||selectedPackContext()!==null;
   const supports=(key:keyof CatalogFeatures)=>!selectedContext||features?.[key]===true;
-  const canConfigure=!selectedContext||features?.scheduling_configure===true;
   const [pharmaWarehouses,setPharmaWarehouses]=useState<{id:number;warehouse_name:string}[]>([]);
   const [pharmaWarehouseError,setPharmaWarehouseError]=useState("");
   useEffect(()=>{if(source!=="srm"||features?.pharma_lot_tracking!==true)return;let active=true;void api.get("/srm/pharma/options",{recordCache:false}).then(result=>{if(active)setPharmaWarehouses(result.data.warehouses||[]);}).catch(error=>{if(active)setPharmaWarehouseError(catalogError(error));});return()=>{active=false;};},[source,features?.pharma_lot_tracking]);
@@ -107,19 +163,26 @@ function ServiceCatalogEditor({ source, initial, defaultKind = "product", featur
     const configure=(event?.nativeEvent as SubmitEvent|undefined)?.submitter?.getAttribute("data-configure-service")==="true";
     event?.preventDefault(); event?.stopPropagation(); if (submitting.current || uploading) return false;
     if (!initial && (!branchReady || !destination)) { setError("No writable destination branch is available. Check your branch access."); return false; }
+    if (staffChanges.length && draft.status !== "Active") { setError("Save the service as Active to change employee assignments."); return false; }
     if (!priceInput.trim() || !Number.isFinite(draft.price) || draft.price < 0 || draft.price > 9999999999) { setError("Base price must be between 0 and 9,999,999,999."); return false; }
     if(mobile){
       const invalidPrice=draft.pricing_options.findIndex(p=>!p.name.trim()||!Number.isFinite(p.amount)||p.amount<0||!/^[A-Z]{3}$/.test(p.currency));
       if(invalidPrice>=0){setMobileStep(2);setMobileSection('pricing');setMobileRow(invalidPrice);setError('Complete the price name, amount and currency.');return false;}
     }
-    if(source==='srm'&&draft.kind==='service'&&canConfigure&&scheduleReady){
+    if(source==='srm'&&draft.kind==='service'&&draft.status==='Active'&&canConfigure&&scheduleReady){
       if(draft.kind==='service'&&canConfigure&&mobileSchedule.mode!=='none'&&(!Number.isInteger(mobileSchedule.duration)||mobileSchedule.duration<5||mobileSchedule.duration>720)){setMobileStep(1);setError('Duration must be 5–720 whole minutes.');return false;}
       const categories=effectiveEmployeeCategories(mobileSchedule.categories,mobileSchedule.subcategories);
       if(categories.length>20||categories.some(x=>x.length>80)){setMobileStep(1);setError('Use up to 20 employee categories, each at most 80 characters.');return false;}
     }
     submitting.current = true; setBusy(!automatic); setError("");
     const payload={...draft};
-    if(source==='srm'&&draft.kind==='service'&&canConfigure&&scheduleReady)payload.service_scheduling={mode:mobileSchedule.mode as 'none'|'optional'|'required',duration:mobileSchedule.duration,employee_categories:effectiveEmployeeCategories(mobileSchedule.categories,mobileSchedule.subcategories),...(mobileSchedule.revision?{expected_revision:mobileSchedule.revision}:{})};
+    delete payload.service_scheduling;
+    if(source==='srm'&&draft.kind==='service'&&draft.status==='Active'&&canConfigure&&scheduleReady)payload.service_scheduling={mode:mobileSchedule.mode as 'none'|'optional'|'required',duration:mobileSchedule.duration,employee_categories:effectiveEmployeeCategories(mobileSchedule.categories,mobileSchedule.subcategories),...(mobileSchedule.revision?{expected_revision:mobileSchedule.revision}:{}),
+      ...(staffChanges.length ? {staff_changes:staffChanges.map(({provider,active})=>({
+        provider_resource_id:provider.provider_resource_id,employee_id:provider.employee_id,active,
+        expected_revision:provider.eligibility_revision,
+      }))} : {}),
+    };
     if(selectedContext&&!supports("follow_ups")&&initial?.follow_up&&JSON.stringify(payload.follow_up)===JSON.stringify(initial.follow_up))delete payload.follow_up;
     try { const response = await catalogApi.save(source, { ...payload, tags: parseCatalogTags(tagText), price: priceIncludesTax ? Math.round(draft.price / (1 + draft.tax / 100) * 100) / 100 : draft.price }, destination); if(!owns())return false;
       if(response.data.service_scheduling){const next={...mobileSchedule,revision:response.data.service_scheduling.expected_revision};setMobileSchedule(next);policySnapshot.current=JSON.stringify(next);}
@@ -129,11 +192,18 @@ function ServiceCatalogEditor({ source, initial, defaultKind = "product", featur
   }
   const {version:ignoredVersion,...watchedDraft}=draft;
   const savedSnapshot=useRef<string>();
-  const clearDraft=useRecordDraft(`catalog:v2:${recordScope(useAuthStore.getState().user)}:${source}:new`,{draft,tagText,priceIncludesTax,mobileSchedule},value=>{if(value.mobileSchedule)setMobileSchedule(value.mobileSchedule);setDraft(value.draft);setPriceInput(String(value.draft.price));setTagText(value.tagText);setPriceIncludesTax(value.priceIncludesTax);},!initial&&branchReady);
+  const clearDraft=useRecordDraft(`catalog:v2:${recordScope(useAuthStore.getState().user)}:${source}:new:service`,{draft,tagText,priceIncludesTax,mobileSchedule,staffChanges},value=>{if(value.mobileSchedule)setMobileSchedule(value.mobileSchedule);if(value.staffChanges)setStaffChanges(value.staffChanges);setDraft(value.draft);setPriceInput(String(value.draft.price));setTagText(value.tagText);setPriceIncludesTax(value.priceIncludesTax);},!initial&&branchReady);
   useEffect(()=>{if(initial&&savedSnapshot.current===undefined)savedSnapshot.current=JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax});},[initial,watchedDraft,tagText,priceIncludesTax]);
-  const auto=useRecordAutosave({value:{draft:watchedDraft,tagText,priceIncludesTax,mobileSchedule},enabled:!!initial&&!busy&&!uploading&&scheduleReady,dirty:savedSnapshot.current!==undefined&&(savedSnapshot.current!==JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax})||!!policySnapshot.current&&policySnapshot.current!==JSON.stringify(mobileSchedule)),save:()=>submit(undefined,true)});
-  return <Dialog.Root open onOpenChange={open => { if (!open && !busy && !uploading) close(); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content ref={dialogRef} className="sc-dialog sc-catalog-editor" data-catalog-source={source}><header className="sc-dialog-heading"><span className="sc-icon"><Package size={22}/></span><div><Dialog.Title>{initial ? "Edit" : "Add"} {draft.kind === "service" ? term('service').toLowerCase() : draft.kind}</Dialog.Title><Dialog.Description>{mobile?'Complete essentials and save. The second page is optional.':'Set the service price, eligible employee categories, and appointment scheduling.'}</Dialog.Description></div><Dialog.Close asChild><button type="button" disabled={busy || uploading} aria-label="Close catalog editor"><X size={20}/></button></Dialog.Close></header><CompactForm compactTabs={!mobile} onInvalidCapture={mobile?event=>setMobileStep(Number((event.target as HTMLElement).closest('[data-catalog-step]')?.getAttribute('data-catalog-step')||1)):undefined} onSubmit={submit}>{mobile?<CatalogMobileFields source={source} draft={draft} patch={patch} priceInput={priceInput} setPrice={v=>{setPriceInput(v);patch('price',Number(v));}} tags={tagText} setTags={setTagText} inclusive={priceIncludesTax} setInclusive={setPriceIncludesTax} step={mobileStep} setStep={setMobileStep} section={mobileSection} setSection={setMobileSection} schedule={mobileSchedule} setSchedule={setMobileSchedule} busy={busy||uploading} editing={!!initial} canConfigure={source==='srm'&&canConfigure&&scheduleReady} supports={supports} features={features} workspaces={workspaces} warehouses={pharmaWarehouses} employees={followUpOptions.employees} teams={followUpOptions.teams} row={mobileRow} setRow={setMobileRow} image={image} setImage={setImage} uploading={uploading} upload={file=>{void uploadImage(file);}} customName={field} setCustomName={setField} customValue={fieldValue} setCustomValue={setFieldValue} selectedContext={selectedContext}/>:<fieldset disabled={busy || uploading} className="sc-form"><div className="sc-form-grid" data-form-section-label="Basic details">
-    {selectedContext?<p className="sc-muted">Business context availability is managed in Business Pack settings.</p>:<BranchAvailability value={draft.branch_availability} editing={!!initial} disabled={busy} onChange={value => patch("branch_availability", value)}/>}
+  const auto=useRecordAutosave({value:{draft:watchedDraft,tagText,priceIncludesTax,mobileSchedule},enabled:!!initial&&!busy&&!uploading&&scheduleReady&&staffChanges.length===0,dirty:savedSnapshot.current!==undefined&&(savedSnapshot.current!==JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax})||!!policySnapshot.current&&policySnapshot.current!==JSON.stringify(mobileSchedule)),save:()=>submit(undefined,true)});
+  const staffFields=<CatalogServiceStaff
+    branchId={initial ? Number(initialBranch.current) : destination}
+    assigned={assignedStaff}
+    changes={staffChanges}
+    categories={effectiveEmployeeCategories(mobileSchedule.categories,mobileSchedule.subcategories)}
+    onChange={setStaffChanges}
+  />;
+  return <Dialog.Root open onOpenChange={open => { if (!open && !busy && !uploading) close(); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content ref={dialogRef} className="sc-dialog sc-catalog-editor" data-catalog-source={source}><header className="sc-dialog-heading"><span className="sc-icon"><Package size={22}/></span><div><Dialog.Title>{initial ? "Edit" : "Add"} {draft.kind === "service" ? term('service').toLowerCase() : draft.kind}</Dialog.Title><Dialog.Description>{mobile?'Complete essentials and save. The second page is optional.':'Set the service price, eligible employee categories, and appointment scheduling.'}</Dialog.Description></div><Dialog.Close asChild><button type="button" disabled={busy || uploading} aria-label="Close catalog editor"><X size={20}/></button></Dialog.Close></header><CompactForm compactTabs={!mobile} onInvalidCapture={mobile?event=>setMobileStep(Number((event.target as HTMLElement).closest('[data-catalog-step]')?.getAttribute('data-catalog-step')||1)):undefined} onSubmit={submit}>{mobile?<CatalogMobileFields source={source} draft={draft} patch={patch} priceInput={priceInput} setPrice={v=>{setPriceInput(v);patch('price',Number(v));}} tags={tagText} setTags={setTagText} inclusive={priceIncludesTax} setInclusive={setPriceIncludesTax} step={mobileStep} setStep={setMobileStep} section={mobileSection} setSection={setMobileSection} schedule={mobileSchedule} setSchedule={setMobileSchedule} busy={busy||uploading} editing={!!initial} canConfigure={source==='srm'&&draft.status==='Active'&&canConfigure&&scheduleReady} staffFields={staffFields} supports={supports} features={features} workspaces={workspaces} warehouses={pharmaWarehouses} employees={followUpOptions.employees} teams={followUpOptions.teams} row={mobileRow} setRow={setMobileRow} image={image} setImage={setImage} uploading={uploading} upload={file=>{void uploadImage(file);}} customName={field} setCustomName={setField} customValue={fieldValue} setCustomValue={setFieldValue} selectedContext={selectedContext}/>:<fieldset disabled={busy || uploading} className="sc-form"><div className="sc-form-grid" data-form-section-label="Basic details">
+
     <label>Type<NativeSelect aria-label="Type" disabled={!!initial} value={draft.kind} onChange={e => patch("kind", e.target.value as CatalogKind)}><option value="product">Product</option><option value="service">{term("service")}</option><option value="membership">Membership</option><option value="subscription">Subscription</option><option value="bundle">Bundle</option></NativeSelect></label><label>Status<NativeSelect aria-label="Status" value={draft.status} onChange={e => patch("status", e.target.value as CatalogItem["status"])}><option>Active</option><option>Archived</option></NativeSelect></label>
     <label>{draft.kind === "service" ? "Service name" : "Product name"}<input required maxLength={180} autoFocus value={draft.name} onChange={e => patch("name", e.target.value)} placeholder={draft.kind === "service" ? "e.g. General consultation" : "e.g. Digital thermometer"}/></label><label>{draft.kind === "service" ? "Service code" : "SKU / Product code"}<input required maxLength={80} value={draft.code} onChange={e => patch("code", e.target.value)} placeholder="e.g. BS-ENT-01"/></label>
     <CatalogCategoryFields source={source} draft={draft} patch={patch}/><label>{draft.kind === "service" ? "Billing unit" : "Stock unit"}<input required maxLength={40} value={draft.unit} onChange={e => patch("unit", e.target.value)} placeholder={draft.kind === "service" ? "consultation, session, hour…" : "piece, box, unit…"}/></label>
@@ -145,8 +215,12 @@ function ServiceCatalogEditor({ source, initial, defaultKind = "product", featur
     {draft.kind === "product" && <><label>Reorder level<input type="number" min="0" max="9999999999" step="0.001" value={draft.reorder_level ?? 0} onChange={e => patch("reorder_level", Number(e.target.value))}/></label><label>Inventory tracking<NativeSelect value={draft.track_inventory === false ? "off" : "on"} onChange={e => patch("track_inventory", e.target.value === "on")}><option value="on">Track stock</option><option value="off">Do not track stock</option></NativeSelect></label></>}
     {draft.kind === "product" && source === "srm" && features?.pharma_lot_tracking === true && <label>Batch and expiry tracking<NativeSelect className="min-w-0 w-full max-w-full" aria-label="Batch and expiry tracking" value={draft.pharma_lot_tracking ? "on" : "off"} onChange={e => patch("pharma_lot_tracking", e.target.value === "on")}><option value="off">Standard stock</option><option value="on">Medicine lots · FEFO</option></NativeSelect><small>Only explicitly received lots can be sold. Existing stock is not assigned to a batch automatically.</small></label>}
     {draft.kind === "product" && source === "srm" && features?.pharma_lot_tracking === true && <label>Medicine warehouse<NativeSelect className="min-w-0 w-full max-w-full" aria-label="Medicine warehouse" value={draft.pharma_warehouse_id??""} onChange={e=>patch("pharma_warehouse_id",e.target.value?Number(e.target.value):null)}><option value="">Choose available warehouse</option>{pharmaWarehouses.map(row=><option key={row.id} value={row.id}>{row.warehouse_name}</option>)}</NativeSelect>{pharmaWarehouseError&&<small role="alert">{pharmaWarehouseError}</small>}</label>}
-    </div>{draft.kind==="service"&&source==='srm'&&canConfigure&&<section className="sc-section" data-form-section-label="Scheduling"><h3>Scheduling &amp; eligible employee categories</h3>{scheduleError?<p className="sc-error" role="alert">{scheduleError} <button type="button" onClick={()=>setScheduleReload(v=>v+1)}>Retry scheduling</button></p>:!scheduleReady?<p role="status">Loading scheduling…</p>:<ServiceSchedulingFields value={mobileSchedule} onChange={setMobileSchedule}/>}</section>}<div data-form-section-label="Basic details"><OfferingFields source={source} draft={draft} onChange={changes=>setDraft(current=>({...current,...changes}))}/><CatalogOptions title="Additional prices"><section className="sc-section" data-form-section-label="Basic details"><header><div><Repeat2 size={17}/><h3>Pricing options</h3><small>One-time or recurring</small></div><button type="button" onClick={() => patch("pricing_options", [...draft.pricing_options, { id: randomUUID(), name: "", amount: draft.price, currency: draft.currency, interval: "once" }])}><Plus size={15}/>Add price</button></header>{draft.pricing_options.map((price, index) => <div className="sc-price-row" key={price.id}><label>Price name<input required maxLength={100} value={price.name} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, name: e.target.value } : p))} placeholder="Monthly retainer"/></label><label>Amount<input required type="number" min="0" max="9999999999" step="0.01" value={price.amount} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, amount: Number(e.target.value) } : p))}/></label><label>Currency<input required pattern="[A-Z]{3}" maxLength={3} value={price.currency} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, currency: e.target.value.toUpperCase() } : p))}/></label><label>Billing<NativeSelect aria-label="Billing" value={price.interval} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, interval: e.target.value as typeof p.interval } : p))}>{["once", "day", "week", "month", "year"].map(interval => <option key={interval} value={interval}>{interval === "once" ? "One-time" : `Every ${interval}`}</option>)}</NativeSelect></label><button type="button" aria-label={`Remove pricing option ${index + 1}`} onClick={() => patch("pricing_options", draft.pricing_options.filter((_, i) => i !== index))}><Trash2 size={15}/></button></div>)}{!draft.pricing_options.length && <p className="sc-muted">The base price applies unless you add another pricing option.</p>}</section>
+    </div>{draft.kind==="service"&&draft.status==='Active'&&source==='srm'&&canConfigure&&<section className="sc-section" data-form-section-label="Basic details"><h3>Scheduling &amp; eligible employees</h3>{scheduleError?<p className="sc-error" role="alert">{scheduleError} <button type="button" onClick={()=>setScheduleReload(v=>v+1)}>Retry scheduling</button></p>:!scheduleReady?<p role="status">Loading scheduling…</p>:<><ServiceSchedulingFields value={mobileSchedule} onChange={setMobileSchedule}/>{staffFields}</>}</section>}<div data-form-section-label="Pricing"><OfferingFields source={source} draft={draft} onChange={changes=>setDraft(current=>({...current,...changes}))}/><CatalogOptions title="Additional prices"><section className="sc-section" data-form-section-label="Basic details"><header><div><Repeat2 size={17}/><h3>Pricing options</h3><small>One-time or recurring</small></div><button type="button" onClick={() => patch("pricing_options", [...draft.pricing_options, { id: randomUUID(), name: "", amount: draft.price, currency: draft.currency, interval: "once" }])}><Plus size={15}/>Add price</button></header>{draft.pricing_options.map((price, index) => <div className="sc-price-row" key={price.id}><label>Price name<input required maxLength={100} value={price.name} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, name: e.target.value } : p))} placeholder="Monthly retainer"/></label><label>Amount<input required type="number" min="0" max="9999999999" step="0.01" value={price.amount} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, amount: Number(e.target.value) } : p))}/></label><label>Currency<input required pattern="[A-Z]{3}" maxLength={3} value={price.currency} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, currency: e.target.value.toUpperCase() } : p))}/></label><label>Billing<NativeSelect aria-label="Billing" value={price.interval} onChange={e => patch("pricing_options", draft.pricing_options.map((p, i) => i === index ? { ...p, interval: e.target.value as typeof p.interval } : p))}>{["once", "day", "week", "month", "year"].map(interval => <option key={interval} value={interval}>{interval === "once" ? "One-time" : `Every ${interval}`}</option>)}</NativeSelect></label><button type="button" aria-label={`Remove pricing option ${index + 1}`} onClick={() => patch("pricing_options", draft.pricing_options.filter((_, i) => i !== index))}><Trash2 size={15}/></button></div>)}{!draft.pricing_options.length && <p className="sc-muted">The base price applies unless you add another pricing option.</p>}</section>
     </CatalogOptions></div>
+    <section className="sc-section" data-form-section-label="Additional settings">
+      <h3>Branch availability</h3>
+    {selectedContext?<p className="sc-muted">Business context availability is managed in Business Pack settings.</p>:<BranchAvailability value={draft.branch_availability} editing={!!initial} disabled={busy} onChange={value => patch("branch_availability", value)}/>}
+    </section>
     <section data-form-section-label={`Schedule ${term('customer').toLowerCase()} follow-up`}><p className="sc-muted">Set the default follow-up for each customer who buys this product or uses this service. The schedule starts from their purchase, delivery or service completion.</p>{supports("follow_ups")?<ScheduleFields template value={draft.follow_up || { ...newDefaultSchedule(), reference: draft.kind === "service" ? "completion" : "purchase" }} employees={followUpOptions.employees} teams={followUpOptions.teams} onChange={value => patch("follow_up", value)}/>:<p className="sc-muted">{initial?.follow_up?"Existing follow-up configuration is preserved and read only in this business context.":"Follow-up configuration is unavailable in this business context."}</p>}</section>
     <section className="sc-section"><header><div><ImagePlus size={17}/><h3>Images</h3></div></header><label>Upload image (PNG, JPEG or WebP, up to 2 MB)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || uploading || draft.images.length >= 20 || !supports("image_upload")} onChange={event => { void uploadImage(event.target.files?.[0]); event.target.value = ""; }}/></label>{uploading && <p role="status">Uploading image…</p>}<div className="sc-inline"><input aria-label="Image URL" value={image} onChange={e => setImage(e.target.value)} placeholder="https://…"/><button type="button" disabled={!image.trim() || draft.images.length >= 20} onClick={() => { patch("images", [...draft.images, image.trim()]); setImage(""); }}>Add image</button></div><div className="sc-image-strip">{draft.images.map((url, index) => <div key={index}><img src={url} alt={`Item image ${index + 1}`} referrerPolicy="no-referrer"/><button type="button" aria-label={`Remove image ${index + 1}`} onClick={() => patch("images", draft.images.filter((_, i) => i !== index))}><X size={13}/></button></div>)}</div></section>
     <section className="sc-section"><label>Tags (comma-separated)<input aria-label="Catalog tags" value={tagText} maxLength={1000} onChange={event=>setTagText(event.target.value)} placeholder="e.g. recurring, priority, consulting"/></label><p className="sc-muted">Up to 20 shared tags. Use tags to organize products and services across modules.</p></section>

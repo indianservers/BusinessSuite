@@ -6,5 +6,5 @@ import POS from '@/apps/srm/pages/SRMPOSPage';
 import { useAuthStore } from '@/store/authStore';
 import '@/index.css';
 sessionStorage.setItem('suite-tenant', 'fixture'); sessionStorage.setItem('suite-organization', '1'); sessionStorage.setItem('suite-branch', '1');
-useAuthStore.setState({ isAuthenticated: true, isHydrated: true, accessToken: 'fixture', user: { id: 77, email: 'counter@example.invalid', role: 'employee', is_superuser: false, access: { companyId: 1, isAccessAdmin: !location.search.includes('nonadmin'), grants: {} } } as never });
+if (navigator.onLine || !useAuthStore.getState().user) useAuthStore.setState({ isAuthenticated: true, isHydrated: true, accessToken: 'fixture', user: { id: 77, email: 'counter@example.invalid', role: 'employee', is_superuser: false, access: { companyId: 1, isAccessAdmin: !location.search.includes('nonadmin'), grants: {} } } as never });
 createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}})}><MemoryRouter initialEntries={['/srm/pos']}><POS/></MemoryRouter></QueryClientProvider>);

@@ -1794,23 +1794,20 @@ function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSa
       }
       throw new Error("Create form is not available for this SRM view.");
     },
-    onSuccess: async (result) => {
+    onSuccess: (result) => {
       if (!ownsDraft()) return;
       if (kind === "salesOrders") sessionStorage.removeItem(draftKey);
-      const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
-      setMessage(text);
-      toast({ title: text });
-      if (kind === "salesOrders") {
-        onSaved?.();
-        void syncSrmNow(queryClient, { type: "sales_order_changed", source: "srm-salesOrders-create", ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined } }).catch(() => { if (ownsDraft()) toast({ title: "Sales order saved", description: "The list could not be refreshed. Refresh to see the latest details." }); });
-        return;
-      }
-      await syncSrmNow(queryClient, {
-        type: "inventory_changed",
+      const title = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
+      setMessage(title);
+      toast({ title });
+      onSaved?.();
+      void syncSrmNow(queryClient, {
+        type: kind === "salesOrders" ? "sales_order_changed" : "inventory_changed",
         source: `srm-${kind}-create`,
         ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
+      }).catch(() => {
+        if (ownsDraft()) toast({ title, description: "Refresh the list to see the latest details." });
       });
-      if (ownsDraft()) onSaved?.();
     },
     onError: (err: unknown) => {
       if (!ownsDraft()) return;

@@ -12,7 +12,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Plus, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
 import { canAccessRoute, getRoleNav, type RoleNavItem } from "@/lib/roles";
-import { activeWorkspace, getOperationWorkspace, navigationOperationPath, workspacePageHref } from "@/lib/navigation-workspaces";
+import { activeWorkspace, getOperationWorkspace, navigationOperationPath, salesReportCalendarHref, salesReportCalendarPath, workspacePageHref } from "@/lib/navigation-workspaces";
 import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation, moduleMenuNavigation } from "@/lib/navigation-menu";
 import { useAuthStore } from "@/store/authStore";
 import { defaultSuitePreferences, suiteScope, useSuitePreferences } from "@/store/suitePreferences";
@@ -96,6 +96,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const expandAll = (expanded: boolean) => update(scope, { groups: {
     ...preferences.groups, ...Object.fromEntries(allGroups.map(group => [key(group), expanded])),
   } });
+  const linkHref = (to: string) => workspacePageHref(salesReportCalendarHref(to, location.pathname, location.search), location.search, workspaceId);
   const isCurrent = (to: string) => {
     const [path, search] = to.split("?");
     const currentParams = new URLSearchParams(location.search);
@@ -103,7 +104,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       const workspace = getOperationWorkspace(location.pathname + location.search);
       const operation = currentParams.get("operation");
       const selected = navigationOperationPath(operation && workspace?.paths.includes(operation) ? operation : location.pathname + location.search);
-      const target = navigationOperationPath(to);
+      const target = salesReportCalendarHref(to, location.pathname, location.search) === to ? navigationOperationPath(to) : salesReportCalendarPath;
       return (selected === target || selected.startsWith(target + "/"))
         && [...new URLSearchParams(search)].every(([key, value]) => key === "module" ? value === "srm" : currentParams.get(key) === value);
     }
@@ -120,7 +121,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         })}</ul>
       </details>
     )}
-    {moduleKey==='srm' && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser) && <nav className="module-menu-pos-primary" aria-label="Primary Sales action"><Link to={workspacePageHref('/srm/pos/terminal',location.search,workspaceId)} onClick={onNavigate} aria-label="POS" aria-current={isCurrent('/srm/pos/terminal')?'page':undefined} title="POS · Billing & point of sale"><ShoppingCart size={22}/>{!collapsed&&<span><strong>POS</strong><small>Billing & point of sale</small></span>}</Link><MenuQuickAdd actions={createActions} paths={['/srm/pos/terminal','/srm/pos']} label="POS" onNavigate={onNavigate}/></nav>}
+    {moduleKey==='srm' && canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser) && <nav className="module-menu-pos-primary" aria-label="Primary Sales action"><Link to={linkHref('/srm/pos/terminal')} onClick={onNavigate} aria-label="POS" aria-current={isCurrent('/srm/pos/terminal')?'page':undefined} title="POS · Billing & point of sale"><ShoppingCart size={22}/>{!collapsed&&<span><strong>POS</strong><small>Billing & point of sale</small></span>}</Link><MenuQuickAdd actions={createActions} paths={['/srm/pos/terminal','/srm/pos']} label="POS" onNavigate={onNavigate}/></nav>}
     {!collapsed && <>
       <label className="module-menu-search"><Search size={16} /><input type="search" aria-label="Search menu items" placeholder="Search menu items..." value={query}
         onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
@@ -136,12 +137,15 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       {(moduleKey === 'srm' ? [
         ['/srm/appointments', 'Appointments'],
         ['/srm/service-scheduling?view=schedule', 'Scheduling'], ['/srm/customers', term('customer', true)],
-        ['/srm/invoices', 'Transactions'], ['/srm/reports', 'Reports'],
+        ['/srm/invoices', 'Transactions'], ['/srm/sales-report', 'Sales Report'],
+        ['/srm/membership-expiry', 'Membership Expiry Report'], ['/srm/send-reminders', 'Reminders'],
+        ['/srm/reports', 'Reports'], ['/srm/inventory/stock-management', 'Stock Management'],
       ] : [
         ['/crm/appointments', 'Appointment Scheduler'], ['/crm/contacts', 'Contacts'],
         ['/crm/leads', 'Leads'], ['/crm/calendar', 'Calendar'],
+        ['/crm/membership-expiry', 'Membership Expiry Report'], ['/crm/reminders', 'Reminders'],
       ]).filter(([to]) => canAccessRoute(to, user?.role, user?.is_superuser)).map(([to, label]) =>
-        <Link key={to} to={workspacePageHref(to, location.search, workspaceId)} onClick={onNavigate}
+        <Link key={to} to={linkHref(to)} onClick={onNavigate}
           title={label} aria-label={label} aria-current={isCurrent(to) ? 'page' : undefined}
           className={`nav-link flex min-h-9 items-center rounded px-2 text-xs ${isCurrent(to) ? 'bg-sidebar-accent font-semibold' : ''}`}>
           <MenuItemIcon path={to} fallback={to.includes("/pos/") ? ShoppingCart : to.includes("appointments") ? CalendarDays : (to.includes("scheduled-services") || to.includes("service-scheduling")) ? Clock3 : to.includes("invoices") ? Receipt : categoryIcon(label)}/>{!collapsed && <span>{label}</span>}
@@ -153,11 +157,11 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       const selected = primary ? location.pathname === `/${moduleKey}` || location.pathname === `/${moduleKey}/dashboard` : isCurrent(item.to);
       const label = displayLabel(item);
       return <li key={item.to}><div className={`module-menu-row ${selected ? "is-active" : ""}`}>
-        <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={onNavigate} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
+        <Link to={linkHref(item.to)} onClick={onNavigate} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
           <MenuItemIcon path={item.to} fallback={item.icon}/>{!collapsed && <span>{label}</span>}
         </Link>
         {!collapsed && <MenuQuickAdd actions={createActions} paths={menuPages(item).map(page=>page.to)} label={label} onNavigate={onNavigate}/>}
-        {!collapsed && <MenuItemMore path={workspacePageHref(item.to, location.search, workspaceId)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/>}
+        {!collapsed && <MenuItemMore path={linkHref(item.to)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/>}
       </div></li>;
     })}</ul>}
     {moduleKey !== "srm" && !collapsed && !query.trim() && preferences.favorites.some(path=>available.some(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0])) && <ul className="module-menu-favorites" aria-label="Favorite menu pages"><li><p>Favorites</p></li>{preferences.favorites.flatMap(path=>{
@@ -182,19 +186,19 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
           const submenuOpen = submenus[item.to] ?? (selected || pages.some(page => isCurrent(page.to)));
           return <li key={item.to + item.label}>
             <div className={`module-menu-row ${selected ? "is-active" : ""}`}>
-              <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={() => {
+              <Link to={linkHref(item.to)} onClick={() => {
                 if (pages.length > 1) setSubmenus(previous => ({ ...previous, [item.to]: true }));
                 onNavigate();
               }} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
                 <MenuItemIcon path={item.to} fallback={item.icon}/>{!collapsed && <span>{label}</span>}
               </Link>
               {!collapsed && <MenuQuickAdd actions={createActions} paths={pages.map(page => page.to)} label={label} onNavigate={onNavigate} />}
-              {!collapsed && <MenuItemMore path={workspacePageHref(item.to, location.search, workspaceId)} paths={pages.map(page=>page.to)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available.map(page=>({...page,to:workspacePageHref(page.to,location.search,workspaceId)}))} onNavigate={onNavigate}/>}
+              {!collapsed && <MenuItemMore path={linkHref(item.to)} paths={pages.map(page=>page.to)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available.map(page=>({...page,to:linkHref(page.to)}))} onNavigate={onNavigate}/>}
               {!collapsed && !query.trim() && pages.length > 1 && <button type="button" className="module-menu-subtoggle" aria-label={`${submenuOpen ? "Collapse" : "Expand"} ${label} pages`} aria-expanded={submenuOpen} aria-controls={submenuId}
                 onClick={() => setSubmenus(previous => ({ ...previous, [item.to]: !submenuOpen }))}><ChevronDown size={13} /></button>}
             </div>
             {!collapsed && !query.trim() && pages.length > 1 && submenuOpen && <ul id={submenuId} className="module-menu-pages">{pages.filter(page => page.to !== item.to).map(page =>
-              <li key={page.to} className="module-menu-page-row"><Link to={workspacePageHref(page.to, location.search, workspaceId)} onClick={onNavigate} aria-current={isCurrent(page.to) ? "page" : undefined}>{displayLabel(page)}</Link><MenuQuickAdd actions={createActions} paths={[page.to]} label={displayLabel(page)} onNavigate={onNavigate} /><MenuItemMore path={workspacePageHref(page.to,location.search,workspaceId)} label={displayLabel(page)} originalLabel={menuLabel(page)} actions={createActions} available={available} onNavigate={onNavigate}/></li>)}</ul>}
+              <li key={page.to} className="module-menu-page-row"><Link to={linkHref(page.to)} onClick={onNavigate} aria-current={isCurrent(page.to) ? "page" : undefined}>{displayLabel(page)}</Link><MenuQuickAdd actions={createActions} paths={[page.to]} label={displayLabel(page)} onNavigate={onNavigate} /><MenuItemMore path={linkHref(page.to)} label={displayLabel(page)} originalLabel={menuLabel(page)} actions={createActions} available={available} onNavigate={onNavigate}/></li>)}</ul>}
           </li>;
         })}</ul>}
       </li>;

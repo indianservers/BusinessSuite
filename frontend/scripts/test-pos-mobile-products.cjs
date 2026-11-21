@@ -8,7 +8,7 @@ const expect = base.configure({timeout:15000});
   const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false,watch:null}});
   await server.listen();const browser=await chromium.launch();
   try {
-    for(const [width,height] of [[1440,900],[1024,768],[320,568],[360,640],[390,844],[426,640],[430,932],[767,1024],[430,1280]]) {
+    for(const [width,height] of [[1600,691],[1440,900],[1024,768],[320,568],[360,640],[390,844],[426,640],[430,932],[767,1024],[430,1280]]) {
       const page=await browser.newPage({viewport:{width,height},acceptDownloads:true});
       const errors=[];page.on('pageerror',error=>errors.push(error.message));
       const posts=[];let succeed=false;
@@ -61,9 +61,20 @@ const expect = base.configure({timeout:15000});
       await page.mouse.wheel(0, 4000);
       await expect.poll(()=>grid.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
       expect((await search.boundingBox()).y).toBe(searchTop);
-      if(width>=768){expect(errors).toEqual([]);console.log(`Products ${width}x${height}: scrolling passed`);await page.close();continue;}
+      if(width>=768){
+        const catalogue=page.getByRole('region',{name:'Products and services catalogue'});
+        const cart=page.getByRole('complementary',{name:'Current sale'});
+        await expect(cart.getByRole('region',{name:'Sale details'})).toBeInViewport();
+        await expect(cart.getByRole('button',{name:/^Collect/})).toBeInViewport({ratio:0.95});
+        const catalogueBounds=await catalogue.boundingBox(),cartBounds=await cart.boundingBox();
+        expect(catalogueBounds.x+catalogueBounds.width).toBeLessThanOrEqual(cartBounds.x);
+        expect(errors).toEqual([]);
+        console.log(`Products ${width}x${height}: scrolling and side-by-side panes passed`);
+        await page.close();
+        continue;
+      }
       await card.getByRole('button',{name:/to cart$/}).click();
-      await expect(page.locator('.pos-cart-count')).toHaveText('1');await expect(card.getByRole('group',{name:/quantity$/})).toHaveText('1');await fit();
+      await expect(page.locator('.pos-phone-bill')).toContainText('1 items');await expect(card.getByRole('group',{name:/quantity$/})).toHaveText('1');await fit();
       const favorite=card.getByRole('button',{name:/^Favorite /});await favorite.click();await expect(favorite).toHaveAttribute('aria-pressed','true');
       await search.fill('Very long product');await expect(grid.locator('article')).toHaveCount(1);await fit();expect(await grid.evaluate(el=>el.scrollTop)).toBe(0);
       await search.fill('Zero stock product');await expect(grid.locator('article')).toHaveCount(1);await expect(grid.getByRole('button',{name:/to cart$/})).toBeDisabled();
@@ -74,8 +85,8 @@ const expect = base.configure({timeout:15000});
       await expect(page.locator('.pos-mobile-catalogue-caption')).toContainText('Wellness');expect(await grid.evaluate(el=>el.scrollTop)).toBe(0);await fit();
       await page.getByRole('button',{name:'Product filters',exact:true}).click();await filters.getByRole('button',{name:'Reset filters',exact:true}).click();await filters.getByRole('button',{name:/^Show /}).click();
       await page.getByRole('navigation',{name:'Catalogue filters'}).getByRole('button',{name:/^Services /}).click();await expect(grid.locator('article').first()).toHaveClass(/is-service/);await fit();
-      await page.locator('.srm-pos-mobile-tabs button').last().click();await expect(page.getByRole('region',{name:'Sale items, paginated'})).toBeVisible();await expect(page.locator('.pos-cart-count')).toHaveText('1');
-      await page.locator('.srm-pos-mobile-tabs button').first().click();await expect(grid).toBeVisible();await fit();expect(errors).toEqual([]);console.log(`Products ${width}x${height}: fit, scrolling, search, filters and cart passed`);await page.close();
+      await expect(page.getByRole('region',{name:'Sale details'})).toBeInViewport();
+      await expect(grid).toBeInViewport();await fit();expect(errors).toEqual([]);console.log(`Products ${width}x${height}: fit, scrolling, search, filters and cart passed`);await page.close();
     }
   } finally {await browser.close();await server.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

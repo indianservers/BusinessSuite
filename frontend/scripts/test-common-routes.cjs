@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
       import React from 'react';
       import {createRoot} from 'react-dom/client';
       import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
-      import {BrowserRouter,Routes,Route,Link,useNavigate,useParams} from 'react-router-dom';
+      import {BrowserRouter,Routes,Route,Link,useLocation,useNavigate,useParams,useSearchParams} from 'react-router-dom';
       import CommonEntityPage from '@/common/CommonEntityPage';
       import CommonCommercialEntry from '@/common/CommonCommercialEntry';
       import SRMRouteWorkspace from '@/apps/srm/components/SRMRouteWorkspace';
@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
       import {canAccessRoute,getActiveModule,getRoleNav} from '@/lib/roles';
       import {getProductKeyFromPath} from '@/lib/products';
       import {moduleForActionPath,moduleActionAllowed} from '@/hooks/use-module-action';
-      import {workspacePageHref} from '@/lib/navigation-workspaces';
+      import {workspacePageHref,salesReportCalendarHref} from '@/lib/navigation-workspaces';
       import {useAuthStore} from '@/store/authStore';
       window.api={...registry,canAccessRoute,getActiveModule,getRoleNav,getProductKeyFromPath,moduleForActionPath,moduleActionAllowed,workspacePageHref};
       useAuthStore.setState({user:{id:1,role:'admin',is_superuser:true},isAuthenticated:true,isHydrated:true});
@@ -26,9 +26,13 @@ const { chromium } = require('playwright');
       const routes=paths.map(p=>({path:p.slice(1),element:<h1>Native page {p}</h1>}));
       function Detail(){const {id}=useParams(),navigate=useNavigate();return <><h1>Invoice {id}</h1><Link to="/srm/invoices">Invoices list</Link><button onClick={()=>navigate('/srm/contracts/7')}>Related contract</button></>}
       routes.push({path:'srm/invoices/:id',element:<Detail/>},{path:'srm/contracts/:id',element:<h1>Contract detail</h1>});
+      function Report(){const location=useLocation();return <><h1>Returns report</h1><Link to={salesReportCalendarHref('/common/calendar?module=srm',location.pathname,location.search)}>Calendar shortcut</Link></>}
+      function Calendar(){const [params]=useSearchParams(),navigate=useNavigate();return <><h1>Shared Calendar</h1><button onClick={()=>{const next=new URLSearchParams(params);next.set('date','2026-11-22');navigate({pathname:'/srm/reports',search:next.toString()});}}>Next date</button></>}
+      const reports={path:'srm/reports',element:<Report/>};
+      routes.push(reports,{path:'srm/reports/calendar',element:<Calendar/>});
       // Exercise the real native Sales wrapper as well as the common host.
       const wrappedRoutes=routes.map(route=>route.path.startsWith('srm/')&&registry.commercialEntities.some(entity=>registry.commonEntities[entity].owner==='/'+route.path)?{...route,element:<SRMRouteWorkspace route={route} routes={routes}/>} : route);
-      function Harness(){window.navigate=useNavigate();return <Routes><Route path="common/:entity/*" element={<CommonEntityPage routes={wrappedRoutes}/>}/><Route path="srm/invoices/*" element={<CommonCommercialEntry><h1>Legacy page</h1></CommonCommercialEntry>}/><Route path="srm/quotes" element={<CommonCommercialEntry><h1>Legacy quotes</h1></CommonCommercialEntry>}/><Route path="*" element={<h1>Home</h1>}/></Routes>}
+      function Harness(){window.navigate=useNavigate();return <Routes><Route path="common/:entity/*" element={<CommonEntityPage routes={wrappedRoutes}/>}/><Route path="srm/reports" element={<SRMRouteWorkspace route={reports} routes={routes}/>}/><Route path="srm/invoices/*" element={<CommonCommercialEntry><h1>Legacy page</h1></CommonCommercialEntry>}/><Route path="srm/quotes" element={<CommonCommercialEntry><h1>Legacy quotes</h1></CommonCommercialEntry>}/><Route path="*" element={<h1>Home</h1>}/></Routes>}
       createRoot(document.getElementById('root')).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><BrowserRouter><Harness/></BrowserRouter></QueryClientProvider>);
     `, resolveDir: root, loader: 'tsx' },
     bundle: true, write: false, format: 'iife', platform: 'browser',
@@ -42,6 +46,16 @@ const { chromium } = require('playwright');
     await page.goto('https://common.test/');
     await page.addScriptTag({content: built.outputFiles[0].text});
     await page.getByRole('heading', {name:'Home'}).waitFor();
+    await page.evaluate(()=>window.navigate('/srm/reports?report=returns'));
+    await page.getByRole('link',{name:'Calendar shortcut'}).click();
+    await page.getByRole('heading',{name:'Shared Calendar'}).waitFor();
+    await page.getByRole('button',{name:'Next date'}).click();
+    assert.equal(new URL(page.url()).pathname,'/srm/reports');
+    assert.equal(new URL(page.url()).searchParams.get('operation'),'/srm/reports/calendar');
+    await page.getByRole('tab',{name:'Reports',exact:true}).click();
+    await page.getByRole('heading',{name:'Returns report'}).waitFor();
+    assert.equal(new URL(page.url()).searchParams.get('report'),'returns');
+    assert.equal(new URL(page.url()).searchParams.get('operation'),null);checks++;
     const definitions = await page.evaluate(() => window.api.commonEntities);
     for (const [entity, definition] of Object.entries(definitions)) {
       for (const module of ['crm','pms','hrms','srm','fam']) {

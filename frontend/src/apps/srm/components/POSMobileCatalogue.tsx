@@ -48,7 +48,7 @@ export default function POSMobileCatalogue<T extends MobileProduct>(props:Props<
         const Icon=catalogIcon(product.name,product.category,service);
         return <article key={product.id} className={`pos-mobile-product-card ${service?'is-service':''} ${quantity?'is-added':''}`}>
           <button type="button" className="pos-mobile-product-main" data-product-id={product.id} aria-label={`Add ${product.name}`} disabled={unavailable||props.locked} onClick={()=>props.onAdd(product)}>
-            <span className="pos-mobile-product-art">{product.image?<img src={product.image} alt=""/>:<Icon size={32}/>}</span>
+            <span className="pos-mobile-product-art">{product.image?<img loading="lazy" decoding="async" src={product.image} alt=""/>:<Icon size={32}/>}</span>
             <strong title={product.name}>{product.name}</strong><small>{service?product.bookingRequired?'Appointment required':product.duration||'Service':product.trackInventory?`${product.sku} · ${product.stock} in stock`:product.sku}</small>
           </button>
           <button type="button" className="pos-mobile-product-favorite" aria-label={`Favorite ${product.name}`} aria-pressed={props.favorites.includes(product.id)} onClick={()=>props.onFavorite(product.id)}><Star size={16} fill={props.favorites.includes(product.id)?'currentColor':'none'}/></button>

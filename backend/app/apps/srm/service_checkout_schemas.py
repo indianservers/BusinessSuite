@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 from app.shared.follow_ups import ScheduleTemplate
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictBool, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictInt, StrictBool, field_validator, model_validator
 
 ID = Annotated[StrictInt, Field(gt=0)]
 class Strict(BaseModel):
@@ -67,6 +67,7 @@ class PaymentInput(Strict):
 class CheckoutInput(Strict):
     buyer_mode: Literal['registered','anonymous_cash'] = 'registered'
     request_id: UUID
+    captured_at: AwareDatetime | None = None
     customer_id: StrictInt | None = Field(default=None,ge=0)
     pos_session_id: ID
     currency: str = Field(default='INR',pattern=r'^[A-Z]{3}$')

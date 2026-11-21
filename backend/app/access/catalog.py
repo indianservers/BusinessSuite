@@ -106,6 +106,7 @@ def key_for_source(source, default=None):
         "app.shared.accounting_sync.api",
         "app.shared.workspace_management.api",
         "app.shared.payment_requests",
+        "app.shared.plan_api",
         "app.shared.record_360",
         "app.shared.record_templates",
         "app.access.api",
@@ -202,6 +203,8 @@ def request_module(request):
         return source if source in {"crm", "srm", "project_management", "hrms"} else None
     if request.url.path.startswith("/api/v1/catalog/"):
         return {"pms": "project_management", "crm": "crm", "srm": "srm"}.get(request.query_params.get("source", "crm"))
+    if request.url.path == "/api/v1/customer-plans" or request.url.path.startswith("/api/v1/customer-plans/"):
+        return {"pms": "project_management", "crm": "crm", "srm": "srm"}.get(request.query_params.get("source", "srm"))
     route = request.scope.get("route")
     if not route:
         return None

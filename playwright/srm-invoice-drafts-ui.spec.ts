@@ -43,6 +43,7 @@ test.describe("SRM invoice draft UI", () => {
     await page.getByLabel("Unit price", { exact: true }).fill("100");
     await composer.getByRole("button", { name: "Create Invoice", exact: true }).click();
     await expect(page.getByRole("region", {name: "Creation result"})).toContainText("invoice created");
+    await expect(page.getByRole("dialog", { name: "Create invoice" })).toHaveCount(0);
 
     await page.route("**/api/v1/srm/invoices/draft-from-sales-order/1", async (route) => {
       await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "Invoice already drafted for this source" }) });

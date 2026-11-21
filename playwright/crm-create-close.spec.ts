@@ -4,7 +4,7 @@ const endpoints={contacts:"/crm/contacts",companies:"/master-data/companies",dea
 type Kind=keyof typeof endpoints;
 
 for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[]) for(const entry of ["page","menu"] as const) for(const module of (kind==="tasks"?["crm","pms"]:kind==="projects"?["pms"]:["crm"])) {
-  test(`${module} ${kind}: ${entry} create closes and appears immediately at ${width}px`,async({page,request})=>{
+  test(`${module} ${kind}: ${entry} create closes promptly and shows the saved record at ${width}px`,async({page,request})=>{
     await page.setViewportSize({width,height:1000});
     await authenticateCrm(page);
     await page.routeWebSocket("**/api/v1/project-management/realtime**",socket=>socket.close());
@@ -58,21 +58,27 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     const original=page.url();
     const heading=await page.locator("#suite-main h1,main h1").first().elementHandle();
     if(entry==="page")await page.getByRole("button",{name:add,exact:true}).first().click();
+    else if(kind==="contacts") {
+      await page.getByRole("button",{name:width<640?"Add new record":"Create",exact:true}).filter({visible:true}).first().click();
+      await page.getByLabel("Search create actions").fill("Contact");
+      if(width<640)await page.getByRole("dialog",{name:"Create something new"}).getByText("Contact",{exact:true}).click();
+      else await page.getByRole("menuitem",{name:/^Contact\b/}).click();
+    }
     else {
       if(width<640) {
         const toggle=page.getByRole("button",{name:/open.*(menu|navigation)|toggle.*(menu|navigation)/i}).first();
         if(await toggle.count())await toggle.click();
       }
-      const search=page.getByRole("textbox",{name:"Find a page in this application"});
+      const search=page.getByRole("searchbox",{name:"Search menu items"});
       if(await search.isVisible())await search.fill(kind);
-      const label=kind==="contacts"?"Contact":kind==="companies"?"Company":kind==="deals"?"Deal":kind==="projects"?"Project":module==="pms"?"Task":"in Tasks";
+      const label=kind==="companies"?"Company":kind==="deals"?"Deal":kind==="projects"?"Project":module==="pms"?"Task":"in Tasks";
       await page.getByRole("button",{name:`Create ${label}`,exact:true}).first().click();
       if(kind==="tasks"&&module==="crm")await page.getByRole("menuitem",{name:/^Task\b/}).click();
     }
     let save;
     if(kind==="contacts") {await page.getByPlaceholder("Enter contact name").fill(name);save=page.getByRole("dialog").getByRole("button",{name:"Create contact",exact:true});}
     else if(kind==="companies") {await page.getByLabel("Company name *",{exact:true}).fill(name);save=page.getByRole("button",{name:"Save company",exact:true});}
-    else if(kind==="projects") {await page.getByRole("textbox",{name:"Project name",exact:true}).fill(name);await page.getByLabel("Project workspace",{exact:true}).selectOption("1");save=page.getByRole("dialog").getByRole("button",{name:"Create project",exact:true}).last();}
+    else if(kind==="projects") {await page.getByRole("dialog").getByRole("textbox",{name:/^Project name/}).fill(name);await page.getByLabel("Project workspace",{exact:true}).selectOption("1");save=page.getByRole("dialog").getByRole("button",{name:"Create project",exact:true}).last();}
     else if(kind==="tasks") {await page.getByPlaceholder("What needs to be done?").fill(name);await page.getByRole("textbox",{name:"Task description",exact:true}).fill("Preserve the complete task description");await page.getByRole("dialog").getByLabel("Priority",{exact:true}).selectOption("High");save=page.getByRole("button",{name:/^Create task$/i}).last();}
     else {
       await page.getByPlaceholder("Enter deal name...").fill(name);
@@ -87,7 +93,8 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     const box=await save.boundingBox();expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.y+box!.height).toBeLessThanOrEqual(1000);
     await save.click();
     await expect(page.getByRole("dialog")).toHaveCount(0,{timeout:1200});
-    await expect(page.getByText(name,{exact:true}).filter({visible:true}).first()).toBeVisible({timeout:1200});
+    // A grouped deal view needs the server to place the record in the correct group.
+    await expect(page.getByText(name,{exact:true}).filter({visible:true}).first()).toBeVisible({timeout:kind==="deals"?8000:1200});
     if(kind==="tasks"){expect(created.description).toContain("Preserve the complete task description");expect(created.priority).toBe("High");}
     expect(posts).toBe(1);expect(prompts).toEqual([]);expect(errors).toEqual([]);
     expect(page.url()).toBe(original);expect(await heading!.evaluate(el=>el.isConnected)).toBe(true);

@@ -188,3 +188,67 @@ def test_customer_plan_views_filter_states_and_effective_dates_before_pagination
     assert client.get('/api/v1/customer-plans',params={**params,'view':'all'},headers=headers).json()['total']==1
     row.status='cancelled';db.commit()
     assert client.get('/api/v1/customer-plans',params={**params,'view':'renewals'},headers=headers).json()['total']==0
+
+
+def test_membership_expiry_report_and_reminder_in_both_modules(client, db, headers, monkeypatch):
+    from datetime import timedelta
+    from app.services.metrics import queries
+
+    today = date.today()
+    monkeypatch.setattr(queries, "business_day", lambda *_: today)
+    plan, _ = purchased(client, db, headers)
+    customer = db.get(CRMCompany, plan["customer_id"])
+    customer.phone = "9876543210"
+    customer.phone_country_code = "+91"
+    db.commit()
+    expiry = "/api/v1/customer-plans/expiry-report"
+    target = f"{expiry}/{plan['id']}"
+
+    # The fixture issues a six-month membership, outside both presets.
+    for source in ("crm", "srm"):
+        for period in ("two_weeks", "two_months"):
+            response = client.get(expiry, params={"source": source, "period": period}, headers=headers)
+            assert response.status_code == 200, response.text
+            data = response.json()
+            assert data["items"] == []
+            expected = today + timedelta(days=14) if period == "two_weeks" else end_date(today, Duration(unit="month", count=2))
+            assert data["end"] == str(expected)
+        response = client.get(expiry, params={
+            "source": source, "period": "custom", "start": plan["end_date"], "end": plan["end_date"],
+        }, headers=headers)
+        assert response.status_code == 200, response.text
+        result, = response.json()["items"]
+        assert result["id"] == plan["id"] and result["customer"] == customer.name
+        for channel in ("sms", "whatsapp"):
+            message = client.post(f"{target}/message", params={"source": source}, headers=headers, json={"channel": channel})
+            assert message.status_code == 200, message.text
+            assert message.json()["destination"] == "+919876543210"
+            assert "membership expires" in message.json()["body"]
+
+    responses = [
+        client.post(f"{target}/reminder", params={"source": source}, headers=headers, json={"lead_days": 14})
+        for source in ("srm", "crm")
+    ]
+    assert all(result.status_code == 200 for result in responses), [result.text for result in responses]
+    assert responses[0].json()["id"] == responses[1].json()["id"]
+
+    from app.models.notification import Notification
+    from app.shared.follow_ups import FollowUp, dispatch
+    early = client.post(f"{target}/reminder", headers=headers, json={"lead_days": 365})
+    assert early.status_code == 200, early.text
+    dispatch(db)
+    notification = db.query(Notification).filter_by(related_entity_id=early.json()["id"], related_entity_type="follow_up").one()
+    assert notification.action_url == f"/srm/follow-ups/{early.json()['id']}"
+    extended = date.fromisoformat(plan["end_date"]) + timedelta(days=30)
+    renewal = client.post(f"/api/v1/customer-plans/{plan['id']}/lifecycle", headers=headers, json={
+        "action": "renew", "revision": plan["revision"], "until": str(extended), "request_key": "expiry-test-renewal",
+    })
+    assert renewal.status_code == 200, renewal.text
+    dispatch(db)
+    assert db.get(FollowUp, responses[0].json()["id"]).status == "Cancelled"
+
+    from app.apps.communication.models import CommunicationOptOut
+    db.add(CommunicationOptOut(email="+919876543210", channel="sms"))
+    db.commit()
+    blocked = client.post(f"{target}/message", headers=headers, json={"channel": "sms"})
+    assert blocked.status_code == 409, blocked.text

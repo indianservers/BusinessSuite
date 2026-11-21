@@ -147,7 +147,7 @@ function crmResponse(path: string, method: Method) {
   if (path === "/crm/services/1") return service();
   if (path === "/crm/price-books") return list([priceBook()]);
   if (path === "/crm/price-books/1") return priceBook();
-  if (path === "/crm/quotes") return list([quote()]);
+  if (path === "/crm/quotes" || path === "/crm/quotations") return list([quote()]);
   if (path === "/crm/quotes/1") return quoteDetail();
   if (path === "/crm/quote-approvals") return list([{ id: 1, quoteId: 1, status: "pending", reason: "Discount approval", comments: "" }]);
   if (path === "/crm/cpq-rules") return list([{ id: 1, name: "High discount approval", ruleType: "approval", active: true }]);

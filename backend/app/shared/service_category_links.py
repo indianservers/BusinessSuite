@@ -1,8 +1,16 @@
 """Both catalog and HRMS edit the same branch-scoped service policy."""
 from typing import Annotated, Literal
 from fastapi import HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.shared.employee_categories import WorkCategories
+
+class StaffChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider_resource_id: Annotated[int, Field(strict=True, gt=0)]
+    employee_id: Annotated[int, Field(strict=True, gt=0)]
+    active: bool = True
+    expected_revision: Annotated[int, Field(strict=True, gt=0)] | None = None
+
 
 class SchedulingInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -10,6 +18,13 @@ class SchedulingInput(BaseModel):
     duration: Annotated[int,Field(strict=True,ge=5,le=720)] = 30
     employee_categories: WorkCategories = Field(default_factory=list)
     expected_revision: Annotated[int,Field(strict=True,gt=0)] | None = None
+    staff_changes: list[StaffChange] = Field(default_factory=list, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_staff_changes(self):
+        if len({change.provider_resource_id for change in self.staff_changes}) != len(self.staff_changes):
+            raise ValueError("Each staff assignment can be changed once")
+        return self
 
 class ServiceLinkInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -27,8 +42,8 @@ def current_policy(db,actor,service_id,write=False):
     return row
 
 def save_scheduling(db,actor,service_id,data):
-    from app.apps.srm.service_checkout import save_policy
-    from app.apps.srm.service_checkout_schemas import PolicyInput
+    from app.apps.srm.service_checkout import save_eligibility, save_policy
+    from app.apps.srm.service_checkout_schemas import EligibilityInput, PolicyInput
     from app.shared.employee_category_taxonomy import options
     row=current_policy(db,actor,service_id,write=True)
     valid=set(options(db,actor)["items"]) | set(row.employee_categories or [] if row else [])
@@ -40,7 +55,12 @@ def save_scheduling(db,actor,service_id,data):
         max_duration_minutes=max(row.max_duration_minutes,data.duration) if row else 720,
         allow_duration_override=row.allow_duration_override if row else False,
         employee_categories=data.employee_categories,active=data.mode!="none",booking_required=data.mode=="required"),db,actor,commit=False)
-    return {**data.model_dump(),"expected_revision":result["revision"]}
+    for change in data.staff_changes:
+        save_eligibility(
+            EligibilityInput(policy_id=result["id"], expected_policy_revision=result["revision"], **change.model_dump()),
+            db, actor, commit=False, catalog_configuration=True,
+        )
+    return {**data.model_dump(exclude={"staff_changes"}), "expected_revision":result["revision"]}
 
 def catalog_scheduling(db,actor,data,result):
     if data.service_scheduling is None:return result

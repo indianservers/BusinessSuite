@@ -104,3 +104,75 @@ def test_no_booking_service_still_sells_and_cannot_book(client,db,scenario):
         # Existing booking selections cannot bypass the disabled scheduling policy.
         with pytest.raises(HTTPException) as denied:checkout(basket(False),db,actor)
         assert denied.value.status_code==409
+
+
+def test_catalog_service_saves_direct_employee_assignments_atomically(client, scenario):
+    _, _, source, basket = scenario
+    headers = source[0]
+    provider = basket(False).lines[1].booking
+    staff = {"provider_resource_id": provider.provider_resource_id, "employee_id": provider.employee_id}
+    catalog = "/api/v1/catalog/items"
+    options = "/api/v1/srm/service-checkout/options"
+    scheduling = {"mode": "optional", "duration": 30, "staff_changes": [staff]}
+    payload = {
+        "kind": "service", "name": "Assigned service", "code": "ASSIGNED-SERVICE",
+        "price": 50, "unit": "session", "service_scheduling": {**scheduling, "mode": "none"},
+    }
+
+    response = client.post(catalog, headers=headers, params={"source": "srm"}, json=payload)
+    assert response.status_code == 201, response.text
+    item = response.json()
+    target = f"{catalog}/service/{item['id']}"
+    result = client.get(options, headers=headers, params={"service_id": item["id"]}).json()
+    assert not result["policy"]["active"] and result["specialists"] == []
+    configuration = client.get(options, headers=headers, params={"service_id": item["id"], "staff_assignments": True})
+    assert configuration.status_code == 200, configuration.text
+    specialist, = configuration.json()["specialists"]
+    assert specialist["employee_id"] == staff["employee_id"]
+
+    edit = {key: value for key, value in item.items() if key not in {"id", "service_scheduling"}}
+    edit["service_scheduling"] = {
+        "mode": "optional", "duration": 30, "expected_revision": result["policy"]["revision"],
+    }
+    response = client.put(target, headers=headers, params={"source": "srm"}, json=edit)
+    assert response.status_code == 200, response.text
+    edit["version"] = response.json()["version"]
+    result = client.get(options, headers=headers, params={"service_id": item["id"]}).json()
+    assert [row["employee_id"] for row in result["specialists"]] == [staff["employee_id"]]
+
+    edit["service_scheduling"] = {
+        "mode": "none", "duration": 30, "expected_revision": result["policy"]["revision"],
+    }
+    response = client.put(target, headers=headers, params={"source": "srm"}, json=edit)
+    assert response.status_code == 200, response.text
+    edit["version"] = response.json()["version"]
+    result = client.get(options, headers=headers, params={"service_id": item["id"]}).json()
+    assert result["specialists"] == []
+    configuration = client.get(options, headers=headers, params={"service_id": item["id"], "staff_assignments": True})
+    assert configuration.status_code == 200, configuration.text
+    specialist, = configuration.json()["specialists"]
+    edit["service_scheduling"] = {
+        **scheduling, "mode": "none", "expected_revision": result["policy"]["revision"],
+        "staff_changes": [{**staff, "active": False, "expected_revision": specialist["eligibility_revision"]}],
+    }
+    response = client.put(target, headers=headers, params={"source": "srm"}, json=edit)
+    assert response.status_code == 200, response.text
+    item = response.json()
+    edit["version"] = item["version"]
+    edit["name"] = "Invalid update"
+    edit["service_scheduling"] = {
+        **scheduling, "expected_revision": item["service_scheduling"]["expected_revision"],
+        "staff_changes": [{**staff, "employee_id": staff["employee_id"] + 100000}],
+    }
+    response = client.put(target, headers=headers, params={"source": "srm"}, json=edit)
+    assert response.status_code in {403, 404, 422}, response.text
+    assert client.get(target, headers=headers, params={"source": "srm"}).json()["name"] == "Assigned service"
+    result = client.get(options, headers=headers, params={"service_id": item["id"]}).json()
+    assert not result["policy"]["active"] and result["specialists"] == []
+
+    edit["name"] = "Assigned service"
+    edit["service_scheduling"]["staff_changes"] = [staff]
+    response = client.put(target, headers=headers, params={"source": "srm"}, json=edit)
+    assert response.status_code == 200, response.text
+    result = client.get(options, headers=headers, params={"service_id": item["id"]}).json()
+    assert [row["employee_id"] for row in result["specialists"]] == [staff["employee_id"]]

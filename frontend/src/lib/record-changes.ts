@@ -25,7 +25,7 @@ export function removeGridRecords(client: QueryClient, sourceKey: string, ids: (
   });
 }
 
-export type RecordSaved = { url: string; method: string; record: Record<string, unknown>; resource?: string; ids?: (string|number)[]; operation?: "update"|"delete"|"restore"; patch?:Record<string,unknown>; kind?:string };
+export type RecordSaved = { url: string; method: string; record: Record<string, unknown>; origin?: HTMLElement | null; resource?: string; ids?: (string|number)[]; operation?: "update"|"delete"|"restore"; patch?:Record<string,unknown>; kind?:string };
 export const recordSavedEvent = "suite:record-saved";
 const recordNamespaces=["crm","srm","fam","catalog","project-management","master-data","profiles","company","interns-hub","communication","analytics","customization","power-apps","attendance","recruitment","leave","timesheets","payroll","performance"];
 

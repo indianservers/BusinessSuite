@@ -49,6 +49,7 @@ const {chromium,expect}=require('playwright/test');
  assert.equal((await title.inputValue()),'QA_TEST_2026_SO_001');
  fail=false;await dialog.getByRole('button',{name:'Create Sales Order',exact:true}).click();await expect.poll(()=>writes.length).toBe(2);release();
  await expect.poll(()=>page.evaluate(()=>window.saved)).toBe(true);
+ await expect(page.locator('[data-smart-create]')).toHaveCount(0);
  assert.equal(writes[1].customer_id,73);assert.equal(writes[1].title,'QA_TEST_2026_SO_001');assert.equal(writes[1].lines.length,2);assert.equal(writes[1].total_amount,636);
  assert.deepEqual(errors,[]);console.log('PASS sales-order UI: customer/item lookups, multiline totals, quantity validation, visible pending modal, failed save/retry, title preservation');
  }catch(e){if(page)console.error((await page.locator('body').innerText()).slice(-5000));throw e;}finally{await browser.close();await server.close();fs.unlinkSync(fixture);}

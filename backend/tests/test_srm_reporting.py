@@ -390,3 +390,23 @@ def test_saved_view_revision_checks_refresh_cached_orm_state(report_case):
     assert cached.revision==1
     with pytest.raises(HTTPException) as stale:api.delete_view(row['id'],1,n.db,n.user)
     assert stale.value.status_code==409 and cached.revision==2
+
+def test_offering_sales_classifies_mixed_invoices_and_keeps_currency_totals(report_case):
+    n = report_case
+    for index, kind in enumerate(("service", "membership", "subscription"), start=1):
+        order = n.orders[index % 2]
+        line = r.OrderLine(sales_order_id=order.id, service_type=kind, item_code=kind)
+        n.db.add(line)
+        n.db.flush()
+        n.db.add(SRMInvoiceLine(
+            invoice_id=n.invoices[index % 2].id, source_type="sales_order_line",
+            source_id=line.id, description=kind, quantity=1, line_total=Decimal("10.00"),
+        ))
+    n.db.flush()
+
+    data = r.offering_sales(n.db, n.user, n.filters, None, 1, 2)
+    assert data["has_more"]
+    assert {row["currency"]: row["gross"] for row in data["totals"]} == {"INR": "128.00", "USD": "20.00"}
+    for kind in ("product", "service", "membership", "subscription"):
+        rows = r.offering_sales(n.db, n.user, n.filters, kind, 1, 50)["items"]
+        assert len(rows) == 1 and rows[0]["kind"] == kind

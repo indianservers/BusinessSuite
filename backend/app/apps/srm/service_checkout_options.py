@@ -54,7 +54,7 @@ def _owned_clause(model, company, branch, scope):
         anchor.c.branch_id == branch, anchor.c.context_id == scope.context_id))
 
 
-def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, eligibility_id=None, target_employee_id=None):
+def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, eligibility_id=None, target_employee_id=None, staff_assignments=False):
     from app.apps.srm.industry_api import PROVIDER_TYPES
     r, e = IndustryRecord, Employee
     employee_id = cast(r.data['employee_id'].as_string(), String)
@@ -81,7 +81,7 @@ def _providers(db, company, branch, scope, *, search='', policy=None, offset=0, 
             _owned_clause(eligibility, company, branch, scope))
     if policy is not None and eligibility_id is not None:
         statement = statement.where(ServiceSpecialistEligibility.id == eligibility_id)
-    if policy is not None and policy.get('employee_categories'):
+    if policy is not None and policy.get('employee_categories') and not staff_assignments:
         from app.shared.employee_categories import category_clause
         statement = statement.where(category_clause(db, e.work_categories, policy['employee_categories']))
     # Date of exit is interpreted in each provider's local timezone.
@@ -121,7 +121,7 @@ def provider_options(db, actor, *, selected=None, search=''):
     return {'providers': rows, 'has_more': more, 'employee_categories': sorted({name for row in rows for name in row.get('work_categories') or []}, key=str.casefold)}
 
 
-def service_options(db, actor, service_id, *, selected=None, search='', offset=0, employee_id=None):
+def service_options(db, actor, service_id, *, selected=None, search='', offset=0, employee_id=None, staff_assignments=False):
     company, branch, scope = _authority(db, actor, selected)
     if len(search) > 100:
         raise HTTPException(422, 'Search must be at most 100 characters')
@@ -155,6 +155,8 @@ def service_options(db, actor, service_id, *, selected=None, search='', offset=0
     except HTTPException as error:
         if error.status_code not in (403, 409, 503):
             raise
+    if staff_assignments and not can_configure:
+        raise HTTPException(403, 'Service scheduling configuration access is required')
     from app.shared.settings import effective
     details = {'can_configure': can_configure, 'branch_timezone': effective(db, company, 'srm')['values'].get('timezone'),
         'service': {'name': product.item_name, 'price': str(product.sales_rate), 'category': product.category_name,
@@ -162,7 +164,10 @@ def service_options(db, actor, service_id, *, selected=None, search='', offset=0
     if policy is None:
         return {'service_id': service_id, 'policy': None, 'specialists': [], 'has_more': False, 'resources': resource_options, **details}
     _source_scope(db, scope, company, branch, model, policy['id'])
-    rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip(), offset=offset, target_employee_id=employee_id) if policy['active'] else ([], False)
+    rows, more = ([], False)
+    if policy['active'] or staff_assignments:
+        rows, more = _providers(db, company, branch, scope, policy=policy, search=search.strip(),
+                                offset=offset, target_employee_id=employee_id, staff_assignments=staff_assignments)
     from app.apps.srm.service_resource_requirements import required_types
     from types import SimpleNamespace
     requirements = sorted(required_types(SimpleNamespace(metadata_json=product.metadata_json), policy['id']))

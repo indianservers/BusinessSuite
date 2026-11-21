@@ -1,11 +1,12 @@
 from __future__ import annotations
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -58,6 +59,74 @@ def job_payload(row):
     return {'id':row.id,'report':row.report,'format':row.format,'status':row.status,'row_count':row.row_count,
         'created_at':row.created_at,'completed_at':row.completed_at,'expires_at':row.expires_at,'error':row.error,
         'download_url':f'/srm/reporting/exports/{row.id}/download' if row.status=='ready' else None}
+
+
+@router.get('/offering-sales')
+def offering_sales(
+    start: date | None = None,
+    end: date | None = None,
+    kind: Literal["product", "service", "membership", "subscription"] | None = None,
+    page: int = Query(1, ge=1, le=10000),
+    db=Depends(get_db),
+    user=Depends(reader),
+):
+    try:
+        filters = reports.Filters(start=start, end=end)
+    except ValidationError as error:
+        raise HTTPException(422, "Choose a valid reporting period of ten years or less") from error
+    return reports.offering_sales(db, user, filters, kind, page, 50)
+
+
+def audience_filters(start, end, search=""):
+    try:
+        return reports.Filters(start=start, end=end, search=search)
+    except ValidationError as error:
+        raise HTTPException(422, "Choose a valid purchase date range of ten years or less") from error
+
+
+@router.get('/offering-audience')
+def offering_audience(
+    response: Response,
+    offering_id: int | None = Query(None, gt=0),
+    kind: reports.OfferingKind | None = None,
+    start: date | None = None,
+    end: date | None = None,
+    search: str = Query("", max_length=100),
+    page: int = Query(1, ge=1, le=10000),
+    page_size: int = Query(25, ge=1, le=100),
+    db=Depends(get_db),
+    user=Depends(reader),
+):
+    filters = audience_filters(start, end, search.strip())
+    can_prepare = True
+    try:
+        require_module_action(user, "srm", "export")
+    except HTTPException as error:
+        if error.status_code != 403:
+            raise
+        can_prepare = False
+    response.headers["Cache-Control"] = "private, no-store"
+    return reports.offering_audience(db, user, filters, kind, offering_id, page, page_size, can_prepare)
+
+
+class OfferingAudiencePreview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    customer_id: int = Field(gt=0, strict=True)
+    offering_id: int | None = Field(default=None, gt=0, strict=True)
+    kind: reports.OfferingKind | None = None
+    start: date | None = None
+    end: date | None = None
+    channel: reports.AudienceChannel
+
+
+@router.post('/offering-audience/preview')
+def offering_audience_preview(
+    data: OfferingAudiencePreview, response: Response, db=Depends(get_db), user=Depends(reader),
+):
+    require_module_action(user, "srm", "export")
+    filters = audience_filters(data.start, data.end)
+    response.headers["Cache-Control"] = "private, no-store"
+    return reports.offering_audience_draft(db, user, filters, data.kind, data.offering_id, data.customer_id, data.channel)
 
 
 @router.get('/metadata')

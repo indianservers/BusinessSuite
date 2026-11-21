@@ -24,7 +24,7 @@ async function main(){
  assert.equal(registerCashDisplay(false,false,100,String),'100');
  assert.equal(registerCashDisplay(false,false,NaN,String),'Unavailable');
  await refreshSettledRegister(client,key,async()=>{reads++;return {};},()=>false);assert.equal(reads,1);
- assert.match(source,/const registerCashReady = !activeRegister.isFetching && !activeRegister.isError/);
+ assert.match(source,/const registerCashReady = !activeRegister.isPending && !activeRegister.isFetching && !activeRegister.isError/);
  assert.match(source,/const canCloseSession = registerCashReady/);
  assert.match(source,/refreshSettledRegister\(queryClient,registerQueryKey,readActiveRegister,owns\)\.catch\(\(\)=>undefined\)/);
  assert.match(source,/signal,recordCache:false/);client.clear();

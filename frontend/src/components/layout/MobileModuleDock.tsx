@@ -67,7 +67,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Deals", Handshake, "/crm/deals", [["Create deal", "/crm/deals?new=deals"], ["View pipeline", "/crm/pipeline"], ["View quotes", "/crm/quotes"], ["Sales forecast", "/crm/forecasting"]]),
 
-    item("Follow-ups", CalendarCheck, "/crm/follow-ups", [["Follow-up worklist", "/crm/follow-ups"], ["Follow-up calendar", "/crm/follow-ups/calendar"], ["Customer follow-ups", "/crm/customer-follow-ups"], ["Activity history", "/crm/activities"], ["Meetings", "/crm/meetings"], ["Calls", "/crm/calls"]]),
+    item("Follow-ups", CalendarCheck, "/crm/follow-ups", [["Reminders", "/crm/reminders"], ["Membership Expiry Report", "/crm/membership-expiry"], ["Follow-up worklist", "/crm/follow-ups"], ["Follow-up calendar", "/crm/follow-ups/calendar"], ["Customer follow-ups", "/crm/customer-follow-ups"], ["Activity history", "/crm/activities"], ["Meetings", "/crm/meetings"], ["Calls", "/crm/calls"]]),
 
   ],
 
@@ -88,11 +88,11 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Customers", Users, "/srm/customer-360", [["Customer overview", "/srm/customer-360"], ["Customer follow-ups", "/srm/follow-ups"], ["Sales history", "/srm/sales-orders"], ["Outstanding balances", "/srm/collections"]]),
 
-    item("Quotes", FileText, "/srm/quotes", [["View quotes", "/srm/quotes"], ["Products & services", "/srm/products-services"], ["Sales contracts", "/srm/contracts"], ["Sales orders", "/srm/sales-orders"]]),
+    item("Quotes", FileText, "/srm/quotes", [["View quotes", "/srm/quotes"], ["Stock Management", "/srm/inventory/stock-management"], ["Products & services", "/srm/products-services"], ["Sales contracts", "/srm/contracts"], ["Sales orders", "/srm/sales-orders"]]),
 
     item("Orders", ClipboardList, "/srm/sales-orders", [["Manage orders", "/srm/sales-orders"], ["Delivery notes", "/srm/inventory/delivery-notes"], ["Invoice drafts", "/srm/invoice-drafts"], ["View invoices", "/srm/invoices"]]),
 
-    item("Payments", Wallet, "/srm/collections", [["Manage collections", "/srm/collections"], ["View invoices", "/srm/invoices"], ["Billing plans", "/srm/billing-plans"], ["Revenue reports", "/srm/reports"]]),
+    item("Payments", Wallet, "/srm/collections", [["Manage collections", "/srm/collections"], ["View invoices", "/srm/invoices"], ["Billing plans", "/srm/billing-plans"], ["Sales Report", "/srm/sales-report"], ["Membership Expiry Report", "/srm/membership-expiry"], ["Reminders", "/srm/send-reminders"], ["Revenue reports", "/srm/reports"]]),
 
   ],
 

@@ -56,5 +56,4 @@ export function useSrmRealtimeInvalidation(queryClient: QueryClient, enabled = t
 export async function syncSrmNow(queryClient: QueryClient, event: Omit<SRMSyncEvent, "at">) {
   publishSrmSync(event);
   await queryClient.invalidateQueries({ queryKey: ["srm"] });
-  await queryClient.refetchQueries({ queryKey: ["srm"], type: "active" });
 }

@@ -1,0 +1,72 @@
+@media (max-width: 767px) {
+  .expiry-report .sc-hero {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .expiry-report .sc-hero > a {
+    justify-self: start;
+  }
+
+  .expiry-report .sc-catalog-bar {
+    margin-block: 12px;
+  }
+
+  .expiry-report .sc-tabs {
+    width: 100%;
+  }
+
+  .expiry-report .sc-tabs button {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 4px;
+  }
+
+  .expiry-report .expiry-range {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .expiry-range > :is(button, p) {
+    grid-column: 1 / -1;
+  }
+
+  .expiry-results,
+  .expiry-results tbody {
+    display: block;
+  }
+
+  .expiry-results thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .expiry-results tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 12px;
+  }
+
+  .expiry-results tbody :is(th, td) {
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .expiry-results th[scope="row"],
+  .expiry-results td:nth-child(2),
+  .expiry-results .expiry-actions {
+    grid-column: 1 / -1;
+  }
+
+  .expiry-actions button {
+    flex: 1 0 auto;
+  }
+}

@@ -16,11 +16,12 @@ def state_expression():
         else_=P.status)
 
 
-def state(plan):
+def state(plan, today=None):
+    today = today or date.today()
     if plan.status == 'cancelled': return 'cancelled'
-    if plan.end_date and plan.end_date <= date.today(): return 'expired'
+    if plan.end_date and plan.end_date <= today: return 'expired'
     if plan.status == 'pending': return 'awaiting_first_use' if plan.configuration.get('activation') == 'first_use' else 'pending_approval'
-    if plan.status == 'active' and plan.start_date > date.today(): return 'scheduled'
+    if plan.status == 'active' and plan.start_date > today: return 'scheduled'
     return plan.status
 
 

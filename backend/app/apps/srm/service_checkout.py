@@ -234,14 +234,14 @@ def _assert_employee_category(db, employee_id, policy):
         fail('Employee no longer belongs to a category allowed for this service', 409)
 
 
-def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
+def save_eligibility(data:EligibilityInput,db,user,*,commit=True,catalog_configuration=False):
     company,branch,scope=_authority(db,user,configuration=True)
     with db.begin_nested():
         lock_tenant(db,user)
-        policy=_scope(db.query(ServiceBookingPolicy),ServiceBookingPolicy,company,branch,scope).filter_by(id=data.policy_id,active=True).with_for_update().first()
-        if not policy:fail('Service policy not found',404)
+        policy=_scope(db.query(ServiceBookingPolicy),ServiceBookingPolicy,company,branch,scope).filter_by(id=data.policy_id).with_for_update().first()
+        if not policy or (data.active and not policy.active and not catalog_configuration):fail('Service policy not found',404)
         if policy.revision!=data.expected_policy_revision:fail('Service policy revision changed',409)
-        _assert_employee_category(db,data.employee_id,policy)
+        if data.active:_assert_employee_category(db,data.employee_id,policy)
         provider=_provider(db,user,branch,data.provider_resource_id,data.employee_id)
         _source_scope(db,scope,company,branch,type(provider),provider.id,master=True)
         _source_scope(db,scope,company,branch,ServiceBookingPolicy,policy.id)
@@ -249,11 +249,13 @@ def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
         new=row is None
         if row is not None:_source_scope(db,scope,company,branch,type(row),row.id)
         if row is None:
-            if data.expected_revision is not None:fail('Specialist eligibility no longer exists',409)
+            if data.expected_revision is not None or not data.active:fail('Specialist eligibility no longer exists',409)
             row=ServiceSpecialistEligibility(organization_id=company,branch_id=branch,pack_context_id=scope.context_id if scope else None,
                 booking_policy_id=policy.id,service_product_id=policy.service_product_id,provider_resource_id=data.provider_resource_id)
             db.add(row)
-        elif data.expected_revision!=row.revision:fail('Specialist eligibility revision changed',409)
+        elif data.expected_revision!=row.revision and not (
+            catalog_configuration and data.expected_revision is None and data.active and not row.active
+        ):fail('Specialist eligibility revision changed',409)
         if row.booking_policy_id!=policy.id:fail('Specialist policy identity cannot change',409)
         row.active=data.active;db.flush()
         if new:_stamp_new(db,scope,company,branch,[row])
@@ -264,6 +266,8 @@ def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
 
 def _digest(data):
     payload = data.model_dump(mode='json')
+    if payload.get('captured_at') is None:
+        payload.pop('captured_at', None)
     for line in payload.get('lines', []):
         if line.get('batch_id') is None:
             line.pop('batch_id', None)
@@ -426,8 +430,11 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                     **({'batch_id':line.batch_id} if line.batch_id is not None else {}),
                     **({'warehouse_id':line.warehouse_id} if line.warehouse_id else {})}})
             selected.append((line,product,policy,eligibility))
+        order_metadata = {'source': 'pos', 'pos_sale_id': str(data.request_id), 'pos_session_id': data.pos_session_id}
+        if data.captured_at is not None:
+            order_metadata['pos_captured_at'] = data.captured_at.astimezone(timezone.utc).isoformat()
         order_input=SRMSalesOrderCreate(title='Service checkout',customer_id=buyer_id,currency=data.currency,terms=data.note,
-            metadata_json={'source':'pos','pos_sale_id':str(data.request_id),'pos_session_id':data.pos_session_id},
+            metadata_json=order_metadata,
             discount_amount=sum((line.discount_amount for line in data.lines),Decimal(0))+data.bill_discount_amount,lines=prepared)
         normalized=native._normalize_pos_order(db,order_input,company)
         native._validate_pos_stock_available(db,normalized,company,actor=user)

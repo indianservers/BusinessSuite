@@ -153,6 +153,8 @@ _RULES = {
     ('GET', '/api/v1/srm/retail/stock-receipts'): RequestOperation(('stock.view',)),
     ('POST', '/api/v1/srm/retail/stock-receipts'): RequestOperation(('stock.receive',)),
     ('GET', '/api/v1/srm/retail/stock'): RequestOperation(('stock.view',)),
+    ('GET', '/api/v1/srm/reporting/offering-sales'): RequestOperation(('reports.view',)),
+    ('GET', '/api/v1/srm/reporting/offering-audience'): RequestOperation(('reports.view',), mode='retail_offering_audience'),
     ('GET', '/api/v1/srm/retail/reports/daily'): RequestOperation(('reports.view',)),
     ('POST', '/api/v1/srm/retail/returns'): RequestOperation(('returns.approve', 'payments.record')),
     ('GET', '/api/v1/srm/retail/returns/{return_id}'): RequestOperation(('returns.approve', 'payments.record')),
@@ -323,9 +325,11 @@ def authorize_request(db, actor, request, scope):
     if rule.mode in {'construction_documents', 'construction_statistics', 'construction_planning'}:
         if scope.pack_key != 'construction' or not allowed.intersection(rule.actions):
             raise HTTPException(403, 'The selected Business Pack cannot perform this Construction operation')
+    if rule.mode == 'retail_offering_audience' and scope.pack_key != 'retail':
+        _unavailable(method, path, 'Purchaser reporting is not verified for this Business Pack')
     if rule.mode == 'industry_kind':
         for_record_read(db, actor, request.query_params.get('kind', ''))
-    elif rule.mode in {'capability', 'invoice_document'} and not allowed.intersection(rule.actions):
+    elif rule.mode in {'capability', 'invoice_document', 'retail_offering_audience'} and not allowed.intersection(rule.actions):
         raise HTTPException(403, {'code': 'business_pack_operation_denied',
             'message': 'Assigned Business Pack role cannot perform this operation',
             'method': method, 'route': path, 'required_any': list(rule.actions)})
