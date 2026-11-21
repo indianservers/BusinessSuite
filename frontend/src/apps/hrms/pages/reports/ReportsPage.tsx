@@ -81,28 +81,29 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6 hrms-reports-workspace">
-      <div>
+      <header className="rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-4 sm:p-6">
         <h1 className="page-title">Reports & Analytics</h1>
         <p className="page-description">Live workforce dashboards, statutory insights, and configurable report output.</p>
-      </div>
+      </header>
 
-      <div className="flex flex-wrap gap-2 border-b">
+      <nav aria-label="Report views" className="grid gap-1 rounded-xl border bg-muted/30 p-1 sm:flex sm:flex-wrap">
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
+            aria-pressed={activeTab === tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              "min-h-11 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-background",
               activeTab === tab
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-card text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {tab}
           </button>
         ))}
-      </div>
+      </nav>
 
       {activeTab === "Overview Dashboard" && <OverviewDashboard />}
       {activeTab === "Workforce Analytics" && <WorkforceAnalytics />}
@@ -307,7 +308,7 @@ function SavedReports() {
   };
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
       <Card>
         <CardHeader><CardTitle className="text-base">Saved Reports</CardTitle></CardHeader>
         <CardContent className="space-y-3">

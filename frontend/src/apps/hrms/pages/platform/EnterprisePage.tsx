@@ -109,9 +109,9 @@ export default function EnterprisePage() {
   return (
     <div className="space-y-6">
       <div><h1 className="page-title">Enterprise Platform</h1><p className="page-description">Security policy, MFA enforcement, and enterprise SSO configuration.</p></div>
-      <div className="flex gap-2 border-b">
-        {["Security Policy", "SSO Providers", "IP Policies", "Privacy"].map((item) => <button key={item} onClick={() => setTab(item as "Security Policy" | "SSO Providers" | "IP Policies" | "Privacy")} className={cn("border-b-2 px-3 py-2 text-sm font-medium", tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground")}>{item}</button>)}
-      </div>
+      <nav aria-label="Enterprise settings" className="grid grid-cols-2 gap-1 rounded-xl border bg-muted/30 p-1 sm:flex sm:flex-wrap">
+        {["Security Policy", "SSO Providers", "IP Policies", "Privacy"].map((item) => <button key={item} type="button" aria-pressed={tab === item} onClick={() => setTab(item as "Security Policy" | "SSO Providers" | "IP Policies" | "Privacy")} className={cn("min-h-11 rounded-lg px-3 py-2 text-sm font-medium hover:bg-background", tab === item ? "bg-card text-primary shadow-sm" : "text-muted-foreground")}>{item}</button>)}
+      </nav>
       {tab === "Security Policy" ? <SecurityPolicy /> : tab === "SSO Providers" ? <SsoProviders /> : tab === "IP Policies" ? <IpPolicies /> : <PrivacyOps />}
     </div>
   );
@@ -142,7 +142,7 @@ function PrivacyOps() {
     onSuccess: (res) => toast({ title: "Retention run complete", description: `${res.data.eligible || 0} eligible, ${res.data.blocked || 0} blocked.` }),
   });
   return (
-    <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
       <Card>
         <CardHeader><CardTitle className="text-base">Privacy Request</CardTitle><CardDescription>Exports use masked sensitive identifiers. Delete requests are blocked by active legal holds and retention.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
@@ -187,7 +187,7 @@ function IpPolicies() {
     onError: () => toast({ title: "Invalid IP policy", variant: "destructive" }),
   });
   return (
-    <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
       <SmartCreateSection title="Add IP policy" inline={!!draft.id} completionRevision={completionRevision} closeOnRecordSaved={false}><Card>
         <CardHeader><CardTitle className="text-base">{draft.id ? "Edit" : "Add"} IP Policy</CardTitle><CardDescription>Blocklist entries always win. If any allowlist entry is active, unmatched IPs are rejected.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
@@ -233,7 +233,7 @@ function SecurityPolicy() {
   if (!draft) return <div className="space-y-5"><div className="rounded-md border bg-card p-4 text-sm">No security policy configured. Password and MFA settings will be available after a policy is configured.</div><Card><CardHeader><CardTitle className="text-base">Login Attempt Log</CardTitle></CardHeader><CardContent><AttemptsTable rows={attempts.data || []} /></CardContent></Card></div>;
   const patch = (changes: Partial<Policy>) => setDraft((current) => current ? { ...current, ...changes } : current);
   return (
-    <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+    <div className="grid gap-5 xl:grid-cols-2">
       <Card>
         <CardHeader><CardTitle className="text-base">Password & Lockout Policy</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">

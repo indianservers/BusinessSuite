@@ -1,3 +1,4 @@
+import { randomUUID } from "../../components/random-uuid";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -312,7 +313,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
     recurrence: "",
     recurrence_until: "",
   });
-  const key = useRef(crypto.randomUUID());
+  const key = useRef(randomUUID());
   const [preview, setPreview] = useState<Row | null>(null);
   const { data: access, isError: denied } = useQuery({
     queryKey: ["intern-management", "access"],
@@ -503,7 +504,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
       ...(name === "project_id" ? { task_id: "", reviewer_user_id: "" } : {}),
     }));
     setPreview(null);
-    key.current = crypto.randomUUID();
+    key.current = randomUUID();
   }
   function assignmentPayload() {
     return {
@@ -1327,7 +1328,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                           onChange={() => {
                             choose(p.id);
                             setPreview(null);
-                            key.current = crypto.randomUUID();
+                            key.current = randomUUID();
                           }}
                         />
                         <div>
@@ -1507,7 +1508,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                           "post",
                           () => {
                             setPreview(null);
-                            key.current = crypto.randomUUID();
+                            key.current = randomUUID();
                           },
                         )
                       }

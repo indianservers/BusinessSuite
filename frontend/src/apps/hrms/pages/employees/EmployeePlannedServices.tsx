@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useId, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { api } from '@/services/api';
@@ -29,7 +29,7 @@ export function EmployeePlannedServicesBrowser({ defaultEmployeeId, canBrowse }:
 }
 
 function EmployeeScheduleBrowser({ defaultEmployeeId, canBrowse, scope }: { defaultEmployeeId?: number; canBrowse: boolean; scope: string }) {
-  const [readGeneration] = useState(() => crypto.randomUUID());
+  const readGeneration = useId();
   const [search, setSearch] = useState(''), deferred = useDeferredValue(search);
   const [selected, setSelected] = useState('');
   const employees = useQuery({
@@ -59,7 +59,7 @@ export default function EmployeePlannedServices({ employeeId, packContextId }: {
 }
 
 function PlannedServicesPanel({ employeeId, packContextId, scope }: { employeeId: number; packContextId?: number; scope: string }) {
-  const [readGeneration] = useState(() => crypto.randomUUID());
+  const readGeneration = useId();
   const [from, setFrom] = useState(() => dateText(new Date()));
   const [until, setUntil] = useState(() => { const value = new Date(); value.setDate(value.getDate() + 6); return dateText(value); });
   const start = new Date(`${from}T00:00:00`), end = new Date(`${until}T00:00:00`);

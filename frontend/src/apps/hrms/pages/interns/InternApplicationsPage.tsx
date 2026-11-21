@@ -1,3 +1,4 @@
+import { randomUUID } from "../../components/random-uuid";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import CompactActions from "@/components/actions/CompactActions";
@@ -208,7 +209,7 @@ export default function InternApplicationsPage() {
   const [intakePage, setIntakePage] = useState(1);
   const deferredSearch = useDeferredValue(search);
   const [bulkAll, setBulkAll] = useState(false);
-  const bulkKey = useRef(crypto.randomUUID());
+  const bulkKey = useRef(randomUUID());
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: { id: number; name: string; message: string }[] } | null>(null);
   const [decision, setDecision] = useState<Row>({
     branch_id: "",
@@ -310,7 +311,7 @@ export default function InternApplicationsPage() {
   const busy = mutation.isPending || bulkMutation.isPending;
   const openBulkReview = (status: DecisionStatus) => {
     setBulkDecision(newDecision());
-    bulkKey.current = crypto.randomUUID();
+    bulkKey.current = randomUUID();
     setBulkReview({ status, ids: checkedApplications.map(item => item.id) });
   };
   const labels: Record<string, string> = {

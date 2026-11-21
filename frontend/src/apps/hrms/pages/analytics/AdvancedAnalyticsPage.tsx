@@ -1,3 +1,5 @@
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { useMobile } from "@/components/mobile/useMobile";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -114,39 +116,42 @@ export default function AdvancedAnalyticsPage() {
 
   const selectedDefinition = (definitions.data || []).find((item: { code: string }) => item.code === metric);
   const summaryEntries = Object.entries(drilldown.data?.summary || {});
+  const rows = (drilldown.data?.rows || []).slice(0, 12);
+  const mobile = useMobile(640);
 
   return (
     <div className="space-y-5">
       <div className="rounded-lg border bg-card p-5">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">HRMS Intelligence</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Advanced Analytics</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Advanced Analytics</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Governed HR metrics with drilldowns by department, band, location, employment type, and tenure.
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {metricCards.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.code}
               type="button"
+              aria-pressed={metric === item.code}
               onClick={() => setMetric(item.code)}
-              className={`rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50 ${metric === item.code ? "border-primary" : ""}`}
+              className={`flex min-h-16 min-w-0 items-center gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/50 ${metric === item.code ? "border-primary" : ""}`}
             >
-              <Icon className="mb-3 h-5 w-5 text-primary" />
+              <Icon className="h-5 w-5 shrink-0 text-primary" />
               <p className="text-sm font-medium">{item.title}</p>
             </button>
           );
         })}
       </div>
 
+      <MobileDisclosure title="Metric filters" maxWidth={640}>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Metric Filters</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-5">
+        <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
             ["department_id", "Department ID"],
             ["grade_band_id", "Grade/Band ID"],
@@ -155,21 +160,22 @@ export default function AdvancedAnalyticsPage() {
             ["tenure_band", "Tenure Band"],
           ].map(([key, label]) => (
             <div key={key} className="space-y-1.5">
-              <Label>{label}</Label>
+              <Label htmlFor={`hr-analytics-${key}`}>{label}</Label>
               {key === "tenure_band" ? (
-                <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.tenure_band} onChange={(e) => setFilters({ ...filters, tenure_band: e.target.value })}>
+                <NativeSelect id={`hr-analytics-${key}`} className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={filters.tenure_band} onChange={(e) => setFilters({ ...filters, tenure_band: e.target.value })}>
                   <option value="">All</option>
                   {["0-1", "1-3", "3-5", "5+"].map((value) => <option key={value}>{value}</option>)}
                 </NativeSelect>
               ) : (
-                <Input value={(filters as Record<string, string>)[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.value })} />
+                <Input id={`hr-analytics-${key}`} className="h-11 text-base" value={(filters as Record<string, string>)[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.value })} />
               )}
             </div>
           ))}
         </CardContent>
       </Card>
+      </MobileDisclosure>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_24rem]">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{selectedDefinition?.name || metric}</CardTitle>
@@ -184,10 +190,22 @@ export default function AdvancedAnalyticsPage() {
                 </div>
               )) : <p className="rounded-lg border p-4 text-sm text-muted-foreground sm:col-span-3">No data for the selected metric and filters.</p>}
             </div>
-            <div className="overflow-x-auto rounded-lg border">
+            {drilldown.isError && <p role="alert" className="text-sm text-destructive">The metric could not load. <Button variant="outline" size="sm" onClick={() => void drilldown.refetch()}>Retry</Button></p>}
+            {drilldown.isLoading && <p role="status" className="text-sm text-muted-foreground">Loading metric breakdown…</p>}
+            {mobile && rows.length > 0 && <ul className="grid gap-2" aria-label="Metric breakdown">
+              {rows.map((row, index) => <li key={index} className="min-w-0 rounded-lg border bg-card p-3">
+                <dl className="grid grid-cols-2 gap-3 break-words text-sm">
+                  {Object.entries(row).map(([key, value]) => <div key={key} className="min-w-0">
+                    <dt className="text-xs capitalize text-muted-foreground">{key.replace(/_/g, " ")}</dt>
+                    <dd className="mt-0.5 font-medium">{String(value ?? "—")}</dd>
+                  </div>)}
+                </dl>
+              </li>)}
+            </ul>}
+            {!mobile && rows.length > 0 && <div className="overflow-x-auto rounded-lg border">
               <GridTable gridId="apps/hrms/pages/analytics/AdvancedAnalyticsPage:table-1" className="w-full min-w-[640px] text-sm">
                 <tbody>
-                  {(drilldown.data?.rows || []).slice(0, 12).map((row, index) => (
+                  {rows.map((row, index) => (
                     <tr {...recordPreviewProps(row)} key={index} className="border-b last:border-0">
                       {Object.entries(row).map(([key, value]) => (
                         <td key={key} className="px-3 py-2">
@@ -199,8 +217,7 @@ export default function AdvancedAnalyticsPage() {
                   ))}
                 </tbody>
               </GridTable>
-              {!drilldown.isLoading && !drilldown.data?.rows?.length && <p className="p-4 text-sm text-muted-foreground">No drilldown rows available.</p>}
-            </div>
+            </div>}
           </CardContent>
         </Card>
 
