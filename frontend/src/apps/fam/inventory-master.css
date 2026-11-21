@@ -3,6 +3,53 @@
 .smart-create-body .inventory-master-cancel { display: none; }
 
 @media (max-width: 767px) {
+  .fam-report-mobile-controls {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+  }
+
+  .fam-report-mobile-controls > label {
+    flex: 1;
+  }
+
+  .mobile-experience-sheet:has(.fam-report-filter-sheet)[role="dialog"] {
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .fam-report-filter-sheet {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .fam-report-filter-fields {
+    display: grid;
+    gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px 4px 12px;
+  }
+
+  .fam-report-filter-fields input {
+    min-height: 44px;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .fam-report-filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .fam-report-filter-actions button {
+    min-height: 44px;
+  }
   .fam-inventory-report :is(button, summary),
   .fam-inventory-movement-form button {
     min-height: 44px;

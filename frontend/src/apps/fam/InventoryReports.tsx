@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {api} from '@/services/api';
 import {useRecordScope} from '@/lib/record-scope';
 import {useMobile} from '@/components/mobile/useMobile';
+import {MobileSheet} from '@/components/mobile/MobilePrimitives';
 import './inventory-master.css';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -33,6 +34,8 @@ export default function InventoryReports({initialReport="overview",singleReport=
  const fixedProduct=location.pathname.includes('/item-ledger/')?route.id:undefined;
  const source=location.pathname.startsWith('/srm')?'srm':'fam',report=singleReport?initialReport:params.get('report')||initialReport;
  const [hidden,setHidden]=useState<Record<string,boolean>>({}),[exporting,setExporting]=useState(false),[exportError,setExportError]=useState('');
+ const [filtersOpen,setFiltersOpen]=useState(false);
+ const useFilterSheet=mobile&&source==='fam';
  const endpoint=`/${source}/inventory/reports`;
  const request=useMemo(()=>Object.fromEntries([...params.entries(),['report',report],...(fixedProduct?[['product_id',fixedProduct]]:[]),...(source==='fam'?[['analysis','true']]:[])]),[params,report,source,fixedProduct]);
  const query=useQuery<Result>({queryKey:['inventory-analysis',scope,source,request],queryFn:({signal})=>api.get(endpoint,{params:request,signal,recordCache:false}).then(response=>response.data),retry:false});
@@ -44,13 +47,26 @@ export default function InventoryReports({initialReport="overview",singleReport=
  }
  function drill(row:Row){const next=new URLSearchParams(params);next.set('report','ledger');next.delete('page');next.delete('transaction_type');if(row.product_id)next.set('product_id',String(row.product_id));if(row.warehouse_id)next.set('warehouse_id',String(row.warehouse_id));return `/${source}/inventory/reports?${next}`;}
  function sourceDrill(row:Row){const next=new URLSearchParams(params);next.set('report','ledger');next.set('movement_id',String(row.movement_id));next.delete('page');return `/${source}/inventory/reports?${next}`;}
+ const filterFields=[['start_date','From','date'],['end_date','To','date'],['search','Search','search'],['product_id','Product ID','number'],['warehouse_id','Warehouse ID','number'],['category','Category ID','text'],['transaction_type','Transaction type','text']].map(([key,label,type])=><label className="text-sm" key={key}>{label}<Input name={key} aria-label={label} type={type} min={type==='number'?1:undefined} readOnly={key==='product_id'&&!!fixedProduct} defaultValue={key==='product_id'&&fixedProduct?fixedProduct:params.get(key)||''} className="max-w-44"/></label>);
+ const filterActions=<>
+   <Button type="submit" size="sm">Apply filters</Button>
+   <Button type="button" variant="outline" size="sm" onClick={()=>{setParams({report});setFiltersOpen(false);}}>Clear filters</Button>
+ </>;
+ const filterForm=<form className={useFilterSheet?"fam-report-filter-sheet":"flex flex-wrap items-end gap-3 mt-3 fam-inventory-report-filters"} aria-label="Inventory report filters" onSubmit={event=>{
+   event.preventDefault();
+   const fields=new FormData(event.currentTarget);
+   change(Object.fromEntries([...fields.entries()].map(([key,value])=>[key,String(value)])));
+   setFiltersOpen(false);
+ }} key={params.toString()}>
+   {useFilterSheet?<><div className="fam-report-filter-fields">{filterFields}</div><div className="fam-report-filter-actions">{filterActions}</div></>:<>{filterFields}{filterActions}</>}
+ </form>;
  return <section className={source === "fam" ? "space-y-4 min-w-0 fam-inventory-report" : "space-y-4 min-w-0"} aria-label="Inventory report workspace">
-  {!singleReport&&(mobile?<label className="block text-sm">Report<NativeSelect aria-label="Inventory report" value={report} onChange={event=>change({report:event.target.value,transaction_type:'',search:'',category:''})}>{reports.map(([key,label])=><option key={key} value={key}>{label}</option>)}</NativeSelect></label>:<nav className="flex flex-wrap gap-2" aria-label="Inventory reports">{reports.map(([key,label])=><Button key={key} size="sm" variant={report===key?'default':'outline'} aria-pressed={report===key} onClick={()=>change({report:key,transaction_type:'',search:key==='reconciliation'?'':params.get('search')||'',category:key==='reconciliation'?'':params.get('category')||''})}>{label}</Button>)}</nav>)}
+  {mobile?<div className={useFilterSheet?"fam-report-mobile-controls":undefined}>
+    {!singleReport&&<label className="block text-sm">Report<NativeSelect aria-label="Inventory report" value={report} onChange={event=>change({report:event.target.value,transaction_type:'',search:'',category:''})}>{reports.map(([key,label])=><option key={key} value={key}>{label}</option>)}</NativeSelect></label>}
+    {useFilterSheet&&<><Button type="button" variant="outline" aria-haspopup="dialog" onClick={()=>setFiltersOpen(true)}>Report filters</Button><MobileSheet open={filtersOpen} onClose={()=>setFiltersOpen(false)} title="Report filters">{filterForm}</MobileSheet></>}
+  </div>:!singleReport&&<nav className="flex flex-wrap gap-2" aria-label="Inventory reports">{reports.map(([key,label])=><Button key={key} size="sm" variant={report===key?'default':'outline'} aria-pressed={report===key} onClick={()=>change({report:key,transaction_type:'',search:key==='reconciliation'?'':params.get('search')||'',category:key==='reconciliation'?'':params.get('category')||''})}>{label}</Button>)}</nav>}
   <Card><CardHeader><CardTitle className="text-base">{reports.find(([key])=>key===report)?.[1]||'Inventory report'}</CardTitle></CardHeader><CardContent className="space-y-4">
-   <details open={!mobile}><summary className="text-sm font-medium">Report filters</summary><form className="flex flex-wrap items-end gap-3 mt-3 fam-inventory-report-filters" aria-label="Inventory report filters" onSubmit={event=>{event.preventDefault();const form=new FormData(event.currentTarget);change(Object.fromEntries([...form.entries()].map(([key,value])=>[key,String(value)])));}} key={params.toString()}>
-    {[['start_date','From','date'],['end_date','To','date'],['search','Search','search'],['product_id','Product ID','number'],['warehouse_id','Warehouse ID','number'],['category','Category ID','text'],['transaction_type','Transaction type','text']].map(([key,label,type])=><label className="text-sm" key={key}>{label}<Input name={key} aria-label={label} type={type} min={type==='number'?1:undefined} readOnly={key==='product_id'&&!!fixedProduct} defaultValue={key==='product_id'&&fixedProduct?fixedProduct:params.get(key)||''} className="max-w-44"/></label>)}
-    <Button type="submit" size="sm">Apply filters</Button><Button type="button" variant="outline" size="sm" onClick={()=>setParams({report})}>Clear filters</Button>
-   </form></details>
+   {!useFilterSheet&&<details open={!mobile}><summary className="text-sm font-medium">Report filters</summary>{filterForm}</details>}
    <div className="flex flex-wrap items-center gap-3 fam-inventory-report-tools"><label className="text-sm">Sort<NativeSelect aria-label="Sort inventory report" value={params.get('sort')||'item_name'} onChange={event=>change({sort:event.target.value})}>{['item_name','sku','quantity','stock_value'].map(key=><option key={key} value={key}>{labels(key)}</option>)}</NativeSelect></label><Button variant="outline" size="sm" onClick={()=>change({descending:params.get('descending')==='true'?'false':'true'})}>Reverse sort</Button><Button variant="outline" size="sm" disabled={query.isFetching} onClick={()=>void query.refetch()}>Refresh</Button><Button variant="outline" size="sm" disabled={exporting||!data||query.isError} onClick={()=>void download('xlsx')}>Export Excel</Button><Button variant="outline" size="sm" disabled={exporting||!data||query.isError} onClick={()=>void download('pdf')}>Export PDF</Button><Button variant="outline" size="sm" onClick={()=>window.print()}>Print</Button><details><summary>Columns</summary><div className="flex flex-wrap gap-3">{columnsFor(report).map(column=><label key={column}><input type="checkbox" checked={!hidden[report+':'+column]} onChange={event=>setHidden(current=>({...current,[report+':'+column]:!event.target.checked}))}/>{labels(column)}</label>)}</div></details></div>
    {query.isFetching&&<p role="status">Loading inventory report…</p>}{query.isError&&<p role="alert">{errorMessage(query.error)}</p>}{exportError&&<p role="alert">{exportError}</p>}
    {!query.isError&&data&&<><p className="text-sm text-muted-foreground">{source==='srm'?'Sales':'Finance'} stock ledger · As of {data.as_of} · Posted movements only · Costs exclude sales tax</p>{report==='sales'&&<p className="text-sm">These are stock costs and quantities. <Link className="underline" to={source==='srm'?'/srm/inventory/reports/gross-margin':'/fam/inventory/gross-margin'}>Gross margin from linked invoices (all dates)</Link>.</p>}
