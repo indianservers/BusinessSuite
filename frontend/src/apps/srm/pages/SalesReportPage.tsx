@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { MobileSheet } from "@/components/mobile/MobilePrimitives";
 import { useMobile } from "@/components/mobile/useMobile";
 import { useRecordScope } from "@/lib/record-scope";
@@ -76,14 +77,24 @@ function SalesReport({ scope }: { scope: string }) {
       <div><h1>Sales Report<span><BarChart3 size={23}/></span></h1><p>Issued invoice lines by offering. Sales amounts include tax.</p></div>
     </header>
 
-    <div className="sc-catalog-bar">
+    {phone ? (
+      <label className="grid gap-1 text-sm font-medium">
+        Offering type
+        <NativeSelect className="min-h-11 text-base" value={kind} onChange={event => {
+          setKind(event.target.value as (typeof tabs)[number]["kind"]);
+          setPage(1);
+        }}>
+          {tabs.map(tab => <option key={tab.kind} value={tab.kind}>{tab.label}</option>)}
+        </NativeSelect>
+      </label>
+    ) : <div className="sc-catalog-bar">
       <div className="sc-tabs" role="group" aria-label="Offering type">
         {tabs.map(tab => <button key={tab.kind} type="button" aria-pressed={kind === tab.kind} onClick={() => {
           setKind(tab.kind);
           setPage(1);
         }}>{tab.label}</button>)}
       </div>
-    </div>
+    </div>}
 
     {phone ? (
       <div className="flex flex-wrap items-center gap-2">
