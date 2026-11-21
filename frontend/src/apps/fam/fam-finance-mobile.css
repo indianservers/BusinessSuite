@@ -181,3 +181,37 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (min-width: 361px) and (max-width: 480px) {
+  .fam-bank-import-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fam-bank-import-fields > :first-child,
+  .fam-bank-import-fields > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .fam-bank-import-fields > *,
+  .fam-bank-import-fields input {
+    min-width: 0;
+  }
+
+  .fam-bank-import-fields input,
+  .fam-bank-import textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .fam-bank-import :is(button, summary),
+  .fam-bank-review-actions button {
+    min-height: 44px;
+  }
+
+  .fam-bank-review-actions > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}

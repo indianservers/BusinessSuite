@@ -21,6 +21,7 @@ import FinancialMobileLineEditor from "./FinancialMobileLineEditor";
 import "./fam-purchase-mobile.css";
 import "./fam-finance-mobile.css";
 import {useMobile} from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import VoucherMobileLineEditor from "./VoucherMobileLineEditor";
 import "./fam-voucher-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -200,7 +201,12 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
 };
 
 function money(value: unknown) {
-  return Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: defaultText("currency", "fam"), maximumFractionDigits: 0 });
+  return Number(value || 0).toLocaleString("en-IN", {
+    style: "currency",
+    currency: defaultText("currency", "fam"),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 function text(value: unknown) {
@@ -381,10 +387,18 @@ const financeCardFields = [
   "debit_amount", "credit_amount", "status",
 ].map(column => column.replace(/_/g, " "));
 
+const bankCardFields: Record<string, string[]> = {
+  "/fam/bank-statements": ["id", "imported file name", "status", "statement period end"],
+  "/fam/bank-statements/:id": ["description", "matched status", "debit amount", "credit amount", "transaction date", "balance"],
+  "/fam/bank-reconciliation": ["statement id", "id", "status", "book balance", "bank statement balance"],
+};
+
 function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspacePage:table-1", preview=true }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode; gridId?:string; preview?:boolean }) {
   const { pathname } = useLocation();
   const phone = useMobile(767);
   const financeGrid = pathname === "/fam" || pathname.startsWith("/fam/");
+  const cardPath = pathname.replace(/^\/fam\/bank-statements\/[^/]+$/, "/fam/bank-statements/:id");
+  const cardFields = bankCardFields[cardPath] ?? financeCardFields;
   const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
   const detailBase = /^\/(fam|srm)\/inventory\/items$/.test(pathname) ? pathname : detailRoutes[pathname];
   const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
@@ -393,7 +407,7 @@ function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspace
       <GridTable
         gridId={gridId}
         className="w-full min-w-[780px] text-sm"
-        mobileCardPriority={financeGrid ? financeCardFields : undefined}
+        mobileCardPriority={financeGrid ? cardFields : undefined}
         mobileToolsCollapsible={financeGrid}
       >
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2" style={financeGrid && phone && moneyColumn.test(column) ? { width: 160 } : undefined}>{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}{definitionName&&<th className="px-3 py-2">Ledger actions</th>}</tr></thead>
@@ -403,12 +417,22 @@ function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspace
               {columns.map((column, index) => {
                 const value = text(row[column]);
                 const ledgerEntries = pathname === "/fam/ledgers" && column === "ledger_name";
-                const destination = ledgerEntries ? "/fam/ledgers/" + row.id + "/entries" : index === 0 && detailBase ? detailBase + "/" + row.id : undefined;
-                const action = ledgerEntries ? "View entries for " + value : "Open " + pathname.split("/").pop()?.replace(/-/g, " ") + " · " + value;
+                const reconciliationStatement = pathname === "/fam/bank-reconciliation" && (column === "statement_id" || column === "id");
+                let destination: string | undefined;
+                let action = "Open " + pathname.split("/").pop()?.replace(/-/g, " ") + " · " + value;
+                if (ledgerEntries && row.id) {
+                  destination = "/fam/ledgers/" + row.id + "/entries";
+                  action = "View entries for " + value;
+                } else if (reconciliationStatement && row[column]) {
+                  destination = "/fam/bank-statements/" + value;
+                  action = "Open statement #" + value;
+                } else if (index === 0 && detailBase && row.id) {
+                  destination = detailBase + "/" + row.id;
+                }
                 return (
                   <td key={column} className="px-3 py-2" data-fam-amount={financeGrid && moneyColumn.test(column) || undefined}>
-                    {destination && row.id ? (
-                      <Link data-context-action={action} to={destination} className="text-primary underline">{value}</Link>
+                    {destination ? (
+                      <Link data-context-action={action} aria-label={reconciliationStatement ? action : undefined} to={destination} className="text-primary underline">{value}</Link>
                     ) : column.includes("status") || column === "nature" ? (
                       <Badge variant={statusTone(row[column])}>{value}</Badge>
                     ) : ["notes", "remarks", "narration", "description"].includes(column) ? (
@@ -860,7 +884,57 @@ function BankStatementsView() {
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader><CardContent className="space-y-3">{["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("period") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<ImportWizard title="Map bank statement" label="Choose Excel or CSV" fields={bankStatementFields} confirmLabel="Use mapped statement" onImport={async({rows,filename})=>{setDraft(current=>({...current,imported_file_name:filename.replace(/\.[^.]+$/,".csv"),file_content:csvText(rows)}));return {created:rows.length,message:"Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted."};}}/><Field label="CSV content"><textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={(event) => setDraft((current) => ({ ...current, file_content: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p><Button className="w-full" onClick={() => mutation.mutate()}>Import statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader><CardContent><State label="bank statements" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/bank-statements/${item.id}`}>Open statement #{text(item.id)}</Link></Button>)}</CardContent></Card></div>;
+  return (
+    <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader>
+        <CardContent className="space-y-3 fam-bank-import">
+          <div className="grid gap-3 fam-bank-import-fields">
+            {["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map(field => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input
+                  type={field.includes("period") ? "date" : "text"}
+                  inputMode={field === "bank_account_id" ? "numeric" : undefined}
+                  value={String(draft[field] ?? "")}
+                  onChange={event => setDraft(current => ({
+                    ...current,
+                    [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value,
+                  }))}
+                />
+              </Field>
+            ))}
+          </div>
+          <ImportWizard
+            title="Map bank statement"
+            label="Choose Excel or CSV"
+            fields={bankStatementFields}
+            confirmLabel="Use mapped statement"
+            onImport={async ({ rows, filename }) => {
+              setDraft(current => ({ ...current, imported_file_name: filename.replace(/\.[^.]+$/, ".csv"), file_content: csvText(rows) }));
+              return { created: rows.length, message: "Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted." };
+            }}
+          />
+          <MobileDisclosure title="Enter or review CSV content" maxWidth={480} keepMounted>
+            <Field label="CSV content">
+              <textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={event => setDraft(current => ({ ...current, file_content: event.target.value }))} />
+            </Field>
+          </MobileDisclosure>
+          <p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p>
+          <Button className="w-full" disabled={mutation.isPending} onClick={() => mutation.mutate()}>Import statement</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader>
+        <CardContent>
+          <State label="bank statements" isLoading={query.isLoading} isError={query.isError} />
+          <DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />
+          {listItems(query.data).slice(0, 4).map(item => (
+            <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={"/fam/bank-statements/" + item.id}>Open statement #{text(item.id)}</Link></Button>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function BankStatementDetailView() {
@@ -870,7 +944,7 @@ function BankStatementDetailView() {
   const data = (query.data || {}) as FAMRecord;
   const firstLine = (((data.lines as FAMRecord[] | undefined) || [])[0] || {}) as FAMRecord;
   const action = useMutation({ mutationFn: (run: () => Promise<FAMRecord>) => run(), onSuccess: () => { toast({ title: "Bank reconciliation updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["status", "bank_account_id", "statement_period_start", "statement_period_end"].map((field) => <Card key={field}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{field.replace(/_/g, " ")}</p><p className="text-lg font-semibold">{text(data[field])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Review and match</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2"><ActionToolbar label="Bank reconciliation actions" actions={[
+  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4 fam-balance-summary">{["status", "bank_account_id", "statement_period_start", "statement_period_end"].map((field) => <Card key={field}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{field.replace(/_/g, " ")}</p><p className="text-lg font-semibold">{text(data[field])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Review and match</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2 fam-bank-review-actions"><ActionToolbar label="Bank reconciliation actions" actions={[
     {id:"auto",kind:"refresh",label:"Auto-match",prominent:true,primary:true,disabled:action.isPending || query.isPending,onSelect:()=>action.mutate(()=>famApi.autoMatchBankStatement(id))},
     {id:"match",kind:"approve",label:"Confirm match",prominent:true,disabled:action.isPending || !firstLine.id || !firstLine.matched_voucher_id,onSelect:()=>action.mutate(()=>famApi.matchBankStatement(id,{statement_line_id:Number(firstLine.id),voucher_id:Number(firstLine.matched_voucher_id),matched_amount:Number(firstLine.credit_amount || firstLine.debit_amount || 0),confirm:true})),confirm:{title:"Confirm this bank match?",description:`First statement line #${firstLine.id || "—"}, voucher #${firstLine.matched_voucher_id || "—"}. Review the statement lines and amount below before confirming.`,label:"Confirm match"}},
     {id:"reconcile",kind:"complete",label:"Reconcile statement",prominent:true,disabled:action.isPending || query.isPending,onSelect:()=>action.mutate(()=>famApi.reconcileBankStatement(id)),confirm:{title:"Reconcile this statement?",description:"Review all statement lines and unmatched entries before finalizing reconciliation.",label:"Reconcile statement"}},
