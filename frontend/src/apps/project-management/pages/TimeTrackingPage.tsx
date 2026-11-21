@@ -215,10 +215,14 @@ export default function TimeTrackingPage() {
                   {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
                 </NativeSelect>
               </Field>
-              <Field label="Date"><Input type="date" value={form.logDate} onChange={(event) => updateForm({ logDate: event.target.value })} required /></Field>
-              <Field label="Duration (minutes or 3h 20m)"><Input type="text" placeholder="60 or 1h 30m" value={form.minutes} onChange={(event) => updateForm({ minutes: event.target.value })} required /></Field>
-              <Field label="Start time"><Input type="time" value={form.startTime} onChange={(event) => updateForm({ startTime: event.target.value })} /></Field>
-              <Field label="End time"><Input type="time" value={form.endTime} onChange={(event) => updateForm({ endTime: event.target.value })} /></Field>
+              <div className="pms-time-field-pair">
+                <Field label="Date"><Input type="date" value={form.logDate} onChange={(event) => updateForm({ logDate: event.target.value })} required /></Field>
+                <Field label="Duration (minutes or 3h 20m)"><Input type="text" placeholder="60 or 1h 30m" value={form.minutes} onChange={(event) => updateForm({ minutes: event.target.value })} required /></Field>
+              </div>
+              <div className="pms-time-field-pair">
+                <Field label="Start time"><Input type="time" value={form.startTime} onChange={(event) => updateForm({ startTime: event.target.value })} /></Field>
+                <Field label="End time"><Input type="time" value={form.endTime} onChange={(event) => updateForm({ endTime: event.target.value })} /></Field>
+              </div>
               <Field label="Billable">
                 <label className="flex h-10 items-center gap-2 rounded-md border px-3 text-sm">
                   <input type="checkbox" checked={form.isBillable} onChange={(event) => updateForm({ isBillable: event.target.checked })} />
