@@ -5,7 +5,10 @@ import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
-import { useMemo, useState } from "react";
+import { cloneElement, isValidElement, useId, useMemo, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useMobile } from "@/components/mobile/useMobile";
+import "./hr-settings-mobile.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -19,7 +22,6 @@ import {
   Search,
   ShieldCheck,
   Tags,
-  X,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -47,40 +49,18 @@ const sections: { key: SettingKey; title: string; description: string; icon: any
   { key: "roles", title: "User Roles", description: "Admin, HR, manager, employee, and custom permissions", icon: ShieldCheck },
 ];
 
-function Modal({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-      <div className="w-full max-w-2xl rounded-t-lg border bg-background shadow-2xl sm:rounded-lg">
-        <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="max-h-[75vh] overflow-y-auto p-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const id = useId();
+  const control = isValidElement<{ id?: string }>(children) && children.type !== PhoneInput;
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={control ? id : undefined}>{label}</Label>
+      {control ? cloneElement(children, { id }) : children}
     </div>
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd }: { onAdd: (event: React.MouseEvent<HTMLButtonElement>) => void }) {
   return (
     <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-8 text-center">
       <ShieldCheck className="mb-3 h-9 w-9 text-muted-foreground/50" />
@@ -177,13 +157,17 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
     onError: (err: any) => toast({ title: "Could not remove", description: apiError(err), variant: "destructive" }),
   });
 
-  const openCreate = (type: SettingKey) => {
+  const mobile = useMobile();
+  const modalOpener = useRef<HTMLButtonElement | null>(null);
+  const openCreate = (type: SettingKey, opener: HTMLButtonElement) => {
+    modalOpener.current = opener;
     setForm(defaultForm(type, dataByKey));
     setEditing(null);
     setModal(type);
   };
 
-  const openEdit = (type: SettingKey, row: Entity) => {
+  const openEdit = (type: SettingKey, row: Entity, opener: HTMLButtonElement) => {
+    modalOpener.current = opener;
     setEditing(row);
     setForm(toForm(type, row));
     setModal(type);
@@ -196,20 +180,20 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="hrms-settings-editor space-y-6">
+      <div className="hrms-settings-header flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Settings</h1>
           <p className="page-description">Configure setup masters used across employee, attendance, payroll, and approval forms.</p>
         </div>
-        <Button onClick={() => openCreate(active)}>
+        <Button onClick={event => openCreate(active, event.currentTarget)}>
           <Plus className="mr-2 h-4 w-4" />
           Add {activeSection.title.slice(0, -1)}
         </Button>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-        <div className="space-y-3">
+        <div className={`space-y-3${section ? " hrms-settings-section-nav" : ""}`}>
           {sections.filter(item => !section || item.key === section).map((section, index) => {
             const Icon = section.icon;
             const isActive = active === section.key;
@@ -254,9 +238,9 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 sm:w-64" placeholder="Search settings" />
+                <Input value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search settings" className="pl-9 sm:w-64" placeholder="Search settings" />
               </div>
-              <Button variant="outline" onClick={() => openCreate(active)}>
+              <Button className="hrms-settings-secondary-add" variant="outline" onClick={event => openCreate(active, event.currentTarget)}>
                 <Plus className="mr-2 h-4 w-4" />
                 New
               </Button>
@@ -266,7 +250,7 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
           <CardContent className="p-0">
             {!filteredRows.length ? (
               <div className="p-4">
-                <EmptyState onAdd={() => openCreate(active)} />
+                <EmptyState onAdd={event => openCreate(active, event.currentTarget)} />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -294,7 +278,7 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
                           <Badge variant={row.is_active === false ? "outline" : "success"}>{row.is_active === false ? "Inactive" : "Active"}</Badge>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(active, row)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Edit ${row.name}`} onClick={event => openEdit(active, row, event.currentTarget)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -318,17 +302,28 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
         </Card>
       </div>
 
-      {modal && (
-        <Modal title={`${editing ? "Edit" : "Add"} ${sections.find((s) => s.key === modal)?.title.slice(0, -1)}`} onClose={() => setModal(null)}>
-          <CompactForm onSubmit={save} className="grid gap-4 sm:grid-cols-2">
-            {renderFields(modal, form, setForm, dataByKey, permissions.data || [])}
-            <div className="flex justify-end gap-2 sm:col-span-2">
-              <Button type="button" variant="outline" onClick={() => setModal(null)}>Cancel</Button>
+      <Dialog open={!!modal} onOpenChange={open => { if (!open && !createMutation.isPending) setModal(null); }}>
+        <DialogContent className="hrms-settings-dialog mobile-experience-sheet max-w-2xl gap-0 p-0 sm:p-0"
+          onCloseAutoFocus={event => {
+            if (modalOpener.current?.isConnected) {
+              event.preventDefault();
+              modalOpener.current.focus();
+            }
+          }}>
+          <DialogTitle tabIndex={mobile ? 0 : undefined} className="border-b px-5 py-4 pr-14 font-semibold">
+            {`${editing ? "Edit" : "Add"} ${sections.find(item => item.key === modal)?.title.slice(0, -1)}`}
+          </DialogTitle>
+          {modal && <CompactForm onSubmit={save} className="hrms-settings-form">
+            <div className="hrms-settings-fields grid gap-4 p-5 sm:grid-cols-2">
+              {renderFields(modal, form, setForm, dataByKey, permissions.data || [])}
+            </div>
+            <div className="hrms-settings-actions flex justify-end gap-2 border-t px-5 py-3">
+              <Button type="button" variant="outline" disabled={createMutation.isPending} onClick={() => setModal(null)}>Cancel</Button>
               <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Saving..." : "Save"}</Button>
             </div>
-          </CompactForm>
-        </Modal>
-      )}
+          </CompactForm>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

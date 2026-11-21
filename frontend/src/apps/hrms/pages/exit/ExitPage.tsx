@@ -81,13 +81,13 @@ export default function ExitPage() {
 
   return (
     <div className="hrms-exit-page space-y-5">
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 md:flex-row md:items-center md:justify-between">
+      <div className="hrms-exit-header flex flex-col gap-3 rounded-lg border bg-card p-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exit</p>
+          <p className="hrms-exit-eyebrow text-xs font-semibold uppercase tracking-wide text-muted-foreground">Exit</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Exit management</h1>
           <p className="mt-1 text-sm text-muted-foreground">Track resignations, approvals, checklist tasks, and final settlement status.</p>
         </div>
-        <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link to="/hrms/assets?view=clearance">Asset clearance</Link></Button><Button variant="outline" asChild><Link to="/hrms/background-verification?population=former">Former employee files</Link></Button><Button variant="outline" onClick={() => records.refetch()}><RefreshCw className="h-4 w-4" />Refresh</Button></div>
+        <div className="hrms-exit-header-actions flex flex-wrap gap-2"><Button variant="outline" asChild><Link to="/hrms/assets?view=clearance">Asset clearance</Link></Button><Button variant="outline" asChild><Link to="/hrms/background-verification?population=former">Former employee files</Link></Button><Button variant="outline" onClick={() => records.refetch()}><RefreshCw className="h-4 w-4" />Refresh</Button></div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">

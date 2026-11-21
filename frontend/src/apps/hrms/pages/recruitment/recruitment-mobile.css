@@ -1,0 +1,91 @@
+@media (max-width: 767px) {
+  .hrms-recruitment {
+    min-width: 0;
+  }
+
+  .hrms-recruitment.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 12px;
+  }
+
+  .hrms-recruitment .hrms-recruitment-header {
+    display: grid;
+    gap: 10px;
+  }
+
+  .hrms-recruitment .hrms-recruitment-actions {
+    justify-content: flex-start;
+  }
+
+  .hrms-recruitment-actions .hrms-recruitment-post {
+    order: -1;
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .hrms-recruitment .hrms-recruitment-stats {
+    gap: 8px;
+  }
+
+  .hrms-recruitment-stats .kf-card > div {
+    padding: 8px;
+  }
+
+  .hrms-recruitment-sections > button {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .hrms-hiring-toolbar .hrms-hiring-filters {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .hrms-hiring-toolbar .hrms-hiring-filters select {
+    flex: 1 1 120px;
+  }
+
+  .hrms-recruitment :is(.hrms-hiring-filters, .hrms-candidate-actions) :is(button, select),
+  .hrms-recruitment-job-form :is(input, select, textarea, button) {
+    min-height: 44px;
+    max-width: 100%;
+  }
+
+  .hrms-candidate-list :is(td, p, .udg-adapted-cell),
+  .hrms-recruitment-candidate-dialog :is(h2, dd) {
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-candidate-open {
+    min-height: 44px;
+    max-width: 100%;
+    height: auto;
+    justify-content: flex-start;
+    padding: 4px 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .hrms-candidate-details {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .smart-create-phone-sheet .hrms-recruitment-job-editor {
+    border: 0;
+    box-shadow: none;
+  }
+
+  .smart-create-phone-sheet .hrms-recruitment-job-editor > div:first-child,
+  .smart-create-phone-sheet .hrms-recruitment-job-actions {
+    display: none;
+  }
+
+  .smart-create-phone-sheet .hrms-recruitment-job-editor > div:last-child {
+    padding: 0;
+  }
+}

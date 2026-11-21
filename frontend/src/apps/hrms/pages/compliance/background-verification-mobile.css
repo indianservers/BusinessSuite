@@ -1,4 +1,4 @@
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .hrms-bgv-register { min-width: 0; }
   .hrms-bgv-register > header h1 { font-size: 20px; line-height: 1.25; }
   .hrms-bgv-register > header > div:last-child { display: grid; grid-template-columns: auto minmax(0, 1fr); width: 100%; }
@@ -9,6 +9,9 @@
   .hrms-bgv-register :is(p, span, h1, h2) { overflow-wrap: anywhere; }
   .hrms-bgv-register > section > div:first-child h2 { scroll-margin-top: 12px; }
   .hrms-bgv-register > section > div:first-child { align-items: center; }
+}
+
+@media (max-width: 480px) {
   .hrms-bgv-vendor { padding: 0; border: 0; }
   .hrms-bgv-vendor [data-save-action] { display: none; }
 }
