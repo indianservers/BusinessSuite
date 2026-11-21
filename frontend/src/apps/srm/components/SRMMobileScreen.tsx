@@ -23,7 +23,7 @@ export default function SRMMobileScreen({children,paths,nativePath}:{children:Re
 }
 function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
-  const dashboard = /^\/srm\/?$/.test(location.pathname);
+  const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
