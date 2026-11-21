@@ -22,6 +22,12 @@ import { Label } from "@/components/ui/label";
 import { projectsAPI } from "../services/api";
 import type { PMSProject, ProjectPriority, ProjectStatus } from "../types";
 
+function generateProjectKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(5));
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  return `P${hex.slice(0, 9).toUpperCase()}`;
+}
+
 export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?: (project: PMSProject, keepOpen?: boolean) => void; onCancel?: () => void } = {}) {
   const { term } = useBusinessTerms();
   const [step, setStep] = useState(0);
@@ -45,7 +51,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
   const draftScope = useRef(`project:${Number(searchParams.get("workspace_id")) || "default"}:new`);
   const [customValues,setCustomValues]=useState<FieldDraft>({});
   const [name, setName] = useState("");
-  const [projectKey, setProjectKey] = useState(() => `P${crypto.randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`);
+  const [projectKey, setProjectKey] = useState(generateProjectKey);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<ProjectStatus>(() => ["Draft", "Planned", "Active", "On Hold", "Completed", "Cancelled", "Archived"].includes(searchParams.get("status") || "") ? searchParams.get("status") as ProjectStatus : "Active");
   const [priority, setPriority] = useState<ProjectPriority>("Medium");
@@ -107,7 +113,7 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
       if(automatic)savedSnapshot.current=JSON.stringify(snapshot);
       if(!automatic){
         clearDraft();
-        if (createAnother && !editing) { onCreated?.(project,true); setName(""); setProjectKey(`P${crypto.randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`); setDescription(""); setBrief(""); setCustomValues({}); setBudget(""); setStartDate(""); setDueDate(""); }
+        if (createAnother && !editing) { onCreated?.(project,true); setName(""); setProjectKey(generateProjectKey()); setDescription(""); setBrief(""); setCustomValues({}); setBudget(""); setStartDate(""); setDueDate(""); }
         else if(onCreated)onCreated(project);else navigate(`/pms/projects/${project.id}`);
       }return true;
     } catch (err: any) {
@@ -148,7 +154,14 @@ export default function CreateProjectPage({ onCreated, onCancel }: { onCreated?:
         </CardHeader>
         <CardContent>
           {!editing && <nav ref={steps} className="project-create-steps" aria-label="Project setup steps">{['Additional details','Products & services','Planning & ownership'].map((label,index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>}
-          <CompactForm compactTabs={editing} className="space-y-5" onInvalidCapture={() => { if (!editing) setStep(0); }} onSubmit={submit}>
+          <CompactForm compactTabs={editing} className="space-y-5" onInvalidCapture={event => {
+            if (editing || step === 0) return;
+            const field = event.target as HTMLElement;
+            if (!field.closest("[hidden]")) return;
+            event.preventDefault();
+            setStep(0);
+            requestAnimationFrame(() => field.focus());
+          }} onSubmit={submit}>
             {!editing && workspaceQuery.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><p>Workspaces could not be loaded. {workspaceError(workspaceQuery.error)}</p><Button type="button" variant="outline" disabled={workspaceQuery.isFetching} onClick={() => { void workspaceQuery.refetch(); }}>{workspaceQuery.isFetching ? "Retryingâ€¦" : "Retry loading workspaces"}</Button></div>}
             {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
             <fieldset disabled={loading || !canEdit || submitting} className="space-y-5"><div hidden={!editing && step !== 0} className="project-create-basics grid gap-4 sm:grid-cols-2">
