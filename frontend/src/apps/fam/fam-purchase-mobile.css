@@ -28,6 +28,8 @@
  .fam-financial-line-nav{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
  .fam-financial-line-nav>button{padding:8px}
  .fam-financial-line-nav>span{font-size:12px}
+ .fam-financial-line-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+ .fam-financial-line-actions>button{height:auto;white-space:normal}
  .mobile-experience-sheet:has(.fam-financial-line-editor){max-height:calc(var(--mobile-viewport-height,100dvh) - 20px - env(safe-area-inset-bottom));bottom:calc(10px + env(safe-area-inset-bottom) + max(0px,100dvh - var(--mobile-viewport-height,100dvh)))}
 }
 @media(max-width:480px){
