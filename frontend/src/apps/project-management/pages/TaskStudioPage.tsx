@@ -1,3 +1,4 @@
+import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { Button } from "@/components/ui/button";
@@ -400,7 +401,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         ]),
       ),
     },
-    task_key: `TSK-${crypto.randomUUID().slice(0, 12)}`,
+    task_key: `TSK-${taskDraftId()}`,
     custom_fields: {},
   });
   const [formTab, setFormTab] = useState(0);

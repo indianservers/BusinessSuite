@@ -1,3 +1,4 @@
+import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
@@ -188,7 +189,7 @@ function TasksReferencePage() {
   };
   const [importOpen, setImportOpen] = useState(false);
   const [importBatch, setImportBatch] = useState(() =>
-    crypto.randomUUID().slice(0, 12),
+    taskDraftId(),
   );
   const [importText, setImportText] = useState("");
   const [importProject, setImportProject] = useState("");
@@ -1409,7 +1410,7 @@ function TasksReferencePage() {
               onClick={() => {
                 setImportResults({});
                 setImportText("");
-                setImportBatch(crypto.randomUUID().slice(0, 12));
+                setImportBatch(taskDraftId());
               }}
             >
               New import
