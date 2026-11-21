@@ -33,3 +33,388 @@
 .ed-saved-board-views p{font-size:12px;line-height:1.5;color:hsl(var(--muted-foreground));margin:6px 0}
 .ed-secondary-actions{display:contents}
 @media(max-width:650px){.ed-secondary-actions{display:block;margin:0;padding:0;border:0}.ed-secondary-actions>summary{min-height:44px;display:flex;align-items:center;padding:8px 12px;border:1px solid hsl(var(--border));border-radius:6px;cursor:pointer}.ed-secondary-actions[open]{flex-basis:100%}.ed-secondary-actions[open]>div{display:flex;flex-wrap:wrap;gap:8px;padding-top:8px}.ws-premium-surface .ed-collection .ed-header .ed-actions>button,.ed-collection .ed-saved-views .udg-control{min-height:44px}}
+
+.ed-detail-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.ed-detail-jump {
+  display: none;
+}
+
+.crm-deal-capture-review > summary,
+.crm-deal-optional-fields > summary {
+  display: none;
+}
+
+.crm-deal-optional-fields,
+.crm-deal-optional-fields > div {
+  display: contents;
+}
+
+@media (min-width: 768px) {
+  .crm-deal-capture-review {
+    display: contents;
+  }
+}
+
+@media (max-width: 767px) {
+  .ed-collection .ed-filter-trigger {
+    min-height: 44px;
+  }
+
+  .ed-filter-sheet-fields {
+    display: grid;
+    gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ed-filter-sheet-fields .ed-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0;
+  }
+
+  .ed-filter-sheet-fields .ed-quick-filters {
+    border: 0;
+  }
+
+  .ed-filter-sheet-fields .ed-filters label {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .ed-filter-sheet-fields .ed-filters :is(input, select):not([type="checkbox"]) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .ed-filter-sheet-fields .ed-checkbox input {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+  }
+
+  .ed-filter-sheet-fields .ed-text-button {
+    min-height: 44px;
+  }
+
+  .ed-filter-sheet-fields .ed-text-button:disabled {
+    opacity: .55;
+  }
+
+  .ed-pipeline-board {
+    min-width: 0;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar .pipeline-search {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar-end {
+    margin: 0;
+    min-width: 0;
+    grid-column: 1 / 3;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar:has(.ed-stage-jump) .pipeline-toolbar-end {
+    grid-column: auto;
+  }
+
+  .ed-pipeline-board .pipeline-toolbar select {
+    width: 100%;
+    height: 44px;
+    min-width: 0;
+  }
+
+  .ed-pipeline-board .pipeline-icon-button,
+  .ed-pipeline-board .pipeline-handle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .ed-pipeline-board .pipeline-lanes {
+    min-height: 0;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-inline: contain;
+  }
+
+  .ed-pipeline-board .pipeline-lane {
+    flex: 0 0 92%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .ed-pipeline-board .pipeline-card-title,
+  .ed-pipeline-board .pipeline-move-menu > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .ed-pipeline-board .pipeline-move-menu {
+    position: static;
+    opacity: 1;
+  }
+
+  .ed-pipeline-board .pipeline-move-menu > div {
+    position: static;
+    min-width: 0;
+  }
+
+  .ed-pipeline-board .pipeline-move-menu select {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .ed-collection .ed-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .ed-collection .ed-card-actions button {
+    min-height: 44px;
+  }
+
+  .ed-deal-detail .ed-header h1,
+  .ed-deal-detail .ed-360-summary,
+  .ed-deal-detail .ed-event {
+    overflow-wrap: anywhere;
+  }
+
+  .ed-deal-detail .ed-360-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .ed-detail-nav > a,
+  .ed-commercial-summary,
+  .ed-mobile-value-summary > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .ed-commercial-summary::before {
+    content: "▸";
+    margin-inline-end: 8px;
+  }
+
+  #deal-commercial-details[open] > .ed-commercial-summary::before {
+    content: "▾";
+  }
+
+  #deal-commercial-details {
+    scroll-margin-top: 56px;
+  }
+
+  .ed-deal-decision {
+    top: auto;
+    bottom: var(--mobile-keyboard-inset, 0px);
+    left: 0;
+    transform: none;
+    translate: none;
+    width: 100%;
+    max-width: none;
+    max-height: calc(92dvh - var(--mobile-keyboard-inset, 0px));
+    border-radius: 18px 18px 0 0;
+    padding: 16px 16px 0;
+    scroll-padding-block-end: 76px;
+  }
+
+  .ed-deal-decision h2 {
+    padding-inline-end: 44px;
+  }
+
+  .ed-deal-decision :is(input,select,textarea):not([type=checkbox]) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .ed-deal-decision-submit {
+    position: sticky;
+    bottom: 0;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    background: hsl(var(--background));
+  }
+
+  .ed-deal-decision-submit button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .crm-deal-capture {
+    padding: 0;
+    align-items: end;
+    bottom: var(--mobile-keyboard-inset, 0px);
+  }
+
+  .crm-deal-capture-panel {
+    max-height: calc(100dvh - var(--mobile-keyboard-inset, 0px) - env(safe-area-inset-top));
+    border-radius: 16px 16px 0 0;
+  }
+
+  .crm-deal-capture-header {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .crm-deal-capture-heading {
+    padding-inline-end: 44px;
+  }
+
+  .crm-deal-capture-icon,
+  .crm-deal-capture-description,
+  .crm-deal-capture-required {
+    display: none;
+  }
+
+  .crm-deal-capture-mode > button {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-end: 4px;
+    height: 44px;
+    width: 44px;
+  }
+
+  .crm-deal-capture-mode [role="group"] {
+    display: flex;
+    padding: 2px;
+  }
+
+  .crm-deal-capture-mode [role="group"] button,
+  .crm-deal-capture-tabs button {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+
+  .crm-deal-capture-tabs {
+    margin-inline: 12px;
+  }
+
+  .crm-deal-capture-section {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid hsl(var(--border));
+    font-size: 13px;
+  }
+
+  .crm-deal-capture-section select {
+    flex: 1;
+    min-height: 44px;
+    min-width: 0;
+    padding: 0 8px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    background: hsl(var(--background));
+    font-size: 16px;
+  }
+
+  .crm-deal-capture-scroll {
+    display: block;
+    overscroll-behavior: contain;
+  }
+
+  .crm-deal-capture-fields {
+    padding: 12px;
+    border-right: 0;
+  }
+
+  .crm-deal-capture-fields :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .crm-deal-optional-fields {
+    display: block;
+    grid-column: 1 / -1;
+    order: 1;
+  }
+
+  .crm-deal-optional-fields > div {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+
+  .crm-deal-optional-fields > summary {
+    display: list-item;
+    min-height: 44px;
+    padding-block: 10px;
+    border-top: 1px solid hsl(var(--border));
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .crm-deal-capture-review > summary {
+    display: list-item;
+    min-height: 44px;
+    margin: 0 12px;
+    padding: 10px 0;
+    border-top: 1px solid hsl(var(--border));
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .crm-deal-capture-footer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 8px;
+    padding: 6px 12px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .crm-deal-capture-footer button {
+    min-height: 44px;
+  }
+
+  .crm-deal-submit-actions {
+    display: contents;
+  }
+
+  .crm-deal-save-status:not(:empty),
+  .crm-deal-draft-notice {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .crm-deal-draft-notice + .crm-deal-submit-actions .crm-deal-save-status {
+    grid-row: 3;
+  }
+
+  .crm-deal-save-status:empty,
+  .crm-deal-cancel {
+    display: none;
+  }
+
+  .crm-deal-capture-footer [data-save-action] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}

@@ -25,6 +25,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Archive,
+  SlidersHorizontal,
   Plus,
   Search,
   RefreshCw,
@@ -47,7 +48,8 @@ import CRMStageDialog from "../CRMStageDialog";
 import { dealError, dealMoney, dealOptions, label } from "./deal-utils";
 import "./deals.css";
 import * as Popover from "@radix-ui/react-popover";
-import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure, MobileSheet } from "@/components/mobile/MobilePrimitives";
 
 const Capture = lazy(() =>
   import("../CRMWorkspacePage").then((module) => ({
@@ -137,6 +139,9 @@ const dealViews: WorkspaceView[] = [
 
 function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | "kanban" }) {
   const navigate = useNavigate();
+  const mobile = useMobile();
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const canCreate=useDefinitionPermission(["crm_deals_manage","crm_manage","crm_admin"],"create");
   const queryClient = useQueryClient();
@@ -649,6 +654,149 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
       </article>
     );
   }
+  const quickDealFilters = (
+    <div className="ed-filters ed-quick-filters" role="group" aria-label="Quick deal filters">
+        {[
+          ["pipeline_id", "Pipeline", options.pipelines || []],
+          ["stage_id", "Stage", stageOptions],
+          ["owner_id", "Owner", options["deal-workspace/assignees"] || []],
+        ].map(([key, title, choices]) => (
+          <label key={String(key)}>
+            {String(title)}
+            <NativeSelect
+              aria-label={String(title)}
+              loading={lookupsLoading}
+              error={!!lookupsError}
+              value={String(filters[key as keyof Filters])}
+              onChange={(event) => {
+                change(key as keyof Filters, event.target.value);
+                if (key === "pipeline_id") change("stage_id", "");
+              }}
+            >
+              <option value="">All</option>
+              {(choices as Row[]).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name || item.full_name || item.email}
+                </option>
+              ))}
+            </NativeSelect>
+          </label>
+        ))}
+        {!mobile && activeFilterCount > 0 && <button type="button" className="ed-text-button" onClick={clearDealFilters}>Clear filters ({activeFilterCount})</button>}
+    </div>
+  );
+  const advancedDealFilters = (
+    <div className="ed-filters">
+      {[
+        [
+          "currency",
+          [
+            ...new Set(
+              [
+                "INR",
+                "USD",
+                "EUR",
+                "GBP",
+                "AED",
+                filters.currency,
+                ...(summary?.currencies || []).map(
+                  (row: Row) => row.currency,
+                ),
+              ].filter(Boolean),
+            ),
+          ],
+        ],
+        ["status", ["Open", "Won", "Lost"]],
+        ["priority", ["Low", "Medium", "High", "Critical"]],
+        [
+          "deal_type",
+          [
+            "New Business",
+            "Existing Business",
+            "Renewal",
+            "Upsell",
+            "Cross-sell",
+          ],
+        ],
+      ].map(([key, choices]) => (
+        <label key={String(key)}>
+          {label(String(key))}
+          <NativeSelect
+            aria-label={label(String(key))}
+            value={String(filters[key as keyof Filters])}
+            onChange={(e) => change(key as keyof Filters, e.target.value)}
+          >
+            <option value="">All</option>
+            {(choices as string[]).map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </NativeSelect>
+        </label>
+      ))}
+      {["industry", "source"].map((key) => (
+        <label key={key}>
+          {label(key)}
+          <input
+            aria-label={label(key)}
+            value={String(filters[key as keyof Filters])}
+            onChange={(e) => change(key as keyof Filters, e.target.value)}
+            type={key === "team_id" ? "number" : "text"}
+          />
+        </label>
+      ))}
+      <label>
+        Sales team
+        <NativeSelect
+          aria-label="Sales team"
+          loading={lookupsLoading}
+          error={!!lookupsError}
+          value={filters.team_id}
+          onChange={(e) => change("team_id", e.target.value)}
+        >
+          <option value="">All permitted teams</option>
+          {(options.teams || []).map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </label>
+      <label>
+        Closing from
+        <input
+          aria-label="Closing from"
+          type="date"
+          value={filters.start}
+          onChange={(e) => change("start", e.target.value)}
+        />
+      </label>
+      <label>
+        Closing through
+        <input
+          aria-label="Closing through"
+          type="date"
+          value={filters.end}
+          onChange={(e) => change("end", e.target.value)}
+        />
+      </label>
+      <label className="ed-checkbox">
+        <input
+          type="checkbox"
+          checked={filters.no_next}
+          onChange={(e) => change("no_next", e.target.checked)}
+        />
+        No next action
+      </label>
+      <button
+        type="button"
+        className="ed-text-button"
+        disabled={mobile && !activeFilterCount}
+        onClick={clearDealFilters}
+      >
+        Clear filters
+      </button>
+    </div>
+  );
   return (
     <main className={`ed-workspace ed-collection ${mode === "kanban" ? "ed-pipeline-workspace" : ""}`} aria-busy={loading}>
       <header className="ed-header">
@@ -740,7 +888,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
       <WorkspaceViewBar scope="crm-deals" label="Deal views" active={mode} views={dealViews} onChange={setMode} primary={["grid","kanban","forecast"]}/>
       <section className="ed-controls">
         <div className="ed-toolbar">
-          {mode !== "grid" && (
+          {mode !== "grid" && (!mobile || mode !== "kanban") && (
             <div className="ed-search">
               <Search size={16} />
               <Input
@@ -771,150 +919,33 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
             </details>
           )}
         </div>
-        <div className="ed-filters ed-quick-filters" role="group" aria-label="Quick deal filters">
-            {[
-              ["pipeline_id", "Pipeline", options.pipelines || []],
-              ["stage_id", "Stage", stageOptions],
-              ["owner_id", "Owner", options["deal-workspace/assignees"] || []],
-            ].map(([key, title, choices]) => (
-              <label key={String(key)}>
-                {String(title)}
-                <NativeSelect
-                  aria-label={String(title)}
-                  loading={lookupsLoading}
-                  error={!!lookupsError}
-                  value={String(filters[key as keyof Filters])}
-                  onChange={(event) => {
-                    change(key as keyof Filters, event.target.value);
-                    if (key === "pipeline_id") change("stage_id", "");
-                  }}
-                >
-                  <option value="">All</option>
-                  {(choices as Row[]).map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name || item.full_name || item.email}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
-            ))}
-            {activeFilterCount > 0 && <button type="button" className="ed-text-button" onClick={clearDealFilters}>Clear filters ({activeFilterCount})</button>}
-        </div>
-        <details
-          className="ed-filter-details"
-          open={filtersOpen}
-          onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
-        >
-          <summary>Advanced filters{advancedFilterCount > 0 ? ` (${advancedFilterCount} active)` : ""}</summary>
-          <div className="ed-filters">
-            {[
-              [
-                "currency",
-                [
-                  ...new Set(
-                    [
-                      "INR",
-                      "USD",
-                      "EUR",
-                      "GBP",
-                      "AED",
-                      filters.currency,
-                      ...(summary?.currencies || []).map(
-                        (row: Row) => row.currency,
-                      ),
-                    ].filter(Boolean),
-                  ),
-                ],
-              ],
-              ["status", ["Open", "Won", "Lost"]],
-              ["priority", ["Low", "Medium", "High", "Critical"]],
-              [
-                "deal_type",
-                [
-                  "New Business",
-                  "Existing Business",
-                  "Renewal",
-                  "Upsell",
-                  "Cross-sell",
-                ],
-              ],
-            ].map(([key, choices]) => (
-              <label key={String(key)}>
-                {label(String(key))}
-                <NativeSelect
-                  aria-label={label(String(key))}
-                  value={String(filters[key as keyof Filters])}
-                  onChange={(e) => change(key as keyof Filters, e.target.value)}
-                >
-                  <option value="">All</option>
-                  {(choices as string[]).map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </NativeSelect>
-              </label>
-            ))}
-            {["industry", "source"].map((key) => (
-              <label key={key}>
-                {label(key)}
-                <input
-                  aria-label={label(key)}
-                  value={String(filters[key as keyof Filters])}
-                  onChange={(e) => change(key as keyof Filters, e.target.value)}
-                  type={key === "team_id" ? "number" : "text"}
-                />
-              </label>
-            ))}
-            <label>
-              Sales team
-              <NativeSelect
-                aria-label="Sales team"
-                loading={lookupsLoading}
-                error={!!lookupsError}
-                value={filters.team_id}
-                onChange={(e) => change("team_id", e.target.value)}
-              >
-                <option value="">All permitted teams</option>
-                {(options.teams || []).map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            <label>
-              Closing from
-              <input
-                aria-label="Closing from"
-                type="date"
-                value={filters.start}
-                onChange={(e) => change("start", e.target.value)}
-              />
-            </label>
-            <label>
-              Closing through
-              <input
-                aria-label="Closing through"
-                type="date"
-                value={filters.end}
-                onChange={(e) => change("end", e.target.value)}
-              />
-            </label>
-            <label className="ed-checkbox">
-              <input
-                type="checkbox"
-                checked={filters.no_next}
-                onChange={(e) => change("no_next", e.target.checked)}
-              />
-              No next action
-            </label>
-            <button
-              className="ed-text-button"
-              onClick={clearDealFilters}
+        {mobile ? (
+          <>
+            <Button type="button" variant="outline" className="ed-filter-trigger" onClick={() => setFilterSheetOpen(true)}>
+              <SlidersHorizontal size={16} />
+              Deal filters{activeFilterCount > 0 && " (" + activeFilterCount + ")"}
+            </Button>
+            <MobileSheet title="Deal filters" open={filterSheetOpen} onClose={() => setFilterSheetOpen(false)}>
+              <div className="ed-filter-sheet-fields">
+                {quickDealFilters}
+                {advancedDealFilters}
+              </div>
+              <Button type="button" className="mobile-primary-action" onClick={() => setFilterSheetOpen(false)}>Show deals</Button>
+            </MobileSheet>
+          </>
+        ) : (
+          <>
+            {quickDealFilters}
+            <details
+              className="ed-filter-details"
+              open={filtersOpen}
+              onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
             >
-              Clear
-            </button>
-          </div>
-        </details>
+              <summary>Advanced filters{advancedFilterCount > 0 ? " (" + advancedFilterCount + " active)" : ""}</summary>
+              {advancedDealFilters}
+            </details>
+          </>
+        )}
         {filters.entered_stage_id && (
           <p className="ed-muted py-2">
             Recorded entry cohort:{" "}
@@ -1122,17 +1153,39 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
           {mode === "cards" && (
             <div className="ed-shared-cards">{rows.map(card)}</div>
           )}
-          {mode === "kanban" && <PipelineBoard compactOverview settingsReturnFocus={savedViewsHost?.querySelector("button")} settingsOpen={boardSettingsOpen} onSettingsOpenChange={setBoardSettingsOpen}
+          {mode === "kanban" && <div className="ed-pipeline-board" ref={boardRef}><PipelineBoard compactOverview settingsReturnFocus={savedViewsHost?.querySelector("button")} settingsOpen={boardSettingsOpen} onSettingsOpenChange={setBoardSettingsOpen}
             title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||(filters.pipeline_id?"Selected pipeline":"All permitted pipelines"))} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={{...filters,personalKind:personalFilter?.kind||""}} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);if("personalKind" in saved)personalFilter?.apply(saved.personalKind==="favorites"||saved.personalKind==="frequent"?saved.personalKind:null);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
             loading={loading && !data}
             notice={`Showing ${rows.length} of ${data?.total ?? rows.length} deals · page ${page}. Stage totals cover all matching deals.`}
-            toolbar={<><PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button></div></>}
+            toolbar={<>
+              <PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/>
+              <div className="pipeline-toolbar-end">
+                <select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}>
+                  <option value="updated_at:desc">Sort: Recently updated</option>
+                  <option value="next_follow_up_at:asc">Sort: Next activity</option>
+                  <option value="amount:desc">Sort: Highest value</option>
+                  <option value="name:asc">Sort: Name</option>
+                </select>
+                {!mobile && <button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)}>Filter</button>}
+              </div>
+              {mobile && stageOptions.length > 1 && (
+                <NativeSelect aria-label="Jump to stage" className="ed-stage-jump" value="" onChange={event => {
+                  const lane = boardRef.current?.querySelectorAll<HTMLElement>(".pipeline-lane")[Number(event.target.value)];
+                  lane?.scrollIntoView({ block: "nearest", inline: "start" });
+                }}>
+                  <option value="" disabled>Jump to stage</option>
+                  {stageOptions.map((stage, index) => (
+                    <option key={stage.id} value={index}>{!filters.pipeline_id && `${lookup("pipelines", stage.pipeline_id || stage.pipelineId)} · `}{stage.name}</option>
+                  ))}
+                </NativeSelect>
+              )}
+            </>}
             stages={stageOptions.map(stage=>({id:String(stage.id),name:filters.pipeline_id?String(stage.name):`${options.pipelines?.find(p=>String(p.id)===String(stage.pipeline_id || stage.pipelineId))?.name || "Pipeline"} · ${stage.name}`,canAdd:!stage.is_won&&!stage.is_lost,color:stage.color,probability:stage.probability,wipLimit:stage.wip_limit,agingDays:stage.stagnation_days||14,count:(summary?.stages||[]).filter((t:Row)=>t.stage_id===stage.id).reduce((sum:number,t:Row)=>sum+t.count,0),summary:<>{(summary?.stages || []).filter((total:Row)=>total.stage_id===stage.id).map((total:Row)=><span key={total.currency}>{total.count} deals · {dealMoney(total.amount,total.currency)}</span>)}{!(summary?.stages || []).some((total:Row)=>total.stage_id===stage.id)&&<span>0 deals</span>}</>}))}
             records={rows.map(row=>({id:String(row.id),stageId:String(row.stage_id),title:String(row.name),priority:row.priority,description:row.description,subtitle:row.company_name||lookup("companies",row.company_id),value:dealMoney(row.amount,row.currency),owner:row.owner_name||lookup("deal-workspace/assignees",row.owner_user_id),ownerId:Number(row.owner_user_id)||undefined,nextActionAt:row.next_follow_up_at||undefined,isClosed:row.status==="Won"||row.status==="Lost",labelColor:stageOptions.find(s=>s.id===row.stage_id)?.color,activity:!row.next_follow_up_at?"missing":new Date(row.next_follow_up_at)<new Date()?"overdue":"scheduled",activityLabel:row.next_follow_up_at?`Next activity: ${new Date(row.next_follow_up_at).toLocaleString()}`:"No next activity"}))}
             onOpen={record=>navigate(`/crm/deals/${record.id}`)}
             onMove={data?.can_manage?({record,stageId})=>setTransition({id:Number(record.id),stage:Number(stageId)}):undefined}
             actions={data?.can_manage ? stageOptions.filter(s=>s.is_won||s.is_lost).map(s=>({id:String(s.id),label:s.is_won?"Won":"Lost",tone:s.is_won?"success" as const:"danger" as const,onAction:(record:{id:string})=>setTransition({id:Number(record.id),stage:Number(s.id)})})):[]}
-          />}
+          /></div>}
           {mode === "list" && (
             <div className="ed-list">
               {rows.map((row) => (

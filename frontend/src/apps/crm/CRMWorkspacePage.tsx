@@ -9,6 +9,7 @@ import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { progress, operationId, type ProgressStep } from "@/lib/async-progress";
 import { LoadingState } from "@/components/ui/state";
 import CRMReferenceDashboard from "./CRMReferenceDashboard";
+import "./crm-contact-directory.css";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
@@ -3410,6 +3411,7 @@ const contactSortableColumns: Record<string, string> = {
 };
 
 export function CRMContactsPage() {
+  const mobile = useMobile();
   const canExport=useModuleAction("export");
   const [messageDraft,setMessageDraft]=useState<{record:CRMContact;channel:"email"|"whatsapp"}>();
   const navigate = useNavigate();
@@ -3622,7 +3624,7 @@ export function CRMContactsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background text-foreground">
+    <div className="crm-contact-directory min-h-[calc(100vh-5rem)] bg-background text-foreground">
       <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
         <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -3634,7 +3636,7 @@ export function CRMContactsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Manage people, lifecycle stages, follow-up dates, and account links.</p>
             </div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-8 px-4" disabled={!canCreate} onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
+            <div className="crm-contact-heading-actions flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>{mobile ? "Duplicates" : "Review duplicates & merge"}</Button><Button className="h-8 px-4" disabled={!canCreate} onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -3642,6 +3644,7 @@ export function CRMContactsPage() {
               search={search}
               view={view}
               activeFilters={activeFilters}
+              showFilters={showFilters}
               showColumns={showColumns}
               visibleColumns={visibleColumns}
               onSearch={setSearch}
@@ -3662,6 +3665,7 @@ export function CRMContactsPage() {
                 sources={sourceOptions}
                 onChange={setFilters}
                 onClear={() => setFilters(emptyContactFilters)}
+                onClose={() => setShowFilters(false)}
               />
             ) : null}
             <ContactTable
@@ -3689,7 +3693,7 @@ export function CRMContactsPage() {
           </section>
 
           {selectedRows.length ? (
-            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+            <div className="crm-contact-selection sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
               <CompactActions className="flex flex-wrap gap-2">
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving||!canEdit} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
@@ -3735,7 +3739,7 @@ export function CRMContactsPage() {
   );
 }
 
-function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: ContactViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: ContactViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
+function ContactsToolbar({ search, view, activeFilters, showFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: ContactViewKey; activeFilters: number; showFilters: boolean; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: ContactViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
   const canExport=useModuleAction("export");
   const canImport=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],"create");
   const views: Array<{ key: ContactViewKey; label: string }> = [
@@ -3755,7 +3759,7 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
     ["updatedAt", "Updated"],
   ];
   return (
-    <div className="relative flex flex-col gap-2 border-b border-border p-3">
+    <div className="crm-contact-toolbar relative flex flex-col gap-2 border-b border-border p-3">
       <label className="flex h-10 w-full min-w-0 shrink-0 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
         <Search className="h-4 w-4 text-muted-foreground" />
         <span className="sr-only">Search contacts</span>
@@ -3763,22 +3767,25 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
         {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear contact search"><X className="h-3.5 w-3.5" /></button> : null}
       </label>
       <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex flex-wrap gap-1">
+      <div className="crm-contact-desktop flex flex-wrap gap-1">
         {views.map((item) => (
           <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>
             {item.label}
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+      <NativeSelect className="crm-contact-mobile crm-contact-view" aria-label="Contact view" value={view} onChange={event => onView(event.target.value as ContactViewKey)}>
+        {views.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+      </NativeSelect>
+      <div className="crm-contact-toolbar-actions flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" aria-expanded={showFilters} onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+        <Button size="sm" variant="outline" className="crm-contact-desktop h-9 border-border bg-transparent text-foreground hover:bg-accent" aria-expanded={showColumns} onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canImport} onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canExport} onClick={onExport}><Download className="h-4 w-4" />Export</Button>
       </div>
       </div>
       {showColumns ? (
-        <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
+        <div className="crm-contact-desktop absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
           {columns.map(([key, label]) => (
             <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40">
               <input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />
@@ -3791,31 +3798,83 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
   );
 }
 
-function ContactFilterPanel({ filters, owners, companies, statuses, stages, sources, onChange, onClear }: { filters: ContactFilters; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onChange: (filters: ContactFilters) => void; onClear: () => void }) {
+function ContactFilterPanel({ filters, owners, companies, statuses, stages, sources, onChange, onClear, onClose }: { filters: ContactFilters; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onChange: (filters: ContactFilters) => void; onClear: () => void; onClose: () => void }) {
+  const mobile = useMobile();
   const patch = (update: Partial<ContactFilters>) => onChange({ ...filters, ...update });
-  return (
-    <div className="grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+  const fields = (
+    <div className="crm-contact-filter-fields grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
       <label className="space-y-1 text-xs text-muted-foreground">Company<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</NativeSelect></label>
       <LeadSelect label="Lifecycle stage" value={filters.stage} values={stages} onChange={(stage) => patch({ stage })} />
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
       <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
       <label className="space-y-1 text-xs text-muted-foreground">Owner<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
-      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
+      {!mobile && <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>}
     </div>
   );
+  return mobile ? (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="crm-contact-filter-dialog">
+        <DialogTitle className="pr-10 text-lg font-semibold">Contact filters</DialogTitle>
+        {fields}
+        <footer className="flex justify-between gap-2">
+          <Button variant="outline" onClick={onClear}>Clear all</Button>
+          <Button onClick={onClose}>Done</Button>
+        </footer>
+      </DialogContent>
+    </Dialog>
+  ) : fields;
 }
 
 function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onMessage, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit?: (contact: CRMContact) => void; onMessage:(record:CRMContact,channel:"email"|"whatsapp")=>void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
-  const canExport=useModuleAction("export");
+  const mobile = useMobile();
   const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   };
   const columnCount = 7 + Object.values(visibleColumns).filter(Boolean).length;
   return (
-    <div className="record-directory">
+    <div className="crm-contact-records record-directory">
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
-      <div className="overflow-x-auto">
+      {mobile ? (
+        <div className="crm-contact-cards">
+          {initialLoading ? <p role="status" className="p-4 text-sm text-muted-foreground">Loading contacts...</p> : !rows.length ? <p className="p-4 text-sm text-muted-foreground">No contacts match the current search or filters.</p> : <>
+            <div className="flex flex-wrap items-center justify-between gap-x-2">
+              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={allSelected} onChange={event => onToggleAll(event.target.checked)} />Select all</label>
+              <NativeSelect aria-label="Sort contacts" className="crm-contact-sort" value={sort ? `${sort.key}:${sort.direction}` : ""} onChange={event => {
+                const [key, direction] = event.target.value.split(":");
+                onSort(key && (direction === "asc" || direction === "desc") ? { key, direction } : null);
+              }}>
+                <option value="">Default order</option>
+                <option value="name:asc">Name A–Z</option>
+                <option value="name:desc">Name Z–A</option>
+                <option value="nextFollowUp:asc">Next follow-up</option>
+                <option value="nextFollowUp:desc">Latest follow-up</option>
+                <option value="updatedAt:desc">Recently updated</option>
+                <option value="updatedAt:asc">Least recently updated</option>
+                {sort && !["name", "nextFollowUp", "updatedAt"].includes(sort.key) && <option value={`${sort.key}:${sort.direction}`}>Current sort</option>}
+              </NativeSelect>
+            </div>
+            {rows.map(contact => (
+              <article key={contact.id} className="crm-contact-card">
+                <header>
+                  <Link className="crm-contact-identity" to={`/crm/contacts/${contact.id}`} aria-label={contact.name}>
+                    <span aria-hidden="true"><ContactAvatar contact={contact} /></span>
+                    <span><strong>{contact.name}</strong>{contact.companyName && <small>{contact.companyName}</small>}</span>
+                  </Link>
+                  <label className="grid h-11 w-11 shrink-0 place-items-center"><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={event => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></label>
+                </header>
+                {contact.email && <p className="break-all text-sm text-muted-foreground">{contact.email}</p>}
+                <div className="flex flex-wrap items-center gap-2">
+                  <LeadBadge value={contact.stage || "Lead"} tone="blue" />
+                  <LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} />
+                  {contact.nextFollowUp && <FollowUpCell value={contact.nextFollowUp} />}
+                </div>
+                <RecordQuickActions record={contact} onView={() => openRecordPreview(contact, "/crm/contacts")} onMessage={channel => onMessage(contact, channel)} onEdit={onEdit ? () => onEdit(contact) : undefined} />
+              </article>
+            ))}
+          </>}
+        </div>
+      ) : <div className="overflow-x-auto">
         <GridTable pinActions gridId="apps/crm/CRMWorkspacePage:table-4" className="w-full min-w-[1040px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -3853,14 +3912,14 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
             {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
-      </div>
+      </div>}
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} contacts</span>
         <div className="flex flex-wrap items-center gap-2">
           <NativeSelect className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</NativeSelect>
-          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button size="sm" variant="outline" aria-label="Previous contacts page" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
           <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
-          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+          <Button size="sm" variant="outline" aria-label="Next contacts page" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>
@@ -3957,8 +4016,8 @@ export function ContactFormModal({ initialValues, mode, contact, saving, error, 
   const clearDraft=useRecordDraft(`crm-contact:new${initialValues?.companyId ? `:company:${initialValues.companyId}` : ""}`,draftValue,value=>{setDraft(value.draft);setAvailability(value.availability);setCatalogLines(value.catalogLines||[]);customFieldForm.setValues(value.customValues||{});},mode==="create"&&!customFieldForm.loading);
   const auto=useRecordAutosave({value:draftValue,enabled:mode==="edit"&&allowed&&!saving&&!customFieldForm.loading,dirty,save:()=>submit(true)});
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit contact" : "Create contact"} className="suite-compact-dialog w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
+    <div className="crm-contact-editor-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit contact" : "Create contact"} className="crm-contact-editor suite-compact-dialog w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit contact" : "Create contact"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update contact and relationship details" : "Add contact and relationship details"}</p>{mode === "edit" && contact?.updatedAt ? <p className="mt-1 text-xs text-muted-foreground">Last updated {formatDate(contact.updatedAt)}</p> : null}</div>
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
@@ -5309,14 +5368,20 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
       setInlineKind(null);
     } catch(err: any) {setInlineError(dealError(err));} finally {setInlineSaving(false);}
   };
+  const mobile = useMobile();
+  const formScroll = useRef<HTMLDivElement>(null);
   const [quickSection, setQuickSection] = useState("details");
   const [formTab, setFormTab] = useState<"simple" | "advanced">("simple");
   const [advancedTab, setAdvancedTab] = useState(0);
+  useEffect(() => { formScroll.current?.scrollTo({ top: 0 }); }, [quickSection, formTab, advancedTab]);
   const [duplicate, setDuplicate] = useState<CRMApiRecord[]>([]);
   const [draftNotice, setDraftNotice] = useState("");
   useEffect(() => {if (!ownsDraft()) return; sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));}, [draftKey, draft, customValues, lines,baseVersion]);
   useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (mobile && (error || Object.keys(fieldErrors).length)) formScroll.current?.scrollTo({ top: 0 });
+  }, [mobile, error, fieldErrors]);
   const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit") && fieldInPipeline(field, draft.pipelineId)), [customFields, mode, placement, draft.pipelineId]);
 
   const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
@@ -5360,16 +5425,24 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
   return createPortal(
     <DealDialog.Root open modal={!inlineKind} onOpenChange={open => {if (!open && !saving) requestClose();}}>
     <DealDialog.Content asChild aria-describedby={undefined} onInteractOutside={e => {if (inlineKind) e.preventDefault();}} onEscapeKeyDown={e => {if (document.activeElement?.matches('[data-record-picker][aria-expanded="true"]')) {e.preventDefault();return;} if (inlineKind) {e.preventDefault();if (!inlineSaving) setInlineKind(null);}}}>
-    <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit deal" : "Create deal"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[min(82dvh,42rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-3 shrink-0 border-b border-border px-5 py-4">
-          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><DealDialog.Title className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit deal" : "Create deal"}</DealDialog.Title><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
-          <div className="flex items-center gap-3"><div className="rounded-md border border-border bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("simple")}>Quick Create</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("advanced")}>Advanced Create</button></div><span className="text-xs text-muted-foreground"><span className="text-emerald-700 dark:text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
+    <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit deal" : "Create deal"} className="crm-deal-capture fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+      <div className="crm-deal-capture-panel flex max-h-[min(82dvh,42rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl">
+        <div className="crm-deal-capture-header flex flex-wrap items-start justify-between gap-3 shrink-0 border-b border-border px-5 py-4">
+          <div className="crm-deal-capture-heading flex items-center gap-3"><span aria-hidden="true" className="crm-deal-capture-icon flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><DealDialog.Title className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit deal" : "Create deal"}</DealDialog.Title><p className="crm-deal-capture-description text-sm text-muted-foreground">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
+          <div className="crm-deal-capture-mode flex items-center gap-3"><div role="group" aria-label="Deal form mode" className="rounded-md border border-border bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} aria-pressed={formTab === "simple"} onClick={() => setFormTab("simple")}>Quick Create</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} aria-pressed={formTab === "advanced"} onClick={() => setFormTab("advanced")}>Advanced Create</button></div><span className="crm-deal-capture-required text-xs text-muted-foreground"><span className="text-emerald-700 dark:text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
         </div>
-        {formTab === "simple" && <nav className="suite-form-tabs mx-5" aria-label="Quick deal sections"><button type="button" aria-pressed={quickSection === "details"} onClick={() => setQuickSection("details")}>Basic details</button><button type="button" aria-pressed={quickSection === "products"} onClick={() => setQuickSection("products")}>Products & services ({lines.length})</button></nav>}
-        {formTab === "advanced" && <nav aria-label="Advanced deal sections" className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2">{dealTabs.map((title, index) => <Button type="button" size="sm" variant={advancedTab === index ? "default" : "ghost"} key={title} onClick={() => setAdvancedTab(index)}>{title}</Button>)}</nav>}
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <div className="min-w-0 space-y-4 border-r border-border px-5 py-4">
+        {formTab === "simple" && <nav className="crm-deal-capture-tabs suite-form-tabs mx-5" aria-label="Quick deal sections"><button type="button" aria-pressed={quickSection === "details"} onClick={() => setQuickSection("details")}>Basic details</button><button type="button" aria-pressed={quickSection === "products"} onClick={() => setQuickSection("products")}>Products & services ({lines.length})</button></nav>}
+        {formTab === "advanced" && mobile && (
+          <label className="crm-deal-capture-section">
+            Section
+            <NativeSelect aria-label="Advanced deal sections" value={advancedTab} onChange={event => setAdvancedTab(Number(event.target.value))}>
+              {dealTabs.map((title, index) => <option value={index} key={title}>{title}</option>)}
+            </NativeSelect>
+          </label>
+        )}
+        {formTab === "advanced" && !mobile && <nav aria-label="Advanced deal sections" className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2">{dealTabs.map((title, index) => <Button type="button" size="sm" variant={advancedTab === index ? "default" : "ghost"} key={title} onClick={() => setAdvancedTab(index)}>{title}</Button>)}</nav>}
+        <div ref={formScroll} className="crm-deal-capture-scroll grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="crm-deal-capture-fields min-w-0 space-y-4 border-r border-border px-5 py-4">
             {error ? <div role="alert" className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}{error.includes("changed") && <Button type="button" variant="outline" onClick={() => {if (ownsDraft() && window.confirm("Discard this saved draft and load the latest deal?")) {sessionStorage.removeItem(draftKey);window.location.reload();}}}>Discard draft and reload latest</Button>}</div> : null}
             {Object.keys(fieldErrors).length > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{Object.values(fieldErrors).join(" ")}</p>}
             {duplicate.length > 0 && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">A deal with this name already exists in your permitted scope. {duplicate.map(item => <a key={String(item.id)} className="ml-2 underline" href={`/crm/deals/${item.id}`} target="_blank" rel="noreferrer">Review #{String(item.id)}</a>)}</p>}
@@ -5386,9 +5459,14 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
               <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
               <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><NativeSelect aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Currency"><CurrencySelect value={valueText(draft.currency || "INR")} onChange={currency => patch("currency", currency)}/></LeadFormField>
-              <LeadFormField label="Deal owner"><NativeSelect aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</NativeSelect></LeadFormField>
-              <LeadFormField label="Priority"><LeadFormSelect value={valueText(draft.priority || "Medium")} values={["Low", "Medium", "High", "Critical"]} onChange={value => patch("priority", value)}/></LeadFormField>
-              <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
+              <details className="crm-deal-optional-fields" open={!mobile || formTab === "advanced"}>
+                <summary>Owner, priority & source</summary>
+                <div>
+                  <LeadFormField label="Deal owner"><NativeSelect aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</NativeSelect></LeadFormField>
+                  <LeadFormField label="Priority"><LeadFormSelect value={valueText(draft.priority || "Medium")} values={["Low", "Medium", "High", "Critical"]} onChange={value => patch("priority", value)}/></LeadFormField>
+                  <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
+                </div>
+              </details>
               <LeadFormField label="Stage" required error={fieldErrors.stageId}><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
               <LeadFormField label="Closing date"><Input aria-label="Closing date" aria-describedby={pastOpenCloseDate?"deal-close-warning":undefined} className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} />{pastOpenCloseDate&&<p id="deal-close-warning" role="status" className="text-xs text-amber-700 dark:text-amber-300">This closing date is in the past. Review the date for this open deal.</p>}</LeadFormField>
@@ -5412,14 +5490,17 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <NativeSelect aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</NativeSelect>}</div>;})}</div></LeadFormSection>}
             {formTab === "advanced" && <DealPlanningFields tab={advancedTab} planning={(draft.planning || {}) as CRMApiRecord} update={value => patch("planning", value)} amount={effectiveAmount} currency={String(draft.currency || "INR")}/>}
           </div>
-          <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
+          <details className="crm-deal-capture-review" open={!mobile}>
+            <summary>Deal summary · {currencyMoney(effectiveAmount)}</summary>
+            <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
             <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Selected stage</p><p className="mt-2 text-lg font-semibold text-foreground">{selectedStageName(stages, draft.stageId) || "No stage selected"}</p><p className="mt-1 text-sm text-muted-foreground">{draft.stageId ? `${Number(draft.probability || 0)}% probability` : "Select a stage to see probability."}</p></div>
             <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Deal value</p><p className="mt-3 text-3xl font-semibold text-foreground">{currencyMoney(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><div className="flex justify-between"><span>Manual amount</span><span>{currencyMoney(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{currencyMoney(productTotal)}</span></div><div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground"><span>Total</span><span>{currencyMoney(effectiveAmount)}</span></div><p className="text-xs text-amber-700 dark:text-amber-300">Source: {amountSource}</p></div></div>
             <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Readiness</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><DealReadiness done={Boolean(draft.name)} label="Add deal name" /><DealReadiness done={Boolean(draft.pipelineId && draft.stageId)} label="Choose pipeline and stage" /><DealReadiness done={Boolean(draft.expectedCloseDate)} label="Choose a closing date" /><DealReadiness done={effectiveAmount > 0} label="Add products or set amount" /></div></div>
             <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-800 dark:text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
-          </aside>
+            </aside>
+          </details>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {if (!ownsDraft()) return; sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action loading={saving} loadingLabel={mode === "edit" ? "Saving Deal" : "Creating Deal"} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
+        <div className="crm-deal-capture-footer flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {if (!ownsDraft()) return; sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="crm-deal-draft-notice text-xs">{draftNotice}</span>}<div className="crm-deal-submit-actions flex items-center gap-3"><span className="crm-deal-save-status text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="crm-deal-cancel border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action loading={saving} loadingLabel={mode === "edit" ? "Saving Deal" : "Creating Deal"} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
       </div>
     </div>
     </DealDialog.Content>

@@ -1,3 +1,5 @@
+import "./crm-record-detail.css";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
 import { leadSourceOptions } from "@/lib/form-defaults";
 import { crmLocalDateTime } from "./dateTime";
@@ -35,9 +37,10 @@ import { phoneFields } from "@/lib/validation";
 import CustomerCommercialHistory from "./CustomerCommercialHistory";
 import LeadEmployeeAssignment from "./leads/LeadEmployeeAssignment";
 import { useEffect, useMemo, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
+  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -55,7 +58,6 @@ import {
   Sparkles,
   Trash2,
   UserRound,
-  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -191,6 +193,7 @@ const detailInlineEditConfig: Record<DetailKind, Record<string, DetailInlineConf
 
 export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   const mobile = useMobile();
+  const { pathname } = useLocation();
   const [mobileQuickCreate, setMobileQuickCreate] = useState("");
   const [mobileAssignmentOpen, setMobileAssignmentOpen] = useState(false);
   const actingUser=useAuthStore(s=>s.user);const {pin}=useCRMProductivity();const [stageOpen,setStageOpen]=useState(false);
@@ -244,6 +247,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   }, [config.entity, recordId]);
 
   const title = useMemo(() => titleFor(record, config.nameKeys, config.singular), [record, config]);
+  const mobileListPath = kind === "accounts" && pathname.startsWith("/crm/accounts/") ? "/crm/accounts" : config.listPath;
   const statusBadges = config.statusKeys.map((key) => valueText(record?.[key])).filter(Boolean);
   const approval = approvalFor(record);
   const approvalStatus = valueText(approval?.status);
@@ -395,8 +399,8 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                 {id:"whatsapp",kind:"whatsapp",prominent:kind === "leads" || kind === "contacts",onSelect:()=>setMessageOpen("whatsapp"),disabled:!contactPhone || finalActionBlocked,disabledReason:!contactPhone ? "Add a mobile number to send WhatsApp messages" : finalActionBlocked ? "Resolve the approval before sending messages" : undefined},
                 {id:"email",kind:"email",prominent:true,onSelect:()=>setAction("email"),disabled:!record.email || finalActionBlocked,disabledReason:!record.email ? "Add an email address to compose an email" : finalActionBlocked ? "Resolve the approval before sending email" : undefined},
                 ...(kind === "leads" ? [{id:"convert",kind:"convert" as const,prominent:true,primary:!leadConverted,label:leadConverted ? "Converted to Customer" : "Convert Lead to Customer",onSelect:convertLead,loading:leadConverting,disabled:leadConverted,disabledReason:leadConverted ? "This lead has already been converted to a customer" : undefined}] : []),
-                ...(kind !== "quotations" ? [{id:"quotation",kind:"quotation" as const,prominent:kind === "accounts" || kind === "contacts",primary:kind === "accounts",onSelect:()=>setAction("quotation")}] : []),
-                {id:"edit",kind:"edit",available:kind !== "quotations",onSelect:()=>setEditOpen(true)},
+                ...(kind !== "quotations" ? [{id:"quotation",kind:"quotation" as const,prominent:kind === "accounts" || kind === "contacts",primary:!mobile && kind === "accounts",onSelect:()=>setAction("quotation")}] : []),
+                {id:"edit",kind:"edit",available:kind !== "quotations",primary:mobile && kind !== "leads",onSelect:()=>{setError(null);setEditOpen(true);}},
                 {id:"call",kind:"call",onSelect:()=>setAction("call"),tooltip:"Log a call with this contact",disabled:!contactPhone,disabledReason:!contactPhone ? "Add a phone number before calling this contact" : undefined},
                 {id:"sms",kind:"sms",onSelect:()=>setMessageOpen("sms"),disabled:!contactPhone || finalActionBlocked,disabledReason:!contactPhone ? "Add a mobile number to send SMS" : finalActionBlocked ? "Resolve the approval before sending messages" : undefined},
                 {id:"followup",kind:"followup",onSelect:()=>setAction("task"),tooltip:"Create a task for the next follow-up"},
@@ -420,8 +424,13 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
           ]}/>) : null;
 
   return (
-    <div className="space-y-5">
-      {!(mobile && kind === "leads") && <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+    <div className="min-w-0 space-y-5">
+      {mobile && kind !== "leads" && <nav aria-label="Record navigation">
+        <Link to={mobileListPath} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {config.label}
+        </Link>
+      </nav>}
+      {!mobile && <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Link to="/crm" className="hover:text-foreground">CRM</Link>
         <ChevronRight className="h-4 w-4" />
         <Link to={config.listPath} className="hover:text-foreground">{config.label}</Link>
@@ -429,7 +438,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
         <span className="text-foreground">{title}</span>
       </nav>}
 
-      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      {error && !editOpen ? <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       {initialLoading ? <div className="rounded-md border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Loading {config.singular.toLowerCase()} details...</div> : null}
 
       {!initialLoading && record ? (
@@ -447,11 +456,11 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             activity={<><Record360Workspace key={recordId} kind="lead" id={recordId} onAction={setAction}/><CommunicationTimeline recordType="lead" recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/></>}
             related={<><CatalogAssociations source="crm" target="lead" id={recordId}/><RelatedRecords related={record.related || {}}/></>}
           /> : <>
-          <header className="rounded-lg border bg-card p-5">
+          <header className="rounded-lg border bg-card p-3 sm:p-5">
             <div className="flex min-w-0 flex-col gap-4">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold">{title}</h1><IconActionButton action="pin" aria-label="Pin record" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}/>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
+                  <h1 className="min-w-0 break-words text-xl font-semibold sm:truncate sm:text-2xl">{title}</h1><IconActionButton action="pin" aria-label="Pin record" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}/>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
                   {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
                   <AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt}/>
                   {statusBadges.map((status) => <Badge key={status} className={statusColor(status)}>{status}</Badge>)}
@@ -478,7 +487,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       ) : null}
 
       {mobileQuickCreate && <Suspense fallback={<p role="status">Loading deal form…</p>}><MobileQuickCreate type={mobileQuickCreate} close={() => setMobileQuickCreate("")} saved={() => {setMobileQuickCreate("");loadRecord();}}/></Suspense>}
-      {editOpen && record ? <EditRecordModal record={record} title={`Edit ${config.singular}`} saving={saving} onClose={() => setEditOpen(false)} onSave={updateRecord} /> : null}
+      {editOpen && record ? <EditRecordModal record={record} title={`Edit ${config.singular}`} saving={saving} error={error} onClose={() => {setEditOpen(false);setError(null);}} onSave={updateRecord} /> : null}
       {enrichmentOpen && record ? <EnrichmentModal kind={kind} record={record} recordId={recordId} onClose={() => setEnrichmentOpen(false)} onDone={(next) => { setRecord(next); setEnrichmentOpen(false); loadRecord(); }} /> : null}
       {messageOpen && record ? <MessageComposeModal kind={kind} record={record} initialChannel={messageOpen} onClose={() => setMessageOpen(null)} onDone={() => { setMessageOpen(null); loadRecord(); }} /> : null}
       {action === "email" && record ? <EmailComposeModal kind={kind} record={record} disabled={finalActionBlocked} approvalStatus={approvalStatus} onClose={() => setAction(null)} onDone={() => { setAction(null); loadRecord(); }} /> : null}
@@ -832,32 +841,56 @@ function RelatedRecords({ related }: { related: Record<string, unknown> }) {
   );
 }
 
-function EditRecordModal({ record, title, saving, onClose, onSave }: { record: DetailRecord; title: string; saving: boolean; onClose: () => void; onSave: (data: CRMApiRecord) => Promise<void> }) {
+function CRMDetailDialog({ title, width, description, busy, onClose, children }: {
+  title: string;
+  width: string;
+  description?: string;
+  busy?: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  return (
+    <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
+      <DialogContent
+        className={`crm-detail-dialog ${width}`}
+        onInteractOutside={event => event.preventDefault()}
+        onOpenAutoFocus={event => {
+          event.preventDefault();
+          titleRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <div className="crm-detail-dialog-header">
+          <DialogTitle ref={titleRef} tabIndex={-1} className="text-lg font-semibold">{title}</DialogTitle>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditRecordModal({ record, title, saving, error, onClose, onSave }: { record: DetailRecord; title: string; saving: boolean; error: string | null; onClose: () => void; onSave: (data: CRMApiRecord) => Promise<void> }) {
   const editableEntries = Object.entries(record).filter(([key, value]) => !readOnlyKeys.has(key) && !key.endsWith("_country_code") && typeof value !== "object" && !["services_offered", "business_types"].includes(key));
   const [draft, setDraft] = useState<CRMApiRecord>(() => ({...Object.fromEntries(editableEntries),...(Object.prototype.hasOwnProperty.call(record,"services_offered")?{services_offered:record.services_offered,business_types:record.business_types}:{}),...Object.fromEntries(Object.entries(record).filter(([key])=>key.endsWith("_country_code")))} as CRMApiRecord));
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4 overflow-y-auto">
-          <div className="grid gap-3 md:grid-cols-2">
-            {Object.prototype.hasOwnProperty.call(record, "services_offered") && <BusinessProfileFields services={draft.services_offered} types={draft.business_types} onChange={(key, value) => setDraft(current => ({...current, [key]: value}))} disabled={saving}/>}
-            {editableEntries.map(([key]) => (
-              <Field key={key} label={labelFor(key)}>
-                {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(draft[key])} countryCode={valueText(draft[key+"_country_code"])} onChange={value=>setDraft(current=>({...current,[key]:value}))} onCountryCodeChange={value=>setDraft(current=>({...current,[key+"_country_code"]:value}))} /> : <Input value={valueText(draft[key])} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />}
-              </Field>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={() => onSave(draft)} disabled={saving}>{saving ? "Saving..." : "Save changes"}</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <CRMDetailDialog title={title} width="max-w-3xl" onClose={onClose} busy={saving}>
+      <div className="crm-detail-dialog-body space-y-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          {Object.prototype.hasOwnProperty.call(record, "services_offered") && <BusinessProfileFields services={draft.services_offered} types={draft.business_types} onChange={(key, value) => setDraft(current => ({...current, [key]: value}))} disabled={saving}/>}
+          {editableEntries.map(([key]) => (
+            <Field key={key} label={labelFor(key)}>
+              {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(draft[key])} countryCode={valueText(draft[key+"_country_code"])} onChange={value=>setDraft(current=>({...current,[key]:value}))} onCountryCodeChange={value=>setDraft(current=>({...current,[key+"_country_code"]:value}))} /> : <Input value={valueText(draft[key])} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />}
+            </Field>
+          ))}
+        </div>
+      </div>
+      <div className="crm-detail-dialog-footer">
+        {error && <p className="w-full text-sm text-destructive" role="alert">{error}</p>}
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(draft)} disabled={saving}>{saving ? "Saving..." : "Save changes"}</Button>
+      </div>
+    </CRMDetailDialog>
   );
 }
 
@@ -922,61 +955,55 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="max-h-[92vh] w-full max-w-5xl overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between">
-          <div><CardTitle>Enrich Contact</CardTitle><p className="text-sm text-muted-foreground">Preview provider data and choose exactly which fields to update.</p></div>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4 overflow-y-auto">
-          {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-          <div className="grid gap-3 md:grid-cols-[14rem_1fr]">
-            <Field label="Provider">
-              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={provider} onChange={(event) => setProvider(event.target.value)}>
-                <option value="manual">Manual enrichment</option>
-                <option value="csv_import">CSV/import enrichment</option>
-                <option value="third_party">Future third-party provider</option>
-              </NativeSelect>
-            </Field>
-            <div className="grid gap-3 md:grid-cols-3">
-              {enrichmentInputFields.map(([key, label]) => (
-                <Field key={key} label={label}>
-                  {key==="phone" ? <PhoneInput label={label} value={valueText(draft[key])} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch(key,value)} onCountryCodeChange={value=>patch("phone_country_code",value)} /> : <Input value={valueText(draft[key])} onChange={(event) => patch(key, event.target.value)} />}
-                </Field>
-              ))}
-            </div>
+    <CRMDetailDialog title="Enrich Contact" width="max-w-5xl" onClose={onClose} description="Preview provider data and choose exactly which fields to update.">
+      <div className="crm-detail-dialog-body space-y-4">
+        {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
+        <div className="grid gap-3 md:grid-cols-[14rem_1fr]">
+          <Field label="Provider">
+            <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={provider} onChange={(event) => setProvider(event.target.value)}>
+              <option value="manual">Manual enrichment</option>
+              <option value="csv_import">CSV/import enrichment</option>
+              <option value="third_party">Future third-party provider</option>
+            </NativeSelect>
+          </Field>
+          <div className="grid gap-3 md:grid-cols-3">
+            {enrichmentInputFields.map(([key, label]) => (
+              <Field key={key} label={label}>
+                {key==="phone" ? <PhoneInput label={label} value={valueText(draft[key])} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch(key,value)} onCountryCodeChange={value=>patch("phone_country_code",value)} /> : <Input value={valueText(draft[key])} onChange={(event) => patch(key, event.target.value)} />}
+              </Field>
+            ))}
           </div>
-          <div className="flex justify-between gap-2">
-            <div className="text-sm text-muted-foreground">{history.length ? `${history.length} previous enrichment event(s)` : "No enrichment history yet."}</div>
-            <Button onClick={runPreview} disabled={loading}><Sparkles className="h-4 w-4" />{loading ? "Checking..." : "Preview enrichment"}</Button>
+        </div>
+        <div className="flex justify-between gap-2">
+          <div className="text-sm text-muted-foreground">{history.length ? `${history.length} previous enrichment event(s)` : "No enrichment history yet."}</div>
+          <Button onClick={runPreview} disabled={loading}><Sparkles className="h-4 w-4" />{loading ? "Checking..." : "Preview enrichment"}</Button>
+        </div>
+        {preview ? (
+          <div className="overflow-x-auto rounded-md border">
+            <GridTable gridId="apps/crm/CRMRecordDetailPage:table-1" className="w-full min-w-[760px] text-sm">
+              <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+                <tr><th className="px-3 py-2">Apply</th><th className="px-3 py-2">Field</th><th className="px-3 py-2">Current</th><th className="px-3 py-2">Enriched</th><th className="px-3 py-2">Status</th></tr>
+              </thead>
+              <tbody>
+                {preview.fields.map((field) => (
+                  <tr {...recordPreviewProps(field)} key={field.key} className="border-t">
+                    <td className="px-3 py-2"><input type="checkbox" disabled={!field.supported || !field.changed} checked={Boolean(selected[field.key])} onChange={(event) => setSelected((current) => ({ ...current, [field.key]: event.target.checked }))} /></td>
+                    <td className="px-3 py-2 font-medium">{field.label}</td>
+                    <td className="px-3 py-2">{valueText(field.oldValue) || "-"}</td>
+                    <td className="px-3 py-2">{valueText(field.newValue) || "-"}</td>
+                    <td className="px-3 py-2"><Badge variant={field.supported ? "outline" : "secondary"}>{field.supported ? field.changed ? "Ready" : "No change" : "Preview only"}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </GridTable>
           </div>
-          {preview ? (
-            <div className="overflow-x-auto rounded-md border">
-              <GridTable gridId="apps/crm/CRMRecordDetailPage:table-1" className="w-full min-w-[760px] text-sm">
-                <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-                  <tr><th className="px-3 py-2">Apply</th><th className="px-3 py-2">Field</th><th className="px-3 py-2">Current</th><th className="px-3 py-2">Enriched</th><th className="px-3 py-2">Status</th></tr>
-                </thead>
-                <tbody>
-                  {preview.fields.map((field) => (
-                    <tr {...recordPreviewProps(field)} key={field.key} className="border-t">
-                      <td className="px-3 py-2"><input type="checkbox" disabled={!field.supported || !field.changed} checked={Boolean(selected[field.key])} onChange={(event) => setSelected((current) => ({ ...current, [field.key]: event.target.checked }))} /></td>
-                      <td className="px-3 py-2 font-medium">{field.label}</td>
-                      <td className="px-3 py-2">{valueText(field.oldValue) || "-"}</td>
-                      <td className="px-3 py-2">{valueText(field.newValue) || "-"}</td>
-                      <td className="px-3 py-2"><Badge variant={field.supported ? "outline" : "secondary"}>{field.supported ? field.changed ? "Ready" : "No change" : "Preview only"}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </GridTable>
-            </div>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={apply} disabled={loading || !preview || !Object.values(selected).some(Boolean)}>Apply selected fields</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        ) : null}
+      </div>
+      <div className="crm-detail-dialog-footer">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={apply} disabled={loading || !preview || !Object.values(selected).some(Boolean)}>Apply selected fields</Button>
+      </div>
+    </CRMDetailDialog>
   );
 }
 
@@ -999,37 +1026,31 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
       .finally(() => {saveLock.current=false;setSaving(false);});
   };
   return (
-    <div role="dialog" aria-modal="true" aria-label={quickActionTitle(action)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="max-h-[90dvh] w-full max-w-xl overflow-y-auto">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>{quickActionTitle(action)}</CardTitle>
-          <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-          <div className="grid gap-3 md:grid-cols-2">
-            {Object.entries(draft).filter(([key]) => !key.endsWith("_id") && !key.endsWith("_country_code")).map(([key, value]) => (
-              <Field key={key} label={labelFor(key)}>
-                {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(value)} countryCode={valueText(draft[key+"_country_code"])} onChange={next=>setDraft(current=>({...current,[key]:next}))} onCountryCodeChange={code=>setDraft(current=>({...current,[key+"_country_code"]:code}))} /> : action === "note" && key === "body" ? (
-                  <MentionTextarea
-                    value={valueText(value)}
-                    onChange={(nextValue) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: nextValue }))}
-                    mentions={mentions}
-                    onMentionsChange={setMentions}
-                  />
-                ) : (
-                  dateTimeFields.has(key) ? <Input aria-label={labelFor(key)} type="datetime-local" value={crmLocalDateTime(valueText(value))} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value ? new Date(event.target.value).toISOString() : "" }))} onInput={event => { const next = event.currentTarget.value; setDraft(current => ({ ...current, [key]: next ? new Date(next).toISOString() : "" })); }} /> : <Input aria-label={labelFor(key)} type={["issue_date", "expiry_date"].includes(key) ? "date" : "text"} value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
-                )}
-              </Field>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
-            <Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <CRMDetailDialog title={quickActionTitle(action)} width="max-w-xl" onClose={onClose} busy={saving}>
+      <div className="crm-detail-dialog-body space-y-4">
+        {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
+        <div className="grid gap-3 md:grid-cols-2">
+          {Object.entries(draft).filter(([key]) => !key.endsWith("_id") && !key.endsWith("_country_code")).map(([key, value]) => (
+            <Field key={key} label={labelFor(key)}>
+              {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(value)} countryCode={valueText(draft[key+"_country_code"])} onChange={next=>setDraft(current=>({...current,[key]:next}))} onCountryCodeChange={code=>setDraft(current=>({...current,[key+"_country_code"]:code}))} /> : action === "note" && key === "body" ? (
+                <MentionTextarea
+                  value={valueText(value)}
+                  onChange={(nextValue) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: nextValue }))}
+                  mentions={mentions}
+                  onMentionsChange={setMentions}
+                />
+              ) : (
+                dateTimeFields.has(key) ? <Input aria-label={labelFor(key)} type="datetime-local" value={crmLocalDateTime(valueText(value))} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value ? new Date(event.target.value).toISOString() : "" }))} onInput={event => { const next = event.currentTarget.value; setDraft(current => ({ ...current, [key]: next ? new Date(next).toISOString() : "" })); }} /> : <Input aria-label={labelFor(key)} type={["issue_date", "expiry_date"].includes(key) ? "date" : "text"} value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
+              )}
+            </Field>
+          ))}
+        </div>
+      </div>
+      <div className="crm-detail-dialog-footer">
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </div>
+    </CRMDetailDialog>
   );
 }
 
@@ -1147,56 +1168,50 @@ export function EmailComposeModal({ kind, record, disabled = false, approvalStat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="max-h-[92vh] w-full max-w-3xl overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Send Email</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4 overflow-y-auto">
-          {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-          {disabled ? <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">Final send is disabled while approval is {approvalStatus}.</div> : null}
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="Template">
-              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" onChange={(event) => applyTemplate(event.target.value)} defaultValue="">
-                <option value="">Select template</option>
-                {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
-              </NativeSelect>
-            </Field>
-            <Field label="Insert CRM Field">
-              <div className="flex flex-wrap gap-2">
-                {["{{contact.name}}", "{{lead.name}}", "{{account.name}}", "{{deal.name}}", "{{record.name}}"].map((token) => (
-                  <Button key={token} type="button" size="sm" variant="outline" onClick={() => insertToken(token)}>{token}</Button>
-                ))}
-              </div>
-            </Field>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="To"><Input value={valueText(draft.to)} onChange={(event) => patch("to", event.target.value)} /></Field>
-            <Field label="CC"><Input value={valueText(draft.cc)} onChange={(event) => patch("cc", event.target.value)} /></Field>
-            <Field label="BCC"><Input value={valueText(draft.bcc)} onChange={(event) => patch("bcc", event.target.value)} /></Field>
-            <Field label="Subject"><Input value={valueText(draft.subject)} onChange={(event) => patch("subject", event.target.value)} /></Field>
-          </div>
-          <Field label="Rich text body">
-            <RichTextField
-              value={valueText(draft.body)}
-              onChange={(event) => patch("body", event.target.value)}
-              rows={10}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
+    <CRMDetailDialog title="Send Email" width="max-w-3xl" onClose={onClose} busy={saving}>
+      <div className="crm-detail-dialog-body space-y-4">
+        {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
+        {disabled ? <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">Final send is disabled while approval is {approvalStatus}.</div> : null}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Template">
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" onChange={(event) => applyTemplate(event.target.value)} defaultValue="">
+              <option value="">Select template</option>
+              {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
+            </NativeSelect>
           </Field>
-          {kind !== "deals" && <Field label="Attachments">
-            <Input type="file" multiple onChange={(event) => setAttachments(Array.from(event.target.files || []).map((file) => file.name))} />
-            {attachments.length ? <p className="text-xs text-muted-foreground">{attachments.join(", ")} will be logged with the draft UI. File upload is not connected for CRM email yet.</p> : null}
-          </Field>}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button variant="outline" onClick={() => submit(true)} disabled={saving}>Save as draft</Button>
-            <Button onClick={() => submit(false)} disabled={saving || disabled}>{saving ? "Sending..." : "Send"}</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          <Field label="Insert CRM Field">
+            <div className="flex flex-wrap gap-2">
+              {["{{contact.name}}", "{{lead.name}}", "{{account.name}}", "{{deal.name}}", "{{record.name}}"].map((token) => (
+                <Button key={token} type="button" size="sm" variant="outline" onClick={() => insertToken(token)}>{token}</Button>
+              ))}
+            </div>
+          </Field>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="To"><Input value={valueText(draft.to)} onChange={(event) => patch("to", event.target.value)} /></Field>
+          <Field label="CC"><Input value={valueText(draft.cc)} onChange={(event) => patch("cc", event.target.value)} /></Field>
+          <Field label="BCC"><Input value={valueText(draft.bcc)} onChange={(event) => patch("bcc", event.target.value)} /></Field>
+          <Field label="Subject"><Input value={valueText(draft.subject)} onChange={(event) => patch("subject", event.target.value)} /></Field>
+        </div>
+        <Field label="Rich text body">
+          <RichTextField
+            value={valueText(draft.body)}
+            onChange={(event) => patch("body", event.target.value)}
+            rows={10}
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          />
+        </Field>
+        {kind !== "deals" && <Field label="Attachments">
+          <Input type="file" multiple onChange={(event) => setAttachments(Array.from(event.target.files || []).map((file) => file.name))} />
+          {attachments.length ? <p className="text-xs text-muted-foreground">{attachments.join(", ")} will be logged with the draft UI. File upload is not connected for CRM email yet.</p> : null}
+        </Field>}
+      </div>
+      <div className="crm-detail-dialog-footer">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={() => submit(true)} disabled={saving}>Save as draft</Button>
+          <Button onClick={() => submit(false)} disabled={saving || disabled}>{saving ? "Sending..." : "Send"}</Button>
+      </div>
+    </CRMDetailDialog>
   );
 }
 
@@ -1252,59 +1267,53 @@ export function MessageComposeModal({ kind, record, onClose, onDone, initialChan
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="max-h-[92vh] w-full max-w-2xl overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Send SMS/WhatsApp</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4 overflow-y-auto">
-          {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-          {statusMessage ? <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{statusMessage}</div> : null}
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="Channel">
-              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={channel} onChange={(event) => { patch("channel", event.target.value); patch("templateId", ""); }}>
-                <option value="sms">SMS</option>
-                <option value="whatsapp">WhatsApp</option>
-              </NativeSelect>
-            </Field>
-            <Field label="To">
-              <PhoneInput label="Recipient phone" value={valueText(draft.to)} countryCode={valueText(draft.country_code)} onChange={value=>patch("to",value)} onCountryCodeChange={value=>patch("country_code",value)} required />
-            </Field>
-          </div>
-          <Field label="Template">
-            <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={valueText(draft.templateId)} onChange={(event) => applyTemplate(event.target.value)}>
-              <option value="">Select template</option>
-              {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
+    <CRMDetailDialog title="Send SMS/WhatsApp" width="max-w-2xl" onClose={onClose} busy={saving}>
+      <div className="crm-detail-dialog-body space-y-4">
+        {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
+        {statusMessage ? <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{statusMessage}</div> : null}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Channel">
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={channel} onChange={(event) => { patch("channel", event.target.value); patch("templateId", ""); }}>
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp</option>
             </NativeSelect>
           </Field>
-          <Field label="Message">
-            <textarea value={body} onChange={(event) => patch("body", event.target.value)} rows={7} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
-            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-              <span>{channel === "sms" ? `${body.length} characters / ${Math.max(1, Math.ceil(body.length / 160))} SMS segment(s)` : `${body.length} characters`}</span>
-              <span>{labelFor(channel)}</span>
-            </div>
+          <Field label="To">
+            <PhoneInput label="Recipient phone" value={valueText(draft.to)} countryCode={valueText(draft.country_code)} onChange={value=>patch("to",value)} onCountryCodeChange={value=>patch("country_code",value)} required />
           </Field>
-          {history.length ? (
-            <div className="rounded-md border bg-muted/25 p-3">
-              <p className="text-sm font-medium">Recent messages</p>
-              <div className="mt-2 space-y-2">
-                {history.slice(0, 3).map((item) => (
-                  <div key={String(item.id)} className="flex items-start justify-between gap-3 text-sm">
-                    <div className="line-clamp-1"><RichTextContent legacyFormat="plain" value={valueText(item.body)}/></div>
-                    <Badge variant="outline">{valueText(item.status)}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={submit} disabled={saving}>{saving ? "Sending..." : "Send"}</Button>
+        </div>
+        <Field label="Template">
+          <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={valueText(draft.templateId)} onChange={(event) => applyTemplate(event.target.value)}>
+            <option value="">Select template</option>
+            {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
+          </NativeSelect>
+        </Field>
+        <Field label="Message">
+          <textarea value={body} onChange={(event) => patch("body", event.target.value)} rows={7} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+          <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+            <span>{channel === "sms" ? `${body.length} characters / ${Math.max(1, Math.ceil(body.length / 160))} SMS segment(s)` : `${body.length} characters`}</span>
+            <span>{labelFor(channel)}</span>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </Field>
+        {history.length ? (
+          <div className="rounded-md border bg-muted/25 p-3">
+            <p className="text-sm font-medium">Recent messages</p>
+            <div className="mt-2 space-y-2">
+              {history.slice(0, 3).map((item) => (
+                <div key={String(item.id)} className="flex items-start justify-between gap-3 text-sm">
+                  <div className="line-clamp-1"><RichTextContent legacyFormat="plain" value={valueText(item.body)}/></div>
+                  <Badge variant="outline">{valueText(item.status)}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <div className="crm-detail-dialog-footer">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving}>{saving ? "Sending..." : "Send"}</Button>
+      </div>
+    </CRMDetailDialog>
   );
 }
 

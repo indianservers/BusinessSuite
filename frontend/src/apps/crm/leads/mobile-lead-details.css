@@ -31,3 +31,35 @@
 @media(prefers-reduced-motion:reduce){.mobile-lead-page *{scroll-behavior:auto!important;transition:none!important}}
 
 .ml-template-action{margin-top:10px}.ml-template-action>button{width:100%;min-height:42px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1px solid #e2def5;background:#fff;color:#6554c0;font-size:13px}
+
+.ml-profile-tools > button {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+.ml-bottom-nav > :is(a, button):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -3px;
+}
+
+.ml-sheet-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ml-sheet-actions .suite-action,
+.ml-sheet-actions .suite-action-disabled {
+  width: 100%;
+  min-width: 0;
+}
+
+.ml-sheet-actions .suite-action {
+  justify-content: flex-start;
+  min-height: 44px;
+  height: auto;
+  padding: 8px;
+  white-space: normal;
+  text-align: left;
+}

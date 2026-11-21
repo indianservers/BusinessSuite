@@ -40,7 +40,7 @@ import SellerAvailabilityEditor from './SellerAvailabilityEditor';
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import {
   UserRound, UserRoundPlus, Zap, BarChart3, Target, Flag, FileText, ChevronRight, Building2,
@@ -360,6 +360,73 @@ function LeadWorkbench() {
     sessionStorage.setItem(`${potential ? "potential" : "lead"}-scroll-${userId}`, String(window.scrollY));
     updateParams({ lead: String(id) });
   };
+  const toggleLeadSelection = (id: number, checked: boolean) =>
+    setSelected(current => checked ? [...current, id] : current.filter(item => item !== id));
+  const pageSelected = !!result?.items.length && result.items.every(lead => selected.includes(lead.id));
+  const selectPage = (checked: boolean) => setSelected(checked ? result?.items.map(lead => lead.id) || [] : []);
+  const stageControl = (lead: Lead) => bootstrap?.canManage && canEdit && !lead.is_converted ? (
+      <NativeSelect
+        className="lm-inline"
+        aria-label={`Stage for ${lead.full_name}`}
+        disabled={busy}
+        value={lead.status}
+        onChange={(e) => {
+          if (e.target.value === "Lost") {
+            updateParams({
+              lead: String(lead.id),
+              transition: "Lost",
+            });
+          } else
+            void mutate(lead, {
+              values: { status: e.target.value },
+            });
+        }}
+      >
+        <option>{lead.status}</option>
+        {bootstrap.settings.stages
+          .find((s) => s.name === lead.status)
+          ?.allowedNext.filter((name) => name !== "Converted")
+          .map((name) => (
+            <option key={name}>{name}</option>
+          ))}
+      </NativeSelect>
+    ) : (
+      <StageBadge stage={lead.status} />
+    );
+  const ownerControl = (lead: Lead) => bootstrap?.canManage && canAssign && bootstrap.owners.length > 1 ? (
+      <NativeSelect
+        className="lm-inline"
+        aria-label={`Owner for ${lead.full_name}`}
+        value={lead.owner_user_id || ""}
+        disabled={busy}
+        onChange={(e) =>
+          void mutate(lead, {
+            values: {
+              owner_user_id: Number(e.target.value),
+            },
+          })
+        }
+      >
+        <option value="" disabled>
+          Unassigned
+        </option>
+        {!!lead.owner_user_id &&
+          !bootstrap.owners.some(
+            (o) => o.id === lead.owner_user_id,
+          ) && (
+            <option value={lead.owner_user_id} disabled>
+              Current assignee (unavailable)
+            </option>
+          )}
+        {bootstrap.owners.map((o) => (
+          <option value={o.id} key={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </NativeSelect>
+    ) : (
+      ownerName(lead.owner_user_id)
+    );
   const closeLead = () => {
     updateParams({ lead: "", transition: "" });
     requestAnimationFrame(() =>
@@ -597,8 +664,9 @@ function LeadWorkbench() {
               onChange={(e) => setSearchDraft(e.target.value)}
             />
           </label>
-          <MobileFilters chips={[stage,owner ? `Owner ${owner}` : ""].filter(Boolean)} onClear={()=>updateParams({stage:"",owner:"",page:"1"})}>
+          <MobileFilters chips={[stage,owner ? ownerName(Number(owner)) : ""].filter(Boolean)} onClear={()=>updateParams({stage:"",owner:"",page:"1"})}>
           <NativeSelect
+            data-lead-filter
             aria-label="Filter stage"
             value={stage}
             onChange={(e) => updateParams({ stage: e.target.value, page: "1" })}
@@ -653,7 +721,13 @@ function LeadWorkbench() {
               <Button type="submit" variant="outline" disabled={!viewName.trim()} onClick={saveView}>Save personal view</Button>{bootstrap?.canAssign&&<SmartCreateAction title="Publish shared view"><button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button></SmartCreateAction>}
             </>
           )}
-          {view === "table" && <details>
+          {view === "table" && mobile && bootstrap?.canManage && !!result?.items.length && (
+            <label className="lm-phone-select-record">
+              <input type="checkbox" checked={pageSelected} onChange={event => selectPage(event.target.checked)} />
+              Select all leads on this page
+            </label>
+          )}
+          {view === "table" && !mobile && <details>
             <summary>Columns</summary>
             <div className="lm-column-options">
               {["company", "owner", "score", "follow", "action"].map(
@@ -813,6 +887,49 @@ function LeadWorkbench() {
               </button>
             ))}
           </div>
+        ) : mobile ? (
+          <ul className="lm-phone-list">
+            {result.items.map(lead => (
+              <li key={lead.id}>
+                <div className="lm-phone-list-summary">
+                  <button type="button" className="lm-phone-record" aria-label={lead.full_name} onClick={() => openLead(lead.id)}>
+                    <strong>{lead.full_name}</strong>
+                    {(lead.company_name || lead.email) && <span>{lead.company_name || lead.email}</span>}
+                  </button>
+                  <StageBadge stage={lead.status} />
+                </div>
+                <div className="lm-phone-list-actions">
+                  <span className={lead.signals.overdue ? "lm-danger-text" : undefined}>
+                    {lead.signals.followUpLabel}
+                  </span>
+                  {bootstrap?.canManage && lead.signals.active && (
+                    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setFollowUp({ lead })}>
+                      Follow up
+                    </Button>
+                  )}
+                </div>
+                <details className="lm-phone-record-options">
+                  <summary aria-label={`Actions for ${lead.full_name}`}>Actions</summary>
+                  <div className="lm-phone-record-fields">
+                    <Field label="Stage">{stageControl(lead)}</Field>
+                    <Field label="Assigned employee">{ownerControl(lead)}</Field>
+                    {bootstrap?.canManage && (
+                      <label className="lm-phone-select-record">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${lead.full_name}`}
+                          checked={selected.includes(lead.id)}
+                          onChange={event => toggleLeadSelection(lead.id, event.target.checked)}
+                        />
+                        Select for bulk actions
+                      </label>
+                    )}
+                    <CRMRowQuickActions record={lead} canEdit={!!bootstrap?.canManage && canEdit} onEdit={() => openLead(lead.id)} />
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
         ) : (
           <div className="lm-table-scroll">
             <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" hideSearch externalPagination pinActions className="lm-table">
@@ -823,17 +940,8 @@ function LeadWorkbench() {
                       <input
                         type="checkbox"
                         aria-label="Select all leads on this page"
-                        checked={
-                          result.items.length > 0 &&
-                          result.items.every((l) => selected.includes(l.id))
-                        }
-                        onChange={(e) =>
-                          setSelected(
-                            e.target.checked
-                              ? result.items.map((l) => l.id)
-                              : [],
-                          )
-                        }
+                        checked={pageSelected}
+                        onChange={event => selectPage(event.target.checked)}
                       />
                     )}
                   </th>
@@ -857,13 +965,7 @@ function LeadWorkbench() {
                           type="checkbox"
                           aria-label={`Select ${lead.full_name}`}
                           checked={selected.includes(lead.id)}
-                          onChange={(e) =>
-                            setSelected((current) =>
-                              e.target.checked
-                                ? [...current, lead.id]
-                                : current.filter((id) => id !== lead.id),
-                            )
-                          }
+                          onChange={event => toggleLeadSelection(lead.id, event.target.checked)}
                         />
                       )}
                     </td>
@@ -881,35 +983,7 @@ function LeadWorkbench() {
                       </div></div>
                     </td>
                     <td>
-                      {bootstrap?.canManage && canEdit && !lead.is_converted ? (
-                        <NativeSelect
-                          className="lm-inline"
-                          aria-label={`Stage for ${lead.full_name}`}
-                          disabled={busy}
-                          value={lead.status}
-                          onChange={(e) => {
-                            if (e.target.value === "Lost") {
-                              updateParams({
-                                lead: String(lead.id),
-                                transition: "Lost",
-                              });
-                            } else
-                              void mutate(lead, {
-                                values: { status: e.target.value },
-                              });
-                          }}
-                        >
-                          <option>{lead.status}</option>
-                          {bootstrap.settings.stages
-                            .find((s) => s.name === lead.status)
-                            ?.allowedNext.filter((name) => name !== "Converted")
-                            .map((name) => (
-                              <option key={name}>{name}</option>
-                            ))}
-                        </NativeSelect>
-                      ) : (
-                        <StageBadge stage={lead.status} />
-                      )}
+                      {stageControl(lead)}
                     </td>
                     {locationFields.map(field=><td key={field.id}>{locationValue(lead,field) || "Not set"}</td>)}
                     {columns.includes("company") && (
@@ -917,40 +991,7 @@ function LeadWorkbench() {
                     )}
                     {columns.includes("owner") && (
                       <td>
-                        {bootstrap?.canManage && canAssign && bootstrap.owners.length > 1 ? (
-                          <NativeSelect
-                            className="lm-inline"
-                            aria-label={`Owner for ${lead.full_name}`}
-                            value={lead.owner_user_id || ""}
-                            disabled={busy}
-                            onChange={(e) =>
-                              void mutate(lead, {
-                                values: {
-                                  owner_user_id: Number(e.target.value),
-                                },
-                              })
-                            }
-                          >
-                            <option value="" disabled>
-                              Unassigned
-                            </option>
-                            {!!lead.owner_user_id &&
-                              !bootstrap.owners.some(
-                                (o) => o.id === lead.owner_user_id,
-                              ) && (
-                                <option value={lead.owner_user_id} disabled>
-                                  Current assignee (unavailable)
-                                </option>
-                              )}
-                            {bootstrap.owners.map((o) => (
-                              <option value={o.id} key={o.id}>
-                                {o.name}
-                              </option>
-                            ))}
-                          </NativeSelect>
-                        ) : (
-                          ownerName(lead.owner_user_id)
-                        )}
+                        {ownerControl(lead)}
                       </td>
                     )}
                     {columns.includes("score") && (
@@ -1185,6 +1226,10 @@ export function CaptureDialog({
   const [step, setStep] = useState(0);
   const [captureErrors,setCaptureErrors]=useState<Record<string,string>>({});
   const captureForm = useRef<HTMLFormElement>(null);
+  const captureBody = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (captureBody.current) captureBody.current.scrollTop = 0;
+  }, [step]);
   const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
   const priority = values.capture_priority || "Medium";
   const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
@@ -1223,7 +1268,7 @@ export function CaptureDialog({
           <div className="lead-art-check"><Check size={29}/></div>
         </div>
       </aside>
-      <CompactForm noValidate ref={captureForm} className="lead-create-main"
+      <CompactForm compactTabs={false} noValidate ref={captureForm} className="lead-create-main"
           onSubmit={async (e) => {
             e.preventDefault();
             if (captureSubmitting.current) return;
@@ -1273,10 +1318,23 @@ export function CaptureDialog({
           }}
         >
 
-          <nav className="lead-create-steps" role="tablist" aria-label="Lead creation sections" onKeyDown={event => { const next = event.key === "ArrowRight" ? (step + 1) % captureTabs.length : event.key === "ArrowLeft" ? (step - 1 + captureTabs.length) % captureTabs.length : event.key === "Home" ? 0 : event.key === "End" ? captureTabs.length - 1 : -1; if (next >= 0) { event.preventDefault(); setStep(next); event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus(); } }}>{captureTabs.map((title, index) => <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`} aria-controls="lead-capture-panel" aria-selected={step === index} tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}><span aria-hidden="true">{index + 1}</span>{title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}</button>)}</nav>
-          <div className="lead-create-body" id="lead-capture-panel" role="tabpanel" aria-labelledby={`lead-capture-tab-${step}`}>
-            <h3>{["Basic Information", "Contact Information", "Company Details", "Additional Information", "Products & services"][step]}</h3>
+          {mobile ? (
+            <label className="lead-create-mobile-section">
+              Section
+              <NativeSelect aria-label="Lead creation section" value={step}
+                onChange={event => setStep(Number(event.target.value))}>
+                {captureTabs.map((title, index) => (
+                  <option key={title} value={index}>{title}</option>
+                ))}
+              </NativeSelect>
+            </label>
+          ) : (
+            <nav className="lead-create-steps" role="tablist" aria-label="Lead creation sections" onKeyDown={event => { const next = event.key === "ArrowRight" ? (step + 1) % captureTabs.length : event.key === "ArrowLeft" ? (step - 1 + captureTabs.length) % captureTabs.length : event.key === "Home" ? 0 : event.key === "End" ? captureTabs.length - 1 : -1; if (next >= 0) { event.preventDefault(); setStep(next); event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus(); } }}>{captureTabs.map((title, index) => <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`} aria-controls="lead-capture-panel" aria-selected={step === index} tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}><span aria-hidden="true">{index + 1}</span>{title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}</button>)}</nav>
+          )}
+          <div className="lead-create-body" ref={captureBody} id="lead-capture-panel" role={mobile ? "region" : "tabpanel"} aria-labelledby={mobile ? "lead-capture-section-title" : `lead-capture-tab-${step}`}>
+            <h3 id="lead-capture-section-title">{["Basic Information", "Contact Information", "Company Details", "Additional Information", "Products & services"][step]}</h3>
             <p className="lead-create-subtitle">{quickCapture && step === 0 ? "Add a name and either a phone number or email. Reveal more details when needed." : ["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
+            {error && <ErrorNotice message={error}/>}
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
               {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput error={captureErrors.phone} value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}
@@ -1292,7 +1350,6 @@ export function CaptureDialog({
             <SharedNumberConfirmation phone={values.phone} countryCode={values.phone_country_code} email={values.email} confirmed={sharedConfirmed} reason={sharedReason} onChange={(a,b)=>{setSharedConfirmed(a);setSharedReason(b);}}/>{duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
             {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             <CrmRecordFields state={customFieldForm}/>
-            {error && <ErrorNotice message={error}/>}
           </div>
           <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={nextStep} disabled={saving||customFieldForm.loading||!!customFieldForm.error}>Next<ArrowRight size={16}/></Button>}<Button type="submit" data-save-action disabled={saving||customFieldForm.loading||!!customFieldForm.error}>{saving ? "Saving…" : "Create lead"}</Button>{customFieldForm.loading&&<span role="status">Loading custom fields...</span>}{customFieldForm.error&&<p role="alert">{customFieldForm.error}</p>}</div></footer>
         </CompactForm>
@@ -1352,9 +1409,22 @@ export function LeadDrawer({
   const [booking, setBooking] = useState("");
   const [scheduling, setScheduling] = useState(false);
   const [loggingInteraction,setLoggingInteraction]=useState(false);
+  const mobile = useMobile();
+  const location = useLocation();
+  const listParams = new URLSearchParams(location.search);
+  listParams.delete("lead");
+  listParams.delete("transition");
+  const leadList = listParams.size ? `${location.pathname}?${listParams}` : location.pathname;
   const customFieldForm=useCrmFieldForm("leads","edit",id,undefined,reload);
   const [editingCustomFields,setEditingCustomFields]=useState(false);
   const editingSection = useRef<HTMLDetailsElement>(null);
+  const openEditing = (scroll = false) => {
+    const section = editingSection.current;
+    if (!section) return;
+    section.open = true;
+    if (scroll) section.querySelector("summary")?.focus();
+    if (scroll) section.scrollIntoView({ block: "start" });
+  };
   useRefreshableEffect(() => {
     if(leadSaving.current)return;
     const controller = new AbortController();
@@ -1367,7 +1437,10 @@ export function LeadDrawer({
         setValues(pendingTransition ? { status: targetStage } : {});
         setDetails(r.data.details);
         setDirty(Boolean(pendingTransition));
-        if (pendingTransition) setTab("qualification");
+        if (pendingTransition) {
+          setTab("qualification");
+          openEditing(true);
+        }
       })
       .catch((err) => {
         if (!controller.signal.aborted) setError(errorMessage(err));
@@ -1470,11 +1543,30 @@ export function LeadDrawer({
           />
         )}
         <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
-        {bootstrap.canManage && canEdit && lead && !lead.is_converted && <div className="lm-lead-save-toolbar"><span role="status">{busy ? "Saving…" : (dirty ? auto.message || "Unsaved changes" : "All changes saved")}</span><Button type="button" variant="outline" onClick={() => { if (editingSection.current) { editingSection.current.open = true; editingSection.current.scrollIntoView({block:"start",behavior:"smooth"}); } }}>Edit lead</Button><Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button></div>}
-        {lead && error && <ErrorNotice message={error}/> }
-        {lead && <LeadMeetingOutcomes key={id} id={id} canManage={canEdit && bootstrap.canManage} disabled={dirty || busy} changed={()=>{changed();setReload(v=>v+1);}}/>}
-        <Record360Workspace key={id} kind="lead" id={id} actions={<Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button>}/>
-        <details ref={editingSection}><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
+        <div className="lm-preview-toolbar">
+          {mobile && <Button variant="ghost" type="button" className="lm-preview-close" aria-label="Close dialog" onClick={dismiss}><X size={18} /></Button>}
+          {bootstrap.canManage && canEdit && lead && !lead.is_converted && (
+            <div className="lm-lead-save-toolbar">
+              <span role="status">{busy ? "Saving…" : dirty ? auto.message || "Unsaved changes" : "All changes saved"}</span>
+              <Button type="button" variant="outline" onClick={() => openEditing(true)}>Edit lead</Button>
+              <Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button>
+            </div>
+          )}
+          {lead && error && <ErrorNotice message={error}/>}
+        </div>
+        {mobile && lead && (
+          <div className="lm-preview-actions">
+            <Button asChild variant="outline"><Link to={`/crm/leads/${id}`} state={{ leadList }}>Full record <ArrowRight size={14} /></Link></Button>
+            {bootstrap.canManage && <>
+              <Button type="button" variant="outline" disabled={dirty || busy} onClick={() => setScheduling(true)}>Follow up</Button>
+              <Button type="button" variant="outline" disabled={dirty || busy} onClick={() => setLoggingInteraction(true)}>Log call or meeting</Button>
+            </>}
+            <MobileContactActions phone={lead.phone ? `${lead.phone.startsWith("+") ? "" : lead.phone_country_code || ""}${lead.phone}` : undefined} email={lead.email} />
+          </div>
+        )}
+        {lead && <LeadMeetingOutcomes key={`meetings-${id}`} id={id} canManage={canEdit && bootstrap.canManage} disabled={dirty || busy} changed={()=>{changed();setReload(v=>v+1);}}/>}
+        <Record360Workspace key={`record-${id}`} kind="lead" id={id} actions={!mobile ? <Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button> : undefined}/>
+        <details ref={editingSection} className="lm-preview-editing"><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
         <div className="wfp-body wf-space">
         <div className="flex gap-2"><Button variant="outline" disabled={!previous||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the previous record?"))previous?.();}}>Previous</Button><Button variant="outline" disabled={!next||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the next record?"))next?.();}}>Next</Button></div>
         {!lead ? (
@@ -1497,7 +1589,7 @@ export function LeadDrawer({
                 <span>{lead.company_name || "Individual enquiry"}</span>
               </div>
               <p>{lead.signals.nextAction}</p>{!lead.next_follow_up_at&&!lead.is_converted&&lead.status!=="Lost"&&<p className="text-amber-700">No next action — schedule a follow-up or record a decision.</p>}
-              <div className="lm-contact-actions">{bootstrap.canManage&&<Button size="sm" disabled={dirty||busy} onClick={()=>setLoggingInteraction(true)}>Log call or meeting outcome</Button>}
+              {!mobile && <div className="lm-contact-actions">{bootstrap.canManage&&<Button size="sm" disabled={dirty||busy} onClick={()=>setLoggingInteraction(true)}>Log call or meeting outcome</Button>}
                 {lead.phone && (
                   <a href={`tel:${lead.phone_country_code || ""}${lead.phone}`}>
                     <Phone size={15} />
@@ -1510,12 +1602,11 @@ export function LeadDrawer({
                     Email
                   </a>
                 )}
-                <Link to={`/crm/leads/${id}`}>
+                <Link to={`/crm/leads/${id}`} state={{ leadList }}>
                   Full record <ArrowRight size={14} />
                 </Link>
-              </div>
+              </div>}
             </header>
-            <MobileContactActions phone={lead.phone ? `${lead.phone_country_code || ""}${lead.phone}` : undefined} email={lead.email} onNote={bootstrap.canManage ? () => setLoggingInteraction(true) : undefined}/>
             <nav className="lm-tabs" aria-label="Lead detail sections">
               {[
                 "overview",

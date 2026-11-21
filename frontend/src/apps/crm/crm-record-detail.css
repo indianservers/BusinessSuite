@@ -1,0 +1,60 @@
+.crm-detail-dialog {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.crm-detail-dialog-header {
+  padding: 1rem 3.5rem 1rem 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.crm-detail-dialog-body {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.5rem;
+}
+
+.crm-detail-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid hsl(var(--border));
+  padding: 0.75rem 1.5rem;
+}
+
+@media (max-width: 767px) {
+  .crm-detail-dialog {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .crm-detail-dialog-header {
+    padding-inline-start: 1rem;
+  }
+
+  .crm-detail-dialog-body {
+    padding-inline: 1rem;
+  }
+
+  .crm-detail-dialog-body input,
+  .crm-detail-dialog-body select,
+  .crm-detail-dialog-body textarea,
+  .crm-detail-dialog-body [contenteditable="true"] {
+    max-width: 100%;
+    font-size: 1rem;
+  }
+
+  .crm-detail-dialog-footer {
+    padding-inline: 1rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .crm-detail-dialog-footer button {
+    min-height: 2.75rem;
+  }
+}

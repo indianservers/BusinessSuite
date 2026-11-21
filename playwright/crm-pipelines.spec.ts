@@ -6,7 +6,7 @@ test.describe("CRM pipelines Phase 2", () => {
     await authenticateCrm(page);
     await page.goto("/crm/pipelines", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Pipeline Settings" })).toBeVisible();
-    await expect(page.getByText("Enterprise Sales")).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Pipeline", exact: true })).toHaveValue("1");
     await expect(page.locator('input[value="Qualification"]')).toBeVisible();
 
     const response = await page.evaluate(async () => {

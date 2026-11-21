@@ -3,9 +3,10 @@ import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { useState, type ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, ArrowLeft, ArrowRightLeft, BarChart3, Building2, CalendarCheck, CalendarDays, ChevronRight, FileText, Flag, Handshake, Home, Layers, LayoutGrid, ListTodo, MapPin, MoreVertical, Pencil, Pin, Star, Tag, UserRound, Users, Zap } from "lucide-react";
-import { ActionButton, ConfirmActionDialog, MoreActionsMenu, type ActionSpec } from "@/components/actions";
+import { ActionButton, ConfirmActionDialog, type ActionSpec } from "@/components/actions";
+import { MobileSheet } from "@/components/mobile/MobilePrimitives";
 import GlobalSearch from "@/components/app/GlobalSearch";
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
@@ -19,6 +20,11 @@ type Props = {
 };
 export default function MobileLeadDetails({ record, title, actions, pinned, onPin, onAssign, onCreateDeal, onAddActivity, assignment, discussion, templates, ai, insights, details, activity, related }: Props) {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
+  const previousList = routeLocation.state?.leadList;
+  const leadList = typeof previousList === "string" && /^\/crm\/(leads|potential-clients)(?:\?|$)/.test(previousList)
+    ? previousList
+    : "/crm/leads";
   const [avatarFailed, setAvatarFailed] = useState(false);
   const user = useAuthStore(state => state.user);
   const mayOpen = (path: string) => canAccessRoute(path, user?.role, user?.is_superuser);
@@ -32,7 +38,19 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
     else if (action.href) navigate(action.href);
     else void action.onSelect?.();
   };
-  const action = (id: string) => actions.find(item => item.id === id);
+  const action = (id: string) => actions.find(item => item.id === id && item.available !== false);
+  const convert = action("convert");
+  const edit = action("edit");
+  const followUp = action("followup");
+  const note = action("note");
+  const task = action("task");
+  const sheetActions: ActionSpec[] = [
+    ...actions,
+    { id: "history", kind: "view", label: "Communication history", onSelect: () => setTab("activity") },
+    { id: "activity", kind: "note", label: "Add activity", onSelect: onAddActivity },
+    { id: "assign", kind: "assign", label: "Assign employee", onSelect: () => { setTab("overview"); onAssign(); } },
+    ...(onCreateDeal ? [{ id: "deal", kind: "quotation" as const, label: "Create deal", onSelect: onCreateDeal }] : []),
+  ];
   const location = [record.city, record.state, record.country].filter(Boolean).join(", ");
   const company = record.company_name || record.companyName || record.company?.name || record.related?.account?.name;
   const avatar = record.avatar_url || record.photo_url || record.profile_image;
@@ -40,8 +58,8 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
   const tabs = [["overview", "Overview", Home], ["details", "Details", FileText], ["activity", "Activity", Activity], ["related", "Related", Layers]] as const;
   return <div className="mobile-lead-page">
     <header className="ml-header">
-      <Link to="/crm/leads" aria-label="Back to leads" className="ml-header-back"><ArrowLeft /></Link>
-      <nav aria-label="Lead breadcrumb"><Link to="/crm">CRM</Link><ChevronRight/><Link to="/crm/leads">Leads</Link><ChevronRight/><strong>{title}</strong></nav>
+      <Link to={leadList} aria-label="Back to leads" className="ml-header-back"><ArrowLeft /></Link>
+      <nav aria-label="Lead breadcrumb"><Link to="/crm">CRM</Link><ChevronRight/><Link to={leadList}>{leadList.startsWith("/crm/potential-clients") ? "Potential Clients" : "Leads"}</Link><ChevronRight/><strong>{title}</strong></nav>
       <div className="ml-header-tools"><GlobalSearch compact/><ModuleNewMenu/><SuiteNotificationBell/></div>
     </header>
     <div className="ml-content">
@@ -49,21 +67,21 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
         <div className="ml-identity">
           <div className="ml-avatar">{typeof avatar === "string" && avatar && !avatarFailed ? <img src={assetUrl(avatar)} alt={title} onError={() => setAvatarFailed(true)}/> : <span aria-label={`${title} initials`}>{title.split(/\s+/).slice(0, 2).map(word => word[0]).join("")}</span>}</div>
           <div className="ml-identity-text"><h1>{title}</h1><div className="ml-badges"><span>{converted ? "Customer" : /prospect/i.test(record.classification || "") ? "Prospect" : "Lead"}</span><span className={inactive ? "inactive" : "active"}><i/>{inactive ? "Inactive" : "Active"}</span></div></div>
-          <div className="ml-profile-tools"><button aria-label={pinned ? "Unpin lead" : "Pin lead"} aria-pressed={pinned} onClick={onPin}><Star fill={pinned ? "currentColor" : "none"}/></button><Button data-overflow-trigger type="submit" variant="outline" aria-label="Open lead actions" onClick={() => setMore(true)}><MoreVertical/></Button></div>
+          <div className="ml-profile-tools"><button aria-label={pinned ? "Unpin lead" : "Pin lead"} aria-pressed={pinned} onClick={onPin}><Star fill={pinned ? "currentColor" : "none"}/></button><Button data-overflow-trigger type="button" variant="outline" aria-label="Open lead actions" onClick={() => setMore(true)}><MoreVertical/></Button></div>
         </div>
         <div className="ml-business"><span><Building2/>{company || "No company linked"}</span><span><MapPin/>{location || "Location not added"}</span></div>
-        <div className="ml-communications" role="group" aria-label="Lead contact actions">{["whatsapp", "email", "call"].map(id => { const item = action(id); return item && item.available !== false && <ActionButton key={id} action={item.kind} disabled={item.disabled} disabledReason={item.disabledReason} tooltip={item.tooltip} onClick={() => run(item)}>{id === "whatsapp" ? "WhatsApp" : id === "email" ? "Email" : "Call"}</ActionButton>; })}<MoreActionsMenu triggerLabel="More" open={more} onOpenChange={setMore} actions={[...actions, {id:"history",kind:"view",label:"Communication history",onSelect:() => setTab("activity")}, {id:"activity",kind:"note",label:"Add activity",onSelect:onAddActivity}, {id:"assign",kind:"assign",label:"Assign employee",onSelect:() => {setTab("overview");onAssign();}}, ...(onCreateDeal ? [{id:"deal",kind:"quotation" as const,label:"Create deal",onSelect:onCreateDeal}] : [])]} onAction={run}/></div>
-        <button className="ml-convert" disabled={action("convert")?.disabled || action("convert")?.loading} aria-busy={action("convert")?.loading} onClick={() => run(action("convert"))}><ArrowRightLeft/>{action("convert")?.loading ? "Converting…" : converted ? "Converted to Customer" : "Convert Lead to Customer"}</button>
+        <div className="ml-communications" role="group" aria-label="Lead contact actions">{["whatsapp", "email", "call"].map(id => { const item = action(id); return item && item.available !== false && <ActionButton key={id} action={item.kind} disabled={item.disabled} disabledReason={item.disabledReason} tooltip={item.tooltip} onClick={() => run(item)}>{id === "whatsapp" ? "WhatsApp" : id === "email" ? "Email" : "Call"}</ActionButton>; })}<ActionButton action="more" onClick={() => setMore(true)} aria-haspopup="dialog">More</ActionButton></div>
+        {convert && <button className="ml-convert" disabled={convert.disabled || convert.loading} aria-busy={convert.loading} onClick={() => run(convert)}><ArrowRightLeft/>{convert.loading ? "Converting…" : convert.label}</button>}
         {templates&&<div className="ml-template-action">{templates}</div>}
       </section>
       <Tabs.Root value={tab} onValueChange={setTab} className="ml-tabs">
         <Tabs.List aria-label="CRM record information" className="ml-tab-list">{tabs.map(([id, label, Icon]) => <Tabs.Trigger key={id} value={id}><Icon/>{label}</Tabs.Trigger>)}</Tabs.List>
         <Tabs.Content value="overview" forceMount hidden={tab !== "overview"}>
-          <section className="ml-card"><div className="ml-card-heading"><h2><BarChart3/>Lead Summary</h2><Button type="submit" variant="outline" onClick={() => run(action("edit"))}><Pencil/>Edit</Button></div>
+          <section className="ml-card"><div className="ml-card-heading"><h2><BarChart3/>Lead Summary</h2>{edit && <Button type="button" variant="outline" disabled={edit.disabled || edit.loading} onClick={() => run(edit)}><Pencil/>Edit</Button>}</div>
             <div className="ml-summary"><div><UserRound/><div><span>Assigned Employee</span>{assignment}</div></div><div><CalendarCheck/><div><span>Last Update</span><strong>{formatDate(record.updatedAt || record.updated_at || record.created_at)}</strong></div></div><div><Tag/><div><span>Source</span><strong className="ml-source">{record.source || "Not recorded"}</strong></div></div><div><Flag/><div><span>Priority</span><strong className="ml-priority">{record.priority || record.rating || "Not recorded"}</strong></div></div><div><Activity/><div><span>Current Status</span><strong>{record.status || "Not recorded"}</strong></div></div>{(record.next_follow_up_at || record.next_followup_at || record.next_follow_up_date) && <div><CalendarDays/><div><span>Next Follow-up</span><strong>{formatDate(record.next_follow_up_at || record.next_followup_at || record.next_follow_up_date)}</strong></div></div>}</div>
           </section>
-          <section className="ml-card"><h2><Zap/>Quick Actions</h2><div className="ml-quick"><button onClick={onPin} aria-pressed={pinned}><Pin/>{pinned ? "Pinned" : "Pin"}</button><div>{discussion}</div><div>{ai}</div><Button type="submit" variant="outline" onClick={() => run(action("followup"))}><CalendarDays/>Follow-up</Button><Button type="submit" variant="default" className="suite-task-button" onClick={() => run(action("task"))}><FileText/>Add Task</Button></div></section>
-          <section className="ml-card"><h2><ListTodo/>Lead Actions</h2><div className="ml-action-rows"><Button type="submit" variant="outline" onClick={() => run(action("followup"))}><CalendarDays/>Schedule Follow-up<ChevronRight/></Button><Button type="submit" variant="default" onClick={() => run(action("note"))}><FileText/>Add Note / Update<ChevronRight/></Button><button onClick={() => setMore(true)}><LayoutGrid/>All lead actions<ChevronRight/></button></div></section>
+          <section className="ml-card"><h2><Zap/>Quick Actions</h2><div className="ml-quick"><button onClick={onPin} aria-pressed={pinned}><Pin/>{pinned ? "Pinned" : "Pin"}</button><div>{discussion}</div><div>{ai}</div>{task && <Button type="button" variant="default" disabled={task.disabled || task.loading} className="suite-task-button" onClick={() => run(task)}><FileText/>Add Task</Button>}</div></section>
+          <section className="ml-card"><h2><ListTodo/>Lead Actions</h2><div className="ml-action-rows">{followUp && <Button type="button" variant="outline" disabled={followUp.disabled || followUp.loading} onClick={() => run(followUp)}><CalendarDays/>Schedule Follow-up<ChevronRight/></Button>}{note && <Button type="button" variant="default" disabled={note.disabled || note.loading} onClick={() => run(note)}><FileText/>Add Note / Update<ChevronRight/></Button>}<button onClick={() => setMore(true)}><LayoutGrid/>All lead actions<ChevronRight/></button></div></section>
           <details className="ml-detail-group"><summary>AI insights</summary>{insights}</details>
         </Tabs.Content>
         <Tabs.Content value="details" forceMount hidden={tab !== "details"}>{details}</Tabs.Content>
@@ -71,7 +89,18 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
         <Tabs.Content value="related" forceMount hidden={tab !== "related"}>{related}</Tabs.Content>
       </Tabs.Root>
     </div>
-    <nav className="ml-bottom-nav" aria-label="CRM mobile navigation"><button className={!more ? "selected" : ""} onClick={() => { setTab("overview"); document.getElementById("suite-main")?.scrollTo({ top: 0, behavior: "smooth" }); }}><Home/>Overview</button>{([["/crm/companies", "Customers", Users], ["/crm/deals", "Deals", Handshake], ["/crm/follow-ups", "Follow-ups", CalendarCheck]] as const).map(([path, label, Icon]) => mayOpen(path) ? <Link key={path} to={path}><Icon/>{label}</Link> : <button key={path} disabled aria-label={`${label} unavailable for your role`}><Icon/>{label}</button>)}<button className={more ? "selected" : ""} onClick={() => setMore(true)} aria-haspopup="menu" aria-expanded={more}><LayoutGrid/>Actions</button></nav>
+    <nav className="ml-bottom-nav" aria-label="CRM mobile navigation"><button className={!more ? "selected" : ""} onClick={() => { setTab("overview"); document.getElementById("suite-main")?.scrollTo({ top: 0, behavior: "smooth" }); }}><Home/>Overview</button>{([["/crm/companies", "Customers", Users], ["/crm/deals", "Deals", Handshake], ["/crm/follow-ups", "Follow-ups", CalendarCheck]] as const).map(([path, label, Icon]) => mayOpen(path) ? <Link key={path} to={path}><Icon/>{label}</Link> : <button key={path} disabled aria-label={`${label} unavailable for your role`}><Icon/>{label}</button>)}<button className={more ? "selected" : ""} onClick={() => setMore(true)} aria-haspopup="dialog" aria-expanded={more}><LayoutGrid/>Actions</button></nav>
+    <MobileSheet open={more} onClose={() => setMore(false)} title="Lead actions">
+      <div className="ml-sheet-actions">
+        {sheetActions.filter(item => item.available !== false)
+          .sort((first, second) => Number(!!first.danger) - Number(!!second.danger))
+          .map(item => (
+            <ActionButton key={item.id} action={item.kind} disabled={item.disabled} loading={item.loading}
+              disabledReason={item.disabledReason} tooltip={item.tooltip}
+              onClick={() => { setMore(false); run(item); }}>{item.label}</ActionButton>
+          ))}
+      </div>
+    </MobileSheet>
     {confirmation?.confirm && <ConfirmActionDialog open onOpenChange={open => { if (!open) setConfirmation(null); }} {...confirmation.confirm} onConfirm={() => { const current = action(confirmation.id); setConfirmation(null); if (current && !current.disabled && !current.loading) void current.onSelect?.(); }}/>}
   </div>;
 }

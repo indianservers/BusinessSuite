@@ -9,8 +9,10 @@ test.describe("CRM accounts UI", () => {
     await expect(page.getByText("Acme India").first()).toBeVisible();
 
     await page.goto("/crm/accounts/1", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Acme India" })).toBeVisible();
-    await expect(page.getByText("Software").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Acme India", level: 1 })).toBeVisible();
+    await page.getByText("Details & related records", { exact: true }).click();
+    await page.getByRole("tab", { name: "Details", exact: true }).click();
+    await expect(page.getByRole("tabpanel", { name: "Details", exact: true }).getByText("Software").first()).toBeVisible();
     await page.getByRole("tab", {name:"More details",exact:true}).click();
     await page.getByRole("combobox", {name:"CRM record information section",exact:true}).selectOption("activity");
     await expect(page.getByRole("heading", { name: "Activity Timeline" })).toBeVisible();

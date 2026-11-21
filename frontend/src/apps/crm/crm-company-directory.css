@@ -1,0 +1,36 @@
+@media (max-width: 767px) {
+  .crm-company-directory .suite-heading-actions > div {
+    flex-wrap: wrap;
+  }
+
+  .crm-company-directory .suite-heading-actions button {
+    min-height: 44px;
+  }
+
+  .crm-company-directory .suite-heading-actions button:first-child {
+    min-width: 44px;
+  }
+
+  body:has(.crm-company-directory) :is(.udg-details-dialog, .r360-dialog):has(.md-company-profile) {
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 16px);
+    overflow-wrap: anywhere;
+  }
+
+  body:has(.crm-company-directory) .udg-details-dialog .record-quick-action {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  body:has(.crm-company-directory) .udg-details-dialog .record-quick-actions {
+    flex-wrap: wrap;
+  }
+
+  body:has(.crm-company-directory) .md-company-editor .md-dialog-footer button {
+    min-height: 44px;
+  }
+
+  body:has(.crm-company-directory) .md-company-editor .md-editor-tabs button {
+    min-height: 44px;
+  }
+}

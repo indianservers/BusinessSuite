@@ -7,10 +7,11 @@ import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import { ActionToolbar } from "@/components/actions";
 import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import CompactForm from "@/components/forms/CompactForm";
 import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
-import {lazy, Suspense, useEffect, useState} from "react";
+import {lazy, Suspense, useEffect, useRef, useState} from "react";
 import {Link, useParams, useSearchParams, useNavigate} from "react-router-dom";
 import {ArrowLeft, Edit3, Plus, Upload, RefreshCw, Check, X} from "lucide-react";
 import {api} from "@/services/api";
@@ -33,6 +34,7 @@ type Row = Record<string, any>;
 const tabs = ["Overview", "Activities", "Contacts", "Products & Quotations", "Tasks", "Notes & Files", "History", "Insights"];
 
 export default function Deal360Page() {
+  const commercialDetails = useRef<HTMLDetailsElement>(null);
   const canEdit=useModuleAction("edit"),canCreate=useModuleAction("create"),canDelete=useModuleAction("delete"),canExport=useModuleAction("export");
   const navigate = useNavigate();
   const {id} = useParams(), ident = Number(id);
@@ -70,9 +72,19 @@ export default function Deal360Page() {
   const ownerName = record?.owner_name || assignees.find(person=>String(person.id)===String(ownerId))?.name || insights?.owner_name;
   const summaryFields: Record<string,string|number|null> = record ? {Company: related.account?.name || (record.company_id ? `Company #${record.company_id}` : "Not linked"), "Deal value": money(record.amount), "Weighted value": money(Number(record.amount || 0) * Number(record.probability || 0) / 100), Stage: insights?.stage_name || (record.stage_id ? `Stage #${record.stage_id}` : "Not set"), Pipeline: insights?.pipeline_name || (record.pipeline_id ? `Pipeline #${record.pipeline_id}` : "Not set"), Owner: ownerName || (ownerId ? `User #${ownerId}` : "Unassigned"), Probability: `${record.probability ?? 0}%`, "Expected close": record.expected_close_date ? new Date(`${String(record.expected_close_date).slice(0,10)}T12:00:00`).toLocaleDateString() : "Unscheduled", "Next follow-up": record.next_follow_up_at ? new Date(record.next_follow_up_at).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}) : "No next action", Priority: record.priority || "Medium"} : {};
   if (loading && !record) return <main className="ed-workspace"><LoadingState label="Loading Deal Details" variant="form"/></main>;
-  return <main className="ed-workspace">
-    {record?.company_id && <><Link className="text-primary underline" to={`/crm/follow-ups?new=1&customer=${record.company_id}&deal=${ident}`}>Schedule deal follow-up</Link></>}
-    <Link className="ed-text-button inline-flex items-center gap-1" to="/crm/deals"><ArrowLeft size={14}/>Deals</Link>
+  return <main className="ed-workspace ed-deal-detail">
+    <nav className="ed-detail-nav" aria-label="Deal navigation">
+      <Link className="ed-text-button inline-flex items-center gap-1" to="/crm/deals"><ArrowLeft size={14}/>Deals</Link>
+      {record?.company_id && <Link className="text-primary underline" to={`/crm/follow-ups?new=1&customer=${record.company_id}&deal=${ident}`}>Schedule deal follow-up</Link>}
+      {record && <a className="ed-detail-jump ed-text-button" href="#deal-commercial-details" onClick={event => {
+        const details = commercialDetails.current;
+        if (!details) return;
+        event.preventDefault();
+        details.open = true;
+        details.querySelector("summary")?.focus({ preventScroll: true });
+        details.scrollIntoView({ block: "start" });
+      }}>Commercial details</a>}
+    </nav>
     {error && <div className="ed-error" role="alert">{error}<Button onClick={() => setReload(v => v + 1)}>Retry</Button></div>}
     {record && <>
       {canManage && canCreate && <PaymentRequestButton source="crm_deal" sourceId={ident}/>}
@@ -87,7 +99,7 @@ export default function Deal360Page() {
         ] : []),
       ]}/></header>
       <Record360Workspace key={ident} kind="deal" id={ident} heading="Activity & related records" summaryFields={summaryFields} onAction={setAction}/>
-      <details><summary className="my-4 cursor-pointer font-semibold">Deal details & commercial workflow</summary>
+      <details id="deal-commercial-details" ref={commercialDetails}><summary className="ed-commercial-summary my-4 cursor-pointer font-semibold">Deal details & commercial workflow</summary>
       <RecordSectionNav value={tab} onChange={name => {setParams({tab:name});setEventPage(1);setFeed([]);}} label="Deal information" groups={[
         {label:"Overview",sections:[{value:"Overview",label:"Opportunity"},{value:"Insights",label:"Insights"}]},
         {label:"People",sections:[{value:"Contacts",label:"Contacts & collaborators"}]},
@@ -95,7 +107,7 @@ export default function Deal360Page() {
         {label:"Activity",sections:[{value:"Activities",label:"Activities"},{value:"Notes & Files",label:"Notes & files"},{value:"History",label:"History"}]},
       ]}/>
 
-      <div className="ed-360-layout"><aside className="ed-360-summary">{Object.entries(summaryFields).map(([name, value]) => <div key={name}><p className="ed-muted">{name}</p><strong className="text-sm">{String(value)}</strong></div>)}<div className="ed-health"><strong>{insights?.level || "Health unavailable"} · {insights?.score ?? "—"}/100</strong>{insights?.reasons?.map((reason: string) => <p className="mt-1" key={reason}>{reason}</p>)}</div>{canManage && <Button onClick={() => setInteraction(true)}>Log outcome & next action</Button>}</aside>
+      <div className="ed-360-layout"><MobileDisclosure title="Value, ownership & deal health" keepMounted className="ed-mobile-value-summary"><aside className="ed-360-summary">{Object.entries(summaryFields).map(([name, value]) => <div key={name}><p className="ed-muted">{name}</p><strong className="text-sm">{String(value)}</strong></div>)}<div className="ed-health"><strong>{insights?.level || "Health unavailable"} · {insights?.score ?? "—"}/100</strong>{insights?.reasons?.map((reason: string) => <p className="mt-1" key={reason}>{reason}</p>)}</div>{canManage && <Button onClick={() => setInteraction(true)}>Log outcome & next action</Button>}</aside></MobileDisclosure>
       <div className="ed-360-content">
         {canManage && <div className="ed-actions mb-4">{[["call", "Call"], ["meeting", "Meeting"], ["task", "Task"], ["note", "Note"], ["email", "Email"], ["quotation", "Quotation"]].map(([kind, name]) => <Button size="sm" variant="outline" key={kind} onClick={() => setAction(kind as typeof action)}><Plus size={14}/>{name}</Button>)}</div>}
         {tab === "Overview" && <><CrmFieldsReadOnly entity="deals" recordId={ident}/><section className="ed-section"><h2>Opportunity</h2><RichTextContent value={String(record.description || "No description recorded.")} legacyFormat="plain"/><dl className="mt-5">{Object.entries({"Deal type": record.deal_type || "New Business", Industry: record.industry || "Not recorded", Source: record.source || record.lead_source || "Not recorded", "Internal reference": record.internal_reference || "Not recorded", Created: record.created_at, "Expected revenue": money(record.expected_revenue || Number(record.amount || 0) * Number(record.probability || 0) / 100), "Risks": record.planning?.qualification?.risks || "No risks recorded", "Business need": record.planning?.qualification?.business_need || "Not qualified"}).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{String(value || "—")}</dd></div>)}</dl></section><section className="ed-section"><h2>Key dates & milestones</h2>{Object.entries(record.planning?.dates || {}).map(([key, value]) => <p className="mb-2 text-sm" key={key}>{label(key)}: {String(value || "Not scheduled")}</p>)}{(record.planning?.milestones || []).map((milestone: Row, index: number) => <p key={index} className="text-sm">{milestone.date || "Unscheduled"} · {milestone.name}</p>)}{!Object.keys(record.planning?.dates || {}).length && !(record.planning?.milestones || []).length && <p className="ed-muted">No additional dates or milestones recorded.</p>}</section></>}
@@ -123,8 +135,8 @@ function CloseDialog({record, outcome, close, saved}: {record: Row; outcome: "Wo
   const [reason, setReason] = useState(""), [date, setDate] = useState(defaultToday("crm")), [amount, setAmount] = useState(String(record.amount || 0));
   const [reference, setReference] = useState(""), [notes, setNotes] = useState(""), [quote, setQuote] = useState(""), [review, setReview] = useState(""), [onboard, setOnboard] = useState(false), [competitor, setCompetitor] = useState("");
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
-  return <Dialog open onOpenChange={open => {if (!open && !busy) close();}}><DialogContent className="max-h-[90dvh] overflow-auto"><DialogTitle>Mark deal as {outcome}</DialogTitle><CompactForm className="grid gap-3 text-sm" onSubmit={async e => {e.preventDefault();if(!canClose)return;setBusy(true);setError("");try {await api.post(`/crm/deal-workspace/${record.id}/close`, {outcome, expected_version: record.version || 1, reason, actual_close_date: date, actual_value: Number(amount), currency: record.currency || "INR", quotation_id: quote ? Number(quote) : null, contract_reference: reference, handover_notes: notes, competitor, reengagement_date: review || null, onboarding: onboard});saved();} catch(e) {setError(dealError(e));} finally {setBusy(false);}}}>
+  return <Dialog open onOpenChange={open => {if (!open && !busy) close();}}><DialogContent className="ed-deal-decision max-h-[90dvh] overflow-auto"><DialogTitle>Mark deal as {outcome}</DialogTitle><CompactForm className="grid gap-3 text-sm" onSubmit={async e => {e.preventDefault();if(!canClose)return;setBusy(true);setError("");try {await api.post(`/crm/deal-workspace/${record.id}/close`, {outcome, expected_version: record.version || 1, reason, actual_close_date: date, actual_value: Number(amount), currency: record.currency || "INR", quotation_id: quote ? Number(quote) : null, contract_reference: reference, handover_notes: notes, competitor, reengagement_date: review || null, onboarding: onboard});saved();} catch(e) {setError(dealError(e));} finally {setBusy(false);}}}>
     <label>Actual contract value ({record.currency || "INR"})<Input type="number" min={0} step="0.01" required value={amount} onChange={e => setAmount(e.target.value)}/></label><label>Actual closing date<Input type="date" required value={date} onChange={e => setDate(e.target.value)}/></label><label>{outcome} reason<Input required minLength={5} maxLength={2000} value={reason} onChange={e => setReason(e.target.value)}/></label>
     {outcome === "Won" ? <><label>Linked quotation<NativeSelect className="block w-full rounded border bg-background p-2" value={quote} onChange={e => setQuote(e.target.value)}><option value="">No quotation</option>{(record.related?.quotations || []).map((item: Row) => <option key={item.id} value={item.id}>{item.quote_number || `#${item.id}`}</option>)}</NativeSelect></label><label>Contract reference<Input value={reference} onChange={e => setReference(e.target.value)}/></label><label className="flex gap-2"><input type="checkbox" disabled={!canCreate} checked={onboard} onChange={e => setOnboard(e.target.checked)}/>Create customer onboarding task</label></> : <><label>Competitor<Input value={competitor} onChange={e => setCompetitor(e.target.value)}/></label><label>Re-engagement date<Input type="date" min={defaultToday("crm")} disabled={!canCreate} value={review} onChange={e => setReview(e.target.value)}/></label></>}
-    <label>Internal handover / loss notes<textarea className="block min-h-20 w-full rounded border bg-background p-2" value={notes} onChange={e => setNotes(e.target.value)}/></label>{error && <p role="alert" className="text-destructive">{error}</p>}<Button disabled={busy||!canClose}>{busy ? "Saving..." : `Confirm ${outcome}`}</Button></CompactForm></DialogContent></Dialog>;
+    <label>Internal handover / loss notes<textarea className="block min-h-20 w-full rounded border bg-background p-2" value={notes} onChange={e => setNotes(e.target.value)}/></label>{error && <p role="alert" className="text-destructive">{error}</p>}<div className="ed-deal-decision-submit"><Button disabled={busy||!canClose}>{busy ? "Saving..." : `Confirm ${outcome}`}</Button></div></CompactForm></DialogContent></Dialog>;
 }

@@ -435,9 +435,10 @@ export function FollowUpDialog({
         if (!open && !busy) close();
       }}
     >
-      <DialogContent className="lm-root lm-dialog">
+      <DialogContent className="lm-root lm-dialog lm-follow-up-dialog">
         <DialogTitle>Schedule follow-up · {lead.full_name}</DialogTitle>
         <CompactForm
+          compactTabs={false}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!detail) return;
@@ -462,142 +463,144 @@ export function FollowUpDialog({
             }
           }}
         >
-          {error && (
-            <div role="alert" className="lm-error">
-              {error}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={async () => {
-                  try {
-                    const response = await leadsApi.detail(lead.id);
-                    setDetail(response.data);
-                    setError("");
-                  } catch (e) {
-                    setError(errorMessage(e));
+          <div className="lm-follow-up-fields">
+            {error && (
+              <div role="alert" className="lm-error">
+                {error}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={async () => {
+                    try {
+                      const response = await leadsApi.detail(lead.id);
+                      setDetail(response.data);
+                      setError("");
+                    } catch (e) {
+                      setError(errorMessage(e));
+                    }
+                  }}
+                >
+                  Refresh lead, keep draft
+                </Button>
+              </div>
+            )}
+            {!!activityId&&<label className="lm-work-field">Reason for rescheduling<input required minLength={3} value={rescheduleReason} onChange={e=>setRescheduleReason(e.target.value)}/></label>}
+            {!!detail?.activities?.some(a => a.status === "Pending") && <label className="lm-work-field">
+              Follow-up action
+              <NativeSelect
+                aria-label="Follow-up action"
+                value={activityId}
+                onChange={(e) => {
+                  setActivityId(e.target.value);
+                  const item = detail?.activities?.find(
+                    (a) => String(a.id) === e.target.value,
+                  );
+                  if (item) {
+                    setTitle(item.subject);
+                    setType(
+                      ["call", "email", "meeting", "task"].includes(
+                        item.activity_type,
+                      )
+                        ? item.activity_type
+                        : "task",
+                    );
+                    setOwner(
+                      String(
+                        canAssign
+                          ? item.owner_user_id ||
+                              lead.owner_user_id ||
+                              bootstrap.userId
+                          : bootstrap.userId,
+                      ),
+                    );
                   }
                 }}
               >
-                Refresh lead, keep draft
-              </Button>
+                <option value="">Create a new follow-up</option>
+                {detail?.activities
+                  ?.filter((a) => a.status === "Pending")
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      Reschedule: {a.subject}
+                    </option>
+                  ))}
+              </NativeSelect>
+            </label>}
+            <label className="lm-work-field">
+              Next step
+              <input
+                aria-label="Follow-up title"
+                required
+                maxLength={180}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+            <div className="lm-card-actions">
+              {["today", "tomorrow", "later"].map((bucket) => (
+                <Button
+                  key={bucket}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDue(followUpDate(bucket))}
+                >
+                  {bucket === "later"
+                    ? "Next week"
+                    : bucket === "today"
+                      ? "In one hour"
+                      : "Tomorrow"}
+                </Button>
+              ))}
             </div>
-          )}
-          {!!activityId&&<label className="lm-work-field">Reason for rescheduling<input required minLength={3} value={rescheduleReason} onChange={e=>setRescheduleReason(e.target.value)}/></label>}
-          {!!detail?.activities?.some(a => a.status === "Pending") && <label className="lm-work-field">
-            Follow-up action
-            <NativeSelect
-              aria-label="Follow-up action"
-              value={activityId}
-              onChange={(e) => {
-                setActivityId(e.target.value);
-                const item = detail?.activities?.find(
-                  (a) => String(a.id) === e.target.value,
-                );
-                if (item) {
-                  setTitle(item.subject);
-                  setType(
-                    ["call", "email", "meeting", "task"].includes(
-                      item.activity_type,
-                    )
-                      ? item.activity_type
-                      : "task",
-                  );
-                  setOwner(
-                    String(
-                      canAssign
-                        ? item.owner_user_id ||
-                            lead.owner_user_id ||
-                            bootstrap.userId
-                        : bootstrap.userId,
-                    ),
-                  );
-                }
-              }}
-            >
-              <option value="">Create a new follow-up</option>
-              {detail?.activities
-                ?.filter((a) => a.status === "Pending")
-                .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    Reschedule: {a.subject}
+            <label className="lm-work-field">
+              Due date and time
+              <input
+                aria-label="Follow-up due"
+                type="datetime-local"
+                required
+                min={localDate(new Date())}
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </label>
+            <details>
+            <summary className="cursor-pointer text-sm">More options · {type} · {bootstrap.owners.find(o => String(o.id) === owner)?.name || "Assigned teammate"}</summary>
+            <label className="lm-work-field">
+              Type
+              <NativeSelect
+                aria-label="Follow-up type"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+              >
+                {["call", "email", "meeting", "task"].map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </NativeSelect>
+            </label>
+            <label className="lm-work-field">
+              Responsible teammate
+              <NativeSelect
+                aria-label="Follow-up assignee"
+                value={owner}
+                disabled={!canAssign}
+                onChange={(e) => setOwner(e.target.value)}
+              >
+                {bootstrap.owners.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
                   </option>
                 ))}
-            </NativeSelect>
-          </label>}
-          <label className="lm-work-field">
-            Next step
-            <input
-              aria-label="Follow-up title"
-              required
-              maxLength={180}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <div className="lm-card-actions">
-            {["today", "tomorrow", "later"].map((bucket) => (
-              <Button
-                key={bucket}
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setDue(followUpDate(bucket))}
-              >
-                {bucket === "later"
-                  ? "Next week"
-                  : bucket === "today"
-                    ? "In one hour"
-                    : "Tomorrow"}
-              </Button>
-            ))}
+              </NativeSelect>
+            </label>
+            </details>
+            <p className="lm-help">
+              Times use your device timezone. Scheduling creates a CRM follow-up activity;
+              meetings are booked in Activities.
+            </p>
           </div>
-          <label className="lm-work-field">
-            Due date and time
-            <input
-              aria-label="Follow-up due"
-              type="datetime-local"
-              required
-              min={localDate(new Date())}
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-            />
-          </label>
-          <details>
-          <summary className="cursor-pointer text-sm">More options · {type} · {bootstrap.owners.find(o => String(o.id) === owner)?.name || "Assigned teammate"}</summary>
-          <label className="lm-work-field">
-            Type
-            <NativeSelect
-              aria-label="Follow-up type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {["call", "email", "meeting", "task"].map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </NativeSelect>
-          </label>
-          <label className="lm-work-field">
-            Responsible teammate
-            <NativeSelect
-              aria-label="Follow-up assignee"
-              value={owner}
-              disabled={!canAssign}
-              onChange={(e) => setOwner(e.target.value)}
-            >
-              {bootstrap.owners.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
-          </details>
-          <p className="lm-help">
-            Times use your device timezone. Scheduling creates a CRM follow-up activity;
-            meetings are booked in Activities.
-          </p>
           <Button type="submit" disabled={busy || !detail || !title.trim()}>
             {busy ? "Saving…" : "Save follow-up"}
           </Button>

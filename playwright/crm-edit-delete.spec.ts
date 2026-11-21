@@ -22,7 +22,7 @@ for(const width of [1440,390]) for(const kind of ["contacts","companies","deals"
       }
       const recordPath=path===`${endpoints[kind]}/${created?.id}`||path===`/project-management/tasks/${created?.id}`;
       if(created&&recordPath&&['PATCH','PUT','DELETE'].includes(req.method())){mutated=true;if(req.method()==='DELETE'){deleted=true;return route.fulfill({status:204});}created={...created,...req.postDataJSON(),version:2};return route.fulfill({json:created});}
-      if(created&&recordPath&&req.method()==='GET')return route.fulfill({json:created});
+      if(created&&recordPath&&req.method()==='GET')return route.fulfill({json:kind==="companies"?{...created,services_offered:[],business_types:[]}:created});
       if(created&&path===`/crm/deal-workspace/${created.id}/record`)return route.fulfill({json:created});
       if(created&&path==='/master-data/company-directory/bulk'&&req.method()==='POST'){mutated=true;deleted=true;return route.fulfill({json:{successful_ids:[created.id]}});}
       let body:any;
@@ -58,6 +58,7 @@ for(const width of [1440,390]) for(const kind of ["contacts","companies","deals"
     await page.goto(`/${module}/${kind}`);
     const add=kind==="contacts"?"Create contact":kind==="companies"?"Create company":kind==="deals"?"Create deal":kind==="projects"?"New Project":"Add Task";
     await expect(page.getByRole("button",{name:add,exact:true}).first()).toBeVisible({timeout:20000});
+    if (kind === "companies") await expect(page.getByText(/^company records/).first()).toBeVisible();
     const original=page.url();
     const heading=await page.locator("#suite-main h1,main h1").first().elementHandle();
     if(entry==="page")await page.getByRole("button",{name:add,exact:true}).first().click();
@@ -102,18 +103,40 @@ for(const width of [1440,390]) for(const kind of ["contacts","companies","deals"
     }else if(kind==='projects'){
       await page.getByRole('button',{name:'Rename',exact:true}).click();const input=page.getByLabel(`New name for ${name}`,{exact:true});await input.fill(edited);await input.press('Enter');await expect(input).toHaveCount(0,{timeout:1200});
     }else{
-      await page.getByRole('button',{name:kind==='deals'?`Edit deal ${name}`:`Edit ${name}`,exact:true}).click();const d=page.getByRole('dialog').last();
+      if (kind === "companies" && width < 768) {
+        await page.getByRole("button", { name: "Record quick actions" }).click();
+        await page.getByRole("menuitem", { name: "Edit", exact: true }).click();
+      } else {
+        await page.getByRole('button',{name:kind==='deals'?`Edit deal ${name}`:`Edit ${name}`,exact:true}).click();
+      }
+      const d=kind==="companies"?page.getByRole("dialog",{name:"Edit company"}):page.getByRole('dialog').last();
       if(kind==='contacts')await d.getByPlaceholder('Enter contact name').fill(edited);
       else if(kind==='companies')await d.getByLabel('Company name *',{exact:true}).fill(edited);
       else await d.getByPlaceholder('Enter deal name...').fill(edited);
-      await d.getByRole('button',{name:kind==='companies'?'Save company':'Save changes',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:1200});
+      await d.getByRole('button',{name:kind==='companies'?'Save company':'Save changes',exact:true}).click();
+      await expect(d).toHaveCount(0,{timeout:1200});
+      if (kind === "companies" && width < 768) {
+        const preview = page.getByRole("dialog").filter({has: page.getByRole("button", {name:"Open full record"})});
+        if (await preview.isVisible()) await preview.getByRole("button", {name:"Close dialog"}).click();
+      }
     }
     await expect(page.getByText(edited,{exact:true}).filter({visible:true}).first()).toBeVisible({timeout:1200});
     if(kind==='contacts'){await page.getByLabel(`Select ${edited}`,{exact:true}).check();await page.getByRole('button',{name:'Delete',exact:true}).click();}
-    else if(kind==='companies'){await page.getByRole('row').filter({hasText:edited}).getByRole('checkbox').check();await page.getByRole('button',{name:'Move to trash',exact:true}).click();}
+    else if(kind==='companies'){
+      if (width < 768) {
+        await page.getByRole("button", { name: "Select records" }).click();
+        await page.getByRole("checkbox", { name: "Select record 900001" }).check();
+      } else {
+        await page.getByRole('row').filter({hasText:edited}).getByRole('checkbox').check();
+      }
+      await page.getByRole('button',{name:'Move to trash',exact:true}).click();
+    }
     else if(kind==='deals'){await page.getByRole('button',{name:`Actions for ${edited}`,exact:true}).click();await page.getByRole('menuitem',{name:'Archive deal',exact:true}).click();}
     else{await page.getByRole('button',{name:`${kind==='projects'?'Project':'Task'} actions for ${edited}`,exact:true}).click();await page.getByRole('menuitem',{name:kind==='projects'?/Move to trash/:/Delete task/}).click();await page.getByRole('dialog').getByRole('button',{name:'Move to trash',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:1200});await expect(page.getByLabel(`Select ${edited}`,{exact:true})).toHaveCount(0,{timeout:1200});}
     await expect(page.getByRole('row').filter({hasText:edited})).toHaveCount(0,{timeout:1200});expect(prompts.filter(text=>/discard|unsaved/i.test(text))).toEqual([]);expect(errors).toEqual([]);
+    if (width < 768 && (kind === "contacts" || kind === "companies")) {
+      await expect(page.getByText(edited, { exact: true }).filter({ visible: true })).toHaveCount(0);
+    }
 
     expect(page.url()).toBe(original);expect(await heading!.evaluate(el=>el.isConnected)).toBe(true);
   });

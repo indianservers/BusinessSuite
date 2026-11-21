@@ -1077,3 +1077,343 @@
 .lm-record-identity .lm-name { display:block; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 
 .lm-sales-process{border:1px solid hsl(var(--border));border-radius:10px;padding:16px;margin:12px 0;min-width:0}.lm-sales-process h2{font-size:16px;font-weight:600;margin-bottom:10px}.lm-meeting-metric{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid hsl(var(--border));border-radius:8px}.lm-meeting-metric strong{font-size:26px}.lm-sales-process summary{cursor:pointer;font-weight:600;margin-top:10px}.lm-sales-process input:not([type=checkbox]){display:block;max-width:100%;padding:8px;border:1px solid hsl(var(--border));border-radius:6px;background:transparent}.lm-sales-process p{margin:6px 0}
+
+.lm-preview-toolbar {
+  display: contents;
+}
+
+@media (max-width: 767px) {
+  .lm-root .lm-toolbar .lm-search input,
+  .lm-root .lm-toolbar > button,
+  .lm-root .lm-pagination button,
+  .lm-root .lm-personal-options > summary {
+    min-height: 44px;
+  }
+
+  .lm-root .lm-toolbar .lm-search input {
+    font-size: 16px;
+  }
+
+  .lm-root .lm-personal-options > summary {
+    display: flex;
+    align-items: center;
+  }
+
+  .lm-phone-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lm-phone-list > li {
+    min-width: 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .lm-phone-list-summary,
+  .lm-phone-list-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .lm-phone-record {
+    min-width: 0;
+    min-height: 44px;
+    flex: 1;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .lm-phone-record strong,
+  .lm-phone-record span {
+    display: block;
+  }
+
+  .lm-phone-record strong {
+    font-size: 14px;
+  }
+
+  .lm-phone-record span,
+  .lm-phone-list-actions > span {
+    font-size: 12px;
+  }
+
+  .lm-phone-record span {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .lm-phone-list-summary > .lm-stage {
+    max-width: 42%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .lm-phone-list-actions button,
+  .lm-phone-record-options :is(select, summary, .record-quick-action),
+  .lm-phone-select-record {
+    min-height: 44px;
+  }
+
+  .lm-phone-record-options > summary {
+    width: fit-content;
+    padding: 12px 0;
+    cursor: pointer;
+    color: hsl(var(--primary));
+  }
+
+  .lm-phone-record-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+  }
+
+  .lm-phone-record-fields .lm-field {
+    margin: 0;
+  }
+
+  .lm-phone-record-fields > :nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  .lm-phone-record-options select.lm-inline {
+    min-height: 44px !important;
+    max-width: 100% !important;
+    font-size: 16px;
+  }
+
+  .lm-phone-record-options .record-quick-actions {
+    flex-wrap: wrap;
+  }
+
+  .lm-phone-record-options .record-quick-action {
+    min-width: 44px;
+  }
+
+  .lm-phone-select-record {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .lm-drawer.wf-preview.lm-person-preview {
+    display: block !important;
+    overflow: auto;
+    scrollbar-gutter: auto;
+  }
+
+  .lm-person-preview > .contents > button[aria-label="Close dialog"] {
+    display: none;
+  }
+
+  .lm-person-preview .wfp-title {
+    overflow-wrap: anywhere;
+  }
+
+  .lm-preview-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .lm-preview-close {
+    grid-column: 2;
+    grid-row: 1;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  .lm-lead-save-toolbar {
+    grid-column: 1;
+    grid-row: 1;
+    position: static;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding: 0;
+    border: 0;
+  }
+
+  .lm-preview-toolbar > .lm-error {
+    grid-column: 1 / -1;
+  }
+
+  .lm-lead-save-toolbar button {
+    min-height: 44px;
+    white-space: nowrap;
+    padding-inline: 10px;
+  }
+
+  .lm-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .lm-preview-actions > :is(a, button) {
+    min-height: 44px;
+  }
+
+  .lm-preview-actions .mobile-contact-strip {
+    position: static;
+    width: 100%;
+    padding: 0;
+    border: 0;
+  }
+
+  .lm-person-preview :is(.r360, .lm-preview-editing) {
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .lm-preview-editing {
+    scroll-margin-top: 120px;
+  }
+
+  .lm-preview-editing > summary {
+    min-height: 44px;
+    padding: 12px 0;
+  }
+
+  .lm-person-preview .lm-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lm-person-preview :is(input:not([type=checkbox]), select, textarea) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .lm-person-preview .lm-drawer-footer {
+    position: static;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .lead-create-dialog {
+    display: flex !important;
+    flex-direction: column;
+    width: calc(100vw - 16px) !important;
+    height: min(700px, calc(100dvh - 16px));
+    max-height: calc(100dvh - 16px);
+  }
+
+  .lead-create-aside {
+    flex-shrink: 0;
+    padding: 14px 54px 10px 14px;
+  }
+
+  .lead-create-aside h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .lead-create-aside :is(.lead-create-intro, .lead-create-emblem, .lead-create-benefits, .lead-create-art) {
+    display: none;
+  }
+
+  .lead-create-main {
+    flex: 1;
+    padding: 12px;
+  }
+
+  .lead-create-mobile-section {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .lead-create-mobile-section select {
+    min-width: 0;
+    min-height: 44px;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .lead-create-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .lead-create-body :is(input:not([type=checkbox]), select, textarea) {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .lead-create-control {
+    min-height: 44px;
+  }
+
+  .lead-create-body > .lm-error {
+    margin-bottom: 12px;
+  }
+
+  .lead-create-footer {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .lead-create-footer button {
+    min-height: 44px;
+  }
+
+  .lead-create-footer > div {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .lm-dialog.lm-follow-up-dialog {
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px !important;
+    gap: 8px;
+  }
+
+  .lm-follow-up-dialog > h2 {
+    flex-shrink: 0;
+    padding-right: 44px;
+    overflow-wrap: anywhere;
+  }
+
+  .lm-follow-up-dialog[role="dialog"] form.suite-compact-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .lm-follow-up-fields {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .lm-follow-up-dialog :is(input:not([type=checkbox]), select) {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .lm-follow-up-dialog button {
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+}

@@ -35,7 +35,7 @@ const FollowUpWorkspace = lazyRoute(() => import("./FollowUpWorkspace"));
 const SharedCatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
 const CRMRecordsPage = lazyRoute(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = lazyRoute(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
-const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
+const CompaniesPage = lazyRoute(()=>import("./CRMCompanyDirectory"));
 export const crmRoutes: FrontendRoute[] = [
   { path: "crm/service-scheduling", element: <ServiceSchedulingWorkspace /> },
   { path: "crm/appointments", element: <AppointmentScheduler mode="appointments" /> },
