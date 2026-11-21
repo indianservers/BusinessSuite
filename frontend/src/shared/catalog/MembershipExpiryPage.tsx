@@ -133,7 +133,7 @@ function ExpiryAction({ row, type, source, kind, close }: { row: Expiry; type: A
   const channel = type === "sms" ? "SMS" : "WhatsApp";
   const messageHref = number && (type === "sms" ? `sms:${number}?body=${encodeURIComponent(body)}` : `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(body)}`);
   return <Dialog open onOpenChange={open => { if (!open && !reminder.isPending) close(); }}>
-    <DialogContent className={`w-[calc(100%-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg ${connected ? "max-w-5xl" : ""}`}>
+    <DialogContent className={`w-[calc(100%-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg expiry-action-dialog ${connected ? "max-w-5xl" : ""}`}>
       <DialogTitle>{type === "reminder" ? "Set expiry reminder" : `${channel} renewal message`}</DialogTitle>
       <DialogDescription>{row.customer} / {row.subscription ?? row.membership} / {row.expiry}</DialogDescription>
       {type === "reminder" ? <form className="space-y-3" onSubmit={event => { event.preventDefault(); if (owns()) reminder.mutate(); }}>

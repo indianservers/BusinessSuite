@@ -70,3 +70,12 @@
     flex: 1 0 auto;
   }
 }
+
+@media (max-width: 767px) {
+  .expiry-action-dialog[role="dialog"] {
+    --expiry-visible-height: var(--mobile-viewport-height, 100dvh);
+    --expiry-visible-top: max(0px, calc(100dvh - var(--expiry-visible-height) - var(--mobile-keyboard-inset, 0px)));
+    top: calc(var(--expiry-visible-top) + var(--expiry-visible-height) / 2);
+    max-height: calc(var(--expiry-visible-height) - 1.5rem);
+  }
+}
