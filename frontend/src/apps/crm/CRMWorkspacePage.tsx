@@ -7456,11 +7456,13 @@ function LostAnalysisPage() {
         <Metric icon={IndianRupee} label="Lost amount" value={formatCurrency(Number(summary.lostAmount || 0))} tone="red" />
         <Metric icon={Target} label="Recorded loss reasons" value={String(((report?.lostReasonBreakdown as CRMApiRecord[]) || []).length)} tone="violet" />
       </div>
-      <div className="grid gap-4 xl:grid-cols-3">
-        <ReportTable title="Lost Reasons" rows={(report?.lostReasonBreakdown as CRMApiRecord[]) || []} columns={["reason", "count", "amount"]} />
-        <ReportTable title="Top Competitors" rows={(report?.topCompetitors as CRMApiRecord[]) || []} columns={["competitor", "count"]} />
-        <ReportTable title="Owner Trends" rows={(report?.ownerTrends as CRMApiRecord[]) || []} columns={["key", "lost", "lostAmount", "winRate"]} />
-      </div>
+      <MobileDisclosure title="Reasons, competitors and owners" initiallyOpen={false}>
+        <div className="grid gap-4 xl:grid-cols-3">
+          <ReportTable title="Lost Reasons" rows={(report?.lostReasonBreakdown as CRMApiRecord[]) || []} columns={["reason", "count", "amount"]} />
+          <ReportTable title="Top Competitors" rows={(report?.topCompetitors as CRMApiRecord[]) || []} columns={["competitor", "count"]} />
+          <ReportTable title="Owner Trends" rows={(report?.ownerTrends as CRMApiRecord[]) || []} columns={["key", "lost", "lostAmount", "winRate"]} />
+        </div>
+      </MobileDisclosure>
       <ReportTable title="Lost Deals" rows={(report?.deals as CRMApiRecord[]) || []} columns={["name", "status", "lostReason", "amount", "ownerId"]} />
     </div>
   );
