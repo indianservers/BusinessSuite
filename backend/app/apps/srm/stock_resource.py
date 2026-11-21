@@ -149,7 +149,7 @@ def _private_source(db,scope,company,branch,row,model):
 
 
 def issue_for_order(order,db,actor):
-    lines=list(order.lines)
+    lines=sorted(order.lines, key=lambda line: line.id)
     company,branch,scope,selected,balances=_plan(db,actor,lines,order.currency)
     if not selected:return []
     _private_source(db,scope,company,branch,order,SRMSalesOrder)

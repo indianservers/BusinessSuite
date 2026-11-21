@@ -49,6 +49,7 @@ class CheckoutLineInput(Strict):
     plan_start_date: date | None = None
     plan_beneficiaries: list[ID] = Field(default_factory=list, max_length=100000)
     warehouse_id: ID | None = None
+    batch_id: ID | None = None
     booking: BookingSelection | None = None
     @model_validator(mode='after')
     def kind(self):

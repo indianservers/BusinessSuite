@@ -155,6 +155,7 @@ type CartLine = Product & {
   discount: number;
   note: string;
   batchNo?: string;
+  batchId?: number;
   serialNo?: string;
 };
 
@@ -186,7 +187,7 @@ type Sale = {
   lines?: {name:string;qty:number;rate:number;appointment?:string}[];
 };
 
-type NativeCheckoutPayload = { request_id: string; buyer_mode?: "registered"|"anonymous_cash"; customer_id?: number; pos_session_id: number; currency: string; billing_mode: "invoice_at_checkout"; note:string; expected_total: string; bill_discount_amount: string; lines: {client_line_key:string;line_kind:"product"|"unscheduled_service"|"booked_service";product_id:number;quantity:string;unit_price:string;discount_amount:string;note:string;plan_start_date?:string;plan_beneficiaries?:number[];follow_up?:Schedule;booking?:BookingSelection}[]; payments:{payment_key:string;method:string;amount:string;reference?:string}[] };
+type NativeCheckoutPayload = { request_id: string; buyer_mode?: "registered"|"anonymous_cash"; customer_id?: number; pos_session_id: number; currency: string; billing_mode: "invoice_at_checkout"; note:string; expected_total: string; bill_discount_amount: string; lines: {client_line_key:string;line_kind:"product"|"unscheduled_service"|"booked_service";product_id:number;batch_id?:number;quantity:string;unit_price:string;discount_amount:string;note:string;plan_start_date?:string;plan_beneficiaries?:number[];follow_up?:Schedule;booking?:BookingSelection}[]; payments:{payment_key:string;method:string;amount:string;reference?:string}[] };
 type NativeCheckoutResult = {id:number;state:string;sales_order_id:number;invoice:{id:number;number:string;status:string;total:string;paid:string;balance:string};receipts:{id:number;number:string}[]};
 type CheckoutAfter = "done"|"print"|"whatsapp"|"email"|"request_payment";
 type CheckoutAttempt = {payload:NativeCheckoutPayload; sale:Sale;after?:CheckoutAfter;recoverySourceKeys?:string[]};
@@ -642,7 +643,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
       const available = remainingByLot.get(lot.id) ?? Math.round(Number(lot.quantity) * 1000);
       const take = Math.min(available, remaining);
       if (!take) continue;
-      parts.push({...line, qty: take / 1000, rate: Number(lot.rate), batchNo: lot.number});
+      parts.push({...line, qty: take / 1000, rate: Number(lot.rate), batchId: lot.id, batchNo: lot.number});
       remainingByLot.set(lot.id, available - take);
       remaining -= take;
     }
@@ -889,7 +890,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey}:{scope:stri
         if(!configuration.schema_ready||!configuration.configured||!configuration.enabled)throw new Error('A company administrator must enable the explicit walk-in counter account before checkout.');
       }
       const payload:NativeCheckoutPayload={request_id:checkoutKey,...(customerId>0?{buyer_mode:'registered' as const,customer_id:customerId}:{buyer_mode:'anonymous_cash' as const}),pos_session_id:session.id,currency:'INR',billing_mode:'invoice_at_checkout',note,expected_total:totals.grandTotal.toFixed(2),bill_discount_amount:(totals.billDiscount+totals.couponDiscount).toFixed(2),
-        lines:checkoutLines.map(line=>({client_line_key:line.lotAllocation === "fefo" ? randomUUID() : line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
+        lines:checkoutLines.map(line=>({client_line_key:line.lotAllocation === "fefo" ? randomUUID() : line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,...(line.batchId ? {batch_id:line.batchId} : {}),quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
       const attempt:CheckoutAttempt={payload,after,sale:{id:checkoutKey,invoiceNo:'',customer:customer.name,amount:totals.grandTotal,mode:paymentMode,createdAt:new Date().toISOString(),items:cart.length,lines:checkoutLines.map(line=>({name:line.batchNo ? `${line.name} · Batch ${line.batchNo}` : line.name,qty:line.qty,rate:line.rate,...(line.booking?{appointment:bookingSummaries[line.lineId] || `${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleString()}`}:{})}))}};
       saveAttempt(attempt);checkoutBusy.current=false;setNativeBusy(false);await submitNative(attempt);
     } catch(error) {if(owns()){const message=error instanceof Error?error.message:dealError(error);setPaymentError(message);toast({title:'Checkout not started',description:message,variant:'destructive'});}checkoutBusy.current=false;if(owns())setNativeBusy(false);}

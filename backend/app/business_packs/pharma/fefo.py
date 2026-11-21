@@ -85,6 +85,9 @@ def plan(db,scope,selected,*,consume=False):
         for line, quantity, catalog_rate in lines:
             try:allocations=split(remaining.values(),quantity,date.today())
             except ValueError as error:fail(str(error),409)
+            batch_id = (line.metadata_json or {}).get('batch_id')
+            if batch_id is not None and (len(allocations) != 1 or allocations[0][0]['id'] != batch_id):
+                fail('POS batch allocation changed. Reload the catalogue and review the bill.', 409)
             if any(batch_rate(row, catalog_rate) != line.unit_price for row, _ in allocations):
                 fail('POS batch price changed. Reload the catalogue and review the bill.', 409)
             result[id(line)]=[(dict(row),take) for row,take in allocations]

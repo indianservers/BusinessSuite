@@ -263,7 +263,11 @@ def save_eligibility(data:EligibilityInput,db,user,*,commit=True):
 
 
 def _digest(data):
-    return sha256(json.dumps(data.model_dump(mode='json'),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    payload = data.model_dump(mode='json')
+    for line in payload.get('lines', []):
+        if line.get('batch_id') is None:
+            line.pop('batch_id', None)
+    return sha256(json.dumps(payload,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
 def _cross_pack_busy(db,company,branch,booking):
@@ -363,9 +367,12 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
             if product.product_type in {'membership','subscription'}:
                 if data.buyer_mode == 'anonymous_cash':fail('Plans require a registered customer')
                 if scope:fail('Customer plan fulfillment requires native context enrollment',503)
-            if not service and (product.batch_tracking or product.serial_tracking):
-                from app.business_packs.pharma.fefo import supported
-                if not supported(scope,product):fail('This item requires a checkout with batch or serial allocation',409)
+            from app.business_packs.pharma.fefo import supported
+            batch_priced = supported(scope, product)
+            if line.batch_id is not None and not batch_priced:
+                fail('This item does not support batch pricing', 422)
+            if not service and (product.batch_tracking or product.serial_tracking) and not batch_priced:
+                fail('This item requires a checkout with batch or serial allocation',409)
             if data.buyer_mode=='anonymous_cash' and (line.follow_up is not None or ((product.metadata_json or {}).get('follow_up') or {}).get('required')):
                 fail('Choose a named customer for follow-up commitments')
             if not product.active or product.currency!=data.currency:fail('Choose active catalog items in the checkout currency')
@@ -416,6 +423,7 @@ def _checkout_operation(data:CheckoutInput,db,user,*,commit=True,resolved_custom
                     **({'plan_start_date':line.plan_start_date.isoformat()} if line.plan_start_date else {}),
                     **({'plan_beneficiaries':line.plan_beneficiaries} if line.plan_beneficiaries else {}),
                     **({'follow_up':line.follow_up.model_dump(mode='json')} if line.follow_up is not None else {}),
+                    **({'batch_id':line.batch_id} if line.batch_id is not None else {}),
                     **({'warehouse_id':line.warehouse_id} if line.warehouse_id else {})}})
             selected.append((line,product,policy,eligibility))
         order_input=SRMSalesOrderCreate(title='Service checkout',customer_id=buyer_id,currency=data.currency,terms=data.note,

@@ -8,13 +8,16 @@ branch_labels = depends_on = None
 
 
 def upgrade():
-    op.add_column('srm_inventory_batches', sa.Column('selling_price', sa.Numeric(14, 2)))
+    columns = sa.inspect(op.get_bind()).get_columns('srm_inventory_batches')
+    if not any(column['name'] == 'selling_price' for column in columns):
+        op.add_column('srm_inventory_batches', sa.Column('selling_price', sa.Numeric(14, 2)))
     op.execute("""
         UPDATE srm_inventory_batches
         SET selling_price = COALESCE((
             SELECT sales_rate FROM srm_products
             WHERE srm_products.id = srm_inventory_batches.product_id
         ), 0)
+        WHERE selling_price IS NULL
     """)
 
 
