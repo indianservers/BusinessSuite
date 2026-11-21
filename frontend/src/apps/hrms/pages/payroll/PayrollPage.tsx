@@ -240,6 +240,22 @@ const MONTHS = [
 const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase().replace(/\s+/g, "_");
 
 type PayrollTab = "policies" | "templates" | "payouts" | "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
+const payrollTabLabels: Record<PayrollTab, string> = {
+  guided: "Guided Payroll",
+  wizard: "Setup Wizard",
+  policies: "Payroll Policies",
+  run: "Run Payroll",
+  viewer: "Payslip Viewer",
+  templates: "Payslip Templates",
+  payouts: "Salary Payouts",
+  variance: "Variance",
+  inputs: "Inputs",
+  setup: "Setup",
+  statutory: "Statutory",
+  tax: "Tax",
+  tools: "Payroll Tools",
+  casebook: "Real Cases",
+};
 
 export default function PayrollPage() {
   usePageTitle("Payroll");
@@ -330,6 +346,10 @@ export default function PayrollPage() {
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
     : ["guided", "wizard", "policies", "run", "viewer", "templates", "payouts", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
+  const selectPayrollSection = (tab: PayrollTab) => {
+    setActiveTab(tab);
+    if (location.search) navigate({ pathname: location.pathname, search: "" }, { replace: true });
+  };
 
   useEffect(() => {
     if (isEmployee && activeTab !== "viewer") setActiveTab("viewer");
@@ -1156,18 +1176,28 @@ export default function PayrollPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b">
+      {visibleTabs.length > 1 && (
+        <label className="block space-y-1 text-sm font-medium min-[481px]:hidden">
+          Payroll section
+          <NativeSelect className="min-h-11 w-full text-base" value={visibleTabs.includes(activeTab) ? activeTab : ""}
+            onChange={event => selectPayrollSection(event.target.value as PayrollTab)}>
+            {!visibleTabs.includes(activeTab) && <option value="" disabled>Choose payroll section</option>}
+            {visibleTabs.map(tab => <option key={tab} value={tab}>{payrollTabLabels[tab]}</option>)}
+          </NativeSelect>
+        </label>
+      )}
+      <div className="hidden flex-wrap gap-2 border-b min-[481px]:flex">
         {visibleTabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveTab(tab); if (location.search) navigate({ pathname: location.pathname, search: "" }, { replace: true }); }}
+            onClick={() => selectPayrollSection(tab)}
             className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "policies" ? "Payroll Policies" : tab === "templates" ? "Payslip Templates" : tab === "payouts" ? "Salary Payouts" : tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
+            {payrollTabLabels[tab]}
           </button>
         ))}
       </div>
