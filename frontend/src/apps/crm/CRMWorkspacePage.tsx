@@ -2332,6 +2332,20 @@ function CRMCalendarPage() {
     if (calendarEvent && !Number.isNaN(targetDate.getTime())) rescheduleEvent(calendarEvent, targetDate);
   };
 
+  const sidebar = (
+    <CalendarSidebar
+      cursor={cursor}
+      events={visibleEvents}
+      filters={filters}
+      ownerIds={ownerIds}
+      statuses={statuses}
+      stats={calendarStats}
+      onCursorChange={setCursor}
+      onFiltersChange={setFilters}
+      onIntegrations={() => navigate("/crm/calendar-integrations")}
+    />
+  );
+
   return (
     <div className="crm-calendar space-y-4">
       <CRMPageHeader title="CRM calendar"
@@ -2361,6 +2375,7 @@ function CRMCalendarPage() {
         </div>
       </div>
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        {mobile && <MobileDisclosure title="Calendar filters and date picker" initiallyOpen={false}>{sidebar}</MobileDisclosure>}
         <main className="min-w-0 space-y-4">
           <div className="rounded-md border bg-card p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -2403,17 +2418,7 @@ function CRMCalendarPage() {
           </DndContext>
           </div>
         </main>
-        <CalendarSidebar
-          cursor={cursor}
-          events={visibleEvents}
-          filters={filters}
-          ownerIds={ownerIds}
-          statuses={statuses}
-          stats={calendarStats}
-          onCursorChange={setCursor}
-          onFiltersChange={setFilters}
-          onIntegrations={() => navigate("/crm/calendar-integrations")}
-        />
+        {!mobile && sidebar}
       </div>
       {selected ? <CalendarEventDialog event={selected} onClose={() => setSelected(null)} onOpenRecord={(path) => navigate(path)} onComplete={() => markCalendarTaskComplete(selected, setEvents, setError)} onSynced={loadCalendar} /> : null}
       {createDate ? <CalendarCreateDialog date={createDate} onClose={() => setCreateDate(null)} onCreated={() => { setCreateDate(null); loadCalendar(); }} /> : null}
