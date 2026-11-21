@@ -6,6 +6,7 @@ import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
+import { useMobile } from "@/components/mobile/useMobile";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -56,6 +57,7 @@ const emptyForm: CreateRiskInput = {
 };
 
 export default function RisksPage() {
+  const phone = useMobile(480);
   const { term: businessTerm } = useBusinessTerms();
   const { projectId } = useParams<{ projectId: string }>();
   const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.project_management;
@@ -233,15 +235,17 @@ export default function RisksPage() {
           <CardContent>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
-              <Field label={businessTerm('project')}>
-                <NativeSelect disabled={!!projectId} className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
-                  <option value="">Select project</option>
-                  {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                </NativeSelect>
-              </Field>
-              <Field label="Title">
-                <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
-              </Field>
+              <div className="contents" data-form-section-label={phone ? "Basic details" : undefined}>
+                <Field label={businessTerm('project')}>
+                  <NativeSelect disabled={!!projectId} className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
+                    <option value="">Select project</option>
+                    {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                  </NativeSelect>
+                </Field>
+                <Field label="Title">
+                  <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
+                </Field>
+              </div>
               <Field label="Category">
                 <Input value={form.category || ""} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Delivery, Scope, Budget, Vendor" />
               </Field>
