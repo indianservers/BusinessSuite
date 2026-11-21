@@ -1,3 +1,4 @@
+import { randomUUID } from "@/lib/random-uuid";
 import { useQuery } from "@tanstack/react-query";
 import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
 import Customer360Workspace from "@/shared/records/Customer360Page";
@@ -5364,7 +5365,7 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
       const created = normalizeApiRecord(inlineKind, response.data);
       if (inlineKind === "companies") {setAddedCompanies(items => [...items, created]);setDraft(v => ({...v, companyId: created.id, contactId: ""}));}
       else if (inlineKind === "contacts") {setAddedContacts(items => [...items, created]);setDraft(v => ({...v, contactId: created.id}));}
-      else {const kind = inlineKind === "services" ? "service" : "product";setAddedProducts(items => [...items, {...created, catalogKind: kind}]);setLines(items => [...items, {key: crypto.randomUUID(), productId: `${kind}:${created.id}`, unitPrice: String(created.price ?? created.default_rate ?? created.list_price ?? created.unit_price ?? 0), quantity: "1", discount: "0"}]);}
+      else {const kind = inlineKind === "services" ? "service" : "product";setAddedProducts(items => [...items, {...created, catalogKind: kind}]);setLines(items => [...items, {key: randomUUID(), productId: `${kind}:${created.id}`, unitPrice: String(created.price ?? created.default_rate ?? created.list_price ?? created.unit_price ?? 0), quantity: "1", discount: "0"}]);}
       setInlineKind(null);
     } catch(err: any) {setInlineError(dealError(err));} finally {setInlineSaving(false);}
   };
@@ -5504,7 +5505,7 @@ function ScopedDealFormModal({ autoSaveEnabled=false, placement="create", initia
       </div>
     </div>
     </DealDialog.Content>
-    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{companyLookup.current?.abort();setLeadCompanyMatch(undefined);setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind === "contacts" ? <CRMContactQuickCreate initialValues={{name:inlineSeedName,companyId:draft.companyId}} close={()=>setInlineKind(null)} saved={record=>{if(!record)return;const created=normalizeApiRecord("contacts",record);setAddedContacts(items=>[...items.filter(item=>item.id!==created.id),created]);setDraft(current=>({...current,contactId:created.id}));}}/> : (inlineKind === "products" || inlineKind === "services") && <CatalogEditor source="crm" defaultKind={inlineKind === "services" ? "service" : "product"} close={()=>setInlineKind(null)} saved={item=>{const created={...item,catalogKind:item.kind} as unknown as CRMRecord;setAddedProducts(items=>[...items,created]);setLines(items=>[...items,{key:crypto.randomUUID(),productId:`${item.kind}:${item.id}`,unitPrice:String(item.price),quantity:"1",discount:"0"}]);setInlineKind(null);}}/>}
+    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{companyLookup.current?.abort();setLeadCompanyMatch(undefined);setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind === "contacts" ? <CRMContactQuickCreate initialValues={{name:inlineSeedName,companyId:draft.companyId}} close={()=>setInlineKind(null)} saved={record=>{if(!record)return;const created=normalizeApiRecord("contacts",record);setAddedContacts(items=>[...items.filter(item=>item.id!==created.id),created]);setDraft(current=>({...current,contactId:created.id}));}}/> : (inlineKind === "products" || inlineKind === "services") && <CatalogEditor source="crm" defaultKind={inlineKind === "services" ? "service" : "product"} close={()=>setInlineKind(null)} saved={item=>{const created={...item,catalogKind:item.kind} as unknown as CRMRecord;setAddedProducts(items=>[...items,created]);setLines(items=>[...items,{key:randomUUID(),productId:`${item.kind}:${item.id}`,unitPrice:String(item.price),quantity:"1",discount:"0"}]);setInlineKind(null);}}/>}
     </DealDialog.Root>, document.body
   );
 }
@@ -8764,7 +8765,7 @@ function defaultRecordFor(kind: CRMPageKind, id: number, title: string): CRMReco
     notes: "New CRM contact",
   };
   if (kind === "deals") return { name: `${title} ${id}`, company: "New Account", owner: "Karan Shah", stage: "Prospecting", amount: 500000, probability: "10%", closeDate: "2026-06-15" };
-  if (kind === "tickets") return { number: `TCK-${crypto.randomUUID()}`, subject: "New customer request", priority: "Medium", status: "Open", company: "New Account", owner: "Support Desk" };
+  if (kind === "tickets") return { number: `TCK-${randomUUID()}`, subject: "New customer request", priority: "Medium", status: "Open", company: "New Account", owner: "Support Desk" };
   return { name: `${title} ${id}`, owner: "Ananya Rao", status: "New", nextFollowUp: "2026-05-14" };
 }
 
