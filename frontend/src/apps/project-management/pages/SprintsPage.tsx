@@ -302,7 +302,7 @@ export default function SprintsPage() {
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Burndown</CardTitle></CardHeader>
-          <CardContent className="h-72">
+          <CardContent className={compact && !burndown?.points.length ? undefined : "h-72"}>
             {burndown?.points.length ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={burndown.points}>

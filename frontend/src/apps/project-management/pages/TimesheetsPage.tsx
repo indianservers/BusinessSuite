@@ -1,5 +1,6 @@
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { pmsRandomId } from "../pms-random-id";
 import "./timesheets-mobile.css";
 import BusinessTerm from "@/components/BusinessTerm";
@@ -186,12 +187,14 @@ export default function TimesheetsPage() {
 
       {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
-      <div className="pms-timesheet-metrics grid gap-3 md:grid-cols-4">
-        <Metric label="Weekly hours" value={`${totals.total.toFixed(1)}h`} />
-        <Metric label="Status" value={sheet?.status || "draft"} />
-        <Metric label="Billable" value={`${((sheet?.billable_minutes || 0) / 60).toFixed(1)}h`} />
-        <Metric label="Non-billable" value={`${((sheet?.non_billable_minutes || 0) / 60).toFixed(1)}h`} />
-      </div>
+      <MobileDisclosure title={`Weekly totals · ${totals.total.toFixed(1)}h`} maxWidth={480} initiallyOpen={false}>
+        <div className="pms-timesheet-metrics grid gap-3 md:grid-cols-4">
+          <Metric label="Weekly hours" value={`${totals.total.toFixed(1)}h`} />
+          <Metric label="Status" value={sheet?.status || "draft"} />
+          <Metric label="Billable" value={`${((sheet?.billable_minutes || 0) / 60).toFixed(1)}h`} />
+          <Metric label="Non-billable" value={`${((sheet?.non_billable_minutes || 0) / 60).toFixed(1)}h`} />
+        </div>
+      </MobileDisclosure>
 
       <Card>
         <CardHeader>
