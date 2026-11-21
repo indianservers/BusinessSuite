@@ -2200,7 +2200,7 @@ export default function FAMWorkspacePage({ kind, embedded = false }: { kind: FAM
   if (isSrmInventoryContext && retailMode) content = <RetailWorkspace mode={retailMode} receiptTitle={kind === "inventoryStockIn" ? "Stock in" : "Purchase receipt"} fallback={content} renderTable={(rows,columns)=><DataTable gridId={`business-packs/retail:${kind}:${columns.join("-")}`} preview={false} rows={rows} columns={columns}/>}/>;
 
   return (
-    <section className={`space-y-5${isSrmInventoryContext ? "" : " fam-finance-page"}${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}`}>
+    <section className={`space-y-5${isSrmInventoryContext ? "" : " fam-finance-page"}${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}${["bankStatements","bankStatementDetail","bankReconciliation"].includes(kind) ? " fam-mobile-bank-page" : ""}`}>
       {!embedded && <PageHeader meta={meta} onRefresh={() => { void queryClient.invalidateQueries({ queryKey: ["fam"] }); if (isSrmInventoryContext && retailMode) void queryClient.invalidateQueries({ queryKey: ["srm", "retail"] }); }} />}
       {content}
     </section>
