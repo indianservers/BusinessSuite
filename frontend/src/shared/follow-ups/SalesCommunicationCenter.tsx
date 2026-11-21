@@ -1,8 +1,8 @@
 import FollowUpSummary from "./FollowUpSummary";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { CalendarClock, History, MessageSquare, ShoppingBag } from "lucide-react";
+import { CalendarClock, History, MessageSquare, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import SendReminders from "@/apps/communication/center/SendReminders";
 import MembershipExpiryPage from "@/shared/catalog/MembershipExpiryPage";
 import { catalogError } from "@/shared/catalog/api";
@@ -71,6 +71,8 @@ function Center({ scope }: { scope: string }) {
 }
 
 function Purchasers({ scope }: { scope: string }) {
+  const filterId = useId();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<Filters>(blankFilters);
   const [filters, setFilters] = useState<Filters>(blankFilters);
   const [page, setPage] = useState(1);
@@ -82,11 +84,17 @@ function Purchasers({ scope }: { scope: string }) {
     queryFn: ({ signal }) => api.get<Audience>(audiencePath, { params: { ...params, page }, signal, recordCache: false }).then(result => result.data),
   });
   return <section aria-label="Purchasers" className="space-y-4 rounded-xl border bg-card p-4">
-    <form aria-label="Purchaser filters" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={event => {
+    <Button type="button" variant="outline" className="min-h-11 sm:hidden" aria-expanded={filtersOpen}
+      aria-controls={filterId} onClick={() => setFiltersOpen(open => !open)}>
+      <SlidersHorizontal className="h-4 w-4" aria-hidden="true"/>Purchaser filters
+      {Object.keys(params).length > 0 && <span>({Object.keys(params).length})</span>}
+    </Button>
+    <form id={filterId} aria-label="Purchaser filters" className={`${filtersOpen ? "grid" : "hidden"} gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4`} onSubmit={event => {
       event.preventDefault();
       setRecipient(undefined);
       setPage(1);
       setFilters(draft);
+      setFiltersOpen(false);
     }}>
       <label className="grid gap-1 text-sm">Offering type<NativeSelect value={draft.kind} onChange={event => setDraft({ ...draft, kind: event.target.value })}>
         <option value="">All offerings</option><option value="product">Products</option><option value="service">Services</option><option value="membership">Memberships</option><option value="subscription">Subscriptions</option>
