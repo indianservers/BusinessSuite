@@ -50,7 +50,8 @@ export default function SetupReadiness({embedded = false, navigation = false, co
       [...query.data.items, ...(query.data.moduleItems || [])].every(item=>item.required === false || item.ready)) {
     return <Navigate to="/dashboard" replace/>;
   }
-  if (embedded) return showGuide ? <SetupGuide data={query.data} module={scopedModule} loading={query.isPending} error={query.isError} refreshing={query.isFetching} refresh={()=>void query.refetch()} collapseOnMobile={guidePath === "/pms/projects" || guidePath === "/pms/workspaces"}/> : null;
+  const collapseGuideOnPhone = ["/pms/projects", "/pms/workspaces", "/crm/workspaces"].includes(guidePath);
+  if (embedded) return showGuide ? <SetupGuide data={query.data} module={scopedModule} loading={query.isPending} error={query.isError} refreshing={query.isFetching} refresh={()=>void query.refetch()} collapseOnMobile={collapseGuideOnPhone}/> : null;
   const missing = query.data?.items.filter(i => i.required !== false && !i.ready) || [];
   const moduleMissing = query.data?.moduleItems?.filter(i => i.required !== false && !i.ready) || [];
   const renderItem = (item: Item) => <li key={item.id} className="rounded-lg border p-3">
