@@ -2346,8 +2346,17 @@ function CRMCalendarPage() {
     />
   );
 
+  const viewSwitcher = (
+    <div className={mobile ? "grid grid-cols-4 gap-1 rounded-xl border bg-muted/40 p-1 [&_button]:min-h-11 [&_button]:px-1" : "crm-calendar-views grid w-full grid-cols-4 rounded-xl border bg-muted/40 p-1 sm:w-auto"}>
+      {(["month", "week", "day", "agenda"] as CalendarView[]).map((item) => (
+        <button key={item} type="button" aria-pressed={view === item} className={`rounded-lg px-2 py-2 text-sm font-medium transition ${view === item ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="crm-calendar space-y-4">
+      {mobile && <nav aria-label="Calendar view" className="px-4 pt-3">{viewSwitcher}</nav>}
       <CRMPageHeader title="CRM calendar"
         description="See scheduled meetings, calls, tasks, and sales deadlines."
         actions={<>
@@ -2387,11 +2396,7 @@ function CRMCalendarPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Booking pages</Button>
-                <div className="crm-calendar-views grid w-full grid-cols-4 rounded-xl border bg-muted/40 p-1 sm:w-auto">
-                  {(["month", "week", "day", "agenda"] as CalendarView[]).map((item) => (
-                    <button key={item} type="button" aria-pressed={view === item} className={`rounded-lg px-2 py-2 text-sm font-medium transition ${view === item ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
-                  ))}
-                </div>
+                {!mobile && viewSwitcher}
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
