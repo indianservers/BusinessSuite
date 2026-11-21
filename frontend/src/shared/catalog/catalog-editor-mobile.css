@@ -85,3 +85,22 @@
     min-height: 44px;
   }
 }
+
+@media (max-width: 767px) {
+  .sc-catalog-editor[data-catalog-source="srm"][data-catalog-short-viewport] > form.suite-compact-form {
+    margin-bottom: 0;
+  }
+
+  .sc-catalog-editor[data-catalog-source="srm"][data-catalog-short-viewport] .sc-dialog-heading {
+    align-items: center;
+    padding-block: 4px;
+  }
+
+  .sc-catalog-editor[data-catalog-source="srm"][data-catalog-short-viewport] :is(.sc-dialog-heading p, .sc-form-footer > span) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
