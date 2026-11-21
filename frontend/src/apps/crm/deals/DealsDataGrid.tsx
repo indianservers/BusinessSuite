@@ -1,4 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from "react";
+import { useMobile } from "@/components/mobile/useMobile";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Archive,
@@ -121,6 +122,7 @@ export default function DealsDataGrid({
   const navigate = useNavigate(),
     [searchParams] = useSearchParams();
   const source = useMemo(() => dealGridSource(base), [JSON.stringify(base)]);
+  const mobile = useMobile();
   const columns = useMemo<GridColumn<Deal>[]>(
     () => [
       {
@@ -130,7 +132,7 @@ export default function DealsDataGrid({
         width: 260,
         minWidth: 150,
         groupable: false,
-        editable: true,
+        editable: !mobile,
         validate: (value) =>
           !value.trim()
             ? "Enter a deal name."
@@ -138,7 +140,7 @@ export default function DealsDataGrid({
               ? "Use at most 180 characters."
               : undefined,
         render: (row) => (
-          <Link to={`/crm/deals/${row.id}`} title={row.name}>
+          <Link to={`/crm/deals/${row.id}`} title={row.name} aria-label={mobile ? `Open deal ${row.name}` : undefined}>
             {row.name}
           </Link>
         ),
@@ -351,7 +353,7 @@ export default function DealsDataGrid({
       { id: "deal_type", title: "Deal type", type: "category", width: 155 },
       { id: "source", title: "Source", type: "category", width: 140 },
     ],
-    [],
+    [mobile],
   );
   const getId = useCallback((row: Deal) => String(row.id), []);
   const selectedIds = useMemo(() => selected.map(String), [selected]);
