@@ -1,3 +1,5 @@
+import CRMPageHeader from "./CRMPageHeader";
+import * as ContactOptions from "@radix-ui/react-dropdown-menu";
 import { randomUUID } from "@/lib/random-uuid";
 import { useQuery } from "@tanstack/react-query";
 import { privateDraftKey, usePrivateDraftScope, usePrivateDraftOwner } from "@/lib/private-draft-scope";
@@ -17,7 +19,7 @@ import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import { affectsResource, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import {useId as useFieldId,cloneElement as cloneFieldElement,isValidElement as isFieldElement} from "react";
 import { canAccessRoute } from "@/lib/roles";
-import { GitBranch } from "lucide-react";
+import { ArrowUpRight, Ellipsis, GitBranch } from "lucide-react";
 import { calendarReturnSearch, integrationError, webhookValidation } from "./integrationFeedback";
 import CalendarSyncControls from "./templates/CalendarSyncControls";
 import IndustryPackOnboarding from "./templates/IndustryPackOnboarding";
@@ -2249,7 +2251,8 @@ type CalendarFilters = { ownerId: string; type: string; status: string };
 
 function CRMCalendarPage() {
   const navigate = useNavigate();
-  const [view, setView] = useState<CalendarView>("month");
+  const mobile = useMobile();
+  const [view, setView] = useState<CalendarView>(() => mobile ? "agenda" : "month");
   const [cursor, setCursor] = useState(() => new Date());
   const [events, setEvents] = useState<CRMCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2329,25 +2332,16 @@ function CRMCalendarPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
-      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">CRM Activities</Badge>
-              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Calendar command center</Badge>
-            </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">CRM calendar</h1>
-            <p className="max-w-3xl text-sm text-slate-600">Plan follow-ups, tasks, events, calls, quote expiries, and deal closes in a sales-ready schedule with sync visibility.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate("/crm/tasks")}><CheckCircle2 className="h-4 w-4" />Tasks</Button>
-            <Button variant="outline" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Sync setup</Button>
-            <Button onClick={() => setCreateDate(new Date())}><Plus className="h-4 w-4" />Create activity</Button>
-          </div>
-        </div>
-      </div>
-      <div className="border-b bg-white px-4 sm:px-6 lg:px-8">
+    <div className="crm-calendar space-y-4">
+      <CRMPageHeader title="CRM calendar"
+        description="See scheduled meetings, calls, tasks, and sales deadlines."
+        actions={<>
+          <Button onClick={() => setCreateDate(new Date())}><Plus className="h-4 w-4" />Create activity</Button>
+          <Button variant="outline" onClick={() => navigate("/crm/tasks")}>Tasks</Button>
+          <Button variant="outline" onClick={() => navigate("/crm/calendar-integrations")}>Sync setup</Button>
+        </>}
+      />
+      <div className="rounded-xl border bg-card px-2 sm:px-4">
         <div className="flex flex-wrap gap-1">
           {[
             { label: "Calendar", value: "all", icon: CalendarDays },
@@ -2358,33 +2352,33 @@ function CRMCalendarPage() {
             const Icon = item.icon;
             const active = filters.type === item.value || (item.value === "all" && filters.type === "all");
             return (
-              <button key={item.value} type="button" onClick={() => setFilters((current) => ({ ...current, type: item.value }))} className={`flex h-12 items-center gap-2 border-b-2 px-4 text-sm font-medium transition ${active ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-600 hover:text-slate-950"}`}>
+              <button key={item.value} type="button" aria-pressed={active} onClick={() => setFilters((current) => ({ ...current, type: item.value }))} className={`flex h-12 items-center gap-2 border-b-2 px-4 text-sm font-medium transition ${active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
                 <Icon className="h-4 w-4" />{item.label}
               </button>
             );
           })}
         </div>
       </div>
-      <div className="grid gap-0 xl:grid-cols-[1fr_22rem]">
-        <main className="min-w-0 space-y-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="rounded-md border bg-white p-3">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <main className="min-w-0 space-y-4">
+          <div className="rounded-md border bg-card p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" onClick={() => setCursor(new Date())}>Today</Button>
                 <Button variant="ghost" size="icon" onClick={() => moveCursor(-1)} aria-label="Previous period"><ChevronLeft className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => moveCursor(1)} aria-label="Next period"><ChevronRight className="h-4 w-4" /></Button>
-                <h2 className="px-2 text-lg font-semibold text-slate-950">{calendarTitle(cursor, view)}</h2>
+                <h2 className="px-2 text-lg font-semibold text-foreground">{calendarTitle(cursor, view)}</h2>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Booking pages</Button>
-                <div className="flex rounded-full border bg-slate-50 p-1">
+                <div className="crm-calendar-views grid w-full grid-cols-4 rounded-xl border bg-muted/40 p-1 sm:w-auto">
                   {(["month", "week", "day", "agenda"] as CalendarView[]).map((item) => (
-                    <button key={item} type="button" className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${view === item ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600 hover:text-slate-950"}`} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
+                    <button key={item} type="button" aria-pressed={view === item} className={`rounded-lg px-2 py-2 text-sm font-medium transition ${view === item ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <CalendarStat label="Due today" value={calendarStats.dueToday} />
               <CalendarStat label="Tasks" value={calendarStats.tasks} tone="amber" />
               <CalendarStat label="Events" value={calendarStats.meetings} tone="blue" />
@@ -2392,7 +2386,11 @@ function CRMCalendarPage() {
             </div>
           </div>
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-          {initialLoading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
+          {initialLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
+          <div className={view === "month" || view === "week" ? "crm-calendar-grid-scroll" : undefined}
+            role={mobile && (view === "month" || view === "week") ? "region" : undefined}
+            aria-label={mobile && (view === "month" || view === "week") ? "Scrollable calendar" : undefined}
+            tabIndex={mobile && (view === "month" || view === "week") ? 0 : undefined}>
           <DndContext onDragEnd={onDragEnd}>
             {view === "agenda" ? (
               <CalendarAgenda events={visibleEvents} onOpen={setSelected} />
@@ -2402,6 +2400,7 @@ function CRMCalendarPage() {
               <CalendarTimeGrid cursor={cursor} view={view} events={visibleEvents} onCreate={setCreateDate} onOpen={setSelected} />
             )}
           </DndContext>
+          </div>
         </main>
         <CalendarSidebar
           cursor={cursor}
@@ -2429,7 +2428,7 @@ function CalendarStat({ label, value, tone = "emerald" }: { label: string; value
     violet: "bg-violet-50 text-violet-700",
   };
   return (
-    <div className="rounded-md border bg-slate-50/70 p-3">
+    <div className="rounded-md border bg-muted/40 p-3">
       <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-lg font-semibold ${tones[tone]}`}>{value}</p>
     </div>
@@ -2439,8 +2438,8 @@ function CalendarStat({ label, value, tone = "emerald" }: { label: string; value
 function CalendarMonth({ cursor, events, onCreate, onOpen }: { cursor: Date; events: CRMCalendarEvent[]; onCreate: (date: Date) => void; onOpen: (event: CRMCalendarEvent) => void }) {
   const days = monthDays(cursor);
   return (
-    <div className="overflow-hidden rounded-md border bg-white shadow-sm">
-      <div className="grid grid-cols-7 border-b bg-slate-50 text-center text-xs font-semibold uppercase text-muted-foreground">
+    <div className="overflow-hidden rounded-md border bg-card shadow-sm">
+      <div className="grid grid-cols-7 border-b bg-muted/35 text-center text-xs font-semibold uppercase text-muted-foreground">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <div key={day} className="px-3 py-3">{day}</div>)}
       </div>
       <div className="grid grid-cols-7">
@@ -2468,9 +2467,9 @@ function CalendarDayCell({ date, events, muted = false, tall = false, onCreate, 
   const today = dateKey(date) === dateKey(new Date());
   const weekend = [0, 6].includes(date.getDay());
   return (
-    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem] rounded-md border bg-white" : ""} ${muted ? "bg-slate-50/70 text-muted-foreground" : weekend ? "bg-slate-50/60" : "bg-white"} ${isOver ? "ring-2 ring-emerald-500/50" : ""}`}>
+    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem] rounded-md border bg-card" : ""} ${muted ? "bg-muted/40 text-muted-foreground" : weekend ? "bg-muted/30" : "bg-card"} ${isOver ? "ring-2 ring-emerald-500/50" : ""}`}>
       <button type="button" className="mb-2 flex w-full items-center justify-between rounded px-1 py-0.5 text-left text-xs hover:bg-slate-100" onClick={() => onCreate(date)}>
-        <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 font-semibold ${today ? "bg-emerald-600 text-white" : "text-slate-700"}`}>{date.toLocaleDateString(undefined, { weekday: tall ? "short" : undefined, month: tall ? "short" : undefined, day: "numeric" })}</span>
+        <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 font-semibold ${today ? "bg-emerald-600 text-white" : "text-foreground"}`}>{date.toLocaleDateString(undefined, { weekday: tall ? "short" : undefined, month: tall ? "short" : undefined, day: "numeric" })}</span>
         <Plus className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
       <div className="space-y-1">
@@ -2502,12 +2501,12 @@ function CalendarEventPill({ event, onOpen }: { event: CRMCalendarEvent; onOpen:
 
 function CalendarSidebar({ cursor, events, filters, ownerIds, statuses, stats, onCursorChange, onFiltersChange, onIntegrations }: { cursor: Date; events: CRMCalendarEvent[]; filters: CalendarFilters; ownerIds: string[]; statuses: string[]; stats: { tasks: number; meetings: number; calls: number; dueToday: number; synced: number }; onCursorChange: (date: Date) => void; onFiltersChange: React.Dispatch<React.SetStateAction<CalendarFilters>>; onIntegrations: () => void }) {
   return (
-    <aside className="border-l bg-white px-4 py-4 xl:h-[calc(100vh-13rem)] xl:overflow-y-auto">
+    <aside className="border-l bg-card px-4 py-4 xl:h-[calc(100vh-13rem)] xl:overflow-y-auto">
       <MiniCalendar cursor={cursor} events={events} onSelect={onCursorChange} />
       <div className="mt-5 space-y-4">
         <div>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-950">My preferences</h3>
+            <h3 className="text-sm font-semibold text-foreground">My preferences</h3>
             <Button variant="ghost" size="sm" onClick={() => onFiltersChange({ ownerId: "all", type: "all", status: "all" })}>Reset</Button>
           </div>
           <div className="mt-3 grid gap-3">
@@ -2516,7 +2515,7 @@ function CalendarSidebar({ cursor, events, filters, ownerIds, statuses, stats, o
           </div>
         </div>
         <div className="rounded-md border p-3">
-          <h3 className="text-sm font-semibold text-slate-950">Activity types</h3>
+          <h3 className="text-sm font-semibold text-foreground">Activity types</h3>
           <div className="mt-3 space-y-2">
             <CalendarTypeToggle label="Tasks" color="bg-amber-500" active={filters.type === "all" || filters.type === "task"} onClick={() => onFiltersChange((current) => ({ ...current, type: current.type === "task" ? "all" : "task" }))} />
             <CalendarTypeToggle label="Events" color="bg-sky-500" active={filters.type === "all" || filters.type === "meeting"} onClick={() => onFiltersChange((current) => ({ ...current, type: current.type === "meeting" ? "all" : "meeting" }))} />
@@ -2524,10 +2523,10 @@ function CalendarSidebar({ cursor, events, filters, ownerIds, statuses, stats, o
           </div>
         </div>
         <div className="rounded-md border p-3">
-          <h3 className="text-sm font-semibold text-slate-950">Sync options</h3>
+          <h3 className="text-sm font-semibold text-foreground">Sync options</h3>
           <div className="mt-3 grid gap-2 text-sm">
-            <div className="flex items-center justify-between rounded bg-slate-50 px-3 py-2"><span>Synced meetings</span><Badge variant="outline">{stats.synced}</Badge></div>
-            <div className="flex items-center justify-between rounded bg-slate-50 px-3 py-2"><span>Visible activities</span><Badge variant="outline">{events.length}</Badge></div>
+            <div className="flex items-center justify-between rounded bg-muted/35 px-3 py-2"><span>Synced meetings</span><Badge variant="outline">{stats.synced}</Badge></div>
+            <div className="flex items-center justify-between rounded bg-muted/35 px-3 py-2"><span>Visible activities</span><Badge variant="outline">{events.length}</Badge></div>
           </div>
           <Button variant="outline" className="mt-3 w-full" onClick={onIntegrations}><CalendarDays className="h-4 w-4" />Google / Microsoft setup</Button>
         </div>
@@ -2545,7 +2544,7 @@ function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMC
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-950">{cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h3>
+        <h3 className="text-base font-semibold text-foreground">{cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h3>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon" onClick={() => { const next = new Date(cursor); next.setMonth(next.getMonth() - 1); onSelect(next); }}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => { const next = new Date(cursor); next.setMonth(next.getMonth() + 1); onSelect(next); }}><ChevronRight className="h-4 w-4" /></Button>
@@ -2563,7 +2562,7 @@ function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMC
           return (
             <button key={day.toISOString()} type="button" onClick={() => onSelect(day)} className={`relative h-9 rounded-full font-medium transition ${active ? "bg-emerald-600 text-white" : today ? "bg-emerald-50 text-emerald-700" : "hover:bg-slate-100"}`}>
               {day.getDate()}
-              {hasEvent ? <span className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${active ? "bg-white" : "bg-amber-500"}`} /> : null}
+              {hasEvent ? <span className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${active ? "bg-card" : "bg-amber-500"}`} /> : null}
             </button>
           );
         })}
@@ -2574,7 +2573,7 @@ function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMC
 
 function CalendarTypeToggle({ label, color, active, onClick }: { label: string; color: string; active: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition ${active ? "bg-slate-50 text-slate-950" : "text-muted-foreground"}`}>
+    <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition ${active ? "bg-muted/35 text-foreground" : "text-muted-foreground"}`}>
       <span className={`h-4 w-4 rounded ${color} ${active ? "opacity-100" : "opacity-30"}`} />
       <span>{label}</span>
     </button>
@@ -2608,14 +2607,14 @@ function CalendarEventDialog({ event, onClose, onOpenRecord, onComplete, onSynce
     crmApi.syncMeeting(event.recordId).then(() => onSynced()).catch((err) => setError(err?.response?.data?.detail || "Meeting could not be synced.")).finally(() => setSyncing(false));
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="flex-row items-start justify-between gap-3">
-          <div><CardTitle>{event.title}</CardTitle><p className="text-sm text-muted-foreground">{formatDate(event.start)} at {timeLabel(event.start)}</p></div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="crm-calendar-event-dialog">
+        <div className="min-w-0 space-y-1 pr-10">
+          <DialogTitle className="break-words text-lg font-semibold">{event.title}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{formatDate(event.start)} at {timeLabel(event.start)}</p>
+        </div>
+        <div className="min-w-0 space-y-4">
+          {error ? <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <div className="grid gap-3 md:grid-cols-3">
             <InfoTile label="Type" value={event.category || event.type} />
             <InfoTile label="Status" value={event.status || "-"} />
@@ -2634,9 +2633,9 @@ function CalendarEventDialog({ event, onClose, onOpenRecord, onComplete, onSynce
             {path ? <Button variant="outline" onClick={() => onOpenRecord(path)}>Open related record</Button> : null}
             <Button variant="outline" onClick={onClose}>Close</Button>
           </CompactActions>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -3767,7 +3766,7 @@ function ContactsToolbar({ search, view, activeFilters, showFilters, showColumns
         <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search contacts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
         {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear contact search"><X className="h-3.5 w-3.5" /></button> : null}
       </label>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="crm-contact-toolbar-row flex flex-wrap items-center justify-between gap-2">
       <div className="crm-contact-desktop flex flex-wrap gap-1">
         {views.map((item) => (
           <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>
@@ -3781,8 +3780,21 @@ function ContactsToolbar({ search, view, activeFilters, showFilters, showColumns
       <div className="crm-contact-toolbar-actions flex flex-wrap gap-2">
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" aria-expanded={showFilters} onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
         <Button size="sm" variant="outline" className="crm-contact-desktop h-9 border-border bg-transparent text-foreground hover:bg-accent" aria-expanded={showColumns} onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canImport} onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canExport} onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+        <Button size="sm" variant="outline" className="crm-contact-desktop h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canImport} onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="crm-contact-desktop h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canExport} onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+        {(canImport || canExport) && <div className="crm-contact-mobile">
+          <ContactOptions.Root>
+            <ContactOptions.Trigger asChild>
+              <Button size="icon" variant="outline" aria-label="Contact import and export"><Ellipsis className="h-4 w-4" /></Button>
+            </ContactOptions.Trigger>
+            <ContactOptions.Portal>
+              <ContactOptions.Content className="suite-more-menu" sideOffset={6} align="end" collisionPadding={12}>
+                {canImport && <ContactOptions.Item className="suite-more-item" onSelect={onImport}><Upload aria-hidden="true" />Import contacts</ContactOptions.Item>}
+                {canExport && <ContactOptions.Item className="suite-more-item" onSelect={onExport}><Download aria-hidden="true" />Export contacts</ContactOptions.Item>}
+              </ContactOptions.Content>
+            </ContactOptions.Portal>
+          </ContactOptions.Root>
+        </div>}
       </div>
       </div>
       {showColumns ? (
@@ -6964,7 +6976,7 @@ function CRMReports() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Win/Loss Analysis" description="Monthly win rate, owner and pipeline performance, source quality, lost reasons, sales cycle, revenue trend, and stage conversion." action="Export CSV" onAction={exportData} />
+      <PageHeader subsection title="Win/Loss Analysis" description="Monthly win rate, owner and pipeline performance, source quality, lost reasons, sales cycle, revenue trend, and stage conversion." action="Export CSV" onAction={exportData} />
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-5 md:items-end">
           <div className="space-y-1">
@@ -7270,7 +7282,7 @@ function ForecastingPage() {
     <div className="space-y-6">
       <PageHeader title="Forecasting" description="Weighted forecast by owner, team, territory, pipeline, expected close date, and SRM invoice/collection actuals." action="Snapshot forecast" onAction={snapshot} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className="crm-metrics">
         <Metric icon={IndianRupee} label="Total pipeline" value={formatCurrency(Number(summary.pipelineAmount || 0))} tone="blue" />
         <Metric icon={Target} label="Weighted forecast" value={formatCurrency(Number(summary.weightedAmount || 0))} tone="emerald" />
         <Metric icon={CheckCircle2} label="Committed" value={formatCurrency(Number(summary.committedAmount || 0))} tone="violet" />
@@ -7374,7 +7386,7 @@ function SalesPerformancePage() {
     <div className="space-y-6">
       <PageHeader title="Sales Performance" description="Owner-level pipeline, weighted forecast, activity, conversion, SRM invoice, and collection performance." action="Refresh" onAction={() => setRefreshVersion(value=>value+1)} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="crm-metrics">
         <Metric icon={IndianRupee} label="Pipeline" value={formatCurrency(Number(summary.pipelineAmount || 0))} tone="blue" />
         <Metric icon={Target} label="Weighted" value={formatCurrency(Number(summary.weightedAmount || 0))} tone="emerald" />
         <Metric icon={CheckCircle2} label="Closed won" value={formatCurrency(Number(summary.closedWonAmount || 0))} tone="violet" />
@@ -7426,7 +7438,7 @@ function LostAnalysisPage() {
     <div className="space-y-6">
       <PageHeader title="Lost Analysis" description="Recorded loss reasons, competitors, lost amount and owner trends." action="Open deals" onAction={() => navigate("/crm/deals")} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="crm-metrics">
         <Metric icon={AlertTriangle} label="Lost deals" value={String(summary.lostDeals || 0)} tone="red" />
         <Metric icon={IndianRupee} label="Lost amount" value={formatCurrency(Number(summary.lostAmount || 0))} tone="red" />
         <Metric icon={Target} label="Recorded loss reasons" value={String(((report?.lostReasonBreakdown as CRMApiRecord[]) || []).length)} tone="violet" />
@@ -7802,16 +7814,24 @@ function InlineEditor({ config, value, autoFocus, onChange, onCommit, onCancel }
   return <Input className="h-9" type={config.type === "number" ? "number" : config.type === "date" ? "date" : "text"} {...common} />;
 }
 
-function PageHeader({ title, description, action, onAction, actionDisabled }: { title: string; description: string; action?: string; onAction?: () => void; actionDisabled?: boolean }) {
-  return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 className="page-title">{title}</h1>
-        <p className="page-description">{description}</p>
-      </div>
-      {action && onAction ? <Button disabled={actionDisabled} onClick={onAction}><Plus className="h-4 w-4" />{action}</Button> : null}
-    </div>
-  );
+function PageHeader({ title, description, action, onAction, actionDisabled, subsection }: {
+  title: string;
+  description: string;
+  action?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
+  subsection?: boolean;
+}) {
+  const ActionIcon = action?.match(/^(create|add) /i) ? Plus
+    : action?.match(/^export /i) ? Download
+    : action === "Refresh" ? RefreshCcw
+    : action?.match(/^(back|open|review) /i) ? ArrowUpRight
+    : null;
+  return <CRMPageHeader title={title} description={description} subsection={subsection}
+    actions={action && onAction && <Button disabled={actionDisabled} onClick={onAction}>
+      {ActionIcon && <ActionIcon className="h-4 w-4" aria-hidden="true" />}{action}
+    </Button>}
+  />;
 }
 
 function Metric({ icon: Icon, label, value, tone }: { icon: React.ElementType; label: string; value: string | number; tone: "blue" | "emerald" | "violet" | "amber" | "red" }) {
@@ -7824,9 +7844,9 @@ function Metric({ icon: Icon, label, value, tone }: { icon: React.ElementType; l
   };
   return (
     <Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`rounded-lg p-3 ${tones[tone]}`}><Icon className="h-5 w-5" /></div>
-        <div><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-semibold">{value}</p></div>
+      <CardContent className="flex min-w-0 flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+        <div className={`shrink-0 rounded-lg p-2 ${tones[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></div>
+        <div className="min-w-0"><p className="text-sm text-muted-foreground">{label}</p><p className="crm-metric-value text-lg font-semibold sm:text-xl">{value}</p></div>
       </CardContent>
     </Card>
   );

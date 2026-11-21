@@ -13,11 +13,11 @@ import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
 import {lazy, Suspense, useEffect, useRef, useState} from "react";
 import {Link, useParams, useSearchParams, useNavigate} from "react-router-dom";
-import {ArrowLeft, Edit3, Plus, Upload, RefreshCw, Check, X} from "lucide-react";
+import {ArrowDown, ArrowLeft, CalendarDays, Plus, Upload} from "lucide-react";
 import {api} from "@/services/api";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {RichTextContent} from "@/components/rich-text/LazyRichText";
 import {crmApi} from "../api";
 import {CRMInteractionDialog} from "../SalesActions";
@@ -75,7 +75,6 @@ export default function Deal360Page() {
   return <main className="ed-workspace ed-deal-detail">
     <nav className="ed-detail-nav" aria-label="Deal navigation">
       <Link className="ed-text-button inline-flex items-center gap-1" to="/crm/deals"><ArrowLeft size={14}/>Deals</Link>
-      {record?.company_id && <Link className="text-primary underline" to={`/crm/follow-ups?new=1&customer=${record.company_id}&deal=${ident}`}>Schedule deal follow-up</Link>}
       {record && <a className="ed-detail-jump ed-text-button" href="#deal-commercial-details" onClick={event => {
         const details = commercialDetails.current;
         if (!details) return;
@@ -83,12 +82,20 @@ export default function Deal360Page() {
         details.open = true;
         details.querySelector("summary")?.focus({ preventScroll: true });
         details.scrollIntoView({ block: "start" });
-      }}>Commercial details</a>}
+      }}><ArrowDown size={14}/>Commercial details</a>}
     </nav>
     {error && <div className="ed-error" role="alert">{error}<Button onClick={() => setReload(v => v + 1)}>Retry</Button></div>}
     {record && <>
-      {canManage && canCreate && <PaymentRequestButton source="crm_deal" sourceId={ident}/>}
-      <header className="ed-header"><div><p className="ed-eyebrow">DEAL-{ident} · {record.status}</p><h1>{record.name}</h1><p className="ed-muted">{related.account?.name || "No associated company"}</p></div><ActionToolbar label="Deal actions" actions={[
+      <header className="crm-page-header ed-detail-header">
+        <div className="crm-page-identity ed-detail-heading">
+          <div className="ed-detail-identity">
+            <span>DEAL-{ident}</span>
+            {record.status && <span className="ed-deal-status" data-status={String(record.status).toLowerCase()}>{record.status}</span>}
+          </div>
+          <h1>{record.name}</h1>
+          {related.account?.name && <p className="ed-muted">{related.account.name}</p>}
+        </div>
+        <ActionToolbar label="Deal actions" actions={[
         {id:"refresh",kind:"refresh",onSelect:()=>setReload(v=>v+1),prominent:!canManage},
         ...(canManage ? [
           {id:"edit",kind:"edit" as const,disabled:!canEdit,prominent:true,onSelect:()=>setEditing(true)},
@@ -97,10 +104,15 @@ export default function Deal360Page() {
           {id:"approval",kind:"approve" as const,label:"Submit for approval",disabled:busy||!canCreate,onSelect:async()=>{setBusy(true);try{await crmApi.submitApproval({entityType:"deal",entityId:ident,triggerType:"manual"});refresh();}catch(e){setError(dealError(e));}finally{setBusy(false);}}},
           {id:"archive",kind:"delete" as const,label:"Archive deal",tooltip:"Archive this deal and retain its history",danger:true,disabled:busy||!canDelete,confirm:{title:"Archive this deal?",description:"The deal will be removed from active views. Its history is retained.",label:"Archive deal"},onSelect:async()=>{setBusy(true);try{await crmApi.delete("deals",ident);window.dispatchEvent(new CustomEvent("crm:records-changed"));navigate("/crm/deals");}catch(e){setError(dealError(e));}finally{setBusy(false);}}},
         ] : []),
-      ]}/></header>
+      ]}/>
+      </header>
+      {(record.company_id || (canManage && canCreate)) && <div className="ed-detail-secondary">
+        {record.company_id && <Button asChild variant="outline"><Link to={`/crm/follow-ups?new=1&customer=${record.company_id}&deal=${ident}`}><CalendarDays size={16}/>Schedule deal follow-up</Link></Button>}
+        {canManage && canCreate && <PaymentRequestButton source="crm_deal" sourceId={ident}/>}
+      </div>}
       <Record360Workspace key={ident} kind="deal" id={ident} heading="Activity & related records" summaryFields={summaryFields} onAction={setAction}/>
-      <details id="deal-commercial-details" ref={commercialDetails}><summary className="ed-commercial-summary my-4 cursor-pointer font-semibold">Deal details & commercial workflow</summary>
-      <RecordSectionNav value={tab} onChange={name => {setParams({tab:name});setEventPage(1);setFeed([]);}} label="Deal information" groups={[
+      <details id="deal-commercial-details" ref={commercialDetails} className="ed-commercial-details" open={tabs.includes(params.get("tab") || "") || undefined}><summary className="ed-commercial-summary my-4 cursor-pointer font-semibold">Deal details & commercial workflow</summary>
+      <RecordSectionNav value={tab} onChange={name => {setParams(current => { const next = new URLSearchParams(current); next.set("tab", name); return next; });setEventPage(1);setFeed([]);}} label="Deal information" groups={[
         {label:"Overview",sections:[{value:"Overview",label:"Opportunity"},{value:"Insights",label:"Insights"}]},
         {label:"People",sections:[{value:"Contacts",label:"Contacts & collaborators"}]},
         {label:"Commercial",sections:[{value:"Products & Quotations",label:"Products & quotations"},{value:"Tasks",label:"Tasks"}]},
@@ -135,8 +147,79 @@ function CloseDialog({record, outcome, close, saved}: {record: Row; outcome: "Wo
   const [reason, setReason] = useState(""), [date, setDate] = useState(defaultToday("crm")), [amount, setAmount] = useState(String(record.amount || 0));
   const [reference, setReference] = useState(""), [notes, setNotes] = useState(""), [quote, setQuote] = useState(""), [review, setReview] = useState(""), [onboard, setOnboard] = useState(false), [competitor, setCompetitor] = useState("");
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
-  return <Dialog open onOpenChange={open => {if (!open && !busy) close();}}><DialogContent className="ed-deal-decision max-h-[90dvh] overflow-auto"><DialogTitle>Mark deal as {outcome}</DialogTitle><CompactForm className="grid gap-3 text-sm" onSubmit={async e => {e.preventDefault();if(!canClose)return;setBusy(true);setError("");try {await api.post(`/crm/deal-workspace/${record.id}/close`, {outcome, expected_version: record.version || 1, reason, actual_close_date: date, actual_value: Number(amount), currency: record.currency || "INR", quotation_id: quote ? Number(quote) : null, contract_reference: reference, handover_notes: notes, competitor, reengagement_date: review || null, onboarding: onboard});saved();} catch(e) {setError(dealError(e));} finally {setBusy(false);}}}>
-    <label>Actual contract value ({record.currency || "INR"})<Input type="number" min={0} step="0.01" required value={amount} onChange={e => setAmount(e.target.value)}/></label><label>Actual closing date<Input type="date" required value={date} onChange={e => setDate(e.target.value)}/></label><label>{outcome} reason<Input required minLength={5} maxLength={2000} value={reason} onChange={e => setReason(e.target.value)}/></label>
-    {outcome === "Won" ? <><label>Linked quotation<NativeSelect className="block w-full rounded border bg-background p-2" value={quote} onChange={e => setQuote(e.target.value)}><option value="">No quotation</option>{(record.related?.quotations || []).map((item: Row) => <option key={item.id} value={item.id}>{item.quote_number || `#${item.id}`}</option>)}</NativeSelect></label><label>Contract reference<Input value={reference} onChange={e => setReference(e.target.value)}/></label><label className="flex gap-2"><input type="checkbox" disabled={!canCreate} checked={onboard} onChange={e => setOnboard(e.target.checked)}/>Create customer onboarding task</label></> : <><label>Competitor<Input value={competitor} onChange={e => setCompetitor(e.target.value)}/></label><label>Re-engagement date<Input type="date" min={defaultToday("crm")} disabled={!canCreate} value={review} onChange={e => setReview(e.target.value)}/></label></>}
-    <label>Internal handover / loss notes<textarea className="block min-h-20 w-full rounded border bg-background p-2" value={notes} onChange={e => setNotes(e.target.value)}/></label>{error && <p role="alert" className="text-destructive">{error}</p>}<div className="ed-deal-decision-submit"><Button disabled={busy||!canClose}>{busy ? "Saving..." : `Confirm ${outcome}`}</Button></div></CompactForm></DialogContent></Dialog>;
+  async function submit() {
+    if (!canClose || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.post(`/crm/deal-workspace/${record.id}/close`, {
+        outcome, expected_version: record.version || 1, reason,
+        actual_close_date: date, actual_value: Number(amount), currency: record.currency || "INR",
+        quotation_id: quote ? Number(quote) : null, contract_reference: reference,
+        handover_notes: notes, competitor, reengagement_date: review || null, onboarding: onboard,
+      });
+      saved();
+    } catch (err) {
+      setError(dealError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={open => { if (!open && !busy) close(); }}>
+      <DialogContent className="ed-deal-decision">
+        <header className="ed-deal-decision-header">
+          <DialogTitle>Mark deal as {outcome}</DialogTitle>
+          <DialogDescription>{record.name}</DialogDescription>
+        </header>
+        <CompactForm className="ed-deal-decision-form" compactTabs={false} onSubmit={event => {
+          event.preventDefault();
+          void submit();
+        }}>
+          <div className="ed-deal-decision-fields">
+            <div className="ed-decision-field-pair">
+              <label>Actual contract value ({record.currency || "INR"})
+                <Input type="number" min={0} step="0.01" required value={amount} onChange={event => setAmount(event.target.value)} />
+              </label>
+              <label>Actual closing date
+                <Input type="date" required value={date} onChange={event => setDate(event.target.value)} />
+              </label>
+            </div>
+            <label>{outcome} reason
+              <Input required minLength={5} maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} />
+            </label>
+            {outcome === "Won" ? <>
+              <label>Linked quotation
+                <NativeSelect value={quote} onChange={event => setQuote(event.target.value)}>
+                  <option value="">No quotation</option>
+                  {(record.related?.quotations || []).map((item: Row) => <option key={item.id} value={item.id}>{item.quote_number || `#${item.id}`}</option>)}
+                </NativeSelect>
+              </label>
+              <label>Contract reference
+                <Input value={reference} onChange={event => setReference(event.target.value)} />
+              </label>
+              <label className="ed-decision-checkbox">
+                <input type="checkbox" disabled={!canCreate} checked={onboard} onChange={event => setOnboard(event.target.checked)} />
+                Create customer onboarding task
+              </label>
+            </> : <>
+              <label>Competitor<Input value={competitor} onChange={event => setCompetitor(event.target.value)} /></label>
+              <label>Re-engagement date
+                <Input type="date" min={defaultToday("crm")} disabled={!canCreate} value={review} onChange={event => setReview(event.target.value)} />
+              </label>
+            </>}
+            <label>Internal handover / loss notes
+              <textarea value={notes} onChange={event => setNotes(event.target.value)} />
+            </label>
+            {error && <p role="alert" className="ed-decision-error">{error}</p>}
+          </div>
+          <footer className="ed-deal-decision-submit">
+            <Button type="button" variant="outline" disabled={busy} onClick={close}>Cancel</Button>
+            <Button type="submit" disabled={busy || !canClose}>{busy ? "Saving…" : `Confirm ${outcome}`}</Button>
+          </footer>
+        </CompactForm>
+      </DialogContent>
+    </Dialog>
+  );
 }

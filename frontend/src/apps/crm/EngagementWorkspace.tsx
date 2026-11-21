@@ -1,3 +1,4 @@
+import CRMPageHeader from "./CRMPageHeader";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -220,8 +221,14 @@ function ScopedEngagementWorkspace({kind, scope}: {kind:Kind;scope:string}) {
         { id: 'notes', title: 'Notes', icon: FileText, accessor: row => richTextPlainText(row.description || row.notes || '') },
     ];
     return <main className="space-y-5" aria-label={`CRM ${kind} workspace`}>
-    <header className="flex flex-wrap items-center justify-between gap-4"><div><p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Customer conversations</p><h1 className="flex items-center gap-2 text-2xl font-semibold">{meeting ? <CalendarDays /> : <PhoneCall />}{meeting ? 'Meetings' : 'Calls'}</h1><p className="mt-2 text-sm text-muted-foreground">{meeting ? 'Plan a purposeful conversation, check your schedule and capture the outcome.' : 'Keep the call context, duration and outcome together with the customer record.'}</p></div><button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={!canManage} onClick={() => open()}><Plus size={16}/>{meeting ? 'Schedule meeting' : 'Log call'}</button></header>
-    <nav className="flex flex-wrap gap-2 text-sm" aria-label="Conversation navigation">{[['/crm/meetings', 'Meetings'], ['/crm/calls', 'Calls'], ['/crm/tasks', 'Tasks'], ['/crm/calendar', 'Calendar'], ['/crm/activities', 'Activity history']].map(([url, label]) => <Link className="rounded-md border px-3 py-2" key={url} to={url}>{label}</Link>)}</nav>
+    <CRMPageHeader
+      title={meeting ? "Meetings" : "Calls"}
+      description={meeting ? "Schedule customer meetings and record their outcomes." : "Keep call history and next steps with the customer record."}
+      actions={<Button type="button" disabled={!canManage} onClick={() => open()}>
+        <Plus size={16} aria-hidden="true" />{meeting ? "Schedule meeting" : "Log call"}
+      </Button>}
+    />
+    <nav className="flex flex-wrap gap-2 text-sm" aria-label="Conversation navigation">{[['/crm/meetings', 'Meetings'], ['/crm/calls', 'Calls'], ['/crm/tasks', 'Tasks'], ['/crm/calendar', 'Calendar'], ['/crm/activities', 'Activity history']].map(([url, label]) => <Link className="crm-workspace-link" key={url} to={url} aria-current={url === (meeting ? "/crm/meetings" : "/crm/calls") ? "page" : undefined}>{label}</Link>)}</nav>
     {notice && <p role="status" className="rounded-md border p-3 text-sm">{notice}</p>}
     {error && <p role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{error} <Button type="submit" variant="outline" className="underline" onClick={() => setRevision(v => v + 1)}>Retry</Button></p>}
     <div className="flex flex-wrap gap-2" role="group" aria-label="Conversation period">{[['all', 'All'], ['today', 'Today'], ['upcoming', 'Upcoming'], ['past', 'Past']].map(([key, label]) => <button key={key} aria-pressed={view === key} className={`rounded-md border px-3 py-2 text-sm ${view === key ? 'bg-primary text-primary-foreground' : ''}`} onClick={() => { setView(key); setPage(1); }}>{label}</button>)}</div>

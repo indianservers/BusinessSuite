@@ -1,3 +1,4 @@
+import CRMPageHeader from "./CRMPageHeader";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useSearchParams } from "react-router-dom";
 import { refreshPageData } from "@/lib/page-refresh";
@@ -117,13 +118,7 @@ export function CRMTransferHub() {
     [revision, setRevision] = useState(0);
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Import & Export</h1>
-        <p className="page-description">
-          Bring your spreadsheet into CRM. Match columns, review your rows, then
-          import.
-        </p>
-      </div>
+      <CRMPageHeader title="Import & Export" description="Match spreadsheet columns to CRM fields and review your rows before importing." />
       <section className="rounded-xl border bg-card p-6 space-y-5">
         <label className="block text-sm font-medium">
           What data are you working with?

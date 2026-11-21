@@ -1,3 +1,5 @@
+import CRMPageHeader from "./CRMPageHeader";
+import { NativeSelect } from "@/components/ui/native-select";
 import CRMReportBuilder from "./CRMReportBuilder";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
@@ -20,5 +22,36 @@ const reports = [
 export default function CRMReportDirectory() {
     const [search, setSearch] = useState(''), [group, setGroup] = useState('All');
     const filtered = reports.filter(r => (group === 'All' || r.group === group) && `${r.name} ${r.description}`.toLowerCase().includes(search.trim().toLowerCase()));
-    return <section className="space-y-4 rounded-xl border bg-card p-4 sm:p-6" aria-label="CRM report directory"><header><h1 className="text-2xl font-semibold">Reports and insights</h1><p className="mt-2 text-sm text-muted-foreground">Choose the question you want to answer. Win/loss analysis remains below.</p></header><div className="flex flex-wrap gap-3"><label className="flex min-w-0 flex-[1_1_240px] items-center gap-2 rounded-md border px-3 py-2"><Search size={16}/><input className="min-w-0 flex-1 bg-transparent outline-none" aria-label="Search report directory" placeholder="Find a report or a business question…" value={search} onChange={e => setSearch(e.target.value)}/></label><select className="rounded border bg-background p-2 text-sm" aria-label="Report category" value={group} onChange={e => setGroup(e.target.value)}>{['All', 'Sales', 'Planning', 'Relationships', 'Execution'].map(v => <option key={v}>{v}</option>)}</select></div><GroupedRecords scope="apps/crm/CRMReportDirectory:cards-1" items={(filtered) || []} fields={standardRecordGroups((filtered) || [])} gridClassName="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" renderItem={r => <Link key={r.path} to={r.path} className="group rounded-lg border p-4 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><span className="text-xs text-muted-foreground">{r.group}</span><h2 className="mt-2 flex items-center justify-between gap-2 font-medium">{r.name}<ArrowUpRight size={15}/></h2><p className="mt-2 text-sm text-muted-foreground">{r.description}</p></Link>}/>{!filtered.length && <p role="status" className="py-4 text-sm text-muted-foreground">No matching reports. Try another search or category.</p>}<CRMReportBuilder/></section>;
+    return (
+        <section className="min-w-0 space-y-4" aria-label="CRM report directory">
+            <CRMPageHeader title="Reports and insights" description="Explore sales performance, customer activity, and revenue forecasts." />
+            <div className="flex flex-wrap gap-2 rounded-xl border bg-card p-3">
+                <label className="flex min-w-0 flex-[1_1_220px] items-center gap-2 rounded-md border bg-background px-3 py-2">
+                    <Search size={16} aria-hidden="true" className="shrink-0 text-muted-foreground" />
+                    <input className="min-w-0 flex-1 bg-transparent outline-none" aria-label="Search report directory"
+                        placeholder="Find a report…" value={search} onChange={event => setSearch(event.target.value)} />
+                </label>
+                <NativeSelect className="min-h-11 rounded-md border bg-background px-3 text-sm" aria-label="Report category"
+                    value={group} onChange={event => setGroup(event.target.value)}>
+                    {["All", "Sales", "Planning", "Relationships", "Execution"].map(value =>
+                        <option key={value} value={value}>{value === "All" ? "All categories" : value}</option>)}
+                </NativeSelect>
+            </div>
+            {filtered.length ? (
+                <GroupedRecords scope="apps/crm/CRMReportDirectory:cards-1" items={filtered}
+                    fields={standardRecordGroups(filtered)} gridClassName="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                    renderItem={report => (
+                        <Link key={report.path} to={report.path} className="crm-report-link">
+                            <span className="text-xs font-medium text-primary">{report.group}</span>
+                            <h2 className="flex items-start justify-between gap-2 font-semibold">
+                                {report.name}<ArrowUpRight size={16} aria-hidden="true" className="shrink-0 text-muted-foreground" />
+                            </h2>
+                            <p className="text-sm leading-relaxed text-muted-foreground">{report.description}</p>
+                        </Link>
+                    )}
+                />
+            ) : <p role="status" className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No reports match. Try another search or category.</p>}
+            <CRMReportBuilder />
+        </section>
+    );
 }

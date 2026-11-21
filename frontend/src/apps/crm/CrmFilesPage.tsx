@@ -1,3 +1,4 @@
+import CRMPageHeader from "./CRMPageHeader";
 import { useModuleAction } from "@/hooks/use-module-action";
 import { Button } from "@/components/ui/button";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -86,12 +87,7 @@ function FilesWorkspace({ scope }: { scope: string }) {
   }
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="page-title">CRM Files</h1>
-        <p className="page-description">
-          Upload files and organize them into shared folders.
-        </p>
-      </div>
+      <CRMPageHeader title="CRM Files" description="Upload and organize shared sales documents." />
       {(error || query.isError) && (
         <p role="alert" className="move-error">
           {error || "Unable to load files."}
@@ -99,16 +95,16 @@ function FilesWorkspace({ scope }: { scope: string }) {
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      <label>
-        Upload folder{" "}
+      <label className="grid max-w-sm gap-2 text-sm font-medium">
+        Upload folder
         <NativeSelect loading={query.isFetching} error={query.isError}
-          className="input max-w-xs"
+          className="input w-full min-w-0"
           disabled={!canCreate || busy}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
         >
           <option value="">Unfiled</option>
-          {query.data?.folders.map((f) => (
+          {query.data?.folders?.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
             </option>
@@ -116,7 +112,7 @@ function FilesWorkspace({ scope }: { scope: string }) {
         </NativeSelect>
       </label>
       <div
-        className={`rounded-xl border-2 border-dashed p-8 text-center ${over ? "border-primary bg-primary/5" : "border-border"}`}
+        className={`crm-file-upload rounded-xl border-2 border-dashed p-4 text-center sm:p-8 ${over ? "border-primary bg-primary/5" : "border-border"}`}
         onDragOver={(e) => {
           if (canCreate && e.dataTransfer.types.includes("Files")) {
             e.preventDefault();
@@ -132,6 +128,7 @@ function FilesWorkspace({ scope }: { scope: string }) {
       >
         <p>{busy ? "Uploading…" : "Drop files here or choose files"}</p>
         <input
+          className="max-w-full"
           type="file"
           aria-label="Upload CRM files"
           multiple
@@ -144,7 +141,7 @@ function FilesWorkspace({ scope }: { scope: string }) {
       </div>
       <SmartCreateSection title="Create folder"><div className="flex gap-2">
         <input
-          className="input max-w-xs"
+          className="input w-full min-w-0"
           aria-label="CRM folder name"
           disabled={!canCreate || busy}
           value={name}
