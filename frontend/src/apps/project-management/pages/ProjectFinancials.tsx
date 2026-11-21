@@ -11,6 +11,7 @@ import { defaultText, defaultsScope } from "@/lib/form-defaults";
 import { formatCurrencyPrecise } from "@/lib/utils";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
 import { workspaceError } from "./workspaceTypes";
 import "../components/WorkMovementPage.css";
 
@@ -18,6 +19,7 @@ type FinancialRow = {project_id:number;project_key:string;project_name:string;st
 const number = (value:unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 export default function ProjectFinancials() {
   const { term: businessTerm } = useBusinessTerms();
+  const mobile = useMobile(480);
   const [search,setSearch] = useState("");
   const [project,setProject] = useState("");
   const currency = defaultText("currency", "project_management") || "INR";
@@ -33,7 +35,7 @@ export default function ProjectFinancials() {
     {query.isPending?<p className="wm-empty" role="status">Loading project financials…</p>:<>
       <div className="wm-financial-metrics">{[["Recorded budget",money(sum("budget_amount"))],["Recorded cost",money(sum("actual_cost"))],["Budget remaining",money(sum("variance_amount"))],["Billable hours",`${sum("billable_hours").toLocaleString(undefined,{maximumFractionDigits:2})}h`]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
       <p className="text-xs text-muted-foreground">Amounts shown in {currency}. Budget remaining is budget less recorded cost; it is not recognized profit or an invoice balance.</p>
-      <div className="wm-table"><GridTable gridId="pms-project-financials" aria-label="Project budget and actual cost" pinActions><thead><tr><th data-business-field="project">Project</th><th>Budget</th><th>Actual cost</th><th>Budget remaining</th><th>Planned hours</th><th>Logged hours</th><th>Billable hours</th><th>Billing status</th></tr></thead><tbody>{rows.map(row=><tr key={row.project_id}><td><Link to={`/pms/projects/${row.project_id}`}><strong>{row.project_name}</strong><small className="block">{row.project_key}</small></Link></td><td>{money(row.budget_amount)}</td><td>{money(row.actual_cost)}</td><td className={number(row.variance_amount)<0?"text-destructive":""}>{money(row.variance_amount)}</td><td>{number(row.estimated_hours).toLocaleString()}h</td><td>{number(row.actual_hours).toLocaleString(undefined,{maximumFractionDigits:2})}h</td><td>{number(row.billable_hours).toLocaleString(undefined,{maximumFractionDigits:2})}h</td><td>{row.billing_status||"Unbilled"}</td></tr>)}</tbody></GridTable></div>
+      {(!mobile||rows.length>0)&&<div className="wm-table"><GridTable gridId="pms-project-financials" aria-label="Project budget and actual cost" pinActions><thead><tr><th data-business-field="project">Project</th><th>Budget</th><th>Actual cost</th><th>Budget remaining</th><th>Planned hours</th><th>Logged hours</th><th>Billable hours</th><th>Billing status</th></tr></thead><tbody>{rows.map(row=><tr key={row.project_id}><td><Link to={`/pms/projects/${row.project_id}`}><strong>{row.project_name}</strong><small className="block">{row.project_key}</small></Link></td><td>{money(row.budget_amount)}</td><td>{money(row.actual_cost)}</td><td className={number(row.variance_amount)<0?"text-destructive":""}>{money(row.variance_amount)}</td><td>{number(row.estimated_hours).toLocaleString()}h</td><td>{number(row.actual_hours).toLocaleString(undefined,{maximumFractionDigits:2})}h</td><td>{number(row.billable_hours).toLocaleString(undefined,{maximumFractionDigits:2})}h</td><td>{row.billing_status||"Unbilled"}</td></tr>)}</tbody></GridTable></div>}
       {!rows.length&&<div className="wm-empty"><h2>No project financials match</h2><p>{all.length?"Clear the filters or choose another project.":"Financials appear when you have access to a project."}</p><Link to="/pms/projects">Open projects</Link></div>}
       <footer className="wm-footer"><span>{rows.length} matching projects · Totals follow the filters above.</span><Link to="/pms/time-tracking">Review time entries →</Link></footer>
     </>}
