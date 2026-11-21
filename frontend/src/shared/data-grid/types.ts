@@ -173,6 +173,8 @@ export type SharedDataGridProps<T> = {
   /** Compact nested table controls without discarding personal views or summaries. */
   compactControls?: boolean;
   mobileToolsCollapsible?: boolean;
+  /** Column IDs to show first in the compact mobile card. */
+  mobileCardPriority?: readonly string[];
   /** Place the existing saved-view control in a collection-owned toolbar. */
   savedViewsHost?: HTMLElement | null;
   savedViewsExtra?: ReactNode;

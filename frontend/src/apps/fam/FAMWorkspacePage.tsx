@@ -49,10 +49,12 @@ import { bankStatementFields } from "@/shared/data-transfer/fields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
+import { canAccessRoute } from "@/lib/roles";
+import { useAuthStore } from "@/store/authStore";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { cloneElement, forwardRef, isValidElement, useMemo, useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link as RouterLink, useLocation, useParams, type LinkProps } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate, useParams, type LinkProps } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowRight, BadgeIndianRupee, BarChart3, BookOpen, Box, Boxes, Building2, CalendarDays, Copy, FileText, GitBranch, GitCompareArrows, Landmark, Layers3, LockKeyhole, Package, Plus, Receipt, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users, Warehouse } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -263,6 +265,32 @@ function State({ label, isLoading, isError }: { label: string; isLoading?: boole
 // Keep feedback identification stable in production bundles.
 State.displayName = "State";
 
+const financeShortcuts = [
+  { label: "New voucher", to: "/fam/vouchers/new" },
+  { label: "Ledgers", to: "/fam/ledgers" },
+  { label: "Vouchers", to: "/fam/vouchers" },
+  { label: "Receivables", to: "/fam/ar/outstanding" },
+  { label: "Payables", to: "/fam/ap/outstanding" },
+  { label: "Reconcile bank", to: "/fam/bank-reconciliation" },
+  { label: "Financial statements", to: "/fam/financial-statements" },
+];
+
+function FinanceShortcuts({ label, links, current }: {
+  label: string;
+  links: ReadonlyArray<{ label: string; to: string }>;
+  current?: string;
+}) {
+  const user = useAuthStore(state => state.user);
+  const available = links.filter(({ to }) => canAccessRoute(to, user?.role, user?.is_superuser));
+  if (!available.length) return null;
+
+  return (
+    <nav className="fam-dashboard-links" aria-label={label}>
+      {available.map(link => <Link key={link.to} to={link.to} aria-current={link.to === current ? "page" : undefined}>{link.label}</Link>)}
+    </nav>
+  );
+}
+
 function DashboardView() {
   const query = useQuery({ queryKey: ["fam", "dashboard"], queryFn: famApi.dashboard });
   const data = (query.data || {}) as FAMRecord;
@@ -282,14 +310,8 @@ function DashboardView() {
   return (
     <div className="space-y-5">
       <State label="FAM dashboard" isLoading={query.isLoading} isError={query.isError} />
-<ModuleWorkflows module="fam" />
-      <nav className="fam-dashboard-links" aria-label="Finance shortcuts">
-        <Link to="/fam/ledgers">Ledgers</Link>
-        <Link to="/fam/vouchers">Vouchers</Link>
-        <Link to="/fam/ar/outstanding">Receivables</Link>
-        <Link to="/fam/ap/outstanding">Payables</Link>
-        <Link to="/fam/financial-statements">Financial statements</Link>
-      </nav>
+      <div className="fam-desktop-workflows"><ModuleWorkflows module="fam" /></div>
+      <FinanceShortcuts label="Finance shortcuts" links={financeShortcuts} />
       <div className="grid gap-3 md:grid-cols-4 fam-balance-summary">
         {kpis.filter(([label]) => ["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => (
           <Card key={label}><SuiteMetric label={label} value={value} icon={label === "Cash and bank" ? Landmark : label === "Overdue AR" ? AlertTriangle : Receipt}/></Card>
@@ -353,6 +375,11 @@ function SettingsView() {
 }
 
 const moneyColumn = /(?:^|_)(?:amount|balance|debit|credit|total|value)(?:_|$)/;
+const financeCardFields = [
+  "ledger_name", "voucher_number", "bill_number",
+  "running_balance", "outstanding_amount", "total_debit", "total_credit",
+  "debit_amount", "credit_amount", "status",
+].map(column => column.replace(/_/g, " "));
 
 function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspacePage:table-1", preview=true }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode; gridId?:string; preview?:boolean }) {
   const { pathname } = useLocation();
@@ -363,9 +390,42 @@ function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspace
   const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
   return (
     <div className={financeGrid ? "fam-record-grid overflow-x-auto rounded-lg border" : "overflow-x-auto rounded-lg border"}>
-      <GridTable gridId={gridId} className="w-full min-w-[780px] text-sm">
+      <GridTable
+        gridId={gridId}
+        className="w-full min-w-[780px] text-sm"
+        mobileCardPriority={financeGrid ? financeCardFields : undefined}
+        mobileToolsCollapsible={financeGrid}
+      >
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2" style={financeGrid && phone && moneyColumn.test(column) ? { width: 160 } : undefined}>{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}{definitionName&&<th className="px-3 py-2">Ledger actions</th>}</tr></thead>
-        <tbody>{rows.map((row) => <tr {...(preview?recordPreviewProps(row):{})} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2" data-fam-amount={financeGrid && moneyColumn.test(column) || undefined}>{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}{renderActions&&<td>{renderActions(row)}</td>}{definitionName&&<td className="flex gap-2 px-3 py-2"><RecordDefinitionActions record={row} nameField={definitionName} endpoint={`${pathname}/${row.id}`} queryKeys={["fam"]} permissions={["fam_admin","fam_chart_manage"]}/></td>}</tr>)}</tbody>
+        <tbody>
+          {rows.map(row => (
+            <tr {...(preview ? recordPreviewProps(row) : {})} key={String(row.id)} className="border-t">
+              {columns.map((column, index) => {
+                const value = text(row[column]);
+                const ledgerEntries = pathname === "/fam/ledgers" && column === "ledger_name";
+                const destination = ledgerEntries ? "/fam/ledgers/" + row.id + "/entries" : index === 0 && detailBase ? detailBase + "/" + row.id : undefined;
+                const action = ledgerEntries ? "View entries for " + value : "Open " + pathname.split("/").pop()?.replace(/-/g, " ") + " · " + value;
+                return (
+                  <td key={column} className="px-3 py-2" data-fam-amount={financeGrid && moneyColumn.test(column) || undefined}>
+                    {destination && row.id ? (
+                      <Link data-context-action={action} to={destination} className="text-primary underline">{value}</Link>
+                    ) : column.includes("status") || column === "nature" ? (
+                      <Badge variant={statusTone(row[column])}>{value}</Badge>
+                    ) : ["notes", "remarks", "narration", "description"].includes(column) ? (
+                      <RichTextContent legacyFormat="plain" value={String(row[column] || "")} />
+                    ) : value}
+                  </td>
+                );
+              })}
+              {renderActions && <td>{renderActions(row)}</td>}
+              {definitionName && (
+                <td className="flex gap-2 px-3 py-2">
+                  <RecordDefinitionActions record={row} nameField={definitionName} endpoint={pathname + "/" + row.id} queryKeys={["fam"]} permissions={["fam_admin", "fam_chart_manage"]} />
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
       </GridTable>
     </div>
   );
@@ -484,6 +544,7 @@ function voucherDraft(kind: FAMViewKind): FAMRecord {
 function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const phone=useMobile(480);
   const params = useParams();
+  const navigate = useNavigate();
   const canCreate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"create");
   const canUpdate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"edit");
   const canPost = useFinanceWrite(["fam_admin","fam_vouchers_post"],"approve");
@@ -504,6 +565,16 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
     mutationFn: () => (mode === "detail" && voucherId ? famApi.updateVoucher(voucherId, { ...effective, total_debit: debitTotal, total_credit: creditTotal }) : famApi.createVoucher({ ...effective, total_debit: debitTotal, total_credit: creditTotal })),
     onSuccess: () => { toast({ title: "Voucher draft saved" }); if (mode === "detail") setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
    onError: showMutationError });
+  function saveDraft() {
+    saveMutation.mutate(undefined, {
+      onSuccess: saved => {
+        if (phone && mode !== "detail" && saved?.id) {
+          setDraft({});
+          navigate("/fam/vouchers/" + saved.id, { replace: true });
+        }
+      },
+    });
+  }
   const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); if(phone)setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); if(phone)setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const reverseMutation = useMutation({ mutationFn: () => famApi.reverseVoucher(voucherId), onSuccess: () => { toast({ title: "Reversal voucher created" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
@@ -570,7 +641,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
 </>},
       ]}/>
       <ActionToolbar label="Voucher actions" actions={[
-        {id:"save",kind:"save",label:"Save draft",prominent:true,primary:true,available:canEdit,loading:saveMutation.isPending,onSelect:()=>saveMutation.mutate()},
+        {id:"save",kind:"save",label:"Save draft",prominent:true,primary:true,available:canEdit,loading:saveMutation.isPending,onSelect:saveDraft},
         {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:canPost&&!!voucherId&&String(voucherStatus||"draft")==="draft",loading:postMutation.isPending,disabled:Boolean(difference)||phoneUnsaved||phoneRecordUnavailable,disabledReason:difference?"Balance debit and credit totals before posting":phoneRecordUnavailable?"Load the latest saved voucher before posting":phoneUnsaved?"Save draft changes before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
         {id:"clone",kind:"copy",label:"Clone voucher",prominent:true,available:canCreate&&!!voucherId&&!!voucherQuery.data,loading:cloneMutation.isPending,onSelect:()=>cloneMutation.mutate()},
         {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:canCancel&&!!voucherId&&["draft","posted"].includes(String(voucherStatus)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
@@ -631,17 +702,26 @@ function PartyDetailView() {
   return <div className="space-y-4"><div className="grid gap-3 fam-balance-summary md:grid-cols-4"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Party</p><p className="text-lg font-semibold">{text(data.legal_name)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Ledger</p><p className="text-lg font-semibold">{text(data.ledger_id)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Credit limit</p><p className="text-lg font-semibold">{money(data.credit_limit)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Outstanding</p><p className="text-lg font-semibold">{money((outstanding.data as FAMRecord | undefined)?.outstanding)}</p></CardContent></Card></div><Card><CardHeader><CardTitle className="text-base">Statement and bill references</CardTitle></CardHeader><CardContent><State label="party detail" isLoading={party.isLoading || statement.isLoading} isError={party.isError || statement.isError} /><DataTable rows={(statementData.billReferences as FAMRecord[] | undefined) || []} columns={["bill_number", "bill_date", "due_date", "bill_type", "original_amount", "outstanding_amount", "status"]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Allocations</CardTitle></CardHeader><CardContent><DataTable rows={(statementData.allocations as FAMRecord[] | undefined) || []} columns={["allocation_date", "allocation_type", "allocated_amount", "from_bill_reference_id", "to_bill_reference_id"]} /></CardContent></Card></div>;
 }
 
+function BalanceViewLinks({ kind, view }: { kind: "ar" | "ap"; view: "aging" | "outstanding" }) {
+  const root = "/fam/" + kind;
+  const links = [
+    { label: "Outstanding", to: root + "/outstanding" },
+    { label: "Aging", to: root + "/aging" },
+  ];
+  return <FinanceShortcuts label={kind === "ar" ? "Receivables views" : "Payables views"} links={links} current={root + "/" + view} />;
+}
+
 function AgingView({ kind }: { kind: "ar" | "ap" }) {
   const query = useQuery({ queryKey: ["fam", kind, "aging"], queryFn: kind === "ar" ? famApi.arAging : famApi.apAging });
   const data = (query.data || {}) as FAMRecord;
   const buckets = data.buckets as Record<string, number> | undefined;
-  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm text-muted-foreground">Bill-wise aging is exportable for collections, audit, and review.</div><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} aging CSV`} /></div><div className="grid gap-3 fam-balance-summary md:grid-cols-6">{["Not due", "0-30", "31-60", "61-90", "91-180", ">180"].map((bucket) => <Card key={bucket}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{bucket}</p><p className="text-lg font-semibold">{money(buckets?.[bucket])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">{kind.toUpperCase()} aging details</CardTitle></CardHeader><CardContent><State label={`${kind} aging`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["bill_number", "party_id", "due_date", "aging_bucket", "overdue_days", "outstanding_amount", "status"]} /></CardContent></Card></div>;
+  return <div className="space-y-4"><BalanceViewLinks kind={kind} view="aging" /><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm text-muted-foreground">Bill-wise aging is exportable for collections, audit, and review.</div><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} aging CSV`} /></div><div className="grid gap-3 fam-balance-summary md:grid-cols-6">{["Not due", "0-30", "31-60", "61-90", "91-180", ">180"].map((bucket) => <Card key={bucket}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{bucket}</p><p className="text-lg font-semibold">{money(buckets?.[bucket])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">{kind.toUpperCase()} aging details</CardTitle></CardHeader><CardContent><State label={`${kind} aging`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["bill_number", "party_id", "due_date", "aging_bucket", "overdue_days", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function OutstandingView({ kind }: { kind: "ar" | "ap" }) {
   const query = useQuery({ queryKey: ["fam", kind, "outstanding"], queryFn: kind === "ar" ? famApi.arOutstanding : famApi.apOutstanding });
   const data = (query.data || {}) as FAMRecord;
-  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><Card className="sm:min-w-72"><CardContent className="p-4"><p className="text-xs text-muted-foreground">{kind.toUpperCase()} total outstanding</p><p className="text-2xl font-semibold">{money(data.totalOutstanding)}</p></CardContent></Card><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} outstanding CSV`} /></div><Card><CardContent className="p-5"><State label={`${kind} outstanding`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "outstanding_amount", "status"]} /></CardContent></Card></div>;
+  return <div className="space-y-4"><BalanceViewLinks kind={kind} view="outstanding" /><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><Card className="sm:min-w-72"><CardContent className="p-4"><p className="text-xs text-muted-foreground">{kind.toUpperCase()} total outstanding</p><p className="text-2xl font-semibold">{money(data.totalOutstanding)}</p></CardContent></Card><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} outstanding CSV`} /></div><Card><CardContent className="p-5 fam-mobile-balance-list"><State label={`${kind} outstanding`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function BillReferencesView() {

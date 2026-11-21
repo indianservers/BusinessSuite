@@ -20,6 +20,10 @@
     overflow-wrap: anywhere;
   }
 
+  .fam-desktop-workflows {
+    display: none;
+  }
+
   .fam-dashboard-links {
     display: flex;
     flex-wrap: wrap;
@@ -35,6 +39,12 @@
     border-radius: 8px;
     color: hsl(var(--primary));
     background: hsl(var(--card));
+  }
+
+  .fam-dashboard-links a[aria-current="page"] {
+    background: hsl(var(--primary) / 0.1);
+    border-color: hsl(var(--primary));
+    font-weight: 600;
   }
 
   .fam-record-grid .udg-record-fields {
@@ -55,6 +65,12 @@
     overflow-wrap: anywhere;
   }
 
+  .fam-record-grid .udg-record-field .udg-adapted-cell a[data-context-action] {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+  }
+
   .fam-record-grid .udg-cell [data-fam-amount] {
     text-align: end;
     white-space: nowrap;
@@ -62,6 +78,10 @@
 }
 
 @media (max-width: 480px) {
+  .fam-mobile-balance-list {
+    padding: 12px;
+  }
+
   .fam-balance-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;

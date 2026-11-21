@@ -34,7 +34,7 @@ function businessHeaders(children: ReactNode, profile: ResolvedProfile, inside =
 }
 
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
-export default function GridTable({ children, gridId, allowExport = false, pinActions = false, personalViews = true, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; personalViews?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
+export default function GridTable({ children, gridId, allowExport = false, pinActions = false, personalViews = true, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, mobileCardPriority, mobileToolsCollapsible, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; personalViews?: boolean; mobileCardPriority?: readonly string[]; mobileToolsCollapsible?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
   const { profile } = useBusinessTerms();
   children = useSyncedTable(children, gridId);
   children = businessHeaders(children, profile);
@@ -83,6 +83,9 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
       },
     };
   });
+  const mobilePriorityIds = mobileCardPriority?.flatMap(title => columns
+    .filter(column => column.sourceTitle === title)
+    .map(column => column.id));
   const signature = JSON.stringify(records);
   const revision = useMemo(() => {
     let hash = 2166136261;
@@ -104,6 +107,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
     <SharedDataGrid<RecordRow> gridId={scope} title={attributes["aria-label"] || caption || "Records"}
       dataScope="loaded" personalViews={personalViews} emptyContent={emptyState} detailsEnabled={!rows.some(row=>typeof row.props.onClick==="function"||typeof row.props.onClickCapture==="function"||hasRecordOpenControl(row.props.children))}
       hideSearch={hideSearch} externalPagination={externalPagination}
+      mobileCardPriority={mobilePriorityIds} mobileToolsCollapsible={mobileToolsCollapsible}
       initialQuery={{...(externalPagination ? {pageSize:200} : {}),...(defaultGroupBy ? {grouping:columns.filter(column=>column.title===defaultGroupBy).map(column=>column.id)} : {})}}
       columns={columns} dataSource={source} refreshKey={revision} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}

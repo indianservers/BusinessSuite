@@ -1320,6 +1320,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     const fields = columns.filter(column => column.id !== "__suite_favorite" && layout.visibility[column.id] !== false && !/^(select|actions?|quick actions)$/i.test(column.title));
     if (mobile) fields.sort((a, b) => {
       const rank = (column: GridColumn<T>) => /^(name|title|full_name|fullName|subject)$/i.test(column.id) || /^(name|title|full name|subject|customer|employee|project|deal|lead|contact|company|sales order|invoice|contract|record|item|product)$/i.test(column.sourceTitle || column.title) ? 0 : column.type === "status" ? 1 : /due|next.*(date|action|follow)/i.test(column.title) ? 2 : column.type === "owner" ? 3 : 4;
+      const priority = props.mobileCardPriority;
+      if (priority?.length) {
+        const aPriority = priority.indexOf(a.id);
+        const bPriority = priority.indexOf(b.id);
+        const unlisted = priority.length;
+        const order = (aPriority < 0 ? unlisted : aPriority) - (bPriority < 0 ? unlisted : bPriority);
+        if (order) return order;
+      }
       return rank(a) - rank(b);
     });
     const more = expandedCards.includes(getRowId(record));
