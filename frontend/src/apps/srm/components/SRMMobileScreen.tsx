@@ -23,9 +23,9 @@ export default function SRMMobileScreen({children,paths,nativePath}:{children:Re
   const insideCreation = useContext(CreationSurfaceContext);
   const operation=new URLSearchParams(location.search).get('operation')||nativePath||location.pathname;
   const terminal=/^\/srm\/pos(?:\/terminal)?\/?$/.test(operation);
-  return !mobile||insideCreation||terminal||/^\/srm\/(appointments|service-scheduling)\/?$/.test(operation)?<>{children}</>:<MobileScreen key={location.pathname} paths={paths}>{children}</MobileScreen>;
+  return !mobile||insideCreation||terminal||/^\/srm\/(appointments|service-scheduling)\/?$/.test(operation)?<>{children}</>:<MobileScreen key={location.pathname} paths={paths} operation={operation}>{children}</MobileScreen>;
 }
-function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
+function MobileScreen({children,paths,operation}:{children:ReactNode;paths:string[];operation:string}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
   const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
@@ -39,7 +39,9 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
   const catalog = /^\/srm\/(products-services|products|services|pos\/products)\/?$/.test(location.pathname);
   const cashierClosing = /^\/srm\/pos\/cashier-closing\/?$/.test(location.pathname);
-  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || cashierClosing;
+  const inventoryMovement = /^\/srm\/inventory\/(stock-in|stock-out|stock-transfers|stock-adjustments|opening-stock|delivery-notes)\/?$/;
+  const inventoryForm = inventoryMovement.test(operation) || inventoryMovement.test(location.pathname);
+  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || cashierClosing || inventoryForm;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
@@ -93,8 +95,8 @@ function MobileScreen({children,paths}:{children:ReactNode;paths:string[]}){
   },[scrollPage]);
   useEffect(()=>{if(!scrollPage)goto(0);},[scrollPage,location.search,goto]);
   useLayoutEffect(() => {
-    if (reports && viewport.current) viewport.current.scrollTop = 0;
-  }, [reports, reportOperation]);
+    if ((reports || inventoryForm) && viewport.current) viewport.current.scrollTop = 0;
+  }, [reports, reportOperation, inventoryForm, operation]);
   const nativeInvalid=(event:React.InvalidEvent<HTMLDivElement>)=>{
     const target=event.target as HTMLElement;
     const index=pages.current.findIndex(page=>page.units.some(unit=>unit===target||unit.contains(target)));
