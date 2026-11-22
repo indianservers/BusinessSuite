@@ -1,0 +1,12 @@
+{
+  "companies": [
+    {
+      "industry": "hospital",
+      "email": "androidreception.hospital@example.com",
+      "workspace": "company-60",
+      "company_id": 1000000060,
+      "branch_id": 1,
+      "name": "[Local QA] Cedar Point Clinic Reception QA"
+    }
+  ]
+}

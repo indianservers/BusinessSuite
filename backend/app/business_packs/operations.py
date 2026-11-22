@@ -26,6 +26,11 @@ def require(db, actor, *actions):
         raise HTTPException(403, 'Assigned Business Pack role cannot perform this operation')
 
 
+def can_view_booking_service(scope, actions, source, kind):
+    return (scope.pack_key == 'hospital' and source == 'srm' and kind == 'service'
+            and 'appointments.schedule' in actions)
+
+
 def for_record_read(db, actor, kind):
     actions = {
         'appointment': ('appointments.view', 'reservations.schedule'),

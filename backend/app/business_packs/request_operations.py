@@ -14,7 +14,7 @@ from sqlalchemy import exists, select
 from starlette.routing import Match
 
 from .access import PackScope
-from .operations import capabilities, for_record_read
+from .operations import capabilities, can_view_booking_service, for_record_read
 from .request_scope import RouteKind, classify_route
 
 
@@ -160,14 +160,14 @@ _RULES = {
     ('GET', '/api/v1/srm/retail/returns/{return_id}'): RequestOperation(('returns.approve', 'payments.record')),
     ('GET', '/api/v1/srm/retail/returns/sales/{checkout_id}'): RequestOperation(('returns.approve', 'payments.record')),
     ('GET', '/api/v1/srm/retail/returns/requests/{request_key}'): RequestOperation(('returns.approve', 'payments.record')),
-    ('GET', '/api/v1/catalog/items'): RequestOperation(('catalog.view',)),
-    ('GET', '/api/v1/catalog/items/{kind}/{ident}'): RequestOperation(('catalog.view',)),
+    ('GET', '/api/v1/catalog/items'): RequestOperation(('catalog.view',), mode='catalog_read'),
+    ('GET', '/api/v1/catalog/items/{kind}/{ident}'): RequestOperation(('catalog.view',), mode='catalog_read'),
     ('POST', '/api/v1/catalog/items'): RequestOperation(('catalog.manage',)),
     ('PUT', '/api/v1/catalog/items/{kind}/{ident}'): RequestOperation(('catalog.manage',)),
     ('GET', '/api/v1/srm/pos/catalog'): RequestOperation(('checkout.view','checkout.create','billing.prepare')),
     ('GET', '/api/v1/srm/pos/customer-schema'): RequestOperation(('patients.register','customers.register')),
-    ('GET', '/api/v1/srm/pos/customers'): RequestOperation(('checkout.view','checkout.create','billing.prepare')),
-    ('GET', '/api/v1/srm/pos/customers/{customer_id}'): RequestOperation(('checkout.view','checkout.create','billing.prepare')),
+    ('GET', '/api/v1/srm/pos/customers'): RequestOperation(('checkout.view','checkout.create','billing.prepare','patients.view')),
+    ('GET', '/api/v1/srm/pos/customers/{customer_id}'): RequestOperation(('checkout.view','checkout.create','billing.prepare','patients.view')),
     ('GET', '/api/v1/srm/pos/customers/{customer_id}/identity'): RequestOperation(('checkout.view','checkout.create','billing.prepare')),
     ('POST', '/api/v1/srm/pos/customers'): RequestOperation(('patients.register','customers.register')),
     ('POST', '/api/v1/srm/service-checkout'): RequestOperation(PREPARE),
@@ -182,6 +182,7 @@ _RULES = {
     ('GET', '/api/v1/srm/industry/prebooking-workflows/requests/{request_id}'): RequestOperation(SCHEDULE),
     ('GET', '/api/v1/srm/industry/prebooking-workflows/appointments/{ident}/summary'): RequestOperation(SCHEDULE),
     ('GET', '/api/v1/srm/industry/appointments/requests/{request_id}'): RequestOperation(SCHEDULE),
+    ('GET', '/api/v1/srm/industry/appointments/{appointment_id}'): RequestOperation(('appointments.view','reservations.schedule')),
     ('GET', '/api/v1/srm/industry/appointments/customer-context/{customer_id}'): RequestOperation(SCHEDULE),
     ('GET', '/api/v1/srm/service-checkout/options'): RequestOperation(OPTIONS),
     ('GET', '/api/v1/srm/service-checkout/options/providers'): RequestOperation(OPTIONS),
@@ -329,6 +330,11 @@ def authorize_request(db, actor, request, scope):
         _unavailable(method, path, 'Purchaser reporting is not verified for this Business Pack')
     if rule.mode == 'industry_kind':
         for_record_read(db, actor, request.query_params.get('kind', ''))
+    elif rule.mode == 'catalog_read':
+        source = request.query_params.get('source')
+        kind = request.path_params.get('kind') or request.query_params.get('kind')
+        if 'catalog.view' not in allowed and not can_view_booking_service(scope, allowed, source, kind):
+            raise HTTPException(403, 'Assigned Business Pack role cannot view this catalog')
     elif rule.mode in {'capability', 'invoice_document', 'retail_offering_audience'} and not allowed.intersection(rule.actions):
         raise HTTPException(403, {'code': 'business_pack_operation_denied',
             'message': 'Assigned Business Pack role cannot perform this operation',

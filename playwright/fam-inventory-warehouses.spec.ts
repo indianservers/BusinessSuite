@@ -33,6 +33,7 @@ for (const module of ["fam", "srm"]) {
       await save.click();
       await confirmed;
       await expect(page.locator("[data-smart-create]")).toHaveCount(0);
+      await expect(page.getByText("QA Warehouse", { exact: true })).toBeVisible();
       expect(attempts).toBe(2);
     } finally {
       releaseRefresh();

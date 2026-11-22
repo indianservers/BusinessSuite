@@ -1,0 +1,67 @@
+{
+  "fitness-1": {
+    "status": "Passed",
+    "verified": "Gym tenant Sales dashboard loaded"
+  },
+  "fitness-6": {
+    "status": "Passed",
+    "http": 201,
+    "id": 45,
+    "record": "QA Annual Training Premium",
+    "price": 2400,
+    "barcode": "",
+    "plan": {
+      "unit": "year",
+      "count": 1,
+      "start": null,
+      "end": null
+    }
+  },
+  "fitness-9": {
+    "status": "Passed",
+    "http": 201,
+    "id": 44,
+    "record": "QA Monthly Gym Subscription",
+    "price": 650,
+    "barcode": "",
+    "plan": {
+      "unit": "month",
+      "count": 1,
+      "start": null,
+      "end": null
+    }
+  },
+  "pharma-3": {
+    "status": "Passed",
+    "http": 201,
+    "id": 42,
+    "record": "QA OTC Barcode Balm",
+    "price": 125,
+    "barcode": "8900000058123"
+  },
+  "pharma-9": {
+    "status": "Passed",
+    "verified": "The OTC product appeared in terminal search using its barcode",
+    "barcode": "8900000058123"
+  },
+  "hospitality-22": {
+    "status": "Passed",
+    "http": 200,
+    "verified": "The mobile appointment card updated to No show after the action and reason were saved."
+  },
+  "hospitality-3": {
+    "status": "Passed",
+    "http": 201,
+    "record": "Blue Lane 2",
+    "id": 6,
+    "open": "07:00:00",
+    "close": "19:30:00",
+    "capacity": 6
+  },
+  "pharma-11": {
+    "status": "Passed",
+    "verified": "Local recording of card sale and confirmed receipt visible in Android Chrome",
+    "http": 201,
+    "invoice": "INV-000001"
+  }
+}

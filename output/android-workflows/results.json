@@ -1,0 +1,678 @@
+{
+  "browser": "Chrome 145 on the Android Pixel_10a emulator",
+  "platform": "Local Vite frontend and FastAPI backed by dedicated local PostgreSQL company databases",
+  "workflows": {
+    "fitness": {
+      "name": "[Local QA] Harbor Strength Gym",
+      "workspace": "company-56",
+      "role_tested": "Workspace Admin",
+      "browser_sign_in_http": 200,
+      "workflow_counts": {
+        "Not run": 19,
+        "Passed": 2,
+        "Inconclusive": 2,
+        "Blocked": 2
+      },
+      "cases": [
+        {
+          "id": 1,
+          "workflow": "Open gym dashboard",
+          "status": "Not run"
+        },
+        {
+          "id": 2,
+          "workflow": "Add trainer and availability",
+          "status": "Not run"
+        },
+        {
+          "id": 3,
+          "workflow": "Register member",
+          "status": "Passed",
+          "detail": "Created in Android Chrome and independently verified in the local backend.",
+          "screenshot": "fitness-3.png"
+        },
+        {
+          "id": 4,
+          "workflow": "Update member contact",
+          "status": "Not run"
+        },
+        {
+          "id": 5,
+          "workflow": "Create monthly membership plan",
+          "status": "Passed",
+          "detail": "Created in Android Chrome. The local backend returned QA Monthly Training with month validity.",
+          "screenshot": "fitness-5.png"
+        },
+        {
+          "id": 6,
+          "workflow": "Create annual membership plan",
+          "status": "Inconclusive",
+          "detail": "Annual validity persisted, but the fixture used the same price as monthly.",
+          "screenshot": "fitness-6.png"
+        },
+        {
+          "id": 7,
+          "workflow": "Sell monthly membership and verify dates",
+          "status": "Not run"
+        },
+        {
+          "id": 8,
+          "workflow": "Sell day pass",
+          "status": "Not run"
+        },
+        {
+          "id": 9,
+          "workflow": "Set up recurring subscription",
+          "status": "Not run"
+        },
+        {
+          "id": 10,
+          "workflow": "Record subscription payment",
+          "status": "Blocked",
+          "detail": "The in-app Billing & renewal notice says automated billing and payment collection are disconnected.",
+          "screenshot": "fitness-recurring-automation.png"
+        },
+        {
+          "id": 11,
+          "workflow": "Recover failed subscription payment",
+          "status": "Blocked",
+          "detail": "The in-app Billing & renewal notice says automated billing and payment collection are disconnected.",
+          "screenshot": "fitness-recurring-automation.png"
+        },
+        {
+          "id": 12,
+          "workflow": "Renew expiring membership",
+          "status": "Not run"
+        },
+        {
+          "id": 13,
+          "workflow": "Freeze membership",
+          "status": "Not run"
+        },
+        {
+          "id": 14,
+          "workflow": "Resume membership",
+          "status": "Not run"
+        },
+        {
+          "id": 15,
+          "workflow": "Cancel subscription",
+          "status": "Not run"
+        },
+        {
+          "id": 16,
+          "workflow": "Check in active member",
+          "status": "Not run"
+        },
+        {
+          "id": 17,
+          "workflow": "Reject expired member check-in",
+          "status": "Not run"
+        },
+        {
+          "id": 18,
+          "workflow": "Schedule capacity-limited class",
+          "status": "Not run"
+        },
+        {
+          "id": 19,
+          "workflow": "Book class",
+          "status": "Not run"
+        },
+        {
+          "id": 20,
+          "workflow": "Try booking full class",
+          "status": "Not run"
+        },
+        {
+          "id": 21,
+          "workflow": "Cancel class booking and release seat",
+          "status": "Not run"
+        },
+        {
+          "id": 22,
+          "workflow": "Add retail product and receive opening stock",
+          "status": "Inconclusive",
+          "detail": "Retail product persisted from the mobile UI. Opening stock receipt was not exercised.",
+          "screenshot": "fitness-22.png"
+        },
+        {
+          "id": 23,
+          "workflow": "Sell retail product and verify stock and receipt",
+          "status": "Not run"
+        },
+        {
+          "id": 24,
+          "workflow": "Sell product and membership together",
+          "status": "Not run"
+        },
+        {
+          "id": 25,
+          "workflow": "Refund retail sale and verify totals",
+          "status": "Not run"
+        }
+      ]
+    },
+    "hospitality": {
+      "name": "[Local QA] Blue Lane Swimming Pool",
+      "workspace": "company-57",
+      "role_tested": "Workspace Admin",
+      "browser_sign_in_http": 200,
+      "workflow_counts": {
+        "Passed": 3,
+        "Not run": 17,
+        "Inconclusive": 5
+      },
+      "cases": [
+        {
+          "id": 1,
+          "workflow": "Open pool daily schedule",
+          "status": "Passed",
+          "detail": "Mobile appointment timeline rendered for Blue Lane Swimming Pool"
+        },
+        {
+          "id": 2,
+          "workflow": "Configure operating hours",
+          "status": "Not run"
+        },
+        {
+          "id": 3,
+          "workflow": "Add bookable lane",
+          "status": "Not run"
+        },
+        {
+          "id": 4,
+          "workflow": "Add coach and availability",
+          "status": "Not run"
+        },
+        {
+          "id": 5,
+          "workflow": "Create public swim session with capacity",
+          "status": "Inconclusive",
+          "detail": "locator.fill: Timeout 25000ms exceeded.",
+          "screenshot": "hospitality-5.png"
+        },
+        {
+          "id": 6,
+          "workflow": "Set admission prices",
+          "status": "Not run"
+        },
+        {
+          "id": 7,
+          "workflow": "Link child and guardian",
+          "status": "Not run"
+        },
+        {
+          "id": 8,
+          "workflow": "Sell single admission",
+          "status": "Not run"
+        },
+        {
+          "id": 9,
+          "workflow": "Sell family pass and verify eligibility",
+          "status": "Inconclusive",
+          "detail": "locator.fill: Timeout 25000ms exceeded."
+        },
+        {
+          "id": 10,
+          "workflow": "Sell multi-visit pass and verify balance",
+          "status": "Inconclusive",
+          "detail": "locator.fill: Timeout 25000ms exceeded.",
+          "screenshot": "hospitality-10.png"
+        },
+        {
+          "id": 11,
+          "workflow": "Redeem a visit",
+          "status": "Not run"
+        },
+        {
+          "id": 12,
+          "workflow": "Reject expired or depleted pass",
+          "status": "Not run"
+        },
+        {
+          "id": 13,
+          "workflow": "Book public swim slot",
+          "status": "Not run"
+        },
+        {
+          "id": 14,
+          "workflow": "Check last place and over-capacity",
+          "status": "Not run"
+        },
+        {
+          "id": 15,
+          "workflow": "Reserve lane",
+          "status": "Not run"
+        },
+        {
+          "id": 16,
+          "workflow": "Try overlapping lane reservation",
+          "status": "Not run"
+        },
+        {
+          "id": 17,
+          "workflow": "Reschedule a swim booking",
+          "status": "Passed",
+          "detail": "Persisted at 16:00 IST. No active booking occupied the original 11:00 coach slot."
+        },
+        {
+          "id": 18,
+          "workflow": "Cancel a swim booking and release capacity",
+          "status": "Inconclusive",
+          "detail": "The appointment change persisted. Pool capacity recovery was not verified."
+        },
+        {
+          "id": 19,
+          "workflow": "Book trial lesson",
+          "status": "Not run"
+        },
+        {
+          "id": 20,
+          "workflow": "Enroll in recurring lesson package",
+          "status": "Not run"
+        },
+        {
+          "id": 21,
+          "workflow": "Check in swimmer",
+          "status": "Passed",
+          "detail": "The Android UI and local backend confirmed swimmer check-in."
+        },
+        {
+          "id": 22,
+          "workflow": "Mark no-show",
+          "status": "Inconclusive",
+          "detail": "The mobile No show action did not complete before the test timed out.",
+          "screenshot": "pool-22.png"
+        },
+        {
+          "id": 23,
+          "workflow": "Close lane or session for maintenance",
+          "status": "Not run"
+        },
+        {
+          "id": 24,
+          "workflow": "Refund a booking",
+          "status": "Not run"
+        },
+        {
+          "id": 25,
+          "workflow": "Reconcile attendance, admissions and payments",
+          "status": "Not run"
+        }
+      ]
+    },
+    "pharma": {
+      "name": "[Local QA] Greenleaf Test Pharmacy",
+      "workspace": "company-58",
+      "role_tested": "Workspace Admin",
+      "browser_sign_in_http": 200,
+      "workflow_counts": {
+        "Passed": 2,
+        "Inconclusive": 1,
+        "Not run": 18,
+        "Blocked": 4
+      },
+      "cases": [
+        {
+          "id": 1,
+          "workflow": "Open pharmacy sales screen",
+          "status": "Passed",
+          "detail": "The mobile POS catalog was visible after opening the Main branch."
+        },
+        {
+          "id": 2,
+          "workflow": "Create supplier",
+          "status": "Passed",
+          "detail": "Created in Android Chrome and independently verified in the local backend.",
+          "screenshot": "pharma-2.png"
+        },
+        {
+          "id": 3,
+          "workflow": "Create OTC product with barcode, price and tax",
+          "status": "Inconclusive",
+          "detail": "locator.fill: Timeout 25000ms exceeded.",
+          "screenshot": "pharma-3.png"
+        },
+        {
+          "id": 4,
+          "workflow": "Create prescription-only product",
+          "status": "Not run"
+        },
+        {
+          "id": 5,
+          "workflow": "Create purchase order",
+          "status": "Not run"
+        },
+        {
+          "id": 6,
+          "workflow": "Receive partial delivery",
+          "status": "Not run"
+        },
+        {
+          "id": 7,
+          "workflow": "Receive balance and close order",
+          "status": "Not run"
+        },
+        {
+          "id": 8,
+          "workflow": "Receive two batches with expiry dates",
+          "status": "Not run"
+        },
+        {
+          "id": 9,
+          "workflow": "Find product by barcode",
+          "status": "Not run"
+        },
+        {
+          "id": 10,
+          "workflow": "OTC cash sale with stock and receipt verification",
+          "status": "Not run"
+        },
+        {
+          "id": 11,
+          "workflow": "Card sale",
+          "status": "Not run"
+        },
+        {
+          "id": 12,
+          "workflow": "Multi-item discounted sale and tax",
+          "status": "Not run"
+        },
+        {
+          "id": 13,
+          "workflow": "Attempt overselling",
+          "status": "Not run"
+        },
+        {
+          "id": 14,
+          "workflow": "Verify batch selection",
+          "status": "Blocked",
+          "detail": "Pharma pack readiness marks the pack Upcoming and activation unavailable in this release. Pack-specific batch selection and prescription behavior could not be verified.",
+          "screenshot": "pharma-pack-upcoming.png"
+        },
+        {
+          "id": 15,
+          "workflow": "Attempt expired-batch sale",
+          "status": "Blocked",
+          "detail": "Pharma pack readiness marks the pack Upcoming and activation unavailable in this release. Pack-specific batch selection and prescription behavior could not be verified.",
+          "screenshot": "pharma-pack-upcoming.png"
+        },
+        {
+          "id": 16,
+          "workflow": "Review near-expiry batches",
+          "status": "Not run"
+        },
+        {
+          "id": 17,
+          "workflow": "Attempt prescription sale without details",
+          "status": "Blocked",
+          "detail": "Pharma pack readiness marks the pack Upcoming and activation unavailable in this release. Pack-specific batch selection and prescription behavior could not be verified.",
+          "screenshot": "pharma-pack-upcoming.png"
+        },
+        {
+          "id": 18,
+          "workflow": "Complete fictional prescription transaction",
+          "status": "Blocked",
+          "detail": "Pharma pack readiness marks the pack Upcoming and activation unavailable in this release. Pack-specific batch selection and prescription behavior could not be verified.",
+          "screenshot": "pharma-pack-upcoming.png"
+        },
+        {
+          "id": 19,
+          "workflow": "Hold and resume sale",
+          "status": "Not run"
+        },
+        {
+          "id": 20,
+          "workflow": "Partial customer return",
+          "status": "Not run"
+        },
+        {
+          "id": 21,
+          "workflow": "Void unpaid sale",
+          "status": "Not run"
+        },
+        {
+          "id": 22,
+          "workflow": "Adjust damaged stock",
+          "status": "Not run"
+        },
+        {
+          "id": 23,
+          "workflow": "Return batch to supplier",
+          "status": "Not run"
+        },
+        {
+          "id": 24,
+          "workflow": "Replenish low stock",
+          "status": "Not run"
+        },
+        {
+          "id": 25,
+          "workflow": "Close and reconcile register",
+          "status": "Not run"
+        }
+      ]
+    },
+    "hospital": {
+      "name": "[Local QA] Cedar Point Clinic",
+      "workspace": "company-59",
+      "role_tested": "Workspace Admin",
+      "browser_sign_in_http": 200,
+      "workflow_counts": {
+        "Blocked": 25
+      },
+      "cases": [
+        {
+          "id": 1,
+          "workflow": "Open today's schedule as receptionist",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 2,
+          "workflow": "Register patient",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin. The administrator did create and persist a fictional patient.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 3,
+          "workflow": "Find patient by name or phone",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 4,
+          "workflow": "Check duplicate patient handling",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 5,
+          "workflow": "Update patient contact",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 6,
+          "workflow": "View doctor availability",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 7,
+          "workflow": "Book first consultation",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 8,
+          "workflow": "Book follow-up",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 9,
+          "workflow": "Book same time with two doctors",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 10,
+          "workflow": "Try same-doctor collision",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 11,
+          "workflow": "Try blocked time",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 12,
+          "workflow": "Reschedule and release slot",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 13,
+          "workflow": "Reassign doctor",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 14,
+          "workflow": "Cancel with reason and release slot",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 15,
+          "workflow": "Fill slot from waitlist",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 16,
+          "workflow": "Verify confirmation and reminders",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 17,
+          "workflow": "Register walk-in and add to schedule",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 18,
+          "workflow": "Check in patient",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 19,
+          "workflow": "Update patient queue status",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 20,
+          "workflow": "Mark completed and verify history",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 21,
+          "workflow": "Mark no-show",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 22,
+          "workflow": "Take consultation fee and verify receipt",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 23,
+          "workflow": "Reverse consultation payment",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 24,
+          "workflow": "Verify receptionist permissions",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        },
+        {
+          "id": 25,
+          "workflow": "Reconcile appointments and fees",
+          "status": "Blocked",
+          "detail": "Receptionist provisioning is blocked: on the clean Cedar Point Front Desk branch, pack readiness reports Native cutover source inventory is incomplete. The clinic browser sign-in used Workspace Admin.",
+          "screenshot": "clinic-pack-blocked.png"
+        }
+      ]
+    }
+  },
+  "issues": [
+    {
+      "description": "On direct mobile navigation to /srm/pos after sign-in the app briefly renders a 403 with Employee Self Service. A later visit to /srm/pos/terminal showed the Main branch chooser, so a persistent permission failure was not confirmed.",
+      "screenshots": [
+        "fitness-srm-pos.png",
+        "hospitality-srm-pos.png",
+        "pharma-srm-pos.png",
+        "hospital-srm-pos.png"
+      ]
+    },
+    {
+      "description": "The gym member was saved and is present in the local backend. The mobile test did not locate the grid search after reload. The screenshot shows the directory at section 1; this needs a mobile navigation recheck.",
+      "screenshots": [
+        "fitness-3.png"
+      ]
+    }
+  ],
+  "evidence_files": [
+    "browser.json",
+    "seed.json",
+    "transactions.json",
+    "verified.json",
+    "persistence.json",
+    "pack-readiness.json",
+    "clinic-clean-branch-readiness.json",
+    "fitness-lifecycle.json",
+    "pool-results.json"
+  ],
+  "totals": {
+    "Not run": 54,
+    "Passed": 7,
+    "Inconclusive": 8,
+    "Blocked": 31
+  }
+}

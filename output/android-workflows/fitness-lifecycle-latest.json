@@ -1,0 +1,7 @@
+{
+  "assignment": {
+    "status": "unverified",
+    "error": "locator.isVisible: Error: strict mode violation: getByText('Memberships & subscriptions', { exact: true }) resolved to 2 elements:",
+    "text": "Skip to content\nAN\nSales & POS\nCustomers\nRecord #42\nCustomers\nTeam workspace\nPage actions\nSALES WORKSPACE\nMember 360\nPOS\nCreate\nAll pages\nMemberships & subscriptions\nActivity\nNotes\nMeeting\nCall\nSchedule follow-up\nConnected accounting\n\nRead-only invoices, payments and invoice outstanding from your existing software.\n\nRefresh\n\nLoading accounting history…\n\nMemberships & subscriptions\n2 / 3"
+  }
+}

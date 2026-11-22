@@ -3441,21 +3441,22 @@ def create_inventory_unit(payload: InventoryUnitPayload, request: Request, db: S
 
 @router.get("/inventory/warehouses")
 def list_warehouses(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
-    company_id = bootstrap(db, current_user)
+    company_id = company_id_for(current_user)
     items = db.query(FAMWarehouse).filter(FAMWarehouse.company_id == company_id, FAMWarehouse.active.is_(True)).order_by(FAMWarehouse.warehouse_name).all()
     return {"items": [serialize(item) for item in items], "total": len(items)}
 
 
 @router.post("/inventory/warehouses", status_code=status.HTTP_201_CREATED)
 def create_warehouse(payload: InventoryWarehousePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
-    company_id = bootstrap(db, current_user)
+    company_id = company_id_for(current_user)
     validate_warehouse_branch(db, company_id, payload.branch_id)
     item = FAMWarehouse(company_id=company_id, **payload.model_dump())
     db.add(item)
     db.flush()
-    inventory_audit(db, request, current_user, company_id, "warehouse", item.id, "CREATE", None, serialize(item))
+    saved = serialize(item)
+    inventory_audit(db, request, current_user, company_id, "warehouse", item.id, "CREATE", None, saved)
     db.commit()
-    return serialize(item)
+    return saved
 
 
 @router.get("/inventory/items")

@@ -16,7 +16,7 @@ READ=('checkout.view','checkout.create','billing.prepare')
 def fail(message,code=403):raise HTTPException(code,message)
 
 
-def authority(db,actor,selected=None,*,create=False):
+def authority(db,actor,selected=None,*,create=False,customer_read=False):
     from app.access.service import check_background_access
     from app.branches.service import context
     from app.business_packs.access import resolve_context
@@ -29,6 +29,8 @@ def authority(db,actor,selected=None,*,create=False):
     if scope is None:fail('Select a Business Pack for this POS surface',409)
     if db.info.get('business_pack_scope')!=scope:fail('POS scope differs from the verified request')
     actions=('patients.register','customers.register') if create else READ
+    if customer_read and scope.pack_key=='hospital':
+        actions=(*actions,'patients.view')
     if not any(scope.pack_key+'.'+action in scope.capabilities for action in actions):fail('Assigned Business Pack role cannot perform this POS operation')
     if create and branch not in fresh.writable:fail('The native POS branch is read only')
     return company,branch,scope
@@ -150,15 +152,15 @@ def customer_query(db,company):
 
 
 def customers(db,actor,selected=None,*,after=0,limit=50,search=''):
-    company,branch,scope=authority(db,actor,selected)
+    company,branch,scope=authority(db,actor,selected,customer_read=True)
     query=customer_query(db,company).filter(CRMCompany.id>after)
-    if search:query=query.filter(or_(CRMCompany.name.contains(search,autoescape=True),CRMCompany.phone.contains(search,autoescape=True)))
+    if search:query=query.filter(or_(CRMCompany.name.icontains(search,autoescape=True),CRMCompany.phone.contains(search,autoescape=True)))
     rows=query.order_by(CRMCompany.id).limit(limit+1).all()
     return {'items':[customer_output(row) for row in rows[:limit]],'next':rows[limit-1].id if len(rows)>limit else None,'features':features(db,actor,scope)}
 
 
 def customer_detail(db,actor,ident,selected=None):
-    company,branch,scope=authority(db,actor,selected)
+    company,branch,scope=authority(db,actor,selected,customer_read=True)
     row=customer_query(db,company).filter(CRMCompany.id==ident).first()
     if row is None:fail('POS customer not found',404)
     return customer_output(row)

@@ -1,0 +1,67 @@
+[
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/branches",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/access/settings/business-packs/readiness",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/access/settings/business-packs/activations",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/access/settings/business-packs/activations/1/activate",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/access/settings/business-packs/contexts",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/access/settings/business-packs/contexts/1/activate",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/access/step-up",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/access/users",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/branches/access/2",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/access/settings/business-packs/contexts/1/grants/2",
+    "status": 200
+  }
+]

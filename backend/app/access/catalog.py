@@ -278,6 +278,8 @@ def permission_names(user):
 
 def action_for(request):
     path = request.url.path.lower()
+    if request.method == "PUT" and path.startswith("/api/v1/project-management/desktop-sync/notes/"):
+        return "view"  # The versioned command authorizes create, edit or trash in the handler.
     if request.method == "POST" and path in {"/api/v1/project-management/note-actions/bulk", "/api/v1/project-management/note-actions/undo"}:
         return "view"  # The command body is authorized by the notes endpoint.
     if request.method == "POST" and path.startswith("/api/v1/project-management/notes/") and path.endswith("/restore"):

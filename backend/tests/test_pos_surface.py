@@ -39,6 +39,26 @@ def test_selected_customer_directory_is_small_and_exact_context(client,db,stock)
     assert client.get(BASE+'/customers',headers=s.headers()).json()['items']==[]
 
 
+def test_receptionist_registers_and_finds_patients_without_checkout_access(client, db, stock):
+    headers, actor = native_actor(db, stock.branch)
+    context, _ = grant(db, actor, stock.branch, 'hospital', 'receptionist',
+                       db.get(PackContext, stock.contexts['hospital']))
+    headers['X-Suite-Pack-Context'] = str(context.id)
+    assert client.get(BASE + '/catalog', headers=headers).status_code == 403
+    schema = client.get(BASE + '/customer-schema', headers=headers)
+    assert schema.status_code == 200, schema.text
+    patient = {'name': 'Clinic QA Patient', 'address': 'QA address', 'state': 'Telangana',
+               'country': 'IN', 'schema_fingerprint': schema.json()['schema_fingerprint']}
+    created = client.post(BASE + '/customers', headers=headers, json=patient)
+    assert created.status_code == 201, created.text
+    patient_id = created.json()['id']
+    found = client.get(BASE + '/customers', headers=headers, params={'search': 'clinic qa patient'})
+    assert found.status_code == 200, found.text
+    assert [row['id'] for row in found.json()['items']] == [patient_id]
+    assert client.get(BASE + f'/customers/{patient_id}', headers=headers).status_code == 200
+    assert client.post(BASE + '/customers', headers=headers, json=patient).status_code == 409
+
+
 @pytest.mark.parametrize('pack,role',[('hospital','doctor'),('restaurant','chef')])
 def test_specialists_do_not_gain_pos_read_directory_or_create(client,db,stock,pack,role):
     s=stock;headers,actor=native_actor(db,s.branch)

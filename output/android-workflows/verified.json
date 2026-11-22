@@ -1,0 +1,80 @@
+{
+  "fitness": {
+    "3": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nMembers\nTeam workspace\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n42 matching records\nMembers\nPOS\nCreate\nAll pages\nPeople, companies and shared business relationships.\nTrash\nCreate member\nTable\nCards\nList\nBy Status\nTags\nFrequent\nFavorites\nPeople, companies and shared business relationships.\n1 / 46",
+      "screenshot": "fitness-3.png"
+    },
+    "5": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n1 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 5",
+      "screenshot": "fitness-5.png"
+    },
+    "6": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n2 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 6",
+      "screenshot": "fitness-6.png"
+    },
+    "22": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n31 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 28",
+      "screenshot": "fitness-22.png"
+    }
+  },
+  "hospitality": {
+    "5": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & guest services\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nGuest services\nMemberships\nSubscriptions\nBundles\n10 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 14\nAdd guest service\n\nComplete essentials and save. The second page is optional.\n\n1 · Essentials\n2 · Optional settings\nService name *\nService code *\nPrice *\nCurrency\n₹\nINR\nBilling unit *\nTax %\nCategories\nSelect categories\nSubcategories\nSelect subcategories\nBilling\nOne-time\nDaily\nWeekly\nMonthly\nYearly\nTags\nAppointments\nNo booking\nOptional booking\nBooking required\nDuration (minutes)\nEmployee categories\nSelect\nEmployee subcategories\nChoose categories first\n\nSelect which employee categories can provide this service. No selection means no category restriction. Map individual employees below. Selected categories also filter the employee picker.\n\nManage employee categories & their services\nIndividual employees\nMap an employee\nDraft saved automatically\nCancel\nSave service",
+      "screenshot": "hospitality-5.png"
+    },
+    "9": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & guest services\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nGuest services\nMemberships\nSubscriptions\nBundles\n1 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 5",
+      "screenshot": "hospitality-9.png"
+    },
+    "10": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & guest services\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nGuest services\nMemberships\nSubscriptions\nBundles\n2 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 6",
+      "screenshot": "hospitality-10.png"
+    },
+    "swimmer-registration": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nGuests\nTeam workspace\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n42 matching records\nGuests\nPOS\nCreate\nAll pages\nPeople, companies and shared business relationships.\nTrash\nCreate guest\nTable\nCards\nList\nBy Status\nTags\nFrequent\nFavorites\nPeople, companies and shared business relationships.\n1 / 46",
+      "screenshot": "hospitality-swimmer-registration.png"
+    }
+  },
+  "pharma": {
+    "1": {
+      "status": "passed",
+      "verified": "POS catalog visible"
+    },
+    "2": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nCustomers\nTeam workspace\nAI writing\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n1 matching records\nVendors\nPOS\nCreate\nAll pages\nSuppliers, services and the relationships behind your business.\nTrash\nCreate vendor\n1\nTotal vendors\n1\nActive vendors\n0\nGoods suppliers\n0\nService providers\n0\nPending follow-ups\n1\nRecently added\nSuppliers, services and the relationships behind your business.\n1 / 6",
+      "screenshot": "pharma-2.png"
+    },
+    "3": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & services\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nServices\nMemberships\nSubscriptions\nBundles\n31 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 28",
+      "screenshot": "pharma-3.png"
+    }
+  },
+  "hospital": {
+    "2": {
+      "status": "unverified",
+      "error": "locator.fill: Timeout 25000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nPatients\nTeam workspace\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n42 matching records\nPatients\nPOS\nCreate\nAll pages\nPeople, companies and shared business relationships.\nTrash\nCreate patient\nTable\nCards\nList\nBy Status\nTags\nFrequent\nFavorites\nPeople, companies and shared business relationships.\n1 / 46",
+      "screenshot": "hospital-2.png"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "company": 1000000060,
+  "branch": 2,
+  "context": 1,
+  "service": 1,
+  "policy": 1,
+  "doctors": [
+    {
+      "name": "QA Dr. Mehta",
+      "resource": 1,
+      "employee": 1,
+      "eligibility": 1
+    },
+    {
+      "name": "QA Dr. Rao",
+      "resource": 2,
+      "employee": 2,
+      "eligibility": 2
+    }
+  ]
+}

@@ -25,13 +25,14 @@ def authority(db, actor, source, kind, action='view', *, read_probe=False):
     from app.access.service import check_background_access
     from app.branches.service import context
     from .access import resolve_context
-    from .operations import capabilities
+    from .operations import capabilities, can_view_booking_service
     from .common_core import _native_authority
     scope = db.info.get('business_pack_scope')
     if scope is None:
         fail('A verified selected Business Pack context is required')
     allowed = capabilities(db, actor)
-    if ('catalog.manage' if action != 'view' else 'catalog.view') not in allowed:
+    scheduling_service = action == 'view' and can_view_booking_service(scope, allowed, source, kind)
+    if not scheduling_service and ('catalog.manage' if action != 'view' else 'catalog.view') not in allowed:
         fail('Assigned Business Pack role cannot manage this catalog')
     module = 'project_management' if source == 'pms' else source
     if source not in {'srm', 'crm', 'pms'}:

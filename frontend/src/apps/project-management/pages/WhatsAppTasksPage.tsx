@@ -1,3 +1,4 @@
+import { offlineChangeEvent } from "@/lib/offline-work";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { commonRouteContext } from "@/lib/common-routes";
 import SetupReadiness from "@/components/suite/SetupReadiness";
@@ -120,6 +121,7 @@ export default function WhatsAppTasksPage() {
     return () => clearTimeout(t);
   }, [search]);
   const query = useQuery({
+    networkMode: "always",
     queryKey: [
       "wa-tasks",
       scope,
@@ -145,8 +147,16 @@ export default function WhatsAppTasksPage() {
         sortOrder: "desc",
       }),
   });
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      if ((event as CustomEvent).detail === "tasks") void qc.invalidateQueries({queryKey: ["wa-tasks", scope]});
+    };
+    window.addEventListener(offlineChangeEvent, refresh);
+    return () => window.removeEventListener(offlineChangeEvent, refresh);
+  }, [qc, scope]);
   const id = Number(params.get("task")) || 0;
   const choose = (task: number) => {
+    if (task < 0) return;
     const next = new URLSearchParams(params);
     if (task) next.set("task", String(task));
     else next.delete("task");

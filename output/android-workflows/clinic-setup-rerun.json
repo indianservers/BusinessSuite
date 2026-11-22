@@ -1,0 +1,12 @@
+[
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/access/settings/business-packs/readiness",
+    "status": 200
+  }
+]

@@ -1,3 +1,4 @@
+from uuid import uuid4
 from sqlalchemy import JSON, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, Index, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import deferred, relationship
@@ -119,6 +120,7 @@ class PMSNoteFolder(Base):
 class PMSNote(Base):
     __tablename__ = "pms_private_notes"
     id = Column(Integer, primary_key=True)
+    sync_id = Column(String(36), nullable=False, unique=True, default=lambda: str(uuid4()))
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     folder_id = Column(Integer, ForeignKey("pms_note_folders.id", ondelete="SET NULL"), nullable=True, index=True)
     favorite = Column(Boolean, nullable=False, default=False)

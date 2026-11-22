@@ -75,6 +75,29 @@ def test_assigned_http_list_is_filtered_before_pagination_and_redacts_money(assi
     p.db.refresh(p.appts['a']);assert (p.appts['a'].revision,p.appts['a'].updated_at)==before
 
 
+def test_receptionist_lists_resources_and_appointments_with_project_management_installed(assigned):
+    from app.module_registry import is_app_enabled
+
+    assert is_app_enabled('project_management')
+    resources = assigned.client.get(BASE + '/records', params={'kind': 'resource'},
+                                    headers=assigned.headers['reception'])
+    assert resources.status_code == 200, resources.text
+    names = {row['title'] for row in resources.json()['items']}
+    assert {'a', 'b'} <= names
+    assert 'Foreign provider' not in names
+    appointments = assigned.client.get(BASE + '/records', params={'kind': 'appointment'},
+                                       headers=assigned.headers['reception'])
+    assert appointments.status_code == 200, appointments.text
+    ids = {row['id'] for row in appointments.json()['items']}
+    assert assigned.appts['a'].id in ids
+    assert assigned.appts['foreign_appointment'].id not in ids
+    found = assigned.client.get(BASE + f"/appointments/{assigned.appts['a'].id}", headers=assigned.headers['reception'])
+    assert found.status_code == 200, found.text
+    hidden = assigned.client.get(BASE + f"/appointments/{assigned.appts['foreign_appointment'].id}",
+                                 headers=assigned.headers['reception'])
+    assert hidden.status_code == 404
+
+
 def test_broad_native_doctor_still_sees_only_exact_canonical_assignment(assigned):
     p=assigned
     response=p.client.get(BASE+'/records',params={'kind':'appointment'},headers=p.headers['b'])

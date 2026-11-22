@@ -104,6 +104,9 @@ import type { SRMRecord } from "../types";
 type PosMode = "Retail" | "Supermarket" | "Restaurant" | "Services" | "Wholesale" | "Pharmacy" | "Electronics" | "Garments";
 type PaymentMode = "Cash" | "Card" | "UPI" | "Wallet" | "Credit" | "Split";
 type ProductViewMode = "tiles" | "list" | "details";
+const PRODUCTS_PER_VIEW = 36;
+const SNAPSHOT_PAGES = 25;
+const CATALOG_API_PAGE_SIZE = 200;
 
 type POSLot = { id: number; number: string; quantity: string; rate: string };
 
@@ -270,13 +273,10 @@ function uid(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function currency(value: number) {
-  return value.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 });
-}
-
-function shortCurrency(value: number) {
-  return value.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-}
+const formatCurrency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 });
+const formatShortCurrency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const currency = formatCurrency.format;
+const shortCurrency = formatShortCurrency.format;
 
 // Never reuse a pre-settlement register response after a confirmed checkout.
 async function refreshSettledRegister(client: QueryClient, queryKey: readonly unknown[], read: (signal: AbortSignal) => Promise<SRMRecord>, owns: () => boolean) {
@@ -530,6 +530,9 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     toast({ title: "Customer added", description: `${record.name} is selected for this sale and its follow-ups.` });
   }
   const [query, setQuery] = useState("");
+  const [displayedScan, setDisplayedScan] = useState("");
+  const catalogRestoreFrame = useRef(0);
+  useEffect(() => () => window.cancelAnimationFrame(catalogRestoreFrame.current), []);
   const [catalogPages,setCatalogPages]=useState(1);
   const [scanFeedback,setScanFeedback] = useState('');
   const [phoneNotice,setPhoneNotice] = useState(false);
@@ -572,7 +575,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
   const searchRef = useRef<HTMLInputElement>(null);
   const catalogQuery = useQuery({
     queryKey: ["pos-catalog-snapshot", scope],
-    queryFn: ({signal}) => posSnapshot(draftScope+":catalog", () => loadPOSCatalog(api, selectedPOS, "", 25, signal), owns),
+    queryFn: ({signal}) => posSnapshot(draftScope+":catalog", () => loadPOSCatalog(api, selectedPOS, "", SNAPSHOT_PAGES, signal), owns),
     networkMode: "always", refetchOnReconnect: "always", retry: false, refetchInterval: 45000, refetchOnWindowFocus: false,
   });
   const [remoteSearch, setRemoteSearch] = useState("");
@@ -582,10 +585,12 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     const timer = window.setTimeout(() => setRemoteSearch(query.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [query, catalogQuery.data?.value.hasMore, online]);
+  const catalogLimit = catalogPages * PRODUCTS_PER_VIEW;
+  const remotePages = Math.ceil(catalogLimit / CATALOG_API_PAGE_SIZE);
   const extendedCatalog = useQuery({
-    queryKey: ["srm", "pos-extended-catalog", scope, remoteSearch, catalogPages],
-    enabled: !!catalogQuery.data?.value.hasMore && online && (!!remoteSearch || catalogPages > 50),
-    queryFn: ({signal}) => loadPOSCatalog(api, selectedPOS, remoteSearch, Math.ceil(catalogPages / 2), signal),
+    queryKey: ["srm", "pos-extended-catalog", scope, remoteSearch, remotePages],
+    enabled: !!catalogQuery.data?.value.hasMore && online && (!!remoteSearch || remotePages > SNAPSHOT_PAGES),
+    queryFn: ({signal}) => loadPOSCatalog(api, selectedPOS, remoteSearch, remotePages, signal),
     retry: false,
   });
   const productsQuery = { ...catalogQuery, data: catalogQuery.data?.value };
@@ -650,7 +655,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
   const queueScope = JSON.stringify([logicalIntentScope(), selectedPOS, currentPOSOperationalPin()?.contextId]);
   const catalogAt = catalogQuery.data?.savedAt || 0;
   const catalogAtRef = useRef(catalogAt);
-  catalogAtRef.current = catalogAt;
+  catalogAtRef.current = catalogAt || Number.MAX_SAFE_INTEGER;
   type QueuedSale = LocalSale<CheckoutAttempt, NativeCheckoutResult>;
   const [queued, setQueued] = useState<QueuedSale[]>();
   const [queueError, setQueueError] = useState(false);
@@ -742,7 +747,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     const used = new Map<number, number>();
     for (const row of queued || []) {
       if (row.confirmedAt && row.confirmedAt < (catalogQuery.data?.savedAt || 0)) continue;
-      for (const line of row.attempt.payload.lines) used.set(line.product_id, (used.get(line.product_id) || 0) + Number(line.quantity));
+      for (const line of row.attempt.payload.lines) used.set(line.product_id, (used.get(line.product_id) || 0) + Math.round(Number(line.quantity) * 1000));
     }
     return used;
   }, [queued, catalogQuery.data?.savedAt]);
@@ -750,9 +755,10 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     const items = [...listItems(extendedCatalog.data), ...listItems(productsQuery.data)];
     return new Map(items.map(productFromRecord).filter(item => item.active !== false).map(item => [item.id, item]));
   }, [productsQuery.data, extendedCatalog.data]);
-  const currentProducts = useMemo(() => [...baseProducts.values()].map(item =>
-    item.trackInventory && stockUsed.has(item.id) ? {...item, stock: Math.max(0, item.stock - stockUsed.get(item.id)!)} : item
-  ), [baseProducts, stockUsed]);
+  const catalogProducts = useMemo(() => [...baseProducts.values()], [baseProducts]);
+  const currentProducts = useMemo(() => catalogProducts.map(item =>
+    item.trackInventory && stockUsed.has(item.id) ? {...item, stock: Math.max(0, (Math.round(item.stock * 1000) - stockUsed.get(item.id)!) / 1000)} : item
+  ), [catalogProducts, stockUsed]);
   const knownProducts=useRef<{scope:string;items:Map<number,Product>}>({scope,items:new Map()});
   if(knownProducts.current.scope!==scope)knownProducts.current={scope,items:new Map()};
   useMemo(() => {
@@ -769,7 +775,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
   });
   const localBasket = !customerId && cart.length > 0 && cart.every(line => line.kind === "Products" &&
     stagedProducts.has(line.id) && !line.batchTracking && !line.serialTracking && !line.booking && !line.followUp &&
-    !line.planStartDate && !line.planBeneficiaries?.length);
+    !line.planStartDate && !line.planBeneficiaries?.length && /^\d+(?:\.\d{1,2})?$/.test(String(line.qty)));
   const canUseLocalCash = cashReady && localBasket;
 
   const phoneLine = cart.find(line => line.lineId === phoneLineId);
@@ -803,14 +809,29 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
           `Batch ${part.batchNo} · ${part.qty} × ${currency(part.rate)}`).join(" / ") || "No eligible batch stock"
       : currency(line.rate);
   }
-  const productSource=currentProducts;
-  const storeProducts=productSource;
+  const storeProducts=currentProducts;
   const [catalogTab, setCatalogTab] = useState("All");
   const [catalogSort, setCatalogSort] = useState("name");
   const [usageCounts,setUsageCounts] = usePersistedState<Record<string,number>>(storage("catalog-usage"), {});
   const [favoriteIds,setFavoriteIds] = usePersistedState<number[]>(storage("favorite-catalog"), []);
   const [recentIds, setRecentIds] = usePersistedState<number[]>(storage("recent-catalog"), []);
-  const categories = useMemo(() => ["All", ...Array.from(new Set(storeProducts.map((item) => item.category)))], [storeProducts]);
+  const { categoryCounts, offeringCounts } = useMemo(() => {
+    const categoryCounts = new Map<string, number>();
+    const offeringCounts = Object.fromEntries(posOfferingTabs.map(tab => [tab, 0]));
+    for (const product of catalogProducts) {
+      categoryCounts.set(product.category, (categoryCounts.get(product.category) || 0) + 1);
+      for (const tab of posOfferingTabs) {
+        if (matchesOfferingTab(product, tab)) offeringCounts[tab]++;
+      }
+    }
+    return { categoryCounts, offeringCounts };
+  }, [catalogProducts]);
+  const collectionCounts = useMemo(() => ({
+    "Recently Used": recentIds.filter(id => baseProducts.has(id)).length,
+    "Favorites": favoriteIds.filter(id => baseProducts.has(id)).length,
+    "Frequently Used": Object.keys(usageCounts).filter(id => baseProducts.has(Number(id)) && usageCounts[id] > 0).length,
+  }), [baseProducts, recentIds, favoriteIds, usageCounts]);
+  const categories = useMemo(() => ["All", ...categoryCounts.keys()], [categoryCounts]);
   const couponDiscount = coupon.trim().toUpperCase() === "WELCOME10" ? Math.min(250, Math.max(0, checkoutLines.reduce((sum, item) => sum + lineTaxable(item), 0) * 0.1)) : 0;
 
   const totals = useMemo(() => {
@@ -823,7 +844,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     const tax = taxableBeforeBill ? taxBeforeScale * (taxable / taxableBeforeBill) : 0;
     const unrounded = taxable + tax;
     const grandTotal = Math.max(Math.round((unrounded + Number.EPSILON) * 100) / 100, 0);
-    const nativeQuote = operationalPackKey === "pharma" && checkoutLines.some(line => line.lotAllocation === "fefo")
+    const nativeQuote = localBasket || operationalPackKey === "pharma" && checkoutLines.some(line => line.lotAllocation === "fefo")
       ? pharmaCheckoutQuote(checkoutLines.map(line => ({quantity: String(line.qty), price: line.rate.toFixed(2),
           discount: lineDiscount(line).toFixed(2), taxRate: String(line.taxRate)})),
           (safeBillDiscount + couponDiscount).toFixed(2)) : null;
@@ -836,43 +857,49 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
       tax,
       roundOff: grandTotal - unrounded,
       grandTotal,
+      nativeQuoted: nativeQuote !== null,
       qty: checkoutLines.reduce((sum, item) => sum + item.qty, 0),
       ...(nativeQuote ? {...nativeQuote, qty: nativeQuote.quantity, roundOff: 0} : {}),
     };
-  }, [billDiscount, checkoutLines, couponDiscount, operationalPackKey]);
+  }, [billDiscount, checkoutLines, couponDiscount, operationalPackKey, localBasket]);
 
   const scanIndex = useMemo(() => {
     const indexes = { barcode: new Map<string, Product>(), sku: new Map<string, Product>() };
-    for (const product of storeProducts) {
+    for (const product of catalogProducts) {
       if (product.barcode && !indexes.barcode.has(product.barcode)) indexes.barcode.set(product.barcode, product);
       const sku = product.sku.toLowerCase();
       if (sku && !indexes.sku.has(sku)) indexes.sku.set(sku, product);
     }
     return indexes;
-  }, [storeProducts]);
-  const productSearch = useMemo(() => storeProducts.map(product => ({
+  }, [catalogProducts]);
+  const productSearch = useMemo(() => catalogProducts.map(product => ({
     product, text: [product.name, product.sku, product.barcode, product.category, product.batch || "", ...(product.serials || [])].join(" ").toLowerCase()
-  })), [storeProducts]);
+  })), [catalogProducts]);
+  const recentFilter = catalogTab === "Recently Used" ? recentIds : undefined;
+  const favoriteFilter = catalogTab === "Favorites" ? favoriteIds : undefined;
+  const frequencyOrder = catalogTab === "Frequently Used" || catalogSort === "frequent" ? usageCounts : undefined;
   const rankedProducts = useMemo(() => {
     return productSearch.filter(({ product }) => {
       if (category !== "All" && product.category !== category) return false;
       if (catalogTab === "All") return true;
-      if (catalogTab === "Recently Used") return recentIds.includes(product.id);
-      if (catalogTab === "Favorites") return favoriteIds.includes(product.id);
-      if (catalogTab === "Frequently Used") return (usageCounts[product.id] || 0) > 0;
+      if (recentFilter) return recentFilter.includes(product.id);
+      if (favoriteFilter) return favoriteFilter.includes(product.id);
+      if (catalogTab === "Frequently Used") return (frequencyOrder?.[product.id] || 0) > 0;
       return matchesOfferingTab(product, catalogTab);
     }).sort(({product: a}, {product: b}) => {
-      if (catalogTab === "Frequently Used" || catalogSort === "frequent") {
-        return (usageCounts[b.id] || 0) - (usageCounts[a.id] || 0) || a.name.localeCompare(b.name);
+      if (frequencyOrder) {
+        return (frequencyOrder[b.id] || 0) - (frequencyOrder[a.id] || 0) || a.name.localeCompare(b.name);
       }
       return catalogSort === "price" ? a.rate - b.rate : a.name.localeCompare(b.name);
     });
-  }, [category, productSearch, catalogTab, catalogSort, recentIds, favoriteIds, usageCounts]);
+  }, [category, productSearch, catalogTab, catalogSort, recentFilter, favoriteFilter, frequencyOrder]);
+  const catalogText = (query || displayedScan).trim().toLowerCase();
   const filteredProducts = useMemo(() => {
-    const text = query.trim().toLowerCase();
+    const text = catalogText;
     return rankedProducts.filter(item => !text || item.text.includes(text)).map(({product}) => product);
-  }, [query, rankedProducts]);
-  const visibleProducts = useMemo(() => filteredProducts.slice(0, catalogPages * 100), [filteredProducts, catalogPages]);
+  }, [catalogText, rankedProducts]);
+  const visibleProducts = useMemo(() => filteredProducts.slice(0, catalogLimit).map(product =>
+    dbProducts.get(product.id) || product), [filteredProducts, catalogLimit, currentProducts]);
   const received = paymentRows.reduce((sum, row) => row.mode === "Credit" ? sum : sum + row.amount, 0);
   const balanceDue = Math.max(totals.grandTotal - received, 0);
   const changeDue = Math.max(received - totals.grandTotal, 0);
@@ -884,7 +911,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
   const countedClosingCash = cashNumber(closingCash);
   const registerCashReady = !activeRegister.isPending && !activeRegister.isFetching && !activeRegister.isError && Number.isFinite(expectedCash);
   const canCloseSession = registerCashReady && Boolean(register?.id) && !registerCash?.reconciliation_required && Number.isFinite(expectedCash) && Number.isFinite(countedClosingCash) && countedClosingCash >= 0;
-  const lowStockCount = storeProducts.filter((product) => product.trackInventory && product.stock <= product.reorderLevel).length;
+  const lowStockCount = useMemo(() => storeProducts.filter(product => product.trackInventory && product.stock <= product.reorderLevel).length, [storeProducts]);
 
   const branchDisplay = useQuery({queryKey:['suite-branch-context',authUser?.id,authUser?.access?.companyId],staleTime:60_000,refetchOnWindowFocus:false,queryFn:()=>api.get<{branches:{id:number;name:string}[]}>('/branches/context',{recordCache:false}).then(response=>response.data),retry:false});
   const cashierName = authUser?.name || authUser?.email || 'Cashier';
@@ -1059,7 +1086,11 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
       setPaymentError(queueError ? "Local sale storage is unavailable." : "Wait for the register to load saved sales.");
       return;
     }
-    const localCash = cashOnDevice && canUseLocalCash && totals.grandTotal > 0;
+    if (cashOnDevice && cashReady && (!totals.nativeQuoted || totals.grandTotal <= 0)) {
+      setPaymentError("Review the sale prices, discounts, and total before collecting cash.");
+      return;
+    }
+    const localCash = cashOnDevice && canUseLocalCash;
     if (!online && !localCash) { setPaymentError("Reconnect for this checkout."); return; }
     if(selectedPOS&&((!localCash && (productsQuery.isFetching||productsQuery.isError))||cart.some(line=>{const item=dbProducts.get(line.id);return !item||item.checkoutSupported===false||!!line.followUp||(!posFeatures?.appointments_schedule&&!!line.booking);}))){toast({title:'Review POS availability',description:'Reload the catalogue and remove unsupported follow-up or unavailable items before checkout.',variant:'destructive'});return;}
     if(cart.some(line=>isService(line)&&(!selectedPOS||!!posFeatures?.appointments_schedule)&&(!(line.lineId in requirements)||(requirements[line.lineId]&&!line.booking)))) {toast({title:'Complete service scheduling',description:'Wait for each service policy and apply booking details for every required service.',variant:'destructive'});return;}
@@ -1089,18 +1120,22 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
         lines:checkoutLines.map(line=>({client_line_key:line.lotAllocation === "fefo" ? randomUUID() : line.lineId,line_kind:line.booking?'booked_service':isService(line)?'unscheduled_service':'product',product_id:line.id,...(line.batchId ? {batch_id:line.batchId} : {}),quantity:String(line.booking?1:line.qty),unit_price:line.rate.toFixed(2),discount_amount:lineDiscount(line).toFixed(2),note:line.note,...(line.planStartDate?{plan_start_date:line.planStartDate}:{}),...(line.planBeneficiaries?.length?{plan_beneficiaries:line.planBeneficiaries}:{}),...(line.followUp?{follow_up:line.followUp}:{}),...(line.booking?{booking:line.booking}:{})})),payments};
       const attempt:CheckoutAttempt={payload,after,sale:{id:checkoutKey,invoiceNo:'',customer:customer.name,amount:totals.grandTotal,mode:paymentMode,createdAt:new Date().toISOString(),items:cart.length,lines:checkoutLines.map(line=>({name:line.batchNo ? `${line.name} · Batch ${line.batchNo}` : line.name,qty:line.qty,rate:line.rate,...(line.booking?{appointment:bookingSummaries[line.lineId] || `${new Date(line.booking.starts_at).toLocaleString()} - ${new Date(Date.parse(line.booking.starts_at)+line.booking.duration_minutes*60000).toLocaleString()}`}:{})}))}};
       if (localCash) {
+        if (payload.note.length > 4000 || payload.lines.some(line => line.note.length > 10000)
+          || payload.payments.length > 10 || payload.payments.some(payment => payment.method !== "cash" || (payment.reference?.length || 0) > 160)) {
+          throw new Error("Review cash tender and shorten any long notes or payment references.");
+        }
         payload.captured_at = attempt.sale.createdAt;
         attempt.sale = {...attempt.sale, invoiceNo: checkoutKey, localCash: true, paid: payload.expected_total, balance: "0"};
         await enqueueLocalSale<CheckoutAttempt, NativeCheckoutResult>({key: checkoutKey, scope: queueScope, sessionId: session.id, attempt}, catalogAt, rows => {
           if (!owns()) throw new Error("POS context changed.");
           const stock = new Map<number, number>();
           for (const row of rows) {
-            for (const line of row.attempt.payload.lines) stock.set(line.product_id, (stock.get(line.product_id) || 0) + Number(line.quantity));
+            for (const line of row.attempt.payload.lines) stock.set(line.product_id, (stock.get(line.product_id) || 0) + Math.round(Number(line.quantity) * 1000));
           }
           for (const line of payload.lines) {
             const product = baseProducts.get(line.product_id);
-            const quantity = (stock.get(line.product_id) || 0) + Number(line.quantity);
-            if (!product || product.checkoutSupported === false || product.trackInventory && quantity > product.stock) {
+            const quantity = (stock.get(line.product_id) || 0) + Math.round(Number(line.quantity) * 1000);
+            if (!product || product.checkoutSupported === false || product.trackInventory && quantity > Math.round(product.stock * 1000)) {
               throw new Error("Stock changed on this register. Review the basket before collecting cash.");
             }
             stock.set(line.product_id, quantity);
@@ -1264,18 +1299,29 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
     setLocalHeldBills((current) => current.filter((item) => item.id !== bill.id));
   }
 
+  function clearScanInput() {
+    // Give the cart a frame to render before remounting the unfiltered catalogue.
+    window.cancelAnimationFrame(catalogRestoreFrame.current);
+    setDisplayedScan(query);
+    setQuery("");
+    catalogRestoreFrame.current = window.requestAnimationFrame(() => {
+      catalogRestoreFrame.current = window.requestAnimationFrame(() => setDisplayedScan(""));
+    });
+  }
+
   function scanSearch() {
     if(!query.trim())return;
     const scan = query.trim();
     const exact = scanIndex.barcode.get(scan) || scanIndex.sku.get(scan.toLowerCase());
     if (exact) {
-      addProduct(exact);
-      setQuery("");
+      addProduct(dbProducts.get(exact.id) || exact);
+      clearScanInput();
       return;
     }
     if (filteredProducts.length === 1) {
-      addProduct(filteredProducts[0]);
-      setQuery("");
+      const match = filteredProducts[0];
+      addProduct(dbProducts.get(match.id) || match);
+      clearScanInput();
       return;
     }
     setScanFeedback(filteredProducts.length ? "Multiple matches. Select an item from the results." : "Barcode not found. Search by name or add the item in Stock Items.");
@@ -1383,7 +1429,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
                   </span>
                   <span className="truncate">{item}</span>
                 </span>
-                <span className="text-xs text-slate-400">{item === "All" ? storeProducts.length : storeProducts.filter((product) => product.category === item).length}</span>
+                <span className="text-xs text-slate-400">{item === "All" ? storeProducts.length : categoryCounts.get(item)}</span>
               </button>
             ))}
           </div>
@@ -1436,7 +1482,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
         <section aria-label="Products and services catalogue" className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
           {(filteredProducts.length > visibleProducts.length || online && productsQuery.data?.hasMore)&&<div className="flex items-center justify-between gap-2 text-xs"><span>Showing {visibleProducts.length} items.</span><Button type="button" variant="outline" disabled={extendedCatalog.isFetching} onClick={()=>setCatalogPages(value=>value+1)}>Load more items</Button></div>}
           {phoneWidth<=767 ? <POSMobileCatalogue products={visibleProducts}
-            counts={Object.fromEntries(posOfferingTabs.map(tab=>[tab,storeProducts.filter(product=>matchesOfferingTab(product,tab)).length]))}
+            counts={offeringCounts}
             cart={cart} query={query} onQuery={setQuery} searchInputRef={searchRef} onScan={scanSearch}
             category={category} categories={categories} onCategory={setCategory} tab={catalogTab} onTab={setCatalogTab} sort={catalogSort} onSort={setCatalogSort}
             favorites={favoriteIds} onFavorite={id=>setFavoriteIds(ids=>ids.includes(id)?ids.filter(value=>value!==id):[...ids,id])}
@@ -1481,8 +1527,8 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
         </div>
 </div>
           <div className="flex flex-wrap items-center gap-2" aria-label="Catalogue filters">
-{posOfferingTabs.map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p=>matchesOfferingTab(p,tab)).length})</Button>)}
-<details className="pos-catalog-actions pos-filter-menu"><summary>Filters{!posOfferingTabs.some(tab=>tab===catalogTab)?` · ${catalogTab}`:''}</summary><div className="flex flex-wrap gap-2">{["Favorites", "Frequently Used", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : tab === "Favorites" ? favoriteIds.includes(p.id) : tab === "Frequently Used" ? (usageCounts[p.id] || 0)>0 : matchesOfferingTab(p,tab))).length})</Button>)}
+{posOfferingTabs.map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({offeringCounts[tab]})</Button>)}
+<details className="pos-catalog-actions pos-filter-menu"><summary>Filters{!posOfferingTabs.some(tab=>tab===catalogTab)?` · ${catalogTab}`:''}</summary><div className="flex flex-wrap gap-2">{(["Favorites", "Frequently Used", "Recently Used"] as const).map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({collectionCounts[tab]})</Button>)}
             <NativeSelect aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option><option value="frequent">Most used</option></NativeSelect>
 </div></details>
           </div>
@@ -1876,6 +1922,7 @@ function ScopedPOS({scope,draftScope,selectedPOS,operationalPackKey,cashPermitte
             <SummaryLine label="Expected closing cash" value={registerCashDisplay(activeRegister.isFetching,activeRegister.isError,expectedCash,currency)} />
             <label className="block text-sm text-slate-400">Actual counted cash<Input value={closingCash} onChange={(event) => setClosingCash(event.target.value)} type="number" className="mt-1 border-white/15 bg-slate-950 text-white" /></label>
             {registerCashReady && Number.isFinite(countedClosingCash) && countedClosingCash >= 0 ? <SummaryLine label="Cash variance" value={currency(countedClosingCash - expectedCash)} /> : null}
+            {pendingCash.some(row => row.sessionId === register?.id) && <p role="status">Sync this shift’s pending cash sales before closing.</p>}
             <Button className="w-full" variant="destructive" disabled={!canCloseSession||nativeBusy||!online||!queued||queueError||pendingCash.some(row=>row.attempt.payload.pos_session_id===register?.id)} onClick={async () => {
               if(!register?.id||!canCloseSession||!owns()||locked||!online)return;
               setNativeBusy(true);

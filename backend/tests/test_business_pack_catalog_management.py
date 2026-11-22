@@ -74,6 +74,20 @@ def test_native_srm_admin_cannot_replace_catalog_pack_action(client,db,hospital_
     assert client.post(BASE+'?source=srm',headers=target_headers,json=body()).status_code==403
 
 
+def test_hospital_receptionist_can_read_only_the_sales_service_catalog(client, db, hospital_http):
+    _, _, branch, context_id, _, payload = hospital_http
+    headers, receptionist = native_actor(db, branch)
+    grant(db, receptionist, branch, 'hospital', 'receptionist', db.get(PackContext, context_id))
+    headers['X-Suite-Pack-Context'] = str(context_id)
+    service = payload['lines'][0]['product_id']
+    listed = client.get(BASE, headers=headers, params={'source': 'srm', 'kind': 'service', 'include_facets': True})
+    assert listed.status_code == 200, listed.text
+    assert [item['id'] for item in listed.json()['items']] == [service]
+    assert client.get(f'{BASE}/service/{service}?source=srm', headers=headers).status_code == 200
+    assert client.get(BASE + '?source=srm&kind=product', headers=headers).status_code == 403
+    assert client.get(BASE + '?source=crm&kind=service', headers=headers).status_code == 403
+
+
 def test_catalog_pack_manager_native_action_ceiling(client,db,hospital_http):
     _,_,branch,context,_,_=hospital_http
     headers,user=native_actor(db,branch,actions=('view',))

@@ -1,3 +1,4 @@
+import { offlineChangeEvent } from "@/lib/offline-work";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -457,6 +458,12 @@ export default function TaskListPage() {
     setSelectedTaskIds(checked ? currentPageTaskIds : []);
   };
 
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === "tasks") loadTasks(true); };
+    window.addEventListener(offlineChangeEvent, refresh);
+    return () => window.removeEventListener(offlineChangeEvent, refresh);
+  }, [loadTasks]);
+
   const updateStatus = async (task: PMSTaskListItem, status: TaskStatus) => {
     const previousStatus = task.status;
     setUpdatingTaskId(task.id);
@@ -465,7 +472,7 @@ export default function TaskListPage() {
       items: current.items.map((item) => item.id === task.id ? { ...item, status } : item),
     } : current);
     try {
-      await tasksAPI.updateStatus(task.id, status);
+      await tasksAPI.saveStatusOffline(task, status);
       return true;
     } catch (err: any) {
       setData((current) => current ? {
@@ -525,7 +532,7 @@ export default function TaskListPage() {
       case "sprint":
         return <span>{task.sprint_name || "-"}</span>;
       case "status":
-        return <StatusSelect label={`Status for ${task.title}`} value={task.status} options={taskStatuses} disabled={updatingTaskId===task.id || data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks!==true} onSave={status=>updateStatus(task,status as TaskStatus)} />;
+        return <StatusSelect label={`Status for ${task.title}`} value={task.status} options={taskStatuses} disabled={task.id < 0 || (task as PMSTaskListItem & {offline_pending?:boolean}).offline_pending || updatingTaskId===task.id || data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks!==true} onSave={status=>updateStatus(task,status as TaskStatus)} />;
       case "priority":
         return <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>;
       case "assignee":

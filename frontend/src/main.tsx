@@ -1,3 +1,5 @@
+import OfflineWorkStatus from "./components/app/OfflineWorkStatus";
+import { installOfflineWork } from "./lib/offline-work";
 import BrowserDraftRecovery from "./shared/record-sync/BrowserDraftRecovery";
 import { installRecordSync } from "./shared/record-sync/store";
 import { cacheVisitedAssets } from "./lib/visited-assets";
@@ -58,6 +60,7 @@ const queryClient = new QueryClient({
 installRecordCache(api, queryClient);
 installRecordListRefresh(queryClient);
 installRecordSync(queryClient);
+installOfflineWork();
 
 // Statistics caches must not survive an identity, tenant or permission-context switch.
 const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,securityAuthStamp(u)])};
@@ -70,7 +73,7 @@ window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statist
 function PortalRoot() {
   const {pathname} = useLocation();
   if (pathname.startsWith("/platform")) return <React.Suspense fallback={<div role="status">Loading platform…</div>}><PlatformApp/></React.Suspense>;
-  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && import.meta.env.VITE_SHOW_CACHE_DIAGNOSTICS === "true" && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><OfflineWorkStatus/><BrowserDraftRecovery/>{import.meta.env.DEV && import.meta.env.VITE_SHOW_CACHE_DIAGNOSTICS === "true" && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

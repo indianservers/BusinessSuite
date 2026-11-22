@@ -4,9 +4,9 @@ import io
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Literal, Annotated
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator, model_validator
 from sqlalchemy import func, or_, literal, select, union_all, cast, String, case
@@ -565,21 +565,38 @@ def reuse_in_branches(data: BranchReuseInput, source: Source = "crm", db: Sessio
     return {"operation": data.operation, "processed": len(records), "results": results}
 
 
-@router.post("/items", status_code=201)
-def create_item(data: ItemInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def _write_item(db, user, source, data, ident=None):
+    if db.info.get("business_pack_scope") is not None:
+        from app.business_packs.catalog_management import save_item as selected_save
+        result = selected_save(db, user, source, data, ident)
+    else:
+        result = save_item(db, user, source, data, ident)
+    from app.shared.service_category_links import catalog_scheduling
+    return catalog_scheduling(db, user, data, result)
+
+
+def _commit_item(db, user, source, data, ident, operation_id):
     try:
-        if db.info.get("business_pack_scope") is not None:
-            from app.business_packs.catalog_management import save_item as selected_save
-            result = selected_save(db,user,source,data)
-        else:
-            result = save_item(db, user, source, data)
-        from app.shared.service_category_links import catalog_scheduling
-        result = catalog_scheduling(db,user,data,result)
+        if isinstance(operation_id, UUID):
+            from app.shared.offline_operations import perform_offline_operation
+            return perform_offline_operation(
+                db, user, operation_id, ("catalog", tenant(user), source, data.kind, ident),
+                data.model_dump(mode="json", exclude_unset=True),
+                lambda: _write_item(db, user, source, data, ident),
+                lambda result: get_item(data.kind, result["id"], source, db, user),
+            )
+        result = _write_item(db, user, source, data, ident)
         commit(db)
         return result
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "That SKU or code already exists in this organization")
+
+
+@router.post("/items", status_code=201)
+def create_item(data: ItemInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user),
+                offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
+    return _commit_item(db, user, source, data, None, offline_operation)
 
 
 @router.get("/items/{kind}/{ident}")
@@ -596,22 +613,11 @@ def item_output_args(db, user, source, kind, ident):
 
 
 @router.put("/items/{kind}/{ident}")
-def update_item(kind: Kind, ident: int, data: ItemInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_item(kind: Kind, ident: int, data: ItemInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user),
+                offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
     if data.kind != kind:
         raise HTTPException(422, "An item's type cannot be changed")
-    try:
-        if db.info.get("business_pack_scope") is not None:
-            from app.business_packs.catalog_management import save_item as selected_save
-            result = selected_save(db,user,source,data,ident)
-        else:
-            result = save_item(db, user, source, data, ident)
-        from app.shared.service_category_links import catalog_scheduling
-        result = catalog_scheduling(db,user,data,result)
-        commit(db)
-        return result
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(409, "That SKU or code already exists in this organization")
+    return _commit_item(db, user, source, data, ident, offline_operation)
 
 
 @router.post("/items/{kind}/{ident}/duplicate", status_code=201)

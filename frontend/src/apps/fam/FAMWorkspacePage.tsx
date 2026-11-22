@@ -1734,7 +1734,9 @@ function InventoryMasterForm({kind,scope}:{kind:"groups"|"units"|"warehouses";sc
     units: { queryKey: "inventoryUnits", query: famApi.inventoryUnits, create: famApi.createInventoryUnit, initial: { unit_code: "", unit_name: "", symbol: "", decimal_allowed: true }, fields: ["unit_code", "unit_name", "symbol"], columns: ["unit_code", "unit_name", "symbol", "decimal_allowed", "active"] },
     warehouses: { queryKey: "inventoryWarehouses", query: isSrmWarehouse ? srmApi.inventoryWarehouses : famApi.inventoryWarehouses, create: isSrmWarehouse ? srmApi.createInventoryWarehouse : famApi.createInventoryWarehouse, initial: { warehouse_code: "", warehouse_name: "" }, fields: ["warehouse_code", "warehouse_name", isSrmWarehouse ? "branch" : "branch_id", "address"], columns: ["warehouse_code", "warehouse_name", "branch_id", "active"] },
   }[kind];
-  const query = useQuery({ queryKey: [isSrmWarehouse ? "srm" : "fam", config.queryKey,scope], queryFn: config.query, retry:false });
+  const inventoryModule = isSrmWarehouse ? "srm" : "fam";
+  const listKey = [inventoryModule, config.queryKey, scope];
+  const query = useQuery({ queryKey: listKey, queryFn: config.query, retry:false });
   const branches=useQuery({queryKey:["fam","inventory-master-branches",scope],queryFn:famApi.branches,enabled:kind==="warehouses"&&!isSrmWarehouse,retry:false,staleTime:30000});
   const [formError,setFormError]=useState("");
   const [createRevision, setCreateRevision] = useState(0);
@@ -1743,13 +1745,25 @@ function InventoryMasterForm({kind,scope}:{kind:"groups"|"units"|"warehouses";sc
   const endpoint=isSrmWarehouse?"/srm/inventory/warehouses":`/fam/inventory/${kind==="groups"?"stock-groups":kind}`;
   const mutation = useMutation({
     mutationFn: () => editing ? api.put(`${endpoint}/${editing.id}`, draft) : config.create(draft),
-    onSuccess: () => {
+    onSuccess: (saved: FAMRecord) => {
       if (editing) setEditing(null);
       else setCreateRevision(revision => revision + 1);
       setDraft(config.initial);
       setFormError("");
       toast({ title: "Inventory master saved" });
-      void queryClient.invalidateQueries({ queryKey: [isSrmWarehouse ? "srm" : "fam"] }, { cancelRefetch: false });
+      if (kind === "warehouses" && !editing && saved.id != null) {
+        queryClient.setQueryData<{ items: FAMRecord[]; total: number }>(listKey, current => {
+          const rows = listItems(current);
+          if (rows.some(row => row.id === saved.id)) return current;
+          const items = [...rows, saved];
+          items.sort((left, right) => String(left.warehouse_name).localeCompare(String(right.warehouse_name)));
+          return { ...current, items, total: (current?.total ?? rows.length) + 1 };
+        });
+        // The record-saved listener already refreshes the warehouse list.
+        void queryClient.invalidateQueries({ queryKey: [inventoryModule], refetchType: "none" });
+      } else {
+        void queryClient.invalidateQueries({ queryKey: [inventoryModule] }, { cancelRefetch: false });
+      }
     },
     onError: error => {
       setFormError(apiErrorMessage(error, "Inventory master could not be saved"));
@@ -1767,7 +1781,26 @@ function InventoryMasterForm({kind,scope}:{kind:"groups"|"units"|"warehouses";sc
     mutation.mutate();}}><fieldset disabled={!(editing?canEdit:canCreate)||mutation.isPending} className="space-y-3">{config.fields.map((field) => <Field key={field} label={field==="parent_group_id"?"Parent group":field==="branch_id"?"Branch":field.replace(/_/g," ")}>{["parent_group_id","branch_id"].includes(field)?<NativeSelect searchable disabled={field==="branch_id"&&!!editing} aria-label={field==="parent_group_id"?"Parent group":"Branch"} value={String(draft[field]??"")} onChange={event=>setDraft(current=>({...current,[field]:event.target.value?Number(event.target.value):null}))}><option value="">Not assigned</option>{(field==="parent_group_id"?groupChoices:branchChoices).map(row=><option key={String(row.id)} value={String(row.id)}>{String(field==="parent_group_id"?row.group_name:row.branch_name)}</option>)}{draft[field]&&!(field==="parent_group_id"?groupChoices:branchChoices).some(row=>String(row.id)===String(draft[field]))?<option value={String(draft[field])}>Unavailable selection</option>:null}</NativeSelect>:<Input required={/_code$|_name$/.test(field)} maxLength={field==="unit_code"?40:field==="unit_name"?120:/_code$/.test(field)?80:180} value={String(draft[field]??"")} onChange={event=>setDraft(current=>({...current,[field]:event.target.value}))}/>}</Field>)}
     {kind==="groups"&&query.isError&&<p role="alert">Parent groups could not load. <Button type="button" onClick={()=>void query.refetch()}>Retry parent groups</Button></p>}{kind==="warehouses"&&!isSrmWarehouse&&branches.isError&&<p role="alert">Branches could not load. <Button type="button" onClick={()=>void branches.refetch()}>Retry branches</Button></p>}
     {editing&&kind==="warehouses"&&!isSrmWarehouse&&<p className="text-sm text-muted-foreground">Use branch transfer to move this warehouse to another branch.</p>}{formError&&<p role="alert">{formError}</p>}<Button data-save-action className="w-full inventory-master-submit" type="submit">{editing?"Save changes":"Save"}</Button>{editing&&<Button className="inventory-master-cancel" type="button" variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);setFormError("");}}>Cancel editing</Button>}</fieldset></CompactForm></CardContent></Card>;
-  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]">{!editing && <SmartCreateSection title={`Create ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`} completionRevision={createRevision} closeOnRecordSaved={false}>{editor}</SmartCreateSection>}<Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).map(row=>({...row,parent_group_name:row.parent_group_id?String(listItems(query.data).find(group=>group.id===row.parent_group_id)?.group_name||"Unavailable group"):"Not assigned",branch_name:isSrmWarehouse?row.branch:row.branch_id?String(branchChoices.find(branch=>branch.id===row.branch_id)?.branch_name||"Unavailable branch"):"Not assigned"}))} columns={config.columns.map(column=>column==="parent_group_id"?"parent_group_name":column==="branch_id"?"branch_name":column)} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setFormError("");setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div>{editing && <SmartCreateModal definition={{entity:"inventoryMaster",title:`Edit ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`,presentation:"page",size:"compact",mode:"edit"}} busy={mutation.isPending} onClose={()=>{setEditing(null);setDraft(config.initial);}}>{editor}</SmartCreateModal>}<Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
+  return <><div className={kind === "warehouses" ? `inventory-warehouse-layout${editing ? "" : " inventory-warehouse-layout--with-create"}` : "grid gap-4 lg:grid-cols-[24rem_1fr]"}>
+      {!editing && (kind === "warehouses" ? (
+        <Card className="inventory-warehouse-create">
+          <img src="/images/warehouse-create.webp" alt="" width={176} height={144} />
+          <h2>Create warehouse</h2>
+          <SmartCreateSection
+            title="Create warehouse"
+            completionRevision={createRevision}
+            closeOnRecordSaved={false}
+            trigger={<Button className="inventory-warehouse-create-button"><Plus aria-hidden="true" />Create warehouse</Button>}
+          >
+            {editor}
+          </SmartCreateSection>
+        </Card>
+      ) : (
+        <SmartCreateSection title={kind === "groups" ? "Create stock group" : "Create unit"} completionRevision={createRevision} closeOnRecordSaved={false}>
+          {editor}
+        </SmartCreateSection>
+      ))}
+      <Card className={kind === "warehouses" ? "min-w-0" : undefined}><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).map(row=>({...row,parent_group_name:row.parent_group_id?String(listItems(query.data).find(group=>group.id===row.parent_group_id)?.group_name||"Unavailable group"):"Not assigned",branch_name:isSrmWarehouse?row.branch:row.branch_id?String(branchChoices.find(branch=>branch.id===row.branch_id)?.branch_name||"Unavailable branch"):"Not assigned"}))} columns={config.columns.map(column=>column==="parent_group_id"?"parent_group_name":column==="branch_id"?"branch_name":column)} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setFormError("");setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div>{editing && <SmartCreateModal definition={{entity:"inventoryMaster",title:`Edit ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`,presentation:"page",size:"compact",mode:"edit"}} busy={mutation.isPending} onClose={()=>{setEditing(null);setDraft(config.initial);}}>{editor}</SmartCreateModal>}<Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
 }
 
 function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "delivery" }) {

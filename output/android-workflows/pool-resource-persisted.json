@@ -1,0 +1,6 @@
+{
+  "opens": "06:30:00",
+  "closes": "20:00:00",
+  "capacity": 6,
+  "status": "active"
+}

@@ -1,0 +1,9 @@
+{
+  "booked_record": 4,
+  "status": "booked",
+  "starts_at": "2026-11-24T03:30:00Z",
+  "availability_after_booking": {
+    "QA Dr. Mehta": false,
+    "QA Dr. Rao": true
+  }
+}

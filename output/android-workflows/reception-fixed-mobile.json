@@ -1,0 +1,30 @@
+{
+  "1": {
+    "status": "Passed",
+    "verified": "Appointment timeline rendered in the receptionist session"
+  },
+  "2": {
+    "status": "Passed",
+    "id": 2,
+    "record": "QA Clinic Patient Complete",
+    "http": 201
+  },
+  "3": {
+    "status": "Passed",
+    "verified": "Patient found by case-insensitive name search after reload"
+  },
+  "4": {
+    "status": "Passed",
+    "verified": "Duplicate registration was rejected and the warning appeared",
+    "http": 409
+  },
+  "24": {
+    "status": "Passed",
+    "verified": "Restricted Business Packs setup denied to the receptionist. The local capabilities response permits scheduling and check-in, and denies billing and clinical completion."
+  },
+  "login": {
+    "status": "Passed",
+    "http": 200,
+    "verified": "Receptionist account authenticated in Android Chrome"
+  }
+}

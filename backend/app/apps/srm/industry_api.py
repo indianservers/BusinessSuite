@@ -486,16 +486,20 @@ def records(kind: str, project_id: int | None = None, from_at: datetime | None =
     from app.apps.project_management.access import accessible_project_query
     from app.apps.project_management.models import PMSProject
     from app.module_registry import is_app_enabled
-    from app.business_packs.industry_assignment import current_scope, ASSIGNED_ROLES
+    from app.business_packs.industry_assignment import current_scope
     selected = current_scope(db, user, tenant(user))
-    clinical = selected is not None and (selected.pack_key, selected.role) in ASSIGNED_ROLES
+    clinical = selected is not None and selected.pack_key in {'hospital', 'salon'} and kind in {'appointment', 'resource'}
     construction_scope = selected is not None and selected.pack_key == 'construction' and kind in CONSTRUCTION
     if construction_scope:
         if not project_id:
             fail("Select a project for construction operations")
         get_project_for_action(db, project_id, user)
         q = q.filter(Record.project_id == project_id)
-    elif is_app_enabled('project_management') and not clinical:
+    elif clinical:
+        # Clinical pack records have their own guarded graph. Project-owned
+        # operations must use their project workflow and authorization.
+        q = q.filter(Record.project_id.is_(None))
+    elif is_app_enabled('project_management'):
         q = q.filter((Record.project_id.is_(None)) | Record.project_id.in_(accessible_project_query(db, user).with_entities(PMSProject.id)))
     else:
         q = q.filter(Record.project_id.is_(None))

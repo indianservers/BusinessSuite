@@ -1,0 +1,45 @@
+{
+  "fitness": {
+    "POST /auth/login": 200,
+    "POST /imports/sample-data/import": 200,
+    "POST /master-data/companies": 201,
+    "GET /employees/": 200,
+    "POST /srm/industry/resources": 201,
+    "customers_named": true,
+    "GET /catalog/items": 200,
+    "service_catalog_count": 10,
+    "product_catalog_count": 30
+  },
+  "hospitality": {
+    "POST /auth/login": 200,
+    "POST /imports/sample-data/import": 200,
+    "POST /master-data/companies": 201,
+    "GET /employees/": 200,
+    "POST /srm/industry/resources": 201,
+    "customers_named": true,
+    "GET /catalog/items": 200,
+    "service_catalog_count": 10,
+    "product_catalog_count": 30
+  },
+  "pharma": {
+    "POST /auth/login": 200,
+    "POST /imports/sample-data/import": 200,
+    "POST /master-data/companies": 201,
+    "GET /employees/": 200,
+    "customers_named": true,
+    "GET /catalog/items": 200,
+    "service_catalog_count": 10,
+    "product_catalog_count": 30
+  },
+  "hospital": {
+    "POST /auth/login": 200,
+    "POST /imports/sample-data/import": 200,
+    "POST /master-data/companies": 201,
+    "GET /employees/": 200,
+    "POST /srm/industry/resources": 201,
+    "customers_named": true,
+    "GET /catalog/items": 200,
+    "service_catalog_count": 10,
+    "product_catalog_count": 30
+  }
+}

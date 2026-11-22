@@ -11,6 +11,7 @@ from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from app.apps.project_management.models import PMSProject, PMSWorkspace, PMSWorkspaceMember, PMSTask
 from app.apps.project_management.notes import router
+from app.apps.project_management.desktop_note_sync import router as desktop_sync_router
 from app.apps.project_management.note_actions import router as actions_router
 from app.apps.project_management.recovery import workspace_export
 
@@ -100,11 +101,45 @@ def notes_client(db):
     admin = User(email="note-admin@audit.invalid", hashed_password="unused", is_active=True, is_superuser=True)
     db.add_all([owner, admin]); db.commit()
     app = FastAPI(); app.include_router(router); app.include_router(actions_router)
+    app.include_router(desktop_sync_router)
     app.dependency_overrides[get_db] = lambda: db
     actor = [owner]
     app.dependency_overrides[get_current_user] = lambda: actor[0]
     with TestClient(app) as client:
         yield client, owner, admin, actor
+
+
+def test_desktop_sync_preserves_owner_and_versions(notes_client):
+    client, owner, admin, actor = notes_client
+    created = client.post("/notes", json={"title": "Offline draft"}).json()
+    snapshot = client.get("/desktop-sync/notes").json()
+    note = snapshot["items"][0]
+    path = "/desktop-sync/notes/" + note["id"]
+    change = {"expected_version": note["version"], "note": {**note["note"], "trashed": True}}
+
+    actor[0] = admin
+    assert client.get(path).status_code == 404
+    assert client.get("/desktop-sync/notes").json()["items"] == []
+    assert client.put(path, json={**change, "expected_version": 0}).status_code == 409
+
+    actor[0] = owner
+    assert client.put(path, json=change).status_code == 200
+    assert client.put(path, json=change).status_code == 409
+    assert client.get("/notes", params={"view": "trash"}).json()[0]["id"] == created["id"]
+    assert client.get(path).json()["note"]["trashed"] is True
+
+
+def test_desktop_sync_excludes_linked_and_shared_notes(db, notes_client):
+    from app.apps.project_management.models import PMSNote, PMSNoteShare
+
+    client, owner, admin, _ = notes_client
+    note = PMSNote(owner_id=owner.id, title="Shared", content="Private channel")
+    db.add(note)
+    db.flush()
+    db.add(PMSNoteShare(note_id=note.id, user_id=admin.id))
+    db.commit()
+    assert client.get("/desktop-sync/notes").json()["items"] == []
+    assert client.get(f"/desktop-sync/notes/{note.sync_id}").status_code == 404
 
 
 def test_owner_only_all_operations_including_admin(db, notes_client):

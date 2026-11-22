@@ -1,3 +1,4 @@
+import { offlineChanges, offlineRead, saveOffline } from "@/lib/offline-work";
 /**
  * KaryaFlow API Service
  * All API calls for project management
@@ -182,6 +183,15 @@ export const risksAPI = {
 
 // ============= TASKS =============
 export const tasksAPI = {
+  createOffline: (projectId: number, data: CreateTaskInput, projectName: string) => saveOffline<PMSTask>({
+    family: "tasks", target: data.task_key!, url: `${BASE_URL}/projects/${projectId}/tasks`, method: "post", body: data,
+    row: {...data, project_id: projectId, project_name: projectName, created_at: new Date().toISOString(), subtasks_count: 0, completed_subtasks_count: 0, tags: []},
+  }),
+  saveStatusOffline: (task: PMSTask, status: string) => {
+    if (task.id < 0 || !task.updated_at) throw new Error("Wait for the task to sync before changing its status.");
+    return saveOffline<PMSTask>({family: "tasks", target: String(task.id), url: `${BASE_URL}/tasks/${task.id}`,
+      method: "patch", body: {status, expected_updated_at: task.updated_at}, row: {id: task.id, title: task.title, status}});
+  },
   create: async (projectId: number, data: CreateTaskInput) => {
     const payload = {
       ...data,
@@ -249,8 +259,37 @@ export const tasksAPI = {
       }
     });
     const suffix = params.toString() ? `?${params.toString()}` : "";
-    const response = await api.get<PMSTaskListResponse>(`${BASE_URL}/tasks${suffix}`, fresh ? { recordCache: false } : undefined);
-    return response.data;
+    const url = `${BASE_URL}/tasks${suffix}`;
+    const fetchTasks = () => api.get<PMSTaskListResponse>(url, fresh ? { recordCache: false } : {timeout: 4000}).then(response => response.data);
+    if (fresh) return fetchTasks();
+    const term = String(query.search || "").trim().toLowerCase();
+    const matchesSearch = (task: {title?: unknown; task_key?: unknown; description?: unknown}) =>
+      !term || [task.title, task.task_key, task.description].some(value => String(value || "").toLowerCase().includes(term));
+    let response: PMSTaskListResponse;
+    try { response = await offlineRead(url, fetchTasks, "tasks"); }
+    catch (error) {
+      if (navigator.onLine || !term || Number(query.page || 1) !== 1) throw error;
+      const base = new URL(url, window.location.origin);
+      base.searchParams.delete("search");
+      const cached = await offlineRead<PMSTaskListResponse>(base.pathname + base.search, fetchTasks, "tasks").catch(() => undefined);
+      if (!cached || cached.total > cached.items.length) throw error;
+      const items = cached.items.filter(matchesSearch);
+      response = {...cached, items, total: items.length};
+    }
+    const entries = await offlineChanges("tasks").catch(() => []);
+    if (!entries.length) return response;
+    let items = [...response.items];
+    for (const entry of entries) {
+      if (entry.method === "patch") {
+        items = items.map(task => task.id === entry.row.id && (!entry.confirmed || String(task.updated_at || "") < String(entry.row.updated_at || ""))
+          ? {...task, ...entry.row, offline_pending: !entry.confirmed} : task);
+      }
+    }
+    const simple = Object.entries(query).every(([key, value]) => value === undefined || value === null || value === "" || ["projectId", "sourceModule", "page", "pageSize", "sortBy", "sortOrder", "referenceDate", "search"].includes(key) || key === "overdue" && !value)
+      && query.sourceModule !== "crm" && Number(query.page || 1) === 1;
+    const additions = simple ? entries.filter(entry => entry.method === "post" && (!entry.confirmed || Date.now() - entry.created < 300000) &&
+      (!query.projectId || Number(query.projectId) === entry.row.project_id) && matchesSearch(entry.row) && !items.some(task => task.task_key === entry.row.task_key)).map(entry => entry.row as unknown as PMSTaskListItem) : [];
+    return {...response, items: [...additions, ...items], total: response.total + additions.length};
   },
 
   get: async (taskId: number, fresh=false, signal?:AbortSignal) => {

@@ -1,3 +1,4 @@
+import { offlineRead, saveOffline } from "@/lib/offline-work";
 import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
@@ -576,16 +577,11 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     setExtraDirty(false);
     allowNavigation.current = false;
     Promise.all([
-      api
+      offlineRead("task-studio-projects:" + JSON.stringify([params.get("people"), params.get("teams"), params.get("batches")]), () => api
         .get<StudioProject[]>(`${base}/projects`, {
-          recordCache: false,
-          params: {
-            people: params.get("people") || undefined,
-            teams: params.get("teams") || undefined,
-            batches: params.get("batches") || undefined,
-          },
-        })
-        .then((r) => r.data),
+          recordCache: false, timeout: 4000,
+          params: {people: params.get("people") || undefined, teams: params.get("teams") || undefined, batches: params.get("batches") || undefined},
+        }).then(r => r.data)),
       id
         ? api.get<Detail>(`${base}/tasks/${id}`, {recordCache:false}).then((r) => r.data)
         : Promise.resolve(undefined),
@@ -665,10 +661,9 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     if (!draft.projectId || loading) { setOptions(undefined); setOptionsProjectId(undefined); return; }
     let active = true;
     setOptions(undefined);
-    api
-      .get<Options>(`${base}/options`, {
-        params: { project_id: draft.projectId, compact: true },
-      })
+    offlineRead("task-studio-options:" + draft.projectId, () => api.get<Options>(`${base}/options`, {
+      timeout: 4000, params: {project_id: draft.projectId, compact: true},
+    }).then(response => response.data)).then(data => ({data}))
       .then((r) => {
         if (active) {setOptions(r.data);setOptionsProjectId(draft.projectId);
           if(!id&&!defaultAssignmentApplied.current&&!params.has("people")&&!params.has("teams")&&!params.has("batches")){
@@ -883,6 +878,23 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           "Individual assignments published. Each intern has an independent execution and review record.",
         );
         return false;
+      }
+      if (!id && !created.current && !navigator.onLine) {
+        if (files.length) throw new Error("Remove attachments or reconnect before saving this task.");
+        await saveOffline({
+          family: "tasks", target: task.task_key,
+          url: `${base}/projects/${draft.projectId}/tasks`, method: "post",
+          body: {task, assignment: draft.assignment},
+          row: {...task, project_id: Number(draft.projectId), project_name: projects.find(project => project.id === Number(draft.projectId))?.name,
+            created_at: new Date().toISOString(), subtasks_count: 0, completed_subtasks_count: 0, tags: []},
+        });
+        localStorage.removeItem(draftKey);
+        setSaved(JSON.stringify(draft));
+        setDraftAvailable(false);
+        allowNavigation.current = true;
+        if (onClose) onClose();
+        else navigate("/pms/tasks", {replace: true, state: {notice: "Task saved on this device. Sync runs automatically."}});
+        return true;
       }
       let record: Detail;
       if (id || created.current) {

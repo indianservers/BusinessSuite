@@ -89,14 +89,18 @@ def _fingerprint(node,dialect):
 def _workspace_predicate(db,scope):
     from app.apps.srm.models import SRMProduct
     from app.shared.catalog_models import CatalogDetails
-    from .operations import capabilities
+    from .operations import capabilities, can_view_booking_service
     proof=db.info.get(_MARKER)
     if isinstance(proof,_Projection) and proof.purpose=='pos' and proof.scope==scope:
         scope=proof.scope
     if not isinstance(proof,_Projection) or proof.scope is not scope or db.info.get('business_pack_scope') is not scope:
         raise HTTPException(403,'A verified native catalog projection is required')
-    if proof.purpose=='catalog' and 'catalog.view' not in (capabilities(db,proof.actor) or ()):
-        raise HTTPException(403,'Native catalog view capability is required')
+    if proof.purpose == 'catalog':
+        allowed = capabilities(db, proof.actor) or ()
+        if 'catalog.view' not in allowed and not (
+            proof.kinds == ('service',) and can_view_booking_service(scope, allowed, proof.source, 'service')
+        ):
+            raise HTTPException(403, 'Native catalog view capability is required')
     detail=CatalogDetails.__table__.alias('native_catalog_private_workspace')
     parent=SRMProduct.__table__
     node=exists(select(detail.c.id).where(detail.c.organization_id==scope.company_id,

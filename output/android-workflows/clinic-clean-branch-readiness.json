@@ -1,0 +1,19 @@
+{
+  "company_id": 1000000059,
+  "pack_key": "hospital",
+  "branch_id": 2,
+  "schema_ready": true,
+  "missing_tables": [],
+  "missing_columns": {},
+  "required_modules": [
+    "hrms",
+    "srm"
+  ],
+  "missing_modules": [],
+  "ready": false,
+  "isolation_ready": true,
+  "workflows_ready": true,
+  "reasons": [
+    "Native cutover source inventory is incomplete."
+  ]
+}

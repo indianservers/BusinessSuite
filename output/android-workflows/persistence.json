@@ -1,0 +1,317 @@
+{
+  "fitness": {
+    "catalog": [
+      {
+        "id": 43,
+        "name": "QA Protein Shaker",
+        "code": "AQA-company-56-22",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "product",
+        "plan": null
+      },
+      {
+        "id": 42,
+        "name": "QA Annual Training",
+        "code": "AQA-company-56-6",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "membership",
+        "plan": {
+          "tier": "",
+          "duration": {
+            "unit": "year",
+            "count": 1,
+            "start": null,
+            "end": null
+          },
+          "activation": "purchase",
+          "beneficiary_type": "person",
+          "beneficiary_limit": 1,
+          "benefits": [],
+          "eligibility": {
+            "offering_ids": [],
+            "locations": [],
+            "customer_groups": [],
+            "weekdays": [],
+            "blackout_dates": []
+          },
+          "renewal": {
+            "mode": "manual",
+            "reminder_days": [
+              30,
+              7,
+              1
+            ],
+            "price": null
+          },
+          "billing": {
+            "mode": "prepaid",
+            "recurring": false,
+            "automation": false,
+            "interval_unit": "month",
+            "interval_count": 1,
+            "anchor_day": 1,
+            "timezone": "Asia/Kolkata",
+            "setup_fee": 0,
+            "refundable_deposit": 0,
+            "trial_days": 0,
+            "grace_days": 0,
+            "proration": "none",
+            "overage": "deny"
+          },
+          "allow_pause": true,
+          "allow_transfer": false,
+          "employee_ids": [],
+          "project_template_id": null
+        }
+      },
+      {
+        "id": 41,
+        "name": "QA Monthly Training",
+        "code": "AQA-company-56-5",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "membership",
+        "plan": {
+          "tier": "",
+          "duration": {
+            "unit": "month",
+            "count": 1,
+            "start": null,
+            "end": null
+          },
+          "activation": "purchase",
+          "beneficiary_type": "person",
+          "beneficiary_limit": 1,
+          "benefits": [],
+          "eligibility": {
+            "offering_ids": [],
+            "locations": [],
+            "customer_groups": [],
+            "weekdays": [],
+            "blackout_dates": []
+          },
+          "renewal": {
+            "mode": "manual",
+            "reminder_days": [
+              30,
+              7,
+              1
+            ],
+            "price": null
+          },
+          "billing": {
+            "mode": "prepaid",
+            "recurring": false,
+            "automation": false,
+            "interval_unit": "month",
+            "interval_count": 1,
+            "anchor_day": 1,
+            "timezone": "Asia/Kolkata",
+            "setup_fee": 0,
+            "refundable_deposit": 0,
+            "trial_days": 0,
+            "grace_days": 0,
+            "proration": "none",
+            "overage": "deny"
+          },
+          "allow_pause": true,
+          "allow_transfer": false,
+          "employee_ids": [],
+          "project_template_id": null
+        }
+      }
+    ],
+    "contacts": [
+      {
+        "id": 42,
+        "name": "QA Mobile Gym Member",
+        "phone": null,
+        "email": null
+      }
+    ],
+    "matches": [
+      "QA Mobile Gym Member"
+    ],
+    "own_mobile_record_present": true,
+    "other_company_mobile_names_visible": false
+  },
+  "hospitality": {
+    "catalog": [
+      {
+        "id": 41,
+        "name": "QA Family Pool Pass",
+        "code": "AQA-company-57-9",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "membership",
+        "plan": {
+          "tier": "",
+          "duration": {
+            "unit": "month",
+            "count": 1,
+            "start": null,
+            "end": null
+          },
+          "activation": "purchase",
+          "beneficiary_type": "person",
+          "beneficiary_limit": 1,
+          "benefits": [],
+          "eligibility": {
+            "offering_ids": [],
+            "locations": [],
+            "customer_groups": [],
+            "weekdays": [],
+            "blackout_dates": []
+          },
+          "renewal": {
+            "mode": "manual",
+            "reminder_days": [
+              30,
+              7,
+              1
+            ],
+            "price": null
+          },
+          "billing": {
+            "mode": "prepaid",
+            "recurring": false,
+            "automation": false,
+            "interval_unit": "month",
+            "interval_count": 1,
+            "anchor_day": 1,
+            "timezone": "Asia/Kolkata",
+            "setup_fee": 0,
+            "refundable_deposit": 0,
+            "trial_days": 0,
+            "grace_days": 0,
+            "proration": "none",
+            "overage": "deny"
+          },
+          "allow_pause": true,
+          "allow_transfer": false,
+          "employee_ids": [],
+          "project_template_id": null
+        }
+      },
+      {
+        "id": 42,
+        "name": "QA Ten Swim Pass",
+        "code": "AQA-company-57-10",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "membership",
+        "plan": {
+          "tier": "",
+          "duration": {
+            "unit": "month",
+            "count": 1,
+            "start": null,
+            "end": null
+          },
+          "activation": "purchase",
+          "beneficiary_type": "person",
+          "beneficiary_limit": 1,
+          "benefits": [],
+          "eligibility": {
+            "offering_ids": [],
+            "locations": [],
+            "customer_groups": [],
+            "weekdays": [],
+            "blackout_dates": []
+          },
+          "renewal": {
+            "mode": "manual",
+            "reminder_days": [
+              30,
+              7,
+              1
+            ],
+            "price": null
+          },
+          "billing": {
+            "mode": "prepaid",
+            "recurring": false,
+            "automation": false,
+            "interval_unit": "month",
+            "interval_count": 1,
+            "anchor_day": 1,
+            "timezone": "Asia/Kolkata",
+            "setup_fee": 0,
+            "refundable_deposit": 0,
+            "trial_days": 0,
+            "grace_days": 0,
+            "proration": "none",
+            "overage": "deny"
+          },
+          "allow_pause": true,
+          "allow_transfer": false,
+          "employee_ids": [],
+          "project_template_id": null
+        }
+      }
+    ],
+    "contacts": [
+      {
+        "id": 42,
+        "name": "QA Mobile Swimmer",
+        "phone": null,
+        "email": null
+      }
+    ],
+    "matches": [
+      "QA Mobile Swimmer"
+    ],
+    "own_mobile_record_present": true,
+    "other_company_mobile_names_visible": false
+  },
+  "pharma": {
+    "catalog": [
+      {
+        "id": 41,
+        "name": "QA OTC Test Balm",
+        "code": "AQA-company-58-3",
+        "price": 250.0,
+        "tax": 0.0,
+        "barcode": "",
+        "kind": "product",
+        "plan": null
+      }
+    ],
+    "contacts": [
+      {
+        "id": 42,
+        "name": "QA Mobile Medicine Supplier",
+        "phone": null,
+        "email": null
+      }
+    ],
+    "matches": [
+      "QA Mobile Medicine Supplier"
+    ],
+    "own_mobile_record_present": true,
+    "other_company_mobile_names_visible": false
+  },
+  "hospital": {
+    "catalog": [],
+    "contacts": [
+      {
+        "id": 42,
+        "name": "QA Mobile Clinic Patient",
+        "phone": null,
+        "email": null
+      }
+    ],
+    "matches": [
+      "QA Mobile Clinic Patient"
+    ],
+    "own_mobile_record_present": true,
+    "other_company_mobile_names_visible": false
+  }
+}

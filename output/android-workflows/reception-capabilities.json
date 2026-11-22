@@ -1,0 +1,33 @@
+{
+  "company_id": 1000000060,
+  "is_access_admin": false,
+  "capabilities": {
+    "manage": true,
+    "approve": false,
+    "self_approve": false,
+    "invoice": false,
+    "projects_enabled": true,
+    "crm_enabled": true,
+    "billing": false,
+    "collect": false,
+    "approve_invoice": false,
+    "appointment_actions": [
+      "schedule",
+      "check_in"
+    ],
+    "checkout_create": false,
+    "checkout_collect": false,
+    "operational_scope": {
+      "realm": "pack",
+      "user_id": 2,
+      "company_id": 1000000060,
+      "branch_id": 2,
+      "context_id": 1,
+      "pack_key": "hospital",
+      "pack_version": 1,
+      "context_revision": 2,
+      "grant_revision": 1,
+      "activation_revision": 2
+    }
+  }
+}

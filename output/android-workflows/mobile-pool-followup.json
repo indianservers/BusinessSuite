@@ -1,0 +1,75 @@
+{
+  "fitness-1": {
+    "status": "Passed",
+    "verified": "Gym tenant Sales dashboard loaded"
+  },
+  "fitness-6": {
+    "status": "Passed",
+    "http": 201,
+    "id": 45,
+    "record": "QA Annual Training Premium",
+    "price": 2400,
+    "barcode": "",
+    "plan": {
+      "unit": "year",
+      "count": 1,
+      "start": null,
+      "end": null
+    }
+  },
+  "fitness-9": {
+    "status": "Passed",
+    "http": 201,
+    "id": 44,
+    "record": "QA Monthly Gym Subscription",
+    "price": 650,
+    "barcode": "",
+    "plan": {
+      "unit": "month",
+      "count": 1,
+      "start": null,
+      "end": null
+    }
+  },
+  "pharma-3": {
+    "status": "Passed",
+    "http": 201,
+    "id": 42,
+    "record": "QA OTC Barcode Balm",
+    "price": 125,
+    "barcode": "8900000058123"
+  },
+  "pharma-9": {
+    "status": "Passed",
+    "verified": "The OTC product appeared in terminal search using its barcode",
+    "barcode": "8900000058123"
+  },
+  "hospitality-22": {
+    "status": "Passed",
+    "http": 200,
+    "verified": "The mobile appointment card updated to No show after the action and reason were saved."
+  },
+  "hospitality-3": {
+    "status": "Passed",
+    "http": 201,
+    "record": "Blue Lane 2",
+    "id": 6,
+    "open": "07:00:00",
+    "close": "19:30:00",
+    "capacity": 6
+  },
+  "hospitality-2": {
+    "status": "Inconclusive",
+    "error": "Opening hours did not reload",
+    "locator": "",
+    "text": "1 change · Synced\nSkip to content\nAN\nSales & POS\nAppointment Scheduler\nPage actions\nAvailable resources\nAppointments\nEmployees & resources\nAdd resource\n1\n\nTotal\n\n1\n\nAvailable\n\n0\n\nIn use\n\n0\n\nMaintenance\n\nAll\nChairs\nRooms\nEquipment\n\nResource saved successfully.\n\nBlue Lane 2\nMain pool\n100%\nBooked today 0h / 12.5h\nAvailable\nAdd resource\nShowing 1–1 of 1 resources\n1\n\nLoading operations…\n\nPOS\nCustomers\nQuotes\nOrders\nPayments\nEdit resource\n\nUpdate the details for this resource.\n\nResource name *\nType *\nRoom\nChair\nEquipment\nLocation\nLocation *\nCapacity *\nOpening hours *\n07:00\n–\n19:30\nWorking days *\nMon\nTue\nWed\nThu\nFri\nSat\nSun\nStatus\nActive\nResource is available for bookings.\nAssigned color\nLavender\nBlue\nMint\nPeach\nRose\nSlate\nMore details\nCancel\nSave changes",
+    "screenshot": "rerun-hospitality-2.png"
+  },
+  "hospitality-23": {
+    "status": "Inconclusive",
+    "error": "locator.click: Timeout 45000ms exceeded.",
+    "locator": "Call log:\n\u001b[2m  - waiting for getByLabel('Actions for Blue Lane 2', { exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <summary aria-label=\"Actions for Blue Lane 2\">…</summary>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m",
+    "text": "Skip to content\nAN\nSales & POS\nAppointment Scheduler\nPage actions\nAvailable resources\nAppointments\nEmployees & resources\nAdd resource\n1\n\nTotal\n\n1\n\nAvailable\n\n0\n\nIn use\n\n0\n\nMaintenance\n\nAll\nChairs\nRooms\nEquipment\n\nResource saved successfully.\n\nBlue Lane 2\nMain pool\n100%\nBooked today 0h / 13.5h\nAvailable\nAdd resource\nShowing 1–1 of 1 resources\n1\nPOS\nCustomers\nQuotes\nOrders\nPayments\nEdit resource\n\nUpdate the details for this resource.\n\nResource name *\nType *\nRoom\nChair\nEquipment\nLocation\nLocation *\nCapacity *\nOpening hours *\n07:00\n–\n19:30\nWorking days *\nMon\nTue\nWed\nThu\nFri\nSat\nSun\nStatus\nActive\nResource is available for bookings.\nAssigned color\nLavender\nBlue\nMint\nPeach\nRose\nSlate\nMore details\nCancel\nSave changes",
+    "screenshot": "rerun-hospitality-23.png"
+  }
+}

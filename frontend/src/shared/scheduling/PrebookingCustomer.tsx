@@ -1,3 +1,5 @@
+import ClinicPatients, { usePatientWorkspace } from '@/apps/srm/components/ClinicPatients';
+import type { PosCustomerRecord } from '@/apps/srm/components/QuickAddCustomer';
 import {schedulingPhone} from './scheduling-format';
 import {ChevronDown} from 'lucide-react';
 import SchedulingAvatar from './SchedulingAvatar';
@@ -9,7 +11,26 @@ import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 
-export default function PrebookingCustomer({ reference = false, value, onChange, onSelected }: { reference?: boolean; value: string; onChange: (value: string) => void; onSelected: (customer: Company) => void }) {
+type Props = { reference?: boolean; value: string; onChange: (value: string) => void; onSelected: (customer: Company) => void };
+
+export default function PrebookingCustomer(props: Props) {
+  const patient = usePatientWorkspace();
+  if (patient.loading) return <p role="status">Loading workspace…</p>;
+  const resolvePatient = (row: PosCustomerRecord) => props.onSelected({
+    id: row.id,
+    name: row.name,
+    phone: row.phone ?? undefined,
+    phone_country_code: row.phone_country_code ?? undefined,
+    email: row.email ?? undefined,
+  });
+  if (patient.hospital) return <ClinicPatients key={patient.scope} selected={props.value} onResolved={resolvePatient} onSelect={row => {
+    props.onChange(String(row.id));
+    resolvePatient(row);
+  }}/>;
+  return <SharedCustomerPicker {...props}/>;
+}
+
+function SharedCustomerPicker({ reference = false, value, onChange, onSelected }: Props) {
   const { term } = useBusinessTerms();
   const [changing, setChanging] = useState(false), [chosen, setChosen] = useState<Company>();
   const [search,setSearch]=useState(''),[page,setPage]=useState(1),[creating,setCreating]=useState(false);

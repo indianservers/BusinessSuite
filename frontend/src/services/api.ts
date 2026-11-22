@@ -1,6 +1,6 @@
 import { currentPOSOperationalPin, operationalOwner, isPOSOperationalRequest } from '@/lib/pos-operational-context';
 import { securityAuthStamp } from "@/lib/security-auth-stamp";
-import { startRecordSync, finishRecordSync, confirmRecoveredSync, recordSyncOrigin } from "@/shared/record-sync/store";
+import { startRecordSync, finishRecordSync, confirmRecoveredSync, recordSyncOrigin, syncScope } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import {startupReadPriority} from '@/lib/startup-read-priority';
@@ -21,6 +21,7 @@ declare module "axios" {
     _recordSyncBackground?: boolean;
     /** Use an entity-owned optimistic implementation instead of the shared tracker. */
     recordSync?: boolean;
+    offlineScope?: string;
     _recordSyncId?: string;
     /** Disable foreground feedback for non-interactive mutations. */
     progress?: false | (Omit<ProgressOperation, "id"> & { id?: string });
@@ -60,6 +61,7 @@ api.defaults.adapter = startupReadPriority(identityReadTransport(axios.getAdapte
 
 // Request interceptor: attach access token
 api.interceptors.request.use(async (config) => {
+  if (config.offlineScope && config.offlineScope !== syncScope()) throw new axios.CanceledError('Workspace changed', config);
   const explicitWorkspace = config.headers.has("X-Suite-Tenant");
   const tenant = explicitWorkspace ? String(config.headers.get("X-Suite-Tenant") || "") : new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant");
   if (!config._recordSyncBackground && !explicitWorkspace && new URLSearchParams(window.location.search).get("tenant") && tenant !== sessionStorage.getItem("suite-tenant")) {

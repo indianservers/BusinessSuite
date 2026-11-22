@@ -1,0 +1,23 @@
+{
+  "1": {
+    "status": "Passed",
+    "verified": "Appointment timeline rendered in the receptionist session"
+  },
+  "2": {
+    "status": "Inconclusive",
+    "error": "page.waitForResponse: Timeout 45000ms exceeded while waiting for event \"response\"",
+    "text": "Skip to content\nAN\nSales & POS\nPatients\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n0 matching records\nPatients\nPOS\nCreate\nAll pages\nFilters\nColumns 17/17\nSaved views\nSelect records\nTable view\nRequest failed with status code 503\nRetry\nGroup · Drag columns here\n+ Add group\nPatient\nBusiness roles\nPrimary email\nPrimary phone\nClassification\nBusiness type\nCountry\nIndustry\nStatus\nState\nCity\nPIN code\nTags\nFilters\n2 / 3\nCreate patient\n\nBasic details are enough to save. Add optional information when available.\n\nBasic details\nLegal & tax\nContacts & addresses\nBanking & other\n\nCustom fields could not be loaded. Reopen the form to try again.\n\nCustom fields could not be loaded. Reopen the form to try again.\nStep 3 of 3\nDraft saved automatically\nCancel\nSave & new\nSave patient",
+    "screenshot": "reception-2.png"
+  },
+  "24": {
+    "status": "Inconclusive",
+    "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/You do not have permission|Company administrator access is required|Business Packs could not load|not available for your account/i).first() to be visible\u001b[22m\n",
+    "text": "Company Admin\n[Local QA] Cedar Point Clinic Reception QA\nBusiness Pack\nChoose assigned context\nHospital · Reception QA · receptionist\nBranch\nReception QA\nSet as default branch\n\nWORKSPACE SETTINGS\n\nSettings\n\nOne place for your account, company and application preferences.\n\nAll settings\nSetting unavailable\n\nYour current permissions do not allow this setting in this company.\n\nReturn to allowed settings",
+    "screenshot": "reception-24.png"
+  },
+  "login": {
+    "status": "Passed",
+    "http": 200,
+    "verified": "Receptionist account authenticated in Android Chrome"
+  }
+}

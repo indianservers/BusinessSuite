@@ -1,3 +1,4 @@
+import { offlineChangeEvent, offlineRead } from "@/lib/offline-work";
 import { taskDraftId } from "../task-draft-id";
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { commonRouteContext } from "@/lib/common-routes";
@@ -240,6 +241,13 @@ function TasksReferencePage() {
   const taskQueryParams = new URLSearchParams([...params].filter(([key]) => [...filterKeys, "page", "pageSize", "sortBy", "sortOrder"].includes(key)));
   taskQueryParams.set("sourceModule", sourceModule);
   const taskQuery = taskQueryParams.toString();
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === "tasks") setRevision(value => value + 1); };
+    const reconnect = () => setRevision(value => value + 1);
+    window.addEventListener(offlineChangeEvent, refresh);
+    window.addEventListener("online", reconnect);
+    return () => { window.removeEventListener(offlineChangeEvent, refresh); window.removeEventListener("online", reconnect); };
+  }, []);
   const activeFilterCount = filterKeys.filter((key) => {
     const value = params.get(key);
     return value && value !== "false";
@@ -302,7 +310,7 @@ function TasksReferencePage() {
         setNotice("Saved views could not be loaded. Refresh to retry."),
       );
   }, []);
-  useRecordView<PMSTaskListResponse>("/project-management/tasks", { ...Object.fromEntries(new URLSearchParams(taskQuery)), page, pageSize, referenceDate: localDay(), overdue: params.get("overdue") === "true" }, snapshot => { setData(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setData(undefined); setSelected([]); }, !studio);
+  useRecordView<PMSTaskListResponse>("/project-management/tasks", { ...Object.fromEntries(new URLSearchParams(taskQuery)), page, pageSize, referenceDate: localDay(), overdue: params.get("overdue") === "true" }, () => setRevision(value => value + 1), () => { setData(undefined); setSelected([]); }, !studio);
   const reload = () => setRevision((n) => n + 1);
   useRefreshableEffect(() => {
     reload();
@@ -368,6 +376,16 @@ function TasksReferencePage() {
   const projectId =
     editable.find((p) => p.id === Number(params.get("projectId")))?.id ||
     editable[0]?.id;
+  useEffect(() => {
+    if (!navigator.onLine || !projectId || !canCreateTask) return;
+    const prepare = () => {
+      void offlineRead("task-studio-projects:[null,null,null]", () => api.get("/project-management/task-studio/projects", {recordCache: false, progress: false, timeout: 4000}).then(response => response.data)).catch(() => undefined);
+      void offlineRead("task-studio-options:" + projectId, () => api.get("/project-management/task-studio/options", {params: {project_id: projectId, compact: true}, progress: false, timeout: 4000}).then(response => response.data)).catch(() => undefined);
+    };
+    prepare();
+    window.addEventListener("online", prepare);
+    return () => window.removeEventListener("online", prepare);
+  }, [projectId, canCreateTask]);
   const add = (type: "Task" | "Story" | "Bug" = "Task", title = "") => {
     setTemplate(type);
     setStarterTitle(title);
@@ -401,19 +419,21 @@ function TasksReferencePage() {
     });
   }, [loading, studio]);
   const open = (task?: PMSTaskListItem) => {
+    if (task && task.id < 0) { setNotice("This task is saved on this device and will open after syncing."); return; }
     if (dirty && !window.confirm("Discard unsaved task changes?")) return;
     setDirty(false);
     setOpened(task);
   };
   async function inlineUpdate(task: PMSTaskListItem, patch: Parameters<typeof tasksAPI.update>[1]) {
-    if (busy||!canEditTask) return;
+    if (busy||!canEditTask || task.id < 0 || (task as PMSTaskListItem & {offline_pending?:boolean}).offline_pending) return;
     const before = data;
     setBusy(true); setError("");
     setData(current => current ? { ...current, items: current.items.map(item => item.id === task.id ? { ...item, ...patch } as PMSTaskListItem : item) } : current);
     try {
-      const updated = await tasksAPI.update(task.id, patch);
+      const statusOnly = Object.keys(patch).length === 1 && !!patch.status;
+      const updated = statusOnly ? await tasksAPI.saveStatusOffline(task, patch.status!) : await tasksAPI.update(task.id, patch);
       setData(current => current ? { ...current, items: current.items.map(item => item.id === task.id ? { ...item, ...updated } : item) } : current);
-      setNotice("Task saved.");
+      setNotice(statusOnly ? "Status saved on this device. Sync runs automatically." : "Task saved.");
     } catch (error) { setData(before); setError(workspaceError(error)); }
     finally { setBusy(false); }
   }
@@ -1068,7 +1088,7 @@ function TasksReferencePage() {
                                 >
                                   <input data-autosave-blur type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
                                 </td>
-                                <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
+                                <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={task.id < 0 || (task as PMSTaskListItem & {offline_pending?:boolean}).offline_pending || busy || !canEditTask || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
                                 <td><div className="tr-progress-cell"><progress max={100} value={(task as PMSTaskListItem & {progress?:number}).progress || 0}/><input data-autosave-blur type="number" min={0} max={100} step={1} aria-label={`Progress for ${task.title}`} key={`${task.id}:${(task as PMSTaskListItem & {progress?:number}).progress || 0}`} defaultValue={(task as PMSTaskListItem & {progress?:number}).progress || 0} disabled={busy || !canCreateTask || finished(task.status) || !editable.some(p => p.id === task.project_id)} onBlur={event => {const value = Number(event.currentTarget.value); if(event.currentTarget.value !== "" && event.currentTarget.validity.valid && value !== ((task as PMSTaskListItem & {progress?:number}).progress || 0)) void inlineProgress(task,value); else event.currentTarget.value = String((task as PMSTaskListItem & {progress?:number}).progress || 0);}} onKeyDown={event => {if(event.key === "Enter")event.currentTarget.blur();}}/><span>%</span></div></td>
                                 <td><div className="tr-task-labels">{task.tags?.map((tag,index) => <span key={typeof tag === "string" ? tag : tag.id || index}>{typeof tag === "string" ? tag : tag.name}</span>)}</div></td>
                                 <td>{more}</td>

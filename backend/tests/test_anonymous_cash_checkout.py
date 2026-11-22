@@ -28,13 +28,17 @@ def anonymous(db,scenario):
     return user,branch,account,sale
 
 
-def test_anonymous_native_full_payment_and_exact_replay_no_person(db,anonymous):
-    user,branch,account,sale=anonymous;data=sale()
+@pytest.mark.parametrize("captured_at", [None, "2026-11-21T09:15:00+05:30"])
+def test_anonymous_native_full_payment_and_exact_replay_no_person(db,anonymous,captured_at):
+    user,branch,account,sale=anonymous
+    data=CheckoutInput.model_validate({**sale().model_dump(mode="json"),"captured_at":captured_at})
     before=db.query(CRMContact).count()
     with native_writer(db,user,branch):
         result=checkout(data,db,user)
         assert checkout(data,db,user)==result
     invoice=db.get(SRMInvoice,result['invoice']['id']);receipt=db.get(SRMReceipt,result['receipts'][0]['id'])
+    order=db.get(SRMSalesOrder,result['sales_order_id'])
+    assert order.metadata_json.get('pos_captured_at') == ("2026-11-21T03:45:00+00:00" if captured_at else None)
     assert invoice.customer_id==receipt.customer_id==account['customer_id']
     assert invoice.total_amount==invoice.paid_amount==118 and invoice.balance_amount==0
     assert db.query(CRMContact).count()==before

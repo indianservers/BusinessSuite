@@ -1,0 +1,35 @@
+{
+  "login": {
+    "status": "Inconclusive",
+    "error": "page.waitForResponse: Timeout 45000ms exceeded while waiting for event \"response\"",
+    "text": "Skip to sign in\nBusiness Suite\nYOUR CONNECTED WORKSPACE\nHelp & support\n\n[Local QA] Cedar Point Clinic Reception QA\n\nSign in to Business Suite\n\nOne account for your entire workspace.\n\nContinue to Appointments after signing in.\n\nContinue with Google\nGoogle sign-in is not configured for this installation. Use your email and password below.\nRetry sign-in options\nEmail address\n\nEnter a valid email address.\n\nPassword\nRemember me\nUse only on a trusted device. Leave unchecked on shared devices.\nSign in\nForgot password?\n\nNew to Business Suite? Start your free trial →\n\nCheck application status\n\nAccess follows your organization’s permissions.\n\nCompany settings\nHelp & support\n© 2026 Business Suite",
+    "screenshot": "reception-booking-login.png",
+    "failedRoutes": [
+      [
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "GET",
+        "/api/v1/access/settings/business-profile/effective",
+        403
+      ],
+      [
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "GET",
+        "/api/v1/access/me",
+        403
+      ],
+      [
+        "GET",
+        "/api/v1/access/settings/business-profile/effective",
+        403
+      ]
+    ]
+  }
+}

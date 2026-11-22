@@ -1,3 +1,4 @@
+import { offlineRead } from "@/lib/offline-work";
 import { randomUUID } from "@/lib/random-uuid";
 import OfferingFields, {newPlan} from "./OfferingFields";
 import CatalogCategoryFields from "./CatalogCategoryFields";
@@ -65,7 +66,7 @@ export default function CatalogCompactEditor({ source, initial, defaultKind = "p
   useEffect(() => {
     if (initial) return;
     let active = true;
-    api.get("/branches/context", { progress: false, recordCache: false }).then(({ data }) => {
+    offlineRead("catalog-branch-options", () => api.get("/branches/context", {progress: false, recordCache: false, timeout: 4000}).then(response => response.data)).then(data => {
       // The native interceptor may select the first verified branch. Remount
       // the page under that authority instead of accepting data into its old owner.
       if(active && !initialBranch.current && data.selected != null && sessionStorage.getItem("suite-branch") === String(data.selected)) window.dispatchEvent(new Event("suite:branch-changed"));
@@ -98,7 +99,7 @@ export default function CatalogCompactEditor({ source, initial, defaultKind = "p
     submitting.current = true; setBusy(!automatic); setError("");
     const payload={...draft};
     if(selectedContext&&!supports("follow_ups")&&initial?.follow_up&&JSON.stringify(payload.follow_up)===JSON.stringify(initial.follow_up))delete payload.follow_up;
-    try { const response = await catalogApi.save(source, { ...payload, tags: parseCatalogTags(tagText), price: priceIncludesTax ? Math.round(draft.price / (1 + draft.tax / 100) * 100) / 100 : draft.price }, destination); if(!owns())return false;catalogChanged(); if(automatic){savedSnapshot.current=JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax});setDraft(current=>({...current,version:response.data.version}));}else{clearDraft();toast({title: initial ? "Item saved" : "Item created"});saved(response.data,configure);}return true; }
+    try { const response = await catalogApi.save(source, { ...payload, tags: parseCatalogTags(tagText), price: priceIncludesTax ? Math.round(draft.price / (1 + draft.tax / 100) * 100) / 100 : draft.price }, destination, configure); if(!owns())return false;catalogChanged(); if(automatic){savedSnapshot.current=JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax});setDraft(current=>({...current,version:response.data.version}));}else{clearDraft();toast({title: response.data.offline_pending ? "Item saved on this device" : initial ? "Item saved" : "Item created"});saved(response.data,configure);}return true; }
     catch (e) { if(owns())setError(e instanceof Error && e.message.startsWith("Use up to") ? e.message : catalogError(e));return false; }
     finally { if(owns()){submitting.current = false; setBusy(false);} }
   }

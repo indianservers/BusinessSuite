@@ -1,0 +1,391 @@
+{
+  "resource": {
+    "status": 200,
+    "data": {
+      "items": [
+        {
+          "id": 2,
+          "kind": "resource",
+          "title": "QA Dr. Rao",
+          "status": "active",
+          "revision": 1,
+          "customer_id": null,
+          "project_id": null,
+          "parent_id": null,
+          "invoice_id": null,
+          "stock_movement_id": null,
+          "data": {
+            "resource_type": "doctor",
+            "employee_id": 2,
+            "capacity": 1,
+            "timezone": "Asia/Kolkata",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "opens": "09:00",
+            "closes": "18:00"
+          },
+          "created_at": "2026-11-21T23:21:33.496786+05:30",
+          "created_by": 1,
+          "approved_by": null
+        },
+        {
+          "id": 1,
+          "kind": "resource",
+          "title": "QA Dr. Mehta",
+          "status": "active",
+          "revision": 1,
+          "customer_id": null,
+          "project_id": null,
+          "parent_id": null,
+          "invoice_id": null,
+          "stock_movement_id": null,
+          "data": {
+            "resource_type": "doctor",
+            "employee_id": 1,
+            "capacity": 1,
+            "timezone": "Asia/Kolkata",
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "opens": "09:00",
+            "closes": "18:00"
+          },
+          "created_at": "2026-11-21T23:21:33.496786+05:30",
+          "created_by": 1,
+          "approved_by": null
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "status": 200,
+    "data": {
+      "items": [
+        {
+          "branch_availability": null,
+          "follow_up": null,
+          "id": 1,
+          "kind": "service",
+          "name": "QA General Consultation",
+          "code": "QA-CLINIC-CONSULT",
+          "category_ids": null,
+          "categories": [],
+          "category": "",
+          "tags": [],
+          "description": "",
+          "price": 300.0,
+          "currency": "INR",
+          "tax": 0.0,
+          "unit": "Visit",
+          "barcode": "",
+          "hsn_code": "",
+          "cost": 0.0,
+          "mrp": 0.0,
+          "reorder_level": 0.0,
+          "track_inventory": false,
+          "status": "Active",
+          "workspace_id": null,
+          "images": [],
+          "custom_fields": {},
+          "pricing_options": [],
+          "version": 0,
+          "can_edit": false,
+          "features": {
+            "selected_context": true,
+            "workspaces": false,
+            "follow_ups": false,
+            "image_upload": false,
+            "imports": false,
+            "exports": false,
+            "branch_reuse": false,
+            "archive": false,
+            "duplicate": false,
+            "scheduling_configure": false,
+            "pharma_lot_tracking": false
+          }
+        }
+      ],
+      "total": 1,
+      "pages": 1,
+      "permissions": {
+        "service": false
+      },
+      "features": {
+        "selected_context": true,
+        "workspaces": false,
+        "follow_ups": false,
+        "image_upload": false,
+        "imports": false,
+        "exports": false,
+        "branch_reuse": false,
+        "archive": false,
+        "duplicate": false,
+        "scheduling_configure": false,
+        "pharma_lot_tracking": false
+      }
+    }
+  },
+  "service": {
+    "status": 200,
+    "data": {
+      "branch_availability": null,
+      "follow_up": null,
+      "id": 1,
+      "kind": "service",
+      "name": "QA General Consultation",
+      "code": "QA-CLINIC-CONSULT",
+      "category_ids": null,
+      "categories": [],
+      "category": "",
+      "tags": [],
+      "description": "",
+      "price": 300.0,
+      "currency": "INR",
+      "tax": 0.0,
+      "unit": "Visit",
+      "barcode": "",
+      "hsn_code": "",
+      "cost": 0.0,
+      "mrp": 0.0,
+      "reorder_level": 0.0,
+      "track_inventory": false,
+      "status": "Active",
+      "workspace_id": null,
+      "images": [],
+      "custom_fields": {},
+      "pricing_options": [],
+      "version": 0,
+      "features": {
+        "selected_context": true,
+        "workspaces": false,
+        "follow_ups": false,
+        "image_upload": false,
+        "imports": false,
+        "exports": false,
+        "branch_reuse": false,
+        "archive": false,
+        "duplicate": false,
+        "scheduling_configure": false,
+        "pharma_lot_tracking": false
+      },
+      "can_edit": false
+    }
+  },
+  "options": {
+    "status": 200,
+    "data": {
+      "service_id": 1,
+      "policy": {
+        "id": 1,
+        "revision": 1,
+        "booking_required": true,
+        "default_duration_minutes": 30,
+        "min_duration_minutes": 30,
+        "max_duration_minutes": 30,
+        "allow_duration_override": false,
+        "active": true,
+        "employee_categories": [],
+        "required_resource_types": []
+      },
+      "specialists": [
+        {
+          "provider_resource_id": 1,
+          "provider_name": "QA Dr. Mehta",
+          "timezone": "Asia/Kolkata",
+          "employee_id": 1,
+          "work_categories": [],
+          "eligibility_id": 1,
+          "eligibility_revision": 1,
+          "employee_name": "QA Doctor Mehta"
+        },
+        {
+          "provider_resource_id": 2,
+          "provider_name": "QA Dr. Rao",
+          "timezone": "Asia/Kolkata",
+          "employee_id": 2,
+          "work_categories": [],
+          "eligibility_id": 2,
+          "eligibility_revision": 1,
+          "employee_name": "QA Doctor Rao"
+        }
+      ],
+      "has_more": false,
+      "next_offset": null,
+      "resources": [],
+      "can_configure": false,
+      "branch_timezone": "Asia/Kolkata",
+      "service": {
+        "name": "QA General Consultation",
+        "price": "300.00",
+        "category": null,
+        "currency": "INR"
+      }
+    }
+  },
+  "availability": {
+    "status": 200,
+    "data": {
+      "missing_resource_types": [],
+      "conflicts": [],
+      "timezone": "Asia/Kolkata",
+      "slots": [
+        {
+          "starts_at": "2026-11-24T03:30:00+00:00",
+          "label": "09:00"
+        },
+        {
+          "starts_at": "2026-11-24T03:45:00+00:00",
+          "label": "09:15"
+        },
+        {
+          "starts_at": "2026-11-24T04:00:00+00:00",
+          "label": "09:30"
+        },
+        {
+          "starts_at": "2026-11-24T04:15:00+00:00",
+          "label": "09:45"
+        },
+        {
+          "starts_at": "2026-11-24T04:30:00+00:00",
+          "label": "10:00"
+        },
+        {
+          "starts_at": "2026-11-24T04:45:00+00:00",
+          "label": "10:15"
+        },
+        {
+          "starts_at": "2026-11-24T05:00:00+00:00",
+          "label": "10:30"
+        },
+        {
+          "starts_at": "2026-11-24T05:15:00+00:00",
+          "label": "10:45"
+        },
+        {
+          "starts_at": "2026-11-24T05:30:00+00:00",
+          "label": "11:00"
+        },
+        {
+          "starts_at": "2026-11-24T05:45:00+00:00",
+          "label": "11:15"
+        },
+        {
+          "starts_at": "2026-11-24T06:00:00+00:00",
+          "label": "11:30"
+        },
+        {
+          "starts_at": "2026-11-24T06:15:00+00:00",
+          "label": "11:45"
+        },
+        {
+          "starts_at": "2026-11-24T06:30:00+00:00",
+          "label": "12:00"
+        },
+        {
+          "starts_at": "2026-11-24T06:45:00+00:00",
+          "label": "12:15"
+        },
+        {
+          "starts_at": "2026-11-24T07:00:00+00:00",
+          "label": "12:30"
+        },
+        {
+          "starts_at": "2026-11-24T07:15:00+00:00",
+          "label": "12:45"
+        },
+        {
+          "starts_at": "2026-11-24T07:30:00+00:00",
+          "label": "13:00"
+        },
+        {
+          "starts_at": "2026-11-24T07:45:00+00:00",
+          "label": "13:15"
+        },
+        {
+          "starts_at": "2026-11-24T08:00:00+00:00",
+          "label": "13:30"
+        },
+        {
+          "starts_at": "2026-11-24T08:15:00+00:00",
+          "label": "13:45"
+        },
+        {
+          "starts_at": "2026-11-24T08:30:00+00:00",
+          "label": "14:00"
+        },
+        {
+          "starts_at": "2026-11-24T08:45:00+00:00",
+          "label": "14:15"
+        },
+        {
+          "starts_at": "2026-11-24T09:00:00+00:00",
+          "label": "14:30"
+        },
+        {
+          "starts_at": "2026-11-24T09:15:00+00:00",
+          "label": "14:45"
+        },
+        {
+          "starts_at": "2026-11-24T09:30:00+00:00",
+          "label": "15:00"
+        },
+        {
+          "starts_at": "2026-11-24T09:45:00+00:00",
+          "label": "15:15"
+        },
+        {
+          "starts_at": "2026-11-24T10:00:00+00:00",
+          "label": "15:30"
+        },
+        {
+          "starts_at": "2026-11-24T10:15:00+00:00",
+          "label": "15:45"
+        },
+        {
+          "starts_at": "2026-11-24T10:30:00+00:00",
+          "label": "16:00"
+        },
+        {
+          "starts_at": "2026-11-24T10:45:00+00:00",
+          "label": "16:15"
+        },
+        {
+          "starts_at": "2026-11-24T11:00:00+00:00",
+          "label": "16:30"
+        },
+        {
+          "starts_at": "2026-11-24T11:15:00+00:00",
+          "label": "16:45"
+        },
+        {
+          "starts_at": "2026-11-24T11:30:00+00:00",
+          "label": "17:00"
+        },
+        {
+          "starts_at": "2026-11-24T11:45:00+00:00",
+          "label": "17:15"
+        },
+        {
+          "starts_at": "2026-11-24T12:00:00+00:00",
+          "label": "17:30"
+        }
+      ],
+      "checked_at": "2026-11-21T17:55:19.454684+00:00",
+      "selection_available": null,
+      "resources": []
+    }
+  }
+}

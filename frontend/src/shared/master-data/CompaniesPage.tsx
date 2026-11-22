@@ -1,3 +1,4 @@
+import ClinicPatients, { usePatientWorkspace } from '@/apps/srm/components/ClinicPatients';
 import { useBusinessTerms } from '@/hooks/use-business-terms';
 import { companyCreateAccess } from "./company-access";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
@@ -21,7 +22,16 @@ import { dealError } from "@/apps/crm/deals/deal-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { affectsResource, publishGridRecord, removeGridRecords, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 
-export default function CompaniesPage({source="crm",role="",entityKind="companies"}:{source?:MasterSource;role?:string;entityKind?:"all"|"companies"|"individuals"}) {
+type Props = {source?:MasterSource;role?:string;entityKind?:"all"|"companies"|"individuals"};
+
+export default function CompaniesPage(props: Props) {
+  const patient = usePatientWorkspace(props.source === 'srm' && props.role === 'Customer');
+  if (patient.loading) return <p role="status">Loading workspace…</p>;
+  if (patient.hospital) return <ClinicPatients key={patient.scope}/>;
+  return <CompanyDirectory {...props}/>;
+}
+
+function CompanyDirectory({source="crm",role="",entityKind="companies"}: Props) {
   const queryClient = useQueryClient();
   const { term } = useBusinessTerms();
   const roleLabel = role === 'Customer' ? term('customer') : role;

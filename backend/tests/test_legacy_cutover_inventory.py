@@ -65,6 +65,26 @@ def test_new_unknown_table_is_not_exempted_by_known_legacy_schema(db,target):
         try:assert reasons(db,1,target.id)==['Native cutover source inventory is incomplete.']
         finally:db.connection().exec_driver_sql('DROP TABLE unreviewed_native_legacy_body')
 
+
+def test_dedicated_database_identity_is_not_branch_history(db, target):
+    connection = db.connection()
+    with legacy_schema(db):
+        if inspect(connection).has_table('suite_tenant_identity'):
+            assert reasons(db, 1, target.id) == []
+            return
+        connection.exec_driver_sql(
+            'CREATE TABLE suite_tenant_identity (singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton), '
+            'tenant_uuid VARCHAR(36) NOT NULL, company_id INTEGER NOT NULL)'
+        )
+        try:
+            connection.exec_driver_sql(
+                "INSERT INTO suite_tenant_identity (tenant_uuid, company_id) "
+                "VALUES ('11111111-1111-4111-8111-111111111111', 1)"
+            )
+            assert reasons(db, 1, target.id) == []
+        finally:
+            connection.exec_driver_sql('DROP TABLE suite_tenant_identity')
+
 @pytest.mark.parametrize('location',['target','ambiguous','other_branch','foreign_company'])
 def test_real_legacy_completion_native_parent_branch_and_company_are_preserved(db,target,location):
     from app.models.employee import Employee

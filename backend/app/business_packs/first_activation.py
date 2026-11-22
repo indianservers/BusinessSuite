@@ -30,13 +30,21 @@ def reasons(db, company, branch):
         for model in (AuditLog,SRMAuditLog,EmailOutbox)))
     if connection.scalar(select(exists().where(b.c.branch_id==branch,~b.c.resource_table.in_(safe),~setup_owner))):
         return [RECONCILE]
+    # These native models can be absent from metadata until their first use.
+    # Load them for the inventory even when readiness is the first request.
+    from app.apps.srm import anonymous_cash_models  # noqa: F401
+    from app.business_packs import delivery_source_models  # noqa: F401
+    from app.business_packs.pharma import recall_models  # noqa: F401
+    from app.models import target  # noqa: F401
     tables=dict(Base.metadata.tables)
     from .legacy_cutover import legacy_tables,LegacyInventoryIncomplete
     try:tables.update(legacy_tables(inspector))
     except LegacyInventoryIncomplete:
         return ['Native cutover source inventory is incomplete.']
     physical=set(inspector.get_table_names())
-    if physical-set(tables)-{'alembic_version'}:
+    # Provisioning owns the singleton identity table and restricts runtime
+    # writes to it. It contains routing metadata and no branch business data.
+    if physical-set(tables)-{'alembic_version','suite_tenant_identity'}:
         return ['Native cutover source inventory is incomplete.']
     present=physical & set(tables)
     def native_owner(t):

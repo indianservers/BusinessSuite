@@ -1,0 +1,6 @@
+{
+  "schema": 200,
+  "registration": 201,
+  "search": 200,
+  "duplicate": 409
+}

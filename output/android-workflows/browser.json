@@ -1,0 +1,308 @@
+{
+  "fitness": {
+    "routes": {
+      "/srm/pos": {
+        "path": "/srm/pos",
+        "title": "Pos - Sales & POS",
+        "text": "Skip to content\nAN\nTeam workspace\nPage actions\n\n403 ACCESS DENIED\n\nYou do not have permission to open this page.\n\nThis route is protected by role-based access control.\n\nRole\nEmployee Self Service\nRequested Page\n/srm/pos\nRequired Permission\nADMIN, CEO, HR, MANAGER\nReturn Home\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "fitness-srm-pos.png"
+      },
+      "/srm/customers": {
+        "path": "/srm/customers",
+        "title": "Customers - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nCustomers\nTeam workspace\nLoading workspace preferences…\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "fitness-srm-customers.png"
+      },
+      "/srm/products-services": {
+        "path": "/srm/products-services",
+        "title": "Products & Services - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts Services\nPOS\nCreate\nAll pages\n\nLoading Sales page\n\nLoading Sales page\n1 / 2",
+        "width": 411,
+        "scroll": 411,
+        "image": "fitness-srm-products-services.png"
+      },
+      "/srm/appointments": {
+        "path": "/srm/appointments",
+        "title": "Appointment Scheduler - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nAppointment Scheduler\nTeam workspace\nPage actions\n\nLoading Appointment Scheduler\n\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "fitness-srm-appointments.png"
+      },
+      "/srm/membership-expiry": {
+        "path": "/srm/membership-expiry",
+        "title": "Membership Expiry Report - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nMembership Expiry Report\nTeam workspace\nPage actions\nSALES WORKSPACE\nMembership Expiry\nPOS\nCreate\nAll pages\n\nReview expiring memberships and follow up with customers.\n\nReminders\nNext 2 weeks\nNext 2 months\nCustom range\n\nLoading memberships…",
+        "width": 411,
+        "scroll": 411,
+        "image": "fitness-srm-membership-expiry.png"
+      }
+    },
+    "errors": [
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/customers",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ]
+    ],
+    "login": {
+      "status": 200,
+      "landing": "/continue"
+    }
+  },
+  "hospitality": {
+    "routes": {
+      "/srm/pos": {
+        "path": "/srm/pos",
+        "title": "Pos - Sales & POS",
+        "text": "Skip to content\nAN\nTeam workspace\nPage actions\n\n403 ACCESS DENIED\n\nYou do not have permission to open this page.\n\nThis route is protected by role-based access control.\n\nRole\nEmployee Self Service\nRequested Page\n/srm/pos\nRequired Permission\nADMIN, CEO, HR, MANAGER\nReturn Home\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospitality-srm-pos.png"
+      },
+      "/srm/customers": {
+        "path": "/srm/customers",
+        "title": "Customers - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nCustomers\nTeam workspace\nLoading workspace preferences…\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospitality-srm-customers.png"
+      },
+      "/srm/products-services": {
+        "path": "/srm/products-services",
+        "title": "Products & pricing · Products & Services - Business Suite",
+        "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts Services\nPOS\nCreate\nAll pages\n\nLoading Sales page\n\nLoading Sales page\n1 / 2",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospitality-srm-products-services.png"
+      },
+      "/srm/appointments": {
+        "path": "/srm/appointments",
+        "title": "Appointment Scheduler - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nAppointment Scheduler\nTeam workspace\nPage actions\n\nLoading Appointment Scheduler\n\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospitality-srm-appointments.png"
+      },
+      "/srm/membership-expiry": {
+        "path": "/srm/membership-expiry",
+        "title": "Membership Expiry Report - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nMembership Expiry Report\nTeam workspace\nPage actions\nSALES WORKSPACE\nMembership Expiry\nPOS\nCreate\nAll pages\n\nLoading Sales page",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospitality-srm-membership-expiry.png"
+      }
+    },
+    "errors": [
+      [
+        "login",
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/access/settings/business-profile/effective",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/access/me",
+        403
+      ],
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/customers",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ]
+    ],
+    "login": {
+      "status": 200,
+      "landing": "/continue"
+    }
+  },
+  "pharma": {
+    "routes": {
+      "/srm/pos": {
+        "path": "/srm/pos",
+        "title": "Pos - Sales & POS",
+        "text": "Skip to content\nAN\nTeam workspace\nPage actions\n\n403 ACCESS DENIED\n\nYou do not have permission to open this page.\n\nThis route is protected by role-based access control.\n\nRole\nEmployee Self Service\nRequested Page\n/srm/pos\nRequired Permission\nADMIN, CEO, HR, MANAGER\nReturn Home\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "pharma-srm-pos.png"
+      },
+      "/srm/customers": {
+        "path": "/srm/customers",
+        "title": "Customers - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nCustomers\nTeam workspace\nLoading workspace preferences…\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "pharma-srm-customers.png"
+      },
+      "/srm/products-services": {
+        "path": "/srm/products-services",
+        "title": "Products & Services - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts Services\nPOS\nCreate\nAll pages\n\nLoading Sales page\n\nLoading Sales page\n1 / 2",
+        "width": 411,
+        "scroll": 411,
+        "image": "pharma-srm-products-services.png"
+      },
+      "/srm/inventory": {
+        "path": "/srm/inventory",
+        "title": "Stock & warehouses · Stock overview - Business Suite",
+        "text": "Skip to content\nAN\nSales & POS\nInventory\nTeam workspace\nAI writing\nPage actions\n\nStock & warehouses\n\nStock Overview\nStock Summary\nWarehouses\nReorder Alerts\nSALES WORKSPACE\nInventory\nPOS\nCreate\nAll pages\n\nLoading Sales page\n\nLoading Sales page\n1 / 2",
+        "width": 411,
+        "scroll": 411,
+        "image": "pharma-srm-inventory.png"
+      }
+    },
+    "errors": [
+      [
+        "login",
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/customers",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ]
+    ],
+    "login": {
+      "status": 200,
+      "landing": "/continue"
+    }
+  },
+  "hospital": {
+    "routes": {
+      "/srm/pos": {
+        "path": "/srm/pos",
+        "title": "Pos - Sales & POS",
+        "text": "Skip to content\nAN\nTeam workspace\nPage actions\n\n403 ACCESS DENIED\n\nYou do not have permission to open this page.\n\nThis route is protected by role-based access control.\n\nRole\nEmployee Self Service\nRequested Page\n/srm/pos\nRequired Permission\nADMIN, CEO, HR, MANAGER\nReturn Home\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospital-srm-pos.png"
+      },
+      "/srm/customers": {
+        "path": "/srm/customers",
+        "title": "Customers - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nCustomers\nTeam workspace\nLoading workspace preferences…\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospital-srm-customers.png"
+      },
+      "/srm/products-services": {
+        "path": "/srm/products-services",
+        "title": "Products & Services - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nProducts Services\nTeam workspace\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts Services\nPOS\nCreate\nAll pages\n\nLoading Sales page\n\nLoading Sales page\n1 / 2",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospital-srm-products-services.png"
+      },
+      "/srm/appointments": {
+        "path": "/srm/appointments",
+        "title": "Appointment Scheduler - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nAppointment Scheduler\nTeam workspace\nPage actions\n\nLoading Appointment Scheduler\n\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospital-srm-appointments.png"
+      },
+      "/srm/membership-expiry": {
+        "path": "/srm/membership-expiry",
+        "title": "Membership Expiry Report - Sales & POS",
+        "text": "Skip to content\nAN\nSales & POS\nMembership Expiry Report\nTeam workspace\nPage actions\nSALES WORKSPACE\nMembership Expiry\nPOS\nCreate\nAll pages\n\nLoading Sales page",
+        "width": 411,
+        "scroll": 411,
+        "image": "hospital-srm-membership-expiry.png"
+      }
+    },
+    "errors": [
+      [
+        "login",
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/access/settings/business-profile/effective",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/business-os/modules",
+        403
+      ],
+      [
+        "login",
+        "GET",
+        "/api/v1/access/me",
+        403
+      ],
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/pos",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ],
+      [
+        "/srm/customers",
+        "GET",
+        "/api/v1/access/enterprise/branding",
+        403
+      ]
+    ],
+    "login": {
+      "status": 200,
+      "landing": "/continue"
+    }
+  }
+}

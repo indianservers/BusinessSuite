@@ -70,7 +70,21 @@ export async function posSnapshot<T>(key: string, fetchValue: () => Promise<T>, 
     } catch { /* Online reads work when local storage is unavailable. */ }
     return snapshot;
   } catch (error) {
-    if (!mayFallback() || !isAxiosError(error) || error.code === "ERR_CANCELED" || error.response && error.response.status < 500) throw error;
+    if (!mayFallback() || !isAxiosError(error) || error.code === "ERR_CANCELED") throw error;
+    const status = error.response?.status;
+    if (status && status < 500 && status !== 408 && status !== 429) {
+      try {
+        const tx = (await database()).transaction("snapshots", "readwrite");
+        const committed = finished(tx);
+        const store = tx.objectStore("snapshots");
+        const request = store.get(key);
+        request.onsuccess = () => {
+          if (request.result?.savedAt <= started) store.delete(key);
+        };
+        await committed;
+      } catch { /* Surface the confirmed server denial. */ }
+      throw error;
+    }
     try {
       const stored = await cachedSnapshot<T>(key);
       if (stored && mayFallback()) return stored;

@@ -14,7 +14,7 @@ from typing import Literal
 from pathlib import Path
 
 from ..models import PMSTaskAssignee
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response, StreamingResponse
 from app.core.storage import persist_file, upload_exists, FileResponse
 from pydantic import BaseModel, Field
@@ -116,6 +116,8 @@ from ..documents import router as documents_router
 router.include_router(documents_router)
 from ..notes import router as private_notes_router
 router.include_router(private_notes_router)
+from ..desktop_note_sync import router as desktop_note_sync_router
+router.include_router(desktop_note_sync_router)
 from ..note_actions import router as note_actions_router
 router.include_router(note_actions_router)
 from ..org_chart import router as org_chart_router
@@ -3021,7 +3023,17 @@ def create_task(
     task_in: PMSTaskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    offline_operation: uuid.UUID | None = Header(None, alias="X-Offline-Operation"),
 ):
+    if isinstance(offline_operation, uuid.UUID):
+        from app.shared.offline_operations import perform_offline_operation
+        return perform_offline_operation(
+            db, current_user, offline_operation, ("create_task", project_id), task_in.model_dump(mode="json", exclude_unset=True),
+            lambda: PMSTaskResponse.model_validate(create_task_operation(project_id, task_in, db, current_user, commit=False)),
+            lambda result: get_project_for_action(db, project_id, current_user, "manage_tasks"),
+            lambda result: _broadcast_realtime(current_user, "task.created", project_id=project_id,
+                task_id=result["id"], message=f"Created task {result['task_key']}"),
+        )
     return create_task_operation(project_id, task_in, db, current_user)
 
 
@@ -4052,7 +4064,17 @@ def update_task(
     task_in: PMSTaskUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    offline_operation: uuid.UUID | None = Header(None, alias="X-Offline-Operation"),
 ):
+    if isinstance(offline_operation, uuid.UUID):
+        from app.shared.offline_operations import perform_offline_operation
+        return perform_offline_operation(
+            db, current_user, offline_operation, ("update_task", task_id), task_in.model_dump(mode="json", exclude_unset=True),
+            lambda: PMSTaskResponse.model_validate(update_task_operation(task_id, task_in, db, current_user, commit=False)),
+            lambda result: get_task_project_for_action(db, task_id, current_user, "manage_tasks"),
+            lambda result: _broadcast_realtime(current_user, "task.status_changed" if task_in.status else "task.updated",
+                project_id=result["project_id"], task_id=task_id, message=f"Updated task {result['task_key']}"),
+        )
     return update_task_operation(task_id, task_in, db, current_user)
 
 

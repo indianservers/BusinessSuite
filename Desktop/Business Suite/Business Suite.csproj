@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <RootNamespace>Business_Suite</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TelerikWinFormsPath Condition="'$(TelerikWinFormsPath)' == ''">$(MSBuildProgramFiles32)\Progress\Telerik UI for WinForms R1 2020\Bin40</TelerikWinFormsPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.9" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="TelerikCommon" HintPath="$(TelerikWinFormsPath)\TelerikCommon.dll" />
+    <Reference Include="Telerik.WinControls" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.dll" />
+    <Reference Include="Telerik.WinControls.UI" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.UI.dll" />
+    <Reference Include="Telerik.WinControls.GridView" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.GridView.dll" />
+    <Reference Include="TelerikData" HintPath="$(TelerikWinFormsPath)\TelerikData.dll" Condition="Exists('$(TelerikWinFormsPath)\TelerikData.dll')" />
+  </ItemGroup>
+
+</Project>

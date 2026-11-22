@@ -46,6 +46,8 @@ class NativeSRMDefinition:
 
 
 def native_srm_policy(pack_key):
+    # The guarded graph is installed before the route handler can load this model.
+    from app.apps.srm import anonymous_cash_models  # noqa: F401
     from .boundary import PackBoundaryPolicy,PackNativeLink,PackSourceLink,PackDerivedLink
     manifest=get_pack(pack_key)
     if 'srm' not in manifest.required_modules:raise ValueError('Native SRM dependency is required')

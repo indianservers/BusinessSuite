@@ -1,0 +1,57 @@
+{
+  "marker": "ANDROID-WORKFLOWS-20261121",
+  "companies": [
+    {
+      "industry": "fitness",
+      "name": "[Local QA] Harbor Strength Gym",
+      "email": "androidworkflow.fitness@example.com",
+      "workspace": "company-56",
+      "company_id": 1000000056,
+      "branch_id": 1,
+      "signup_id": 56,
+      "database_id": 27,
+      "database_name": "suite_c_0c94f3572db8491e9a35fac5d4322414",
+      "profile_verified": true,
+      "scoped_admin_verified": true
+    },
+    {
+      "industry": "hospitality",
+      "name": "[Local QA] Blue Lane Swimming Pool",
+      "email": "androidworkflow.hospitality@example.com",
+      "workspace": "company-57",
+      "company_id": 1000000057,
+      "branch_id": 1,
+      "signup_id": 57,
+      "database_id": 28,
+      "database_name": "suite_c_7261562fae7247638eeb32f7bf004b40",
+      "profile_verified": true,
+      "scoped_admin_verified": true
+    },
+    {
+      "industry": "pharma",
+      "name": "[Local QA] Greenleaf Test Pharmacy",
+      "email": "androidworkflow.pharma@example.com",
+      "workspace": "company-58",
+      "company_id": 1000000058,
+      "branch_id": 1,
+      "signup_id": 58,
+      "database_id": 29,
+      "database_name": "suite_c_d05e74710c5240769a9609f97e87f12c",
+      "profile_verified": true,
+      "scoped_admin_verified": true
+    },
+    {
+      "industry": "hospital",
+      "name": "[Local QA] Cedar Point Clinic",
+      "email": "androidworkflow.hospital@example.com",
+      "workspace": "company-59",
+      "company_id": 1000000059,
+      "branch_id": 1,
+      "signup_id": 59,
+      "database_id": 30,
+      "database_name": "suite_c_d0426850d6e945b8b25da5bd23ddb29b",
+      "profile_verified": true,
+      "scoped_admin_verified": true
+    }
+  ]
+}

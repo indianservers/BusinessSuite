@@ -1,0 +1,34 @@
+{
+  "fitness": {
+    "3": {
+      "status": "unverified",
+      "error": "locator.waitFor: Timeout 13000ms exceeded.",
+      "text": "!\n1 change · Needs review\nSkip to content\nAN\nSales & POS\nMembers\nTeam workspace\nPage actions\n\nCustomers & suppliers\n\nCustomers\nVendors\nCompanies\nCustomer History\n42 matching records\nMembers\nPOS\nCreate\nAll pages\nPeople, companies and shared business relationships.\nTrash\nCreate member\nTable\nCards\nList\nBy Status\nTags\nFrequent\nFavorites\nPeople, companies and shared business relationships.\n1 / 46",
+      "screenshot": "fitness-3.png"
+    },
+    "5": {
+      "status": "unverified",
+      "error": "locator.selectOption: Timeout 13000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n0 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 3\nAdd membership\n\nSet the plan duration, benefits and renewal options.\n\nEssentials\nBenefits & eligibility\nBilling & renewal\nAdditional settings\nMembership name\nOffering code\nCategories\nSelect categories\nSubcategories\nSelect subcategories\nBilling unit\nBase price (before tax)\nCurrency\n₹\nINR\nPrice tax treatment\nTax exclusive\nTax inclusive\nTax %\nVisibility\nOrganization catalog\nNo data found\nPlan duration & activation\n\nValid for 1 month. One-time prepaid payment terms.\n\nDuration\nday\nweek\nmonth\nyear\ncustom\nlifetime\nNumber of months\nQuick duration\nCustom\n1 month\n2 months\n3 months\n6 months\n12 months\nTier\nActivation rule\npurchase\nfirst use\nselected date\napproval\nBeneficiary type\nperson\norganization\nfamily\ngroup\nBeneficiary limit\nAllow pause\nAllow transfer\nPreview activation date\n\nThis date is an example for the plan definition; it does not assign or activate a customer plan.\n\nValidity preview\nAccess starts\n2026-11-21\nLast day with access\n2026-12-20\n\nAccess ends at the start of 2026-12-21; that date is not included.\n\nValidity follows the plan service’s date-only calendar. Billing timezone: Asia/Kolkata.\n\nDraft saved automatically\nCancel\nSave item",
+      "screenshot": "fitness-5.png"
+    },
+    "6": {
+      "status": "unverified",
+      "error": "locator.selectOption: Timeout 13000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n0 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 3\nAdd membership\n\nSet the plan duration, benefits and renewal options.\n\nEssentials\nBenefits & eligibility\nBilling & renewal\nAdditional settings\nMembership name\nOffering code\nCategories\nSelect categories\nSubcategories\nSelect subcategories\nBilling unit\nBase price (before tax)\nCurrency\n₹\nINR\nPrice tax treatment\nTax exclusive\nTax inclusive\nTax %\nVisibility\nOrganization catalog\nNo data found\nPlan duration & activation\n\nValid for 1 month. One-time prepaid payment terms.\n\nDuration\nday\nweek\nmonth\nyear\ncustom\nlifetime\nNumber of months\nQuick duration\nCustom\n1 month\n2 months\n3 months\n6 months\n12 months\nTier\nActivation rule\npurchase\nfirst use\nselected date\napproval\nBeneficiary type\nperson\norganization\nfamily\ngroup\nBeneficiary limit\nAllow pause\nAllow transfer\nPreview activation date\n\nThis date is an example for the plan definition; it does not assign or activate a customer plan.\n\nValidity preview\nAccess starts\n2026-11-21\nLast day with access\n2026-12-20\n\nAccess ends at the start of 2026-12-21; that date is not included.\n\nValidity follows the plan service’s date-only calendar. Billing timezone: Asia/Kolkata.\n\nDraft saved automatically\nCancel\nSave item",
+      "screenshot": "fitness-6.png"
+    },
+    "22": {
+      "status": "unverified",
+      "error": "locator.selectOption: Timeout 13000ms exceeded.",
+      "text": "Skip to content\nAN\nSales & POS\nProducts Services\nPage actions\n\nProducts & pricing\n\nProducts & Services\nStock Management\nPrice Lists\nBatches & Serials\nStock Groups\nUnits\nSALES WORKSPACE\nProducts & training types\nPOS\nCreate\nAll pages\n\nYour shared products, services and pricing.\n\nExport\nImport\nNew item\nAll items\nProducts\nTraining types\nMemberships\nSubscriptions\nBundles\n30 matching items\nCards\nList\nCategories\nTags\nFrequent\nFavorites\nYour shared products, services and pricing.\n1 / 28\nAdd product\n\nProducts have stock details; services have optional appointments. Assign employees and booking times in the POS cart.\n\nProduct name\nSKU / Product code\nCategories\nSelect categories\nSubcategories\nSelect subcategories\nStock unit\nBase price (before tax)\nCurrency\n₹\nINR\nPrice tax treatment\nTax exclusive\nTax inclusive\nTax %\nVisibility\nOrganization catalog\nNo data found\nBranches, type & status\nStock, codes & description\nAdditional prices\nCustomer follow-up\nImages\nTags\nCustom fields\nDraft saved automatically\nCancel\nSave item",
+      "screenshot": "fitness-22.png"
+    },
+    "pos-access": {
+      "status": "unverified",
+      "error": "locator.waitFor: Timeout 13000ms exceeded.",
+      "text": "Skip to content\nAN\nTeam workspace\nPage actions\nOpen POS terminal\n\nChoose the branch for your sales, register and stock. Set a default to open it automatically next time.\n\nPOS branch\nChoose a branch\nMain\nSet this as my default branch in this browser\nOpen POS\nReload branches\nPOS\nCustomers\nQuotes\nOrders\nPayments",
+      "screenshot": "fitness-pos-access.png"
+    }
+  }
+}

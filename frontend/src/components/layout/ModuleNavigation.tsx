@@ -111,7 +111,13 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
     return (location.pathname === path || (path.split("/").length > 2 && location.pathname.startsWith(path + "/")))
       && (!search || [...new URLSearchParams(search)].every(([key, value]) => currentParams.get(key) === value));
   };
-  return <ModuleNewMenu>{moduleActions => { const createActions = [...moduleActions, ...quickActions]; return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
+  return <ModuleNewMenu>{moduleActions => {
+    const createActions = [...moduleActions, ...quickActions].map(action => {
+      if (customItems || !action.menuPaths || !commonModules.includes(moduleKey as CommonModule)) return action;
+      const commonPaths = action.menuPaths.map(path => commonNavigationHref(path, moduleKey as CommonModule).split(/[?#]/)[0]);
+      return { ...action, menuPaths: [...action.menuPaths, ...commonPaths] };
+    });
+    return <div className={`module-menu ${collapsed ? "is-collapsed" : ""}`} data-module={moduleKey}>
     {moduleKey === "srm" && !collapsed && srmCatalogCreateItems.some(item => moduleActions.some(action => action.label === item.label)) && (
       <details className="module-menu-catalog-create">
         <summary className="module-menu-heading"><Plus size={18} /><span className="module-menu-category-name">Create</span><ChevronDown size={16} /></summary>
