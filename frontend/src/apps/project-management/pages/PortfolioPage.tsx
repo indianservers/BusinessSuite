@@ -42,6 +42,7 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
 
   useRefreshableEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     const commonFilters = {
@@ -55,12 +56,18 @@ export default function PortfolioPage() {
       portfolioAPI.healthTrend(commonFilters),
     ])
       .then(([summaryData, projectData, trendData]) => {
+        if (!active) return;
         setSummary(summaryData);
         setProjects(projectData.items);
         setTrend(trendData.items);
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Unable to load portfolio."))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (active) setError(err?.response?.data?.detail || "Unable to load portfolio.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, [filters.ownerId, filters.clientId, filters.status, filters.health]);
 
   const setFilter = (key: keyof PortfolioFilters, value: string) => {
