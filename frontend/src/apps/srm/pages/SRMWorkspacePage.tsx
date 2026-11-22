@@ -832,6 +832,8 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
 
 export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialContactId, onBusyChange }: { onBusyChange?:(busy:boolean)=>void;onCreated?: () => void; initialCustomerId?:number;initialContactId?:number }) {
   const mobile = useMobile();
+  const location = useLocation();
+  const createShortcutKey = mobile && location.hash === "#new-record" ? location.key : undefined;
   const createRef = useNewRecordFocus();
   const [requestId, setRequestId] = useState(() => randomUUID());
   const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
@@ -898,7 +900,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
 
   useEffect(()=>onBusyChange?.(create.isPending),[create.isPending,onBusyChange]);
   return (
-    <SmartCreateSection title="Create invoice" size="large" mobileSheet><Card ref={createRef} id="new-record" className="srm-manual-invoice">
+    <SmartCreateSection key={createShortcutKey} title="Create invoice" size="large" mobileSheet><Card ref={createRef} id="new-record" className="srm-manual-invoice">
       <CardHeader>
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
