@@ -1020,10 +1020,31 @@ function BankReconciliationView() {
 }
 
 function BookView({ kind }: { kind: "bank" | "cash" }) {
+  const phone = useMobile(480);
   const query = useQuery({ queryKey: ["fam", `${kind}Book`], queryFn: kind === "bank" ? famApi.bankBook : famApi.cashBook });
   const data = (query.data || {}) as FAMRecord;
+  const ledgers = (data.ledgers as FAMRecord[] | undefined) || [];
+  const ledgerTitle = kind === "bank" ? "Bank ledgers" : "Cash ledgers";
   const summaryCards: Array<[string, unknown]> = [["Opening", data.openingBalance], ["Debit", data.debitTotal], ["Credit", data.creditTotal], ["Closing", data.closingBalance]];
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{summaryCards.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="text-lg font-semibold">{money(value)}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">{kind === "bank" ? "Bank" : "Cash"} ledgers</CardTitle></CardHeader><CardContent><State label={`${kind} book`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.ledgers as FAMRecord[] | undefined) || []} columns={["ledger_code", "ledger_name", "ledger_type", "current_balance_dr", "current_balance_cr"]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Voucher entries</CardTitle></CardHeader><CardContent><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["voucher_date", "voucher_number", "ledger_id", "debit_amount", "credit_amount", "running_balance", "narration"]} /></CardContent></Card></div>;
+  const feedback = <State label={`${kind} book`} isLoading={query.isLoading} isError={query.isError} />;
+
+  return <div className="space-y-4">
+    <div className="grid gap-3 max-[480px]:grid-cols-2 md:grid-cols-4">
+      {summaryCards.map(([label, value]) => <Card key={label}><CardContent className="min-w-0 p-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="break-words text-lg font-semibold">{money(value)}</p>
+      </CardContent></Card>)}
+    </div>
+    {phone && feedback}
+    <MobileDisclosure title={query.isSuccess ? `${ledgerTitle} (${ledgers.length})` : ledgerTitle} maxWidth={480}>
+      <Card><CardHeader><CardTitle className="text-base">{ledgerTitle}</CardTitle></CardHeader>
+        <CardContent>{!phone && feedback}<DataTable rows={ledgers} columns={["ledger_code", "ledger_name", "ledger_type", "current_balance_dr", "current_balance_cr"]} /></CardContent>
+      </Card>
+    </MobileDisclosure>
+    <Card><CardHeader><CardTitle className="text-base">Voucher entries</CardTitle></CardHeader>
+      <CardContent><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["voucher_date", "voucher_number", "ledger_id", "debit_amount", "credit_amount", "running_balance", "narration"]} /></CardContent>
+    </Card>
+  </div>;
 }
 
 function ContraView() {
