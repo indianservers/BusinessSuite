@@ -159,6 +159,16 @@
 @media(max-width:767px){.srm-mobile-header h1{color:#fff!important}}
 
 @media (max-width: 767px) {
+  .srm-mobile-operation-slot .suite-operation-navigation {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .srm-mobile-operation-slot .suite-operation-navigation > p { display: none; }
+  .srm-mobile-operation-slot [role="tablist"] { flex-wrap: nowrap; overflow-x: auto; }
+  .srm-mobile-operation-slot [role="tab"] { flex: none; min-height: 44px; white-space: nowrap; }
+
   .srm-mobile-viewport[data-sales-reports] .suite-operation-navigation {
     display: block !important;
     position: sticky;

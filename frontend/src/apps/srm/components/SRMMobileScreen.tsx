@@ -8,6 +8,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowLeft, ArrowRight, ChevronDown, LayoutGrid, Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMobile } from '@/components/mobile/useMobile';
+import { MobileOperationNavigationContext } from '@/lib/operation-panel';
 import { CreationSurfaceContext } from '@/shared/creation/CreationSurfaceContext';
 import SuiteNotificationBell from '@/components/suite/SuiteNotificationBell';
 import { canAccessRoute, getRoleNav } from '@/lib/roles';
@@ -27,6 +28,7 @@ export default function SRMMobileScreen({children,paths,nativePath}:{children:Re
 }
 function MobileScreen({children,paths,operation}:{children:ReactNode;paths:string[];operation:string}){
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
+  const operationNavigationSlot = useContext(MobileOperationNavigationContext);
   const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
   const invoices = /^\/(?:srm|common)\/(?:invoices(?:\/\d+)?|invoice-drafts)\/?$/.test(location.pathname);
@@ -117,6 +119,7 @@ function MobileScreen({children,paths,operation}:{children:ReactNode;paths:strin
   return <div ref={screen} className="srm-mobile-screen" data-booking-route={bookingRoute} data-pages={model.labels.length}>
     <header className="srm-mobile-header"><button type="button" aria-label={dashboard ? 'Back to Business Suite' : 'Back to Sales'} onClick={()=>navigate(dashboard ? '/dashboard' : '/srm')}><ArrowLeft size={21}/></button><span className="srm-mobile-brand"><ShoppingBag size={23}/></span><div><small>{summary}</small><h1 title={screenTitle}>{screenTitle}</h1></div>{botAvailable&&<span className="srm-mobile-bot-slot"/>}<SuiteNotificationBell/><button type="button" aria-label="Open SRM navigation" onClick={()=>openSheet('menu')}><Menu size={22}/></button></header>
     <nav className="srm-mobile-shortcuts" aria-label="Sales shortcuts">{canAccessRoute('/srm/pos/terminal',user?.role,user?.is_superuser)&&<Link className="srm-mobile-pos-shortcut" to="/srm/pos/terminal"><ShoppingBag size={16}/>POS</Link>}<ModuleNewMenu/><button type="button" onClick={()=>openSheet('menu')}><LayoutGrid size={16}/>All pages</button></nav>
+    {operationNavigationSlot && <div ref={operationNavigationSlot} className="srm-mobile-operation-slot" />}
     {bookingRoute&&<div className="srm-mobile-booking-toolbar"/>}
     <div ref={viewport} className="srm-mobile-viewport" data-scroll={scrollPage || undefined} data-sales-reports={reports || undefined} role="region" aria-label={`${screenTitle} content`}>
       <div ref={root} className="srm-mobile-document" onPointerDownCapture={()=>{manualNavigation.current=false;}} onKeyDownCapture={()=>{manualNavigation.current=false;}} onSubmitCapture={()=>{pendingActionAt.current=Date.now();}} onClickCapture={event=>{const button=(event.target as HTMLElement).closest('button');if(button&&/^(save|create|submit|apply|confirm|send|post|collect|approve|complete)\b/i.test(button.textContent?.trim()||''))pendingActionAt.current=Date.now();}} onInvalidCapture={nativeInvalid}><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState label="Loading Sales page"/>}>{commercialTools}{children}</Suspense></ErrorBoundary></div>

@@ -2,6 +2,7 @@ import { LoadingState } from "@/components/ui/state";
 import { useMobile } from "@/components/mobile/useMobile";
 import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import { Suspense, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
@@ -10,7 +11,7 @@ import { menuLabel } from "@/lib/navigation-menu";
 import { commonNavigationHref, commonRouteContext } from "@/lib/common-routes";
 import { useAuthStore } from "@/store/authStore";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
-import { OperationContentContext, OperationPanelContext, OperationWorkspaceContext } from "@/lib/operation-panel";
+import { MobileOperationNavigationContext, OperationContentContext, OperationPanelContext, OperationWorkspaceContext } from "@/lib/operation-panel";
 
 /** One page owns the related operations. Each panel renders the original working
  * component (including its API mutations), rather than linking to another page.
@@ -23,6 +24,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   const pathname = `/${route.path}`;
   const compactNavigation = /^\/(crm|pms|srm)(\/|$)/.test(pathname);
   const workspace = getOperationWorkspace(pathname);
+  const [mobileNavigationSlot, setMobileNavigationSlot] = useState<HTMLDivElement | null>(null);
   const nav = getRoleNav(user?.role, user?.is_superuser, pathname);
   const pages = (workspace?.paths || []).flatMap(path => {
     const entry = routes.find(item => `/${item.path}` === path);
@@ -86,8 +88,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     setVisited(current => current.includes(path) ? current : [...current, path]);
     navigate({ pathname: canonicalHref!.split("?")[0], search: searchFor(path) });
   };
-  return <section aria-label={`${workspace.label} workspace`}>
-    {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${compactNavigation ? "ws-operation-navigation" : ""}`}>
+  const navigation = pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${compactNavigation ? "ws-operation-navigation" : ""}`}>
       {compactNavigation ? <p className="mb-2 text-sm font-medium text-muted-foreground">{workspace.label}</p> : <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>}
       <div ref={operationTabs} role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
         {pages.map(page => <button key={page.path} id={`operation-tab-${page.path}`} type="button" role="tab"
@@ -103,7 +104,9 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
           className={`rounded-md px-3 py-2 text-sm capitalize focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${selected === page.path ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
         >{page.label}</button>)}
       </div>
-    </div>}
+    </div>;
+  return <section aria-label={`${workspace.label} workspace`}>
+    {mobileNavigationSlot ? createPortal(navigation, mobileNavigationSlot) : navigation}
     {pages.filter(page => visited.includes(page.path) || page.path === selected).map(page => {
       const panelLocation = panelLocations.current[page.path] || location;
       const panelSearch = new URLSearchParams(panelLocation.search);
@@ -112,7 +115,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
       role="tabpanel" hidden={selected !== page.path} id={`operation-panel-${page.path}`} aria-label={workspace.label === "Deals" ? page.label : undefined} aria-labelledby={workspace.label === "Deals" ? undefined : `operation-tab-${page.path}`}>
       <ErrorBoundary><Suspense fallback={<LoadingState label={`Loading ${page.label}`} />}>
         <LocationContext.Provider value={{ ...locationContext, location: { ...panelLocation, pathname: page.path, search: panelSearch.size ? `?${panelSearch}` : "", hash: page.path === selected ? location.hash : "" } }}>
-          <OperationContentContext.Provider value={true}><OperationWorkspaceContext.Provider value={true}><OperationPanelContext.Provider value={!pathname.startsWith("/srm/") || page.path === selected}>{page.element}</OperationPanelContext.Provider></OperationWorkspaceContext.Provider></OperationContentContext.Provider>
+          <MobileOperationNavigationContext.Provider value={canonical === "/srm/inventory" && page.path === selected ? setMobileNavigationSlot : null}><OperationContentContext.Provider value={true}><OperationWorkspaceContext.Provider value={true}><OperationPanelContext.Provider value={!pathname.startsWith("/srm/") || page.path === selected}>{page.element}</OperationPanelContext.Provider></OperationWorkspaceContext.Provider></OperationContentContext.Provider></MobileOperationNavigationContext.Provider>
         </LocationContext.Provider>
       </Suspense></ErrorBoundary>
     </div>; })}
