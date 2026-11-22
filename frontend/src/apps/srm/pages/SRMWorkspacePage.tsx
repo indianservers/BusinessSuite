@@ -1582,7 +1582,10 @@ function CashierClosingView() {
   const session = (activeData.session || null) as SRMRecord | null;
   const expected = cashNumber(activeData.expected_cash);
   const counted = cashNumber(countedCash);
-  const variance = Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0 ? money(counted - expected) : "-";
+  const formatVariance = mobile ? formatCurrencyPrecise : money;
+  const variance = Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0
+    ? formatVariance(counted - expected)
+    : "-";
   const canCloseSession = Boolean(session?.id) && !activeData.reconciliation_required && Number.isFinite(expected) && Number.isFinite(counted) && counted >= 0;
   const close = useMutation({
     mutationFn: () => {
@@ -1608,10 +1611,10 @@ function CashierClosingView() {
         <CardHeader><CardTitle className="text-base">Close active session</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
           {mobile && <dl className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-sm">
-            <div><dt className="text-muted-foreground">Expected cash</dt><dd className="font-semibold">{cashMoney(expected)}</dd></div>
+            <div><dt className="text-muted-foreground">Expected cash</dt><dd className="font-semibold">{Number.isFinite(expected) ? formatCurrencyPrecise(expected) : "-"}</dd></div>
             <div><dt className="text-muted-foreground">Variance preview</dt><dd className="font-semibold" aria-live="polite">{variance}</dd></div>
           </dl>}
-          <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
+          <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" inputMode={mobile ? "decimal" : undefined} />
           <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
           <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !canCloseSession}>Close Session</Button>
         </CardContent>
@@ -2081,3 +2084,4 @@ function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
 }
 
 export default withRecordViewHost(SRMWorkspacePage);
+import { formatCurrencyPrecise } from "@/lib/utils";
