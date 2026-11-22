@@ -5,5 +5,9 @@
  .suite-mobile-action-bar>button[data-primary]{flex:1.5;background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground))}
  .suite-mobile-action-bar>button:disabled{opacity:.5}
  .task-studio:has(>.suite-mobile-action-bar){padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+ .task-studio:has(.ts-create-another-mobile){padding-bottom:calc(144px + env(safe-area-inset-bottom))}
+ .task-studio:has(>.suite-mobile-action-bar) .ts-create-another-desktop{display:none}
+ .task-studio .suite-mobile-action-bar:has(.ts-create-another-mobile){flex-wrap:wrap}
+ .ts-create-another-mobile{display:flex;flex-basis:100%;align-items:center;gap:8px;min-height:44px;font-size:14px}
  [role=dialog] .suite-mobile-action-bar{position:sticky;bottom:0;flex-shrink:0}
 }

@@ -1994,7 +1994,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               {auto.message || (dirty ? "Unsaved changes" : "All task details saved")}
             </span>
             {!id && !embedded && (
-              <label>
+              <label className={insideCreationDialog ? undefined : "ts-create-another-desktop"}>
                 <input
                   type="checkbox"
                   checked={createAnother}
@@ -2192,6 +2192,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         </aside>
       </CompactForm>
       {!embedded && !insideCreationDialog && <MobileActionBar label="Task actions">
+        {!id && <label className="ts-create-another-mobile"><input type="checkbox" checked={createAnother} onChange={event => setCreateAnother(event.target.checked)} />Create another</label>}
         <Button variant="outline" type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</Button>
         <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
       </MobileActionBar>}
