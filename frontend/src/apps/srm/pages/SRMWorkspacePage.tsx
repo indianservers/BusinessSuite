@@ -1913,7 +1913,8 @@ function ScopedCommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSa
 }
 
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
-  const mobileOrders = useMobile() && kind === "salesOrders";
+  const mobile = useMobile();
+  const mobileOrders = mobile && kind === "salesOrders";
   const location = useLocation();
   const [showCreate,setShowCreate] = useState(false);
   const [recordView,setRecordView] = useState<"board"|"list">("list");
@@ -2020,7 +2021,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     const isPosSale = metadata.source === "pos";
                     return (
                       <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span><span className="srm-record-label" title={String(name)}>{String(name)}</span></span></td>
+                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span>{mobile && kind === "contracts" && id ? <Link className="srm-record-label underline underline-offset-2" to={`/srm/contracts/${id}`}>{String(name)}</Link> : <span className="srm-record-label" title={String(name)}>{String(name)}</span>}</span></td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>
                         </td>
