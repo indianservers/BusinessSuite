@@ -387,10 +387,13 @@ const financeCardFields = [
   "debit_amount", "credit_amount", "status",
 ].map(column => column.replace(/_/g, " "));
 
-const bankCardFields: Record<string, string[]> = {
+const grossMarginCardFields = ["item name", "gross margin", "gross margin percent", "revenue status"];
+const financeCardFieldsByPath: Record<string, string[]> = {
   "/fam/bank-statements": ["id", "imported file name", "status", "statement period end"],
   "/fam/bank-statements/:id": ["description", "matched status", "debit amount", "credit amount", "transaction date", "balance"],
   "/fam/bank-reconciliation": ["statement id", "id", "status", "book balance", "bank statement balance"],
+  "/fam/inventory/gross-margin": grossMarginCardFields,
+  "/fam/inventory/reports/gross-margin": grossMarginCardFields,
 };
 
 function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspacePage:table-1", preview=true }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode; gridId?:string; preview?:boolean }) {
@@ -398,7 +401,7 @@ function DataTable({ rows, columns, renderActions, gridId="apps/fam/FAMWorkspace
   const phone = useMobile(767);
   const financeGrid = pathname === "/fam" || pathname.startsWith("/fam/");
   const cardPath = pathname.replace(/^\/fam\/bank-statements\/[^/]+$/, "/fam/bank-statements/:id");
-  const cardFields = bankCardFields[cardPath] ?? financeCardFields;
+  const cardFields = financeCardFieldsByPath[cardPath] ?? financeCardFields;
   const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
   const detailBase = /^\/(fam|srm)\/inventory\/items$/.test(pathname) ? pathname : detailRoutes[pathname];
   const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
