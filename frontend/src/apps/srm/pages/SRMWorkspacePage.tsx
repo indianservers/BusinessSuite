@@ -1487,6 +1487,7 @@ function POSSessionView() {
   const query = useQuery({ queryKey: ["srm", "posSessions"], queryFn: srmApi.posSessions });
   const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
   const activeSession = ((active.data as SRMRecord | undefined)?.session || null) as SRMRecord | null;
+  const openingAmount = numericField(openingCash);
   const open = useMutation({
     mutationFn: () => srmApi.openPosSession({ branch: "Main Branch", register_name: "Main POS Register", opening_cash: amountField(openingCash) }),
     onSuccess: () => {
@@ -1518,8 +1519,8 @@ function POSSessionView() {
           <Card>
             <CardHeader><CardTitle className="text-base">Open register session</CardTitle></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-[1fr_auto]">
-              <Input value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} placeholder="Opening cash" />
-              <Button onClick={() => open.mutate()} disabled={open.isPending || Boolean(activeSession)}>Open Session</Button>
+              <Input aria-label="Opening cash" inputMode="decimal" value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} placeholder="Opening cash" />
+              <Button onClick={() => open.mutate()} disabled={open.isPending || active.isFetching || active.isError || Boolean(activeSession) || openingAmount === undefined || openingAmount < 0}>Open Session</Button>
             </CardContent>
           </Card>
           <Card>
@@ -1529,7 +1530,7 @@ function POSSessionView() {
                 <option value="cash_in">Cash In</option>
                 <option value="cash_out">Cash Out</option>
               </NativeSelect>
-              <Input value={cashAmount} onChange={(event) => setCashAmount(event.target.value)} placeholder="Amount" />
+              <Input aria-label="Cash movement amount" inputMode="decimal" value={cashAmount} onChange={(event) => setCashAmount(event.target.value)} placeholder="Amount" />
               <Input value={cashReason} onChange={(event) => setCashReason(event.target.value)} placeholder="Reason" />
               <Button onClick={() => movement.mutate()} disabled={movement.isPending || !activeSession || !amountField(cashAmount)}>Save</Button>
             </CardContent>

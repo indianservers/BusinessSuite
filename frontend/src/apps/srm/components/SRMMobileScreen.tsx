@@ -38,10 +38,10 @@ function MobileScreen({children,paths,operation}:{children:ReactNode;paths:strin
   const expiry = /^\/srm\/membership-expiry\/?$/.test(location.pathname);
   const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
   const catalog = /^\/srm\/(products-services|products|services|pos\/products)\/?$/.test(location.pathname);
-  const cashierClosing = /^\/srm\/pos\/cashier-closing\/?$/.test(location.pathname);
+  const registerWorkflow = /^\/srm\/pos\/(cashier-closing|sessions)\/?$/.test(location.pathname);
   const inventoryMovement = /^\/srm\/inventory\/(stock-in|stock-out|stock-transfers|stock-adjustments|opening-stock|delivery-notes)\/?$/;
   const inventoryForm = inventoryMovement.test(operation) || inventoryMovement.test(location.pathname);
-  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || cashierClosing || inventoryForm;
+  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || registerWorkflow || inventoryForm;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
