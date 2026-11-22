@@ -29,7 +29,7 @@ function MobileScreen({children,paths,operation}:{children:ReactNode;paths:strin
   const location=useLocation(),navigate=useNavigate(),user=useAuthStore(state=>state.user);
   const dashboard = /^\/srm(?:\/dashboard)?\/?$/.test(location.pathname);
   const collections = /^\/(?:srm|common)\/collections\/?$/.test(location.pathname);
-  const invoices = /^\/(?:srm|common)\/invoices(?:\/\d+)?\/?$/.test(location.pathname);
+  const invoices = /^\/(?:srm|common)\/(?:invoices(?:\/\d+)?|invoice-drafts)\/?$/.test(location.pathname);
   const reports = location.pathname.replace(/\/$/, '') === salesReportsPath;
   const reportOperation = reports ? new URLSearchParams(location.search).get('operation') : null;
   const reportTitle = reportOperation === '/srm/revenue-recognition' ? 'Revenue Recognition'
