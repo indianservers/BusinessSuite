@@ -114,6 +114,8 @@ export default function ReportsPage() {
 }
 
 function OverviewDashboard() {
+  const phone = useMobile(480);
+  const [chart, setChart] = useState("headcount");
   const dashboard = useQuery({ queryKey: ["reports-dashboard"], queryFn: () => reportsApi.dashboard().then((r) => r.data), staleTime: STALE_TIME });
   const headcount = useQuery({ queryKey: ["reports-headcount-by-dept"], queryFn: () => reportsApi.headcountByDept().then((r) => r.data), staleTime: STALE_TIME });
   const attendance = useQuery({ queryKey: ["reports-attendance-trend"], queryFn: () => reportsApi.attendanceTrend().then((r) => r.data), staleTime: STALE_TIME });
@@ -131,8 +133,17 @@ function OverviewDashboard() {
         <Kpi title="Attrition Rate" value={`${attrition.toFixed(1)}%`} icon={BarChart3} className={attritionClass} loading={dashboard.isLoading} />
       </div>
 
+      {phone && <label className="grid gap-1 text-sm font-medium">
+        Overview chart
+        <select className="w-full rounded-md border bg-background px-3" value={chart} onChange={event => setChart(event.target.value)}>
+          <option value="headcount">Headcount by Department</option>
+          <option value="attendance">Attendance Trend</option>
+          <option value="leave">Leave Trend</option>
+          <option value="payroll">Payroll Summary</option>
+        </select>
+      </label>}
       <div className="grid gap-6 xl:grid-cols-2">
-        <ChartCard title="Headcount by Department" query={headcount}>
+        {(!phone || chart === "headcount") && <ChartCard title="Headcount by Department" query={headcount}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={headcount.data || []} layout="vertical" margin={{ left: 20 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -142,9 +153,9 @@ function OverviewDashboard() {
               <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </ChartCard>}
 
-        <ChartCard title="Attendance Trend" query={attendance}>
+        {(!phone || chart === "attendance") && <ChartCard title="Attendance Trend" query={attendance}>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={(attendance.data || []).map((row: any) => ({ ...row, label: monthLabel(row.month) }))}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -157,9 +168,9 @@ function OverviewDashboard() {
               <Area type="monotone" stackId="1" dataKey="wfh_days" stroke="#2563eb" fill="#2563eb" name="WFH" />
             </AreaChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </ChartCard>}
 
-        <ChartCard title="Leave Trend" query={leave}>
+        {(!phone || chart === "leave") && <ChartCard title="Leave Trend" query={leave}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={(leave.data || []).map((row: any) => ({ ...row, label: monthLabel(row.month) }))}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -171,9 +182,9 @@ function OverviewDashboard() {
               <Line type="monotone" dataKey="pending_count" stroke="#f59e0b" strokeWidth={2} name="Pending" />
             </LineChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </ChartCard>}
 
-        <ChartCard title="Payroll Summary" query={payroll}>
+        {(!phone || chart === "payroll") && <ChartCard title="Payroll Summary" query={payroll}>
           <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={(payroll.data || []).map((row: any) => ({ ...row, label: monthLabel(row.month) }))}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -186,7 +197,7 @@ function OverviewDashboard() {
               <Line type="monotone" dataKey="net_pay" stroke="#16a34a" strokeWidth={2} name="Net Pay" />
             </ComposedChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </ChartCard>}
       </div>
     </div>
   );
