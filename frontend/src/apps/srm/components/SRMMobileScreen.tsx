@@ -38,7 +38,7 @@ function MobileScreen({children,paths,operation}:{children:ReactNode;paths:strin
   const expiry = /^\/srm\/membership-expiry\/?$/.test(location.pathname);
   const offeringSales = /^\/srm\/sales-report\/?$/.test(location.pathname);
   const catalog = /^\/srm\/(products-services|products|services|pos\/products)\/?$/.test(location.pathname);
-  const registerWorkflow = /^\/srm\/pos\/(cashier-closing|sessions)\/?$/.test(location.pathname);
+  const registerWorkflow = /^\/srm\/pos\/(cashier-closing|sessions|returns)\/?$/.test(location.pathname);
   const inventoryMovement = /^\/srm\/inventory\/(stock-in|stock-out|stock-transfers|stock-adjustments|opening-stock|delivery-notes)\/?$/;
   const inventoryForm = inventoryMovement.test(operation) || inventoryMovement.test(location.pathname);
   const warehouses = /^\/srm\/inventory\/warehouses\/?$/.test(operation);
