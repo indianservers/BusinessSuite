@@ -1124,7 +1124,21 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       )}
       <CompactForm compactTabs={false}
         onKeyDown={guardTaskEnter}
-        onInvalidCapture={event => { event.preventDefault(); const field = event.target as HTMLElement; const panel = field.closest<HTMLElement>("[data-task-tab]"); if (panel) setFormTab(Number(panel.dataset.taskTab)); let node = field.parentElement; while (node) { if (node instanceof HTMLDetailsElement) node.open = true; node = node.parentElement; } requestAnimationFrame(() => field.focus()); }}
+        onInvalidCapture={event => {
+          event.preventDefault();
+          const field = event.target as HTMLElement;
+          if (window.matchMedia("(max-width: 480px)").matches && field instanceof HTMLInputElement && field.name === "due_date" && field.validity.rangeUnderflow) {
+            setError("Due date cannot be before the start date.");
+          }
+          const panel = field.closest<HTMLElement>("[data-task-tab]");
+          if (panel) setFormTab(Number(panel.dataset.taskTab));
+          let node = field.parentElement;
+          while (node) {
+            if (node instanceof HTMLDetailsElement) node.open = true;
+            node = node.parentElement;
+          }
+          requestAnimationFrame(() => field.focus());
+        }}
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
@@ -1303,6 +1317,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   <input
                     type="date"
                     aria-label="Due date"
+                    name="due_date"
                     value={draft.due_date}
                     min={draft.start_date || undefined}
                     onChange={(e) => set("due_date", e.target.value)}
