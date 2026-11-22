@@ -1772,7 +1772,8 @@ function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "de
 }
 
 function InventoryOpeningStockView() {
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title="Create opening stock" size="compact"><InventoryMovementForm kind="opening"/></SmartCreateSection><InventorySummaryView kind="summary"/></div>;
+  const mobile = useMobile();
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title="Create opening stock" size="compact" closeOnRecordSaved={!mobile}><InventoryMovementForm kind="opening"/></SmartCreateSection><InventorySummaryView kind="summary"/></div>;
 }
 
 function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {

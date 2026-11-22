@@ -13,6 +13,7 @@ import { dealError } from "@/apps/crm/deals/deal-utils";
 import { srmApi } from "@/apps/srm/api";
 import { syncSrmNow } from "@/apps/srm/realtime";
 import { toast } from "@/hooks/use-toast";
+import { useMobile } from "@/components/mobile/useMobile";
 import { famApi } from "./api";
 import { useFinanceWrite } from "./useFinanceWrite";
 import type { FAMRecord } from "./types";
@@ -26,6 +27,7 @@ export default function InventoryMovementForm({ kind }: { kind: MovementKind }) 
   return <MovementForm key={`${scope}:${source}:${kind}`} source={source} kind={kind} scope={scope} />;
 }
 function MovementForm({ source, kind, scope }: { source: "srm" | "fam"; kind: MovementKind; scope: string }) {
+  const mobile = useMobile();
   const qc = useQueryClient(), transfer = kind === "transfer", adjustment = kind === "adjustment", stockDocument = !["transfer", "adjustment", "opening"].includes(kind);
   const movementType = kind === "in" ? "stock_in" : kind === "out" ? "stock_out" : kind === "purchase" ? "purchase_receipt" : "delivery_note";
   const title = ({transfer:"Stock transfer",adjustment:"Stock adjustment",in:"Stock in",out:"Stock out",purchase:"Purchase receipt",delivery:"Delivery note",opening:"Opening stock"})[kind];
@@ -36,6 +38,7 @@ function MovementForm({ source, kind, scope }: { source: "srm" | "fam"; kind: Mo
   const canWrite = useFinanceWrite(source === "srm" ? ["srm_admin", "srm_manage"] : ["fam_admin", transfer ? "fam_stock_transfer" : adjustment ? "fam_stock_adjust" : "fam_stock_post", "fam_inventory_manage"], "create");
   const initial = () => ({ date: defaultToday(source), product: "", warehouse: "", destination: "", quantity: "1", quantityIn: "0", quantityOut: "0", rate: "0", reason: "", reference: "", notes: "" });
   const [draft, setDraft] = useState(initial), [error, setError] = useState("");
+  const [openingStockSaved, setOpeningStockSaved] = useState(false);
   // Finance creates a draft before posting. Retrying a failed post must reuse it.
   const pending = useRef<{ id: string; payload: FAMRecord }>();
   const [savedDraft, setSavedDraft] = useState(false);
@@ -65,7 +68,9 @@ function MovementForm({ source, kind, scope }: { source: "srm" | "fam"; kind: Mo
     return transfer ? famApi.postInventoryTransfer(pending.current.id) : famApi.postInventoryAdjustment(pending.current.id, pending.current.payload);
   }, onSuccess: () => {
     if (!owns()) return;
-    pending.current = undefined; setSavedDraft(false); setDraft(initial()); setError(""); toast({ title: kind === "opening" ? "Opening stock saved" : stockDocument ? "Stock movement posted" : transfer ? "Transfer posted" : "Adjustment posted" });
+    pending.current = undefined; setSavedDraft(false); setDraft(initial()); setError("");
+    if (kind === "opening" && mobile) setOpeningStockSaved(true);
+    else toast({ title: kind === "opening" ? "Opening stock saved" : stockDocument ? "Stock movement posted" : transfer ? "Transfer posted" : "Adjustment posted" });
     if (source === "srm") void syncSrmNow(qc, { type: "inventory_changed", source: `srm-stock-${kind}` });
     else void qc.invalidateQueries({ queryKey: ["fam"] });
   }, onError: failure => { if (owns()) setError(dealError(failure)); } });
@@ -73,6 +78,7 @@ function MovementForm({ source, kind, scope }: { source: "srm" | "fam"; kind: Mo
   const number = (label: string, key: "quantity" | "quantityIn" | "quantityOut" | "rate") => <label className="grid gap-1 text-sm">{label}<Input required aria-label={label} inputMode="decimal" value={draft[key]} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} /></label>;
   return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent><CompactForm compactTabs={false} className={source === "fam" ? "grid gap-3 md:grid-cols-3 fam-inventory-movement-form" : "grid gap-3 md:grid-cols-3"} onSubmit={event => {
     event.preventDefault(); setError(""); if (!canWrite || mutation.isPending) return;
+    setOpeningStockSaved(false);
     if (pending.current) { mutation.mutate(); return; }
     if (!productRows.some(row => String(row.id) === draft.product) || !warehouseRows.some(row => String(row.id) === draft.warehouse) || transfer && !warehouseRows.some(row => String(row.id) === draft.destination)) { setError("Choose an available item and warehouse."); return; }
     if (transfer && draft.warehouse === draft.destination) { setError("Choose different source and destination warehouses."); return; }
@@ -90,5 +96,6 @@ function MovementForm({ source, kind, scope }: { source: "srm" | "fam"; kind: Mo
     {products.isError && <p role="alert">Items could not load. <Button type="button" onClick={() => void products.refetch()}>Retry items</Button></p>}{warehouses.isError && <p role="alert">Warehouses could not load. <Button type="button" onClick={() => void warehouses.refetch()}>Retry warehouses</Button></p>}
     {savedDraft && <p role="status" className="md:col-span-3">The draft is saved. Retry posting to finish this same record.</p>}{error && <p role="alert" className="md:col-span-3">{error}</p>}
     <Button data-save-action className="inventory-movement-submit" type="submit" disabled={!canWrite || mutation.isPending || !savedDraft && (products.isPending || products.isError || warehouses.isPending || warehouses.isError)}>{savedDraft ? "Retry posting" : buttonLabel}</Button>
+    {openingStockSaved && <p role="status" className="text-sm font-medium text-foreground md:col-span-3">Opening stock saved</p>}
   </CompactForm></CardContent></Card>;
 }
