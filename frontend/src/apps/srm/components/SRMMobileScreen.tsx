@@ -42,8 +42,8 @@ function MobileScreen({children,paths,operation}:{children:ReactNode;paths:strin
   const inventoryMovement = /^\/srm\/inventory\/(stock-in|stock-out|stock-transfers|stock-adjustments|opening-stock|delivery-notes)\/?$/;
   const inventoryForm = inventoryMovement.test(operation) || inventoryMovement.test(location.pathname);
   const warehouses = /^\/srm\/inventory\/warehouses\/?$/.test(operation);
-  const salesOrders = /^\/srm\/sales-orders\/?$/.test(operation);
-  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || registerWorkflow || inventoryForm || warehouses || salesOrders;
+  const commercialRecords = /^\/srm\/(sales-orders|contracts|engagements|billing-plans)\/?$/.test(operation);
+  const scrollPage = dashboard || collections || invoices || reports || communications || expiry || offeringSales || catalog || registerWorkflow || inventoryForm || warehouses || commercialRecords;
   const commercialTools = useContext(MobileCommercialTools);
   const root=useRef<HTMLDivElement>(null),viewport=useRef<HTMLDivElement>(null),screen=useRef<HTMLDivElement>(null);
   const pages=useRef<ScreenPage[]>([]),selected=useRef(0),frame=useRef(0),manualNavigation=useRef(false),pendingActionAt=useRef(0),preferredTarget=useRef<HTMLElement|null>(null);
