@@ -1,0 +1,132 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class LeadActivityEntryForm
+{
+    private void InitializeComponent()
+    {
+        this.kindLabel = new Label();
+        this.kindBox = new ComboBox();
+        this.scheduleKindBox = new ComboBox();
+        this.scheduleDueLabel = new Label();
+        this.outcomeLabel = new Label();
+        this.outcomeBox = new TextBox();
+        this.followUpBox = new CheckBox();
+        this.respondedBox = new CheckBox();
+        this.reasonLabel = new Label();
+        this.reasonBox = new TextBox();
+        this.ownerLabel = new Label();
+        this.ownerBox = new RadDropDownList();
+        this.duePicker = new RadDateTimePicker();
+        this.feedback = new Label();
+        this.saveButton = new Button();
+        this.cancelButton = new Button();
+        this.SuspendLayout();
+        this.kindLabel.Location = new Point(18, 15);
+        this.kindLabel.Size = new Size(525, 23);
+        this.kindLabel.Text = "Completed activity type";
+        this.kindBox.Name = "kindBox";
+        this.kindBox.Location = new Point(18, 41);
+        this.kindBox.Size = new Size(525, 28);
+        this.kindBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        this.kindBox.Items.AddRange(new object[] { "Note", "Call", "Email", "Meeting", "Task" });
+        this.scheduleKindBox.Name = "scheduleKindBox";
+        this.scheduleKindBox.Location = new Point(18, 41);
+        this.scheduleKindBox.Size = new Size(525, 28);
+        this.scheduleKindBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        this.scheduleKindBox.Items.AddRange(new object[] { "Task", "Call", "Email", "Meeting" });
+        this.scheduleKindBox.Visible = false;
+        this.outcomeLabel.Location = new Point(18, 83);
+        this.outcomeLabel.Size = new Size(525, 23);
+        this.outcomeLabel.Text = "Outcome or note";
+        this.outcomeBox.Name = "outcomeBox";
+        this.outcomeBox.Location = new Point(18, 110);
+        this.outcomeBox.Size = new Size(525, 105);
+        this.outcomeBox.Multiline = true;
+        this.outcomeBox.ScrollBars = ScrollBars.Vertical;
+        this.outcomeBox.MaxLength = 4000;
+        this.followUpBox.Name = "followUpBox";
+        this.followUpBox.Location = new Point(18, 230);
+        this.followUpBox.Size = new Size(240, 26);
+        this.followUpBox.Text = "Create a follow-up task (UTC)";
+        this.followUpBox.CheckedChanged += this.DueChanged;
+        this.scheduleDueLabel.Location = new Point(18, 230);
+        this.scheduleDueLabel.Size = new Size(240, 26);
+        this.scheduleDueLabel.Text = "Due at (UTC)";
+        this.scheduleDueLabel.Visible = false;
+        this.duePicker.Name = "duePicker";
+        this.duePicker.Location = new Point(270, 230);
+        this.duePicker.Size = new Size(273, 28);
+        this.duePicker.Format = DateTimePickerFormat.Custom;
+        this.duePicker.CustomFormat = "yyyy-MM-dd HH:mm";
+        this.duePicker.Enabled = false;
+        this.respondedBox.Name = "respondedBox";
+        this.respondedBox.Location = new Point(18, 268);
+        this.respondedBox.Size = new Size(525, 26);
+        this.respondedBox.Text = "Lead responded. Stop pending sequence tasks.";
+        this.ownerLabel.Location = new Point(18, 271);
+        this.ownerLabel.Size = new Size(151, 26);
+        this.ownerLabel.Text = "Assigned teammate";
+        this.ownerLabel.Visible = false;
+        this.ownerBox.Name = "ownerBox";
+        this.ownerBox.Location = new Point(174, 270);
+        this.ownerBox.Size = new Size(369, 27);
+        this.ownerBox.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.ownerBox.Visible = false;
+        this.reasonLabel.Location = new Point(18, 305);
+        this.reasonLabel.Size = new Size(151, 26);
+        this.reasonLabel.Text = "Rescheduling reason";
+        this.reasonLabel.Visible = false;
+        this.reasonBox.Name = "reasonBox";
+        this.reasonBox.Location = new Point(174, 304);
+        this.reasonBox.Size = new Size(369, 27);
+        this.reasonBox.MaxLength = 1000;
+        this.reasonBox.Visible = false;
+        this.feedback.Name = "feedback";
+        this.feedback.Location = new Point(18, 337);
+        this.feedback.Size = new Size(525, 38);
+        this.saveButton.Name = "saveButton";
+        this.saveButton.Location = new Point(285, 380);
+        this.saveButton.Size = new Size(145, 35);
+        this.saveButton.Text = "Save activity";
+        this.saveButton.Click += this.SaveClicked;
+        this.cancelButton.Location = new Point(440, 380);
+        this.cancelButton.Size = new Size(103, 35);
+        this.cancelButton.Text = "Cancel";
+        this.cancelButton.DialogResult = DialogResult.Cancel;
+        this.Controls.AddRange(new Control[] { this.kindLabel, this.kindBox, this.scheduleKindBox, this.outcomeLabel,
+            this.outcomeBox, this.followUpBox, this.scheduleDueLabel, this.duePicker, this.respondedBox, this.reasonLabel,
+            this.reasonBox, this.ownerLabel, this.ownerBox, this.feedback,
+            this.saveButton, this.cancelButton });
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.ClientSize = new Size(561, 432);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.AcceptButton = this.saveButton;
+        this.CancelButton = this.cancelButton;
+        this.Text = "Log Lead activity and next step";
+        this.Shown += this.FormShown;
+        this.FormClosed += this.FormIsClosed;
+        this.ResumeLayout(false);
+    }
+
+    private Label kindLabel;
+    private ComboBox kindBox;
+    private ComboBox scheduleKindBox;
+    private Label scheduleDueLabel;
+    private Label outcomeLabel;
+    private TextBox outcomeBox;
+    private CheckBox followUpBox;
+    private CheckBox respondedBox;
+    private Label reasonLabel;
+    private TextBox reasonBox;
+    private Label ownerLabel;
+    private RadDropDownList ownerBox;
+    private RadDateTimePicker duePicker;
+    private Label feedback;
+    private Button saveButton;
+    private Button cancelButton;
+}

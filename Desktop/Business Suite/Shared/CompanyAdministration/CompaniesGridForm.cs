@@ -23,18 +23,16 @@ public sealed partial class CompaniesGridForm : Form
         status.Text = "Loading companies…";
         try
         {
-            string? configured = Environment.GetEnvironmentVariable("BUSINESS_SUITE_POSTGRES");
-            var settings = new NpgsqlConnectionStringBuilder(configured ??
-                "Host=127.0.0.1;Port=5432;Database=business_suite;Username=business_suite");
-            if (!string.Equals(settings.Host, "localhost", StringComparison.OrdinalIgnoreCase)
-                && settings.Host != "127.0.0.1" && settings.Host != "::1")
-                throw new ArgumentException("A loopback PostgreSQL address is required.");
+            var settings = DesktopDatabaseSettings.Load();
 
             await using var connection = new NpgsqlConnection(settings.ConnectionString);
             await connection.OpenAsync(cancellation);
+            using var transaction = connection.BeginTransaction(IsolationLevel.RepeatableRead);
+            await settings.RequireActorAsync(connection, transaction, cancellation);
             using var command = new NpgsqlCommand(
-                "SELECT id, name, COALESCE(is_active, false) AS is_active FROM public.companies ORDER BY id LIMIT 500",
-                connection);
+                "SELECT id, name, is_active FROM public.companies WHERE id=@company AND is_active",
+                connection, transaction);
+            command.Parameters.AddWithValue("company", settings.OrganizationId);
             await using var reader = await command.ExecuteReaderAsync(cancellation);
             var table = new DataTable();
             table.Columns.Add("id", typeof(int));
@@ -45,13 +43,15 @@ public sealed partial class CompaniesGridForm : Form
             if (IsDisposed || cancellation.IsCancellationRequested)
                 return;
             grid.DataSource = table;
-            status.Text = table.Rows.Count == 500 ? "Showing the first 500 companies" : $"{table.Rows.Count} companies loaded";
+            status.Text = table.Rows.Count == 0 ? "No active company is available." : "Configured company";
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-        catch (Exception error) when (error is NpgsqlException or TimeoutException or ArgumentException)
+        catch (Exception error) when (error is NpgsqlException or TimeoutException or ArgumentException
+            or IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             if (!IsDisposed)
-                status.Text = "Could not load companies. Check local PostgreSQL and BUSINESS_SUITE_POSTGRES.";
+                status.Text = error is UnauthorizedAccessException or InvalidOperationException or ArgumentException
+                    ? error.Message : "Could not load the company. Check PostgreSQL and the desktop environment file.";
         }
         finally
         {

@@ -1,0 +1,168 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite
+{
+    partial class EmployeeDocumentsForm
+    {
+        private void InitializeComponent()
+        {
+            this.heading = new Label();
+            this.status = new Label();
+            this.grid = new RadGridView();
+            this.editor = new Panel();
+            this.refresh = new RadButton();
+            this.close = new RadButton();
+            this.save = new RadButton();
+            this.upload = new RadButton();
+            this.saveCopy = new RadButton();
+            this.copyDialog = new SaveFileDialog();
+            this.nameColumn = new GridViewTextBoxColumn();
+            this.typeColumn = new GridViewTextBoxColumn();
+            this.stateColumn = new GridViewTextBoxColumn();
+            this.expiryColumn = new GridViewTextBoxColumn();
+            this.whenColumn = new GridViewTextBoxColumn();
+            this.verifiedLabel = new Label();
+            this.verified = new RadDropDownList();
+            this.reviewerLabel = new Label();
+            this.reviewer = new RadTextBox();
+            this.companyLabel = new Label();
+            this.company = new RadTextBox();
+            this.notesLabel = new Label();
+            this.notes = new RadTextBox();
+            ((System.ComponentModel.ISupportInitialize)this.grid).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).BeginInit();
+            this.SuspendLayout();
+            this.heading.Name = "heading";
+            this.heading.Location = new Point(14, 13);
+            this.heading.Size = new Size(435, 29);
+            this.heading.Font = new Font("Segoe UI Semibold", 11F);
+            this.grid.Name = "grid";
+            this.grid.Location = new Point(14, 49);
+            this.grid.Size = new Size(788, 238);
+            this.grid.ReadOnly = true;
+            this.grid.AutoGenerateColumns = false;
+            this.grid.MasterTemplate.AllowAddNewRow = false;
+            this.grid.MasterTemplate.AllowDeleteRow = false;
+            this.grid.MasterTemplate.AllowEditRow = false;
+            this.grid.MasterTemplate.ShowRowHeaderColumn = false;
+            this.grid.CurrentRowChanged += this.SelectionChanged;
+            this.editor.Name = "editor";
+            this.editor.Enabled = false;
+            this.editor.Location = new Point(14, 298);
+            this.editor.Size = new Size(788, 173);
+            this.status.Name = "status";
+            this.status.Location = new Point(14, 486);
+            this.status.Size = new Size(665, 39);
+            this.upload.Name = "upload";
+            this.upload.Text = "Upload";
+            this.upload.Location = new Point(466, 13);
+            this.upload.Size = new Size(111, 29);
+            this.upload.Enabled = false;
+            this.upload.Click += this.UploadClicked;
+            this.saveCopy.Name = "saveCopy";
+            this.saveCopy.Text = "Save copy…";
+            this.saveCopy.Location = new Point(587, 13);
+            this.saveCopy.Size = new Size(116, 29);
+            this.saveCopy.Enabled = false;
+            this.saveCopy.Click += this.SaveCopyClicked;
+            this.copyDialog.AddExtension = false;
+            this.copyDialog.OverwritePrompt = true;
+            this.copyDialog.Title = "Save employee document copy";
+            this.refresh.Name = "refresh";
+            this.refresh.Text = "Refresh";
+            this.refresh.Location = new Point(713, 13);
+            this.refresh.Size = new Size(89, 29);
+            this.refresh.Click += this.RefreshClicked;
+            this.close.Name = "close";
+            this.close.Text = "Close";
+            this.close.Location = new Point(713, 486);
+            this.close.Size = new Size(89, 29);
+            this.close.DialogResult = DialogResult.Cancel;
+            this.save.Name = "save";
+            this.save.Text = "Save verification";
+            this.save.Location = new Point(597, 141);
+            this.save.Size = new Size(175, 28);
+            this.save.Enabled = false;
+            this.save.Click += this.SaveClicked;
+            this.nameColumn.Name = "nameColumn";
+            this.nameColumn.FieldName = "document_name";
+            this.nameColumn.HeaderText = "Document";
+            this.nameColumn.Width = 245;
+            this.typeColumn.Name = "typeColumn";
+            this.typeColumn.FieldName = "document_type";
+            this.typeColumn.HeaderText = "Type";
+            this.typeColumn.Width = 137;
+            this.stateColumn.Name = "stateColumn";
+            this.stateColumn.FieldName = "verification_status";
+            this.stateColumn.HeaderText = "Verification";
+            this.stateColumn.Width = 153;
+            this.expiryColumn.Name = "expiryColumn";
+            this.expiryColumn.FieldName = "expiry_date";
+            this.expiryColumn.HeaderText = "Expiry";
+            this.expiryColumn.Width = 117;
+            this.whenColumn.Name = "whenColumn";
+            this.whenColumn.FieldName = "verified_at";
+            this.whenColumn.HeaderText = "Reviewed at";
+            this.whenColumn.Width = 135;
+            this.verifiedLabel.Text = "Verification status";
+            this.verifiedLabel.Location = new Point(12, 6);
+            this.verifiedLabel.Size = new Size(232, 22);
+            this.verified.Name = "verified";
+            this.verified.Location = new Point(12, 30);
+            this.verified.Size = new Size(232, 25);
+            this.reviewerLabel.Text = "Reviewer";
+            this.reviewerLabel.Location = new Point(259, 6);
+            this.reviewerLabel.Size = new Size(232, 22);
+            this.reviewer.Name = "reviewer";
+            this.reviewer.Location = new Point(259, 30);
+            this.reviewer.Size = new Size(232, 25);
+            this.companyLabel.Text = "Reviewer company";
+            this.companyLabel.Location = new Point(506, 6);
+            this.companyLabel.Size = new Size(232, 22);
+            this.company.Name = "company";
+            this.company.Location = new Point(506, 30);
+            this.company.Size = new Size(232, 25);
+            this.notesLabel.Text = "Verification notes";
+            this.notesLabel.Location = new Point(12, 63);
+            this.notesLabel.Size = new Size(232, 22);
+            this.notes.Name = "notes";
+            this.notes.Location = new Point(12, 87);
+            this.notes.Size = new Size(760, 49);
+            this.notes.Multiline = true;
+            this.notes.ScrollBars = ScrollBars.Vertical;
+            this.verified.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+            this.verified.Items.AddRange(new RadListDataItem[] {
+                new RadListDataItem("Pending"), new RadListDataItem("Verified"), new RadListDataItem("Rejected") });
+            this.verified.TextChanged += this.InputChanged;
+            this.expiryColumn.FormatString = "{0:d}";
+            this.whenColumn.FormatString = "{0:g}";
+            this.grid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+                this.nameColumn, this.typeColumn, this.stateColumn, this.expiryColumn, this.whenColumn });
+            this.editor.Controls.AddRange(new Control[] {
+                this.verifiedLabel, this.verified, this.reviewerLabel, this.reviewer,
+                this.companyLabel, this.company, this.notesLabel, this.notes, this.save });
+            this.Controls.AddRange(new Control[] { this.heading, this.grid, this.editor, this.status, this.refresh, this.close, this.upload, this.saveCopy });
+            this.CancelButton = this.close;
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(816, 534);
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.MinimizeBox = false;
+            this.MaximizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.Text = "Employee Documents";
+            this.Load += this.DocumentsLoaded;
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).EndInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid).EndInit();
+            this.ResumeLayout(false);
+        }
+
+        private Label heading, status, verifiedLabel, reviewerLabel, companyLabel, notesLabel;
+        private RadGridView grid;
+        private GridViewTextBoxColumn nameColumn, typeColumn, stateColumn, expiryColumn, whenColumn;
+        private Panel editor;
+        private RadDropDownList verified;
+        private RadTextBox reviewer, company, notes;
+        private RadButton save, refresh, close, upload, saveCopy;
+        private SaveFileDialog copyDialog;
+    }
+}

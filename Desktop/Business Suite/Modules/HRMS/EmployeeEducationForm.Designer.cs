@@ -1,0 +1,195 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite
+{
+    partial class EmployeeEducationForm
+    {
+        private void InitializeComponent()
+        {
+            this.heading = new Label();
+            this.status = new Label();
+            this.editor = new Panel();
+            this.confirmation = new Panel();
+            this.confirmationLabel = new Label();
+            this.grid = new RadGridView();
+            this.degreeLabel = new Label();
+            this.degree = new RadTextBox();
+            this.specializationLabel = new Label();
+            this.specialization = new RadTextBox();
+            this.institutionLabel = new Label();
+            this.institution = new RadTextBox();
+            this.boardLabel = new Label();
+            this.board = new RadTextBox();
+            this.yearLabel = new Label();
+            this.year = new RadTextBox();
+            this.resultLabel = new Label();
+            this.result = new RadTextBox();
+            this.column0 = new GridViewTextBoxColumn();
+            this.column1 = new GridViewTextBoxColumn();
+            this.column2 = new GridViewTextBoxColumn();
+            this.column3 = new GridViewTextBoxColumn();
+            this.column4 = new GridViewTextBoxColumn();
+            this.column5 = new GridViewTextBoxColumn();
+            this.newRecord = new RadButton();
+            this.edit = new RadButton();
+            this.delete = new RadButton();
+            this.refresh = new RadButton();
+            this.save = new RadButton();
+            this.confirmDelete = new RadButton();
+            this.cancelDelete = new RadButton();
+            this.close = new RadButton();
+            ((System.ComponentModel.ISupportInitialize)this.grid).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).BeginInit();
+            this.SuspendLayout();
+            this.heading.Location = new Point(12, 12);
+            this.heading.Size = new Size(740, 28);
+            this.status.Location = new Point(12, 529);
+            this.status.Size = new Size(645, 26);
+            this.grid.Location = new Point(12, 45);
+            this.grid.Size = new Size(744, 222);
+            this.grid.ReadOnly = true;
+            this.grid.Name = "educationGrid";
+            this.grid.MasterTemplate.AutoGenerateColumns = false;
+            this.grid.MasterTemplate.AllowAddNewRow = false;
+            this.grid.MasterTemplate.AllowDeleteRow = false;
+            this.grid.MasterTemplate.AllowEditRow = false;
+            this.grid.MasterTemplate.ShowRowHeaderColumn = false;
+            this.grid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+            this.grid.CurrentRowChanged += this.SelectionChanged;
+            this.editor.Location = new Point(12, 318);
+            this.editor.Size = new Size(744, 151);
+            this.editor.Enabled = false;
+            this.confirmation.Location = new Point(12, 471);
+            this.confirmation.Size = new Size(744, 45);
+            this.confirmationLabel.Location = new Point(12, 10);
+            this.confirmationLabel.Size = new Size(471, 26);
+            this.confirmation.Visible = false;
+            this.degreeLabel.Text = "Degree *";
+            this.degreeLabel.Location = new Point(0, 0);
+            this.degreeLabel.Size = new Size(230, 20);
+            this.degree.Location = new Point(0, 21);
+            this.degree.Size = new Size(232, 25);
+            this.degree.Name = "degree";
+            this.column0.Name = "degree";
+            this.column0.FieldName = "degree";
+            this.column0.HeaderText = "Degree";
+            this.specializationLabel.Text = "Specialization";
+            this.specializationLabel.Location = new Point(248, 0);
+            this.specializationLabel.Size = new Size(230, 20);
+            this.specialization.Location = new Point(248, 21);
+            this.specialization.Size = new Size(232, 25);
+            this.specialization.Name = "specialization";
+            this.column1.Name = "specialization";
+            this.column1.FieldName = "specialization";
+            this.column1.HeaderText = "Specialization";
+            this.institutionLabel.Text = "Institution";
+            this.institutionLabel.Location = new Point(496, 0);
+            this.institutionLabel.Size = new Size(230, 20);
+            this.institution.Location = new Point(496, 21);
+            this.institution.Size = new Size(232, 25);
+            this.institution.Name = "institution";
+            this.column2.Name = "institution";
+            this.column2.FieldName = "institution";
+            this.column2.HeaderText = "Institution";
+            this.boardLabel.Text = "Board / University";
+            this.boardLabel.Location = new Point(0, 53);
+            this.boardLabel.Size = new Size(230, 20);
+            this.board.Location = new Point(0, 74);
+            this.board.Size = new Size(232, 25);
+            this.board.Name = "board";
+            this.column3.Name = "board_university";
+            this.column3.FieldName = "board_university";
+            this.column3.HeaderText = "Board / University";
+            this.yearLabel.Text = "Pass Year";
+            this.yearLabel.Location = new Point(248, 53);
+            this.yearLabel.Size = new Size(230, 20);
+            this.year.Location = new Point(248, 74);
+            this.year.Size = new Size(232, 25);
+            this.year.Name = "year";
+            this.column4.Name = "pass_year";
+            this.column4.FieldName = "pass_year";
+            this.column4.HeaderText = "Pass Year";
+            this.resultLabel.Text = "Percentage / CGPA";
+            this.resultLabel.Location = new Point(496, 53);
+            this.resultLabel.Size = new Size(230, 20);
+            this.result.Location = new Point(496, 74);
+            this.result.Size = new Size(232, 25);
+            this.result.Name = "result";
+            this.column5.Name = "percentage_cgpa";
+            this.column5.FieldName = "percentage_cgpa";
+            this.column5.HeaderText = "Percentage / CGPA";
+            this.newRecord.Name = "newRecord";
+            this.newRecord.Text = "New";
+            this.newRecord.Location = new Point(12, 280);
+            this.newRecord.Size = new Size(80, 28);
+            this.newRecord.Click += this.NewClicked;
+            this.edit.Name = "edit";
+            this.edit.Text = "Edit";
+            this.edit.Location = new Point(98, 280);
+            this.edit.Size = new Size(80, 28);
+            this.edit.Click += this.EditClicked;
+            this.delete.Name = "delete";
+            this.delete.Text = "Delete";
+            this.delete.Location = new Point(184, 280);
+            this.delete.Size = new Size(80, 28);
+            this.delete.Click += this.AskDelete;
+            this.refresh.Name = "refresh";
+            this.refresh.Text = "Refresh";
+            this.refresh.Location = new Point(270, 280);
+            this.refresh.Size = new Size(80, 28);
+            this.refresh.Click += this.RefreshClicked;
+            this.save.Name = "save";
+            this.save.Text = "Add education";
+            this.save.Location = new Point(607, 116);
+            this.save.Size = new Size(130, 28);
+            this.save.Click += this.SaveClicked;
+            this.confirmDelete.Name = "confirmDelete";
+            this.confirmDelete.Text = "Delete";
+            this.confirmDelete.Location = new Point(492, 8);
+            this.confirmDelete.Size = new Size(80, 28);
+            this.confirmDelete.Click += this.ConfirmDelete;
+            this.cancelDelete.Name = "cancelDelete";
+            this.cancelDelete.Text = "Cancel";
+            this.cancelDelete.Location = new Point(578, 8);
+            this.cancelDelete.Size = new Size(80, 28);
+            this.cancelDelete.Click += this.CancelDelete;
+            this.close.Name = "close";
+            this.close.Text = "Close";
+            this.close.Location = new Point(669, 527);
+            this.close.Size = new Size(80, 28);
+            this.degree.TextChanged += this.InputsChanged;
+            this.close.DialogResult = DialogResult.Cancel;
+            this.grid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+                this.column0, this.column1, this.column2, this.column3, this.column4, this.column5 });
+            this.editor.Controls.AddRange(new Control[] {
+                this.degreeLabel, this.degree, this.specializationLabel, this.specialization,
+                this.institutionLabel, this.institution, this.boardLabel, this.board,
+                this.yearLabel, this.year, this.resultLabel, this.result, this.save });
+            this.confirmation.Controls.AddRange(new Control[] {
+                this.confirmationLabel, this.confirmDelete, this.cancelDelete });
+            this.Controls.AddRange(new Control[] {
+                this.heading, this.grid, this.newRecord, this.edit, this.delete, this.refresh,
+                this.editor, this.confirmation, this.status, this.close });
+            this.CancelButton = this.close;
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(768, 568);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.Text = "Employee Education";
+            this.Load += this.Loaded;
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).EndInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid).EndInit();
+            this.ResumeLayout(false);
+        }
+
+        private Label heading, status, confirmationLabel;
+        private Panel editor, confirmation;
+        private RadGridView grid;
+        private GridViewTextBoxColumn column0, column1, column2, column3, column4, column5;
+        private Label degreeLabel, specializationLabel, institutionLabel, boardLabel, yearLabel, resultLabel;
+        private RadTextBox degree, specialization, institution, board, year, result;
+        private RadButton newRecord, edit, delete, refresh, save, confirmDelete, cancelDelete, close;
+    }
+}

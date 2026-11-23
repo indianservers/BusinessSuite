@@ -1,0 +1,176 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite
+{
+    partial class PmsPersonalHoursForm
+    {
+        private void InitializeComponent()
+        {
+            this.editor = new Panel();
+            this.startLabel = new Label();
+            this.endLabel = new Label();
+            this.status = new Label();
+            this.refresh = new RadButton();
+            this.save = new RadButton();
+            this.close = new RadButton();
+            this.monday = new CheckBox();
+            this.mondayStart = new RadTextBox();
+            this.mondayEnd = new RadTextBox();
+            this.tuesday = new CheckBox();
+            this.tuesdayStart = new RadTextBox();
+            this.tuesdayEnd = new RadTextBox();
+            this.wednesday = new CheckBox();
+            this.wednesdayStart = new RadTextBox();
+            this.wednesdayEnd = new RadTextBox();
+            this.thursday = new CheckBox();
+            this.thursdayStart = new RadTextBox();
+            this.thursdayEnd = new RadTextBox();
+            this.friday = new CheckBox();
+            this.fridayStart = new RadTextBox();
+            this.fridayEnd = new RadTextBox();
+            this.saturday = new CheckBox();
+            this.saturdayStart = new RadTextBox();
+            this.saturdayEnd = new RadTextBox();
+            this.sunday = new CheckBox();
+            this.sundayStart = new RadTextBox();
+            this.sundayEnd = new RadTextBox();
+            this.SuspendLayout();
+            this.editor.Name = "editor";
+            this.editor.Location = new Point(13, 12);
+            this.editor.Size = new Size(484, 297);
+            this.editor.Enabled = false;
+            this.startLabel.Text = "Start time";
+            this.startLabel.Location = new Point(171, 8);
+            this.startLabel.Size = new Size(136, 23);
+            this.endLabel.Text = "End time";
+            this.endLabel.Location = new Point(338, 8);
+            this.endLabel.Size = new Size(136, 23);
+            this.status.Name = "status";
+            this.status.Location = new Point(13, 320);
+            this.status.Size = new Size(484, 37);
+            this.refresh.Name = "refresh";
+            this.refresh.Text = "Refresh";
+            this.refresh.Location = new Point(13, 369);
+            this.refresh.Size = new Size(111, 29);
+            this.refresh.Click += this.RefreshClicked;
+            this.save.Name = "save";
+            this.save.Text = "Save work hours";
+            this.save.Location = new Point(249, 369);
+            this.save.Size = new Size(133, 29);
+            this.save.Enabled = false;
+            this.save.Click += this.SaveClicked;
+            this.close.Name = "close";
+            this.close.Text = "Close";
+            this.close.Location = new Point(395, 369);
+            this.close.Size = new Size(102, 29);
+            this.close.DialogResult = DialogResult.Cancel;
+            this.monday.Name = "monday";
+            this.monday.Text = "Monday";
+            this.monday.Location = new Point(8, 38);
+            this.monday.Size = new Size(150, 25);
+            this.mondayStart.Name = "mondayStart";
+            this.mondayStart.Location = new Point(171, 38);
+            this.mondayStart.Size = new Size(137, 25);
+            this.mondayStart.MaxLength = 5;
+            this.mondayEnd.Name = "mondayEnd";
+            this.mondayEnd.Location = new Point(338, 38);
+            this.mondayEnd.Size = new Size(138, 25);
+            this.mondayEnd.MaxLength = 5;
+            this.tuesday.Name = "tuesday";
+            this.tuesday.Text = "Tuesday";
+            this.tuesday.Location = new Point(8, 73);
+            this.tuesday.Size = new Size(150, 25);
+            this.tuesdayStart.Name = "tuesdayStart";
+            this.tuesdayStart.Location = new Point(171, 73);
+            this.tuesdayStart.Size = new Size(137, 25);
+            this.tuesdayStart.MaxLength = 5;
+            this.tuesdayEnd.Name = "tuesdayEnd";
+            this.tuesdayEnd.Location = new Point(338, 73);
+            this.tuesdayEnd.Size = new Size(138, 25);
+            this.tuesdayEnd.MaxLength = 5;
+            this.wednesday.Name = "wednesday";
+            this.wednesday.Text = "Wednesday";
+            this.wednesday.Location = new Point(8, 108);
+            this.wednesday.Size = new Size(150, 25);
+            this.wednesdayStart.Name = "wednesdayStart";
+            this.wednesdayStart.Location = new Point(171, 108);
+            this.wednesdayStart.Size = new Size(137, 25);
+            this.wednesdayStart.MaxLength = 5;
+            this.wednesdayEnd.Name = "wednesdayEnd";
+            this.wednesdayEnd.Location = new Point(338, 108);
+            this.wednesdayEnd.Size = new Size(138, 25);
+            this.wednesdayEnd.MaxLength = 5;
+            this.thursday.Name = "thursday";
+            this.thursday.Text = "Thursday";
+            this.thursday.Location = new Point(8, 143);
+            this.thursday.Size = new Size(150, 25);
+            this.thursdayStart.Name = "thursdayStart";
+            this.thursdayStart.Location = new Point(171, 143);
+            this.thursdayStart.Size = new Size(137, 25);
+            this.thursdayStart.MaxLength = 5;
+            this.thursdayEnd.Name = "thursdayEnd";
+            this.thursdayEnd.Location = new Point(338, 143);
+            this.thursdayEnd.Size = new Size(138, 25);
+            this.thursdayEnd.MaxLength = 5;
+            this.friday.Name = "friday";
+            this.friday.Text = "Friday";
+            this.friday.Location = new Point(8, 178);
+            this.friday.Size = new Size(150, 25);
+            this.fridayStart.Name = "fridayStart";
+            this.fridayStart.Location = new Point(171, 178);
+            this.fridayStart.Size = new Size(137, 25);
+            this.fridayStart.MaxLength = 5;
+            this.fridayEnd.Name = "fridayEnd";
+            this.fridayEnd.Location = new Point(338, 178);
+            this.fridayEnd.Size = new Size(138, 25);
+            this.fridayEnd.MaxLength = 5;
+            this.saturday.Name = "saturday";
+            this.saturday.Text = "Saturday";
+            this.saturday.Location = new Point(8, 213);
+            this.saturday.Size = new Size(150, 25);
+            this.saturdayStart.Name = "saturdayStart";
+            this.saturdayStart.Location = new Point(171, 213);
+            this.saturdayStart.Size = new Size(137, 25);
+            this.saturdayStart.MaxLength = 5;
+            this.saturdayEnd.Name = "saturdayEnd";
+            this.saturdayEnd.Location = new Point(338, 213);
+            this.saturdayEnd.Size = new Size(138, 25);
+            this.saturdayEnd.MaxLength = 5;
+            this.sunday.Name = "sunday";
+            this.sunday.Text = "Sunday";
+            this.sunday.Location = new Point(8, 248);
+            this.sunday.Size = new Size(150, 25);
+            this.sundayStart.Name = "sundayStart";
+            this.sundayStart.Location = new Point(171, 248);
+            this.sundayStart.Size = new Size(137, 25);
+            this.sundayStart.MaxLength = 5;
+            this.sundayEnd.Name = "sundayEnd";
+            this.sundayEnd.Location = new Point(338, 248);
+            this.sundayEnd.Size = new Size(138, 25);
+            this.sundayEnd.MaxLength = 5;
+            this.editor.Controls.AddRange(new Control[] { this.startLabel, this.endLabel,
+                this.monday, this.mondayStart, this.mondayEnd, this.tuesday, this.tuesdayStart, this.tuesdayEnd,
+                this.wednesday, this.wednesdayStart, this.wednesdayEnd, this.thursday, this.thursdayStart, this.thursdayEnd,
+                this.friday, this.fridayStart, this.fridayEnd, this.saturday, this.saturdayStart, this.saturdayEnd,
+                this.sunday, this.sundayStart, this.sundayEnd });
+            this.Controls.AddRange(new Control[] { this.editor, this.status, this.refresh, this.save, this.close });
+            this.CancelButton = this.close;
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(510, 414);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.MinimizeBox = false;
+            this.MaximizeBox = false;
+            this.Text = "My Working Hours";
+            this.Load += this.HoursLoaded;
+            this.ResumeLayout(false);
+        }
+
+        private Panel editor;
+        private Label startLabel, endLabel, status;
+        private RadButton refresh, save, close;
+        private CheckBox monday, tuesday, wednesday, thursday, friday, saturday, sunday;
+        private RadTextBox mondayStart, mondayEnd, tuesdayStart, tuesdayEnd, wednesdayStart, wednesdayEnd,
+            thursdayStart, thursdayEnd, fridayStart, fridayEnd, saturdayStart, saturdayEnd, sundayStart, sundayEnd;
+    }
+}

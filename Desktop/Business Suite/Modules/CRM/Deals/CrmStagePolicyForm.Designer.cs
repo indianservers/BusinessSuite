@@ -1,0 +1,152 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class CrmStagePolicyForm
+{
+    private Label stageLabel;
+    private RadDropDownList stageBox;
+    private Label requiredLabel;
+    private CheckedListBox requiredFields;
+    private Label destinationsLabel;
+    private CheckedListBox destinations;
+    private CheckBox approvalBox;
+    private CheckBox notifyBox;
+    private Label daysLabel;
+    private RadSpinEditor daysBox;
+    private CheckBox limitBox;
+    private RadSpinEditor capacityBox;
+    private Label feedback;
+    private Button refreshButton;
+    private Button saveButton;
+    private Button closeButton;
+
+    private void InitializeComponent()
+    {
+        this.stageLabel = new Label();
+        this.stageBox = new RadDropDownList();
+        this.requiredLabel = new Label();
+        this.requiredFields = new CheckedListBox();
+        this.destinationsLabel = new Label();
+        this.destinations = new CheckedListBox();
+        this.approvalBox = new CheckBox();
+        this.notifyBox = new CheckBox();
+        this.daysLabel = new Label();
+        this.daysBox = new RadSpinEditor();
+        this.limitBox = new CheckBox();
+        this.capacityBox = new RadSpinEditor();
+        this.feedback = new Label();
+        this.refreshButton = new Button();
+        this.saveButton = new Button();
+        this.closeButton = new Button();
+        this.SuspendLayout();
+
+        this.stageLabel.Name = "stageLabel";
+        this.stageLabel.Text = "Pipeline stage";
+        this.stageLabel.Location = new Point(18, 19);
+        this.stageLabel.Size = new Size(160, 24);
+        this.stageBox.Name = "stageBox";
+        this.stageBox.Location = new Point(180, 17);
+        this.stageBox.Size = new Size(489, 30);
+        this.stageBox.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.stageBox.SelectedIndexChanged += this.StageChanged;
+        this.requiredLabel.Name = "requiredLabel";
+        this.requiredLabel.Text = "Required on stage entry";
+        this.requiredLabel.Location = new Point(18, 78);
+        this.requiredLabel.Size = new Size(305, 24);
+        this.requiredFields.Name = "requiredFields";
+        this.requiredFields.Location = new Point(18, 106);
+        this.requiredFields.Size = new Size(305, 189);
+        this.requiredFields.CheckOnClick = true;
+        this.requiredFields.Items.AddRange(new object[] {
+            "Company","Primary contact","Amount","Expected close","Next action","Lead source"
+        });
+        this.destinationsLabel.Name = "destinationsLabel";
+        this.destinationsLabel.Text = "Allowed next stages";
+        this.destinationsLabel.Location = new Point(341, 78);
+        this.destinationsLabel.Size = new Size(328, 24);
+        this.destinations.Name = "destinations";
+        this.destinations.Location = new Point(341, 106);
+        this.destinations.Size = new Size(328, 189);
+        this.destinations.CheckOnClick = true;
+        this.approvalBox.Name = "approvalBox";
+        this.approvalBox.Text = "Require approved deal request";
+        this.approvalBox.Location = new Point(18, 313);
+        this.approvalBox.Size = new Size(305, 28);
+        this.notifyBox.Name = "notifyBox";
+        this.notifyBox.Text = "Notify the Deal owner on stage entry";
+        this.notifyBox.Location = new Point(341, 313);
+        this.notifyBox.Size = new Size(328, 28);
+        this.daysLabel.Name = "daysLabel";
+        this.daysLabel.Text = "Stagnation threshold (days)";
+        this.daysLabel.Location = new Point(18, 360);
+        this.daysLabel.Size = new Size(208, 24);
+        this.daysBox.Name = "daysBox";
+        this.daysBox.Location = new Point(224, 356);
+        this.daysBox.Size = new Size(99, 29);
+        this.daysBox.Minimum = 1;
+        this.daysBox.Maximum = 365;
+        this.daysBox.Value = 14;
+        this.limitBox.Name = "limitBox";
+        this.limitBox.Text = "Limit Deals in this stage";
+        this.limitBox.Location = new Point(341, 355);
+        this.limitBox.Size = new Size(212, 29);
+        this.limitBox.CheckedChanged += this.LimitChanged;
+        this.capacityBox.Name = "capacityBox";
+        this.capacityBox.Location = new Point(558, 356);
+        this.capacityBox.Size = new Size(111, 29);
+        this.capacityBox.Minimum = 1;
+        this.capacityBox.Maximum = 10000;
+        this.capacityBox.Enabled = false;
+
+        this.feedback.Name = "feedback";
+        this.feedback.Location = new Point(18, 410);
+        this.feedback.Size = new Size(651, 44);
+        this.refreshButton.Name = "refreshButton";
+        this.refreshButton.Text = "Reload";
+        this.refreshButton.Location = new Point(18, 467);
+        this.refreshButton.Size = new Size(104, 34);
+        this.refreshButton.Click += this.RefreshClicked;
+        this.saveButton.Name = "saveButton";
+        this.saveButton.Text = "Save policy";
+        this.saveButton.Location = new Point(445, 467);
+        this.saveButton.Size = new Size(108, 34);
+        this.saveButton.Enabled = false;
+        this.saveButton.Click += this.SaveClicked;
+        this.closeButton.Name = "closeButton";
+        this.closeButton.Text = "Close";
+        this.closeButton.Location = new Point(561, 467);
+        this.closeButton.Size = new Size(108, 34);
+        this.closeButton.DialogResult = DialogResult.Cancel;
+
+        this.Controls.Add(this.stageLabel);
+        this.Controls.Add(this.stageBox);
+        this.Controls.Add(this.requiredLabel);
+        this.Controls.Add(this.requiredFields);
+        this.Controls.Add(this.destinationsLabel);
+        this.Controls.Add(this.destinations);
+        this.Controls.Add(this.approvalBox);
+        this.Controls.Add(this.notifyBox);
+        this.Controls.Add(this.daysLabel);
+        this.Controls.Add(this.daysBox);
+        this.Controls.Add(this.limitBox);
+        this.Controls.Add(this.capacityBox);
+        this.Controls.Add(this.feedback);
+        this.Controls.Add(this.refreshButton);
+        this.Controls.Add(this.saveButton);
+        this.Controls.Add(this.closeButton);
+        this.CancelButton = this.closeButton;
+        this.ClientSize = new Size(687, 522);
+        this.AutoScaleDimensions = new SizeF(96F, 96F);
+        this.AutoScaleMode = AutoScaleMode.Dpi;
+        this.Font = new Font("Segoe UI", 10F);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.Text = "Pipeline stage rules";
+        this.Shown += this.FormShown;
+        this.FormClosed += this.FormIsClosed;
+        this.ResumeLayout(false);
+    }
+}

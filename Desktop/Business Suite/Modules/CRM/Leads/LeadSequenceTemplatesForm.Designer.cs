@@ -1,0 +1,145 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class LeadSequenceTemplatesForm
+{
+    private void InitializeComponent()
+    {
+        this.templateGrid = new RadGridView();
+        this.stepsGrid = new RadGridView();
+        this.templateLabel = new Label();
+        this.stepsLabel = new Label();
+        this.addTemplateButton = new Button();
+        this.removeTemplateButton = new Button();
+        this.addStepButton = new Button();
+        this.removeStepButton = new Button();
+        this.feedback = new Label();
+        this.saveButton = new Button();
+        this.closeButton = new Button();
+        this.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)this.templateGrid).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)this.templateGrid.MasterTemplate).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)this.stepsGrid).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)this.stepsGrid.MasterTemplate).BeginInit();
+
+        var nameColumn = new GridViewTextBoxColumn();
+        nameColumn.Name = "Name";
+        nameColumn.FieldName = "Name";
+        nameColumn.HeaderText = "Sequence name";
+        nameColumn.Width = 225;
+        nameColumn.MaxLength = 120;
+        this.templateGrid.Name = "templateGrid";
+        this.templateGrid.Location = new Point(16, 49);
+        this.templateGrid.Size = new Size(251, 285);
+        this.templateGrid.AutoGenerateColumns = false;
+        this.templateGrid.ReadOnly = true;
+        this.templateGrid.MasterTemplate.AllowAddNewRow = false;
+        this.templateGrid.MasterTemplate.AllowDeleteRow = false;
+        this.templateGrid.MasterTemplate.Columns.Add(nameColumn);
+        this.templateGrid.SelectionChanged += this.TemplateChanged;
+
+        var dayColumn = new GridViewDecimalColumn();
+        dayColumn.Name = "Day";
+        dayColumn.FieldName = "Day";
+        dayColumn.HeaderText = "Day";
+        dayColumn.Width = 75;
+        dayColumn.Minimum = 0;
+        dayColumn.Maximum = 365;
+        dayColumn.DecimalPlaces = 0;
+        var kindColumn = new GridViewComboBoxColumn();
+        kindColumn.Name = "Kind";
+        kindColumn.FieldName = "Kind";
+        kindColumn.HeaderText = "Task type";
+        kindColumn.Width = 125;
+        kindColumn.DataSource = new string[] { "call", "email", "task", "meeting" };
+        var titleColumn = new GridViewTextBoxColumn();
+        titleColumn.Name = "Title";
+        titleColumn.FieldName = "Title";
+        titleColumn.HeaderText = "Task title";
+        titleColumn.Width = 315;
+        titleColumn.MaxLength = 180;
+        this.stepsGrid.Name = "stepsGrid";
+        this.stepsGrid.Location = new Point(280, 49);
+        this.stepsGrid.Size = new Size(551, 285);
+        this.stepsGrid.AutoGenerateColumns = false;
+        this.stepsGrid.ReadOnly = true;
+        this.stepsGrid.MasterTemplate.AllowAddNewRow = false;
+        this.stepsGrid.MasterTemplate.AllowDeleteRow = false;
+        this.stepsGrid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] { dayColumn, kindColumn, titleColumn });
+        this.stepsGrid.SelectionChanged += this.UpdateActions;
+        this.templateLabel.Location = new Point(16, 15);
+        this.templateLabel.Size = new Size(251, 27);
+        this.templateLabel.Text = "Sequences";
+        this.stepsLabel.Location = new Point(280, 15);
+        this.stepsLabel.Size = new Size(551, 27);
+        this.stepsLabel.Text = "Steps for the selected sequence";
+        this.addTemplateButton.Name = "addTemplateButton";
+        this.addTemplateButton.Location = new Point(16, 343);
+        this.addTemplateButton.Size = new Size(106, 32);
+        this.addTemplateButton.Text = "New sequence";
+        this.addTemplateButton.Enabled = false;
+        this.addTemplateButton.Click += this.AddTemplateClicked;
+        this.removeTemplateButton.Name = "removeTemplateButton";
+        this.removeTemplateButton.Location = new Point(131, 343);
+        this.removeTemplateButton.Size = new Size(136, 32);
+        this.removeTemplateButton.Text = "Remove sequence";
+        this.removeTemplateButton.Enabled = false;
+        this.removeTemplateButton.Click += this.RemoveTemplateClicked;
+        this.addStepButton.Name = "addStepButton";
+        this.addStepButton.Location = new Point(280, 343);
+        this.addStepButton.Size = new Size(98, 32);
+        this.addStepButton.Text = "Add step";
+        this.addStepButton.Enabled = false;
+        this.addStepButton.Click += this.AddStepClicked;
+        this.removeStepButton.Name = "removeStepButton";
+        this.removeStepButton.Location = new Point(388, 343);
+        this.removeStepButton.Size = new Size(115, 32);
+        this.removeStepButton.Text = "Remove step";
+        this.removeStepButton.Enabled = false;
+        this.removeStepButton.Click += this.RemoveStepClicked;
+        this.feedback.Name = "feedback";
+        this.feedback.Location = new Point(16, 392);
+        this.feedback.Size = new Size(570, 35);
+        this.saveButton.Name = "saveButton";
+        this.saveButton.Location = new Point(586, 392);
+        this.saveButton.Size = new Size(132, 34);
+        this.saveButton.Text = "Save templates";
+        this.saveButton.Enabled = false;
+        this.saveButton.Click += this.SaveClicked;
+        this.closeButton.Location = new Point(729, 392);
+        this.closeButton.Size = new Size(102, 34);
+        this.closeButton.Text = "Close";
+        this.closeButton.DialogResult = DialogResult.Cancel;
+        this.Controls.AddRange(new Control[] { this.templateGrid, this.stepsGrid, this.templateLabel, this.stepsLabel,
+            this.addTemplateButton, this.removeTemplateButton, this.addStepButton, this.removeStepButton, this.feedback,
+            this.saveButton, this.closeButton });
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.ClientSize = new Size(847, 444);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.CancelButton = this.closeButton;
+        this.Text = "Lead sequence templates";
+        this.Shown += this.FormShown;
+        this.FormClosed += this.FormIsClosed;
+        ((System.ComponentModel.ISupportInitialize)this.stepsGrid.MasterTemplate).EndInit();
+        ((System.ComponentModel.ISupportInitialize)this.stepsGrid).EndInit();
+        ((System.ComponentModel.ISupportInitialize)this.templateGrid.MasterTemplate).EndInit();
+        ((System.ComponentModel.ISupportInitialize)this.templateGrid).EndInit();
+        this.ResumeLayout(false);
+    }
+
+    private RadGridView templateGrid;
+    private RadGridView stepsGrid;
+    private Label templateLabel;
+    private Label stepsLabel;
+    private Button addTemplateButton;
+    private Button removeTemplateButton;
+    private Button addStepButton;
+    private Button removeStepButton;
+    private Label feedback;
+    private Button saveButton;
+    private Button closeButton;
+}

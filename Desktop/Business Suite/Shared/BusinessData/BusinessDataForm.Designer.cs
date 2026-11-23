@@ -14,6 +14,8 @@ namespace Business_Suite
             this.companiesButton = new Button();
             this.contactsButton = new Button();
             this.workspacesButton = new Button();
+            this.catalogButton = new Telerik.WinControls.UI.RadButton();
+            ((System.ComponentModel.ISupportInitialize)this.catalogButton).BeginInit();
             this.SuspendLayout();
             // headingLabel
             this.headingLabel.Location = new Point(24, 24);
@@ -25,7 +27,7 @@ namespace Business_Suite
             this.descriptionLabel.Location = new Point(24, 74);
             this.descriptionLabel.Size = new Size(550, 31);
             this.descriptionLabel.Name = "descriptionLabel";
-            this.descriptionLabel.Text = "Company, contact and workspace directories.";
+            this.descriptionLabel.Text = "Company, contact, catalog and workspace directories.";
             // companiesButton
             this.companiesButton.Location = new Point(24, 112);
             this.companiesButton.Size = new Size(240, 42);
@@ -56,11 +58,18 @@ namespace Business_Suite
             this.workspacesButton.UseVisualStyleBackColor = false;
             this.workspacesButton.TabIndex = 2;
             this.workspacesButton.Click += this.workspacesButton_Click;
+            this.catalogButton.Location = new Point(282, 164);
+            this.catalogButton.Size = new Size(240, 42);
+            this.catalogButton.Name = "catalogButton";
+            this.catalogButton.Text = "Products and Services";
+            this.catalogButton.TabIndex = 3;
+            this.catalogButton.Click += this.catalogButton_Click;
             this.Controls.Add(this.headingLabel);
             this.Controls.Add(this.descriptionLabel);
             this.Controls.Add(this.companiesButton);
             this.Controls.Add(this.contactsButton);
             this.Controls.Add(this.workspacesButton);
+            this.Controls.Add(this.catalogButton);
             this.AutoScaleDimensions = new SizeF(96F, 96F);
             this.AutoScaleMode = AutoScaleMode.Dpi;
             this.ClientSize = new Size(600, 350);
@@ -69,6 +78,7 @@ namespace Business_Suite
             this.Font = new Font("Segoe UI", 10F);
             this.Text = "Business Suite | Shared business data";
             this.Name = "BusinessDataForm";
+            ((System.ComponentModel.ISupportInitialize)this.catalogButton).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
         }
@@ -78,5 +88,6 @@ namespace Business_Suite
         private Button companiesButton;
         private Button contactsButton;
         private Button workspacesButton;
+        private Telerik.WinControls.UI.RadButton catalogButton;
     }
 }

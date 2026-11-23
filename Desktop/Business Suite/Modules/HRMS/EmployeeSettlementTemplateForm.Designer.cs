@@ -1,0 +1,140 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+partial class EmployeeSettlementTemplateForm
+{
+    private void InitializeComponent()
+    {
+        this.basisLabel = new Label();
+        this.basis = new RadDropDownList();
+        this.monthLabel = new Label();
+        this.financialMonth = new RadDropDownList();
+        this.layoutLabel = new Label();
+        this.layout = new RadDropDownList();
+        this.showCode = new RadCheckBox();
+        this.footerLabel = new Label();
+        this.footer = new RadTextBox();
+        this.save = new RadButton();
+        this.preview = new RadButton();
+        this.previewFile = new SaveFileDialog();
+        this.brandFile = new OpenFileDialog();
+        this.uploadLogo = new RadButton();
+        this.uploadSignature = new RadButton();
+        this.branding = new Label();
+        this.close = new RadButton();
+        this.status = new Label();
+        this.SuspendLayout();
+        this.basisLabel.Name = "basisLabel";
+        this.basisLabel.Text = "Payslip YTD basis";
+        this.basisLabel.Location = new Point(14, 18);
+        this.basisLabel.Size = new Size(142, 22);
+        this.basis.Name = "basis";
+        this.basis.Location = new Point(160, 14);
+        this.basis.Size = new Size(378, 29);
+        this.basis.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.basis.Items.AddRange(new RadListDataItem[] { new RadListDataItem("Financial year"), new RadListDataItem("Calendar year") });
+        this.basis.SelectedIndexChanged += this.BasisChanged;
+        this.monthLabel.Name = "monthLabel";
+        this.monthLabel.Text = "Financial year starts";
+        this.monthLabel.Location = new Point(14, 58);
+        this.monthLabel.Size = new Size(142, 22);
+        this.financialMonth.Name = "financialMonth";
+        this.financialMonth.Location = new Point(160, 54);
+        this.financialMonth.Size = new Size(378, 29);
+        this.financialMonth.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.financialMonth.Items.AddRange(new RadListDataItem[] { new RadListDataItem("January"),new RadListDataItem("February"),
+            new RadListDataItem("March"),new RadListDataItem("April"),new RadListDataItem("May"),new RadListDataItem("June"),
+            new RadListDataItem("July"),new RadListDataItem("August"),new RadListDataItem("September"),new RadListDataItem("October"),
+            new RadListDataItem("November"),new RadListDataItem("December") });
+        this.layoutLabel.Name = "layoutLabel";
+        this.layoutLabel.Location = new Point(14, 102);
+        this.layoutLabel.Size = new Size(142, 22);
+        this.layoutLabel.Text = "Layout";
+        this.layout.Name = "layout";
+        this.layout.Location = new Point(160, 98);
+        this.layout.Size = new Size(378, 29);
+        this.showCode.Name = "showCode";
+        this.showCode.Location = new Point(160, 138);
+        this.showCode.Size = new Size(378, 28);
+        this.showCode.Text = "Show employee code";
+        this.footerLabel.Name = "footerLabel";
+        this.footerLabel.Location = new Point(14, 179);
+        this.footerLabel.Size = new Size(142, 26);
+        this.footerLabel.Text = "Statement footer";
+        this.footer.Name = "footer";
+        this.footer.Location = new Point(160, 175);
+        this.footer.Size = new Size(378, 28);
+        this.save.Name = "save";
+        this.save.Location = new Point(278, 320);
+        this.save.Size = new Size(125, 30);
+        this.save.Text = "Save settings";
+        this.save.Click += this.SaveClicked;
+        this.preview.Name = "preview";
+        this.preview.Location = new Point(14, 320);
+        this.preview.Size = new Size(235, 30);
+        this.preview.Text = "Preview saved template";
+        this.preview.Enabled = false;
+        this.preview.Click += this.PreviewClicked;
+        this.previewFile.AddExtension = true;
+        this.previewFile.DefaultExt = "pdf";
+        this.previewFile.Filter = "PDF files (*.pdf)|*.pdf";
+        this.previewFile.FileName = "settlement-payslip-preview.pdf";
+        this.brandFile.Filter = "PNG/JPEG images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg";
+        this.brandFile.CheckFileExists = true;
+        this.uploadLogo.Name = "uploadLogo";
+        this.uploadLogo.Location = new Point(14, 227);
+        this.uploadLogo.Size = new Size(168, 30);
+        this.uploadLogo.Text = "Upload company logo";
+        this.uploadLogo.Enabled = false;
+        this.uploadLogo.Click += this.UploadLogoClicked;
+        this.uploadSignature.Name = "uploadSignature";
+        this.uploadSignature.Location = new Point(191, 227);
+        this.uploadSignature.Size = new Size(178, 30);
+        this.uploadSignature.Text = "Upload signature image";
+        this.uploadSignature.Enabled = false;
+        this.uploadSignature.Click += this.UploadSignatureClicked;
+        this.branding.Name = "branding";
+        this.branding.Location = new Point(14, 271);
+        this.branding.Size = new Size(524, 33);
+        this.close.Name = "close";
+        this.close.Location = new Point(413, 320);
+        this.close.Size = new Size(125, 30);
+        this.close.Text = "Close";
+        this.close.Click += this.CloseClicked;
+        this.status.Name = "status";
+        this.status.Location = new Point(14, 363);
+        this.status.Size = new Size(524, 55);
+        this.layout.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.layout.Items.AddRange(new RadListDataItem[] { new RadListDataItem("Standard"), new RadListDataItem("Compact"), new RadListDataItem("Professional") });
+        this.footer.MaxLength = 300;
+        this.save.Enabled = false;
+        this.ClientSize = new Size(555, 428);
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.Text = "Company payroll presentation settings";
+        this.Controls.AddRange(new Control[] { this.basisLabel, this.basis, this.monthLabel, this.financialMonth, this.layoutLabel, this.layout, this.showCode, this.footerLabel, this.footer,
+            this.uploadLogo, this.uploadSignature, this.branding, this.preview, this.save, this.close, this.status });
+        this.Load += this.TemplateLoaded;
+        this.ResumeLayout(false);
+        this.PerformLayout();
+    }
+
+    private Label basisLabel = null!;
+    private RadDropDownList basis = null!;
+    private Label monthLabel = null!;
+    private RadDropDownList financialMonth = null!;
+    private Label layoutLabel = null!;
+    private RadDropDownList layout = null!;
+    private RadCheckBox showCode = null!;
+    private Label footerLabel = null!;
+    private RadTextBox footer = null!;
+    private RadButton save = null!;
+    private RadButton preview = null!;
+    private SaveFileDialog previewFile = null!;
+    private OpenFileDialog brandFile = null!;
+    private RadButton uploadLogo = null!;
+    private RadButton uploadSignature = null!;
+    private Label branding = null!;
+    private RadButton close = null!;
+    private Label status = null!;
+}

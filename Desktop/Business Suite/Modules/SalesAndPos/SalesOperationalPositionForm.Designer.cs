@@ -1,0 +1,101 @@
+using System.ComponentModel;
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class SalesOperationalPositionForm
+{
+    private void InitializeComponent()
+    {
+        this.titleLabel = new Label();
+        this.currentLabel = new Label();
+        this.pipelineLabel = new Label();
+        this.pipelineBox = new RadDropDownList();
+        this.stageLabel = new Label();
+        this.stageBox = new RadDropDownList();
+        this.statusLabel = new Label();
+        this.reloadButton = new RadButton();
+        this.moveButton = new RadButton();
+        ((ISupportInitialize)this.pipelineBox).BeginInit();
+        ((ISupportInitialize)this.stageBox).BeginInit();
+        ((ISupportInitialize)this.reloadButton).BeginInit();
+        ((ISupportInitialize)this.moveButton).BeginInit();
+        this.SuspendLayout();
+        this.titleLabel.Name = "titleLabel";
+        this.titleLabel.Location = new Point(16, 15);
+        this.titleLabel.Size = new Size(530, 29);
+        this.titleLabel.Text = "Operational stage";
+        this.currentLabel.Name = "currentLabel";
+        this.currentLabel.Location = new Point(16, 53);
+        this.currentLabel.Size = new Size(530, 25);
+        this.currentLabel.Text = "Current";
+        this.pipelineLabel.Name = "pipelineLabel";
+        this.pipelineLabel.Location = new Point(16, 91);
+        this.pipelineLabel.Size = new Size(106, 26);
+        this.pipelineLabel.Text = "Sales pipeline";
+        this.pipelineBox.Name = "pipelineBox";
+        this.pipelineBox.Location = new Point(124, 88);
+        this.pipelineBox.Size = new Size(421, 26);
+        this.pipelineBox.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.stageLabel.Name = "stageLabel";
+        this.stageLabel.Location = new Point(16, 126);
+        this.stageLabel.Size = new Size(106, 25);
+        this.stageLabel.Text = "Destination";
+        this.stageBox.Name = "stageBox";
+        this.stageBox.Location = new Point(124, 123);
+        this.stageBox.Size = new Size(421, 26);
+        this.stageBox.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        this.statusLabel.Name = "statusLabel";
+        this.statusLabel.Location = new Point(16, 170);
+        this.statusLabel.Size = new Size(530, 44);
+        this.reloadButton.Name = "reloadButton";
+        this.reloadButton.Location = new Point(16, 222);
+        this.reloadButton.Size = new Size(104, 28);
+        this.reloadButton.Text = "Reload";
+        this.moveButton.Name = "moveButton";
+        this.moveButton.Location = new Point(415, 222);
+        this.moveButton.Size = new Size(130, 28);
+        this.moveButton.Text = "Move order";
+        this.titleLabel.Font = new Font("Segoe UI Semibold", 13F);
+        this.currentLabel.AutoEllipsis = true;
+        this.pipelineBox.SelectedIndexChanged += this.PipelineChanged;
+        this.stageBox.SelectedIndexChanged += this.StageChanged;
+        this.reloadButton.Click += this.ReloadClicked;
+        this.moveButton.Enabled = false;
+        this.moveButton.Click += this.MoveClicked;
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.ClientSize = new Size(562, 267);
+        this.Controls.Add(this.titleLabel);
+        this.Controls.Add(this.currentLabel);
+        this.Controls.Add(this.pipelineLabel);
+        this.Controls.Add(this.pipelineBox);
+        this.Controls.Add(this.stageLabel);
+        this.Controls.Add(this.stageBox);
+        this.Controls.Add(this.statusLabel);
+        this.Controls.Add(this.reloadButton);
+        this.Controls.Add(this.moveButton);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.Name = "SalesOperationalPositionForm";
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.Text = "Sales Operational Stage";
+        this.Shown += this.ReloadClicked;
+        this.FormClosing += this.GuardClosing;
+        ((ISupportInitialize)this.moveButton).EndInit();
+        ((ISupportInitialize)this.reloadButton).EndInit();
+        ((ISupportInitialize)this.stageBox).EndInit();
+        ((ISupportInitialize)this.pipelineBox).EndInit();
+        this.ResumeLayout(false);
+    }
+
+    private Label titleLabel;
+    private Label currentLabel;
+    private Label pipelineLabel;
+    private RadDropDownList pipelineBox;
+    private Label stageLabel;
+    private RadDropDownList stageBox;
+    private Label statusLabel;
+    private RadButton reloadButton;
+    private RadButton moveButton;
+}

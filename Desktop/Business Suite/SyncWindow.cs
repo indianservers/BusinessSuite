@@ -4,85 +4,45 @@ using System.Text.Json;
 
 namespace Business_Suite;
 
-internal sealed class SyncWindow : Form
+internal sealed partial class SyncWindow : Form
 {
     private readonly NoteApi local = new(new Uri("http://127.0.0.1:15434"));
     private readonly NoteApi remote;
     private readonly NoteSync sync;
-    private readonly CueTextBox localEmail = new();
-    private readonly CueTextBox localPassword = new();
-    private readonly CueTextBox remoteEmail = new();
-    private readonly CueTextBox remotePassword = new();
-    private readonly Button run = new();
-    private readonly Button compare = new();
-    private readonly Button keepLocal = new();
-    private readonly Button keepServer = new();
-    private readonly ListBox conflicts = new();
-    private readonly TextBox localPreview = new();
-    private readonly TextBox serverPreview = new();
-    private readonly Label status = new();
     private readonly CancellationTokenSource lifetime = new();
     private bool busy;
 
-    public SyncWindow(Uri website)
+    public SyncWindow()
+    {
+        InitializeComponent();
+        remote = new(new Uri("https://localhost"));
+        sync = new(local, remote);
+        ShowConflict();
+    }
+
+    public SyncWindow(Uri website) : this()
     {
         remote = new(website);
         sync = new(local, remote);
-        Text = "Business Suite | Sync and compare";
-        StartPosition = FormStartPosition.CenterParent;
-        AutoScaleDimensions = new SizeF(96, 96);
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(870, 648);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
-        BackColor = Color.FromArgb(243, 246, 251);
-        ForeColor = Color.FromArgb(24, 35, 58);
-        Font = new Font("Segoe UI", 10);
-
-        LabelAt("Sync personal notes", 24, 18, 810, 40, 22);
-        LabelAt("Copy new standalone private notes. Review changes before replacing an existing note.",
-            25, 63, 810, 24);
-        LabelAt("Local workspace", 24, 106, 394, 25, 12);
-        LabelAt($"Company website · {website.Authority}", 452, 106, 394, 25, 12);
-        Input(localEmail, "Local email", 24, 136);
-        Input(localPassword, "Local password", 24, 173, true);
-        Input(remoteEmail, "Company email", 452, 136);
-        Input(remotePassword, "Company password", 452, 173, true);
-        ButtonAt(run, "Sync notes", 696, 214, 150, primary: true);
-        status.SetBounds(24, 215, 650, 39);
-        status.TextAlign = ContentAlignment.MiddleLeft;
-        status.Text = "Start the local workspace before signing in and syncing.";
-        Controls.Add(status);
-        LabelAt("Changes to review", 24, 269, 822, 24, 12);
-        conflicts.SetBounds(24, 301, 822, 86);
-        conflicts.AccessibleName = "Notes with conflicts";
-        Controls.Add(conflicts);
-        LabelAt("Local version", 24, 394, 394, 24);
-        LabelAt("Server version", 452, 394, 394, 24);
-        Preview(localPreview, "Local note version", 24);
-        Preview(serverPreview, "Server note version", 452);
-
-        ButtonAt(keepLocal, "Keep local version", 490, 584, 166);
-        ButtonAt(keepServer, "Keep server version", 670, 584, 176);
-        ButtonAt(compare, "Compare business records", 24, 584, 232);
-        run.Click += async (_, _) => await RunAsync();
-        compare.Click += async (_, _) => await CompareAsync();
-        keepLocal.Click += async (_, _) => await ResolveAsync(true);
-        keepServer.Click += async (_, _) => await ResolveAsync(false);
-        conflicts.SelectedIndexChanged += (_, _) => ShowConflict();
-        AcceptButton = run;
-        FormClosing += (_, args) =>
-        {
-            if (busy)
-            {
-                args.Cancel = true;
-                lifetime.Cancel();
-            }
-        };
-        FormClosed += (_, _) => lifetime.Dispose();
-        ShowConflict();
+        websiteLabel.Text = $"Company website · {website.Authority}";
     }
+
+    private async void Run_Click(object sender, EventArgs e) => await RunAsync();
+    private async void Compare_Click(object sender, EventArgs e) => await CompareAsync();
+    private async void KeepLocal_Click(object sender, EventArgs e) => await ResolveAsync(true);
+    private async void KeepServer_Click(object sender, EventArgs e) => await ResolveAsync(false);
+    private void Conflicts_SelectedIndexChanged(object sender, EventArgs e) => ShowConflict();
+
+    private void SyncWindow_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        if (busy)
+        {
+            e.Cancel = true;
+            lifetime.Cancel();
+        }
+    }
+
+    private void SyncWindow_FormClosed(object sender, FormClosedEventArgs e) => lifetime.Dispose();
 
     private async Task RunAsync()
     {
@@ -150,20 +110,9 @@ internal sealed class SyncWindow : Form
 
     private (string Code, string Method)? AskForMfa(string source)
     {
-        using var dialog = new Form
-        {
-            Text = $"{source} verification", StartPosition = FormStartPosition.CenterParent,
-            ClientSize = new Size(410, 156), FormBorderStyle = FormBorderStyle.FixedDialog,
-            MaximizeBox = false, MinimizeBox = false, Font = Font
-        };
-        var code = new CueTextBox { Bounds = new Rectangle(18, 16, 374, 30), AccessibleName = "Verification code",
-            PlaceholderText = "Verification code", UseSystemPasswordChar = true, MaxLength = 128 };
-        var recovery = new CheckBox { Text = "Use a recovery code", Bounds = new Rectangle(18, 53, 374, 28) };
-        var verify = new Button { Text = "Verify", Bounds = new Rectangle(278, 95, 114, 40), DialogResult = DialogResult.OK };
-        dialog.Controls.AddRange([code, recovery, verify]);
-        dialog.AcceptButton = verify;
-        return dialog.ShowDialog(this) == DialogResult.OK && code.Text.Trim().Length > 0
-            ? (code.Text.Trim(), recovery.Checked ? "recovery" : "totp")
+        using var dialog = new VerificationForm { Text = $"{source} verification" };
+        return dialog.ShowDialog(this) == DialogResult.OK && dialog.Code.Length > 0
+            ? (dialog.Code, dialog.Method)
             : null;
     }
 
@@ -240,39 +189,4 @@ internal sealed class SyncWindow : Form
         return $"{note.Title}\r\n{labels}\r\n{string.Join(", ", note.Tags)}\r\n\r\n{note.Content}";
     }
 
-    private void LabelAt(string text, int x, int y, int width, int height, float fontSize = 10)
-    {
-        Controls.Add(new Label { Text = text, Bounds = new Rectangle(x, y, width, height),
-            Font = new Font(fontSize > 10 ? "Segoe UI Semibold" : "Segoe UI", fontSize) });
-    }
-
-    private void Input(CueTextBox field, string label, int x, int y, bool password = false)
-    {
-        field.SetBounds(x, y, 394, 32);
-        field.AccessibleName = label;
-        field.PlaceholderText = label;
-        field.UseSystemPasswordChar = password;
-        field.MaxLength = password ? 128 : 254;
-        Controls.Add(field);
-    }
-
-    private void Preview(TextBox field, string label, int x)
-    {
-        field.SetBounds(x, 421, 394, 146);
-        field.AccessibleName = label;
-        field.Multiline = true;
-        field.ReadOnly = true;
-        field.ScrollBars = ScrollBars.Vertical;
-        Controls.Add(field);
-    }
-
-    private void ButtonAt(Button field, string text, int x, int y, int width, bool primary = false)
-    {
-        field.Text = text;
-        field.SetBounds(x, y, width, 42);
-        field.FlatStyle = FlatStyle.Flat;
-        field.BackColor = primary ? Color.FromArgb(47, 79, 217) : Color.White;
-        field.ForeColor = primary ? Color.White : ForeColor;
-        Controls.Add(field);
-    }
 }

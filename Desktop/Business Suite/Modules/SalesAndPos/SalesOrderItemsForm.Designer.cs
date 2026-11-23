@@ -1,0 +1,123 @@
+using System.ComponentModel;
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class SalesOrderItemsForm
+{
+    private void InitializeComponent()
+    {
+        this.orderLabel = new Label();
+        this.itemsGrid = new RadGridView();
+        this.codeColumn = new GridViewTextBoxColumn();
+        this.descriptionColumn = new GridViewTextBoxColumn();
+        this.quantityColumn = new GridViewDecimalColumn();
+        this.totalColumn = new GridViewDecimalColumn();
+        this.confirmBox = new CheckBox();
+        this.statusLabel = new Label();
+        this.reloadButton = new RadButton();
+        this.removeButton = new RadButton();
+        this.addButton = new RadButton();
+        ((ISupportInitialize)this.itemsGrid).BeginInit();
+        ((ISupportInitialize)this.itemsGrid.MasterTemplate).BeginInit();
+        ((ISupportInitialize)this.reloadButton).BeginInit();
+        ((ISupportInitialize)this.removeButton).BeginInit();
+        ((ISupportInitialize)this.addButton).BeginInit();
+        this.SuspendLayout();
+        this.orderLabel.Name = "orderLabel";
+        this.orderLabel.Location = new Point(16, 16);
+        this.orderLabel.Size = new Size(678, 28);
+        this.orderLabel.Font = new Font("Segoe UI Semibold", 13F);
+        this.itemsGrid.Name = "itemsGrid";
+        this.itemsGrid.Location = new Point(16, 48);
+        this.itemsGrid.Size = new Size(678, 249);
+        this.itemsGrid.ReadOnly = true;
+        this.itemsGrid.MasterTemplate.AutoGenerateColumns = false;
+        this.itemsGrid.MasterTemplate.AllowAddNewRow = false;
+        this.itemsGrid.MasterTemplate.AllowEditRow = false;
+        this.itemsGrid.MasterTemplate.AllowDeleteRow = false;
+        this.itemsGrid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+        this.itemsGrid.SelectionChanged += this.SelectionChanged;
+        this.codeColumn.Name = "codeColumn";
+        this.codeColumn.FieldName = "Code";
+        this.codeColumn.HeaderText = "Code";
+        this.codeColumn.Width = 109;
+        this.descriptionColumn.Name = "descriptionColumn";
+        this.descriptionColumn.FieldName = "Description";
+        this.descriptionColumn.HeaderText = "Description";
+        this.descriptionColumn.Width = 331;
+        this.quantityColumn.Name = "quantityColumn";
+        this.quantityColumn.FieldName = "Quantity";
+        this.quantityColumn.HeaderText = "Quantity";
+        this.quantityColumn.FormatString = "{0:0.###}";
+        this.quantityColumn.Width = 98;
+        this.totalColumn.Name = "totalColumn";
+        this.totalColumn.FieldName = "Total";
+        this.totalColumn.HeaderText = "Line total";
+        this.totalColumn.FormatString = "{0:N2}";
+        this.totalColumn.Width = 100;
+        this.itemsGrid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+            this.codeColumn, this.descriptionColumn, this.quantityColumn, this.totalColumn
+        });
+        this.confirmBox.Name = "confirmBox";
+        this.confirmBox.Location = new Point(16, 310);
+        this.confirmBox.Size = new Size(678, 25);
+        this.confirmBox.Text = "Confirm removal of the selected saved item";
+        this.confirmBox.Enabled = false;
+        this.confirmBox.CheckedChanged += this.ConfirmChanged;
+        this.statusLabel.Name = "statusLabel";
+        this.statusLabel.Location = new Point(16, 342);
+        this.statusLabel.Size = new Size(678, 41);
+        this.reloadButton.Name = "reloadButton";
+        this.reloadButton.Location = new Point(16, 391);
+        this.reloadButton.Size = new Size(116, 28);
+        this.reloadButton.Text = "Reload items";
+        this.reloadButton.Click += this.ReloadClicked;
+        this.removeButton.Name = "removeButton";
+        this.removeButton.Location = new Point(554, 391);
+        this.removeButton.Size = new Size(140, 28);
+        this.removeButton.Text = "Remove item";
+        this.removeButton.Enabled = false;
+        this.removeButton.Click += this.RemoveClicked;
+        this.addButton.Name = "addButton";
+        this.addButton.Location = new Point(401, 391);
+        this.addButton.Size = new Size(140, 28);
+        this.addButton.Text = "Add catalog item";
+        this.addButton.Click += this.AddClicked;
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.ClientSize = new Size(710, 437);
+        this.Controls.Add(this.orderLabel);
+        this.Controls.Add(this.itemsGrid);
+        this.Controls.Add(this.confirmBox);
+        this.Controls.Add(this.statusLabel);
+        this.Controls.Add(this.reloadButton);
+        this.Controls.Add(this.removeButton);
+        this.Controls.Add(this.addButton);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.Name = "SalesOrderItemsForm";
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.Text = "Saved sales order items";
+        this.Shown += this.ReloadClicked;
+        this.FormClosing += this.ItemsClosing;
+        ((ISupportInitialize)this.itemsGrid.MasterTemplate).EndInit();
+        ((ISupportInitialize)this.itemsGrid).EndInit();
+        ((ISupportInitialize)this.reloadButton).EndInit();
+        ((ISupportInitialize)this.removeButton).EndInit();
+        ((ISupportInitialize)this.addButton).EndInit();
+        this.ResumeLayout(false);
+    }
+
+    private Label orderLabel;
+    private RadGridView itemsGrid;
+    private GridViewTextBoxColumn codeColumn;
+    private GridViewTextBoxColumn descriptionColumn;
+    private GridViewDecimalColumn quantityColumn;
+    private GridViewDecimalColumn totalColumn;
+    private CheckBox confirmBox;
+    private Label statusLabel;
+    private RadButton reloadButton;
+    private RadButton removeButton;
+    private RadButton addButton;
+}

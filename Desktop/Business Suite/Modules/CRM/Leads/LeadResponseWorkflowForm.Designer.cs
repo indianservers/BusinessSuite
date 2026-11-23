@@ -1,0 +1,127 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+public sealed partial class LeadResponseWorkflowForm
+{
+    private void InitializeComponent()
+    {
+        this.ruleGrid = new RadGridView();
+        this.stageColumn = new GridViewComboBoxColumn();
+        this.ownerColumn = new GridViewComboBoxColumn();
+        this.feedback = new Label();
+        this.addButton = new Button();
+        this.removeButton = new Button();
+        this.saveButton = new Button();
+        this.closeButton = new Button();
+        this.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)this.ruleGrid).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)this.ruleGrid.MasterTemplate).BeginInit();
+        var nameColumn = new GridViewTextBoxColumn();
+        nameColumn.Name = "Name";
+        nameColumn.FieldName = "Name";
+        nameColumn.HeaderText = "Rule name";
+        nameColumn.Width = 145;
+        var triggerColumn = new GridViewComboBoxColumn();
+        triggerColumn.Name = "Trigger";
+        triggerColumn.FieldName = "Trigger";
+        triggerColumn.HeaderText = "When";
+        triggerColumn.Width = 116;
+        triggerColumn.DataSource = new string[] { "created", "stage_changed", "responded" };
+        this.stageColumn.Name = "Stage";
+        this.stageColumn.FieldName = "Stage";
+        this.stageColumn.HeaderText = "Only in stage";
+        this.stageColumn.Width = 112;
+        var actionColumn = new GridViewComboBoxColumn();
+        actionColumn.Name = "Action";
+        actionColumn.FieldName = "Action";
+        actionColumn.HeaderText = "Action";
+        actionColumn.Width = 94;
+        var titleColumn = new GridViewTextBoxColumn();
+        titleColumn.Name = "Title";
+        titleColumn.FieldName = "Title";
+        titleColumn.HeaderText = "Task or notification title";
+        titleColumn.Width = 215;
+        var delayColumn = new GridViewDecimalColumn();
+        delayColumn.Name = "Delay";
+        delayColumn.FieldName = "Delay";
+        delayColumn.HeaderText = "Delay hours";
+        delayColumn.Width = 81;
+        this.ownerColumn.Name = "Owner";
+        this.ownerColumn.FieldName = "Owner";
+        this.ownerColumn.HeaderText = "Assign to";
+        this.ownerColumn.Width = 142;
+        var enabledColumn = new GridViewCheckBoxColumn();
+        enabledColumn.Name = "Enabled";
+        enabledColumn.FieldName = "Enabled";
+        enabledColumn.HeaderText = "Enabled";
+        enabledColumn.Width = 60;
+        nameColumn.MaxLength = 120;
+        titleColumn.MaxLength = 180;
+        actionColumn.DataSource = new string[] { "task", "notify", "assign" };
+        delayColumn.Minimum = 0;
+        delayColumn.Maximum = 8760;
+        delayColumn.DecimalPlaces = 0;
+        this.ownerColumn.ValueMember = "Id";
+        this.ownerColumn.DisplayMember = "Name";
+        this.ruleGrid.Name = "ruleGrid";
+        this.ruleGrid.Location = new Point(16, 20);
+        this.ruleGrid.Size = new Size(994, 317);
+        this.ruleGrid.AutoGenerateColumns = false;
+        this.ruleGrid.ReadOnly = true;
+        this.ruleGrid.MasterTemplate.AllowAddNewRow = false;
+        this.ruleGrid.MasterTemplate.AllowDeleteRow = false;
+        this.ruleGrid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] { nameColumn, triggerColumn, this.stageColumn, actionColumn,
+            titleColumn, delayColumn, this.ownerColumn, enabledColumn });
+        this.ruleGrid.SelectionChanged += this.UpdateActions;
+        this.feedback.Name = "feedback";
+        this.feedback.Location = new Point(16, 385);
+        this.feedback.Size = new Size(638, 35);
+        this.addButton.Name = "addButton";
+        this.addButton.Location = new Point(16, 347);
+        this.addButton.Size = new Size(105, 32);
+        this.addButton.Text = "Add rule";
+        this.addButton.Enabled = false;
+        this.addButton.Click += this.AddClicked;
+        this.removeButton.Name = "removeButton";
+        this.removeButton.Location = new Point(132, 347);
+        this.removeButton.Size = new Size(110, 32);
+        this.removeButton.Text = "Remove rule";
+        this.removeButton.Enabled = false;
+        this.removeButton.Click += this.RemoveClicked;
+        this.saveButton.Name = "saveButton";
+        this.saveButton.Location = new Point(773, 385);
+        this.saveButton.Size = new Size(112, 32);
+        this.saveButton.Text = "Save rules";
+        this.saveButton.Enabled = false;
+        this.saveButton.Click += this.SaveClicked;
+        this.closeButton.Location = new Point(897, 385);
+        this.closeButton.Size = new Size(113, 32);
+        this.closeButton.Text = "Close";
+        this.closeButton.DialogResult = DialogResult.Cancel;
+        this.Controls.AddRange(new Control[] { this.ruleGrid, this.feedback, this.addButton, this.removeButton,
+            this.saveButton, this.closeButton });
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.ClientSize = new Size(1026, 435);
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.CancelButton = this.closeButton;
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.Text = "Lead workflows";
+        this.Shown += this.FormShown;
+        this.FormClosed += this.FormIsClosed;
+        ((System.ComponentModel.ISupportInitialize)this.ruleGrid.MasterTemplate).EndInit();
+        ((System.ComponentModel.ISupportInitialize)this.ruleGrid).EndInit();
+        this.ResumeLayout(false);
+    }
+
+    private RadGridView ruleGrid;
+    private GridViewComboBoxColumn stageColumn;
+    private GridViewComboBoxColumn ownerColumn;
+    private Label feedback;
+    private Button addButton;
+    private Button removeButton;
+    private Button saveButton;
+    private Button closeButton;
+}

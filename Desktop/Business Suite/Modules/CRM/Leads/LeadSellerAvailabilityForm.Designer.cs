@@ -1,0 +1,132 @@
+#nullable disable
+namespace Business_Suite;
+
+public sealed partial class LeadSellerAvailabilityForm
+{
+    private ComboBox ownerBox;
+    private CheckBox usePolicy;
+    private Panel details;
+    private CheckBox enabledBox;
+    private TextBox zoneBox;
+    private CheckedListBox dayList;
+    private TextBox startBox;
+    private TextBox endBox;
+    private TextBox capacityBox;
+    private Label ownerLabel;
+    private Label zoneLabel;
+    private Label daysLabel;
+    private Label startLabel;
+    private Label endLabel;
+    private Label capacityLabel;
+    private Label feedback;
+    private Button saveButton;
+    private Button cancelButton;
+
+    private void InitializeComponent()
+    {
+        this.ownerBox = new ComboBox();
+        this.usePolicy = new CheckBox();
+        this.details = new Panel();
+        this.enabledBox = new CheckBox();
+        this.zoneBox = new TextBox();
+        this.dayList = new CheckedListBox();
+        this.startBox = new TextBox();
+        this.endBox = new TextBox();
+        this.capacityBox = new TextBox();
+        this.ownerLabel = new Label();
+        this.zoneLabel = new Label();
+        this.daysLabel = new Label();
+        this.startLabel = new Label();
+        this.endLabel = new Label();
+        this.capacityLabel = new Label();
+        this.feedback = new Label();
+        this.saveButton = new Button();
+        this.cancelButton = new Button();
+        this.SuspendLayout();
+
+        this.ownerLabel.Location = new Point(15, 13);
+        this.ownerLabel.Size = new Size(400, 23);
+        this.ownerLabel.Text = "Seller";
+        this.ownerBox.Name = "ownerBox";
+        this.ownerBox.Location = new Point(15, 38);
+        this.ownerBox.Size = new Size(532, 27);
+        this.ownerBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        this.ownerBox.DisplayMember = "Name";
+        this.ownerBox.SelectedIndexChanged += this.OwnerChanged;
+        this.usePolicy.Name = "usePolicy";
+        this.usePolicy.Location = new Point(15, 74);
+        this.usePolicy.Size = new Size(532, 24);
+        this.usePolicy.Text = "Use working hours or capacity";
+        this.usePolicy.Enabled = false;
+        this.usePolicy.CheckedChanged += this.PolicyChanged;
+        this.details.Location = new Point(15, 106);
+        this.details.Size = new Size(532, 275);
+        this.details.Enabled = false;
+        this.enabledBox.Name = "enabledBox";
+        this.enabledBox.Location = new Point(0, 0);
+        this.enabledBox.Size = new Size(532, 24);
+        this.enabledBox.Text = "Available for automatic assignment";
+        this.zoneLabel.Location = new Point(0, 36);
+        this.zoneLabel.Size = new Size(250, 21);
+        this.zoneLabel.Text = "IANA time zone";
+        this.zoneBox.Name = "zoneBox";
+        this.zoneBox.Location = new Point(0, 61);
+        this.zoneBox.Size = new Size(253, 26);
+        this.zoneBox.MaxLength = 80;
+        this.daysLabel.Location = new Point(273, 36);
+        this.daysLabel.Size = new Size(257, 21);
+        this.daysLabel.Text = "Working days";
+        this.dayList.Name = "dayList";
+        this.dayList.Location = new Point(273, 61);
+        this.dayList.Size = new Size(257, 150);
+        this.dayList.CheckOnClick = true;
+        this.dayList.Items.AddRange(new object[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" });
+        this.startLabel.Location = new Point(0, 102);
+        this.startLabel.Size = new Size(123, 21);
+        this.startLabel.Text = "Shift starts";
+        this.startBox.Name = "startBox";
+        this.startBox.Location = new Point(0, 127);
+        this.startBox.Size = new Size(116, 26);
+        this.startBox.MaxLength = 5;
+        this.endLabel.Location = new Point(137, 102);
+        this.endLabel.Size = new Size(116, 21);
+        this.endLabel.Text = "Shift ends";
+        this.endBox.Name = "endBox";
+        this.endBox.Location = new Point(137, 127);
+        this.endBox.Size = new Size(116, 26);
+        this.endBox.MaxLength = 5;
+        this.capacityLabel.Location = new Point(0, 171);
+        this.capacityLabel.Size = new Size(267, 40);
+        this.capacityLabel.Text = "Maximum active Leads (optional)";
+        this.capacityBox.Name = "capacityBox";
+        this.capacityBox.Location = new Point(0, 211);
+        this.capacityBox.Size = new Size(253, 26);
+        this.capacityBox.MaxLength = 6;
+        this.details.Controls.AddRange(new Control[] {this.enabledBox,this.zoneLabel,this.zoneBox,this.daysLabel,
+            this.dayList,this.startLabel,this.startBox,this.endLabel,this.endBox,this.capacityLabel,this.capacityBox});
+        this.feedback.Name = "feedback";
+        this.feedback.Location = new Point(15, 384);
+        this.feedback.Size = new Size(532, 45);
+        this.saveButton.Name = "saveButton";
+        this.saveButton.Location = new Point(341, 442);
+        this.saveButton.Size = new Size(112, 33);
+        this.saveButton.Text = "Apply";
+        this.saveButton.Click += this.SaveClicked;
+        this.cancelButton.Location = new Point(462, 442);
+        this.cancelButton.Size = new Size(85, 33);
+        this.cancelButton.Text = "Cancel";
+        this.cancelButton.DialogResult = DialogResult.Cancel;
+        this.Controls.AddRange(new Control[] {this.ownerLabel,this.ownerBox,this.usePolicy,this.details,
+            this.feedback,this.saveButton,this.cancelButton});
+        this.Name = "LeadSellerAvailabilityForm";
+        this.Text = "Seller working hours and capacity";
+        this.ClientSize = new Size(562, 491);
+        this.AutoScaleMode = AutoScaleMode.Font;
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.CancelButton = this.cancelButton;
+        this.ResumeLayout(false);
+    }
+}

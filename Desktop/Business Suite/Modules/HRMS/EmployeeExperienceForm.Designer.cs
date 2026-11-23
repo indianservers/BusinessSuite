@@ -1,0 +1,207 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite
+{
+    partial class EmployeeExperienceForm
+    {
+        private void InitializeComponent()
+        {
+            this.heading = new Label();
+            this.status = new Label();
+            this.editor = new Panel();
+            this.confirmation = new Panel();
+            this.confirmationLabel = new Label();
+            this.grid = new RadGridView();
+            this.companyNameLabel = new Label();
+            this.companyName = new RadTextBox();
+            this.designationLabel = new Label();
+            this.designation = new RadTextBox();
+            this.fromDateLabel = new Label();
+            this.fromDate = new RadDateTimePicker();
+            this.toDateLabel = new Label();
+            this.toDate = new RadDateTimePicker();
+            this.currentLabel = new Label();
+            this.current = new CheckBox();
+            this.responsibilitiesLabel = new Label();
+            this.responsibilities = new RadTextBox();
+            this.column0 = new GridViewTextBoxColumn();
+            this.column1 = new GridViewTextBoxColumn();
+            this.column2 = new GridViewTextBoxColumn();
+            this.column3 = new GridViewTextBoxColumn();
+            this.column4 = new GridViewCheckBoxColumn();
+            this.column5 = new GridViewTextBoxColumn();
+            this.newRecord = new RadButton();
+            this.edit = new RadButton();
+            this.delete = new RadButton();
+            this.refresh = new RadButton();
+            this.save = new RadButton();
+            this.confirmDelete = new RadButton();
+            this.cancelDelete = new RadButton();
+            this.close = new RadButton();
+            ((System.ComponentModel.ISupportInitialize)this.grid).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).BeginInit();
+            this.SuspendLayout();
+            this.heading.Location = new Point(12, 12);
+            this.heading.Size = new Size(740, 28);
+            this.status.Location = new Point(12, 529);
+            this.status.Size = new Size(645, 26);
+            this.grid.Location = new Point(12, 45);
+            this.grid.Size = new Size(744, 222);
+            this.grid.ReadOnly = true;
+            this.grid.Name = "experienceGrid";
+            this.grid.MasterTemplate.AutoGenerateColumns = false;
+            this.grid.MasterTemplate.AllowAddNewRow = false;
+            this.grid.MasterTemplate.AllowDeleteRow = false;
+            this.grid.MasterTemplate.AllowEditRow = false;
+            this.grid.MasterTemplate.ShowRowHeaderColumn = false;
+            this.grid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+            this.grid.CurrentRowChanged += this.SelectionChanged;
+            this.editor.Location = new Point(12, 318);
+            this.editor.Size = new Size(744, 151);
+            this.editor.Enabled = false;
+            this.confirmation.Location = new Point(12, 471);
+            this.confirmation.Size = new Size(744, 45);
+            this.confirmationLabel.Location = new Point(12, 10);
+            this.confirmationLabel.Size = new Size(471, 26);
+            this.confirmation.Visible = false;
+            this.companyNameLabel.Text = "Company Name *";
+            this.companyNameLabel.Location = new Point(0, 0);
+            this.companyNameLabel.Size = new Size(230, 20);
+            this.companyName.Location = new Point(0, 21);
+            this.companyName.Size = new Size(232, 25);
+            this.companyName.Name = "companyName";
+            this.column0.Name = "company_name";
+            this.column0.FieldName = "company_name";
+            this.column0.HeaderText = "Company Name";
+            this.designationLabel.Text = "Designation";
+            this.designationLabel.Location = new Point(248, 0);
+            this.designationLabel.Size = new Size(230, 20);
+            this.designation.Location = new Point(248, 21);
+            this.designation.Size = new Size(232, 25);
+            this.designation.Name = "designation";
+            this.column1.Name = "designation";
+            this.column1.FieldName = "designation";
+            this.column1.HeaderText = "Designation";
+            this.fromDateLabel.Text = "From Date";
+            this.fromDateLabel.Location = new Point(496, 0);
+            this.fromDateLabel.Size = new Size(230, 20);
+            this.fromDate.Location = new Point(496, 21);
+            this.fromDate.Size = new Size(232, 25);
+            this.fromDate.Name = "fromDate";
+            this.fromDate.Format = DateTimePickerFormat.Short;
+            this.fromDate.ShowCheckBox = true;
+            this.fromDate.Checked = false;
+            this.column2.Name = "from_date";
+            this.column2.FieldName = "from_date";
+            this.column2.HeaderText = "From Date";
+            this.toDateLabel.Text = "To Date";
+            this.toDateLabel.Location = new Point(0, 53);
+            this.toDateLabel.Size = new Size(230, 20);
+            this.toDate.Location = new Point(0, 74);
+            this.toDate.Size = new Size(232, 25);
+            this.toDate.Name = "toDate";
+            this.toDate.Format = DateTimePickerFormat.Short;
+            this.toDate.ShowCheckBox = true;
+            this.toDate.Checked = false;
+            this.column3.Name = "to_date";
+            this.column3.FieldName = "to_date";
+            this.column3.HeaderText = "To Date";
+            this.currentLabel.Text = "Current Employment";
+            this.currentLabel.Location = new Point(248, 53);
+            this.currentLabel.Size = new Size(230, 20);
+            this.current.Location = new Point(248, 74);
+            this.current.Size = new Size(232, 25);
+            this.current.Name = "current";
+            this.column4.Name = "is_current";
+            this.column4.FieldName = "is_current";
+            this.column4.HeaderText = "Current Employment";
+            this.responsibilitiesLabel.Text = "Responsibilities";
+            this.responsibilitiesLabel.Location = new Point(496, 53);
+            this.responsibilitiesLabel.Size = new Size(230, 20);
+            this.responsibilities.Location = new Point(496, 74);
+            this.responsibilities.Size = new Size(232, 36);
+            this.responsibilities.Name = "responsibilities";
+            this.responsibilities.Multiline = true;
+            this.responsibilities.ScrollBars = ScrollBars.Vertical;
+            this.column5.Name = "responsibilities";
+            this.column5.FieldName = "responsibilities";
+            this.column5.HeaderText = "Responsibilities";
+            this.newRecord.Name = "newRecord";
+            this.newRecord.Text = "New";
+            this.newRecord.Location = new Point(12, 280);
+            this.newRecord.Size = new Size(80, 28);
+            this.newRecord.Click += this.NewClicked;
+            this.edit.Name = "edit";
+            this.edit.Text = "Edit";
+            this.edit.Location = new Point(98, 280);
+            this.edit.Size = new Size(80, 28);
+            this.edit.Click += this.EditClicked;
+            this.delete.Name = "delete";
+            this.delete.Text = "Delete";
+            this.delete.Location = new Point(184, 280);
+            this.delete.Size = new Size(80, 28);
+            this.delete.Click += this.AskDelete;
+            this.refresh.Name = "refresh";
+            this.refresh.Text = "Refresh";
+            this.refresh.Location = new Point(270, 280);
+            this.refresh.Size = new Size(80, 28);
+            this.refresh.Click += this.RefreshClicked;
+            this.save.Name = "save";
+            this.save.Text = "Add experience";
+            this.save.Location = new Point(607, 116);
+            this.save.Size = new Size(130, 28);
+            this.save.Click += this.SaveClicked;
+            this.confirmDelete.Name = "confirmDelete";
+            this.confirmDelete.Text = "Delete";
+            this.confirmDelete.Location = new Point(492, 8);
+            this.confirmDelete.Size = new Size(80, 28);
+            this.confirmDelete.Click += this.ConfirmDelete;
+            this.cancelDelete.Name = "cancelDelete";
+            this.cancelDelete.Text = "Cancel";
+            this.cancelDelete.Location = new Point(578, 8);
+            this.cancelDelete.Size = new Size(80, 28);
+            this.cancelDelete.Click += this.CancelDelete;
+            this.close.Name = "close";
+            this.close.Text = "Close";
+            this.close.Location = new Point(669, 527);
+            this.close.Size = new Size(80, 28);
+            this.companyName.TextChanged += this.InputsChanged;
+            this.close.DialogResult = DialogResult.Cancel;
+            this.grid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+                this.column0, this.column1, this.column2, this.column3, this.column4, this.column5 });
+            this.editor.Controls.AddRange(new Control[] {
+                this.companyNameLabel, this.companyName, this.designationLabel, this.designation,
+                this.fromDateLabel, this.fromDate, this.toDateLabel, this.toDate,
+                this.currentLabel, this.current, this.responsibilitiesLabel, this.responsibilities, this.save });
+            this.confirmation.Controls.AddRange(new Control[] {
+                this.confirmationLabel, this.confirmDelete, this.cancelDelete });
+            this.Controls.AddRange(new Control[] {
+                this.heading, this.grid, this.newRecord, this.edit, this.delete, this.refresh,
+                this.editor, this.confirmation, this.status, this.close });
+            this.CancelButton = this.close;
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(768, 568);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.Text = "Employee Experience";
+            this.Load += this.Loaded;
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).EndInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid).EndInit();
+            this.ResumeLayout(false);
+        }
+
+        private Label heading, status, confirmationLabel;
+        private Panel editor, confirmation;
+        private RadGridView grid;
+        private GridViewTextBoxColumn column0, column1, column2, column3, column5;
+        private GridViewCheckBoxColumn column4;
+        private Label companyNameLabel, designationLabel, fromDateLabel, toDateLabel, currentLabel, responsibilitiesLabel;
+        private RadTextBox companyName, designation, responsibilities;
+        private RadDateTimePicker fromDate, toDate;
+        private CheckBox current;
+        private RadButton newRecord, edit, delete, refresh, save, confirmDelete, cancelDelete, close;
+    }
+}
+

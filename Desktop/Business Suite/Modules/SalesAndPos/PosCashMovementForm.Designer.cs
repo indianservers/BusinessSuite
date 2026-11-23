@@ -1,0 +1,175 @@
+#nullable disable
+using System.ComponentModel;
+using System.Drawing;
+using System.Windows.Forms;
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+partial class PosCashMovementForm
+{
+    private void InitializeComponent()
+    {
+        this.registerLabel = new Label();
+        this.cashIn = new RadioButton();
+        this.cashOut = new RadioButton();
+        this.amountLabel = new Label();
+        this.amountBox = new RadTextBox();
+        this.reasonLabel = new Label();
+        this.reasonBox = new RadTextBox();
+        this.postButton = new RadButton();
+        this.statusLabel = new Label();
+        this.doneButton = new RadButton();
+        this.historyGrid = new RadGridView();
+        this.directionColumn = new GridViewTextBoxColumn();
+        this.amountColumn = new GridViewTextBoxColumn();
+        this.reasonColumn = new GridViewTextBoxColumn();
+        this.recordedColumn = new GridViewTextBoxColumn();
+        ((ISupportInitialize)this.amountBox).BeginInit();
+        ((ISupportInitialize)this.reasonBox).BeginInit();
+        ((ISupportInitialize)this.postButton).BeginInit();
+        ((ISupportInitialize)this.doneButton).BeginInit();
+        ((ISupportInitialize)this.historyGrid).BeginInit();
+        ((ISupportInitialize)this.historyGrid.MasterTemplate).BeginInit();
+        this.SuspendLayout();
+
+        this.registerLabel.Name = "registerLabel";
+        this.registerLabel.Location = new Point(16, 16);
+        this.registerLabel.Size = new Size(730, 34);
+        this.registerLabel.Text = "Cash drawer";
+        this.cashIn.Name = "cashIn";
+        this.cashIn.Location = new Point(16, 58);
+        this.cashIn.Size = new Size(110, 27);
+        this.cashIn.Text = "Cash in";
+        this.cashOut.Name = "cashOut";
+        this.cashOut.Location = new Point(136, 58);
+        this.cashOut.Size = new Size(110, 27);
+        this.cashOut.Text = "Cash out";
+        this.amountLabel.Name = "amountLabel";
+        this.amountLabel.Location = new Point(264, 60);
+        this.amountLabel.Size = new Size(70, 24);
+        this.amountLabel.Text = "Amount";
+        this.amountBox.Name = "amountBox";
+        this.amountBox.Location = new Point(336, 56);
+        this.amountBox.Size = new Size(126, 28);
+        this.reasonLabel.Name = "reasonLabel";
+        this.reasonLabel.Location = new Point(16, 96);
+        this.reasonLabel.Size = new Size(140, 24);
+        this.reasonLabel.Text = "Reason";
+        this.reasonBox.Name = "reasonBox";
+        this.reasonBox.Location = new Point(16, 122);
+        this.reasonBox.Size = new Size(730, 67);
+        this.postButton.Name = "postButton";
+        this.postButton.Location = new Point(589, 200);
+        this.postButton.Size = new Size(157, 29);
+        this.postButton.Text = "Post movement";
+        this.statusLabel.Name = "statusLabel";
+        this.statusLabel.Location = new Point(16, 196);
+        this.statusLabel.Size = new Size(560, 40);
+        this.doneButton.Name = "doneButton";
+        this.doneButton.Location = new Point(629, 535);
+        this.doneButton.Size = new Size(117, 30);
+        this.doneButton.Text = "Close";
+        this.registerLabel.Font = new Font("Segoe UI Semibold", 16F);
+        this.cashIn.Checked = true;
+        this.cashIn.TabIndex = 0;
+        this.cashOut.TabIndex = 1;
+        this.amountBox.AccessibleName = "Amount";
+        this.amountBox.MaxLength = 24;
+        this.amountBox.TabIndex = 2;
+        this.reasonBox.AccessibleName = "Reason";
+        this.reasonBox.MaxLength = 500;
+        this.reasonBox.Multiline = true;
+        this.reasonBox.ScrollBars = ScrollBars.Vertical;
+        this.reasonBox.TabIndex = 3;
+        this.postButton.Enabled = false;
+        this.postButton.TabIndex = 4;
+        this.postButton.Click += this.PostMovement;
+        this.doneButton.TabIndex = 6;
+        this.doneButton.DialogResult = DialogResult.Cancel;
+
+        this.historyGrid.Name = "historyGrid";
+        this.historyGrid.Location = new Point(16, 245);
+        this.historyGrid.Size = new Size(730, 276);
+        this.historyGrid.ReadOnly = true;
+        this.historyGrid.TabIndex = 5;
+        this.historyGrid.MasterTemplate.AutoGenerateColumns = false;
+        this.historyGrid.MasterTemplate.AllowAddNewRow = false;
+        this.historyGrid.MasterTemplate.AllowDeleteRow = false;
+        this.historyGrid.MasterTemplate.AllowEditRow = false;
+        this.historyGrid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+        this.directionColumn.Name = "directionColumn";
+        this.directionColumn.FieldName = "Direction";
+        this.directionColumn.HeaderText = "Movement";
+        this.directionColumn.Width = 110;
+        this.amountColumn.Name = "amountColumn";
+        this.amountColumn.FieldName = "Amount";
+        this.amountColumn.HeaderText = "Amount";
+        this.amountColumn.Width = 104;
+        this.amountColumn.FormatString = "{0:N2}";
+        this.reasonColumn.Name = "reasonColumn";
+        this.reasonColumn.FieldName = "Reason";
+        this.reasonColumn.HeaderText = "Reason";
+        this.reasonColumn.Width = 265;
+        this.recordedColumn.Name = "recordedColumn";
+        this.recordedColumn.FieldName = "Recorded";
+        this.recordedColumn.HeaderText = "Recorded";
+        this.recordedColumn.Width = 160;
+        this.recordedColumn.FormatString = "{0:g}";
+        this.historyGrid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+            this.directionColumn, this.amountColumn, this.reasonColumn, this.recordedColumn
+        });
+
+        this.Controls.Add(this.registerLabel);
+        this.Controls.Add(this.cashIn);
+        this.Controls.Add(this.cashOut);
+        this.Controls.Add(this.amountLabel);
+        this.Controls.Add(this.amountBox);
+        this.Controls.Add(this.reasonLabel);
+        this.Controls.Add(this.reasonBox);
+        this.Controls.Add(this.postButton);
+        this.Controls.Add(this.statusLabel);
+        this.Controls.Add(this.doneButton);
+        this.Controls.Add(this.historyGrid);
+        this.CancelButton = this.doneButton;
+        this.ClientSize = new Size(762, 581);
+        this.StartPosition = FormStartPosition.CenterParent;
+        this.AutoScaleDimensions = new SizeF(96F, 96F);
+        this.AutoScaleMode = AutoScaleMode.Dpi;
+        this.FormBorderStyle = FormBorderStyle.FixedDialog;
+        this.Font = new Font("Segoe UI", 10F);
+        this.BackColor = Color.FromArgb(243, 246, 251);
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+        this.ShowInTaskbar = false;
+        this.Name = "PosCashMovementForm";
+        this.Text = "Cash drawer";
+        this.Shown += this.LoadDrawer;
+        this.FormClosing += this.DrawerClosing;
+
+        ((ISupportInitialize)this.amountBox).EndInit();
+        ((ISupportInitialize)this.reasonBox).EndInit();
+        ((ISupportInitialize)this.postButton).EndInit();
+        ((ISupportInitialize)this.doneButton).EndInit();
+        ((ISupportInitialize)this.historyGrid.MasterTemplate).EndInit();
+        ((ISupportInitialize)this.historyGrid).EndInit();
+        this.ResumeLayout(false);
+        this.PerformLayout();
+    }
+
+    private Label registerLabel;
+    private RadioButton cashIn;
+    private RadioButton cashOut;
+    private Label amountLabel;
+    private RadTextBox amountBox;
+    private Label reasonLabel;
+    private RadTextBox reasonBox;
+    private RadButton postButton;
+    private Label statusLabel;
+    private RadButton doneButton;
+    private RadGridView historyGrid;
+    private GridViewTextBoxColumn directionColumn;
+    private GridViewTextBoxColumn amountColumn;
+    private GridViewTextBoxColumn reasonColumn;
+    private GridViewTextBoxColumn recordedColumn;
+}

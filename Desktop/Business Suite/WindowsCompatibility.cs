@@ -1,14 +1,6 @@
-using System.Net;
-using System.Net.Http;
 using System.Runtime.InteropServices;
 
 namespace Business_Suite;
-
-internal sealed class ApiResponseException(string message, HttpStatusCode statusCode)
-    : HttpRequestException(message)
-{
-    public HttpStatusCode StatusCode { get; } = statusCode;
-}
 
 internal static class WindowsCompatibility
 {

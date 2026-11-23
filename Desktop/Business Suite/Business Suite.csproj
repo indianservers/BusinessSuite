@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -8,18 +8,40 @@
     <RootNamespace>Business_Suite</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
     <ImplicitUsings>enable</ImplicitUsings>
     <TelerikWinFormsPath Condition="'$(TelerikWinFormsPath)' == ''">$(MSBuildProgramFiles32)\Progress\Telerik UI for WinForms R1 2020\Bin40</TelerikWinFormsPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Npgsql" Version="8.0.9" />
-    <Reference Include="System.Net.Http" />
+    <PackageReference Include="System.Resources.Extensions" Version="9.0.0" />
+    <PackageReference Include="libphonenumber-csharp" Version="9.0.41" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Security" />
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="TelerikCommon" HintPath="$(TelerikWinFormsPath)\TelerikCommon.dll" />
     <Reference Include="Telerik.WinControls" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.dll" />
     <Reference Include="Telerik.WinControls.UI" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.UI.dll" />
     <Reference Include="Telerik.WinControls.GridView" HintPath="$(TelerikWinFormsPath)\Telerik.WinControls.GridView.dll" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="Telerik.Windows.Documents.Core" HintPath="$(TelerikWinFormsPath)\Telerik.Windows.Documents.Core.dll" />
+    <Reference Include="Telerik.Windows.Documents.Fixed" HintPath="$(TelerikWinFormsPath)\Telerik.Windows.Documents.Fixed.dll" />
     <Reference Include="TelerikData" HintPath="$(TelerikWinFormsPath)\TelerikData.dll" Condition="Exists('$(TelerikWinFormsPath)\TelerikData.dll')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="BusinessComparison.cs;BusinessComparisonWindow.cs;BusinessComparisonWindow.Designer.cs;ConnectionSettings.cs;NoteSync.cs;SyncWindow.cs;SyncWindow.Designer.cs;VerificationForm.cs;VerificationForm.Designer.cs" />
+    <EmbeddedResource Remove="BusinessComparisonWindow.resx;SyncWindow.resx;VerificationForm.resx" />
+    <EmbeddedResource Include="..\..\backend\app\core\validation_contract.json" LogicalName="BusinessSuite.ValidationContract.json" />
+    <Compile Update="Modules\**\*Form.cs;Shared\**\*Form.cs;MainForm.cs;Settings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="**\*.Designer.cs">
+      <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.Designer', '.cs'))</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

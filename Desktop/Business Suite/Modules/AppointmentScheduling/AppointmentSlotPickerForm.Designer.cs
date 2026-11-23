@@ -1,0 +1,104 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite;
+
+partial class AppointmentSlotPickerForm
+{
+    private void InitializeComponent()
+    {
+        SuspendLayout();
+        heading = new Label();
+        heading.Name = "heading";
+        heading.Location = new Point(20, 18);
+        heading.Size = new Size(472, 30);
+        heading.Text = "Browse provider times";
+        heading.Font = new Font("Segoe UI Semibold", 16F);
+        Controls.Add(heading);
+        providerPicker = new RadDropDownList();
+        providerPicker.Name = "providerPicker";
+        providerPicker.Location = new Point(307, 58);
+        providerPicker.Size = new Size(223, 28);
+        providerPicker.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        providerPicker.AccessibleName = "Eligible provider";
+        providerPicker.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+        providerPicker.SelectedIndexChanged += LoadClicked;
+        Controls.Add(providerPicker);
+        day = new DateTimePicker();
+        day.Name = "day";
+        day.Location = new Point(20, 60);
+        day.Size = new Size(150, 26);
+        day.Format = DateTimePickerFormat.Short;
+        day.AccessibleName = "Provider date";
+        day.ValueChanged += LoadClicked;
+        Controls.Add(day);
+        refreshButton = new RadButton();
+        refreshButton.Name = "refreshButton";
+        refreshButton.Location = new Point(181, 58);
+        refreshButton.Size = new Size(112, 28);
+        refreshButton.Text = "Refresh";
+        refreshButton.Click += LoadClicked;
+        Controls.Add(refreshButton);
+        grid = new RadGridView();
+        grid.Name = "grid";
+        grid.Location = new Point(20, 99);
+        grid.Size = new Size(510, 260);
+        grid.ReadOnly = true;
+        grid.ShowGroupPanel = false;
+        grid.MasterTemplate.AllowAddNewRow = false;
+        grid.MasterTemplate.AllowDeleteRow = false;
+        grid.MasterTemplate.AutoGenerateColumns = false;
+        grid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+        grid.SelectionChanged += GridSelectionChanged;
+        grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        Controls.Add(grid);
+        notice = new Label();
+        notice.Name = "notice";
+        notice.Location = new Point(20, 371);
+        notice.Size = new Size(510, 49);
+        notice.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        Controls.Add(notice);
+        selectButton = new RadButton();
+        selectButton.Name = "selectButton";
+        selectButton.Location = new Point(20, 432);
+        selectButton.Size = new Size(158, 27);
+        selectButton.Text = "Check and use time";
+        selectButton.Enabled = false;
+        selectButton.Click += SelectClicked;
+        selectButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        Controls.Add(selectButton);
+        var startsColumn = new GridViewTextBoxColumn();
+        startsColumn.Name = "startsColumn";
+        startsColumn.FieldName = "Starts";
+        startsColumn.HeaderText = "Provider local start";
+        startsColumn.Width = 200;
+        startsColumn.FormatString = "{0:t}";
+        grid.MasterTemplate.Columns.Add(startsColumn);
+        var statusColumn = new GridViewTextBoxColumn();
+        statusColumn.Name = "statusColumn";
+        statusColumn.FieldName = "Status";
+        statusColumn.HeaderText = "Status";
+        statusColumn.Width = 305;
+        grid.MasterTemplate.Columns.Add(statusColumn);
+        ClientSize = new Size(550, 476);
+        MinimumSize = new Size(520, 433);
+        AutoScaleDimensions = new SizeF(7F, 15F);
+        AutoScaleMode = AutoScaleMode.Font;
+        Font = new Font("Segoe UI", 9F);
+        Name = "AppointmentSlotPickerForm";
+        ShowInTaskbar = false;
+        StartPosition = FormStartPosition.CenterParent;
+        Text = "Browse provider times";
+        Shown += PickerShown;
+        FormClosed += PickerClosed;
+        ResumeLayout(false);
+        PerformLayout();
+    }
+
+    private Label heading;
+    private RadDropDownList providerPicker;
+    private DateTimePicker day;
+    private RadButton refreshButton;
+    private RadGridView grid;
+    private Label notice;
+    private RadButton selectButton;
+}

@@ -1,0 +1,142 @@
+using Telerik.WinControls.UI;
+
+namespace Business_Suite
+{
+    partial class PmsScheduleBaselinesForm
+    {
+        private void InitializeComponent()
+        {
+            this.heading = new Label();
+            this.choiceLabel = new Label();
+            this.nameLabel = new Label();
+            this.status = new Label();
+            this.grid = new RadGridView();
+            this.choice = new RadDropDownList();
+            this.name = new RadTextBox();
+            this.capture = new RadButton();
+            this.refresh = new RadButton();
+            this.export = new RadButton();
+            this.close = new RadButton();
+            this.exportDialog = new SaveFileDialog();
+            this.keyColumn = new GridViewTextBoxColumn();
+            this.taskTitleColumn = new GridViewTextBoxColumn();
+            this.baselineDueColumn = new GridViewTextBoxColumn();
+            this.currentDueColumn = new GridViewTextBoxColumn();
+            this.varianceColumn = new GridViewTextBoxColumn();
+            this.includedColumn = new GridViewCheckBoxColumn();
+            ((System.ComponentModel.ISupportInitialize)this.grid).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).BeginInit();
+            this.SuspendLayout();
+            this.heading.Name = "heading";
+            this.heading.Location = new Point(13, 13);
+            this.heading.Size = new Size(679, 27);
+            this.heading.Font = new Font("Segoe UI Semibold", 11F);
+            this.choiceLabel.Text = "Compare baseline";
+            this.choiceLabel.Location = new Point(13, 44);
+            this.choiceLabel.Size = new Size(185, 23);
+            this.choice.Name = "choice";
+            this.choice.Location = new Point(13, 71);
+            this.choice.Size = new Size(355, 27);
+            this.choice.DropDownStyle = Telerik.WinControls.RadDropDownStyle.DropDownList;
+            this.choice.TextChanged += this.BaselineChanged;
+            this.nameLabel.Text = "New baseline name";
+            this.nameLabel.Location = new Point(383, 44);
+            this.nameLabel.Size = new Size(175, 23);
+            this.name.Name = "name";
+            this.name.Location = new Point(383, 71);
+            this.name.Size = new Size(307, 27);
+            this.name.MaxLength = 100;
+            this.name.Enabled = false;
+            this.name.TextChanged += this.NameChanged;
+            this.capture.Name = "capture";
+            this.capture.Text = "Capture";
+            this.capture.Location = new Point(705, 69);
+            this.capture.Size = new Size(113, 29);
+            this.capture.Enabled = false;
+            this.capture.Click += this.CaptureClicked;
+            this.grid.Name = "grid";
+            this.grid.Location = new Point(13, 113);
+            this.grid.Size = new Size(805, 277);
+            this.grid.AutoGenerateColumns = false;
+            this.grid.ReadOnly = true;
+            this.grid.MasterTemplate.AllowAddNewRow = false;
+            this.grid.MasterTemplate.AllowDeleteRow = false;
+            this.grid.MasterTemplate.AllowEditRow = false;
+            this.grid.MasterTemplate.ShowRowHeaderColumn = false;
+            this.status.Name = "status";
+            this.status.Location = new Point(13, 405);
+            this.status.Size = new Size(562, 46);
+            this.refresh.Name = "refresh";
+            this.refresh.Text = "Refresh";
+            this.refresh.Location = new Point(705, 12);
+            this.refresh.Size = new Size(113, 29);
+            this.refresh.Click += this.RefreshClicked;
+            this.export.Name = "export";
+            this.export.Text = "Export CSV";
+            this.export.Location = new Point(587, 412);
+            this.export.Size = new Size(105, 29);
+            this.export.Enabled = false;
+            this.export.Click += this.ExportClicked;
+            this.exportDialog.AddExtension = true;
+            this.exportDialog.DefaultExt = "csv";
+            this.exportDialog.Filter = "CSV files (*.csv)|*.csv";
+            this.exportDialog.FileName = "schedule-variance.csv";
+            this.close.Name = "close";
+            this.close.Text = "Close";
+            this.close.Location = new Point(705, 412);
+            this.close.Size = new Size(113, 29);
+            this.close.DialogResult = DialogResult.Cancel;
+            this.keyColumn.Name = "keyColumn";
+            this.keyColumn.FieldName = "task_key";
+            this.keyColumn.HeaderText = "Task";
+            this.keyColumn.Width = 100;
+            this.taskTitleColumn.Name = "taskTitleColumn";
+            this.taskTitleColumn.FieldName = "title";
+            this.taskTitleColumn.HeaderText = "Title";
+            this.taskTitleColumn.Width = 253;
+            this.baselineDueColumn.Name = "baselineDueColumn";
+            this.baselineDueColumn.FieldName = "baseline_due_date";
+            this.baselineDueColumn.HeaderText = "Baseline due";
+            this.baselineDueColumn.Width = 111;
+            this.currentDueColumn.Name = "currentDueColumn";
+            this.currentDueColumn.FieldName = "due_date";
+            this.currentDueColumn.HeaderText = "Current due";
+            this.currentDueColumn.Width = 111;
+            this.varianceColumn.Name = "varianceColumn";
+            this.varianceColumn.FieldName = "due_variance_days";
+            this.varianceColumn.HeaderText = "Variance days";
+            this.varianceColumn.Width = 117;
+            this.includedColumn.Name = "includedColumn";
+            this.includedColumn.FieldName = "in_baseline";
+            this.includedColumn.HeaderText = "In baseline";
+            this.includedColumn.Width = 102;
+            this.baselineDueColumn.FormatString = "{0:d}";
+            this.currentDueColumn.FormatString = "{0:d}";
+            this.grid.MasterTemplate.Columns.AddRange(new GridViewDataColumn[] {
+                this.keyColumn, this.taskTitleColumn, this.baselineDueColumn, this.currentDueColumn, this.varianceColumn, this.includedColumn });
+            this.Controls.AddRange(new Control[] { this.heading, this.choiceLabel, this.choice, this.nameLabel, this.name,
+                this.capture, this.grid, this.status, this.refresh, this.export, this.close });
+            this.CancelButton = this.close;
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(831, 462);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.MinimizeBox = false;
+            this.MaximizeBox = false;
+            this.Text = "Schedule Baselines";
+            this.Load += this.BaselinesLoaded;
+            ((System.ComponentModel.ISupportInitialize)this.grid.MasterTemplate).EndInit();
+            ((System.ComponentModel.ISupportInitialize)this.grid).EndInit();
+            this.ResumeLayout(false);
+        }
+
+        private Label heading, choiceLabel, nameLabel, status;
+        private RadGridView grid;
+        private RadDropDownList choice;
+        private RadTextBox name;
+        private RadButton capture, refresh, export, close;
+        private SaveFileDialog exportDialog;
+        private GridViewTextBoxColumn keyColumn, taskTitleColumn, baselineDueColumn, currentDueColumn, varianceColumn;
+        private GridViewCheckBoxColumn includedColumn;
+    }
+}
