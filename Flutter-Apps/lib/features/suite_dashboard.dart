@@ -1066,6 +1066,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'GST Billing',
                   controller: widget.controller,
                   path: GstInvoicePage.listEndpoint,
+                  query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   canExportInvoices: widget.canExportInvoices,
                   canIssueInvoices: widget.canIssueInvoices,

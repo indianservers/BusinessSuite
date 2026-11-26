@@ -1,4 +1,5 @@
 from app.apps.project_management.models import PMSMilestone, PMSProject, PMSTask
+from app.apps.srm.models import SRMInvoice, SRMInvoiceLine
 
 from tests.srm_test_utils import create_engagement_via_confirm, create_sales_order
 
@@ -26,6 +27,27 @@ def test_srm_engagement_creates_pms_project(client, db, superuser_headers):
     assert db.query(PMSProject).filter(PMSProject.id == project["id"]).first() is not None
     assert db.query(PMSMilestone).filter(PMSMilestone.project_id == project["id"]).count() >= 2
     assert db.query(PMSTask).filter(PMSTask.project_id == project["id"]).count() >= 1
+
+
+def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superuser_headers):
+    invoice = SRMInvoice(
+        organization_id=1, invoice_number="SUMMARY-QA", total_amount=100,
+        paid_amount=20, balance_amount=80,
+        lines=[SRMInvoiceLine(description="Invoice line")],
+    )
+    db.add(invoice)
+    db.commit()
+    path = "/api/v1/srm/invoices"
+    full = client.get(path, headers=superuser_headers)
+    summary = client.get(path, headers=superuser_headers, params={"summary_only": True})
+    assert full.status_code == summary.status_code == 200
+    assert [row["id"] for row in full.json()] == [row["id"] for row in summary.json()]
+    header = next(row for row in summary.json() if row["id"] == invoice.id)
+    detailed = next(row for row in full.json() if row["id"] == invoice.id)
+    assert detailed["lines"]
+    assert header == {field: detailed[field] for field in header}
+    assert "lines" not in header
+    assert header["payment_status"] == "partially_paid"
 
 
 def test_srm_engagement_rejects_pms_project_before_sales_order_confirmed(client, db, superuser_headers):

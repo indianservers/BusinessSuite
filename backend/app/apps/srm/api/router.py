@@ -309,6 +309,14 @@ def _srm_accounting_status(db: Session | None, organization_id: int | None, sour
     }
 
 
+def _invoice_statuses(invoice: SRMInvoice, delivery: str | None) -> dict:
+    return {
+        "document_status": "cancelled" if invoice.status == "cancelled" else ("issued" if invoice.approved_at else "draft"),
+        "payment_status": "not_payable" if invoice.status == "cancelled" else "paid" if _decimal(invoice.balance_amount) <= 0 and _decimal(invoice.total_amount) > 0 else ("partially_paid" if _decimal(invoice.paid_amount) > 0 else "unpaid"),
+        "delivery_status": delivery,
+    }
+
+
 def _invoice_payload(invoice: SRMInvoice, db: Session | None = None, related: dict | None = None) -> dict:
     payload = _serialize(invoice)
     if invoice.invoice_draft_id:
@@ -331,9 +339,10 @@ def _invoice_payload(invoice: SRMInvoice, db: Session | None = None, related: di
     else:
         latest = related['deliveries'].get(invoice.id) if related is not None else db.query(InvoiceDelivery).filter_by(invoice_id=invoice.id).order_by(InvoiceDelivery.id.desc()).first() if db else None
     payload.update(origin=ctx.origin if ctx else "srm", project_id=ctx.project_id if ctx else None,
-        seller_id=ctx.seller_id if ctx else None, document_status="cancelled" if invoice.status == "cancelled" else ("issued" if invoice.approved_at else "draft"),
-        payment_status="not_payable" if invoice.status == "cancelled" else "paid" if _decimal(invoice.balance_amount) <= 0 and _decimal(invoice.total_amount) > 0 else ("partially_paid" if _decimal(invoice.paid_amount) > 0 else "unpaid"),
-        delivery_status=selected_delivery if selected else latest.status if latest else ("legacy_sent" if invoice.sent_at else "not_sent"))
+        seller_id=ctx.seller_id if ctx else None)
+    payload.update(_invoice_statuses(
+        invoice, selected_delivery if selected else latest.status if latest else ("legacy_sent" if invoice.sent_at else "not_sent"),
+    ))
     accounting = related['accounting'][invoice.id] if related is not None else _srm_accounting_status(db, invoice.organization_id, "invoice", invoice.id,source=invoice)
     return payload | {"lines": lines, "accounting_status": accounting}
 
@@ -4116,19 +4125,36 @@ def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depe
 
 
 @router.get("/invoices")
-def list_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
     from sqlalchemy.orm import selectinload
     from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
-    items = authorized_invoice_query(db, current_user).options(selectinload(SRMInvoice.lines)).order_by(SRMInvoice.id.desc()).limit(200).all()
+    query = authorized_invoice_query(db, current_user).order_by(SRMInvoice.id.desc()).limit(200)
+    items = (query if summary_only else query.options(selectinload(SRMInvoice.lines))).all()
     if not items:
         return []
-    if db.info.get('business_pack_scope') is not None:
+    selected = db.info.get('business_pack_scope') is not None
+    if selected and not summary_only:
         return [_invoice_payload(item,db) for item in items]
     identities = [item.id for item in items]
-    contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_(identities))}
     deliveries = {}
-    for row in db.query(InvoiceDelivery).filter(InvoiceDelivery.invoice_id.in_(identities)).order_by(InvoiceDelivery.id.desc()):
-        deliveries.setdefault(row.invoice_id, row)
+    if not selected:
+        for row in db.query(InvoiceDelivery).filter(InvoiceDelivery.invoice_id.in_(identities)).order_by(InvoiceDelivery.id.desc()):
+            deliveries.setdefault(row.invoice_id, row)
+    if summary_only:
+        from app.business_packs.financial_projections import delivery_status
+
+        fields = ("id", "invoice_number", "status", "currency", "issue_date", "due_date",
+                  "subtotal", "tax_amount", "total_amount", "paid_amount", "balance_amount")
+        summaries = []
+        for item in items:
+            row = _serialize(item)
+            latest = deliveries.get(item.id)
+            delivery = delivery_status(db, item) if selected else (
+                latest.status if latest else "legacy_sent" if item.sent_at else "not_sent"
+            )
+            summaries.append({key: row[key] for key in fields} | _invoice_statuses(item, delivery))
+        return summaries
+    contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_(identities))}
     companies = {int(item.organization_id or 1) for item in items}
     jobs = {}
     for row in db.query(FAMPostingJob).filter(FAMPostingJob.company_id.in_(companies), FAMPostingJob.source_module == 'srm', FAMPostingJob.source_record_type == 'invoice', FAMPostingJob.source_record_id.in_(identities)).order_by(FAMPostingJob.id.desc()):
