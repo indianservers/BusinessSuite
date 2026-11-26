@@ -30,6 +30,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM corrects a lead draft rejected by validation', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    const base = 'https://example.test/api/v1';
+    final queue = CrmOfflineEdits('["$base",3,7]');
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter(
+        (_) async => response({'detail': 'Invalid contact'}, 422),
+      );
+    final api = ApiClient(baseUrl: base, store: MemoryStore(), transport: dio);
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await queue.enqueueCreation('original', {
+      'values': {'full_name': 'Original lead'},
+    });
+    await tester.runAsync(() => queue.sync(api));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmLeadDraftsPage(queue: queue, api: api, canEdit: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Invalid contact'), findsOneWidget);
+    await tester.tap(find.text('Original lead'));
+    await tester.pumpAndSettle();
+    expect(find.text('Correct lead draft'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Corrected lead');
+    await tester.ensureVisible(find.text('Save lead draft'));
+    await tester.tap(find.text('Save lead draft'));
+    await tester.pumpAndSettle();
+    final corrected = (await queue.creations()).single;
+    expect(corrected['key'], isNot('create:original'));
+    expect(corrected['values']['full_name'], 'Corrected lead');
+    expect(find.text('Awaiting sync'), findsOneWidget);
+  });
   testWidgets(
     'offline CRM saves a lead draft and replays its original request',
     (tester) async {

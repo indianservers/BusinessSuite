@@ -29,12 +29,22 @@ class CrmOfflineEdits {
       if (row.key.startsWith('create:')) {...row.value as Json, 'key': row.key},
   ];
 
-  Future<void> enqueueCreation(String operation, Json payload) =>
-      _serialized(() async {
-        final rows = await _read();
-        rows['create:$operation'] = payload;
-        await _storage.write(key: _key, value: jsonEncode(rows));
-      });
+  Future<void> enqueueCreation(
+    String operation,
+    Json payload, {
+    String? replaceRejected,
+  }) => _serialized(() async {
+    final rows = await _read();
+    if (replaceRejected != null) {
+      final old = rows[replaceRejected] as Json?;
+      if (!replaceRejected.startsWith('create:') || old?['status'] != 422) {
+        throw StateError('This saved lead draft has changed. Reopen it first.');
+      }
+      rows.remove(replaceRejected);
+    }
+    rows['create:$operation'] = payload;
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
   Future<bool> get hasPending async =>
       (await _read()).values.any((row) => (row as Json)['error'] == null);
 
@@ -104,6 +114,7 @@ class CrmOfflineEdits {
             return;
           }
           edit['error'] = failure.toString();
+          if (creating) edit['status'] = failure.status;
         }
         await _storage.write(key: _key, value: jsonEncode(rows));
       }

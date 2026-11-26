@@ -11,20 +11,28 @@ class CrmNewLeadPage extends StatefulWidget {
     required this.api,
     this.queue,
     this.offline = false,
+    this.rejectedDraft,
   });
 
   final ApiClient api;
   final CrmOfflineEdits? queue;
   final bool offline;
+  final Map<String, dynamic>? rejectedDraft;
 
   @override
   State<CrmNewLeadPage> createState() => _CrmNewLeadPageState();
 }
 
 class CrmLeadDraftsPage extends StatefulWidget {
-  const CrmLeadDraftsPage({super.key, required this.queue, required this.api});
+  const CrmLeadDraftsPage({
+    super.key,
+    required this.queue,
+    required this.api,
+    this.canEdit = false,
+  });
   final CrmOfflineEdits queue;
   final ApiClient api;
+  final bool canEdit;
 
   @override
   State<CrmLeadDraftsPage> createState() => _CrmLeadDraftsPageState();
@@ -77,6 +85,24 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
     }
   }
 
+  Future<void> _correct(Map<String, dynamic> draft) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => CrmNewLeadPage(
+          api: widget.api,
+          queue: widget.queue,
+          offline: true,
+          rejectedDraft: draft,
+        ),
+      ),
+    );
+    if (changed == true && mounted) {
+      setState(() {
+        _drafts = widget.queue.creations();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -108,6 +134,9 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
               ListTile(
                 title: Text('${draft['values']['full_name']}'),
                 subtitle: Text(draft['error'] as String? ?? 'Awaiting sync'),
+                onTap: widget.canEdit && draft['status'] == 422
+                    ? () => _correct(draft)
+                    : null,
                 trailing: IconButton(
                   tooltip: 'Discard lead draft',
                   onPressed: () => _discard(draft['key'] as String),
@@ -123,7 +152,9 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
 
 class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
   final _form = GlobalKey<FormState>();
-  final _values = <String, String>{};
+  late final _values = Map<String, String>.from(
+    (widget.rejectedDraft?['values'] as Map?) ?? const {},
+  );
   final _operation = const Uuid().v4();
   bool _saving = false;
   String? _error;
@@ -144,7 +175,11 @@ class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
     try {
       final queue = widget.queue;
       if (widget.offline && queue != null) {
-        await queue.enqueueCreation(_operation, payload);
+        await queue.enqueueCreation(
+          _operation,
+          payload,
+          replaceRejected: widget.rejectedDraft?['key'] as String?,
+        );
       } else {
         try {
           await widget.api.request(
@@ -178,7 +213,11 @@ class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New lead')),
+    appBar: AppBar(
+      title: Text(
+        widget.rejectedDraft == null ? 'New lead' : 'Correct lead draft',
+      ),
+    ),
     body: Form(
       key: _form,
       child: ListView(
@@ -191,6 +230,7 @@ class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
             ('phone', 'Phone', 40, TextInputType.phone),
           ])
             TextFormField(
+              initialValue: _values[key],
               enabled: !_saving,
               decoration: InputDecoration(labelText: label),
               maxLength: limit,

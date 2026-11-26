@@ -1205,8 +1205,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             icon: const Icon(LucideIcons.fileText),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) =>
-                    CrmLeadDraftsPage(queue: queue, api: widget.controller.api),
+                builder: (_) => CrmLeadDraftsPage(
+                  queue: queue,
+                  api: widget.controller.api,
+                  canEdit: widget.canCreateLead,
+                ),
               ),
             ),
           ),
