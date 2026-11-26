@@ -429,6 +429,10 @@ def test_archive_and_reactivation(client, superuser_headers):
     )
     assert response.status_code == 200, response.text
     assert client.get(ROOT + "/leads", headers=superuser_headers).json()["total"] == 0
+    summary = client.get(ROOT + "/leads", headers=superuser_headers, params={"summary_only": True})
+    assert summary.status_code == 200
+    assert summary.json()["items"] == []
+    assert summary.json()["total"] == 0
     assert (
         client.get(ROOT + "/leads?queue=archived", headers=superuser_headers).json()[
             "total"

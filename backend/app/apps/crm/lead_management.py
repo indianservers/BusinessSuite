@@ -1233,7 +1233,6 @@ def list_leads(
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*ACCESS)),
 ):
-    settings = config(db, core()._organization_id(db, user))
     query = filter_record_type(visible_query(db, user), record_type)
     if search:
         literal = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -1249,6 +1248,33 @@ def list_leads(
         query = query.filter(CRMLead.status == stage)
     if owner is not None:
         query = query.filter(CRMLead.owner_user_id == owner)
+    organization_id = core()._organization_id(db, user)
+    fields = ("id", "first_name", "last_name", "full_name", "company_name",
+              "status", "source", "rating")
+    start = (page - 1) * per_page
+    if summary_only and queue == "all":
+        state_model = CRMLeadOperatingState
+        rows = (
+            query.outerjoin(state_model, and_(
+                state_model.lead_id == CRMLead.id,
+                state_model.organization_id == organization_id,
+            ))
+            .with_entities(
+                *(getattr(CRMLead, name) for name in fields),
+                state_model.version, state_model.data_json,
+            )
+            .order_by(CRMLead.id.desc()).limit(MAX_ROWS + 1).all()
+        )
+        active_rows = [row for row in rows[:MAX_ROWS] if not (row.data_json or {}).get("archived")]
+        return {
+            "items": [
+                {name: getattr(row, name) for name in fields} | {"version": row.version or 0}
+                for row in active_rows[start:start + per_page]
+            ],
+            "total": len(active_rows), "page": page, "perPage": per_page,
+            "truncated": len(rows) > MAX_ROWS, "limit": MAX_ROWS,
+        }
+    settings = config(db, organization_id)
     leads = query.order_by(CRMLead.id.desc()).limit(MAX_ROWS + 1).all()
     truncated = len(leads) > MAX_ROWS
     leads = leads[:MAX_ROWS]
@@ -1258,7 +1284,7 @@ def list_leads(
             for s in db.query(CRMLeadOperatingState)
             .filter(
                 CRMLeadOperatingState.organization_id
-                == core()._organization_id(db, user),
+                == organization_id,
                 CRMLeadOperatingState.lead_id.in_([l.id for l in leads]),
             )
             .all()
@@ -1321,12 +1347,10 @@ def list_leads(
                 item.get("next_follow_up_at") or item.get("created_at") or "",
             )
         )
-    page_items = filtered[(page - 1) * per_page : page * per_page]
+    page_items = filtered[start:start + per_page]
     if summary_only:
-        fields = ("id", "first_name", "last_name", "full_name", "company_name",
-                  "status", "source", "rating", "version")
         return {
-            "items": [{field: item.get(field) for field in fields} for item in page_items],
+            "items": [{field: item.get(field) for field in (*fields, "version")} for item in page_items],
             "total": len(filtered), "page": page, "perPage": per_page,
             "truncated": truncated, "limit": MAX_ROWS,
         }
