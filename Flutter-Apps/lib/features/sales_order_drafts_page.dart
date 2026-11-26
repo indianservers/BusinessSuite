@@ -29,12 +29,26 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   ];
   bool _saving = false;
   String? _error;
+  Json? _customer;
+
+  Future<void> _chooseCustomer() async {
+    final customer = await showDialog<Json>(
+      context: context,
+      builder: (_) => _SalesCustomerPicker(
+        api: widget.api,
+        drafts: widget.drafts,
+        offline: widget.offline,
+      ),
+    );
+    if (mounted && customer != null) setState(() => _customer = customer);
+  }
 
   Future<void> _save() async {
     if (_saving || !_form.currentState!.validate()) return;
     final revision = widget.api.sessionRevision;
     final payload = <String, dynamic>{
       ..._details,
+      if (_customer != null) 'customer_id': _customer!['id'],
       'currency': _details['currency']!.toUpperCase(),
       'lines': [for (final line in _lines) Map<String, String>.of(line)],
     };
@@ -123,6 +137,21 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _field(_details, 'title', 'Order title', maxLength: 220),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(_customer?['name'] as String? ?? 'Choose customer'),
+            subtitle: _customer == null ? null : const Text('Customer'),
+            onTap: _saving ? null : _chooseCustomer,
+            trailing: _customer == null
+                ? const Icon(Icons.chevron_right)
+                : IconButton(
+                    tooltip: 'Remove customer',
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() => _customer = null),
+                    icon: const Icon(Icons.close),
+                  ),
+          ),
           _field(_details, 'currency', 'Currency', maxLength: 3),
           _field(_details, 'terms', 'Terms', required: false, maxLength: 4000),
           for (final (index, line) in _lines.indexed)
@@ -174,6 +203,115 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
         ],
       ),
     ),
+  );
+}
+
+class _SalesCustomerPicker extends StatefulWidget {
+  const _SalesCustomerPicker({
+    required this.api,
+    this.drafts,
+    required this.offline,
+  });
+  final ApiClient api;
+  final SalesOrderDrafts? drafts;
+  final bool offline;
+
+  @override
+  State<_SalesCustomerPicker> createState() => _SalesCustomerPickerState();
+}
+
+class _SalesCustomerPickerState extends State<_SalesCustomerPicker> {
+  late Future<List<Json>> _customers = _load('');
+  String _search = '';
+
+  Future<List<Json>> _load(String search) async {
+    final drafts = widget.drafts;
+    if (drafts != null) {
+      return drafts.customers(widget.api, search, offline: widget.offline);
+    }
+    final revision = widget.api.sessionRevision;
+    final data =
+        await widget.api.request(
+              'GET',
+              SalesOrderDrafts.customersEndpoint,
+              query: {if (search.isNotEmpty) 'q': search},
+            )
+            as Json;
+    if (revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    return (data['items'] as List).whereType<Json>().toList();
+  }
+
+  void _searchCustomers() => setState(() {
+    _customers = _load(_search.trim());
+  });
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Choose customer'),
+    content: SizedBox(
+      width: 360,
+      height: 350,
+      child: Column(
+        children: [
+          TextField(
+            maxLength: 100,
+            onChanged: (value) => _search = value,
+            onSubmitted: (_) => _searchCustomers(),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: 'Customer name',
+              counterText: '',
+              suffixIcon: IconButton(
+                tooltip: 'Search customers',
+                onPressed: _searchCustomers,
+                icon: const Icon(Icons.search),
+              ),
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Json>>(
+              future: _customers,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('${snapshot.error}'));
+                }
+                final rows = snapshot.requireData;
+                if (rows.isEmpty) {
+                  return Center(
+                    child: Text(
+                      widget.offline
+                          ? 'No matching saved customers'
+                          : 'No matching customers',
+                    ),
+                  );
+                }
+                return ListView(
+                  children: [
+                    for (final row in rows)
+                      if (row['id'] is int && row['name'] is String)
+                        ListTile(
+                          title: Text(row['name'] as String),
+                          onTap: () => Navigator.pop(context, row),
+                        ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+    ],
   );
 }
 

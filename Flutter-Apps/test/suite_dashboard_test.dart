@@ -44,8 +44,17 @@ void main() {
       const scope = '["$base",3,7]';
       final drafts = SalesOrderDrafts(scope);
       final requests = <RequestOptions>[];
+      var customerRequests = 0;
       final dio = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == SalesOrderDrafts.customersEndpoint) {
+            customerRequests++;
+            return response({
+              'items': [
+                {'id': 101, 'name': 'Saved sales customer'},
+              ],
+            });
+          }
           requests.add(request);
           return requests.length == 1
               ? response({'detail': 'Unavailable'}, 503)
@@ -60,12 +69,18 @@ void main() {
         'access_token': 'access',
         'refresh_token': 'refresh',
       });
+      await tester.runAsync(() => drafts.customers(api, '', offline: false));
       await tester.pumpWidget(
         MaterialApp(
           home: NewSalesOrderPage(api: api, drafts: drafts, offline: true),
         ),
       );
       final fields = find.byType(TextFormField);
+      await tester.tap(find.text('Choose customer'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Saved sales customer'));
+      await tester.pumpAndSettle();
+      expect(customerRequests, 1);
       await tester.enterText(fields.at(0), 'Field sale');
       await tester.enterText(fields.at(3), 'Consulting');
       await tester.enterText(fields.at(5), '100.00');
@@ -84,6 +99,7 @@ void main() {
         expect(request.headers['X-Offline-Operation'], saved['operation']);
         expect(request.data, {
           'title': 'Field sale',
+          'customer_id': 101,
           'currency': 'INR',
           'lines': [
             {

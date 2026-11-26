@@ -11,6 +11,7 @@ class SalesOrderDrafts {
       _company = '${(jsonDecode(scope) as List)[2]}';
 
   static const endpoint = '/srm/sales-orders';
+  static const customersEndpoint = '/srm/business/customers';
   static const _storage = FlutterSecureStorage();
   static final _running = <String, Future<void>>{};
   final String _key, _company;
@@ -24,6 +25,62 @@ class SalesOrderDrafts {
     for (final entry in (await _read()).entries)
       {...entry.value as Json, 'operation': entry.key},
   ];
+
+  Future<List<Json>> customers(
+    ApiClient api,
+    String search, {
+    required bool offline,
+  }) async {
+    final cacheKey = '$_key:customers';
+    final revision = api.sessionRevision;
+    if (!offline) {
+      try {
+        final data =
+            await api.request(
+                  'GET',
+                  customersEndpoint,
+                  query: {if (search.isNotEmpty) 'q': search},
+                  scopeHeaders: {'X-Suite-Organization': _company},
+                )
+                as Json;
+        if (revision != api.sessionRevision) {
+          throw ApiFailure('Your session ended. Sign in again.', 401);
+        }
+        final rows = (data['items'] as List).whereType<Json>().toList();
+        if (search.isEmpty) {
+          try {
+            await _storage.write(
+              key: cacheKey,
+              value: jsonEncode([
+                for (final row in rows) {'id': row['id'], 'name': row['name']},
+              ]),
+            );
+          } catch (_) {}
+        }
+        return rows;
+      } on ApiFailure catch (error) {
+        if (const {401, 403}.contains(error.status) &&
+            revision == api.sessionRevision) {
+          try {
+            await _storage.delete(key: cacheKey);
+          } catch (_) {}
+        }
+        if (!error.connectionFailure || revision != api.sessionRevision) {
+          rethrow;
+        }
+      }
+    }
+    final raw = await _storage.read(key: cacheKey);
+    if (revision != api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    if (raw == null) return [];
+    final term = search.toLowerCase();
+    return (jsonDecode(raw) as List)
+        .whereType<Json>()
+        .where((row) => '${row['name']}'.toLowerCase().contains(term))
+        .toList();
+  }
 
   Future<void> _modify(Future<void> Function(Json drafts) action) async {
     final previous = _running[_key] ?? Future<void>.value();
