@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +15,9 @@ class NotesOfflineCache {
   final String _key;
   final String _company;
   static final _running = <String, Future<void>>{};
+  static final _synced = StreamController<String>.broadcast();
+
+  Stream<String> get syncChanges => _synced.stream.where((key) => key == _key);
 
   bool _eligible(Json note) =>
       note['can_edit'] == true &&
@@ -180,6 +184,7 @@ class NotesOfflineCache {
           edit['error'] = '$failure';
         }
         await _storeEdits(edits);
+        if (!edits.containsKey(id)) _synced.add(_key);
       }
     });
   }

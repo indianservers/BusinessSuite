@@ -31,23 +31,28 @@ class _NotesPageState extends State<NotesPage> {
   String? _error;
   bool _loading = true;
   bool _savedView = false;
-  bool _unreachable = false;
+  late bool _unreachable = widget.offline;
   int _request = 0;
   Timer? _debounce;
+  StreamSubscription<String>? _syncSubscription;
 
   @override
   void initState() {
     super.initState();
+    _syncSubscription = widget.cache?.syncChanges.listen((_) {
+      if (mounted && !_loading) unawaited(_load(reconnect: true, sync: false));
+    });
     _load();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _syncSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool reconnect = false, bool sync = true}) async {
     final request = ++_request;
     final query = _query.trim();
     final view = _view;
@@ -62,7 +67,6 @@ class _NotesPageState extends State<NotesPage> {
       if (view != 'all' && _savedView) {
         _notes = [];
         _savedView = false;
-        _unreachable = false;
       }
     });
     final saved = view == 'all' ? await widget.cache?.summaries() : null;
@@ -81,9 +85,11 @@ class _NotesPageState extends State<NotesPage> {
       });
     }
     try {
-      if (widget.offline) throw ApiFailure('Connect to see the latest notes.');
+      if (_unreachable && !reconnect) {
+        throw ApiFailure('Connect to see the latest notes.');
+      }
       try {
-        await widget.cache?.sync(widget.api);
+        if (sync) await widget.cache?.sync(widget.api);
       } catch (_) {
         // Online reads remain available if the device queue is unavailable.
       }
@@ -99,6 +105,7 @@ class _NotesPageState extends State<NotesPage> {
       final notes = result.cast<Map<String, dynamic>>();
       setState(() {
         _notes = notes;
+        _unreachable = false;
         _savedView = false;
         _loading = false;
       });
@@ -111,7 +118,7 @@ class _NotesPageState extends State<NotesPage> {
           error is ApiFailure && const {401, 403, 404}.contains(error.status);
       setState(() {
         _unreachable =
-            widget.offline ||
+            _unreachable && !reconnect ||
             error is ApiFailure &&
                 (error.connectionFailure || (error.status ?? 0) >= 500);
         if (denied || view != 'all') {
@@ -139,7 +146,7 @@ class _NotesPageState extends State<NotesPage> {
           api: widget.api,
           summary: summary,
           cache: widget.cache,
-          offline: widget.offline || _unreachable,
+          offline: _unreachable,
         ),
       ),
     );
@@ -209,13 +216,13 @@ class _NotesPageState extends State<NotesPage> {
         ),
         IconButton(
           tooltip: 'Refresh notes',
-          onPressed: _load,
+          onPressed: () => _load(reconnect: true),
           icon: const Icon(Icons.refresh),
         ),
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: widget.offline && widget.cache == null ? null : () => _open(),
+      onPressed: _unreachable && widget.cache == null ? null : () => _open(),
       icon: const Icon(Icons.add),
       label: const Text('New note'),
     ),
@@ -246,7 +253,7 @@ class _NotesPageState extends State<NotesPage> {
           const Text('No notes found'),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: _load,
+            onRefresh: () => _load(reconnect: true),
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 88),

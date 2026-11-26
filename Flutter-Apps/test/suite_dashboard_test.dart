@@ -65,6 +65,12 @@ void main() {
     expect(find.text('Offline created note'), findsOneWidget);
     final operations = <Object?>[];
     dio.httpClientAdapter = FakeAdapter((request) async {
+      if (request.method == 'GET') {
+        expect(request.path, '/project-management/notes');
+        return response([
+          {'id': 5, 'title': 'Offline created note'},
+        ]);
+      }
       expect(request.path, '/project-management/notes/offline-create');
       expect(request.method, 'POST');
       expect(request.data['title'], 'Offline created note');
@@ -79,11 +85,14 @@ void main() {
     expect(await cache.creations(), hasLength(1));
     await tester.runAsync(() => cache.sync(api));
     expect(await cache.creations(), hasLength(1));
-    await tester.runAsync(() => cache.sync(api));
+    await tester.tap(find.byTooltip('Refresh notes'));
+    await tester.pumpAndSettle();
     expect(operations, hasLength(3));
     expect(operations.first, isNotNull);
     expect(operations.toSet(), hasLength(1));
     expect(await cache.creations(), isEmpty);
+    expect(find.text('Saved · Awaiting sync'), findsNothing);
+    expect(find.text('Offline created note'), findsOneWidget);
   });
   testWidgets('Notes queues an offline edit and preserves a conflict', (
     tester,
@@ -156,6 +165,12 @@ void main() {
       {'title': 'Synced', 'content': 'Synced body'},
     );
     dio.httpClientAdapter = FakeAdapter((request) async {
+      if (request.method == 'GET') {
+        return response([
+          private,
+          {...private, 'id': 3, 'title': 'Synced'},
+        ]);
+      }
       expect(request.path, '/project-management/notes/3');
       return response({
         ...private,
@@ -165,9 +180,13 @@ void main() {
       });
     });
     await tester.runAsync(() => cache.sync(api));
+    await tester.pumpAndSettle();
     expect(await cache.pending(3), isNull);
     expect((await cache.detail(3))?['content'], 'Synced body');
     expect(await cache.pending(1), isNotNull);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Synced'), findsOneWidget);
   });
   testWidgets(
     'Notes previews open immediately and only saves refresh the list',
