@@ -1400,6 +1400,7 @@ def list_srm_products(
         total = query.count() if page is not None else None
         rows = query.with_entities(
             SRMProduct.id, SRMProduct.item_name, SRMProduct.sku,
+            SRMProduct.barcode, SRMProduct.category_name,
             SRMProduct.current_quantity, SRMProduct.reorder_level, SRMProduct.unit_code,
         ).order_by(SRMProduct.item_name, SRMProduct.id)
         if page is not None:

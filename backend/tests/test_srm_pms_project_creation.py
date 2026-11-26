@@ -21,7 +21,8 @@ def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_
 def test_inventory_summary_preserves_search_and_pagination(client, db, superuser_headers):
     db.add_all([
         SRMProduct(organization_id=1, sku="SUMMARY-A", item_name="Summary product A", description="Full details"),
-        SRMProduct(organization_id=1, sku="SUMMARY-B", item_name="Summary product B"),
+        SRMProduct(organization_id=1, sku="SUMMARY-B", item_name="Summary product B",
+                   barcode="7845112345", category_name="Test accessories"),
     ])
     db.commit()
     path = "/api/v1/srm/inventory/items"
@@ -35,6 +36,10 @@ def test_inventory_summary_preserves_search_and_pagination(client, db, superuser
     assert item["sku"] == "SUMMARY-B"
     assert item == {key: full.json()["items"][0][key] for key in item}
     assert "description" not in item
+    for search in ("7845112345", "Test accessories"):
+        result = client.get(path, headers=superuser_headers, params={"summary_only": True, "search": search})
+        assert result.status_code == 200
+        assert [row["sku"] for row in result.json()["items"]] == ["SUMMARY-B"]
 
 
 def test_srm_engagement_creates_pms_project(client, db, superuser_headers):

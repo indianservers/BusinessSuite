@@ -848,12 +848,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   }
 
   String _term = '';
-  String _crmSearch = '';
+  String _serverSearch = '';
   int _crmPage = 1;
   bool _crmHasNext = false;
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
+  bool get _searchOnServer => _isCrm || _inventory;
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
@@ -869,7 +870,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final revision = api.sessionRevision;
     final loadRevision = ++_loadRevision;
     final crmPage = _crmPage;
-    final crmSearch = _crmSearch;
+    final searchTerm = _serverSearch;
     if (cacheKey != null) {
       try {
         final cached = await SuiteReadCache.snapshot(cacheKey);
@@ -882,6 +883,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           if (!reconnect &&
               !_offlineOnly &&
               !cached.invalidated &&
+              searchTerm.isEmpty &&
               (_inventory || path == '/srm/sales-orders') &&
               !age.isNegative &&
               age < _listReuseWindow) {
@@ -919,7 +921,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         query: {
           ...widget.query,
           if (_isCrm) 'page': crmPage,
-          if (_isCrm && crmSearch.isNotEmpty) 'search': crmSearch,
+          if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
         },
         scopeHeaders: widget.scopeHeaders,
       );
@@ -959,7 +961,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmHasNext =
           total is int && pageSize is int && crmPage * pageSize < total;
     }
-    if (cacheKey != null && (!_isCrm || (crmPage == 1 && crmSearch.isEmpty))) {
+    if (cacheKey != null && crmPage == 1 && searchTerm.isEmpty) {
       final projection = [
         for (final record in records)
           {
@@ -982,6 +984,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'expected_start_date',
               'expected_end_date',
               'sku',
+              'barcode',
+              'category_name',
               'item_name',
               'current_quantity',
               'reorder_level',
@@ -1003,8 +1007,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   void _refresh() {
     _searchDebounce?.cancel();
-    if (_isCrm && _crmSearch != _term) {
-      _crmSearch = _term;
+    if (_searchOnServer && _serverSearch != _term) {
+      _serverSearch = _term;
       _crmPage = 1;
     }
     setState(() {
@@ -1014,13 +1018,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   void _changeSearch(String value) {
     setState(() => _term = value.trim());
-    if (!_isCrm) return;
+    if (!_searchOnServer) return;
     _searchDebounce?.cancel();
     if (_offlineOnly) return;
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       setState(() {
-        _crmSearch = _term;
+        _serverSearch = _term;
         _crmPage = 1;
         _records = _load();
       });
@@ -1186,13 +1190,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (rows == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (rows.isEmpty && !_isCrm) {
+              if (rows.isEmpty && !_searchOnServer) {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null;
               final loading = snapshot.connectionState != ConnectionState.done;
               final search =
-                  _isCrm ||
+                  _searchOnServer ||
                   widget.cachePrefix != null ||
                   _stockAlerts ||
                   widget.path == GstInvoicePage.listEndpoint ||
@@ -1204,7 +1208,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       )!.compareTo(_stockNumber(b['current_quantity'])!),
                     ))
                   : rows;
-              final visible = _term.isEmpty || (_isCrm && !cached)
+              final hasServerResults =
+                  _searchOnServer &&
+                  !cached &&
+                  !loading &&
+                  _term == _serverSearch;
+              final visible = _term.isEmpty || hasServerResults
                   ? candidates
                   : candidates
                         .where(
@@ -1221,6 +1230,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'party_code',
                                     'status',
                                     'sku',
+                                    'barcode',
+                                    'category_name',
                                     'item_name',
                                     'full_name',
                                     'company_name',
