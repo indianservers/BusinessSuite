@@ -7,6 +7,7 @@ import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
+import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -365,6 +366,39 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Retry'), findsOneWidget);
+  });
+  testWidgets('inventory renders the summary before fetching stock movements', (
+    tester,
+  ) async {
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/srm/inventory/items/12');
+        expect(request.headers['X-Suite-Branch'], '3');
+        return response({
+          'item_name': 'Updated product',
+          'ledger': [
+            {'movement_number': 'MOV-12', 'quantity_in': 3},
+          ],
+        });
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryProductPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          summary: const {'id': 12, 'item_name': 'Saved product'},
+          offline: false,
+          scopeHeaders: const {'X-Suite-Branch': '3'},
+        ),
+      ),
+    );
+    expect(find.text('Saved product'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Updated product'), findsOneWidget);
+    expect(find.text('MOV-12'), findsOneWidget);
   });
   testWidgets(
     'native launcher opens authenticated module and settings routes',

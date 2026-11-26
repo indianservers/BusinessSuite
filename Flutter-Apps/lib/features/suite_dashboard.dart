@@ -1144,6 +1144,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         : InventoryProductPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            scopeHeaders: widget.scopeHeaders,
                                             offline:
                                                 widget.offlineOnly ||
                                                 (cached && snapshot.hasError),
@@ -1168,30 +1170,110 @@ class InventoryProductPage extends StatefulWidget {
     required this.api,
     required this.summary,
     required this.offline,
+    this.cacheScope,
+    this.scopeHeaders = const {},
   });
   final ApiClient api;
   final Json summary;
   final bool offline;
+  final String? cacheScope;
+  final Map<String, String> scopeHeaders;
 
   @override
   State<InventoryProductPage> createState() => _InventoryProductPageState();
 }
 
 class _InventoryProductPageState extends State<InventoryProductPage> {
-  late Future<Json> _product = _load();
+  Json? _saved;
+  late Future<Json?> _product = _load();
 
-  Future<Json> _load() async => widget.offline
-      ? widget.summary
-      : await widget.api.request(
-              'GET',
-              '/srm/inventory/items/${widget.summary['id']}',
-            )
-            as Json;
+  static const _fields = {
+    'sku': 'SKU',
+    'unit_code': 'Unit',
+    'current_quantity': 'On hand',
+    'reorder_level': 'Reorder level',
+    'barcode': 'Barcode',
+    'hsn_code': 'HSN code',
+    'sales_rate': 'Sales price',
+    'gst_rate': 'GST rate (%)',
+  };
+
+  Future<Json?> _load() async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final path = '/srm/inventory/items/${widget.summary['id']}';
+    final scope = widget.cacheScope;
+    final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+    final key = scope == null ? null : '$scope:$path:$branch';
+    if (key != null) {
+      try {
+        final rows = await SuiteReadCache.read(key);
+        if (mounted && revision == api.sessionRevision) {
+          setState(() => _saved = rows?.firstOrNull);
+        }
+      } catch (_) {
+        // The API remains available when local storage fails.
+      }
+    }
+    if (!mounted) return null;
+    if (revision != api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    if (widget.offline) return null;
+    try {
+      final data =
+          await api.request('GET', path, scopeHeaders: widget.scopeHeaders)
+              as Json;
+      if (revision != api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      if (key != null) {
+        final ledger = (data['ledger'] as List? ?? []).whereType<Json>();
+        try {
+          await SuiteReadCache.write(key, [
+            {
+              for (final field in ['item_name', 'name', ..._fields.keys])
+                field: data[field],
+              'ledger': [
+                for (final row in ledger)
+                  {
+                    for (final field in const [
+                      'movement_number',
+                      'movement_type',
+                      'movement_date',
+                      'quantity_in',
+                      'quantity_out',
+                    ])
+                      field: row[field],
+                  },
+              ],
+            },
+          ]);
+        } catch (_) {
+          // A failed cache write does not hide the latest product.
+        }
+      }
+      return data;
+    } on ApiFailure catch (error) {
+      if (error.status == null ||
+          error.status == 429 ||
+          (error.status ?? 0) >= 500) {
+        return null;
+      }
+      if (key != null && const {401, 403, 404}.contains(error.status)) {
+        if (mounted) setState(() => _saved = null);
+        try {
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Product details')),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder<Json?>(
       future: _product,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -1210,10 +1292,9 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
             ),
           );
         }
-        final data = snapshot.data;
-        if (data == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        final pending = snapshot.connectionState != ConnectionState.done;
+        final details = (pending ? null : snapshot.data) ?? _saved;
+        final data = details ?? widget.summary;
         final ledger = (data['ledger'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -1222,20 +1303,27 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               '${data['item_name'] ?? data['name'] ?? 'Product'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            if (widget.offline)
-              const ListTile(title: Text('Offline · Saved product summary')),
-            for (final field in const {
-              'sku': 'SKU',
-              'unit_code': 'Unit',
-              'current_quantity': 'On hand',
-              'reorder_level': 'Reorder level',
-            }.entries)
+            if (pending && !widget.offline) const LinearProgressIndicator(),
+            if ((widget.offline || !pending) && snapshot.data == null)
+              ListTile(
+                title: Text(
+                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${details == null ? 'Saved product summary' : 'Saved product details'}',
+                ),
+                trailing: widget.offline
+                    ? null
+                    : TextButton(
+                        onPressed: () => setState(() => _product = _load()),
+                        child: const Text('Retry'),
+                      ),
+              ),
+            for (final field in _fields.entries)
               if (data[field.key] != null)
                 ListTile(
                   title: Text(field.value),
                   trailing: Text('${data[field.key]}'),
                 ),
-            if (!widget.offline) ...[
+            if (details != null) ...[
               const Divider(),
               Text(
                 'Recent stock movements',
