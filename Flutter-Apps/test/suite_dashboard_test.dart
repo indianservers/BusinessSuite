@@ -73,6 +73,7 @@ void main() {
     expect(saved, isTrue);
     expect(requests.single.path, CrmLeadPage.endpoint);
     expect(requests.single.method, 'POST');
+      expect(requests.single.headers['X-Offline-Operation'], isNotEmpty);
     expect(requests.single.data, {
       'values': {'full_name': 'Sample Lead', 'company_name': 'Sample company'},
     });

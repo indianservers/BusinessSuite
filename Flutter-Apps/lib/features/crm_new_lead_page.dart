@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import 'crm_lead_page.dart';
@@ -15,6 +16,7 @@ class CrmNewLeadPage extends StatefulWidget {
 class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
   final _form = GlobalKey<FormState>();
   final _values = <String, String>{};
+  final _operation = const Uuid().v4();
   bool _saving = false;
   String? _error;
 
@@ -29,6 +31,7 @@ class _CrmNewLeadPageState extends State<CrmNewLeadPage> {
       await widget.api.request(
         'POST',
         CrmLeadPage.endpoint,
+        scopeHeaders: {'X-Offline-Operation': _operation},
         data: {
           'values': {
             for (final entry in _values.entries)

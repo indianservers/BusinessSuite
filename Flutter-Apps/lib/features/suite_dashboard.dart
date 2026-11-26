@@ -1184,7 +1184,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   builder: (_) => CrmNewLeadPage(api: widget.controller.api),
                 ),
               );
-              if (created == true && mounted) {
+              if (created == true && context.mounted) {
                 _page = 1;
                 _refresh();
                 ScaffoldMessenger.of(context).showSnackBar(

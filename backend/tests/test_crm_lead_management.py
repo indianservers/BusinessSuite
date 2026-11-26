@@ -1,6 +1,7 @@
 from tests.rich_text_test_utils import organization_context
 import io
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from openpyxl import Workbook, load_workbook
 
@@ -10,6 +11,21 @@ from app.models.notification import Notification
 from app.models.user import User
 
 ROOT = "/api/v1/crm/lead-management"
+
+
+def test_mobile_lead_creation_replays_the_same_operation(client, db, superuser_headers):
+    from app.shared.offline_operations import receipts
+
+    receipts.create(db.get_bind(), checkfirst=True)
+    path = ROOT + "/leads"
+    headers = {**superuser_headers, "X-Offline-Operation": str(uuid4())}
+    body = {"values": {"full_name": "Mobile Lead Receipt"}}
+    first = client.post(path, headers=headers, json=body)
+    replay = client.post(path, headers=headers, json=body)
+    assert first.status_code == replay.status_code == 201
+    assert first.json() == replay.json()
+    assert client.post(path, headers=headers, json={"values": {"full_name": "Changed lead"}}).status_code == 409
+    assert client.get(path, headers=superuser_headers, params={"search": "Mobile Lead Receipt"}).json()["total"] == 1
 
 
 def test_mobile_lead_summary_preserves_queue_and_edit_version(client, superuser_headers):

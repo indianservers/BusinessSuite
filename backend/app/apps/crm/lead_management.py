@@ -15,12 +15,14 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from decimal import Decimal
 from typing import Any, Literal
+from uuid import UUID
 
 from fastapi import (
     APIRouter,
     Depends,
     File,
     Form,
+    Header,
     HTTPException,
     Query,
     UploadFile,
@@ -1388,8 +1390,22 @@ def add_lead(
     payload: LeadPayload,
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*WRITE)),
+    offline_operation: UUID | None = Header(None, alias="X-Offline-Operation"),
 ):
-    settings = config(db, core()._organization_id(db, user))
+    organization_id = core()._organization_id(db, user)
+    settings = config(db, organization_id)
+    if isinstance(offline_operation, UUID):
+        from app.shared.offline_operations import perform_offline_operation
+
+        def check_replay(receipt):
+            lead_record(db, user, receipt["id"], write=True)
+
+        return perform_offline_operation(
+            db, user, offline_operation, ("create_crm_lead", organization_id),
+            payload.model_dump(mode="json"),
+            lambda: {"id": create_lead(db, user, payload, settings).id},
+            check_replay,
+        )
     lead = create_lead(db, user, payload, settings)
     db.commit()
     return serialize(db, lead, settings)
