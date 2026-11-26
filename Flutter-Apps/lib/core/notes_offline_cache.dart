@@ -128,7 +128,7 @@ class NotesOfflineCache {
 
   Future<void> enqueue(Json note, Json values) => _serial(() async {
     final id = note['id'];
-    if (id is! int || note['version'] is! int || !_eligible(note)) {
+    if (!canQueueEdit(note)) {
       throw StateError('This note is unavailable for offline editing.');
     }
     final edits = await _edits();
@@ -140,6 +140,9 @@ class NotesOfflineCache {
     };
     await _storeEdits(edits);
   });
+
+  bool canQueueEdit(Json note) =>
+      note['id'] is int && note['version'] is int && _eligible(note);
 
   Future<void> discard(Object? id) => _serial(() async {
     final edits = await _edits();

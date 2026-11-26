@@ -470,14 +470,32 @@ class _NoteEditorState extends State<_NoteEditor> {
         Navigator.of(context).pop(true);
         return;
       }
-      final updated = await widget.api.request(
-        note == null ? 'POST' : 'PUT',
-        note == null ? _notesPath : '$_notesPath/${note['id']}',
-        data: values,
-      );
+      Object? updated;
+      try {
+        updated = await widget.api.request(
+          note == null ? 'POST' : 'PUT',
+          note == null ? _notesPath : '$_notesPath/${note['id']}',
+          data: values,
+        );
+      } on ApiFailure catch (failure) {
+        final cache = widget.cache;
+        if (!failure.connectionFailure ||
+            note == null ||
+            _rich ||
+            cache == null ||
+            !cache.canQueueEdit(note) ||
+            revision != widget.api.sessionRevision) {
+          rethrow;
+        }
+        await cache.enqueue(note, values);
+      }
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {
-        await widget.cache?.saveDetail(updated);
+        try {
+          await widget.cache?.saveDetail(updated);
+        } catch (_) {
+          // A local cache failure does not undo a server save.
+        }
       }
       if (!mounted) return;
       setState(() {
