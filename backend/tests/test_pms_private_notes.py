@@ -129,6 +129,35 @@ def test_desktop_sync_preserves_owner_and_versions(notes_client):
     assert client.get(path).json()["note"]["trashed"] is True
 
 
+def test_company_enforced_admin_can_read_own_unlinked_notes_without_staff_record(db, notes_client):
+    from app.apps.project_management.models import PMSNote
+    from app.core.tenant_boundary import install
+    from app.models.company import Company
+
+    client, owner, admin, actor = notes_client
+    company_id = 91342
+    db.add(Company(id=company_id, name="Notes company", is_active=True))
+    db.flush()
+    actor[0] = admin
+    own_id = client.post("/notes", json={"title": "Admin personal note"}).json()["id"]
+    actor[0] = owner
+    other_id = client.post("/notes", json={"title": "Another personal note"}).json()["id"]
+
+    admin_id = admin.id
+    db.expunge_all()
+    with Session(db.bind) as read_db:
+        admin = read_db.get(User, admin_id)
+        admin._suite_current_module = "project_management"
+        admin._suite_admin_read = True
+        cleanup = install(read_db, admin, company_id, enforce_superuser_company=True)
+        try:
+            ids = {note.id for note in read_db.query(PMSNote).all()}
+            assert own_id in ids
+            assert other_id not in ids
+        finally:
+            cleanup()
+
+
 def test_desktop_sync_excludes_linked_and_shared_notes(db, notes_client):
     from app.apps.project_management.models import PMSNote, PMSNoteShare
 

@@ -428,6 +428,17 @@ def _company_plan(registry, company, actor_id, module, admin_read, admin_company
                     )
                 else:
                     result = false()
+        if admin_read and table.name == "pms_private_notes":
+            # A private personal note belongs to the authenticated owner even
+            # when that account has no employee/person row in this company.
+            # Linked documents still require their normal company predicates.
+            result = or_(result, and_(
+                table.c.owner_id == user.id,
+                table.c.visibility_scope == "private",
+                table.c.project_id.is_(None),
+                table.c.task_id.is_(None),
+                table.c.folder_id.is_(None),
+            ))
         cache[model] = result
         return result
 
