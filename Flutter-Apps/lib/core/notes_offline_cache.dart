@@ -120,11 +120,12 @@ class NotesOfflineCache {
         {...entry.value as Json, 'key': entry.key},
   ];
 
-  Future<void> enqueueNew(Json values) => _serial(() async {
-    final edits = await _edits();
-    edits['create:${const Uuid().v4()}'] = {'values': values};
-    await _storeEdits(edits);
-  });
+  Future<void> enqueueNew(Json values, {String? operation}) =>
+      _serial(() async {
+        final edits = await _edits();
+        edits['create:${operation ?? const Uuid().v4()}'] = {'values': values};
+        await _storeEdits(edits);
+      });
 
   Future<void> enqueue(Json note, Json values) => _serial(() async {
     final id = note['id'];

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/notes_offline_cache.dart';
@@ -320,6 +321,7 @@ class _NoteEditor extends StatefulWidget {
 
 class _NoteEditorState extends State<_NoteEditor> {
   late bool _offline = widget.offline;
+  late final String _createOperation = const Uuid().v4();
   final _title = TextEditingController();
   final _body = TextEditingController();
   Map<String, dynamic>? _note;
@@ -460,7 +462,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       };
       if (_savedView || _offline) {
         if (note == null) {
-          await widget.cache!.enqueueNew(values);
+          await widget.cache!.enqueueNew(values, operation: _createOperation);
         } else {
           await widget.cache!.enqueue(note, values);
         }
@@ -476,18 +478,23 @@ class _NoteEditorState extends State<_NoteEditor> {
           note == null ? 'POST' : 'PUT',
           note == null ? _notesPath : '$_notesPath/${note['id']}',
           data: values,
+          scopeHeaders: {
+            if (note == null) 'X-Offline-Operation': _createOperation,
+          },
         );
       } on ApiFailure catch (failure) {
         final cache = widget.cache;
         if (!failure.connectionFailure ||
-            note == null ||
-            _rich ||
             cache == null ||
-            !cache.canQueueEdit(note) ||
+            (note != null && (_rich || !cache.canQueueEdit(note))) ||
             revision != widget.api.sessionRevision) {
           rethrow;
         }
-        await cache.enqueue(note, values);
+        if (note == null) {
+          await cache.enqueueNew(values, operation: _createOperation);
+        } else {
+          await cache.enqueue(note, values);
+        }
       }
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {

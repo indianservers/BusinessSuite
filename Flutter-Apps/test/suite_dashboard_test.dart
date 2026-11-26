@@ -207,6 +207,53 @@ void main() {
     expect(find.text('Saved · Awaiting sync'), findsNothing);
     expect(find.text('Offline created note'), findsOneWidget);
   });
+  testWidgets('Notes reuses the online operation ID after a lost response', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    const server = 'https://example.test/api/v1';
+    final cache = NotesOfflineCache('["$server",3,7]');
+    final operations = <Object?>[];
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (request.method == 'GET') return response([]);
+        operations.add(request.headers['X-Offline-Operation']);
+        expect(request.data['title'], 'New private note');
+        if (request.path.endsWith('/offline-create')) {
+          return response({'id': 42}, 201);
+        }
+        expect(request.path, '/project-management/notes');
+        throw DioException(
+          requestOptions: request,
+          type: DioExceptionType.connectionError,
+        );
+      });
+    final api = ApiClient(
+      baseUrl: server,
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New note'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'New private note');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(operations, hasLength(2));
+    expect(operations.first, isNotNull);
+    expect(operations.first, operations.last);
+    expect(await cache.creations(), isEmpty);
+  });
   for (final connectedInitially in [false, true]) {
     testWidgets(
       'Notes queues an edit and preserves a conflict (online at open: $connectedInitially)',
