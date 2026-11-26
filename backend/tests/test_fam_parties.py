@@ -14,6 +14,14 @@ def test_fam_create_list_and_get_customer_party(client, db):
     listed = client.get("/api/v1/fam/parties?party_type=customer", headers=headers)
     assert listed.status_code == 200, listed.text
     assert listed.json()["total"] == 1
+    summary = client.get("/api/v1/fam/parties", headers=headers, params={
+        "party_type": "customer", "summary_only": True,
+    })
+    assert summary.status_code == 200
+    keys = {"id", "legal_name", "trade_name", "party_code", "party_type"}
+    assert summary.json() == {
+        "total": 1, "items": [{key: party[key] for key in keys}],
+    }
 
     detail = client.get(f"/api/v1/fam/parties/{party['id']}", headers=headers)
     assert detail.status_code == 200, detail.text

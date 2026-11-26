@@ -32,6 +32,9 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           requests.add(request.path);
           if (!connected) throw StateError('Offline request ${request.path}');
+          if (request.path == '/fam/parties') {
+            expectSync(request.queryParameters['summary_only'], isTrue);
+          }
           return switch (request.path) {
             '/access/me' => response({
               'companyId': 7,
@@ -40,13 +43,16 @@ void main() {
               },
             }),
             '/notifications/unread-count' => response({'unread': 0}),
-            '/fam/parties' => response([
-              {
-                'id': 4,
-                'legal_name': 'Saved Android Supplier',
-                'party_code': 'ANDROID-4',
-              },
-            ]),
+            '/fam/parties' => response({
+              'items': [
+                {
+                  'id': 4,
+                  'legal_name': 'Saved Android Supplier',
+                  'party_code': 'ANDROID-4',
+                },
+              ],
+              'total': 1,
+            }),
             _ => throw StateError('Unexpected request ${request.path}'),
           };
         });

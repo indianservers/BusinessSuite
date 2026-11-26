@@ -308,7 +308,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         title: app.title,
         controller: controller,
         path: app.endpoint,
-        query: app.title == 'Sales & POS' || app.grant == 'crm'
+        query:
+            app.title == 'Sales & POS' ||
+                app.grant == 'crm' ||
+                app.endpoint == FinancePartyPage.endpoint
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,

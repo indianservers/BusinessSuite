@@ -1814,12 +1814,19 @@ def voucher_audit_logs(id: int, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/parties")
-def list_parties(party_type: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_PARTIES_VIEW_PERMISSIONS))):
+def list_parties(party_type: str | None = None, summary_only: bool = False, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_PARTIES_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     query = db.query(FAMParty).filter(FAMParty.company_id == company_id)
     if party_type:
         query = query.filter(or_(FAMParty.party_type == party_type, FAMParty.party_type == "both"))
-    items = query.order_by(FAMParty.legal_name).all()
+    query = query.order_by(FAMParty.legal_name)
+    if summary_only:
+        rows = query.with_entities(
+            FAMParty.id, FAMParty.legal_name, FAMParty.trade_name,
+            FAMParty.party_code, FAMParty.party_type,
+        ).all()
+        return {"items": [dict(row._mapping) for row in rows], "total": len(rows)}
+    items = query.all()
     return {"items": [serialize_party(db, item) for item in items], "total": len(items)}
 
 
