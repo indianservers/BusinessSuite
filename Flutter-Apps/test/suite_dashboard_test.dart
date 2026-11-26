@@ -29,15 +29,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Notes reopens cached private content read-only while offline', (
+  testWidgets('Notes queues an offline edit and preserves a conflict', (
     tester,
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
-    final cache = NotesOfflineCache('server-user-company');
+    final cache = NotesOfflineCache('["https://example.test/api/v1",2,7]');
     final private = {
       'id': 1,
       'title': 'Private QA note',
       'preview': 'Preview',
+      'version': 3,
       'can_edit': true,
       'project_id': null,
       'visibility_scope': 'private',
@@ -52,17 +53,18 @@ void main() {
       ..httpClientAdapter = FakeAdapter((_) async {
         fail('Offline Notes should not call the server');
       });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
     await tester.pumpWidget(
       MaterialApp(
-        home: NotesPage(
-          api: ApiClient(
-            baseUrl: 'https://example.test/api/v1',
-            store: MemoryStore(),
-            transport: dio,
-          ),
-          cache: cache,
-          offline: true,
-        ),
+        home: NotesPage(api: api, cache: cache, offline: true),
       ),
     );
     await tester.pumpAndSettle();
@@ -70,12 +72,46 @@ void main() {
     await tester.tap(find.text('Private QA note'));
     await tester.pumpAndSettle();
     expect(find.text('Saved body'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'Offline edit');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect((await cache.pending(1))?['values']['content'], 'Offline edit');
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.method, 'PUT');
+      expect(request.path, '/project-management/notes/1');
+      expect(request.headers['X-Suite-Organization'], '7');
+      expect(request.data['version'], 3);
+      return response({'detail': 'The note changed on web'}, 409);
+    });
+    await tester.runAsync(() => cache.sync(api));
+    expect((await cache.pending(1))?['error'], 'The note changed on web');
+    await tester.tap(find.text('Private QA note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Offline edit'), findsOneWidget);
     expect(
       tester
           .widgetList<TextField>(find.byType(TextField))
           .every((field) => field.readOnly),
       isTrue,
     );
+    await cache.enqueue(
+      {...private, 'id': 3},
+      {'title': 'Synced', 'content': 'Synced body'},
+    );
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.path, '/project-management/notes/3');
+      return response({
+        ...private,
+        'id': 3,
+        'version': 4,
+        'content': 'Synced body',
+      });
+    });
+    await tester.runAsync(() => cache.sync(api));
+    expect(await cache.pending(3), isNull);
+    expect((await cache.detail(3))?['content'], 'Synced body');
+    expect(await cache.pending(1), isNotNull);
   });
   testWidgets(
     'Notes previews open immediately and only saves refresh the list',

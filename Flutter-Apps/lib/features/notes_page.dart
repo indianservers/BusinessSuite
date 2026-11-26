@@ -79,6 +79,12 @@ class _NotesPageState extends State<NotesPage> {
     }
     try {
       if (widget.offline) throw ApiFailure('Connect to see the latest notes.');
+      try {
+        await widget.cache?.sync(widget.api);
+      } catch (_) {
+        // Online reads remain available if the device queue is unavailable.
+      }
+      if (!current()) return;
       final result =
           await widget.api.request(
                 'GET',
@@ -238,15 +244,19 @@ class _NoteEditorState extends State<_NoteEditor> {
   bool _saving = false;
   bool _dirty = false;
   bool _savedView = false;
+  Map<String, dynamic>? _pending;
 
   bool get _rich =>
       (_note?['content'] as String? ?? '').startsWith(_richPrefix);
-  bool get _editable =>
-      !_loading &&
-      !_savedView &&
-      !widget.offline &&
-      (widget.summary == null && _note == null ||
-          _note?['can_edit'] == true && _note?['deleted_at'] == null);
+  bool get _editable {
+    if (_loading || _pending != null) return false;
+    if (_savedView) {
+      return !_rich && (_note?['version'] is int) && widget.cache != null;
+    }
+    return !widget.offline &&
+        (widget.summary == null && _note == null ||
+            _note?['can_edit'] == true && _note?['deleted_at'] == null);
+  }
 
   @override
   void initState() {
@@ -266,7 +276,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     if (cached != null) _show(cached, saved: true);
     try {
       if (widget.offline) {
-        throw ApiFailure('Connect to edit or refresh this note.');
+        throw ApiFailure('Connect to refresh this note.');
       }
       final note =
           await widget.api.request(
@@ -293,7 +303,24 @@ class _NoteEditorState extends State<_NoteEditor> {
         if (denied) await widget.cache?.clear();
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && revision == widget.api.sessionRevision) {
+        Map<String, dynamic>? pending;
+        try {
+          if (_note != null) {
+            pending = await widget.cache?.pending(_note?['id']);
+          }
+        } catch (_) {}
+        if (mounted && revision == widget.api.sessionRevision) {
+          setState(() {
+            _pending = pending;
+            if (pending?['values'] case final Map<String, dynamic> values) {
+              _title.text = values['title'] as String;
+              _body.text = values['content'] as String;
+            }
+            _loading = false;
+          });
+        }
+      }
     }
   }
 
@@ -317,25 +344,34 @@ class _NoteEditorState extends State<_NoteEditor> {
       _error = null;
     });
     try {
+      final values = <String, dynamic>{
+        'title': _title.text,
+        'content': _rich ? note!['content'] : _body.text,
+        if (note != null)
+          for (final key in [
+            'version',
+            'project_id',
+            'task_id',
+            'folder_id',
+            'tags',
+            'pinned',
+            'favorite',
+            'archived',
+          ])
+            key: note[key],
+      };
+      if (_savedView) {
+        await widget.cache!.enqueue(note!, values);
+        if (!mounted || revision != widget.api.sessionRevision) return;
+        _dirty = false;
+        _saving = false;
+        Navigator.of(context).pop(true);
+        return;
+      }
       final updated = await widget.api.request(
         note == null ? 'POST' : 'PUT',
         note == null ? _notesPath : '$_notesPath/${note['id']}',
-        data: {
-          'title': _title.text,
-          'content': _rich ? note!['content'] : _body.text,
-          if (note != null)
-            for (final key in [
-              'version',
-              'project_id',
-              'task_id',
-              'folder_id',
-              'tags',
-              'pinned',
-              'favorite',
-              'archived',
-            ])
-              key: note[key],
-        },
+        data: values,
       );
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {
@@ -355,6 +391,32 @@ class _NoteEditorState extends State<_NoteEditor> {
             ? 'This note changed elsewhere. Your edits are still here. Copy them before reopening the latest version.'
             : error.toString();
       });
+    }
+  }
+
+  Future<void> _discardPending() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard the saved edit?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    try {
+      await widget.cache!.discard(_note!['id']);
+      if (mounted) await _load();
+    } catch (error) {
+      if (mounted) setState(() => _error = '$error');
     }
   }
 
@@ -406,7 +468,22 @@ class _NoteEditorState extends State<_NoteEditor> {
         padding: const EdgeInsets.all(20),
         children: [
           if (_loading) const LinearProgressIndicator(),
-          if (_savedView) const Text('Saved note · Read only'),
+          if (_savedView)
+            Text(
+              _editable ? 'Saved note · Edits sync when online' : 'Saved note',
+            ),
+          if (_pending != null) ...[
+            Text(
+              _pending!['error'] == null
+                  ? 'Edit saved · Awaiting sync'
+                  : 'Saved edit needs review. Copy your changes before discarding the draft.',
+            ),
+            if (_pending!['error'] != null)
+              TextButton(
+                onPressed: _discardPending,
+                child: const Text('Discard saved edit'),
+              ),
+          ],
           if (_error != null) Text(_error!),
           if (widget.summary != null && _note == null) ...[
             if (_loading) ...[

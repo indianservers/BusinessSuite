@@ -205,6 +205,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           revision == controller.api.sessionRevision) {
         await InventoryOfflineCreates(scope).sync(controller.api);
       }
+      if (_allowed(access, 'project_management') &&
+          mounted &&
+          identical(_access, accessFuture) &&
+          revision == controller.api.sessionRevision) {
+        await NotesOfflineCache(scope).sync(controller.api);
+      }
     } catch (_) {
       // Leave the durable queue available when local storage or the API is unavailable.
     } finally {
