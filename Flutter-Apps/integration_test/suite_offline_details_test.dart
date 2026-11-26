@@ -28,6 +28,7 @@ void main() {
   ) async {
     final id = DateTime.now().microsecondsSinceEpoch;
     var requests = 0;
+    final searches = <Object?>[];
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         switch (request.path) {
@@ -41,6 +42,12 @@ void main() {
           case '/notifications/unread-count':
             return response({'unread': 0});
           case '/srm/sales-orders':
+            if (request.queryParameters['search'] case final String term) {
+              searches.add(term);
+              return response([
+                {'id': 2, 'order_number': 'ARCHIVED-ORDER'},
+              ]);
+            }
             requests++;
             return response([
               {'id': 1, 'order_number': 'QA-SALE-$requests'},
@@ -79,13 +86,25 @@ void main() {
     expect(find.text('QA-SALE-1'), findsOneWidget);
     expect(requests, 1);
     await tester.tap(find.byTooltip('Refresh'));
-    final refreshed = find.text('QA-SALE-2');
-    final deadline = DateTime.now().add(const Duration(seconds: 15));
-    while (refreshed.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
-      await tester.pump(const Duration(milliseconds: 100));
+    Future<void> waitForOrder(String number) async {
+      final order = find.text(number);
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (order.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(order, findsOneWidget);
     }
-    expect(refreshed, findsOneWidget);
+
+    await waitForOrder('QA-SALE-2');
     expect(requests, 2);
+    final search = find.byType(TextField);
+    await tester.enterText(search, 'archived');
+    await waitForOrder('ARCHIVED-ORDER');
+    expect(searches, ['archived']);
+    final snapshots = await SuiteReadCache.read(
+      '["https://example.test/api/v1",$id,7]:/srm/sales-orders',
+    );
+    expect(snapshots?.single['order_number'], 'QA-SALE-2');
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

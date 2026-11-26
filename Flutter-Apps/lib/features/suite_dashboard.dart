@@ -1274,6 +1274,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             _stockSummaryPath => 'Search products',
                             GstInvoicePage.listEndpoint => 'Search invoices',
                             FinancePartyPage.endpoint => 'Search parties',
+                            '/srm/sales-orders' =>
+                              cached ? 'Search saved orders' : 'Search orders',
                             _ => 'Search saved orders',
                           },
                         ),
