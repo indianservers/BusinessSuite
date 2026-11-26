@@ -14,6 +14,7 @@ class SalesOrderPage extends StatefulWidget {
     this.scopeHeaders = const {},
     this.canEdit = false,
     this.onChanged,
+    this.invoiceBuilder,
   });
   final ApiClient api;
   final Json summary;
@@ -22,6 +23,7 @@ class SalesOrderPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final bool canEdit;
   final VoidCallback? onChanged;
+  final Widget Function(Json)? invoiceBuilder;
 
   @override
   State<SalesOrderPage> createState() => _SalesOrderPageState();
@@ -33,6 +35,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   late Future<Json?> _order = _load();
   bool _saving = false;
   String? _actionError;
+  Json? _invoice;
   String get _path => '/srm/sales-orders/${widget.summary['id']}';
 
   static const _orderFields = [
@@ -140,6 +143,43 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     _order = _load(reconnect: true);
   });
 
+  Future<void> _createInvoice() async {
+    if (_saving || _invoice != null) return;
+    final revision = widget.api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+    try {
+      final invoice =
+          await widget.api.request(
+                'POST',
+                '/srm/invoices/draft-from-sales-order/${widget.summary['id']}',
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      if (invoice['id'] is! int) {
+        throw ApiFailure(
+          'The backend did not return the invoice ID. Check the invoice list.',
+        );
+      }
+      setState(() => _invoice = invoice);
+      final scope = widget.cacheScope;
+      if (scope != null) {
+        try {
+          await SuiteReadCache.invalidate('$scope:/srm/invoices');
+        } catch (_) {}
+      }
+    } on ApiFailure catch (error) {
+      if (mounted && revision == widget.api.sessionRevision) {
+        setState(() => _actionError = error.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _changeStatus(Json order, String action, String label) async {
     final revision = widget.api.sessionRevision;
     final confirmed = await showDialog<bool>(
@@ -237,6 +277,28 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     ? null
                     : () => _changeStatus(data, action.$1, action.$2),
                 child: Text(action.$2),
+              ),
+            if (!pending &&
+                snapshot.data != null &&
+                widget.invoiceBuilder != null)
+              OutlinedButton(
+                onPressed: _saving
+                    ? null
+                    : () {
+                        final invoice = _invoice;
+                        if (invoice == null) {
+                          _createInvoice();
+                          return;
+                        }
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => widget.invoiceBuilder!(invoice),
+                          ),
+                        );
+                      },
+                child: Text(
+                  _invoice == null ? 'Create invoice draft' : 'Open invoice',
+                ),
               ),
             if (pending) const LinearProgressIndicator(),
             if (!pending && snapshot.data == null)

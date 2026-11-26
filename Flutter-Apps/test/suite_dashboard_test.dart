@@ -1657,6 +1657,8 @@ void main() {
           },
           offline: true,
           canEdit: true,
+          invoiceBuilder: (invoice) =>
+              Scaffold(body: Text('Invoice ${invoice['id']}')),
         ),
       ),
     );
@@ -1665,10 +1667,14 @@ void main() {
     expect(find.text('INR 45.00'), findsOneWidget);
     expect(find.text('Line items'), findsNothing);
     expect(find.text('Submit order for approval'), findsNothing);
+    expect(find.text('Create invoice draft'), findsNothing);
     final actions = <String>[];
     dio.httpClientAdapter = FakeAdapter((request) async {
       if (request.method == 'POST') {
         actions.add(request.path);
+        if (request.path == '/srm/invoices/draft-from-sales-order/8') {
+          return response({'id': 19, 'status': 'draft'}, 201);
+        }
         return response({
           'status': actions.length == 1 ? 'approved' : 'confirmed',
         });
@@ -1697,6 +1703,13 @@ void main() {
       '/srm/sales-orders/8/confirm',
     ]);
     expect(find.text('confirmed'), findsOneWidget);
+    await tester.tap(find.text('Create invoice draft'));
+    await tester.pumpAndSettle();
+    expect(actions.last, '/srm/invoices/draft-from-sales-order/8');
+    expect(find.text('Create invoice draft'), findsNothing);
+    await tester.tap(find.text('Open invoice'));
+    await tester.pumpAndSettle();
+    expect(find.text('Invoice 19'), findsOneWidget);
   });
   testWidgets('order summary remains visible after a temporary API failure', (
     tester,

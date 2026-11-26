@@ -317,6 +317,18 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         cachePrefix: cache,
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
+        canCreateOrderInvoices:
+            allowsSalesAction('create') &&
+            (controller.user?.isSuperuser == true ||
+                (grant?['permissions'] as List?)?.any(
+                      const {'srm_invoice_create', 'srm_admin'}.contains,
+                    ) ==
+                    true ||
+                (access['managed'] != true &&
+                    controller.user?.permissions.any(
+                          const {'srm_invoice_create', 'srm_admin'}.contains,
+                        ) ==
+                        true)),
         canExportInvoices: allowsSalesAction('export'),
         canIssueInvoices:
             allowsSalesAction('approve') &&
@@ -815,6 +827,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canExportInvoices = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
+    this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
   });
   final String title;
@@ -827,6 +840,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canExportInvoices;
   final bool canIssueInvoices;
   final bool canEditOrders;
+  final bool canCreateOrderInvoices;
   final bool offlineOnly;
 
   @override
@@ -1431,6 +1445,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             api: widget.controller.api,
                                             summary: item,
                                             canEdit: widget.canEditOrders,
+                                            invoiceBuilder:
+                                                widget.canCreateOrderInvoices
+                                                ? (invoice) => GstInvoicePage(
+                                                    api: widget.controller.api,
+                                                    id: invoice['id'] as int,
+                                                    summary: invoice,
+                                                    cacheScope:
+                                                        widget.cachePrefix,
+                                                    canEdit: true,
+                                                    canExport: widget
+                                                        .canExportInvoices,
+                                                    canIssue:
+                                                        widget.canIssueInvoices,
+                                                  )
+                                                : null,
                                             onChanged: _refresh,
                                             cacheScope: widget.cachePrefix,
                                             scopeHeaders: widget.scopeHeaders,
