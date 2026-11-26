@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../app_controller.dart';
 import '../core/api_client.dart';
+import '../core/crm_offline_edits.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
@@ -626,6 +628,63 @@ class _SuiteRecords extends StatefulWidget {
 }
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
+  Timer? _syncTimer;
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_crmEdits != null) {
+      _syncTimer = Timer.periodic(
+        const Duration(seconds: 20),
+        (_) => _syncPending(),
+      );
+    }
+  }
+
+  Future<void> _syncPending() async {
+    final edits = _crmEdits;
+    final controller = widget.controller;
+    if (_syncing ||
+        edits == null ||
+        controller.user == null ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    _syncing = true;
+    try {
+      if (!await edits.hasPending || !mounted || controller.user == null) {
+        return;
+      }
+      await edits.sync(controller.api);
+      if (mounted &&
+          !widget.offlineOnly &&
+          !await edits.hasPending &&
+          mounted) {
+        setState(() {
+          _records = _load();
+        });
+      }
+    } catch (_) {
+      // Transient local or server failures leave drafts available for later.
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
+  }
+
+  CrmOfflineEdits? get _crmEdits {
+    final scope = widget.cachePrefix;
+    return widget.path == CrmLeadPage.endpoint && scope != null
+        ? CrmOfflineEdits(scope)
+        : null;
+  }
+
   String _term = '';
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
@@ -650,7 +709,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         'Offline. Open this page online to save records on this device.',
       );
     }
-    final dynamic data;
+    dynamic data;
     try {
       data = await widget.controller.api.request(
         'GET',
@@ -658,6 +717,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         query: widget.query,
         scopeHeaders: widget.scopeHeaders,
       );
+      final edits = _crmEdits;
+      if (edits != null) {
+        try {
+          if (await edits.hasPending) {
+            await edits.sync(widget.controller.api);
+            data = await widget.controller.api.request(
+              'GET',
+              path,
+              query: widget.query,
+              scopeHeaders: widget.scopeHeaders,
+            );
+          }
+        } catch (_) {
+          // The list remains readable if the device edit store is unavailable.
+        }
+      }
     } on ApiFailure catch (error) {
       if (cacheKey != null && (error.status == 401 || error.status == 403)) {
         if (mounted) setState(() => _cached = null);
@@ -693,6 +768,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'first_name',
               'last_name',
               'full_name',
+              'version',
               'company_name',
               'order_number',
               'currency',
@@ -881,6 +957,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? CrmLeadPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            offlineEdits: _crmEdits,
                                             onSaved: () {
                                               if (mounted) {
                                                 setState(() {

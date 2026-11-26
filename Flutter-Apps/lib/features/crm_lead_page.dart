@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/crm_offline_edits.dart';
 import '../core/models.dart';
 
 class CrmLeadPage extends StatefulWidget {
@@ -10,12 +11,14 @@ class CrmLeadPage extends StatefulWidget {
     required this.summary,
     required this.offline,
     this.onSaved,
+    this.offlineEdits,
   });
   static const endpoint = '/crm/lead-management/leads';
   final ApiClient api;
   final Json summary;
   final bool offline;
   final VoidCallback? onSaved;
+  final CrmOfflineEdits? offlineEdits;
 
   @override
   State<CrmLeadPage> createState() => _CrmLeadPageState();
@@ -23,6 +26,51 @@ class CrmLeadPage extends StatefulWidget {
 
 class _CrmLeadPageState extends State<CrmLeadPage> {
   late Future<Json> _lead = _load();
+  late Future<Json?> _pending = _readPending();
+  int get _id => widget.summary['id'] as int;
+  Future<Json?> _readPending() async {
+    try {
+      return await widget.offlineEdits?.pending(_id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _discardDraft() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard the saved device edit?'),
+        content: const Text('The server record will stay as it is.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await widget.offlineEdits!.discard(_id);
+      if (!mounted) return;
+      setState(() {
+        _pending = _readPending();
+        if (!widget.offline) _lead = _load();
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not discard the saved edit.')),
+        );
+      }
+    }
+  }
+
   String get _path => '${CrmLeadPage.endpoint}/${widget.summary['id']}';
 
   Future<Json> _load() async {
@@ -84,15 +132,25 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           error = null;
                         });
                         try {
+                          final values = <String, dynamic>{
+                            'first_name': first.trim(),
+                            'last_name': last.trim(),
+                          };
+                          if (widget.offline) {
+                            await widget.offlineEdits!.enqueue(
+                              _id,
+                              version,
+                              values,
+                            );
+                            if (context.mounted) Navigator.pop(context, lead);
+                            return;
+                          }
                           final updated =
                               await widget.api.request(
                                     'PATCH',
                                     _path,
                                     data: {
-                                      'values': {
-                                        'first_name': first.trim(),
-                                        'last_name': last.trim(),
-                                      },
+                                      'values': values,
                                       'version': version,
                                     },
                                   )
@@ -120,8 +178,9 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     if (result != null && mounted) {
       setState(() {
         _lead = Future.value(result);
+        _pending = _readPending();
       });
-      widget.onSaved?.call();
+      if (!widget.offline) widget.onSaved?.call();
     }
   }
 
@@ -175,11 +234,45 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                   title: Text(field.value),
                   subtitle: SelectableText('${lead[field.key]}'),
                 ),
-            if (!widget.offline && version is int)
-              OutlinedButton(
-                onPressed: () => _edit(lead, version),
-                child: const Text('Edit lead name'),
-              ),
+            FutureBuilder<Json?>(
+              future: _pending,
+              builder: (context, pending) {
+                if (pending.connectionState != ConnectionState.done) {
+                  return const SizedBox.shrink();
+                }
+                final draft = pending.data;
+                if (draft != null) {
+                  final values = draft['values'] as Json;
+                  return ListTile(
+                    title: Text(
+                      draft['error'] == null
+                          ? 'Edit saved · Awaiting sync'
+                          : 'Saved edit needs review',
+                    ),
+                    subtitle: SelectableText(
+                      '${values['first_name']} ${values['last_name']}\n${draft['error'] ?? 'Reopen or refresh CRM after reconnecting.'}',
+                    ),
+                    trailing: draft['error'] == null
+                        ? null
+                        : IconButton(
+                            tooltip: 'Discard saved edit',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: _discardDraft,
+                          ),
+                  );
+                }
+                if (version is! int ||
+                    (widget.offline && widget.offlineEdits == null)) {
+                  return const SizedBox.shrink();
+                }
+                return OutlinedButton(
+                  onPressed: () => _edit(lead, version),
+                  child: Text(
+                    widget.offline ? 'Edit name offline' : 'Edit lead name',
+                  ),
+                );
+              },
+            ),
           ],
         );
       },

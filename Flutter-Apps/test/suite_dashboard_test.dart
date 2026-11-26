@@ -1,16 +1,64 @@
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  test(
+    'queued CRM names survive retry and preserve a server conflict',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      FlutterSecureStorage.setMockInitialValues({});
+      final dio = Dio();
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      const scope = '["https://example.test/api/v1",2,7]';
+      await CrmOfflineEdits(scope).enqueue(9, 4, {'first_name': 'Local name'});
+      final queue = CrmOfflineEdits(scope);
+      dio.httpClientAdapter = FakeAdapter(
+        (r) async => throw DioException(
+          requestOptions: r,
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      await queue.sync(api);
+      expect(await queue.hasPending, isTrue);
+      dio.httpClientAdapter = FakeAdapter((r) async {
+        expect(r.path, '/crm/lead-management/leads/9');
+        expect(r.headers['X-Suite-Organization'], '7');
+        expect(r.data['version'], 4);
+        return response({'detail': 'Lead changed'}, 409);
+      });
+      await queue.sync(api);
+      expect(await queue.hasPending, isFalse);
+      expect((await queue.pending(9))?['error'], 'Lead changed');
+      expect((await queue.pending(9))?['values']['first_name'], 'Local name');
+      await queue.enqueue(10, 5, {'first_name': 'Synced name'});
+      dio.httpClientAdapter = FakeAdapter((r) async {
+        expect(r.path, '/crm/lead-management/leads/10');
+        return response({'version': 6});
+      });
+      await queue.sync(api);
+      expect(await queue.pending(10), isNull);
+      expect(await queue.pending(9), isNotNull);
+    },
+  );
   testWidgets('CRM lead edit sends the displayed record version', (
     tester,
   ) async {

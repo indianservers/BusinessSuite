@@ -93,6 +93,7 @@ class ApiClient {
   void Function()? onExpired;
   void Function(String method, String path, int status)? onResponse;
   bool get hasSession => _refresh != null;
+  int get sessionRevision => _generation;
   Json? get offlineSuite {
     final snapshot = _offlineSuite;
     final saved = snapshot?['saved_at'];
