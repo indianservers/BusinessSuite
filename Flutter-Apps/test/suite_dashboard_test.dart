@@ -1656,7 +1656,7 @@ void main() {
     );
     expect(find.text('Retry'), findsOneWidget);
   });
-  testWidgets('inventory renders the summary before fetching stock movements', (
+  testWidgets('offline inventory shows the summary and reconnects in place', (
     tester,
   ) async {
     final dio = Dio()
@@ -1679,12 +1679,15 @@ void main() {
             transport: dio,
           ),
           summary: const {'id': 12, 'item_name': 'Saved product'},
-          offline: false,
+          offline: true,
           scopeHeaders: const {'X-Suite-Branch': '3'},
         ),
       ),
     );
     expect(find.text('Saved product'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('MOV-12'), findsNothing);
+    await tester.tap(find.text('Reconnect'));
     await tester.pumpAndSettle();
     expect(find.text('Updated product'), findsOneWidget);
     expect(find.text('MOV-12'), findsOneWidget);

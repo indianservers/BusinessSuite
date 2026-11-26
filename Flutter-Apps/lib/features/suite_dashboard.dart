@@ -1469,6 +1469,7 @@ class InventoryProductPage extends StatefulWidget {
 
 class _InventoryProductPageState extends State<InventoryProductPage> {
   Json? _saved;
+  late bool _offline = widget.offline;
   late Future<Json?> _product = _load();
 
   static const _fields = {
@@ -1483,7 +1484,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     'gst_rate': 'GST rate (%)',
   };
 
-  Future<Json?> _load() async {
+  Future<Json?> _load({bool reconnect = false}) async {
     final api = widget.api;
     final revision = api.sessionRevision;
     final path = '/srm/inventory/items/${widget.summary['id']}';
@@ -1504,7 +1505,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     if (revision != api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
-    if (widget.offline) return null;
+    if (_offline && !reconnect) return null;
     try {
       final data =
           await api.request('GET', path, scopeHeaders: widget.scopeHeaders)
@@ -1538,6 +1539,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
           // A failed cache write does not hide the latest product.
         }
       }
+      _offline = false;
       return data;
     } on ApiFailure catch (error) {
       if (error.status == null ||
@@ -1555,6 +1557,10 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     }
   }
 
+  void _refresh() => setState(() {
+    _product = _load(reconnect: true);
+  });
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Product details')),
@@ -1568,9 +1574,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               children: [
                 Text('${snapshot.error}'),
                 TextButton(
-                  onPressed: () => setState(() {
-                    _product = _load();
-                  }),
+                  onPressed: _refresh,
                   child: const Text('Retry'),
                 ),
               ],
@@ -1588,21 +1592,17 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               '${data['item_name'] ?? data['name'] ?? 'Product'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            if (pending && !widget.offline) const LinearProgressIndicator(),
-            if ((widget.offline || !pending) && snapshot.data == null)
+            if (pending) const LinearProgressIndicator(),
+            if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
-                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_offline ? 'Offline' : 'Refresh unavailable'} · '
                   '${details == null ? 'Saved product summary' : 'Saved product details'}',
                 ),
-                trailing: widget.offline
-                    ? null
-                    : TextButton(
-                        onPressed: () => setState(() {
-                          _product = _load();
-                        }),
-                        child: const Text('Retry'),
-                      ),
+                trailing: TextButton(
+                  onPressed: _refresh,
+                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                ),
               ),
             for (final field in _fields.entries)
               if (data[field.key] != null)
