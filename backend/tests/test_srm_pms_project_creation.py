@@ -22,7 +22,8 @@ def test_inventory_summary_preserves_search_and_pagination(client, db, superuser
     db.add_all([
         SRMProduct(organization_id=1, sku="SUMMARY-A", item_name="Summary product A", description="Full details"),
         SRMProduct(organization_id=1, sku="SUMMARY-B", item_name="Summary product B",
-                   barcode="7845112345", category_name="Test accessories"),
+                   barcode="7845112345", category_name="Test accessories",
+                   hsn_code="8471", sales_rate=125.50, gst_rate=18),
     ])
     db.commit()
     path = "/api/v1/srm/inventory/items"
@@ -36,6 +37,7 @@ def test_inventory_summary_preserves_search_and_pagination(client, db, superuser
     assert item["sku"] == "SUMMARY-B"
     assert item == {key: full.json()["items"][0][key] for key in item}
     assert "description" not in item
+    assert (item["hsn_code"], item["sales_rate"], item["gst_rate"]) == ("8471", 125.50, 18)
     for search in ("7845112345", "Test accessories"):
         result = client.get(path, headers=superuser_headers, params={"summary_only": True, "search": search})
         assert result.status_code == 200

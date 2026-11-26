@@ -1401,6 +1401,7 @@ def list_srm_products(
         rows = query.with_entities(
             SRMProduct.id, SRMProduct.item_name, SRMProduct.sku,
             SRMProduct.barcode, SRMProduct.category_name,
+            SRMProduct.hsn_code, SRMProduct.sales_rate, SRMProduct.gst_rate,
             SRMProduct.current_quantity, SRMProduct.reorder_level, SRMProduct.unit_code,
         ).order_by(SRMProduct.item_name, SRMProduct.id)
         if page is not None:
