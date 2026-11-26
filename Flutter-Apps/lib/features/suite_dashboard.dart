@@ -1192,6 +1192,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? GstInvoicePage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                            canEdit:
+                                                widget
+                                                        .controller
+                                                        .user
+                                                        ?.isSuperuser ==
+                                                    true ||
+                                                widget
+                                                        .controller
+                                                        .user
+                                                        ?.permissions
+                                                        .any(
+                                                          const {
+                                                            'srm_invoice_create',
+                                                            'srm_admin',
+                                                          }.contains,
+                                                        ) ==
+                                                    true,
                                           )
                                         : InventoryProductPage(
                                             api: widget.controller.api,

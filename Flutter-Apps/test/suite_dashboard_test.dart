@@ -22,6 +22,50 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('GST draft date editing sends only the changed date', (
+    tester,
+  ) async {
+    var dueDate = '2026-12-01';
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/srm/invoices/7');
+        if (request.method == 'PATCH') {
+          expect(request.data, {'due_date': '2026-12-15'});
+          dueDate = '2026-12-15';
+        }
+        return response({
+          'invoice_number': 'GST-7',
+          'status': 'draft',
+          'issue_date': '2026-11-27',
+          'due_date': dueDate,
+        });
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GstInvoicePage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          id: 7,
+          canEdit: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit dates'));
+    await tester.pumpAndSettle();
+    final field = find.byType(TextFormField).last;
+    await tester.enterText(field, '2026-02-31');
+    await tester.tap(find.text('Save dates'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a valid date as YYYY-MM-DD.'), findsOneWidget);
+    await tester.enterText(field, '2026-12-15');
+    await tester.tap(find.text('Save dates'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-12-15'), findsOneWidget);
+  });
   testWidgets(
     'GST invoice reads document, delivery, and payment from shared API',
     (tester) async {
