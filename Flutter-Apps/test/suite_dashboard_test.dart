@@ -6,6 +6,7 @@ import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
+import 'package:business_suite_mobile/features/branch_membership_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -18,6 +19,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'branch assignments preserve existing module roles and policy version',
+    (tester) async {
+      final savedGrant = {
+        'branch_id': 1,
+        'can_write': true,
+        'module_grants': {
+          'crm': {'enabled': true},
+        },
+      };
+      final policy = {
+        'version': 5,
+        'all_branches': false,
+        'manage_access': false,
+        'use_home_branch': true,
+        'grants': [savedGrant],
+      };
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path.endsWith('/users')) {
+            return response([
+              {'id': 2, 'email': 'manager@example.test'},
+              {'id': 3, 'email': 'member@example.test'},
+            ]);
+          }
+          expect(request.path, '/branches/access/3');
+          if (request.method == 'GET') return response(policy);
+          expect(request.method, 'PUT');
+          expect(request.data['expected_version'], 5);
+          expect(request.data['reason'], 'Cover Pune office');
+          expect(request.data['grants'], [
+            savedGrant,
+            {'branch_id': 2, 'can_write': false},
+          ]);
+          return response({
+            ...policy,
+            'version': 6,
+            'grants': request.data['grants'],
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BranchMembershipPage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            actorId: 2,
+            branches: const [
+              {'id': 2, 'name': 'Pune', 'can_write': true},
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('manager@example.test'), findsNothing);
+      await tester.tap(find.text('member@example.test'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pune'));
+      await tester.enterText(find.byType(TextField), 'Cover Pune office');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save branch memberships'));
+      await tester.pumpAndSettle();
+      expect(find.text('Branch memberships saved.'), findsOneWidget);
+    },
+  );
   testWidgets(
     'branch settings creates and renames a branch with the server version',
     (tester) async {

@@ -661,6 +661,7 @@ class _SettingOptionState extends State<_SettingOption> {
           return BranchSettingsPanel(
             api: widget.controller.api,
             editable: data['editable'] == true,
+            actorId: widget.controller.user?.id,
           );
         }
         return ListView(

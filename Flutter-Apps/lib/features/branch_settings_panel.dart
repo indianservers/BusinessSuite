@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import 'branch_membership_page.dart';
 
 class BranchSettingsPanel extends StatefulWidget {
   const BranchSettingsPanel({
     super.key,
     required this.api,
     required this.editable,
+    this.actorId,
   });
 
   final ApiClient api;
   final bool editable;
+  final int? actorId;
 
   @override
   State<BranchSettingsPanel> createState() => _BranchSettingsPanelState();
@@ -102,6 +105,23 @@ class _BranchSettingsPanelState extends State<BranchSettingsPanel> {
               label: const Text('Create branch'),
             ),
           if (management != null) ...[
+            ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Assign branch memberships'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => BranchMembershipPage(
+                    api: widget.api,
+                    actorId: widget.actorId,
+                    branches: (data['branches'] as List? ?? [])
+                        .whereType<Json>()
+                        .where((branch) => branch['is_active'] == true)
+                        .toList(),
+                  ),
+                ),
+              ),
+            ),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'active', label: Text('Active')),
