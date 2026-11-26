@@ -66,12 +66,12 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   void _open([Map<String, dynamic>? summary]) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => _NoteEditor(api: widget.api, summary: summary),
       ),
     );
-    if (mounted) await _load();
+    if (mounted && changed == true) await _load();
   }
 
   @override
@@ -187,7 +187,8 @@ class _NoteEditorState extends State<_NoteEditor> {
   @override
   void initState() {
     super.initState();
-    if (widget.summary != null) _load();
+    final summary = widget.summary;
+    if (summary != null) _load();
   }
 
   Future<void> _load() async {
@@ -248,7 +249,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         _dirty = false;
         _saving = false;
       });
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -304,42 +305,48 @@ class _NoteEditorState extends State<_NoteEditor> {
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                if (_error != null) Text(_error!),
-                if (widget.summary != null && _note == null)
-                  TextButton(onPressed: _load, child: const Text('Retry'))
-                else ...[
-                  TextField(
-                    controller: _title,
-                    readOnly: !_editable || _saving,
-                    maxLength: 180,
-                    onChanged: _changed,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                  ),
-                  if (_rich)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'Formatted note preview. Edit the full document on the web.',
-                      ),
-                    ),
-                  TextField(
-                    controller: _body,
-                    readOnly: !_editable || _saving || _rich,
-                    minLines: 10,
-                    maxLines: null,
-                    onChanged: _changed,
-                    decoration: InputDecoration(
-                      labelText: _rich ? 'Preview' : 'Note',
-                    ),
-                  ),
-                ],
-              ],
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          if (_loading) const LinearProgressIndicator(),
+          if (_error != null) Text(_error!),
+          if (widget.summary != null && _note == null) ...[
+            if (_loading) ...[
+              Text(
+                widget.summary?['title'] as String? ?? 'Untitled note',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              Text(widget.summary?['preview'] as String? ?? ''),
+            ] else
+              TextButton(onPressed: _load, child: const Text('Retry')),
+          ] else ...[
+            TextField(
+              controller: _title,
+              readOnly: !_editable || _saving,
+              maxLength: 180,
+              onChanged: _changed,
+              decoration: const InputDecoration(labelText: 'Title'),
             ),
+            if (_rich)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Formatted note preview. Edit the full document on the web.',
+                ),
+              ),
+            TextField(
+              controller: _body,
+              readOnly: !_editable || _saving || _rich,
+              minLines: 10,
+              maxLines: null,
+              onChanged: _changed,
+              decoration: InputDecoration(
+                labelText: _rich ? 'Preview' : 'Note',
+              ),
+            ),
+          ],
+        ],
+      ),
     ),
   );
 }

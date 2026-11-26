@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
@@ -12,6 +14,7 @@ import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
+import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
@@ -25,6 +28,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'Notes previews open immediately and only saves refresh the list',
+    (tester) async {
+      var listRequests = 0;
+      var saves = 0;
+      final firstDetail = Completer<ResponseBody>();
+      var details = 0;
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/project-management/notes') {
+            listRequests++;
+            return response([
+              {'id': 1, 'title': 'QA note', 'preview': 'Saved preview'},
+            ]);
+          }
+          expect(request.path, '/project-management/notes/1');
+          if (request.method == 'PUT') {
+            saves++;
+            return response({'id': 1});
+          }
+          details++;
+          if (details == 1) return firstDetail.future;
+          return response({
+            'id': 1,
+            'title': 'QA note',
+            'content': 'Full note',
+            'can_edit': true,
+            'version': 1,
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('QA note'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Saved preview'), findsOneWidget);
+      firstDetail.complete(
+        response({
+          'id': 1,
+          'title': 'QA note',
+          'content': 'Full note',
+          'can_edit': true,
+        }),
+      );
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(listRequests, 1);
+      await tester.tap(find.text('QA note'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Updated title');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(saves, 1);
+      expect(listRequests, 2);
+    },
+  );
   testWidgets('finance loads outstanding bills and statements on demand', (
     tester,
   ) async {
