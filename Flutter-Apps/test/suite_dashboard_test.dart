@@ -13,6 +13,52 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'signed-in dashboard uploads queued CRM edits without opening CRM',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      const base = 'https://example.test/api/v1';
+      final queue = CrmOfflineEdits('["$base",2,7]');
+      await queue.enqueue(9, 4, {'first_name': 'Queued'});
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/notifications/unread-count') {
+            return response({'unread': 0});
+          }
+          if (request.path == '/access/me') {
+            return response({
+              'companyId': 7,
+              'grants': {
+                'crm': {'enabled': true},
+              },
+            });
+          }
+          expect(request.path, '/crm/lead-management/leads/9');
+          expect(request.method, 'PATCH');
+          return response({'version': 5});
+        });
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      final controller = AppController(api, suiteLogin: true)
+        ..loading = false
+        ..user = SessionUser.fromJson({
+          'id': 2,
+          'email': 'mobile@example.test',
+        });
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+      await tester.pumpAndSettle();
+      expect(await queue.pending(9), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   test(
     'queued CRM names survive retry and preserve a server conflict',
     () async {
@@ -168,6 +214,10 @@ void main() {
               'description': 'Manage your account',
               'editable': true,
             }),
+            '/auth/sessions/me' => response([
+              {'device_name': 'Test phone', 'status': 'active'},
+            ]),
+            '/auth/change-password' => response({'message': 'Updated'}),
             '/srm/industry/records' => response({
               'items': [
                 {'title': 'Sample booking'},
@@ -175,8 +225,19 @@ void main() {
             }),
             '/notifications/' => response({
               'items': [
-                {'title': 'Sample update'},
+                {
+                  'id': 12,
+                  'title': 'Sample update',
+                  'message': 'Example notification',
+                  'is_read': false,
+                },
               ],
+            }),
+            '/notifications/12/read' => response({'is_read': true}),
+            '/notifications/unread-count' => response({
+              'unread': calls.any((r) => r.path == '/notifications/12/read')
+                  ? 0
+                  : 1,
             }),
             '/power-apps/environments' ||
             '/employees/' ||
@@ -275,13 +336,46 @@ void main() {
         }
         await back();
       }
+      expect(
+        tester.widget<Badge>(find.byType(Badge).first).isLabelVisible,
+        isTrue,
+      );
       await tester.tap(find.byTooltip('Notifications'));
       await tester.pumpAndSettle();
       expect(find.text('Sample update'), findsOneWidget);
+      await tester.tap(find.text('Sample update'));
+      await tester.pumpAndSettle();
+      expect(
+        calls.any(
+          (r) => r.path == '/notifications/12/read' && r.method == 'PUT',
+        ),
+        isTrue,
+      );
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
       await back();
+      expect(
+        tester.widget<Badge>(find.byType(Badge).first).isLabelVisible,
+        isFalse,
+      );
       await tester.tap(find.byTooltip('Settings'));
       await tester.pumpAndSettle();
       await open('Account security');
+      expect(find.text('Test phone'), findsOneWidget);
+      await tester.tap(find.text('Change password'));
+      await tester.pumpAndSettle();
+      final passwords = find.byType(TextFormField);
+      await tester.enterText(passwords.at(0), 'sample-old-password');
+      await tester.enterText(passwords.at(1), 'sample-new-password');
+      await tester.enterText(passwords.at(2), 'sample-new-password');
+      await tester.tap(find.text('Change password').last);
+      await tester.pumpAndSettle();
+      expect(
+        calls.any(
+          (r) => r.method == 'POST' && r.path == '/auth/change-password',
+        ),
+        isTrue,
+      );
       expect(
         calls.any((r) => r.path == '/access/settings/options/account'),
         isTrue,

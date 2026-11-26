@@ -30,6 +30,9 @@ void main() {
           'role': {'name': 'pms_team_member', 'permissions': []},
         });
       }
+      if (r.path == '/notifications/unread-count') {
+        return response({'unread': 0});
+      }
       if (r.path == '/access/me') {
         return response({
           'companyName': 'Example Company',

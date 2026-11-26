@@ -13,6 +13,8 @@ import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'sales_order_page.dart';
+import 'suite_notifications_page.dart';
+import 'account_settings_panel.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -94,6 +96,103 @@ class SuiteDashboard extends StatefulWidget {
 class _SuiteDashboardState extends State<SuiteDashboard> {
   late Future<Json> _access = _load();
   String _query = '';
+  Timer? _syncTimer;
+  AppLifecycleListener? _lifecycle;
+  bool _syncing = false;
+  int _unreadNotifications = 0;
+  int _notificationRequest = 0;
+
+  Future<void> _refreshUnread() async {
+    final controller = widget.controller;
+    if (controller.offline || controller.user == null) return;
+    final request = ++_notificationRequest;
+    try {
+      final result =
+          await controller.api.request('GET', '/notifications/unread-count')
+              as Json;
+      if (mounted &&
+          request == _notificationRequest &&
+          controller.user != null) {
+        setState(() => _unreadNotifications = (result['unread'] as int?) ?? 0);
+      }
+    } catch (_) {
+      // Retain the last known badge while the server is unavailable.
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshUnread();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      _syncTimer = Timer.periodic(
+        const Duration(seconds: 20),
+        (_) => _syncEdits(_access),
+      );
+      _lifecycle = AppLifecycleListener(
+        onResume: () {
+          _syncEdits(_access);
+          _refreshUnread();
+        },
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _syncEdits(_access);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
+  String? _localScope(Json access) {
+    final controller = widget.controller;
+    final id = controller.user?.id;
+    final company = access['companyId'];
+    if (id == null ||
+        company == null ||
+        kIsWeb ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      return null;
+    }
+    return jsonEncode([controller.api.dio.options.baseUrl, id, company]);
+  }
+
+  Future<void> _syncEdits(Future<Json> accessFuture) async {
+    if (_syncing ||
+        !mounted ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    final controller = widget.controller;
+    final revision = controller.api.sessionRevision;
+    _syncing = true;
+    try {
+      final access = await accessFuture;
+      if (!mounted ||
+          !identical(_access, accessFuture) ||
+          revision != controller.api.sessionRevision ||
+          !_allowed(access, 'crm')) {
+        return;
+      }
+      final scope = _localScope(access);
+      if (scope == null) return;
+      final edits = CrmOfflineEdits(scope);
+      if (await edits.hasPending &&
+          mounted &&
+          identical(_access, accessFuture) &&
+          revision == controller.api.sessionRevision) {
+        await edits.sync(controller.api);
+      }
+    } catch (_) {
+      // Leave the durable queue available when local storage or the API is unavailable.
+    } finally {
+      _syncing = false;
+    }
+  }
 
   Future<Json> _load({bool reconnect = false}) async {
     final controller = widget.controller;
@@ -165,18 +264,8 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       }
       return;
     }
-    final companyId = access['companyId'];
-    final cache =
-        companyId != null &&
-            controller.user?.id != null &&
-            !kIsWeb &&
-            defaultTargetPlatform == TargetPlatform.android &&
-            (app.grant == 'crm' || app.title == 'Sales & POS')
-        ? jsonEncode([
-            controller.api.dio.options.baseUrl,
-            controller.user!.id,
-            companyId,
-          ])
+    final cache = app.grant == 'crm' || app.title == 'Sales & POS'
+        ? _localScope(access)
         : null;
     _push(
       _SuiteRecords(
@@ -199,14 +288,23 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       actions: [
         IconButton(
           tooltip: 'Notifications',
-          icon: const Icon(LucideIcons.bell),
-          onPressed: () => _push(
-            _SuiteRecords(
-              title: 'Notifications',
-              controller: widget.controller,
-              path: '/notifications/',
+          icon: Badge(
+            isLabelVisible:
+                !widget.controller.offline && _unreadNotifications > 0,
+            label: Text(
+              _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
             ),
+            child: const Icon(LucideIcons.bell),
           ),
+          onPressed: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    SuiteNotificationsPage(api: widget.controller.api),
+              ),
+            );
+            if (mounted) await _refreshUnread();
+          },
         ),
         IconButton(
           tooltip: 'Settings',
@@ -433,6 +531,7 @@ class _SuiteSettingsState extends State<_SuiteSettings> {
           leading: const Icon(LucideIcons.userRound),
           title: const Text('Account'),
           subtitle: Text(controller.user?.email ?? ''),
+          onTap: () => _openOption({'id': 'account', 'title': 'Account'}),
         ),
         ListTile(
           leading: const Icon(LucideIcons.server),
@@ -532,6 +631,12 @@ class _SettingOptionState extends State<_SettingOption> {
         if (data is! Json) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (widget.id == 'account') {
+          return AccountSettingsPanel(
+            api: widget.controller.api,
+            user: widget.controller.user,
+          );
+        }
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -628,56 +733,6 @@ class _SuiteRecords extends StatefulWidget {
 }
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
-  Timer? _syncTimer;
-  bool _syncing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_crmEdits != null) {
-      _syncTimer = Timer.periodic(
-        const Duration(seconds: 20),
-        (_) => _syncPending(),
-      );
-    }
-  }
-
-  Future<void> _syncPending() async {
-    final edits = _crmEdits;
-    final controller = widget.controller;
-    if (_syncing ||
-        edits == null ||
-        controller.user == null ||
-        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      return;
-    }
-    _syncing = true;
-    try {
-      if (!await edits.hasPending || !mounted || controller.user == null) {
-        return;
-      }
-      await edits.sync(controller.api);
-      if (mounted &&
-          !widget.offlineOnly &&
-          !await edits.hasPending &&
-          mounted) {
-        setState(() {
-          _records = _load();
-        });
-      }
-    } catch (_) {
-      // Transient local or server failures leave drafts available for later.
-    } finally {
-      _syncing = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    _syncTimer?.cancel();
-    super.dispose();
-  }
-
   CrmOfflineEdits? get _crmEdits {
     final scope = widget.cachePrefix;
     return widget.path == CrmLeadPage.endpoint && scope != null
