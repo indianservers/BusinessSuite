@@ -65,20 +65,24 @@ void main() {
     expect(find.text('Offline created note'), findsOneWidget);
     final operations = <Object?>[];
     dio.httpClientAdapter = FakeAdapter((request) async {
-      expect(request.path, '/project-management/notes');
+      expect(request.path, '/project-management/notes/offline-create');
       expect(request.method, 'POST');
       expect(request.data['title'], 'Offline created note');
       operations.add(request.headers['X-Offline-Operation']);
-      return operations.length == 1
-          ? response({'detail': 'Offline'}, 503)
-          : response({'id': 5}, 201);
+      return switch (operations.length) {
+        1 => response({'detail': 'Method Not Allowed'}, 405),
+        2 => response({'detail': 'Offline'}, 503),
+        _ => response({'id': 5}, 201),
+      };
     });
     await tester.runAsync(() => cache.sync(api));
     expect(await cache.creations(), hasLength(1));
     await tester.runAsync(() => cache.sync(api));
-    expect(operations, hasLength(2));
+    expect(await cache.creations(), hasLength(1));
+    await tester.runAsync(() => cache.sync(api));
+    expect(operations, hasLength(3));
     expect(operations.first, isNotNull);
-    expect(operations.first, operations.last);
+    expect(operations.toSet(), hasLength(1));
     expect(await cache.creations(), isEmpty);
   });
   testWidgets('Notes queues an offline edit and preserves a conflict', (

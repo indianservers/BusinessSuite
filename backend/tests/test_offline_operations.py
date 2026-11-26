@@ -52,12 +52,14 @@ def test_private_note_create_replays_without_duplicate(client, db, studio):
     receipts.create(db.get_bind(), checkfirst=True)
     _, _, _, headers, _, _, _, _, _ = studio
     path = f"{BASE}/notes"
+    offline_path = f"{path}/offline-create"
     request_headers = {**headers, "X-Offline-Operation": str(uuid4())}
     body = {"title": "Offline field notes", "content": "Private draft"}
-    first = client.post(path, headers=request_headers, json=body)
+    assert client.post(offline_path, headers=headers, json=body).status_code == 422
+    first = client.post(offline_path, headers=request_headers, json=body)
     assert first.status_code == 201, first.text
     replay = client.post(path, headers=request_headers, json=body)
     assert replay.status_code == 201, replay.text
     assert replay.json()["id"] == first.json()["id"]
-    assert client.post(path, headers=request_headers, json={**body, "title": "Another draft"}).status_code == 409
+    assert client.post(offline_path, headers=request_headers, json={**body, "title": "Another draft"}).status_code == 409
     assert [row["id"] for row in client.get(path, headers=headers, params={"q": body["title"]}).json()] == [first.json()["id"]]

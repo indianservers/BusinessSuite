@@ -248,6 +248,16 @@ def create_note(data: NoteInput, db: Session = Depends(get_db), user: User = Dep
     return result(db, note, user)
 
 
+@router.post("/notes/offline-create", status_code=201)
+def create_offline_note(
+    data: NoteInput,
+    offline_operation: UUID = Header(alias="X-Offline-Operation"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return create_note(data, db, user, offline_operation)
+
+
 @router.get("/notes/{note_id}")
 def get_note(note_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return result(db, readable(db, note_id, user), user)

@@ -157,7 +157,7 @@ class NotesOfflineCache {
               await api.request(
                     create ? 'POST' : 'PUT',
                     create
-                        ? '/project-management/notes'
+                        ? '/project-management/notes/offline-create'
                         : '/project-management/notes/$id',
                     scopeHeaders: {
                       'X-Suite-Organization': _company,
@@ -172,6 +172,7 @@ class NotesOfflineCache {
         } on ApiFailure catch (failure) {
           if (failure.status == null ||
               failure.status == 401 ||
+              (create && const {404, 405}.contains(failure.status)) ||
               failure.status == 429 ||
               failure.status! >= 500) {
             return;
