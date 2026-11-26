@@ -24,6 +24,7 @@ import 'lead_sources_panel.dart';
 import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
+import 'my_leave_page.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -942,8 +943,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       actions: [
         if (widget.path == '/employees/')
           IconButton(
-            tooltip: 'My Attendance',
+            tooltip: 'My Leave',
             icon: const Icon(LucideIcons.calendarDays),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MyLeavePage(api: widget.controller.api),
+              ),
+            ),
+          ),
+        if (widget.path == '/employees/')
+          IconButton(
+            tooltip: 'My Attendance',
+            icon: const Icon(LucideIcons.clock),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => MyAttendancePage(api: widget.controller.api),

@@ -11,6 +11,7 @@ import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
+import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -23,6 +24,90 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'HR leave applies through the shared API and refreshes the request list',
+    (tester) async {
+      var submitted = false;
+      const type = {
+        'id': 2,
+        'name': 'Annual leave',
+        'is_active': true,
+        'half_day_allowed': true,
+      };
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case '/leave/types':
+              return response([type]);
+            case '/leave/balance':
+              return response([
+                {'leave_type': type, 'available': 8, 'used': 2, 'pending': 0},
+              ]);
+            case '/leave/my-requests':
+              return response([
+                if (submitted)
+                  {
+                    'leave_type': type,
+                    'from_date': '2026-12-01',
+                    'to_date': '2026-12-02',
+                    'days_count': 2,
+                    'status': 'Pending',
+                  },
+              ]);
+            case '/leave/apply':
+              expect(request.method, 'POST');
+              expect(request.data, {
+                'leave_type_id': 2,
+                'from_date': '2026-12-01',
+                'to_date': '2026-12-02',
+                'is_half_day': false,
+              });
+              submitted = true;
+              return response({'id': 8}, 201);
+            default:
+              fail('Unexpected request ${request.path}');
+          }
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyLeavePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('8 days available'), findsOneWidget);
+      final localizations = MaterialLocalizations.of(
+        tester.element(find.byType(MyLeavePage)),
+      );
+      await tester.tap(find.text('Apply for leave'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Annual leave').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choose leave dates'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(localizations.inputDateModeButtonLabel));
+      await tester.pumpAndSettle();
+      final fields = find.descendant(
+        of: find.byType(DateRangePickerDialog),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(fields.first, '12/01/2026');
+      await tester.enterText(fields.last, '12/02/2026');
+      await tester.tap(find.text(localizations.okButtonLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Submit request'));
+      await tester.pumpAndSettle();
+      expect(submitted, isTrue);
+      expect(find.text('Pending'), findsOneWidget);
+    },
+  );
   testWidgets(
     'HR attendance records mobile punches and refreshes from the server',
     (tester) async {
