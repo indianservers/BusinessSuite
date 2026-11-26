@@ -2243,8 +2243,24 @@ void main() {
             '/auth/change-password' => response({'message': 'Updated'}),
             '/srm/industry/records' => response({
               'items': [
-                {'title': 'Sample booking'},
+                {'id': 61, 'title': 'Sample booking'},
               ],
+            }),
+            '/srm/industry/appointments/61' => response({
+              'id': 61,
+              'title': 'Sample booking',
+              'revision': 4,
+              'status': 'booked',
+              'data': {'service_name': 'Consultation'},
+            }),
+            '/srm/industry/capabilities' => response({
+              'appointment_actions': ['check_in'],
+            }),
+            '/srm/industry/records/61/transition' => response({
+              'id': 61,
+              'title': 'Sample booking',
+              'revision': 5,
+              'status': 'checked_in',
             }),
             '/notifications/' => response({
               'items': [
@@ -2399,6 +2415,22 @@ void main() {
         (r) => r.path == '/srm/industry/records',
       );
       expect(branchRequest.headers['X-Suite-Branch'], '6');
+      await open('Sample booking');
+      expect(find.text('Consultation'), findsOneWidget);
+      expect(find.text('Cancel appointment'), findsNothing);
+      await open('Check in');
+      final transition = calls.singleWhere(
+        (r) => r.path == '/srm/industry/records/61/transition',
+      );
+      expect(transition.method, 'POST');
+      expect(transition.headers['X-Suite-Branch'], '6');
+      expect(transition.data, {
+        'expected_revision': 4,
+        'status': 'checked_in',
+        'reason': '',
+      });
+      expect(find.text('checked in'), findsOneWidget);
+      await back();
       await back();
       await back();
       for (final entry in {

@@ -864,18 +864,106 @@ class _AppointmentDetails extends StatefulWidget {
     required this.controller,
     required this.id,
     required this.scopeHeaders,
+    required this.onChanged,
   });
 
   final AppController controller;
   final int id;
   final Map<String, String> scopeHeaders;
+  final VoidCallback onChanged;
 
   @override
   State<_AppointmentDetails> createState() => _AppointmentDetailsState();
 }
 
 class _AppointmentDetailsState extends State<_AppointmentDetails> {
+  static const _actions = {
+    'checked_in': ('check_in', 'Check in'),
+    'in_service': ('start', 'Start service'),
+    'completed': ('complete', 'Complete'),
+    'cancelled': ('cancel', 'Cancel appointment'),
+    'no_show': ('no_show', 'Record no-show'),
+  };
+
   late Future<dynamic> _details = _load();
+  late final Future<Json?> _capabilities = _loadCapabilities();
+  bool _saving = false;
+  String? _error;
+
+  Future<Json?> _loadCapabilities() async {
+    try {
+      final result = await widget.controller.api.request(
+        'GET',
+        '/srm/industry/capabilities',
+        scopeHeaders: widget.scopeHeaders,
+      );
+      return result is Json ? result : null;
+    } on ApiFailure {
+      return null;
+    }
+  }
+
+  Future<void> _transition(int revision, String status, String label) async {
+    if (_saving) return;
+    String? reason = '';
+    if (status == 'cancelled' || status == 'no_show') {
+      var input = '';
+      reason = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(label),
+          content: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Reason'),
+            onChanged: (text) => input = text.trim(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (input.isNotEmpty) Navigator.pop(context, input);
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!mounted || reason == null || _saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final updated = await widget.controller.api.request(
+        'POST',
+        '/srm/industry/records/${widget.id}/transition',
+        data: {
+          'expected_revision': revision,
+          'status': status,
+          'reason': reason,
+        },
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (!mounted) return;
+      widget.onChanged();
+      setState(() {
+        _details = Future.value(updated);
+      });
+    } on ApiFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString();
+          if (error.status == 409) _details = _load();
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   Future<dynamic> _load() => widget.controller.api.request(
     'GET',
@@ -908,7 +996,9 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
               children: [
                 const Text('Could not load this appointment.'),
                 TextButton(
-                  onPressed: () => setState(() => _details = _load()),
+                  onPressed: () => setState(() {
+                    _details = _load();
+                  }),
                   child: const Text('Retry'),
                 ),
               ],
@@ -917,12 +1007,25 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
         }
         final rawData = appointment['data'];
         final data = rawData is Json ? rawData : <String, dynamic>{};
+        final start = DateTime.tryParse('${data['starts_at']}');
+        final duration = data['duration_minutes'];
+        final revision = appointment['revision'];
+        final next = switch (appointment['status']) {
+          'booked' => ['checked_in', 'cancelled', 'no_show'],
+          'checked_in' => ['in_service', 'cancelled'],
+          'in_service' => ['completed'],
+          _ => <String>[],
+        };
         final fields = <String, Object?>{
           'Status': appointment['status']?.toString().replaceAll('_', ' '),
           'Customer': data['customer_name'],
           'Service': data['service_name'],
           'Starts': data['starts_at'],
-          'Ends': data['ends_at'],
+          'Ends':
+              data['ends_at'] ??
+              (start != null && duration is int
+                  ? start.add(Duration(minutes: duration)).toIso8601String()
+                  : null),
         };
         return ListView(
           children: [
@@ -942,6 +1045,44 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
                         : '$value',
                   ),
                 ),
+            if (_error case final String message)
+              ListTile(title: Text(message)),
+            if (revision is int && next.isNotEmpty)
+              FutureBuilder<Json?>(
+                future: _capabilities,
+                builder: (context, snapshot) {
+                  final caps = snapshot.data;
+                  final allowed = caps?['appointment_actions'];
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final status in next)
+                          if (_actions[status] case (
+                            final permission,
+                            final label,
+                          ))
+                            if (allowed is List
+                                ? allowed.contains(permission)
+                                : caps?['manage'] == true)
+                              OutlinedButton(
+                                onPressed:
+                                    _saving ||
+                                        (status == 'no_show' &&
+                                            (start == null ||
+                                                start.isAfter(DateTime.now())))
+                                    ? null
+                                    : () =>
+                                          _transition(revision, status, label),
+                                child: Text(label),
+                              ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         );
       },
@@ -1713,6 +1854,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   controller: widget.controller,
                                   id: appointmentId,
                                   scopeHeaders: widget.scopeHeaders,
+                                  onChanged: () {
+                                    if (mounted) {
+                                      setState(() {
+                                        _records = _startLoad();
+                                      });
+                                    }
+                                  },
                                 ),
                               ),
                             ),
