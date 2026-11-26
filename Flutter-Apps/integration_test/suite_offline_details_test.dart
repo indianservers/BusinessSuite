@@ -143,6 +143,7 @@ void main() {
     final id = DateTime.now().microsecondsSinceEpoch;
     var requests = 0;
     final searches = <Object?>[];
+    var lostConnection = false;
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         switch (request.path) {
@@ -158,6 +159,12 @@ void main() {
           case '/srm/sales-orders':
             if (request.queryParameters['search'] case final String term) {
               searches.add(term);
+              if (lostConnection) {
+                throw DioException(
+                  requestOptions: request,
+                  type: DioExceptionType.connectionError,
+                );
+              }
               return response([
                 {'id': 2, 'order_number': 'ARCHIVED-ORDER'},
               ]);
@@ -219,6 +226,19 @@ void main() {
       '["https://example.test/api/v1",$id,7]:/srm/sales-orders',
     );
     expect(snapshots?.single['order_number'], 'QA-SALE-2');
+    lostConnection = true;
+    await tester.enterText(search, 'QA-SALE');
+    final savedSearch = find.text('Search saved orders');
+    final deadline = DateTime.now().add(const Duration(seconds: 15));
+    while (savedSearch.evaluate().isEmpty &&
+        DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(savedSearch, findsOneWidget);
+    await tester.enterText(search, 'QA-SALE-2');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('QA-SALE-2'), findsOneWidget);
+    expect(searches, ['archived', 'QA-SALE']);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

@@ -964,6 +964,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
         await loadSavedLeadPages();
+        if (error.connectionFailure &&
+            mounted &&
+            api.sessionRevision == revision &&
+            loadRevision == _loadRevision &&
+            _cached != null) {
+          _offlineOnly = true;
+        }
       }
       rethrow;
     }
