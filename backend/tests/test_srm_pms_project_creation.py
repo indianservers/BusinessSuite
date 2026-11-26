@@ -16,6 +16,14 @@ def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_
     assert detailed["lines"]
     assert header == {key: detailed[key] for key in header}
     assert "lines" not in header
+    found = client.get(path, headers=superuser_headers, params={
+        "summary_only": True, "search": order["order_number"].lower(),
+    })
+    assert found.status_code == 200
+    assert header in found.json()
+    no_match = client.get(path, headers=superuser_headers, params={"search": "%%"})
+    assert no_match.status_code == 200
+    assert no_match.json() == []
 
 
 def test_inventory_summary_preserves_search_and_pagination(client, db, superuser_headers):

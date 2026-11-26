@@ -7,7 +7,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import Response
-from sqlalchemy import String, and_, case, cast, func, select
+from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
@@ -685,9 +685,17 @@ def module_info(current_user: User = Depends(RequirePermission("srm_view", "srm_
 
 
 @router.get("/sales-orders")
-def list_sales_orders(summary_only: bool = False, db: Session = Depends(get_db),
+def list_sales_orders(summary_only: bool = False, search: str = Query("", max_length=220), db: Session = Depends(get_db),
                       current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    orders = sales_order_query(db, current_user).order_by(SRMSalesOrder.id.desc()).limit(200)
+    orders = sales_order_query(db, current_user)
+    term = search.strip()
+    if term:
+        orders = orders.filter(or_(
+            SRMSalesOrder.order_number.icontains(term, autoescape=True),
+            SRMSalesOrder.title.icontains(term, autoescape=True),
+            SRMSalesOrder.status.icontains(term, autoescape=True),
+        ))
+    orders = orders.order_by(SRMSalesOrder.id.desc()).limit(200)
     if summary_only:
         fields = (
             SRMSalesOrder.id, SRMSalesOrder.order_number, SRMSalesOrder.status,

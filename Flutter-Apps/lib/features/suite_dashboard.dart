@@ -854,7 +854,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
-  bool get _searchOnServer => _isCrm || _inventory;
+  bool get _searchOnServer =>
+      _isCrm || _inventory || widget.path == '/srm/sales-orders';
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
