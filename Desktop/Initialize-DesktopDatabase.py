@@ -16,6 +16,8 @@ def main():
     parser.add_argument("--username", required=True)
     parser.add_argument("--sslmode", choices=("disable", "verify-full"), required=True)
     parser.add_argument("--sslrootcert")
+    parser.add_argument("--password-stdin", action="store_true",
+                        help="Read the migration role password from standard input instead of prompting.")
     parser.add_argument("--bootstrap-admin", metavar="EMAIL",
                         help="Initialize the first company and Suite administrator in an empty database.")
     parser.add_argument("--seed-permission-catalog", action="store_true",
@@ -42,7 +44,9 @@ def main():
         backend = backend.parent / "backend"
     sys.path.insert(0, str(backend))
 
-    password = getpass("PostgreSQL migration role password: ")
+    password = sys.stdin.readline().rstrip("\r\n") if args.password_stdin else getpass("PostgreSQL migration role password: ")
+    if not password:
+        raise SystemExit("A PostgreSQL migration role password is required.")
     query = {"sslmode": args.sslmode}
     if args.sslrootcert:
         query["sslrootcert"] = str(Path(args.sslrootcert).resolve())
