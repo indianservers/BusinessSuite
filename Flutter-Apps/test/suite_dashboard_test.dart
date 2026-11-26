@@ -261,13 +261,26 @@ void main() {
       expect((await queue.pending(9))?['error'], 'Lead changed');
       expect((await queue.pending(9))?['values']['first_name'], 'Local name');
       await queue.enqueue(10, 5, {'first_name': 'Synced name'});
+      await queue.enqueue(9, 7, {
+        'first_name': 'Reviewed name',
+      }, rejectedVersion: 4);
+      dio.httpClientAdapter = FakeAdapter((r) async {
+        expect(r.path, '/crm/lead-management/leads/9');
+        expect(r.data, {
+          'version': 7,
+          'values': {'first_name': 'Reviewed name'},
+        });
+        return response({'version': 8});
+      });
+      await queue.sync(api, leadId: 9);
+      expect(await queue.pending(9), isNull);
+      expect(await queue.pending(10), isNotNull);
       dio.httpClientAdapter = FakeAdapter((r) async {
         expect(r.path, '/crm/lead-management/leads/10');
         return response({'version': 6});
       });
       await queue.sync(api);
       expect(await queue.pending(10), isNull);
-      expect(await queue.pending(9), isNotNull);
     },
   );
   testWidgets('CRM lead edit sends the displayed record version', (

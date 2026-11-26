@@ -37,26 +37,37 @@ class CrmOfflineEdits {
     }
   }
 
-  Future<void> enqueue(int id, int version, Json values) =>
-      _serialized(() async {
-        final rows = await _read();
-        if (rows.containsKey('$id')) {
-          throw StateError(
-            'This lead already has a saved edit awaiting review or sync.',
-          );
-        }
-        rows['$id'] = {'version': version, 'values': values};
-        await _storage.write(key: _key, value: jsonEncode(rows));
-      });
+  Future<void> enqueue(
+    int id,
+    int version,
+    Json values, {
+    int? rejectedVersion,
+  }) => _serialized(() async {
+    final rows = await _read();
+    final existing = rows['$id'] as Json?;
+    if (rejectedVersion != null) {
+      if (existing?['error'] == null ||
+          existing?['version'] != rejectedVersion) {
+        throw StateError('This saved edit has changed. Refresh the lead.');
+      }
+    } else if (existing != null) {
+      throw StateError(
+        'This lead already has a saved edit awaiting review or sync.',
+      );
+    }
+    rows['$id'] = {'version': version, 'values': values};
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
 
-  Future<void> sync(ApiClient api) {
+  Future<void> sync(ApiClient api, {int? leadId}) {
     final session = api.sessionRevision;
     return _serialized(() async {
       final rows = await _read();
-      for (final id in rows.keys.toList()) {
+      final ids = leadId == null ? rows.keys.toList() : ['$leadId'];
+      for (final id in ids) {
         if (!api.hasSession || session != api.sessionRevision) return;
-        final edit = rows[id] as Json;
-        if (edit['error'] != null) continue;
+        final edit = rows[id] as Json?;
+        if (edit == null || edit['error'] != null) continue;
         try {
           await api.request(
             'PATCH',

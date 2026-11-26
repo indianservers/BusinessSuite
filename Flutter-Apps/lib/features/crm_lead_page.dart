@@ -145,7 +145,24 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     }
   }
 
-  Future<void> _edit(Json lead, int version, {required bool offline}) async {
+  void _refresh({bool sync = false}) {
+    final edits = widget.offlineEdits;
+    final attempt = sync && edits != null
+        ? edits.sync(widget.api, leadId: _id)
+        : Future<void>.value();
+    final ready = attempt.then<void>((_) {}, onError: (Object _) {});
+    setState(() {
+      _lead = ready.then((_) => _load());
+      _pending = ready.then((_) => _readPending());
+    });
+  }
+
+  Future<void> _edit(
+    Json lead,
+    int version, {
+    required bool offline,
+    Json? rejected,
+  }) async {
     final fields = [
       ('first_name', 'First name', 100),
       ('last_name', 'Last name', 100),
@@ -156,6 +173,12 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
       for (final (key, _, _) in fields) key: lead[key]?.toString() ?? '',
     };
     final draft = Map.of(initial);
+    final rejectedValues = rejected?['values'] as Json?;
+    if (rejectedValues != null) {
+      for (final key in initial.keys.where(rejectedValues.containsKey)) {
+        draft[key] = rejectedValues[key]?.toString() ?? '';
+      }
+    }
     String? error;
     var saving = false;
     var conflict = false;
@@ -166,20 +189,27 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
         builder: (context, update) => PopScope(
           canPop: !saving,
           child: AlertDialog(
-            title: const Text('Edit lead details'),
+            title: Text(
+              rejected == null ? 'Edit lead details' : 'Review saved lead edit',
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   for (final (key, label, maximum) in fields)
                     TextFormField(
-                      initialValue: initial[key],
+                      initialValue: draft[key],
                       enabled: !saving,
                       maxLength: maximum,
                       keyboardType: key == 'email'
                           ? TextInputType.emailAddress
                           : null,
-                      decoration: InputDecoration(labelText: label),
+                      decoration: InputDecoration(
+                        labelText: label,
+                        helperText: rejectedValues?.containsKey(key) == true
+                            ? 'On server: ${initial[key]!.isEmpty ? 'Empty' : initial[key]}'
+                            : null,
+                      ),
                       onChanged: (text) => draft[key] = text,
                     ),
                   if (error != null) SelectableText(error!),
@@ -214,11 +244,12 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           error = null;
                         });
                         try {
-                          if (offline) {
+                          if (offline || rejected != null) {
                             await widget.offlineEdits!.enqueue(
                               _id,
                               version,
                               values,
+                              rejectedVersion: rejected?['version'] as int?,
                             );
                             if (context.mounted) Navigator.pop(context, lead);
                             return;
@@ -246,7 +277,13 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           });
                         }
                       },
-                child: Text(saving ? 'Saving…' : 'Save'),
+                child: Text(
+                  saving
+                      ? 'Saving…'
+                      : rejected == null
+                      ? 'Save'
+                      : 'Save and sync',
+                ),
               ),
             ],
           ),
@@ -254,6 +291,10 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
       ),
     );
     if (result != null && mounted) {
+      if (rejected != null) {
+        _refresh(sync: true);
+        return;
+      }
       setState(() {
         if (!offline) _lead = Future.value(result);
         _pending = _readPending();
@@ -273,9 +314,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
         if (!widget.offline)
           IconButton(
             tooltip: 'Refresh lead',
-            onPressed: () => setState(() {
-              _lead = _load();
-            }),
+            onPressed: () => _refresh(sync: true),
             icon: const Icon(Icons.refresh),
           ),
       ],
@@ -362,10 +401,25 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                     ),
                     trailing: draft['error'] == null
                         ? null
-                        : IconButton(
-                            tooltip: 'Discard saved edit',
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: _discardDraft,
+                        : Wrap(
+                            children: [
+                              if (!offline && version is int)
+                                IconButton(
+                                  tooltip: 'Review saved edit',
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _edit(
+                                    lead,
+                                    version,
+                                    offline: false,
+                                    rejected: draft,
+                                  ),
+                                ),
+                              IconButton(
+                                tooltip: 'Discard saved edit',
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: _discardDraft,
+                              ),
+                            ],
                           ),
                   );
                 }
