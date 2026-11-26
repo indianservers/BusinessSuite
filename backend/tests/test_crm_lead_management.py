@@ -12,6 +12,21 @@ from app.models.user import User
 ROOT = "/api/v1/crm/lead-management"
 
 
+def test_mobile_lead_summary_preserves_queue_and_edit_version(client, superuser_headers):
+    lead = create(client, superuser_headers, full_name="Summary Lead")
+    path = ROOT + "/leads"
+    params = {"search": "Summary Lead", "queue": "all", "per_page": 1}
+    full = client.get(path, headers=superuser_headers, params=params)
+    mobile = client.get(path, headers=superuser_headers, params={**params, "summary_only": True})
+    assert full.status_code == mobile.status_code == 200
+    assert full.json()["total"] == mobile.json()["total"] == 1
+    summary = mobile.json()["items"][0]
+    assert summary["id"] == lead["id"]
+    assert summary["version"] == lead["version"]
+    assert summary == {key: full.json()["items"][0].get(key) for key in summary}
+    assert {"email", "phone", "details", "signals"}.isdisjoint(summary)
+
+
 def test_audit_lead_search_treats_wildcards_as_literal(client, db, superuser_headers):
     names = ["QA_TEST_2026_LEAD_001", "QA%LEAD", "QA_LEAD", r"QA\LEAD"]
     records = {name: create(client, superuser_headers, full_name=name) for name in names}

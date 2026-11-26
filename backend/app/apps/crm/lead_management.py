@@ -1229,6 +1229,7 @@ def list_leads(
     ] = "all",
     page: int = Query(1, ge=1),
     per_page: int = Query(40, ge=1, le=200),
+    summary_only: bool = False,
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*ACCESS)),
 ):
@@ -1320,8 +1321,16 @@ def list_leads(
                 item.get("next_follow_up_at") or item.get("created_at") or "",
             )
         )
+    page_items = filtered[(page - 1) * per_page : page * per_page]
+    if summary_only:
+        fields = ("id", "first_name", "last_name", "full_name", "company_name", "status", "version")
+        return {
+            "items": [{field: item.get(field) for field in fields} for item in page_items],
+            "total": len(filtered), "page": page, "perPage": per_page,
+            "truncated": truncated, "limit": MAX_ROWS,
+        }
     return {
-        "items": filtered[(page - 1) * per_page : page * per_page],
+        "items": page_items,
         "total": len(filtered),
         "page": page,
         "perPage": per_page,

@@ -305,7 +305,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         title: app.title,
         controller: controller,
         path: app.endpoint,
-        query: app.title == 'Sales & POS'
+        query: app.title == 'Sales & POS' || app.grant == 'crm'
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,
@@ -890,28 +890,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     dynamic data;
     try {
+      final edits = _crmEdits;
+      if (edits != null) {
+        try {
+          if (await edits.hasPending) await edits.sync(api);
+        } catch (_) {
+          // The list remains readable if the device edit store is unavailable.
+        }
+      }
+      if (api.sessionRevision != revision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
       data = await widget.controller.api.request(
         'GET',
         path,
         query: widget.query,
         scopeHeaders: widget.scopeHeaders,
       );
-      final edits = _crmEdits;
-      if (edits != null) {
-        try {
-          if (await edits.hasPending) {
-            await edits.sync(widget.controller.api);
-            data = await widget.controller.api.request(
-              'GET',
-              path,
-              query: widget.query,
-              scopeHeaders: widget.scopeHeaders,
-            );
-          }
-        } catch (_) {
-          // The list remains readable if the device edit store is unavailable.
-        }
-      }
     } on ApiFailure catch (error) {
       if (cacheKey != null && (error.status == 401 || error.status == 403)) {
         if (mounted) setState(() => _cached = null);
