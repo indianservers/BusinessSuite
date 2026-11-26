@@ -676,8 +676,19 @@ def module_info(current_user: User = Depends(RequirePermission("srm_view", "srm_
 
 
 @router.get("/sales-orders")
-def list_sales_orders(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    return [_serialize(item) | {"lines": [_serialize(line) for line in item.lines]} for item in sales_order_query(db, current_user).order_by(SRMSalesOrder.id.desc()).limit(200).all()]
+def list_sales_orders(summary_only: bool = False, db: Session = Depends(get_db),
+                      current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    orders = sales_order_query(db, current_user).order_by(SRMSalesOrder.id.desc()).limit(200)
+    if summary_only:
+        fields = (
+            SRMSalesOrder.id, SRMSalesOrder.order_number, SRMSalesOrder.status,
+            SRMSalesOrder.title, SRMSalesOrder.currency, SRMSalesOrder.subtotal,
+            SRMSalesOrder.discount_amount, SRMSalesOrder.tax_amount,
+            SRMSalesOrder.total_amount, SRMSalesOrder.expected_start_date,
+            SRMSalesOrder.expected_end_date,
+        )
+        return [dict(row._mapping) for row in orders.with_entities(*fields).all()]
+    return [_serialize(item) | {"lines": [_serialize(line) for line in item.lines]} for item in orders.all()]
 
 
 def _get_pos_session(db: Session, session_id: int, user: User) -> SRMPOSSession:

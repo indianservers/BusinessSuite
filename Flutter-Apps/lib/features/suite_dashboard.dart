@@ -305,6 +305,9 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         title: app.title,
         controller: controller,
         path: app.endpoint,
+        query: app.title == 'Sales & POS'
+            ? const {'summary_only': true}
+            : const {},
         cachePrefix: cache,
         showInventory: app.title == 'Sales & POS',
         canExportInvoices: allowsSalesAction('export'),

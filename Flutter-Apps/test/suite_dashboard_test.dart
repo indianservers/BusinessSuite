@@ -37,6 +37,7 @@ void main() {
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         expect(request.path, '/srm/sales-orders');
+        expect(request.queryParameters['summary_only'], isTrue);
         orders++;
         return response([
           {'id': 4, 'order_number': 'SO-4'},
