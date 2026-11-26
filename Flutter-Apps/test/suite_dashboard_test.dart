@@ -1759,6 +1759,7 @@ void main() {
           return switch (request.path) {
             '/access/me' => response({
               'companyName': 'Example company',
+              'companyId': 7,
               'grants': {
                 for (final key in [
                   'srm',
@@ -1978,6 +1979,20 @@ void main() {
         isTrue,
       );
       expect(tester.takeException(), isNull);
+      expect(
+        api.offlineSuite?['access']['grants']['project_management']['enabled'],
+        isTrue,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      controller.offline = true;
+      await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+      await tester.pumpAndSettle();
+      final requestsBeforeNotes = calls.length;
+      await open('Notes');
+      expect(find.byTooltip('Refresh notes'), findsOneWidget);
+      expect(calls.length, requestsBeforeNotes);
     },
+    variant: TargetPlatformVariant({TargetPlatform.iOS}),
   );
 }

@@ -244,7 +244,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'companyId': access['companyId'],
             'companyName': access['companyName'],
             'grants': {
-              for (final key in ['crm', 'srm', 'fam'])
+              for (final key in ['crm', 'srm', 'fam', 'project_management'])
                 key: {
                   'enabled': _allowed(access, key) && grants.containsKey(key),
                 },
@@ -395,7 +395,9 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             .where((app) => _allowed(access, app.grant))
             .where(
               (app) =>
-                  !widget.controller.offline || app.title != 'Appointments',
+                  !widget.controller.offline ||
+                  (app.title != 'Appointments' &&
+                      app.grant != 'project_management'),
             )
             .toList();
         final shown = allowed
