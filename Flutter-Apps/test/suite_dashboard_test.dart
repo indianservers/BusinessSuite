@@ -9,6 +9,7 @@ import 'package:business_suite_mobile/features/branch_settings_panel.dart';
 import 'package:business_suite_mobile/features/branch_membership_page.dart';
 import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
+import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -21,6 +22,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'GST invoice reads document, delivery, and payment from shared API',
+    (tester) async {
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.method, 'GET');
+          expect(request.path, '/srm/invoices/7');
+          return response({
+            'invoice_number': 'GST-7',
+            'document_status': 'issued',
+            'delivery_status': 'delivered',
+            'payment_status': 'partially_paid',
+            'currency': 'INR',
+            'total_amount': '118.00',
+            'balance_amount': '18.00',
+            'lines': [
+              {'description': 'Consulting', 'quantity': 1},
+            ],
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GstInvoicePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            id: 7,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('GST-7'), findsOneWidget);
+      expect(find.text('partially paid'), findsOneWidget);
+      expect(find.text('INR 18.00'), findsOneWidget);
+      expect(find.text('Consulting'), findsOneWidget);
+    },
+  );
   testWidgets('starter values submit one enabled module and show the result', (
     tester,
   ) async {

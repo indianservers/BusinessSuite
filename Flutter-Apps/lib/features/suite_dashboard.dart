@@ -22,6 +22,7 @@ import 'business_defaults_panel.dart';
 import 'branch_settings_panel.dart';
 import 'lead_sources_panel.dart';
 import 'starter_values_panel.dart';
+import 'gst_invoice_page.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -958,6 +959,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (widget.showInventory)
           IconButton(
+            tooltip: 'GST Billing',
+            icon: const Icon(LucideIcons.receipt),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'GST Billing',
+                  controller: widget.controller,
+                  path: GstInvoicePage.listEndpoint,
+                  offlineOnly: widget.offlineOnly,
+                ),
+              ),
+            ),
+          ),
+        if (widget.showInventory)
+          IconButton(
             tooltip: 'Inventory',
             icon: const Icon(LucideIcons.package),
             onPressed: () => Navigator.of(context).push(
@@ -1016,7 +1032,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null;
-              final search = widget.cachePrefix != null || _stockAlerts;
+              final search =
+                  widget.cachePrefix != null ||
+                  _stockAlerts ||
+                  widget.path == GstInvoicePage.listEndpoint;
               final candidates = _stockAlerts
                   ? (rows.where(_lowStock).toList()..sort(
                       (a, b) => _stockNumber(
@@ -1035,6 +1054,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'first_name',
                                     'last_name',
                                     'order_number',
+                                    'invoice_number',
                                     'status',
                                     'sku',
                                     'item_name',
@@ -1109,6 +1129,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['legal_name'] ??
                             item['full_name'] ??
                             item['order_number'] ??
+                            item['invoice_number'] ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
@@ -1132,6 +1153,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                               (_inventory ||
                                       _stockAlerts ||
                                       widget.path == '/srm/sales-orders' ||
+                                      widget.path ==
+                                          GstInvoicePage.listEndpoint ||
                                       widget.path == CrmLeadPage.endpoint) &&
                                   item['id'] is int
                               ? () => Navigator.of(context).push(
@@ -1163,6 +1186,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             offline:
                                                 widget.offlineOnly ||
                                                 (cached && snapshot.hasError),
+                                          )
+                                        : widget.path ==
+                                              GstInvoicePage.listEndpoint
+                                        ? GstInvoicePage(
+                                            api: widget.controller.api,
+                                            id: item['id'] as int,
                                           )
                                         : InventoryProductPage(
                                             api: widget.controller.api,
