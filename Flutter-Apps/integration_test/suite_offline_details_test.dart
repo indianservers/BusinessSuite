@@ -23,6 +23,25 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('Android CRM combines saved pages without duplicate leads', (
+    tester,
+  ) async {
+    final scope = 'crm-pages-${DateTime.now().microsecondsSinceEpoch}';
+    await SuiteReadCache.writePage(scope, 2, [
+      {'id': 2, 'first_name': 'Older duplicate', 'version': 1},
+      {'id': 1, 'first_name': 'Saved from page two'},
+    ]);
+    await SuiteReadCache.writePage(scope, 1, [
+      {'id': 3, 'first_name': 'Newest lead'},
+      {'id': 2, 'first_name': 'Current duplicate', 'version': 2},
+    ]);
+    final rows = await SuiteReadCache.readPages(scope);
+    expect(rows?.map((row) => row['id']), [3, 2, 1]);
+    expect(rows?[1]['version'], 2);
+    await SuiteReadCache.clearPages(scope);
+    expect(await SuiteReadCache.readPages(scope), isNull);
+  });
+
   testWidgets(
     'Android reopens a cached Finance party from the offline dashboard',
     (tester) async {

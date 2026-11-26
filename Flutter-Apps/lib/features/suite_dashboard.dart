@@ -878,6 +878,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final loadRevision = ++_loadRevision;
     final crmPage = _crmPage;
     final searchTerm = _serverSearch;
+    Future<void> loadSavedLeadPages() async {
+      if (!_isCrm || cacheKey == null) return;
+      try {
+        final saved = await SuiteReadCache.readPages(cacheKey);
+        if (mounted &&
+            api.sessionRevision == revision &&
+            loadRevision == _loadRevision &&
+            saved != null) {
+          setState(() => _cached = saved);
+        }
+      } catch (_) {}
+    }
+
     if (cacheKey != null) {
       try {
         final cached = await SuiteReadCache.snapshot(cacheKey);
@@ -907,6 +920,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     if (_offlineOnly && !reconnect) {
+      await loadSavedLeadPages();
       throw ApiFailure(
         'Offline. Open this page online to save records on this device.',
       );
@@ -940,8 +954,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           setState(() => _cached = null);
         }
         try {
-          await SuiteReadCache.clear(cacheKey);
+          if (_isCrm) {
+            await SuiteReadCache.clearPages(cacheKey);
+          } else {
+            await SuiteReadCache.clear(cacheKey);
+          }
         } catch (_) {}
+      } else if (error.connectionFailure ||
+          error.status == 429 ||
+          (error.status ?? 0) >= 500) {
+        await loadSavedLeadPages();
       }
       rethrow;
     }
@@ -970,7 +992,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmHasNext =
           total is int && pageSize is int && crmPage * pageSize < total;
     }
-    if (cacheKey != null && crmPage == 1 && searchTerm.isEmpty) {
+    if (cacheKey != null && searchTerm.isEmpty) {
       final projection = [
         for (final record in records)
           {
@@ -1014,7 +1036,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           },
       ];
       try {
-        await SuiteReadCache.write(cacheKey, projection);
+        await SuiteReadCache.writePage(cacheKey, crmPage, projection);
       } catch (_) {}
     }
     return records;

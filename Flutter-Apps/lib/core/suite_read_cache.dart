@@ -86,4 +86,44 @@ class SuiteReadCache {
     where: 'scope = ?',
     whereArgs: [scope],
   );
+
+  static String _pagePrefix(String scope) => '$scope:page:';
+
+  static Future<List<Json>?> readPages(String scope) async {
+    final prefix = _pagePrefix(scope);
+    final entries = await (await _open()).query(
+      'snapshots',
+      columns: ['rows'],
+      where: '(scope = ? OR substr(scope, 1, ?) = ?) AND saved_at >= ?',
+      whereArgs: [
+        scope,
+        prefix.length,
+        prefix,
+        DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+      ],
+      orderBy: 'saved_at DESC',
+    );
+    if (entries.isEmpty) return null;
+    final unique = <int, Json>{};
+    for (final entry in entries) {
+      for (final row
+          in (jsonDecode(entry['rows'] as String) as List).cast<Json>()) {
+        if (row['id'] case final int id) unique.putIfAbsent(id, () => row);
+      }
+    }
+    final ids = unique.keys.toList()..sort((a, b) => b.compareTo(a));
+    return [for (final id in ids) unique[id]!];
+  }
+
+  static Future<void> writePage(String scope, int page, List<Json> rows) =>
+      write(page == 1 ? scope : '${_pagePrefix(scope)}$page', rows);
+
+  static Future<void> clearPages(String scope) async {
+    final prefix = _pagePrefix(scope);
+    await (await _open()).delete(
+      'snapshots',
+      where: 'scope = ? OR substr(scope, 1, ?) = ?',
+      whereArgs: [scope, prefix.length, prefix],
+    );
+  }
 }
