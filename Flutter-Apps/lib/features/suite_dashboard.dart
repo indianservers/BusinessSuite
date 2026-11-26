@@ -1119,6 +1119,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? CrmLeadPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
                                             offlineEdits: _crmEdits,
                                             onSaved: () {
                                               if (mounted) {

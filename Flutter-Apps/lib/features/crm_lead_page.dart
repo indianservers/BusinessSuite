@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/crm_offline_edits.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class CrmLeadPage extends StatefulWidget {
   const CrmLeadPage({
@@ -12,6 +13,7 @@ class CrmLeadPage extends StatefulWidget {
     required this.offline,
     this.onSaved,
     this.offlineEdits,
+    this.cacheScope,
   });
   static const endpoint = '/crm/lead-management/leads';
   final ApiClient api;
@@ -19,13 +21,15 @@ class CrmLeadPage extends StatefulWidget {
   final bool offline;
   final VoidCallback? onSaved;
   final CrmOfflineEdits? offlineEdits;
+  final String? cacheScope;
 
   @override
   State<CrmLeadPage> createState() => _CrmLeadPageState();
 }
 
 class _CrmLeadPageState extends State<CrmLeadPage> {
-  late Future<Json> _lead = _load();
+  late Future<Json?> _lead = _load();
+  Json? _saved;
   late Future<Json?> _pending = _readPending();
   int get _id => widget.summary['id'] as int;
   Future<Json?> _readPending() async {
@@ -72,13 +76,76 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
   }
 
   String get _path => '${CrmLeadPage.endpoint}/${widget.summary['id']}';
-
-  Future<Json> _load() async {
-    if (widget.offline) return widget.summary;
-    return await widget.api.request('GET', _path) as Json;
+  String? get _cacheKey {
+    final scope = widget.cacheScope;
+    return scope == null ? null : '$scope:$_path';
   }
 
-  Future<void> _edit(Json lead, int version) async {
+  Future<void> _saveDetails(Json lead) async {
+    final key = _cacheKey;
+    if (key == null) return;
+    try {
+      await SuiteReadCache.write(key, [
+        {
+          for (final field in const [
+            'first_name',
+            'last_name',
+            'full_name',
+            'company_name',
+            'status',
+            'source',
+            'rating',
+            'version',
+          ])
+            if (lead[field] is String || lead[field] is int) field: lead[field],
+        },
+      ]);
+    } catch (_) {
+      // An unavailable local database leaves the current online lead usable.
+    }
+  }
+
+  Future<Json?> _load() async {
+    final key = _cacheKey;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    if (key != null) {
+      try {
+        final records = await SuiteReadCache.read(key);
+        if (mounted && revision == api.sessionRevision) {
+          setState(() => _saved = records?.firstOrNull);
+        }
+      } catch (_) {}
+    }
+    if (!mounted) return null;
+    if (revision != api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    if (widget.offline) return null;
+    try {
+      final lead = await api.request('GET', _path) as Json;
+      if (revision != api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      await _saveDetails(lead);
+      return lead;
+    } on ApiFailure catch (error) {
+      if (error.connectionFailure ||
+          error.status == 429 ||
+          (error.status ?? 0) >= 500) {
+        return null;
+      }
+      if (key != null && const {401, 403, 404}.contains(error.status)) {
+        if (mounted) setState(() => _saved = null);
+        try {
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _edit(Json lead, int version, {required bool offline}) async {
     var first = lead['first_name'] as String? ?? '';
     var last = lead['last_name'] as String? ?? '';
     String? error;
@@ -136,7 +203,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                             'first_name': first.trim(),
                             'last_name': last.trim(),
                           };
-                          if (widget.offline) {
+                          if (offline) {
                             await widget.offlineEdits!.enqueue(
                               _id,
                               version,
@@ -177,10 +244,13 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     );
     if (result != null && mounted) {
       setState(() {
-        _lead = Future.value(result);
+        if (!offline) _lead = Future.value(result);
         _pending = _readPending();
       });
-      if (!widget.offline) widget.onSaved?.call();
+      if (!offline) {
+        await _saveDetails(result);
+        if (mounted) widget.onSaved?.call();
+      }
     }
   }
 
@@ -199,14 +269,25 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
           ),
       ],
     ),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder<Json?>(
       future: _lead,
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-        final lead = snapshot.data;
-        if (lead == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        final loading = snapshot.connectionState != ConnectionState.done;
+        final live = loading ? null : snapshot.data;
+        final saved = _saved;
+        final savedVersion = saved?['version'];
+        final summaryVersion = widget.summary['version'];
+        final lead =
+            live ??
+            {
+              ...widget.summary,
+              ...?saved,
+              if (summaryVersion is int &&
+                  (savedVersion is! int || summaryVersion > savedVersion))
+                ...widget.summary,
+            };
+        final offline = live == null;
         final name = [
           lead['first_name'],
           lead['last_name'],
@@ -219,8 +300,14 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
               name.isNotEmpty ? name : '${lead['full_name'] ?? 'Lead'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            if (widget.offline)
-              const ListTile(title: Text('Offline · Saved lead summary')),
+            if (loading && !widget.offline) const LinearProgressIndicator(),
+            if (offline && (!loading || widget.offline))
+              ListTile(
+                title: Text(
+                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_saved == null ? 'Saved lead summary' : 'Saved lead details'}',
+                ),
+              ),
             for (final field in const {
               'company_name': 'Company',
               'email': 'Email',
@@ -261,15 +348,14 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           ),
                   );
                 }
-                if (version is! int ||
-                    (widget.offline && widget.offlineEdits == null)) {
+                if (loading ||
+                    version is! int ||
+                    (offline && widget.offlineEdits == null)) {
                   return const SizedBox.shrink();
                 }
                 return OutlinedButton(
-                  onPressed: () => _edit(lead, version),
-                  child: Text(
-                    widget.offline ? 'Edit name offline' : 'Edit lead name',
-                  ),
+                  onPressed: () => _edit(lead, version, offline: offline),
+                  child: Text(offline ? 'Edit name offline' : 'Edit lead name'),
                 );
               },
             ),

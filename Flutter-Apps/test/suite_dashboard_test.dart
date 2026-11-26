@@ -305,6 +305,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('After'), findsOneWidget);
   });
+  testWidgets(
+    'CRM offers a durable edit after the detail request loses connection',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final edits = CrmOfflineEdits('["https://example.test/api/v1",2,7]');
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.method, 'GET');
+          throw DioException(
+            requestOptions: request,
+            type: DioExceptionType.connectionError,
+          );
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CrmLeadPage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            summary: const {'id': 9, 'first_name': 'Before', 'version': 4},
+            offline: false,
+            offlineEdits: edits,
+          ),
+        ),
+      );
+      expect(find.text('Before'), findsOneWidget);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit name offline'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'After');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit saved · Awaiting sync'), findsOneWidget);
+      expect((await edits.pending(9))?['version'], 4);
+      expect((await edits.pending(9))?['values']['first_name'], 'After');
+    },
+  );
   testWidgets('offline order summary opens without a network request', (
     tester,
   ) async {
