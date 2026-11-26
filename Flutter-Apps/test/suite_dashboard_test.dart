@@ -1887,10 +1887,25 @@ void main() {
                   ? 0
                   : 1,
             }),
-            '/power-apps/environments' ||
             '/crm/lead-management/leads' ||
             '/fam/parties' ||
             '/project-management/notes' => response([]),
+            '/power-apps/environments' => response({
+              'items': [
+                {'key': 'development', 'enabled': true},
+                {'key': 'production', 'enabled': false},
+              ],
+            }),
+            '/power-apps/overview' => response({
+              'counts': {'total_apps': 3, 'active_automations': 2},
+              'recent': [
+                {
+                  'name': 'Approval workflow',
+                  'application_id': 'automations',
+                  'status': 'draft',
+                },
+              ],
+            }),
             '/employees/' => response({
               'total': request.queryParameters['search'] == null ? 2 : 1,
               'per_page': 1,
@@ -2009,6 +2024,22 @@ void main() {
       }.entries) {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
+        if (entry.key == 'Power Apps') {
+          await open('production');
+          expect(calls.any((r) => r.path == '/power-apps/overview'), isFalse);
+          await open('development');
+          expect(find.text('Active automations'), findsOneWidget);
+          expect(find.text('Approval workflow'), findsOneWidget);
+          expect(
+            calls.any(
+              (r) =>
+                  r.path == '/power-apps/overview' &&
+                  r.queryParameters['environment'] == 'development',
+            ),
+            isTrue,
+          );
+          await back();
+        }
         if (entry.key == 'AI HRMS') {
           await tester.tap(find.text('Next'));
           await tester.pumpAndSettle();

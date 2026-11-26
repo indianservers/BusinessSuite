@@ -26,6 +26,7 @@ import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
 import 'finance_party_page.dart';
+import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 
@@ -53,7 +54,7 @@ const List<_App> _apps = [
     caption: 'Build & automate',
     icon: LucideIcons.zap,
     color: Color(0xff7638c8),
-    endpoint: '/power-apps/environments',
+    endpoint: PowerEnvironmentPage.endpoint,
   ),
   (
     grant: 'hrms',
@@ -886,6 +887,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
+  bool _usedSavedFallback = false;
   late final InventoryOfflineCreates? _inventoryDrafts =
       _inventory && widget.cachePrefix != null
       ? InventoryOfflineCreates(
@@ -924,6 +926,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final api = widget.controller.api;
     final revision = api.sessionRevision;
     final loadRevision = ++_loadRevision;
+    _usedSavedFallback = false;
     final page = _page;
     final searchTerm = _serverSearch;
     Future<void> loadSavedLeadPages() async {
@@ -970,6 +973,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (_offlineOnly && !reconnect) {
       await loadSavedLeadPages();
+      final saved = _cached;
+      if (saved != null &&
+          loadRevision == _loadRevision &&
+          api.sessionRevision == revision) {
+        _usedSavedFallback = true;
+        return saved;
+      }
       throw ApiFailure(
         'Offline. Open this page online to save records on this device.',
       );
@@ -1013,12 +1023,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
         await loadSavedLeadPages();
-        if (error.connectionFailure &&
-            mounted &&
+        if (mounted &&
             api.sessionRevision == revision &&
             loadRevision == _loadRevision &&
             _cached != null) {
-          _offlineOnly = true;
+          if (error.connectionFailure) _offlineOnly = true;
+          _usedSavedFallback = true;
+          return _cached!;
         }
       }
       rethrow;
@@ -1286,7 +1297,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (rows.isEmpty && !_searchOnServer) {
                 return const Center(child: Text('No records found'));
               }
-              final cached = snapshot.data == null;
+              final cached = snapshot.data == null || _usedSavedFallback;
               final loading = snapshot.connectionState != ConnectionState.done;
               final search =
                   _searchOnServer ||
@@ -1404,13 +1415,32 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         if (cached && index == 0) {
                           return ListTile(
                             title: Text(
-                              snapshot.hasError
+                              snapshot.hasError || _usedSavedFallback
                                   ? 'Refresh unavailable · Saved records'
                                   : 'Saved records · Refreshing',
                             ),
                           );
                         }
                         final item = visible[index - (cached ? 1 : 0)];
+                        if (widget.path == PowerEnvironmentPage.endpoint &&
+                            item['key'] is String) {
+                          final key = item['key'] as String;
+                          final enabled = item['enabled'] == true;
+                          return ListTile(
+                            title: Text(key),
+                            subtitle: Text(enabled ? 'Enabled' : 'Disabled'),
+                            onTap: enabled
+                                ? () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => PowerEnvironmentPage(
+                                        api: widget.controller.api,
+                                        environment: key,
+                                      ),
+                                    ),
+                                  )
+                                : null,
+                          );
+                        }
                         final name = [
                           item['first_name'],
                           item['last_name'],
@@ -1475,7 +1505,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             },
                                             offline:
                                                 _offlineOnly ||
-                                                (cached && snapshot.hasError),
+                                                _usedSavedFallback,
                                           )
                                         : widget.path == '/srm/sales-orders'
                                         ? SalesOrderPage(
@@ -1502,7 +1532,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             scopeHeaders: widget.scopeHeaders,
                                             offline:
                                                 _offlineOnly ||
-                                                (cached && snapshot.hasError),
+                                                _usedSavedFallback,
                                           )
                                         : widget.path ==
                                               GstInvoicePage.listEndpoint
@@ -1541,7 +1571,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             summary: item,
                                             offline:
                                                 _offlineOnly ||
-                                                (cached && snapshot.hasError),
+                                                _usedSavedFallback,
                                           )
                                         : InventoryProductPage(
                                             api: widget.controller.api,
@@ -1550,7 +1580,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             scopeHeaders: widget.scopeHeaders,
                                             offline:
                                                 _offlineOnly ||
-                                                (cached && snapshot.hasError),
+                                                _usedSavedFallback,
                                           ),
                                   ),
                                 )
