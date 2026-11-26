@@ -859,6 +859,96 @@ class _AppointmentBranchesState extends State<_AppointmentBranches> {
   );
 }
 
+class _AppointmentDetails extends StatefulWidget {
+  const _AppointmentDetails({
+    required this.controller,
+    required this.id,
+    required this.scopeHeaders,
+  });
+
+  final AppController controller;
+  final int id;
+  final Map<String, String> scopeHeaders;
+
+  @override
+  State<_AppointmentDetails> createState() => _AppointmentDetailsState();
+}
+
+class _AppointmentDetailsState extends State<_AppointmentDetails> {
+  late Future<dynamic> _details = _load();
+
+  Future<dynamic> _load() => widget.controller.api.request(
+    'GET',
+    '/srm/industry/appointments/${widget.id}',
+    scopeHeaders: widget.scopeHeaders,
+  );
+
+  String _time(BuildContext context, Object value) {
+    final date = DateTime.tryParse('$value')?.toLocal();
+    if (date == null) return '$value';
+    final labels = MaterialLocalizations.of(context);
+    return '${labels.formatMediumDate(date)} · '
+        '${labels.formatTimeOfDay(TimeOfDay.fromDateTime(date))}';
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Appointment')),
+    body: FutureBuilder(
+      future: _details,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final appointment = snapshot.data;
+        if (appointment is! Json) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Could not load this appointment.'),
+                TextButton(
+                  onPressed: () => setState(() => _details = _load()),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        final rawData = appointment['data'];
+        final data = rawData is Json ? rawData : <String, dynamic>{};
+        final fields = <String, Object?>{
+          'Status': appointment['status']?.toString().replaceAll('_', ' '),
+          'Customer': data['customer_name'],
+          'Service': data['service_name'],
+          'Starts': data['starts_at'],
+          'Ends': data['ends_at'],
+        };
+        return ListView(
+          children: [
+            ListTile(
+              title: Text(
+                appointment['title']?.toString() ?? 'Appointment',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            for (final field in fields.entries)
+              if (field.value case final Object value)
+                ListTile(
+                  title: Text(field.key),
+                  subtitle: Text(
+                    field.key == 'Starts' || field.key == 'Ends'
+                        ? _time(context, value)
+                        : '$value',
+                  ),
+                ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
 class _SuiteRecords extends StatefulWidget {
   const _SuiteRecords({
     required this.title,
@@ -1610,6 +1700,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        final appointmentId = item['id'];
+                        if (widget.query['kind'] == 'appointment' &&
+                            appointmentId is int) {
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => _AppointmentDetails(
+                                  controller: widget.controller,
+                                  id: appointmentId,
+                                  scopeHeaders: widget.scopeHeaders,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         return ListTile(
                           title: Text('$label'),
                           subtitle: subtitle.isEmpty ? null : Text(subtitle),
