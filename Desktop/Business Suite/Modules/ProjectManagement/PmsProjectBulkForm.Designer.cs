@@ -122,6 +122,9 @@ partial class PmsProjectBulkForm
         this.exportDialog.DefaultExt="csv";
         this.exportDialog.Filter="CSV files (*.csv)|*.csv";
         this.exportDialog.FileName="projects.csv";
+        this.exportDialog.Title="Save selected projects CSV";
+        this.exportDialog.OverwritePrompt=true;
+        this.exportDialog.RestoreDirectory=true;
         this.ClientSize=new Size(733,492);
         this.Controls.AddRange(new Control[]{this.hint,this.action,this.value,this.deadline,this.projects,this.preview,this.feedback,this.apply,this.back,this.close,this.export});
         this.StartPosition=FormStartPosition.CenterParent;

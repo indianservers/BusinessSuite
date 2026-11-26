@@ -100,6 +100,9 @@ partial class PosReceiptHistoryForm
 
         this.fileDialog.DefaultExt = "txt";
         this.fileDialog.Filter = "Text receipt (*.txt)|*.txt";
+        this.fileDialog.Title = "Save receipt text";
+        this.fileDialog.OverwritePrompt = true;
+        this.fileDialog.RestoreDirectory = true;
         this.fileDialog.Title = "Save POS receipt";
         this.receiptDocument.DocumentName = "POS receipt";
         this.receiptDocument.BeginPrint += this.ReceiptBeginPrint;

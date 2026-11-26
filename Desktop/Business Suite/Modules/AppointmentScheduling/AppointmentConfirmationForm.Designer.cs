@@ -117,6 +117,8 @@ partial class AppointmentConfirmationForm
         calendarDialog.Filter = "Calendar file (*.ics)|*.ics";
         calendarDialog.DefaultExt = "ics";
         calendarDialog.Title = "Save appointment calendar event";
+        calendarDialog.OverwritePrompt = true;
+        calendarDialog.RestoreDirectory = true;
         slipDocument = new PrintDocument();
         slipDocument.DocumentName = "Appointment slip";
         slipDocument.BeginPrint += BeginSlip;

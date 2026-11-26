@@ -211,6 +211,9 @@ namespace Business_Suite
             this.exportDialog.DefaultExt = "csv";
             this.exportDialog.Filter = "CSV files (*.csv)|*.csv";
             this.exportDialog.FileName = "projects.csv";
+        this.exportDialog.Title = "Save projects CSV";
+        this.exportDialog.OverwritePrompt = true;
+        this.exportDialog.RestoreDirectory = true;
 
             this.statusLabel.Name = "statusLabel";
             this.statusLabel.Dock = DockStyle.Bottom;

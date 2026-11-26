@@ -17,6 +17,8 @@ namespace Business_Suite
             this.viewButton = new Button();
             this.exportButton = new Button();
             this.exportDialog = new SaveFileDialog();
+            this.gridMenu = new ContextMenuStrip();
+            this.copyRowMenuItem = new ToolStripMenuItem();
             this.titleLabel = new Label();
             this.searchBox = new CueTextBox();
             this.roleFilter = new ComboBox();
@@ -87,8 +89,14 @@ namespace Business_Suite
             this.Controls.Add(this.exportButton);
             this.exportDialog.DefaultExt = "csv";
             this.exportDialog.Filter = "CSV files (*.csv)|*.csv";
+            this.exportDialog.OverwritePrompt = true;
+            this.exportDialog.RestoreDirectory = true;
             this.exportDialog.Title = "Export directory";
             this.exportDialog.RestoreDirectory = true;
+            this.copyRowMenuItem.Name = "copyRowMenuItem";
+            this.copyRowMenuItem.Text = "Copy selected row";
+            this.copyRowMenuItem.Click += this.CopySelectedRowClicked;
+            this.gridMenu.Items.AddRange(new ToolStripItem[] { this.copyRowMenuItem });
             // titleLabel
             this.titleLabel.Location = new Point(24, 20);
             this.titleLabel.Size = new Size(460, 50);
@@ -138,6 +146,7 @@ namespace Business_Suite
             this.grid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
             this.grid.ReadOnly = true;
             this.grid.ShowGroupPanel = false;
+            this.grid.ContextMenuStrip = this.gridMenu;
             // nameColumn
             this.nameColumn.Name = "name";
             this.nameColumn.FieldName = "name";
@@ -239,6 +248,8 @@ namespace Business_Suite
         private Button viewButton;
         private Button exportButton;
         private SaveFileDialog exportDialog;
+        private ContextMenuStrip gridMenu;
+        private ToolStripMenuItem copyRowMenuItem;
         private CueTextBox searchBox;
         private ComboBox roleFilter;
         private CheckBox archivedCheck;

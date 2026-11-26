@@ -82,6 +82,8 @@ partial class SharedCatalogForm
         exportDialog.FileName = "products-services";
         exportDialog.Filter = "JSON catalog (*.json)|*.json|CSV catalog (*.csv)|*.csv|Excel workbook (*.xlsx)|*.xlsx";
         exportDialog.Title = "Export active and archived products and services";
+        exportDialog.OverwritePrompt = true;
+        exportDialog.RestoreDirectory = true;
         lifecycleButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         lifecycleButton.Location = new Point(854, 25);
         lifecycleButton.Name = "lifecycleButton";

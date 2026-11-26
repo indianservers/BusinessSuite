@@ -1,4 +1,5 @@
 using System.Data;
+using System.Runtime.InteropServices;
 using System.Text;
 using Npgsql;
 
@@ -130,6 +131,7 @@ public sealed partial class CrmDirectoryForm : Form
         restoreButton.Enabled = writable && loadedArchived;
         viewButton.Enabled = selected && !loadedArchived;
         exportButton.Enabled = ready && total > 0 && (!loadedArchived || kind == CrmDirectoryKind.Companies);
+        copyRowMenuItem.Enabled = selected && !loadedArchived;
     }
 
     private void ViewClicked(object sender, EventArgs e)
@@ -139,6 +141,27 @@ public sealed partial class CrmDirectoryForm : Form
 
         using var detail = new CrmRecordForm(record, kind);
         detail.ShowDialog(this);
+    }
+
+    private void CopySelectedRowClicked(object sender, EventArgs e)
+    {
+        if (grid.CurrentRow?.DataBoundItem is not DataRowView record)
+            return;
+
+        string[] fields = { "name", "classification", "context", "email", "phone_display", "city", "country", "status" };
+        string value = string.Join("\t", fields.Select(field => Convert.ToString(record.Row[field]) ?? ""));
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        try
+        {
+            Clipboard.SetText(value);
+            statusLabel.Text = "Selected record copied to the clipboard.";
+        }
+        catch (ExternalException)
+        {
+            statusLabel.Text = "Could not copy the selected record because the clipboard is busy.";
+        }
     }
 
     private async void ExportClicked(object sender, EventArgs e)

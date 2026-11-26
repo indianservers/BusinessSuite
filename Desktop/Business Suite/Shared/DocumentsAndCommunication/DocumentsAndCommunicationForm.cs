@@ -1,4 +1,5 @@
 using Npgsql;
+using System.Text;
 
 namespace Business_Suite;
 
@@ -235,6 +236,35 @@ public sealed partial class DocumentsAndCommunicationForm : Form
         workspace.ShowDialog(this);
     }
 
+    private void ExportClicked(object sender, EventArgs e)
+    {
+        if (current?.Rows is not { Count: > 0 } rows || busy)
+        {
+            statusLabel.Text = "Load at least one template before exporting.";
+            return;
+        }
+
+        if (exportDialog.ShowDialog(this) != DialogResult.OK)
+            return;
+
+        try
+        {
+            var csv = new StringBuilder();
+            csv.AppendLine("Template,Subject,Module,Active,Favorite,Updated");
+            foreach (var row in rows)
+                csv.AppendLine(string.Join(",", CsvExport.Escape(row.Name), CsvExport.Escape(row.Subject), CsvExport.Escape(row.Module),
+                    row.Active ? "true" : "false", row.Favorite ? "true" : "false",
+                    CsvExport.Escape(row.Updated?.ToString("O") ?? "")));
+            File.WriteAllText(exportDialog.FileName, csv.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            statusLabel.Text = $"Exported {rows.Count:N0} template{(rows.Count == 1 ? "" : "s")}.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            statusLabel.Text = "Could not write the CSV export: " + error.Message;
+        }
+    }
+
+
     private EmailTemplateRow? SelectedTemplate() => templateGrid.CurrentRow?.DataBoundItem as EmailTemplateRow;
 
     private void SelectionChanged(object sender, EventArgs e) => UpdateButtons();
@@ -265,6 +295,7 @@ public sealed partial class DocumentsAndCommunicationForm : Form
         campaignsButton.Enabled = !busy && settings is not null;
         autoResponsesButton.Enabled = !busy && settings is not null;
         webformsButton.Enabled = !busy && settings is not null;
+        exportButton.Enabled = !busy && current?.Rows.Count > 0;
     }
 
     private static bool IsFavoriteStorageError(Exception error) => error is IOException or TimeoutException or

@@ -11,7 +11,7 @@
 - [ ] Verify desktop search, pagination, relationship filtering, record preview, empty/error states. Web also has entity-kind, advanced filters, saved grid preferences, selection, and alternate layouts.
 - [ ] Verify create/edit, company and individual entity kinds, business roles, parent relationship, address, linked records, tax/bank/UPI data, communication channels, and configured custom fields. Desktop currently has core fields, legal name, tax and channels, and custom-value rows.
 - [ ] Verify archive/restore, relationship preservation, optimistic revision checks, and audit records. Web also supports bulk role/tag/trash/restore.
-- [ ] Verify CSV and clipboard export of filtered or selected rows. Web bounds the export and derives available columns and permissions from the directory query.
+- [ ] Verify CSV and clipboard export of filtered or selected rows. Web bounds the export and derives available columns and permissions from the directory query. The directory now exposes a Designer-defined context-menu copy action for the selected row; interaction and permission-scope verification remain open.
 - [ ] Verify contact-detail copying and communication availability. Web routes to call, website, email, and WhatsApp with record-specific availability.
 - [x] POS anonymous counter companies and contacts stay out of CRM directories, exports and related-record selectors. CRM checks both the contact's company and its shared identity link and refuses edits, archive and normal reuse of the counter company name.
 
@@ -25,7 +25,7 @@
 
 ## Leads and Potential Clients
 
-- [ ] Verify capture/edit, quick/full workflow, contact/employee assignment, stage and required-field checks, qualification, duplicate review, archive reason, restore, and conversion. Desktop has list, edit, conversion and archive forms with parameterized transactional stores. Web also supports queues, saved views, bulk actions, analytics, productivity actions, automatic scores, and configurable routing.
+- [ ] Verify capture/edit, quick/full workflow, contact/employee assignment, stage and required-field checks, qualification, duplicate review, archive reason, restore, and conversion. Desktop has list, edit, conversion and archive forms with parameterized transactional stores. Web also supports queues, saved views, bulk actions, analytics, productivity actions, automatic scores, and configurable routing. New-lead capture now supports an eligible owner picker with explicit assignment precedence over configured routing; isolated PostgreSQL and WinForms save checks passed, while the wider workflow verification remains open.
 - [ ] Verify permissions for read/create/edit/delete/assign/convert/export, related-record scope, and customer/contact/deal side effects. Verify duplicate/identity checks, sequence stop, activity, branches, and persistence after restart.
 - [x] Native Leads and Potential Clients XLSX export supports selected records on the current page or all permitted records matching the active search, stage, owner, source and rating filters. Filtered exports include archived records. The repository rechecks export grants and branch visibility and applies the web workbook limits of 200 selected and 5,000 matched records.
 - [ ] Spreadsheet import.

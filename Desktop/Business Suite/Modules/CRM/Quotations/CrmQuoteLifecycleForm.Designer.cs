@@ -121,6 +121,7 @@ partial class CrmQuoteLifecycleForm
         this.pdfDialog.DefaultExt = "pdf";
         this.pdfDialog.Filter = "PDF files (*.pdf)|*.pdf";
         this.pdfDialog.Title = "Save quotation PDF copy";
+        this.pdfDialog.OverwritePrompt = true;
         this.pdfDialog.RestoreDirectory = true;
 
         this.applyButton.Name = "applyButton";

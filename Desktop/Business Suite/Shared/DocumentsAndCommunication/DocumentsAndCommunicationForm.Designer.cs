@@ -28,6 +28,8 @@ partial class DocumentsAndCommunicationForm
         this.campaignsButton = new RadButton();
         this.autoResponsesButton = new RadButton();
         this.webformsButton = new RadButton();
+        this.exportButton = new RadButton();
+        this.exportDialog = new SaveFileDialog();
         this.statusLabel = new Label();
         this.templateGrid = new RadGridView();
         this.nameColumn = new GridViewTextBoxColumn();
@@ -177,7 +179,7 @@ partial class DocumentsAndCommunicationForm
         this.favoriteButton.Click += this.FavoriteClicked;
 
         this.statusLabel.Name = "statusLabel";
-        this.statusLabel.Location = new Point(20, 610);
+        this.statusLabel.Location = new Point(20, 650);
         this.statusLabel.Size = new Size(908, 29);
 
         this.titleLabel.Font = new Font("Segoe UI Semibold", 22F);
@@ -195,6 +197,19 @@ partial class DocumentsAndCommunicationForm
         this.templateGrid.MasterTemplate.AllowDeleteRow = false;
         this.templateGrid.MasterTemplate.AllowEditRow = false;
         this.templateGrid.MasterTemplate.AutoSizeColumnsMode = GridViewAutoSizeColumnsMode.Fill;
+        this.exportButton.Name = "exportButton";
+        this.exportButton.Text = "Export CSV";
+        this.exportButton.Location = new Point(20, 610);
+        this.exportButton.Size = new Size(110, 30);
+        this.exportButton.Enabled = false;
+        this.exportButton.Click += this.ExportClicked;
+        this.exportDialog.Title = "Export email templates CSV";
+        this.exportDialog.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+        this.exportDialog.DefaultExt = "csv";
+        this.exportDialog.AddExtension = true;
+        this.exportDialog.OverwritePrompt = true;
+        this.exportDialog.RestoreDirectory = true;
+        this.exportDialog.FileName = "email-templates.csv";
         this.nameColumn.Name = "nameColumn";
         this.nameColumn.FieldName = "Name";
         this.nameColumn.HeaderText = "Template";
@@ -243,12 +258,13 @@ partial class DocumentsAndCommunicationForm
         this.Controls.Add(this.campaignsButton);
         this.Controls.Add(this.autoResponsesButton);
         this.Controls.Add(this.webformsButton);
+        this.Controls.Add(this.exportButton);
         this.Controls.Add(this.statusLabel);
         this.Controls.Add(this.templateGrid);
         this.AcceptButton = this.refreshButton;
         this.AutoScaleDimensions = new SizeF(96F, 96F);
         this.AutoScaleMode = AutoScaleMode.Dpi;
-        this.ClientSize = new Size(948, 649);
+        this.ClientSize = new Size(948, 689);
         this.MinimumSize = new Size(965, 520);
         this.StartPosition = FormStartPosition.CenterParent;
         this.BackColor = Color.FromArgb(243, 246, 251);
@@ -288,6 +304,8 @@ partial class DocumentsAndCommunicationForm
     private RadButton campaignsButton;
     private RadButton autoResponsesButton;
     private RadButton webformsButton;
+    private RadButton exportButton;
+    private SaveFileDialog exportDialog;
     private Label statusLabel;
     private RadGridView templateGrid;
     private CheckBox favoritesOnlyCheck;

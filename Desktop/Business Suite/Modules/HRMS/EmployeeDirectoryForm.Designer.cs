@@ -70,6 +70,9 @@ partial class EmployeeDirectoryForm
         exportDialog.DefaultExt = "csv";
         exportDialog.FileName = "employee_directory.csv";
         exportDialog.Filter = "CSV files (*.csv)|*.csv";
+        exportDialog.Title = "Save employee directory CSV";
+        exportDialog.OverwritePrompt = true;
+        exportDialog.RestoreDirectory = true;
 
         administrationButton.Location = new Point(585, 74);
         administrationButton.Name = "administrationButton";

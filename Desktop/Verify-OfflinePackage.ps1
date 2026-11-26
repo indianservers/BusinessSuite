@@ -261,7 +261,7 @@ public sealed class BusinessSuitePackageProbe : MarshalByRefObject
                 throw new InvalidOperationException("The PostgreSQL login could not resolve an eligible Suite actor for the selected company and branch.");
             if (cause.Message.StartsWith("PostgreSQL did not match the configured", StringComparison.Ordinal))
                 throw new InvalidOperationException("The connected PostgreSQL target did not match the desktop configuration.");
-            throw new InvalidOperationException("Could not verify the PostgreSQL connection. Check the desktop environment, credentials and server.");
+            throw new InvalidOperationException("Could not verify PostgreSQL endpoint, credentials or Suite actor scope. Check BUSINESS_SUITE_POSTGRES, the expected server address, and active company/branch membership.");
         }
 
         if (requireTls && string.IsNullOrEmpty(tlsProtocol))

@@ -116,6 +116,9 @@ partial class EmployeeSettlementsForm
         this.exportDialog.DefaultExt = "pdf";
         this.exportDialog.AddExtension = true;
         this.exportDialog.Filter = "PDF files (*.pdf)|*.pdf";
+        this.exportDialog.Title = "Save employee settlement PDF";
+        this.exportDialog.OverwritePrompt = true;
+        this.exportDialog.RestoreDirectory = true;
         this.adjust.Name = "adjust";
         this.adjust.Text = "Edit adjustments";
         this.adjust.Location = new Point(12, 560);

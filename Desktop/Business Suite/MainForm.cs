@@ -83,6 +83,8 @@ public sealed partial class MainForm : Form
         OpenDatabaseWorkspace(settings => new PmsMyWorkForm(settings));
     private void salesWorkspaceButton_Click(object? sender, EventArgs e) =>
         OpenDatabaseWorkspace(settings => new SalesAndPosForm(settings));
+    private void salesAppointmentsButton_Click(object? sender, EventArgs e) =>
+        OpenDatabaseWorkspace(settings => new AppointmentsForm(settings));
     private void OpenCompanies() => Open(new CrmDirectoryForm(CrmDirectoryKind.Companies));
     private void OpenContacts() => Open(new CrmDirectoryForm(CrmDirectoryKind.Contacts));
     private void OpenLeads() => Open(new LeadsForm());

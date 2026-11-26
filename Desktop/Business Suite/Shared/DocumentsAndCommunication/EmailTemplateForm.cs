@@ -1,4 +1,5 @@
 using Npgsql;
+using Telerik.WinControls.UI;
 
 namespace Business_Suite;
 
@@ -22,11 +23,35 @@ public sealed partial class EmailTemplateForm : Form
         subjectBox.Text = original?.Row.Subject ?? "";
         bodyBox.Text = original?.Body ?? "";
         nameBox.ReadOnly = subjectBox.ReadOnly = bodyBox.ReadOnly = !editable;
+        mergeFieldBox.Enabled = insertMergeFieldButton.Enabled = insertSubjectMergeFieldButton.Enabled = editable;
         saveButton.Visible = editable;
         if (!editable)
             cancelButton.Text = "Close";
         if (editable && original?.Row.Active == false)
             saveButton.Text = "Save and enable";
+    }
+
+    private void InsertMergeFieldClicked(object? sender, EventArgs e)
+    {
+        if (bodyBox.ReadOnly || mergeFieldBox.SelectedItem is not RadListDataItem item)
+            return;
+        InsertToken(bodyBox, item.Text ?? "");
+        bodyBox.Focus();
+    }
+
+    private void InsertSubjectMergeFieldClicked(object? sender, EventArgs e)
+    {
+        if (subjectBox.ReadOnly || mergeFieldBox.SelectedItem is not RadListDataItem item)
+            return;
+        InsertToken(subjectBox, item.Text ?? "");
+        subjectBox.Focus();
+    }
+
+    private static void InsertToken(RadTextBox target, string token)
+    {
+        int caret = Math.Max(0, Math.Min(target.SelectionStart, target.TextLength));
+        target.Text = target.Text.Insert(caret, token);
+        target.SelectionStart = caret + token.Length;
     }
 
     private async void SaveClicked(object sender, EventArgs e)

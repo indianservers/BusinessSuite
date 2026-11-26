@@ -11,6 +11,7 @@ namespace Business_Suite
     {
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.ribbonBar = new Telerik.WinControls.UI.RadRibbonBar();
             this.homeTab = new Telerik.WinControls.UI.RibbonTab();
             this.workspaceGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
@@ -248,7 +249,7 @@ namespace Business_Suite
             // 
             this.homeHomeRibbonButton.AccessibleDescription = "Return to the home workspace";
             this.homeHomeRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.homeHomeRibbonButton.Image = null;
+            this.homeHomeRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("homeHomeRibbonButton.Image")));
             this.homeHomeRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.homeHomeRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.homeHomeRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -284,7 +285,7 @@ namespace Business_Suite
             // 
             this.appointmentSchedulerRibbonButton.AccessibleDescription = "Open the appointment scheduler";
             this.appointmentSchedulerRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.appointmentSchedulerRibbonButton.Image = null;
+            this.appointmentSchedulerRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("appointmentSchedulerRibbonButton.Image")));
             this.appointmentSchedulerRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.appointmentSchedulerRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.appointmentSchedulerRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -322,7 +323,7 @@ namespace Business_Suite
             // 
             this.crmWorkspaceRibbonButton.AccessibleDescription = "Open the CRM workspace";
             this.crmWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.crmWorkspaceRibbonButton.Image = null;
+            this.crmWorkspaceRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("crmWorkspaceRibbonButton.Image")));
             this.crmWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.crmWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.crmWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -342,7 +343,7 @@ namespace Business_Suite
             // 
             this.companiesRibbonButton.AccessibleDescription = "Manage companies, accounts and profiles";
             this.companiesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.companiesRibbonButton.Image = null;
+            this.companiesRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("companiesRibbonButton.Image")));
             this.companiesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.companiesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.companiesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -362,7 +363,7 @@ namespace Business_Suite
             // 
             this.contactsRibbonButton.AccessibleDescription = "Manage contacts and relationships";
             this.contactsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.contactsRibbonButton.Image = null;
+            this.contactsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("contactsRibbonButton.Image")));
             this.contactsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.contactsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.contactsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -390,7 +391,7 @@ namespace Business_Suite
             // 
             this.leadsRibbonButton.AccessibleDescription = "Capture and track leads";
             this.leadsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.leadsRibbonButton.Image = null;
+            this.leadsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("leadsRibbonButton.Image")));
             this.leadsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.leadsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.leadsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -410,7 +411,7 @@ namespace Business_Suite
             // 
             this.dealsRibbonButton.AccessibleDescription = "Manage sales opportunities";
             this.dealsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.dealsRibbonButton.Image = null;
+            this.dealsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("dealsRibbonButton.Image")));
             this.dealsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.dealsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.dealsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -447,7 +448,7 @@ namespace Business_Suite
             // 
             this.financeWorkspaceRibbonButton.AccessibleDescription = "Open the finance workspace";
             this.financeWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.financeWorkspaceRibbonButton.Image = null;
+            this.financeWorkspaceRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("financeWorkspaceRibbonButton.Image")));
             this.financeWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.financeWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.financeWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -467,7 +468,7 @@ namespace Business_Suite
             // 
             this.financeLedgersRibbonButton.AccessibleDescription = "Open accounting ledgers";
             this.financeLedgersRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.financeLedgersRibbonButton.Image = null;
+            this.financeLedgersRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("financeLedgersRibbonButton.Image")));
             this.financeLedgersRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.financeLedgersRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.financeLedgersRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -487,7 +488,7 @@ namespace Business_Suite
             // 
             this.financeWorkspacesRibbonButton.AccessibleDescription = "Browse finance workspaces";
             this.financeWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.financeWorkspacesRibbonButton.Image = null;
+            this.financeWorkspacesRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("financeWorkspacesRibbonButton.Image")));
             this.financeWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.financeWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.financeWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -523,7 +524,7 @@ namespace Business_Suite
             // 
             this.hrWorkspaceRibbonButton.AccessibleDescription = "Open the HR workspace";
             this.hrWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.hrWorkspaceRibbonButton.Image = null;
+            this.hrWorkspaceRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("hrWorkspaceRibbonButton.Image")));
             this.hrWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.hrWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.hrWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -543,7 +544,7 @@ namespace Business_Suite
             // 
             this.hrWorkspacesRibbonButton.AccessibleDescription = "Browse HR workspaces";
             this.hrWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.hrWorkspacesRibbonButton.Image = null;
+            this.hrWorkspacesRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("hrWorkspacesRibbonButton.Image")));
             this.hrWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.hrWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.hrWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -580,7 +581,7 @@ namespace Business_Suite
             // 
             this.projectWorkspaceRibbonButton.AccessibleDescription = "Open the project workspace";
             this.projectWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.projectWorkspaceRibbonButton.Image = null;
+            this.projectWorkspaceRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("projectWorkspaceRibbonButton.Image")));
             this.projectWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.projectWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.projectWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -600,7 +601,7 @@ namespace Business_Suite
             // 
             this.projectWorkspacesRibbonButton.AccessibleDescription = "Browse project workspaces";
             this.projectWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.projectWorkspacesRibbonButton.Image = null;
+            this.projectWorkspacesRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("projectWorkspacesRibbonButton.Image")));
             this.projectWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.projectWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.projectWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -620,7 +621,7 @@ namespace Business_Suite
             // 
             this.projectMyWorkRibbonButton.AccessibleDescription = "Open your assigned work";
             this.projectMyWorkRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.projectMyWorkRibbonButton.Image = null;
+            this.projectMyWorkRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("projectMyWorkRibbonButton.Image")));
             this.projectMyWorkRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.projectMyWorkRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.projectMyWorkRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -656,7 +657,7 @@ namespace Business_Suite
             // 
             this.salesWorkspaceRibbonButton.AccessibleDescription = "Open the sales workspace";
             this.salesWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.salesWorkspaceRibbonButton.Image = null;
+            this.salesWorkspaceRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("salesWorkspaceRibbonButton.Image")));
             this.salesWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.salesWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.salesWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -676,7 +677,7 @@ namespace Business_Suite
             // 
             this.salesAppointmentsRibbonButton.AccessibleDescription = "Open sales appointments";
             this.salesAppointmentsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.salesAppointmentsRibbonButton.Image = null;
+            this.salesAppointmentsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("salesAppointmentsRibbonButton.Image")));
             this.salesAppointmentsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.salesAppointmentsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.salesAppointmentsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -712,7 +713,7 @@ namespace Business_Suite
             // 
             this.sharedDataRibbonButton.AccessibleDescription = "Access shared business records";
             this.sharedDataRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.sharedDataRibbonButton.Image = null;
+            this.sharedDataRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("sharedDataRibbonButton.Image")));
             this.sharedDataRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.sharedDataRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.sharedDataRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -732,7 +733,7 @@ namespace Business_Suite
             // 
             this.sharedDocumentsRibbonButton.AccessibleDescription = "Open documents and communication tools";
             this.sharedDocumentsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.sharedDocumentsRibbonButton.Image = null;
+            this.sharedDocumentsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("sharedDocumentsRibbonButton.Image")));
             this.sharedDocumentsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.sharedDocumentsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.sharedDocumentsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -768,7 +769,7 @@ namespace Business_Suite
             // 
             this.administrationAdministrationRibbonButton.AccessibleDescription = "Manage company settings and users";
             this.administrationAdministrationRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.administrationAdministrationRibbonButton.Image = null;
+            this.administrationAdministrationRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("administrationAdministrationRibbonButton.Image")));
             this.administrationAdministrationRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.administrationAdministrationRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.administrationAdministrationRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -788,7 +789,7 @@ namespace Business_Suite
             // 
             this.administrationLocalCompaniesRibbonButton.AccessibleDescription = "View and manage local companies";
             this.administrationLocalCompaniesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.administrationLocalCompaniesRibbonButton.Image = null;
+            this.administrationLocalCompaniesRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("administrationLocalCompaniesRibbonButton.Image")));
             this.administrationLocalCompaniesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.administrationLocalCompaniesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.administrationLocalCompaniesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -824,7 +825,7 @@ namespace Business_Suite
             // 
             this.toolsSettingsRibbonButton.AccessibleDescription = "Configure the desktop connection";
             this.toolsSettingsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.toolsSettingsRibbonButton.Image = null;
+            this.toolsSettingsRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("toolsSettingsRibbonButton.Image")));
             this.toolsSettingsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.toolsSettingsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.toolsSettingsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -844,7 +845,7 @@ namespace Business_Suite
             // 
             this.toolsPowerRibbonButton.AccessibleDescription = "Open apps, automations and approvals";
             this.toolsPowerRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.toolsPowerRibbonButton.Image = null;
+            this.toolsPowerRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("toolsPowerRibbonButton.Image")));
             this.toolsPowerRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.toolsPowerRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.toolsPowerRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -879,7 +880,7 @@ namespace Business_Suite
             // 
             this.reportsReportingRibbonButton.AccessibleDescription = "Open reports and customization tools";
             this.reportsReportingRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.reportsReportingRibbonButton.Image = null;
+            this.reportsReportingRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("reportsReportingRibbonButton.Image")));
             this.reportsReportingRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.reportsReportingRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.reportsReportingRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -914,7 +915,7 @@ namespace Business_Suite
             // 
             this.helpHelpRibbonButton.AccessibleDescription = "Learn how to open workspaces";
             this.helpHelpRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
-            this.helpHelpRibbonButton.Image = null;
+            this.helpHelpRibbonButton.Image = ((System.Drawing.Image)(resources.GetObject("helpHelpRibbonButton.Image")));
             this.helpHelpRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
             this.helpHelpRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
             this.helpHelpRibbonButton.MinSize = new System.Drawing.Size(104, 80);
@@ -2192,6 +2193,61 @@ namespace Business_Suite
             this.salesHeader.ResumeLayout(false);
             this.salesHeader.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.salesHeaderIcon)).EndInit();
+            this.workspaces.SelectedIndexChanged += new System.EventHandler(this.workspaces_SelectedIndexChanged);
+            this.ribbonBar.CommandTabSelected += new Telerik.WinControls.UI.CommandTabEventHandler(this.ribbonBar_CommandTabSelected);
+            this.homeHomeRibbonButton.Click += new System.EventHandler(this.homeButton_Click);
+            this.appointmentSchedulerRibbonButton.Click += new System.EventHandler(this.appointmentSchedulerButton_Click);
+            this.crmWorkspaceRibbonButton.Click += new System.EventHandler(this.crmWorkspaceButton_Click);
+            this.companiesRibbonButton.Click += new System.EventHandler(this.companiesButton_Click);
+            this.contactsRibbonButton.Click += new System.EventHandler(this.contactsButton_Click);
+            this.leadsRibbonButton.Click += new System.EventHandler(this.leadsButton_Click);
+            this.dealsRibbonButton.Click += new System.EventHandler(this.dealsButton_Click);
+            this.financeWorkspaceRibbonButton.Click += new System.EventHandler(this.financeWorkspaceButton_Click);
+            this.financeLedgersRibbonButton.Click += new System.EventHandler(this.financeLedgersButton_Click);
+            this.financeWorkspacesRibbonButton.Click += new System.EventHandler(this.financeWorkspacesButton_Click);
+            this.hrWorkspaceRibbonButton.Click += new System.EventHandler(this.hrWorkspaceButton_Click);
+            this.hrWorkspacesRibbonButton.Click += new System.EventHandler(this.hrWorkspacesButton_Click);
+            this.projectWorkspaceRibbonButton.Click += new System.EventHandler(this.projectWorkspaceButton_Click);
+            this.projectWorkspacesRibbonButton.Click += new System.EventHandler(this.projectWorkspacesButton_Click);
+            this.projectMyWorkRibbonButton.Click += new System.EventHandler(this.projectMyWorkButton_Click);
+            this.salesWorkspaceRibbonButton.Click += new System.EventHandler(this.salesWorkspaceButton_Click);
+            this.salesAppointmentsRibbonButton.Click += new System.EventHandler(this.salesAppointmentsButton_Click);
+            this.sharedDataRibbonButton.Click += new System.EventHandler(this.dataButton_Click);
+            this.sharedDocumentsRibbonButton.Click += new System.EventHandler(this.documentsButton_Click);
+            this.administrationAdministrationRibbonButton.Click += new System.EventHandler(this.administrationButton_Click);
+            this.administrationLocalCompaniesRibbonButton.Click += new System.EventHandler(this.localCompaniesButton_Click);
+            this.toolsSettingsRibbonButton.Click += new System.EventHandler(this.settingsButton_Click);
+            this.toolsPowerRibbonButton.Click += new System.EventHandler(this.powerButton_Click);
+            this.reportsReportingRibbonButton.Click += new System.EventHandler(this.reportingButton_Click);
+            this.helpHelpRibbonButton.Click += new System.EventHandler(this.helpButton_Click);
+            this.appointmentsCard.Click += new System.EventHandler(this.appointmentsButton_Click);
+            this.crmCard.Click += new System.EventHandler(this.crmButton_Click);
+            this.financeCard.Click += new System.EventHandler(this.financeButton_Click);
+            this.hrmsCard.Click += new System.EventHandler(this.hrmsButton_Click);
+            this.projectsCard.Click += new System.EventHandler(this.projectsButton_Click);
+            this.salesCard.Click += new System.EventHandler(this.salesButton_Click);
+            this.dataCard.Click += new System.EventHandler(this.dataButton_Click);
+            this.administrationCard.Click += new System.EventHandler(this.administrationButton_Click);
+            this.documentsCard.Click += new System.EventHandler(this.documentsButton_Click);
+            this.powerCard.Click += new System.EventHandler(this.powerButton_Click);
+            this.reportingCard.Click += new System.EventHandler(this.reportingButton_Click);
+            this.localCompaniesCard.Click += new System.EventHandler(this.localCompaniesButton_Click);
+            this.appointmentSchedulerCard.Click += new System.EventHandler(this.appointmentSchedulerButton_Click);
+            this.crmWorkspaceCard.Click += new System.EventHandler(this.crmWorkspaceButton_Click);
+            this.companiesCard.Click += new System.EventHandler(this.companiesButton_Click);
+            this.contactsCard.Click += new System.EventHandler(this.contactsButton_Click);
+            this.leadsCard.Click += new System.EventHandler(this.leadsButton_Click);
+            this.dealsCard.Click += new System.EventHandler(this.dealsButton_Click);
+            this.financeWorkspaceCard.Click += new System.EventHandler(this.financeWorkspaceButton_Click);
+            this.financeLedgersCard.Click += new System.EventHandler(this.financeLedgersButton_Click);
+            this.financeWorkspacesCard.Click += new System.EventHandler(this.financeWorkspacesButton_Click);
+            this.hrWorkspaceCard.Click += new System.EventHandler(this.hrWorkspaceButton_Click);
+            this.hrWorkspacesCard.Click += new System.EventHandler(this.hrWorkspacesButton_Click);
+            this.projectWorkspaceCard.Click += new System.EventHandler(this.projectWorkspaceButton_Click);
+            this.projectWorkspacesCard.Click += new System.EventHandler(this.projectWorkspacesButton_Click);
+            this.projectMyWorkCard.Click += new System.EventHandler(this.projectMyWorkButton_Click);
+            this.salesWorkspaceCard.Click += new System.EventHandler(this.salesWorkspaceButton_Click);
+            this.salesAppointmentsCard.Click += new System.EventHandler(this.salesAppointmentsButton_Click);
             this.ResumeLayout(false);
             this.PerformLayout();
 

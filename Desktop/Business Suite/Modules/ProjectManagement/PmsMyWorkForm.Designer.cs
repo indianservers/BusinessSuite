@@ -230,6 +230,9 @@ namespace Business_Suite
             this.exportDialog.DefaultExt = "csv";
             this.exportDialog.Filter = "CSV files (*.csv)|*.csv";
             this.exportDialog.FileName = "my-work.csv";
+        this.exportDialog.Title = "Save my work CSV";
+        this.exportDialog.OverwritePrompt = true;
+        this.exportDialog.RestoreDirectory = true;
 
             this.AutoScaleMode = AutoScaleMode.Dpi;
             this.ClientSize = new Size(1195, 665);

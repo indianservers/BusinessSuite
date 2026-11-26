@@ -163,6 +163,9 @@ public sealed partial class SalesOrderOverviewForm
         this.pdfDialog.DefaultExt = "pdf";
         this.pdfDialog.Filter = "PDF documents (*.pdf)|*.pdf";
         this.pdfDialog.Title = "Save sales order PDF";
+        this.pdfDialog.OverwritePrompt = true;
+        this.pdfDialog.RestoreDirectory = true;
+        this.pdfDialog.Title = "Save sales order PDF";
         this.itemsButton.Name = "itemsButton";
         this.itemsButton.Location = new Point(181, 438);
         this.itemsButton.Size = new Size(138, 27);

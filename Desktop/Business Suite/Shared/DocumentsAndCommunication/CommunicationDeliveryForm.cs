@@ -1,4 +1,5 @@
 using Npgsql;
+using System.Text;
 
 namespace Business_Suite;
 
@@ -102,7 +103,33 @@ public sealed partial class CommunicationDeliveryForm : Form
         markReadButton.Enabled = !busy && reminders is not null &&
             SelectedReminder is { ReminderId: not null, Status: "Unread" };
         markAllReadButton.Enabled = !busy && reminders is not null;
+        exportButton.Enabled = !busy && deliveryGrid.Rows.Count > 0;
     }
+
+    private void ExportClicked(object? sender, EventArgs e)
+    {
+        if (busy || deliveryGrid.DataSource is not IEnumerable<CommunicationDeliveryRow> rows || !rows.Any())
+        {
+            statusLabel.Text = "Load at least one record before exporting.";
+            return;
+        }
+        if (exportDialog.ShowDialog(this) != DialogResult.OK)
+            return;
+        try
+        {
+            var csv = new StringBuilder("Record,Channel,Provider,Status,Created,Details\r\n");
+            foreach (var row in rows)
+                csv.AppendLine(string.Join(",", CsvExport.Escape(row.Record), CsvExport.Escape(row.Channel), CsvExport.Escape(row.Provider),
+                    CsvExport.Escape(row.Status), CsvExport.Escape(row.Created?.ToString("O") ?? ""), CsvExport.Escape(row.Detail)));
+            File.WriteAllText(exportDialog.FileName, csv.ToString(), new UTF8Encoding(true));
+            statusLabel.Text = "Communication history exported.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            statusLabel.Text = "Could not write the CSV export: " + error.Message;
+        }
+    }
+
 
     private async void MarkReadClicked(object? sender, EventArgs e)
     {

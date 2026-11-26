@@ -104,11 +104,13 @@ partial class AppointmentsForm
         this.refreshButton.Location = new Point(485, 76);
         this.refreshButton.Size = new Size(106, 34);
         this.refreshButton.Text = "Refresh";
+        this.refreshButton.AccessibleName = "Refresh appointments";
         this.refreshButton.Click += this.RefreshClicked;
         this.Controls.Add(this.refreshButton);
 
         this.waitlistButton = new RadButton { Name = "waitlistButton", Text = "Waitlist", Location = new Point(600, 76),
             Size = new Size(95, 34), Enabled = false };
+        this.waitlistButton.AccessibleName = "Open appointment waitlist";
         this.waitlistButton.Click += this.WaitlistClicked;
         this.Controls.Add(this.waitlistButton);
 
@@ -116,6 +118,7 @@ partial class AppointmentsForm
         this.newButton.Location = new Point(704, 76);
         this.newButton.Size = new Size(158, 34);
         this.newButton.Text = "New appointment";
+        this.newButton.AccessibleName = "Create new appointment";
         this.newButton.Click += this.NewClicked;
         this.newButton.Enabled = false;
         this.Controls.Add(this.newButton);
@@ -124,6 +127,7 @@ partial class AppointmentsForm
         this.rescheduleButton.Location = new Point(875, 76);
         this.rescheduleButton.Size = new Size(159, 34);
         this.rescheduleButton.Text = "Reschedule";
+        this.rescheduleButton.AccessibleName = "Reschedule selected appointment";
         this.rescheduleButton.Click += this.RescheduleClicked;
         this.rescheduleButton.Enabled = false;
         this.Controls.Add(this.rescheduleButton);
@@ -209,6 +213,7 @@ partial class AppointmentsForm
         this.transitionButton.Location = new Point(493, 493);
         this.transitionButton.Size = new Size(112, 34);
         this.transitionButton.Text = "Apply action";
+        this.transitionButton.AccessibleName = "Apply appointment status action";
         this.transitionButton.Click += this.TransitionClicked;
         this.transitionButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         this.transitionButton.Enabled = false;
@@ -217,6 +222,7 @@ partial class AppointmentsForm
         this.historyButton.Location = new Point(617, 493);
         this.historyButton.Size = new Size(115, 34);
         this.historyButton.Text = "Booking history";
+        this.historyButton.AccessibleName = "View selected appointment history";
         this.historyButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         this.historyButton.Enabled = false;
         this.historyButton.Click += this.HistoryClicked;
@@ -226,6 +232,7 @@ partial class AppointmentsForm
         this.confirmationButton.Location = new Point(744, 493);
         this.confirmationButton.Size = new Size(161, 34);
         this.confirmationButton.Text = "Booking confirmation";
+        this.confirmationButton.AccessibleName = "View selected booking confirmation";
         this.confirmationButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         this.confirmationButton.Enabled = false;
         this.confirmationButton.Click += this.ConfirmationClicked;
@@ -237,6 +244,7 @@ partial class AppointmentsForm
         this.billingButton.Size = new Size(120, 34);
         this.billingButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         this.billingButton.Text = "Visit payments";
+        this.billingButton.AccessibleName = "View selected appointment payments";
         this.billingButton.Enabled = false;
         this.billingButton.Click += this.BillingClicked;
         this.Controls.Add(this.billingButton);

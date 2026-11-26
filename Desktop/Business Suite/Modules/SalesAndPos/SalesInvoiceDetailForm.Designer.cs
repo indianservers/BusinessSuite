@@ -126,6 +126,9 @@ partial class SalesInvoiceDetailForm
         this.pdfDialog.Filter = "PDF documents (*.pdf)|*.pdf";
         this.pdfDialog.DefaultExt = "pdf";
         this.pdfDialog.Title = "Save invoice PDF";
+        this.pdfDialog.OverwritePrompt = true;
+        this.pdfDialog.RestoreDirectory = true;
+        this.pdfDialog.Title = "Save invoice PDF";
 
         this.approveButton.Name = "approveButton";
         this.approveButton.Text = "Approve invoice";

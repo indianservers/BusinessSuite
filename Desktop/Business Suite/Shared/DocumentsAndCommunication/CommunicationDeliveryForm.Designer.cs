@@ -11,6 +11,8 @@ partial class CommunicationDeliveryForm
         refreshButton = new RadButton();
         markReadButton = new RadButton();
         markAllReadButton = new RadButton();
+        exportButton = new RadButton();
+        exportDialog = new SaveFileDialog();
         issuesCheck = new CheckBox();
         channelFilter = new RadDropDownList();
         deliveryStatus = new RadDropDownList();
@@ -145,7 +147,20 @@ partial class CommunicationDeliveryForm
         detailBox.ReadOnly = true;
         detailBox.ScrollBars = ScrollBars.Vertical;
         statusLabel.Name = "statusLabel";
-        statusLabel.Location = new Point(20, 540);
+        exportButton.Name = "exportButton";
+        exportButton.Text = "Export CSV";
+        exportButton.Location = new Point(20, 540);
+        exportButton.Size = new Size(110, 28);
+        exportButton.Enabled = false;
+        exportButton.Click += ExportClicked;
+        exportDialog.Title = "Export communication history CSV";
+        exportDialog.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+        exportDialog.DefaultExt = "csv";
+        exportDialog.AddExtension = true;
+        exportDialog.OverwritePrompt = true;
+        exportDialog.RestoreDirectory = true;
+        exportDialog.FileName = "communication-history.csv";
+        statusLabel.Location = new Point(145, 540);
         statusLabel.Size = new Size(860, 28);
         statusLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
@@ -158,6 +173,7 @@ partial class CommunicationDeliveryForm
         Controls.Add(detailLabel);
         Controls.Add(markReadButton);
         Controls.Add(markAllReadButton);
+        Controls.Add(exportButton);
         Controls.Add(detailBox);
         Controls.Add(statusLabel);
         AcceptButton = refreshButton;
@@ -188,6 +204,8 @@ partial class CommunicationDeliveryForm
     private RadButton refreshButton;
     private RadButton markReadButton;
     private RadButton markAllReadButton;
+    private RadButton exportButton;
+    private SaveFileDialog exportDialog;
     private CheckBox issuesCheck;
     private RadGridView deliveryGrid;
     private Label detailLabel;
