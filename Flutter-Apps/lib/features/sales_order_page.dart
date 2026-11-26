@@ -60,6 +60,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'tax_amount',
     'line_total',
   ];
+  static const _linkedRecords = {
+    'contract': ('Contract', 'contract_number'),
+    'engagement': ('Engagement', 'engagement_number'),
+    'billing_plan': ('Billing plan', 'name'),
+    'pms_project': ('Project', 'name'),
+  };
 
   String? get _cacheKey {
     final scope = widget.cacheScope;
@@ -83,6 +89,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             for (final line in lines)
               {for (final field in _lineFields) field: line[field]},
           ],
+          for (final entry in _linkedRecords.entries)
+            if (data[entry.key] case final Json record)
+              entry.key: {
+                entry.value.$2: record[entry.value.$2],
+                'status': record['status'],
+              },
         },
       ]);
     } catch (_) {
@@ -362,6 +374,24 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       ? null
                       : Text('$currency ${line['line_total']}'),
                 ),
+              if (_linkedRecords.keys.any((key) => data[key] is Json)) ...[
+                const Divider(),
+                Text(
+                  'Linked records',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                for (final entry in _linkedRecords.entries)
+                  if (data[entry.key] case final Json record)
+                    ListTile(
+                      title: Text(entry.value.$1),
+                      subtitle: Text(
+                        [record[entry.value.$2], record['status']]
+                            .whereType<String>()
+                            .where((value) => value.isNotEmpty)
+                            .join(' · '),
+                      ),
+                    ),
+              ],
             ],
           ],
         );

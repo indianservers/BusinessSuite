@@ -520,6 +520,7 @@ void main() {
         'order_number': 'QA order',
         'currency': 'INR',
         'terms': 'Payment due in 30 days',
+        'engagement': {'engagement_number': 'QA-ENG-1', 'status': 'active'},
         'lines': [
           {'description': 'QA order line', 'quantity': 2, 'tax_amount': 18},
         ],
@@ -630,6 +631,7 @@ void main() {
       await findDetail(expected);
       if (expected == 'QA order line') {
         expect(find.textContaining('Tax INR 18'), findsOneWidget);
+        await findDetail('QA-ENG-1 · active');
       }
       expect(find.text('qa@example.test'), findsNothing);
       expect(requests, requestsBeforeOffline);
