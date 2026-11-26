@@ -25,6 +25,7 @@ class SalesOrderPage extends StatefulWidget {
 
 class _SalesOrderPageState extends State<SalesOrderPage> {
   Json? _saved;
+  late bool _offline = widget.offline;
   late Future<Json?> _order = _load();
 
   static const _orderFields = [
@@ -50,7 +51,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'line_total',
   ];
 
-  Future<Json?> _load() async {
+  Future<Json?> _load({bool reconnect = false}) async {
     final path = '/srm/sales-orders/${widget.summary['id']}';
     final scope = widget.cacheScope;
     final branch = widget.scopeHeaders['X-Suite-Branch'];
@@ -72,7 +73,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         // Cached detail is optional when local storage is unavailable.
       }
     }
-    if (widget.offline || !mounted) return null;
+    if ((_offline && !reconnect) || !mounted) return null;
     if (revision != widget.api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
@@ -103,6 +104,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           // Online detail remains available if its cache cannot be written.
         }
       }
+      _offline = false;
       return data;
     } on ApiFailure catch (error) {
       if (error.status == null ||
@@ -120,6 +122,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     }
   }
 
+  void _refresh() => setState(() {
+    _order = _load(reconnect: true);
+  });
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sales Order Detail')),
@@ -132,12 +138,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('${snapshot.error}', textAlign: TextAlign.center),
-                TextButton(
-                  onPressed: () => setState(() {
-                    _order = _load();
-                  }),
-                  child: const Text('Retry'),
-                ),
+                TextButton(onPressed: _refresh, child: const Text('Retry')),
               ],
             ),
           );
@@ -155,21 +156,17 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text('${data['title'] ?? ''}'),
-            if (pending && !widget.offline) const LinearProgressIndicator(),
-            if ((widget.offline || !pending) && snapshot.data == null)
+            if (pending) const LinearProgressIndicator(),
+            if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
-                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_offline ? 'Offline' : 'Refresh unavailable'} · '
                   '${detail == null ? 'Saved order summary' : 'Saved order details'}',
                 ),
-                trailing: widget.offline
-                    ? null
-                    : TextButton(
-                        onPressed: () => setState(() {
-                          _order = _load();
-                        }),
-                        child: const Text('Retry'),
-                      ),
+                trailing: TextButton(
+                  onPressed: _refresh,
+                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                ),
               ),
             for (final field in const {
               'status': 'Status',

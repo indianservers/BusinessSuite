@@ -1581,7 +1581,7 @@ void main() {
       expect((await edits.pending(9))?['values'], {'company_name': 'Acme'});
     },
   );
-  testWidgets('offline order summary opens without a network request', (
+  testWidgets('offline order opens locally and reconnects in place', (
     tester,
   ) async {
     final dio = Dio()
@@ -1610,6 +1610,19 @@ void main() {
     expect(find.text('Offline · Saved order summary'), findsOneWidget);
     expect(find.text('INR 45.00'), findsOneWidget);
     expect(find.text('Line items'), findsNothing);
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.path, '/srm/sales-orders/8');
+      return response({
+        'order_number': 'SO-8',
+        'lines': [
+          {'description': 'Live order line'},
+        ],
+      });
+    });
+    await tester.tap(find.text('Reconnect'));
+    await tester.pumpAndSettle();
+    expect(find.text('Live order line'), findsOneWidget);
+    expect(find.text('Reconnect'), findsNothing);
   });
   testWidgets('order summary remains visible after a temporary API failure', (
     tester,
