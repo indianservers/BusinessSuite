@@ -69,12 +69,12 @@ public sealed partial class MainForm : Form
 
     private void appointmentSchedulerButton_Click(object? sender, EventArgs e) =>
         OpenDatabaseWorkspace(settings => new AppointmentsForm(settings));
-    private void financeWorkspaceButton_Click(object? sender, EventArgs e) => WorkspaceNavigation.OpenPage(this, "/fam");
-    private void financeLedgersButton_Click(object? sender, EventArgs e) => WorkspaceNavigation.OpenPage(this, "/fam/ledgers");
-    private void financeWorkspacesButton_Click(object? sender, EventArgs e) => WorkspaceNavigation.OpenPage(this, "/fam/workspaces");
+    private void financeWorkspaceButton_Click(object? sender, EventArgs e) => Open(new FinanceAndAccountingForm());
+    private void financeLedgersButton_Click(object? sender, EventArgs e) => Open(new FinanceAndAccountingForm());
+    private void financeWorkspacesButton_Click(object? sender, EventArgs e) => Open(new FinanceAndAccountingForm());
     private void hrWorkspaceButton_Click(object? sender, EventArgs e) =>
         OpenDatabaseWorkspace(settings => new EmployeeDirectoryForm(settings));
-    private void hrWorkspacesButton_Click(object? sender, EventArgs e) => WorkspaceNavigation.OpenPage(this, "/hrms/workspaces");
+    private void hrWorkspacesButton_Click(object? sender, EventArgs e) => Open(new HrmsForm());
     private void projectWorkspaceButton_Click(object? sender, EventArgs e) =>
         OpenDatabaseWorkspace(settings => new ProjectManagementForm(settings));
     private void projectWorkspacesButton_Click(object? sender, EventArgs e) =>
