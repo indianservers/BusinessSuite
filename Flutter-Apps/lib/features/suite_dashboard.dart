@@ -26,6 +26,7 @@ import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
 import 'finance_party_page.dart';
+import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -505,7 +506,16 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                 ListTile(
                   leading: const Icon(LucideIcons.fileText),
                   title: const Text('Notes'),
-                  onTap: () => _push(NotesPage(api: widget.controller.api)),
+                  onTap: () {
+                    final scope = _localScope(access);
+                    _push(
+                      NotesPage(
+                        api: widget.controller.api,
+                        cache: scope == null ? null : NotesOfflineCache(scope),
+                        offline: widget.controller.offline,
+                      ),
+                    );
+                  },
                 ),
               if (access['isAccessAdmin'] == true ||
                   access['isGlobalAdmin'] == true)

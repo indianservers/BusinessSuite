@@ -5,6 +5,7 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
+import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
@@ -28,6 +29,54 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Notes reopens cached private content read-only while offline', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('server-user-company');
+    final private = {
+      'id': 1,
+      'title': 'Private QA note',
+      'preview': 'Preview',
+      'can_edit': true,
+      'project_id': null,
+      'visibility_scope': 'private',
+      'visibility': 'private',
+    };
+    await cache.saveSummaries([
+      private,
+      {...private, 'id': 2, 'title': 'Shared QA note', 'visibility': 'shared'},
+    ]);
+    await cache.saveDetail({...private, 'content': 'Saved body'});
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((_) async {
+        fail('Offline Notes should not call the server');
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          cache: cache,
+          offline: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Shared QA note'), findsNothing);
+    await tester.tap(find.text('Private QA note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved body'), findsOneWidget);
+    expect(
+      tester
+          .widgetList<TextField>(find.byType(TextField))
+          .every((field) => field.readOnly),
+      isTrue,
+    );
+  });
   testWidgets(
     'Notes previews open immediately and only saves refresh the list',
     (tester) async {

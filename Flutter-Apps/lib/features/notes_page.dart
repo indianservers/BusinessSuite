@@ -3,13 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/notes_offline_cache.dart';
 
 const _notesPath = '/project-management/notes';
 const _richPrefix = '<!--suite-richtext:v1-->';
 
 class NotesPage extends StatefulWidget {
-  const NotesPage({super.key, required this.api});
+  const NotesPage({
+    super.key,
+    required this.api,
+    this.cache,
+    this.offline = false,
+  });
   final ApiClient api;
+  final NotesOfflineCache? cache;
+  final bool offline;
 
   @override
   State<NotesPage> createState() => _NotesPageState();
@@ -21,6 +29,7 @@ class _NotesPageState extends State<NotesPage> {
   String _view = 'all';
   String? _error;
   bool _loading = true;
+  bool _savedView = false;
   int _request = 0;
   Timer? _debounce;
 
@@ -39,36 +48,79 @@ class _NotesPageState extends State<NotesPage> {
   Future<void> _load() async {
     final request = ++_request;
     final query = _query.trim();
+    final view = _view;
+    final revision = widget.api.sessionRevision;
+    bool current() =>
+        mounted &&
+        request == _request &&
+        widget.api.sessionRevision == revision;
     setState(() {
       _loading = true;
       _error = null;
+      if (view != 'all' && _savedView) {
+        _notes = [];
+        _savedView = false;
+      }
     });
+    final saved = view == 'all' ? await widget.cache?.summaries() : null;
+    if (!current()) return;
+    if (saved != null && saved.isNotEmpty) {
+      final term = query.toLowerCase();
+      setState(() {
+        _savedView = true;
+        _notes = saved
+            .where(
+              (note) => '${note['title']} ${note['preview']}'
+                  .toLowerCase()
+                  .contains(term),
+            )
+            .toList();
+      });
+    }
     try {
+      if (widget.offline) throw ApiFailure('Connect to see the latest notes.');
       final result =
           await widget.api.request(
                 'GET',
                 _notesPath,
-                query: {'view': _view, if (query.isNotEmpty) 'q': query},
+                query: {'view': view, if (query.isNotEmpty) 'q': query},
               )
               as List;
-      if (!mounted || request != _request) return;
+      if (!current()) return;
+      final notes = result.cast<Map<String, dynamic>>();
       setState(() {
-        _notes = result.cast<Map<String, dynamic>>();
+        _notes = notes;
+        _savedView = false;
         _loading = false;
       });
+      if (view == 'all' && query.isEmpty) {
+        await widget.cache?.saveSummaries(notes);
+      }
     } catch (error) {
-      if (!mounted || request != _request) return;
+      if (!current()) return;
+      final denied =
+          error is ApiFailure && const {401, 403, 404}.contains(error.status);
       setState(() {
+        if (denied || view != 'all') {
+          _notes = [];
+          _savedView = false;
+        }
         _error = error.toString();
         _loading = false;
       });
+      if (denied) await widget.cache?.clear();
     }
   }
 
   void _open([Map<String, dynamic>? summary]) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) => _NoteEditor(api: widget.api, summary: summary),
+        builder: (_) => _NoteEditor(
+          api: widget.api,
+          summary: summary,
+          cache: widget.cache,
+          offline: widget.offline,
+        ),
       ),
     );
     if (mounted && changed == true) await _load();
@@ -101,7 +153,7 @@ class _NotesPageState extends State<NotesPage> {
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _open(),
+      onPressed: widget.offline ? null : () => _open(),
       icon: const Icon(Icons.add),
       label: const Text('New note'),
     ),
@@ -125,6 +177,7 @@ class _NotesPageState extends State<NotesPage> {
           ),
         ),
         if (_loading) const LinearProgressIndicator(),
+        if (_savedView) const Text('Saved private notes'),
         if (_error != null)
           Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
         if (!_loading && _error == null && _notes.isEmpty)
@@ -161,9 +214,16 @@ class _NotesPageState extends State<NotesPage> {
 }
 
 class _NoteEditor extends StatefulWidget {
-  const _NoteEditor({required this.api, this.summary});
+  const _NoteEditor({
+    required this.api,
+    this.summary,
+    this.cache,
+    required this.offline,
+  });
   final ApiClient api;
   final Map<String, dynamic>? summary;
+  final NotesOfflineCache? cache;
+  final bool offline;
 
   @override
   State<_NoteEditor> createState() => _NoteEditorState();
@@ -177,12 +237,16 @@ class _NoteEditorState extends State<_NoteEditor> {
   bool _loading = false;
   bool _saving = false;
   bool _dirty = false;
+  bool _savedView = false;
 
   bool get _rich =>
       (_note?['content'] as String? ?? '').startsWith(_richPrefix);
   bool get _editable =>
-      widget.summary == null && _note == null ||
-      _note?['can_edit'] == true && _note?['deleted_at'] == null;
+      !_loading &&
+      !_savedView &&
+      !widget.offline &&
+      (widget.summary == null && _note == null ||
+          _note?['can_edit'] == true && _note?['deleted_at'] == null);
 
   @override
   void initState() {
@@ -192,39 +256,68 @@ class _NoteEditorState extends State<_NoteEditor> {
   }
 
   Future<void> _load() async {
+    final revision = widget.api.sessionRevision;
     setState(() {
       _loading = true;
       _error = null;
     });
+    final cached = await widget.cache?.detail(widget.summary!['id']);
+    if (!mounted || revision != widget.api.sessionRevision) return;
+    if (cached != null) _show(cached, saved: true);
     try {
+      if (widget.offline) {
+        throw ApiFailure('Connect to edit or refresh this note.');
+      }
       final note =
           await widget.api.request(
                 'GET',
                 '$_notesPath/${widget.summary!['id']}',
               )
               as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() => _note = note);
-      _title.text = note['title'] as String? ?? '';
-      _body.text = _rich
-          ? (widget.summary?['preview'] as String? ?? '')
-          : (note['content'] as String? ?? '');
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      _show(note, saved: false);
+      await widget.cache?.saveDetail(note);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted && revision == widget.api.sessionRevision) {
+        final denied =
+            error is ApiFailure && const {401, 403, 404}.contains(error.status);
+        setState(() {
+          _error = '$error';
+          if (denied) {
+            _note = null;
+            _savedView = false;
+            _title.clear();
+            _body.clear();
+          }
+        });
+        if (denied) await widget.cache?.clear();
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _show(Map<String, dynamic> note, {required bool saved}) {
+    setState(() {
+      _note = note;
+      _savedView = saved;
+      _title.text = note['title'] as String? ?? '';
+      _body.text = _rich
+          ? (note['preview'] as String? ?? '')
+          : (note['content'] as String? ?? '');
+    });
+  }
+
   Future<void> _save() async {
     if (_saving || !_dirty || !_editable) return;
     final note = _note;
+    final revision = widget.api.sessionRevision;
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      await widget.api.request(
+      final updated = await widget.api.request(
         note == null ? 'POST' : 'PUT',
         note == null ? _notesPath : '$_notesPath/${note['id']}',
         data: {
@@ -244,6 +337,10 @@ class _NoteEditorState extends State<_NoteEditor> {
               key: note[key],
         },
       );
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      if (updated is Map<String, dynamic>) {
+        await widget.cache?.saveDetail(updated);
+      }
       if (!mounted) return;
       setState(() {
         _dirty = false;
@@ -309,6 +406,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         padding: const EdgeInsets.all(20),
         children: [
           if (_loading) const LinearProgressIndicator(),
+          if (_savedView) const Text('Saved note · Read only'),
           if (_error != null) Text(_error!),
           if (widget.summary != null && _note == null) ...[
             if (_loading) ...[
