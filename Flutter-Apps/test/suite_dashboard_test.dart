@@ -22,6 +22,48 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'issuing a GST invoice requires confirmation and reloads its status',
+    (tester) async {
+      var issued = false;
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            expect(request.path, '/srm/invoices/7/approve');
+            expect(issued, isFalse);
+            issued = true;
+            return response({'status': 'approved'});
+          }
+          expect(request.path, '/srm/invoices/7');
+          return response({
+            'invoice_number': 'GST-7',
+            'status': issued ? 'approved' : 'draft',
+            'document_status': issued ? 'issued' : 'draft',
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GstInvoicePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            id: 7,
+            canIssue: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Issue invoice'));
+      await tester.pumpAndSettle();
+      expect(issued, isFalse);
+      await tester.tap(find.text('Confirm issue'));
+      await tester.pumpAndSettle();
+      expect(find.text('issued'), findsOneWidget);
+      expect(find.text('Issue invoice'), findsNothing);
+    },
+  );
   testWidgets('GST PDF export rejects a non-PDF server response', (
     tester,
   ) async {

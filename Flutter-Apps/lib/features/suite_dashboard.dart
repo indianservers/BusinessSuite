@@ -281,6 +281,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
     final cache = app.grant == 'crm' || app.title == 'Sales & POS'
         ? _localScope(access)
         : null;
+    final grant = (access['grants'] as Json?)?['srm'] as Json?;
+    bool allowsSalesAction(String action) =>
+        app.title == 'Sales & POS' &&
+        (controller.user?.isSuperuser == true ||
+            access['managed'] != true ||
+            (grant?['actions'] as List?)?.contains(action) == true);
     _push(
       _SuiteRecords(
         title: app.title,
@@ -288,14 +294,19 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         path: app.endpoint,
         cachePrefix: cache,
         showInventory: app.title == 'Sales & POS',
-        canExportInvoices:
-            app.title == 'Sales & POS' &&
+        canExportInvoices: allowsSalesAction('export'),
+        canIssueInvoices:
+            allowsSalesAction('approve') &&
             (controller.user?.isSuperuser == true ||
-                access['managed'] != true ||
-                (((access['grants'] as Json?)?['srm'] as Json?)?['actions']
-                            as List?)
-                        ?.contains('export') ==
-                    true),
+                (grant?['permissions'] as List?)?.any(
+                      const {'srm_invoice_approve', 'srm_admin'}.contains,
+                    ) ==
+                    true ||
+                (access['managed'] != true &&
+                    controller.user?.permissions.any(
+                          const {'srm_invoice_approve', 'srm_admin'}.contains,
+                        ) ==
+                        true)),
         offlineOnly: controller.offline,
       ),
     );
@@ -768,6 +779,7 @@ class _SuiteRecords extends StatefulWidget {
     this.cachePrefix,
     this.showInventory = false,
     this.canExportInvoices = false,
+    this.canIssueInvoices = false,
     this.offlineOnly = false,
   });
   final String title;
@@ -778,6 +790,7 @@ class _SuiteRecords extends StatefulWidget {
   final String? cachePrefix;
   final bool showInventory;
   final bool canExportInvoices;
+  final bool canIssueInvoices;
   final bool offlineOnly;
 
   @override
@@ -978,6 +991,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: GstInvoicePage.listEndpoint,
                   canExportInvoices: widget.canExportInvoices,
+                  canIssueInvoices: widget.canIssueInvoices,
                   offlineOnly: widget.offlineOnly,
                 ),
               ),
@@ -1204,6 +1218,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             api: widget.controller.api,
                                             id: item['id'] as int,
                                             canExport: widget.canExportInvoices,
+                                            canIssue: widget.canIssueInvoices,
                                             canEdit:
                                                 widget
                                                         .controller

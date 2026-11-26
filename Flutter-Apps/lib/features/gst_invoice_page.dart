@@ -14,12 +14,14 @@ class GstInvoicePage extends StatefulWidget {
     required this.id,
     this.canEdit = false,
     this.canExport = false,
+    this.canIssue = false,
   });
   static const listEndpoint = '/srm/invoices';
   final ApiClient api;
   final int id;
   final bool canEdit;
   final bool canExport;
+  final bool canIssue;
 
   @override
   State<GstInvoicePage> createState() => _GstInvoicePageState();
@@ -28,8 +30,61 @@ class GstInvoicePage extends StatefulWidget {
 class _GstInvoicePageState extends State<GstInvoicePage> {
   late Future<Json> _invoice = _load();
   bool _exporting = false;
+  bool _issuing = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   Future<Json> _load() async => await widget.api.request('GET', _path) as Json;
+
+  Future<void> _issue(Json invoice) async {
+    if (_issuing) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    setState(() => _issuing = true);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Issue this invoice?'),
+          content: Text(
+            '${invoice['invoice_number']} · ${invoice['currency'] ?? ''} ${invoice['total_amount'] ?? ''}\n\n'
+            'Issuing finalizes the invoice. Any later changes require an accounting adjustment.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm issue'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true || api.sessionRevision != revision) {
+        return;
+      }
+      await api.request('POST', '$_path/approve');
+      if (mounted && api.sessionRevision == revision) {
+        setState(() {
+          _invoice = _load();
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Invoice issued.')));
+      }
+    } catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        setState(() {
+          _invoice = _load();
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _issuing = false);
+    }
+  }
 
   Future<void> _export(Json invoice) async {
     if (_exporting) return;
@@ -254,9 +309,20 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                   title: Text(field.value),
                   trailing: Text('${invoice[field.key]}'),
                 ),
+            if (widget.canIssue &&
+                invoice['document_status'] == 'draft' &&
+                const {
+                  'draft',
+                  'pending_approval',
+                  'approved',
+                }.contains(invoice['status']))
+              FilledButton(
+                onPressed: _issuing ? null : () => _issue(invoice),
+                child: Text(_issuing ? 'Issuing…' : 'Issue invoice'),
+              ),
             if (editable)
               OutlinedButton(
-                onPressed: () => _editDates(invoice),
+                onPressed: _issuing ? null : () => _editDates(invoice),
                 child: const Text('Edit dates'),
               ),
             for (final field in const {
@@ -305,7 +371,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                         }.contains(line['source_type'])
                     ? IconButton(
                         tooltip: 'Edit draft line',
-                        onPressed: () => _editLine(line),
+                        onPressed: _issuing ? null : () => _editLine(line),
                         icon: const Icon(Icons.edit_outlined),
                       )
                     : null,
