@@ -841,13 +841,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   }
 
   String _term = '';
+  late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
   String? get _cacheKey => widget.cachePrefix == null
       ? null
       : '${widget.cachePrefix}:${widget.path}';
 
-  Future<List<Json>> _load() async {
+  Future<List<Json>> _load({bool reconnect = false}) async {
     final path = widget.path;
     if (path == null) return [];
     final cacheKey = _cacheKey;
@@ -859,7 +860,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         /* A cache failure does not block online reads. */
       }
     }
-    if (widget.offlineOnly) {
+    if (_offlineOnly && !reconnect) {
       throw ApiFailure(
         'Offline. Open this page online to save records on this device.',
       );
@@ -911,6 +912,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       );
     }
     final records = rows.cast<Json>();
+    _offlineOnly = false;
     if (cacheKey != null) {
       final projection = [
         for (final record in records)
@@ -953,6 +955,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     return records;
   }
 
+  void _refresh() {
+    setState(() {
+      _records = _load(reconnect: true);
+    });
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -981,9 +989,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         IconButton(
           tooltip: 'Refresh',
           icon: const Icon(LucideIcons.refreshCw),
-          onPressed: () => setState(() {
-            _records = _load();
-          }),
+          onPressed: _refresh,
         ),
         if (_inventory)
           IconButton(
@@ -996,7 +1002,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: _stockSummaryPath,
                   cachePrefix: widget.cachePrefix,
-                  offlineOnly: widget.offlineOnly,
+                  offlineOnly: _offlineOnly,
                 ),
               ),
             ),
@@ -1034,7 +1040,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cachePrefix: widget.cachePrefix,
                   canExportInvoices: widget.canExportInvoices,
                   canIssueInvoices: widget.canIssueInvoices,
-                  offlineOnly: widget.offlineOnly,
+                  offlineOnly: _offlineOnly,
                 ),
               ),
             ),
@@ -1050,7 +1056,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: '/srm/inventory/items',
                   cachePrefix: widget.cachePrefix,
-                  offlineOnly: widget.offlineOnly,
+                  offlineOnly: _offlineOnly,
                 ),
               ),
             ),
@@ -1066,15 +1072,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         : FutureBuilder<List<Json>>(
             future: _records,
             builder: (context, snapshot) {
-              if (snapshot.hasError &&
-                  (_cached == null ||
-                      snapshot.error is! ApiFailure ||
-                      ((snapshot.error as ApiFailure).status != null &&
-                          !(widget.path == GstInvoicePage.listEndpoint &&
-                              ((snapshot.error as ApiFailure).status == 429 ||
-                                  ((snapshot.error as ApiFailure).status ??
-                                          0) >=
-                                      500))))) {
+              final error = snapshot.error;
+              final temporary =
+                  error is ApiFailure &&
+                  (error.status == null ||
+                      error.status == 429 ||
+                      (error.status ?? 0) >= 500);
+              if (snapshot.hasError && (_cached == null || !temporary)) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -1086,9 +1090,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           textAlign: TextAlign.center,
                         ),
                         TextButton(
-                          onPressed: () => setState(() {
-                            _records = _load();
-                          }),
+                          onPressed: _refresh,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -1169,6 +1171,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             CrmLeadPage.endpoint => 'Search saved leads',
                             '/srm/inventory/items' ||
                             _stockSummaryPath => 'Search products',
+                            GstInvoicePage.listEndpoint => 'Search invoices',
+                            FinancePartyPage.endpoint => 'Search parties',
                             _ => 'Search saved orders',
                           },
                         ),
@@ -1188,7 +1192,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           return ListTile(
                             title: Text(
                               snapshot.hasError
-                                  ? 'Offline · Saved records'
+                                  ? 'Refresh unavailable · Saved records'
                                   : 'Saved records · Refreshing',
                             ),
                           );
@@ -1252,7 +1256,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                               }
                                             },
                                             offline:
-                                                widget.offlineOnly ||
+                                                _offlineOnly ||
                                                 (cached && snapshot.hasError),
                                           )
                                         : widget.path == '/srm/sales-orders'
@@ -1262,7 +1266,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             cacheScope: widget.cachePrefix,
                                             scopeHeaders: widget.scopeHeaders,
                                             offline:
-                                                widget.offlineOnly ||
+                                                _offlineOnly ||
                                                 (cached && snapshot.hasError),
                                           )
                                         : widget.path ==
@@ -1272,7 +1276,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             id: item['id'] as int,
                                             summary: item,
                                             cacheScope: widget.cachePrefix,
-                                            offline: widget.offlineOnly,
+                                            offline: _offlineOnly,
                                             canExport: widget.canExportInvoices,
                                             canIssue: widget.canIssueInvoices,
                                             canEdit:
@@ -1305,7 +1309,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             cacheScope: widget.cachePrefix,
                                             scopeHeaders: widget.scopeHeaders,
                                             offline:
-                                                widget.offlineOnly ||
+                                                _offlineOnly ||
                                                 (cached && snapshot.hasError),
                                           ),
                                   ),

@@ -29,6 +29,51 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('offline Sales screen reconnects in place through Refresh', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    var orders = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/srm/sales-orders');
+        orders++;
+        return response([
+          {'id': 4, 'order_number': 'SO-4'},
+        ]);
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    final user = {'id': 2, 'email': 'mobile@example.test'};
+    await api.rememberSuite(user, {
+      'companyId': 7,
+      'grants': {
+        'srm': {'enabled': true},
+      },
+    });
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..offline = true
+      ..user = SessionUser.fromJson(user);
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Sales & POS'));
+    await tester.tap(find.text('Sales & POS'));
+    await tester.pumpAndSettle();
+    expect(orders, 0);
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
+    expect(orders, 1);
+    expect(find.text('SO-4'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('offline Notes creation retries with the same operation ID', (
     tester,
   ) async {
