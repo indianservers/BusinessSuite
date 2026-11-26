@@ -1,11 +1,13 @@
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
+import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
+import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:dio/dio.dart';
@@ -17,6 +19,87 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets(
+    'Android Notes reopens a durable draft and syncs it after reconnect',
+    (tester) async {
+      const server = 'https://example.test/api/v1';
+      final scope = '["$server",${DateTime.now().microsecondsSinceEpoch},7]';
+      final cache = NotesOfflineCache(scope);
+      final operations = <Object?>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            expectSync(request.path, '/project-management/notes');
+            return response([
+              {'id': 10, 'title': 'Android offline note', 'preview': 'QA body'},
+            ]);
+          }
+          expectSync(request.path, '/project-management/notes/offline-create');
+          expectSync(request.data, {
+            'title': 'Android offline note',
+            'content': 'QA body',
+          });
+          operations.add(request.headers['X-Offline-Operation']);
+          if (operations.length == 1)
+            return response({'detail': 'Unavailable'}, 503);
+          return response({
+            'id': 10,
+            'title': 'Android offline note',
+            'content': 'QA body',
+          }, 201);
+        });
+      final api = ApiClient(
+        baseUrl: server,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'device-qa',
+        'refresh_token': 'device-qa',
+      });
+      Future<void> waitFor(Finder finder) async {
+        final deadline = DateTime.now().add(const Duration(seconds: 15));
+        while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(finder, findsOneWidget);
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(api: api, cache: cache, offline: true),
+        ),
+      );
+      await tester.tap(find.text('New note'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Android offline note',
+      );
+      await tester.enterText(find.byType(TextField).last, 'QA body');
+      await tester.tap(find.text('Save'));
+      await waitFor(find.text('Saved · Awaiting sync'));
+      expect(operations, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      final reopened = NotesOfflineCache(scope);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(api: api, cache: reopened, offline: true),
+        ),
+      );
+      await waitFor(find.text('Saved · Awaiting sync'));
+      expect(await reopened.creations(), hasLength(1));
+      await reopened.sync(api);
+      expect(await reopened.creations(), hasLength(1));
+      await tester.tap(find.byTooltip('Refresh notes'));
+      await waitFor(find.text('QA body'));
+      expect(await reopened.creations(), isEmpty);
+      expect(operations, hasLength(2));
+      expect(operations.first, isNotNull);
+      expect(operations.first, operations.last);
+    },
+  );
 
   testWidgets('Android HRMS shows attendance and leave from the shared API', (
     tester,
