@@ -38,19 +38,27 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'discount_amount',
     'tax_amount',
     'total_amount',
+    'terms',
   ];
   static const _lineFields = [
     'description',
     'item_code',
     'quantity',
     'unit_price',
+    'discount_amount',
+    'tax_amount',
     'line_total',
   ];
 
   Future<Json?> _load() async {
     final path = '/srm/sales-orders/${widget.summary['id']}';
     final scope = widget.cacheScope;
-    final key = scope == null ? null : '$scope:$path';
+    final branch = widget.scopeHeaders['X-Suite-Branch'];
+    final key = scope == null
+        ? null
+        : branch == null
+        ? '$scope:$path'
+        : '$scope:$path:$branch';
     final revision = widget.api.sessionRevision;
     if (key != null) {
       try {
@@ -186,6 +194,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   trailing: Text('$currency ${data[field.key]}'.trim()),
                 ),
             if (detail != null) ...[
+              if (data['terms'] case final String terms
+                  when terms.trim().isNotEmpty)
+                ListTile(title: const Text('Terms'), subtitle: Text(terms)),
               const Divider(),
               Text(
                 'Line items',
@@ -198,7 +209,13 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     '${line['description'] ?? line['item_code'] ?? 'Line item'}',
                   ),
                   subtitle: Text(
-                    'Quantity ${line['quantity'] ?? '—'} · Unit price $currency ${line['unit_price'] ?? '—'}',
+                    [
+                      'Quantity ${line['quantity'] ?? '—'} · Unit price $currency ${line['unit_price'] ?? '—'}',
+                      if (line['discount_amount'] != null)
+                        'Discount $currency ${line['discount_amount']}',
+                      if (line['tax_amount'] != null)
+                        'Tax $currency ${line['tax_amount']}',
+                    ].join('\n'),
                   ),
                   trailing: line['line_total'] == null
                       ? null

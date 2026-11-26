@@ -79,8 +79,12 @@ void main() {
     expect(find.text('QA-SALE-1'), findsOneWidget);
     expect(requests, 1);
     await tester.tap(find.byTooltip('Refresh'));
-    await tester.pumpAndSettle();
-    expect(find.text('QA-SALE-2'), findsOneWidget);
+    final refreshed = find.text('QA-SALE-2');
+    final deadline = DateTime.now().add(const Duration(seconds: 15));
+    while (refreshed.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(refreshed, findsOneWidget);
     expect(requests, 2);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -365,8 +369,10 @@ void main() {
       },
       '/srm/sales-orders/1': {
         'order_number': 'QA order',
+        'currency': 'INR',
+        'terms': 'Payment due in 30 days',
         'lines': [
-          {'description': 'QA order line', 'quantity': 2},
+          {'description': 'QA order line', 'quantity': 2, 'tax_amount': 18},
         ],
       },
       '/crm/lead-management/leads/1': {
@@ -469,7 +475,13 @@ void main() {
       final requestsBeforeOffline = requests;
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(MaterialApp(home: page(true)));
+      if (expected == 'QA order line') {
+        await findDetail('Payment due in 30 days');
+      }
       await findDetail(expected);
+      if (expected == 'QA order line') {
+        expect(find.textContaining('Tax INR 18'), findsOneWidget);
+      }
       expect(find.text('qa@example.test'), findsNothing);
       expect(requests, requestsBeforeOffline);
       await tester.pumpWidget(const SizedBox.shrink());
