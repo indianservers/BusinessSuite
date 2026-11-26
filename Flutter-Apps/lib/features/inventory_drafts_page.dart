@@ -19,12 +19,36 @@ class InventoryDraftsPage extends StatefulWidget {
 
 class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
-  final _form = GlobalKey<FormState>();
+  var _form = GlobalKey<FormState>();
+  final _scroll = ScrollController();
   String _name = '', _sku = '', _currency = '';
   final Map<String, String> _details = {};
+  String? _editingOperation;
   bool _trackInventory = true;
   bool _busy = false;
   String? _message;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _edit(Json entry) {
+    if (_name.isNotEmpty ||
+        _sku.isNotEmpty ||
+        _currency.isNotEmpty ||
+        _details.isNotEmpty ||
+        !_trackInventory) {
+      setState(
+        () => _message = 'Save your current draft before editing another.',
+      );
+      _scroll.jumpTo(0);
+      return;
+    }
+    _loadForm(entry);
+    _scroll.jumpTo(0);
+  }
 
   Future<void> _run(Future<void> Function() operation, String message) async {
     if (_busy) return;
@@ -41,7 +65,12 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _message = '$error');
+      if (mounted) {
+        setState(() {
+          _entries = widget.drafts.entries();
+          _message = '$error';
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -57,14 +86,38 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
         'currency': _currency.trim().toUpperCase(),
         ..._details,
         'track_inventory': _trackInventory,
-      });
-      if (mounted) {
-        _form.currentState?.reset();
-        _name = _sku = _currency = '';
-        _details.clear();
-        _trackInventory = true;
-      }
+      }, replaceRejected: _editingOperation);
+      if (mounted) _loadForm();
     }, 'Product draft saved on this device.');
+  }
+
+  void _loadForm([Json? entry]) {
+    final product = entry?['product'] as Json? ?? {};
+    setState(() {
+      _form = GlobalKey<FormState>();
+      _editingOperation = entry?['operation'] as String?;
+      _name = product['name'] as String? ?? '';
+      _sku = product['code'] as String? ?? '';
+      _currency = product['currency'] as String? ?? '';
+      _trackInventory = product['track_inventory'] as bool? ?? true;
+      _details
+        ..clear()
+        ..addEntries(
+          product.entries
+              .where(
+                (field) =>
+                    !const {
+                      'kind',
+                      'name',
+                      'code',
+                      'currency',
+                      'track_inventory',
+                    }.contains(field.key) &&
+                    field.value != null,
+              )
+              .map((field) => MapEntry(field.key, '${field.value}')),
+        );
+    });
   }
 
   Widget _detailField(
@@ -75,6 +128,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
     num maximum = 9999999999,
     int maxLines = 1,
   }) => TextFormField(
+    initialValue: _details[key],
     enabled: !_busy,
     maxLength: maxLength,
     maxLines: maxLines,
@@ -136,6 +190,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Product drafts')),
     body: ListView(
+      controller: _scroll,
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
@@ -146,6 +201,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
           child: Column(
             children: [
               TextFormField(
+                initialValue: _name,
                 maxLength: 180,
                 enabled: !_busy,
                 decoration: const InputDecoration(labelText: 'Product name'),
@@ -155,6 +211,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     : null,
               ),
               TextFormField(
+                initialValue: _sku,
                 maxLength: 80,
                 enabled: !_busy,
                 decoration: const InputDecoration(labelText: 'SKU'),
@@ -163,6 +220,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     (value ?? '').trim().isEmpty ? 'Enter a SKU.' : null,
               ),
               TextFormField(
+                initialValue: _currency,
                 maxLength: 3,
                 enabled: !_busy,
                 textCapitalization: TextCapitalization.characters,
@@ -205,8 +263,17 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
               _detailField('reorder_level', 'Reorder level', decimalPlaces: 3),
               FilledButton(
                 onPressed: _busy ? null : _queue,
-                child: const Text('Save product draft'),
+                child: Text(
+                  _editingOperation == null
+                      ? 'Save product draft'
+                      : 'Save corrected draft',
+                ),
               ),
+              if (_editingOperation != null)
+                TextButton(
+                  onPressed: _busy ? null : () => _loadForm(),
+                  child: const Text('Cancel editing'),
+                ),
             ],
           ),
         ),
@@ -233,12 +300,27 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     ),
                     trailing: entry['error'] == null
                         ? null
-                        : IconButton(
-                            tooltip: 'Discard draft',
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: _busy
-                                ? null
-                                : () => _discard(entry['operation'] as String),
+                        : Wrap(
+                            children: [
+                              IconButton(
+                                tooltip: 'Edit rejected draft',
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: _busy || _editingOperation != null
+                                    ? null
+                                    : () => _edit(entry),
+                              ),
+                              IconButton(
+                                tooltip: 'Discard draft',
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed:
+                                    _busy ||
+                                        _editingOperation == entry['operation']
+                                    ? null
+                                    : () => _discard(
+                                        entry['operation'] as String,
+                                      ),
+                              ),
+                            ],
                           ),
                   ),
                 if (entries.any((entry) => entry['error'] == null))
@@ -246,7 +328,10 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     onPressed: _busy
                         ? null
                         : () => _run(
-                            () => widget.drafts.sync(widget.api),
+                            () => widget.drafts.sync(
+                              widget.api,
+                              reportTemporaryFailure: true,
+                            ),
                             'Sync checked. Any unsent drafts remain below.',
                           ),
                     child: const Text('Sync now'),

@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/app_controller.dart';
 
 class MemoryStore implements SessionStore {
@@ -44,6 +46,7 @@ ResponseBody response(Object data, [int status = 200]) =>
     );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Dio dio;
   late MemoryStore store;
   late ApiClient api;
@@ -56,6 +59,48 @@ void main() {
       transport: dio,
     );
   });
+  test(
+    'inventory retries keep the operation ID until the draft is corrected',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      final drafts = InventoryOfflineCreates('["server",1,8]');
+      final product = {'kind': 'product', 'name': 'Phone QA', 'code': 'QA'};
+      await drafts.enqueue(product);
+      final initial = (await drafts.entries()).single['operation'];
+      var status = 503;
+      final sent = <Object?>[];
+      dio.httpClientAdapter = FakeAdapter((request) async {
+        sent.add(request.headers['X-Offline-Operation']);
+        return response({'detail': 'Test response'}, status);
+      });
+      await expectLater(
+        drafts.sync(api, reportTemporaryFailure: true),
+        throwsA(isA<ApiFailure>()),
+      );
+      expect((await drafts.entries()).single['error'], isNull);
+      await expectLater(
+        drafts.enqueue(product, replaceRejected: initial as String),
+        throwsStateError,
+      );
+      status = 422;
+      await drafts.sync(api);
+      expect((await drafts.entries()).single['error'], isNotNull);
+      await drafts.enqueue({
+        ...product,
+        'name': 'Corrected',
+      }, replaceRejected: initial);
+      final corrected = (await drafts.entries()).single['operation'];
+      expect(corrected, isNot(initial));
+      status = 201;
+      await drafts.sync(api);
+      expect(sent, [initial, initial, corrected]);
+      expect(await drafts.entries(), isEmpty);
+    },
+  );
   test(
     'restores the saved suite only for a disconnected signed-in session',
     () async {

@@ -33,16 +33,34 @@ class InventoryOfflineCreates {
     }
   }
 
-  Future<void> enqueue(Json product) => _serialized(() async {
-    final pending = await entries();
-    if (pending.any(
-      (entry) => (entry['product'] as Json)['code'] == product['code'],
-    )) {
-      throw StateError('An unsynced product already uses this SKU.');
-    }
-    pending.add({'operation': const Uuid().v4(), 'product': product});
-    await _storage.write(key: _key, value: jsonEncode(pending));
-  });
+  Future<void> enqueue(Json product, {String? replaceRejected}) =>
+      _serialized(() async {
+        final pending = await entries();
+        final replacementIndex = replaceRejected == null
+            ? -1
+            : pending.indexWhere(
+                (entry) =>
+                    entry['operation'] == replaceRejected &&
+                    entry['error'] != null,
+              );
+        if (replaceRejected != null && replacementIndex == -1) {
+          throw StateError('This rejected draft is no longer available.');
+        }
+        if (pending.any(
+          (entry) =>
+              entry['operation'] != replaceRejected &&
+              (entry['product'] as Json)['code'] == product['code'],
+        )) {
+          throw StateError('An unsynced product already uses this SKU.');
+        }
+        final entry = {'operation': const Uuid().v4(), 'product': product};
+        if (replacementIndex == -1) {
+          pending.add(entry);
+        } else {
+          pending[replacementIndex] = entry;
+        }
+        await _storage.write(key: _key, value: jsonEncode(pending));
+      });
 
   Future<void> discard(String operation) => _serialized(() async {
     final pending = await entries();
@@ -50,7 +68,7 @@ class InventoryOfflineCreates {
     await _storage.write(key: _key, value: jsonEncode(pending));
   });
 
-  Future<void> sync(ApiClient api) {
+  Future<void> sync(ApiClient api, {bool reportTemporaryFailure = false}) {
     final revision = api.sessionRevision;
     return _serialized(() async {
       final pending = await entries();
@@ -74,6 +92,7 @@ class InventoryOfflineCreates {
               error.status == 401 ||
               error.status == 429 ||
               (error.status ?? 500) >= 500) {
+            if (reportTemporaryFailure) rethrow;
             return;
           }
           entry['error'] = error.toString();
