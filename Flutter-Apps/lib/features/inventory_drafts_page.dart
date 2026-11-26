@@ -21,6 +21,8 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
   final _form = GlobalKey<FormState>();
   String _name = '', _sku = '', _currency = '';
+  final Map<String, String> _details = {};
+  bool _trackInventory = true;
   bool _busy = false;
   String? _message;
 
@@ -53,13 +55,57 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
         'name': _name.trim(),
         'code': _sku.trim(),
         'currency': _currency.trim().toUpperCase(),
+        ..._details,
+        'track_inventory': _trackInventory,
       });
       if (mounted) {
         _form.currentState?.reset();
         _name = _sku = _currency = '';
+        _details.clear();
+        _trackInventory = true;
       }
     }, 'Product draft saved on this device.');
   }
+
+  Widget _detailField(
+    String key,
+    String label, {
+    int? maxLength,
+    int? decimalPlaces,
+    num maximum = 9999999999,
+    int maxLines = 1,
+  }) => TextFormField(
+    enabled: !_busy,
+    maxLength: maxLength,
+    maxLines: maxLines,
+    keyboardType: decimalPlaces == null
+        ? null
+        : const TextInputType.numberWithOptions(decimal: true),
+    decoration: InputDecoration(labelText: label),
+    onChanged: (value) {
+      final text = value.trim();
+      if (text.isEmpty) {
+        _details.remove(key);
+      } else {
+        _details[key] = text;
+      }
+    },
+    validator: (value) {
+      final text = value?.trim() ?? '';
+      if (decimalPlaces == null || text.isEmpty) return null;
+      final pattern = RegExp(
+        r'^(?:\d+(?:\.\d{0,'
+        '$decimalPlaces'
+        r'})?|\.\d{1,'
+        '$decimalPlaces'
+        r'})$',
+      );
+      if (!pattern.hasMatch(text) || num.parse(text) > maximum) {
+        return 'Enter a value from 0 to $maximum with up to $decimalPlaces decimal places.';
+      }
+      return null;
+    },
+  );
 
   Future<void> _discard(String operation) async {
     final discard = await showDialog<bool>(
@@ -130,6 +176,33 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     ? null
                     : 'Enter a three-letter currency code.',
               ),
+              _detailField('price', 'Base price', decimalPlaces: 2),
+              _detailField(
+                'tax',
+                'GST rate (%)',
+                decimalPlaces: 2,
+                maximum: 100,
+              ),
+              _detailField('unit', 'Unit of measure', maxLength: 40),
+              _detailField('hsn_code', 'HSN code', maxLength: 30),
+              _detailField('barcode', 'Barcode', maxLength: 120),
+              _detailField(
+                'description',
+                'Description',
+                maxLength: 50000,
+                maxLines: 3,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Track inventory'),
+                value: _trackInventory,
+                onChanged: _busy
+                    ? null
+                    : (value) => setState(() => _trackInventory = value),
+              ),
+              _detailField('cost', 'Purchase cost', decimalPlaces: 2),
+              _detailField('mrp', 'MRP', decimalPlaces: 2),
+              _detailField('reorder_level', 'Reorder level', decimalPlaces: 3),
               FilledButton(
                 onPressed: _busy ? null : _queue,
                 child: const Text('Save product draft'),
