@@ -137,7 +137,7 @@ void main() {
     },
   );
 
-  testWidgets('Android Sales reuses a fresh local list until Refresh', (
+  testWidgets('Android Sales searches older orders and falls back offline', (
     tester,
   ) async {
     final id = DateTime.now().microsecondsSinceEpoch;
@@ -199,10 +199,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await openSales();
-    expect(find.text('QA-SALE-1'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     await openSales();
     expect(find.text('QA-SALE-1'), findsOneWidget);
     expect(requests, 1);
