@@ -245,6 +245,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           {
             'companyId': access['companyId'],
             'companyName': access['companyName'],
+            'canCreateLead': _canCreateLead(access),
             'grants': {
               for (final key in ['crm', 'srm', 'fam', 'project_management'])
                 key: {
@@ -270,6 +271,20 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
     return !disabled.contains(key) &&
         ((grants[key] as Json?)?['enabled'] == true ||
             access['isGlobalAdmin'] == true);
+  }
+
+  bool _canCreateLead(Json access) {
+    if (!_allowed(access, 'crm')) return false;
+    final controller = widget.controller;
+    if (controller.offline) return access['canCreateLead'] == true;
+    final crm = (access['grants'] as Json?)?['crm'] as Json?;
+    const permissions = {'crm_manage', 'crm_admin', 'crm_leads_manage'};
+    return controller.user?.isSuperuser == true ||
+        (access['managed'] == true
+            ? (crm?['actions'] as List?)?.contains('create') == true &&
+                  (crm?['permissions'] as List?)?.any(permissions.contains) ==
+                      true
+            : controller.user?.permissions.any(permissions.contains) == true);
   }
 
   void _open(_App app, Json access) {
@@ -300,8 +315,6 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         ? _localScope(access)
         : null;
     final grant = (access['grants'] as Json?)?['srm'] as Json?;
-    final crmGrant = (access['grants'] as Json?)?['crm'] as Json?;
-    const leadPermissions = {'crm_manage', 'crm_admin', 'crm_leads_manage'};
     bool allowsSalesAction(String action) =>
         app.title == 'Sales & POS' &&
         (controller.user?.isSuperuser == true ||
@@ -319,20 +332,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,
-        canCreateLead:
-            app.grant == 'crm' &&
-            (controller.user?.isSuperuser == true ||
-                (access['managed'] == true
-                    ? (crmGrant?['actions'] as List?)?.contains('create') ==
-                              true &&
-                          (crmGrant?['permissions'] as List?)?.any(
-                                leadPermissions.contains,
-                              ) ==
-                              true
-                    : controller.user?.permissions.any(
-                            leadPermissions.contains,
-                          ) ==
-                          true)),
+        canCreateLead: app.grant == 'crm' && _canCreateLead(access),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
         canCreateOrderInvoices:
@@ -1174,24 +1174,41 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     appBar: AppBar(
       title: Text(widget.title),
       actions: [
-        if (_isCrm && widget.canCreateLead && !_offlineOnly)
+        if (_isCrm &&
+            widget.canCreateLead &&
+            (!_offlineOnly || _crmEdits != null))
           IconButton(
             tooltip: 'New lead',
             icon: const Icon(LucideIcons.plus),
             onPressed: () async {
               final created = await Navigator.of(context).push<bool>(
                 MaterialPageRoute<bool>(
-                  builder: (_) => CrmNewLeadPage(api: widget.controller.api),
+                  builder: (_) => CrmNewLeadPage(
+                    api: widget.controller.api,
+                    queue: _crmEdits,
+                    offline: _offlineOnly,
+                  ),
                 ),
               );
               if (created == true && context.mounted) {
                 _page = 1;
-                _refresh();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lead created.')),
-                );
+                if (!_offlineOnly) _refresh();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Lead saved.')));
               }
             },
+          ),
+        if (_crmEdits case final CrmOfflineEdits queue)
+          IconButton(
+            tooltip: 'Lead drafts',
+            icon: const Icon(LucideIcons.fileText),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    CrmLeadDraftsPage(queue: queue, api: widget.controller.api),
+              ),
+            ),
           ),
         if (widget.path == '/employees/')
           IconButton(

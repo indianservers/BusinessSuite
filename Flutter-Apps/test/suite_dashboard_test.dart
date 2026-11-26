@@ -30,6 +30,60 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'offline CRM saves a lead draft and replays its original request',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      const base = 'https://example.test/api/v1';
+      const scope = '["$base",3,7]';
+      final drafts = CrmOfflineEdits(scope);
+      final attempts = <RequestOptions>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          attempts.add(request);
+          return attempts.length == 1
+              ? response({'detail': 'Unavailable'}, 503)
+              : response({'id': 17}, 201);
+        });
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CrmNewLeadPage(api: api, queue: drafts, offline: true),
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField).first, 'Field lead');
+      await tester.ensureVisible(find.text('Save lead draft'));
+      await tester.tap(find.text('Save lead draft'));
+      await tester.pumpAndSettle();
+      expect(attempts, isEmpty);
+      final reopened = CrmOfflineEdits(scope);
+      final saved = (await reopened.creations()).single;
+      expect(saved['values']['full_name'], 'Field lead');
+      await tester.runAsync(() => reopened.sync(api));
+      expect(await reopened.creations(), hasLength(1));
+      await tester.runAsync(() => reopened.sync(api));
+      expect(await reopened.creations(), isEmpty);
+      for (final request in attempts) {
+        expect(request.path, CrmLeadPage.endpoint);
+        expect(request.data, {
+          'values': {'full_name': 'Field lead'},
+        });
+        expect(request.headers['X-Suite-Organization'], '7');
+        expect(
+          'create:${request.headers['X-Offline-Operation']}',
+          saved['key'],
+        );
+      }
+    },
+  );
   testWidgets('native CRM creates a lead through the shared write API', (
     tester,
   ) async {
@@ -73,7 +127,7 @@ void main() {
     expect(saved, isTrue);
     expect(requests.single.path, CrmLeadPage.endpoint);
     expect(requests.single.method, 'POST');
-      expect(requests.single.headers['X-Offline-Operation'], isNotEmpty);
+    expect(requests.single.headers['X-Offline-Operation'], isNotEmpty);
     expect(requests.single.data, {
       'values': {'full_name': 'Sample Lead', 'company_name': 'Sample company'},
     });

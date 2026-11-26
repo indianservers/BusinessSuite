@@ -20,6 +20,21 @@ class CrmOfflineEdits {
   }
 
   Future<Json?> pending(int id) async => (await _read())['$id'] as Json?;
+  Map<String, String> creationHeaders(String operation) => {
+    'X-Suite-Organization': _company,
+    'X-Offline-Operation': operation,
+  };
+  Future<List<Json>> creations() async => [
+    for (final row in (await _read()).entries)
+      if (row.key.startsWith('create:')) {...row.value as Json, 'key': row.key},
+  ];
+
+  Future<void> enqueueCreation(String operation, Json payload) =>
+      _serialized(() async {
+        final rows = await _read();
+        rows['create:$operation'] = payload;
+        await _storage.write(key: _key, value: jsonEncode(rows));
+      });
   Future<bool> get hasPending async =>
       (await _read()).values.any((row) => (row as Json)['error'] == null);
 
@@ -68,11 +83,16 @@ class CrmOfflineEdits {
         if (!api.hasSession || session != api.sessionRevision) return;
         final edit = rows[id] as Json?;
         if (edit == null || edit['error'] != null) continue;
+        final creating = id.startsWith('create:');
         try {
           await api.request(
-            'PATCH',
-            '/crm/lead-management/leads/$id',
-            scopeHeaders: {'X-Suite-Organization': _company},
+            creating ? 'POST' : 'PATCH',
+            creating
+                ? '/crm/lead-management/leads'
+                : '/crm/lead-management/leads/$id',
+            scopeHeaders: creating
+                ? creationHeaders(id.substring('create:'.length))
+                : {'X-Suite-Organization': _company},
             data: edit,
           );
           rows.remove(id);
@@ -93,6 +113,13 @@ class CrmOfflineEdits {
   Future<void> discard(int id) => _serialized(() async {
     final rows = await _read();
     rows.remove('$id');
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
+
+  Future<void> discardCreation(String key) => _serialized(() async {
+    if (!key.startsWith('create:')) return;
+    final rows = await _read();
+    rows.remove(key);
     await _storage.write(key: _key, value: jsonEncode(rows));
   });
 }
