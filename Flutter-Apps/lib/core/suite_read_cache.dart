@@ -25,6 +25,12 @@ class SuiteReadCache {
   }
 
   static Future<List<Json>?> read(String scope) async {
+    return (await snapshot(scope))?.rows;
+  }
+
+  static Future<({List<Json> rows, DateTime savedAt})?> snapshot(
+    String scope,
+  ) async {
     final entries = await (await _open()).query(
       'snapshots',
       where: 'scope = ? AND saved_at >= ?',
@@ -35,7 +41,11 @@ class SuiteReadCache {
       limit: 1,
     );
     if (entries.isEmpty) return null;
-    return (jsonDecode(entries.single['rows'] as String) as List).cast<Json>();
+    final entry = entries.single;
+    return (
+      rows: (jsonDecode(entry['rows'] as String) as List).cast<Json>(),
+      savedAt: DateTime.fromMillisecondsSinceEpoch(entry['saved_at'] as int),
+    );
   }
 
   static Future<void> write(String scope, List<Json> rows) async {

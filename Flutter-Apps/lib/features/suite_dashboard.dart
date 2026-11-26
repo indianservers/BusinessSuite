@@ -818,6 +818,7 @@ class _SuiteRecords extends StatefulWidget {
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
   static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
+  static const _listReuseWindow = Duration(seconds: 15);
   bool get _stockAlerts => widget.path == _stockSummaryPath;
   bool get _inventory => widget.path == '/srm/inventory/items';
 
@@ -852,13 +853,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final path = widget.path;
     if (path == null) return [];
     final cacheKey = _cacheKey;
+    final api = widget.controller.api;
+    final revision = api.sessionRevision;
     if (cacheKey != null) {
       try {
-        final cached = await SuiteReadCache.read(cacheKey);
-        if (mounted && cached != null) setState(() => _cached = cached);
+        final cached = await SuiteReadCache.snapshot(cacheKey);
+        if (mounted && api.sessionRevision == revision && cached != null) {
+          setState(() => _cached = cached.rows);
+          final age = DateTime.now().difference(cached.savedAt);
+          if (!reconnect &&
+              !_offlineOnly &&
+              (_inventory || path == '/srm/sales-orders') &&
+              !age.isNegative &&
+              age < _listReuseWindow) {
+            return cached.rows;
+          }
+        }
       } catch (_) {
         /* A cache failure does not block online reads. */
       }
+    }
+    if (api.sessionRevision != revision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     if (_offlineOnly && !reconnect) {
       throw ApiFailure(
@@ -912,6 +928,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       );
     }
     final records = rows.cast<Json>();
+    if (api.sessionRevision != revision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
     _offlineOnly = false;
     if (cacheKey != null) {
       final projection = [
@@ -1022,7 +1041,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               );
               if (mounted) {
                 setState(() {
-                  _records = _load();
+                  _records = _load(reconnect: true);
                 });
               }
             },

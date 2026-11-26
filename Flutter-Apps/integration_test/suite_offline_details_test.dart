@@ -1,3 +1,4 @@
+import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
@@ -10,6 +11,7 @@ import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
+import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +21,68 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Android Sales reuses a fresh local list until Refresh', (
+    tester,
+  ) async {
+    final id = DateTime.now().microsecondsSinceEpoch;
+    var requests = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        switch (request.path) {
+          case '/access/me':
+            return response({
+              'companyId': 7,
+              'grants': {
+                'srm': {'enabled': true},
+              },
+            });
+          case '/notifications/unread-count':
+            return response({'unread': 0});
+          case '/srm/sales-orders':
+            requests++;
+            return response([
+              {'id': 1, 'order_number': 'QA-SALE-$requests'},
+            ]);
+          default:
+            throw StateError('Unexpected request ${request.path}');
+        }
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'device-qa',
+      'refresh_token': 'device-qa',
+    });
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson({'id': id, 'email': 'qa@example.test'});
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    Future<void> openSales() async {
+      final sales = find.text('Sales & POS');
+      await tester.ensureVisible(sales);
+      await tester.pumpAndSettle();
+      await tester.tap(sales);
+      await tester.pumpAndSettle();
+    }
+
+    await openSales();
+    expect(find.text('QA-SALE-1'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await openSales();
+    expect(find.text('QA-SALE-1'), findsOneWidget);
+    expect(requests, 1);
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
+    expect(find.text('QA-SALE-2'), findsOneWidget);
+    expect(requests, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'Android Notes reopens a durable draft and syncs it after reconnect',
