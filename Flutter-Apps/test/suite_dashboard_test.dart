@@ -281,7 +281,7 @@ void main() {
         }
         expect(request.method, 'PATCH');
         expect(request.data['version'], 4);
-        expect(request.data['values']['first_name'], 'After');
+        expect(request.data['values'], {'first_name': 'After'});
         return response({'first_name': 'After', 'version': 5});
       });
     await tester.pumpWidget(
@@ -298,7 +298,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit lead name'));
+    await tester.tap(find.text('Edit lead details'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, 'After');
     await tester.tap(find.text('Save'));
@@ -334,14 +334,14 @@ void main() {
       );
       expect(find.text('Before'), findsOneWidget);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit name offline'));
+      await tester.tap(find.text('Edit lead offline'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField).first, 'After');
+      await tester.enterText(find.byType(TextFormField).at(2), 'Acme');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
       expect(find.text('Edit saved · Awaiting sync'), findsOneWidget);
       expect((await edits.pending(9))?['version'], 4);
-      expect((await edits.pending(9))?['values']['first_name'], 'After');
+      expect((await edits.pending(9))?['values'], {'company_name': 'Acme'});
     },
   );
   testWidgets('offline order summary opens without a network request', (

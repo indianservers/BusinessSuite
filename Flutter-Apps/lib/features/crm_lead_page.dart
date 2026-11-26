@@ -146,8 +146,16 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
   }
 
   Future<void> _edit(Json lead, int version, {required bool offline}) async {
-    var first = lead['first_name'] as String? ?? '';
-    var last = lead['last_name'] as String? ?? '';
+    final fields = [
+      ('first_name', 'First name', 100),
+      ('last_name', 'Last name', 100),
+      ('company_name', 'Company', 180),
+      if (!offline) ('email', 'Email', 150),
+    ];
+    final initial = {
+      for (final (key, _, _) in fields) key: lead[key]?.toString() ?? '',
+    };
+    final draft = Map.of(initial);
     String? error;
     var saving = false;
     var conflict = false;
@@ -158,25 +166,22 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
         builder: (context, update) => PopScope(
           canPop: !saving,
           child: AlertDialog(
-            title: const Text('Edit lead name'),
+            title: const Text('Edit lead details'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextFormField(
-                    initialValue: first,
-                    enabled: !saving,
-                    maxLength: 100,
-                    decoration: const InputDecoration(labelText: 'First name'),
-                    onChanged: (text) => first = text,
-                  ),
-                  TextFormField(
-                    initialValue: last,
-                    enabled: !saving,
-                    maxLength: 100,
-                    decoration: const InputDecoration(labelText: 'Last name'),
-                    onChanged: (text) => last = text,
-                  ),
+                  for (final (key, label, maximum) in fields)
+                    TextFormField(
+                      initialValue: initial[key],
+                      enabled: !saving,
+                      maxLength: maximum,
+                      keyboardType: key == 'email'
+                          ? TextInputType.emailAddress
+                          : null,
+                      decoration: InputDecoration(labelText: label),
+                      onChanged: (text) => draft[key] = text,
+                    ),
                   if (error != null) SelectableText(error!),
                 ],
               ),
@@ -190,8 +195,18 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                 onPressed: saving || conflict
                     ? null
                     : () async {
-                        if (first.trim().isEmpty) {
+                        final values = <String, dynamic>{
+                          for (final field in draft.entries)
+                            if (field.value.trim() !=
+                                initial[field.key]?.trim())
+                              field.key: field.value.trim(),
+                        };
+                        if (values['first_name'] == '') {
                           update(() => error = 'Enter a first name.');
+                          return;
+                        }
+                        if (values.isEmpty) {
+                          Navigator.pop(context);
                           return;
                         }
                         update(() {
@@ -199,10 +214,6 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           error = null;
                         });
                         try {
-                          final values = <String, dynamic>{
-                            'first_name': first.trim(),
-                            'last_name': last.trim(),
-                          };
                           if (offline) {
                             await widget.offlineEdits!.enqueue(
                               _id,
@@ -337,7 +348,17 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                           : 'Saved edit needs review',
                     ),
                     subtitle: SelectableText(
-                      '${values['first_name']} ${values['last_name']}\n${draft['error'] ?? 'Reopen or refresh CRM after reconnecting.'}',
+                      [
+                        for (final field in const {
+                          'first_name': 'First name',
+                          'last_name': 'Last name',
+                          'company_name': 'Company',
+                        }.entries)
+                          if (values.containsKey(field.key))
+                            '${field.value}: ${values[field.key]}',
+                        draft['error'] ??
+                            'Reopen or refresh CRM after reconnecting.',
+                      ].join('\n'),
                     ),
                     trailing: draft['error'] == null
                         ? null
@@ -355,7 +376,9 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
                 }
                 return OutlinedButton(
                   onPressed: () => _edit(lead, version, offline: offline),
-                  child: Text(offline ? 'Edit name offline' : 'Edit lead name'),
+                  child: Text(
+                    offline ? 'Edit lead offline' : 'Edit lead details',
+                  ),
                 );
               },
             ),
