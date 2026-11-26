@@ -28,8 +28,16 @@ class InventoryOfflineCreates {
     bool offline = false,
   }) async {
     final cacheKey = '${_key}_branches';
+    final revision = api.sessionRevision;
+    void checkSession() {
+      if (api.sessionRevision != revision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+    }
+
     Future<List<Json>?> savedBranches() async {
       final raw = await _storage.read(key: cacheKey);
+      checkSession();
       return raw == null ? null : (jsonDecode(raw) as List).cast<Json>();
     }
 
@@ -45,6 +53,7 @@ class InventoryOfflineCreates {
                 scopeHeaders: {'X-Suite-Organization': _company},
               )
               as Json;
+      checkSession();
       final branches = (data['branches'] as List)
           .whereType<Json>()
           .where(
@@ -55,8 +64,15 @@ class InventoryOfflineCreates {
           )
           .toList();
       await _storage.write(key: cacheKey, value: jsonEncode(branches));
+      checkSession();
       return branches;
     } on ApiFailure catch (error) {
+      if (const {401, 403}.contains(error.status) &&
+          api.sessionRevision == revision) {
+        try {
+          await _storage.delete(key: cacheKey);
+        } catch (_) {}
+      }
       if (error.status != null && error.status! < 500) rethrow;
       final saved = await savedBranches();
       if (saved == null) rethrow;

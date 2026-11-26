@@ -1256,6 +1256,41 @@ void main() {
       expect(find.text('Pune Central'), findsOneWidget);
     },
   );
+  test('inventory forgets saved branches after access is denied', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    FlutterSecureStorage.setMockInitialValues({});
+    var allowed = true;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        return allowed
+            ? response({
+                'branches': [
+                  {
+                    'id': 3,
+                    'name': 'Warehouse',
+                    'can_write': true,
+                    'is_active': true,
+                  },
+                ],
+              })
+            : response({'detail': 'Access revoked'}, 403);
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    final drafts = InventoryOfflineCreates(
+      '["https://example.test/api/v1",2,7]',
+    );
+    expect(await drafts.writableBranches(api), hasLength(1));
+    allowed = false;
+    await expectLater(drafts.writableBranches(api), throwsA(isA<ApiFailure>()));
+    await expectLater(
+      drafts.writableBranches(api, offline: true),
+      throwsA(isA<ApiFailure>()),
+    );
+  });
   test('offline inventory creations reuse one server receipt key', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     FlutterSecureStorage.setMockInitialValues({});
