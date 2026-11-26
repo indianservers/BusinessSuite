@@ -21,13 +21,21 @@ void main() {
     dio.httpClientAdapter = FakeAdapter((r) async {
       requests.add(r);
       if (r.path == '/auth/login') {
-        expect(r.data['module'], 'project_management');
+        expect(r.data.containsKey('module'), isFalse);
         return response({'access_token': 'access', 'refresh_token': 'refresh'});
       }
       if (r.path == '/auth/me') {
         return response({
           'email': 'member@example.test',
           'role': {'name': 'pms_team_member', 'permissions': []},
+        });
+      }
+      if (r.path == '/access/me') {
+        return response({
+          'companyName': 'Example Company',
+          'grants': {
+            'project_management': {'enabled': true},
+          },
         });
       }
       if (r.path.endsWith('/workspaces')) {
@@ -85,6 +93,7 @@ void main() {
         store: store,
         transport: dio,
       ),
+      suiteLogin: true,
     );
     c.loading = false;
     await tester.pumpWidget(BusinessSuiteApp(controller: c));
@@ -94,6 +103,10 @@ void main() {
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'password');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your applications (1)'), findsOneWidget);
+    await tester.ensureVisible(find.text('KaryaFlow PMS'));
+    await tester.tap(find.text('KaryaFlow PMS'));
     await tester.pumpAndSettle();
     expect(find.text('Mobile'), findsOneWidget);
     await tester.tap(find.text('Tasks'));

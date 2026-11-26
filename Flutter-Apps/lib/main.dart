@@ -1,58 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'app_controller.dart';
 import 'core/api_client.dart';
 import 'features/login_page.dart';
-import 'features/workspace_page.dart';
+import 'features/suite_dashboard.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const baseUrl = String.fromEnvironment('API_BASE_URL');
-  if (baseUrl.isEmpty) {
-    runApp(
-      const MaterialApp(
-        home: Scaffold(
-          body: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Backend URL required. Start this app with --dart-define=API_BASE_URL=https://your-server/api/v1. See README.md for local development.',
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    return;
-  }
+  const storage = FlutterSecureStorage();
+  String? saved;
   try {
-    final controller = AppController(
-      ApiClient(
-        baseUrl: baseUrl,
-        store: SecureSessionStore(server: baseUrl),
-      ),
-    );
-    runApp(BusinessSuiteApp(controller: controller));
-    controller.start();
-  } on ArgumentError catch (error) {
-    runApp(
-      MaterialApp(
-        home: Scaffold(
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('${error.message}'),
-            ),
-          ),
-        ),
-      ),
+    saved = await storage.read(key: 'business-suite-server');
+  } on Exception {
+    // Server settings remain available if secure storage cannot be read.
+  }
+  runApp(
+    _ServerApp(
+      initialUrl: saved ?? const String.fromEnvironment('API_BASE_URL'),
+    ),
+  );
+}
+
+class _ServerApp extends StatefulWidget {
+  const _ServerApp({required this.initialUrl});
+  final String initialUrl;
+
+  @override
+  State<_ServerApp> createState() => _ServerAppState();
+}
+
+class _ServerAppState extends State<_ServerApp> {
+  AppController? _controller;
+  String _url = '';
+
+  AppController _connect(String url) => AppController(
+    ApiClient(
+      baseUrl: url,
+      store: SecureSessionStore(server: url),
+    ),
+    suiteLogin: true,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _url = widget.initialUrl;
+    if (_url.isEmpty) return;
+    try {
+      _controller = _connect(_url)..start();
+    } on ArgumentError {
+      // An invalid URL can be corrected from sign-in settings.
+    }
+  }
+
+  Future<void> _save(String value) async {
+    final uri = Uri.tryParse(value.trim());
+    final raw = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    final url =
+        uri != null &&
+            (uri.path.isEmpty || uri.path == '/') &&
+            !uri.hasQuery &&
+            !uri.hasFragment
+        ? '$raw/api/v1'
+        : raw;
+    if (uri == null || uri.host.isEmpty) {
+      throw ArgumentError('Enter a full server URL, including https://.');
+    }
+    if (url == _url && _controller != null) return;
+    final next = _connect(url);
+    try {
+      await const FlutterSecureStorage().write(
+        key: 'business-suite-server',
+        value: url,
+      );
+    } catch (_) {
+      next.dispose();
+      rethrow;
+    }
+    if (!mounted) {
+      next.dispose();
+      return;
+    }
+    final previous = _controller;
+    setState(() {
+      _url = url;
+      _controller = next;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => previous?.dispose());
+    await next.start();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null) {
+      return MaterialApp(
+        home: LoginPage(serverUrl: _url, onServerChanged: _save),
+      );
+    }
+    return BusinessSuiteApp(
+      key: ObjectKey(controller),
+      controller: controller,
+      serverUrl: _url,
+      onServerChanged: _save,
     );
   }
 }
 
 class BusinessSuiteApp extends StatefulWidget {
-  const BusinessSuiteApp({super.key, required this.controller});
+  const BusinessSuiteApp({
+    super.key,
+    required this.controller,
+    this.serverUrl = '',
+    this.onServerChanged,
+  });
   final AppController controller;
+  final String serverUrl;
+  final Future<void> Function(String)? onServerChanged;
   @override
   State<BusinessSuiteApp> createState() => _BusinessSuiteAppState();
 }
@@ -88,7 +153,7 @@ class _BusinessSuiteAppState extends State<BusinessSuiteApp> {
   @override
   Widget build(BuildContext context) => MaterialApp(
     navigatorKey: _navigator,
-    title: 'KaryaFlow · BusinessSuite',
+    title: 'Business Suite',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
@@ -107,8 +172,12 @@ class _BusinessSuiteAppState extends State<BusinessSuiteApp> {
           );
         }
         return controller.user == null
-            ? LoginPage(controller: controller)
-            : WorkspacePage(controller: controller);
+            ? LoginPage(
+                controller: controller,
+                serverUrl: widget.serverUrl,
+                onServerChanged: widget.onServerChanged,
+              )
+            : SuiteDashboard(controller: controller);
       },
     ),
   );

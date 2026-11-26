@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_controller.dart';
 import '../core/models.dart';
 import 'people_page.dart';
+import 'notes_page.dart';
 import 'pms_feature_hub.dart';
 
 class WorkspacePage extends StatefulWidget {
@@ -19,6 +22,30 @@ class _WorkspacePageState extends State<WorkspacePage> {
   int? _workspaceId;
   final _search = TextEditingController();
   AppController get c => widget.controller;
+  Future<void> _openBilling() async {
+    const webOrigin = String.fromEnvironment('WEB_BASE_URL');
+    final server = webOrigin.isEmpty ? c.api.dio.options.baseUrl : webOrigin;
+    final uri = Uri.tryParse(server);
+    if (uri == null ||
+        !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The billing web address is invalid.')),
+      );
+      return;
+    }
+    try {
+      await const MethodChannel('businesssuite/billing').invokeMethod<void>(
+        'openBilling',
+        {'origin': uri.origin},
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message ?? 'Could not open GST Billing.')),
+      );
+    }
+  }
   Future<void> _join() async {
     var token = '', saving = false;
     String? error;
@@ -470,6 +497,19 @@ class _WorkspacePageState extends State<WorkspacePage> {
       appBar: AppBar(
         title: const Text('KaryaFlow'),
         actions: [
+          IconButton(
+            tooltip: 'Notes',
+            icon: const Icon(Icons.description_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => NotesPage(api: c.api)),
+            ),
+          ),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+            IconButton(
+              tooltip: 'Open GST Billing in browser',
+              onPressed: _openBilling,
+              icon: const Icon(Icons.receipt_long_outlined),
+            ),
           IconButton(
             tooltip: 'PMS features',
             onPressed: c.loading || c.busy || c.selected == null

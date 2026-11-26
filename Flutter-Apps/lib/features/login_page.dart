@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import '../app_controller.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.controller});
-  final AppController controller;
+  const LoginPage({
+    super.key,
+    this.controller,
+    this.serverUrl = '',
+    this.onServerChanged,
+  });
+  final AppController? controller;
+  final String serverUrl;
+  final Future<void> Function(String)? onServerChanged;
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -25,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void _submit() {
     if (_form.currentState!.validate()) {
-      widget.controller.authenticate(
+      widget.controller?.authenticate(
         _email.text,
         _password.text,
         code: _code.text,
@@ -34,11 +41,76 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _settings() async {
+    var url = widget.serverUrl;
+    String? error;
+    var saving = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: const Text('Server settings'),
+          content: TextFormField(
+            initialValue: url,
+            enabled: !saving,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              labelText: 'Business Suite server URL',
+              hintText: 'https://suite.example.com',
+              errorText: error,
+              errorMaxLines: 4,
+            ),
+            onChanged: (value) => url = value,
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      update(() => saving = true);
+                      try {
+                        await widget.onServerChanged!(url);
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (failure) {
+                        if (context.mounted) {
+                          update(() {
+                            error = failure is ArgumentError
+                                ? '${failure.message}'
+                                : 'Could not save server settings.';
+                            saving = false;
+                          });
+                        }
+                      }
+                    },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
-    final mfa = controller.mfaToken != null;
+    final mfa = controller?.mfaToken != null;
+    final busy = controller?.busy ?? false;
     return Scaffold(
+      appBar: AppBar(
+        actions: [
+          if (widget.onServerChanged != null)
+            IconButton(
+              tooltip: 'Server settings',
+              onPressed: busy || mfa ? null : _settings,
+              icon: const Icon(Icons.settings_outlined),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -58,21 +130,21 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'KaryaFlow',
+                        'Business Suite',
                         style: Theme.of(context).textTheme.headlineLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         mfa
                             ? 'Verify your sign-in'
-                            : 'Your projects. Your team. In sync.',
+                            : 'Sign in to your business workspace',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 32),
                       if (!mfa) ...[
                         TextFormField(
                           controller: _email,
-                          enabled: !controller.busy,
+                          enabled: !busy,
                           decoration: const InputDecoration(
                             labelText: 'Work email',
                             prefixIcon: Icon(Icons.alternate_email),
@@ -92,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _password,
-                          enabled: !controller.busy,
+                          enabled: !busy,
                           obscureText: !_showPassword,
                           autofillHints: const [AutofillHints.password],
                           decoration: InputDecoration(
@@ -120,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                       ] else ...[
                         TextFormField(
                           controller: _code,
-                          enabled: !controller.busy,
+                          enabled: !busy,
                           autofocus: true,
                           decoration: InputDecoration(
                             labelText: _recovery
@@ -139,21 +211,19 @@ class _LoginPageState extends State<LoginPage> {
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Use a recovery code'),
                           value: _recovery,
-                          onChanged: controller.busy
+                          onChanged: busy
                               ? null
                               : (v) => setState(() => _recovery = v),
                         ),
                         TextButton(
-                          onPressed: controller.busy
-                              ? null
-                              : controller.cancelMfa,
+                          onPressed: busy ? null : controller?.cancelMfa,
                           child: const Text('Back to sign in'),
                         ),
                       ],
-                      if (controller.error != null) ...[
+                      if (controller?.error != null) ...[
                         const SizedBox(height: 16),
                         Text(
-                          controller.error!,
+                          controller!.error!,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.error,
                           ),
@@ -168,11 +238,11 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                       const SizedBox(height: 24),
                       FilledButton(
-                        onPressed: controller.busy ? null : _submit,
+                        onPressed: busy || controller == null ? null : _submit,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: Text(
-                            controller.busy
+                            busy
                                 ? 'Connecting…'
                                 : mfa
                                 ? 'Verify'
@@ -182,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'BusinessSuite · Project Management',
+                        'Business Suite',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

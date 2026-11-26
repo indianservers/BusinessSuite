@@ -3,14 +3,13 @@ allprojects {
         // Optional machine-local cache for a checksum-verified Flutter engine.
         // Other SDK versions and dependencies continue using their normal repos.
         val localEngine = System.getenv("FLUTTER_LOCAL_ENGINE_MAVEN")
-        if (localEngine != null) {
-            val versionFile = file("$localEngine/engine.version")
-            if (versionFile.isFile) {
-                val engineVersion = versionFile.readText().trim()
-                exclusiveContent {
-                    forRepository { maven { url = uri(localEngine) } }
-                    filter { includeVersion("io.flutter", "arm64_v8a_debug", engineVersion) }
-                }
+            ?: rootProject.file("../.dart_tool/verified-engine-maven").absolutePath
+        val versionFile = file("$localEngine/engine.version")
+        if (versionFile.isFile) {
+            val engineVersion = versionFile.readText().trim()
+            exclusiveContent {
+                forRepository { maven { url = uri(localEngine) } }
+                filter { includeVersion("io.flutter", "arm64_v8a_debug", engineVersion) }
             }
         }
         google()

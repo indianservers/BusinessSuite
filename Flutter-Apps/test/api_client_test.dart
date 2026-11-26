@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/app_controller.dart';
 
 class MemoryStore implements SessionStore {
   String? value;
@@ -55,6 +56,46 @@ void main() {
       transport: dio,
     );
   });
+  test(
+    'restores the saved suite only for a disconnected signed-in session',
+    () async {
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      await api.rememberSuite(
+        {'id': 4, 'email': 'member@example.test'},
+        {'companyId': 2},
+      );
+      final restored = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: store,
+        transport: dio,
+      );
+      dio.httpClientAdapter = FakeAdapter(
+        (request) async => throw DioException(
+          requestOptions: request,
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      final controller = AppController(restored, suiteLogin: true);
+      await controller.start();
+      expect(controller.offline, isTrue);
+      expect(controller.user?.id, 4);
+      expect(restored.offlineSuite?['access']['companyId'], 2);
+      dio.httpClientAdapter = FakeAdapter(
+        (request) async => response({'detail': 'Forbidden'}, 403),
+      );
+      await controller.loadAccount(restoreOffline: true);
+      expect(controller.user, isNull);
+      expect(controller.offline, isFalse);
+      await api.acceptTokens({
+        'access_token': 'other',
+        'refresh_token': 'other',
+      });
+      expect(api.offlineSuite, isNull);
+    },
+  );
   test(
     'PMS login sends module and does not attach a previous bearer',
     () async {

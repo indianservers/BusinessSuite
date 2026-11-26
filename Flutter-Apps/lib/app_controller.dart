@@ -5,13 +5,15 @@ import 'core/models.dart';
 import 'features/pms_repository.dart';
 
 class AppController extends ChangeNotifier {
-  AppController(this.api) : repository = PmsRepository(api) {
+  AppController(this.api, {this.suiteLogin = false})
+    : repository = PmsRepository(api) {
     api.onExpired = () {
       _reset();
       notifyListeners();
     };
   }
   final ApiClient api;
+  final bool suiteLogin;
   final PmsRepository repository;
   SessionUser? user;
   List<Workspace> workspaces = [];
@@ -19,6 +21,7 @@ class AppController extends ChangeNotifier {
   Overview? overview;
   String? error, mfaToken;
   bool loading = true, busy = false;
+  bool offline = false;
   int _revision = 0;
 
   void _reset() {
@@ -30,12 +33,13 @@ class AppController extends ChangeNotifier {
     mfaToken = null;
     loading = false;
     busy = false;
+    offline = false;
   }
 
   Future<void> start() async {
     try {
       await api.restore();
-      if (api.hasSession) await loadAccount();
+      if (api.hasSession) await loadAccount(restoreOffline: true);
     } catch (e) {
       error = '$e';
     } finally {
@@ -56,7 +60,7 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     try {
       final result = mfaToken == null
-          ? await api.login(email.trim(), password)
+          ? await api.login(email.trim(), password, suite: suiteLogin)
           : await api.request(
                   'POST',
                   '/auth/mfa/verify',
@@ -90,14 +94,17 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadAccount() async {
+  Future<void> loadAccount({bool restoreOffline = false}) async {
     final revision = ++_revision;
+    final refreshOverview = !suiteLogin || overview != null;
     loading = true;
     error = null;
     overview = null;
     notifyListeners();
     try {
       final account = await repository.me();
+      if (revision == _revision) offline = false;
+      if (suiteLogin && revision == _revision) user = account;
       final items = await repository.workspaces();
       if (revision != _revision) return;
       user = account;
@@ -106,9 +113,24 @@ class AppController extends ChangeNotifier {
       selected =
           items.where((w) => w.id == previousId).firstOrNull ??
           items.firstOrNull;
-      if (selected != null) await selectWorkspace(selected!);
+      if (refreshOverview && selected != null) await selectWorkspace(selected!);
     } catch (e) {
-      if (revision == _revision) error = '$e';
+      if (revision == _revision) {
+        error = '$e';
+        final snapshot = api.offlineSuite?['identity'];
+        if (suiteLogin &&
+            restoreOffline &&
+            e is ApiFailure &&
+            e.connectionFailure &&
+            snapshot is Json) {
+          user = SessionUser.fromJson(snapshot);
+          offline = true;
+          error = null;
+        } else if (offline) {
+          user = null;
+          offline = false;
+        }
+      }
     } finally {
       loading = false;
       notifyListeners();
