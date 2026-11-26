@@ -475,5 +475,28 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     }
     expect(requests, 4);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryProductPage(
+          api: api,
+          summary: const {
+            'id': 2,
+            'item_name': 'Unopened catalogue product',
+            'category_name': 'Accessories',
+            'hsn_code': '8471',
+            'sales_rate': 125.5,
+            'gst_rate': 18,
+          },
+          offline: true,
+          cacheScope: scope,
+        ),
+      ),
+    );
+    await findDetail('125.5');
+    expect(find.text('Accessories'), findsOneWidget);
+    expect(find.text('8471'), findsOneWidget);
+    expect(find.text('18'), findsOneWidget);
+    expect(requests, 4);
   });
 }
