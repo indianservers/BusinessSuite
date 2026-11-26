@@ -19,6 +19,8 @@ class SalesOrderDrafts {
   static final _running = <String, Future<void>>{};
   final String _key, _company, _scope;
   final Future<void> Function(String)? invalidate;
+  static String productPickerCacheKey(String scope) =>
+      '$scope:$productsEndpoint:order-picker';
 
   Future<List<Json>> products(
     ApiClient api,
@@ -44,19 +46,67 @@ class SalesOrderDrafts {
         if (revision != api.sessionRevision) {
           throw ApiFailure('Your session ended. Sign in again.', 401);
         }
-        return (data['items'] as List).whereType<Json>().toList();
+        final rows = (data['items'] as List).whereType<Json>().toList();
+        if (rows.isNotEmpty) {
+          final savedAt = DateTime.now().millisecondsSinceEpoch;
+          try {
+            await SuiteReadCache.write(productPickerCacheKey(_scope), [
+              for (final row in rows)
+                {
+                  for (final field in [
+                    'id',
+                    'item_name',
+                    'sku',
+                    'barcode',
+                    'sales_rate',
+                  ])
+                    field: row[field],
+                  'picker_saved_at': savedAt,
+                },
+            ], retainRecent: 200);
+          } catch (_) {
+            // The catalogue is still available while online.
+          }
+        }
+        return rows;
       } on ApiFailure catch (error) {
+        if (const {401, 403}.contains(error.status) &&
+            revision == api.sessionRevision) {
+          try {
+            await SuiteReadCache.clear(productPickerCacheKey(_scope));
+            await SuiteReadCache.clear('$_scope:$productsEndpoint');
+          } catch (_) {}
+        }
         if (!error.connectionFailure || revision != api.sessionRevision) {
           rethrow;
         }
       }
     }
-    final saved = await SuiteReadCache.read('$_scope:$productsEndpoint') ?? [];
+    final snapshots = await Future.wait([
+      SuiteReadCache.snapshot('$_scope:$productsEndpoint'),
+      SuiteReadCache.snapshot(productPickerCacheKey(_scope)),
+    ]);
     if (revision != api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     final term = search.toLowerCase();
-    return saved
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 1))
+        .millisecondsSinceEpoch;
+    final saved = <int, (int, Json)>{};
+    for (final snapshot in snapshots.nonNulls) {
+      for (final row in snapshot.rows) {
+        final timestamp =
+            row['picker_saved_at'] as int? ??
+            snapshot.savedAt.millisecondsSinceEpoch;
+        if (row['id'] case final int id
+            when timestamp >= cutoff && timestamp > (saved[id]?.$1 ?? 0)) {
+          saved[id] = (timestamp, row);
+        }
+      }
+    }
+    return saved.values
+        .map((entry) => entry.$2)
         .where(
           (row) => '${row['item_name']} ${row['sku']} ${row['barcode']}'
               .toLowerCase()

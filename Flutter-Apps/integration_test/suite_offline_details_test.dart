@@ -25,6 +25,61 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('Android Sales keeps products viewed in the picker offline', (
+    tester,
+  ) async {
+    const base = 'https://example.test/api/v1';
+    final scope = '["$base",${DateTime.now().microsecondsSinceEpoch},7]';
+    await SuiteReadCache.write('$scope:${SalesOrderDrafts.productsEndpoint}', [
+      {
+        'id': 4,
+        'item_name': 'Inventory cable',
+        'sku': 'SKU-4',
+        'sales_rate': 12,
+      },
+    ]);
+    var requests = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        requests++;
+        expectSync(request.path, SalesOrderDrafts.productsEndpoint);
+        return response({
+          'items': [
+            {
+              'id': 9,
+              'item_name': 'Picker cable',
+              'sku': 'SKU-9',
+              'sales_rate': 19,
+            },
+          ],
+        });
+      });
+    final api = ApiClient(baseUrl: base, store: MemoryStore(), transport: dio);
+    await api.acceptTokens({
+      'access_token': 'device-qa',
+      'refresh_token': 'device-qa',
+    });
+    await SalesOrderDrafts(scope).products(api, 'cable', offline: false);
+    final reopened = SalesOrderDrafts(scope);
+    expect(
+      (await reopened.products(
+        api,
+        'cable',
+        offline: true,
+      )).map((row) => row['id']),
+      unorderedEquals([4, 9]),
+    );
+    expect(
+      (await reopened.products(
+        api,
+        'SKU-9',
+        offline: true,
+      )).single['sales_rate'],
+      19,
+    );
+    expect(requests, 1);
+  });
+
   testWidgets('Android creates an offline sales order from saved inventory', (
     tester,
   ) async {

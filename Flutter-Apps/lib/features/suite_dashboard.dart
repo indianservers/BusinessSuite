@@ -1069,6 +1069,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             await SuiteReadCache.clearPages(cacheKey);
           } else {
             await SuiteReadCache.clear(cacheKey);
+            if (_inventory && widget.cachePrefix != null) {
+              await SuiteReadCache.clear(
+                SalesOrderDrafts.productPickerCacheKey(widget.cachePrefix!),
+              );
+            }
           }
         } catch (_) {}
       } else if (error.connectionFailure ||

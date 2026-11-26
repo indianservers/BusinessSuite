@@ -55,7 +55,11 @@ class SuiteReadCache {
     );
   }
 
-  static Future<void> write(String scope, List<Json> rows) async {
+  static Future<void> write(
+    String scope,
+    List<Json> rows, {
+    int? retainRecent,
+  }) async {
     final db = await _open();
     final now = DateTime.now();
     await db.transaction((tx) async {
@@ -66,6 +70,22 @@ class SuiteReadCache {
           now.subtract(const Duration(days: 1)).millisecondsSinceEpoch,
         ],
       );
+      if (retainRecent != null) {
+        final older = await tx.query(
+          'snapshots',
+          columns: ['rows'],
+          where: 'scope = ?',
+          whereArgs: [scope],
+        );
+        final previous = older.isEmpty
+            ? const <Json>[]
+            : (jsonDecode(older.single['rows'] as String) as List).cast<Json>();
+        final unique = <int, Json>{};
+        for (final row in [...rows, ...previous]) {
+          if (row['id'] case final int id) unique.putIfAbsent(id, () => row);
+        }
+        rows = unique.values.take(retainRecent).toList();
+      }
       await tx.insert('snapshots', {
         'scope': scope,
         'saved_at': now.millisecondsSinceEpoch,
