@@ -59,6 +59,8 @@ void main() {
         'title': 'Rejected order',
         'currency': 'INR',
         'customer_id': 101,
+        'expected_start_date': '2026-12-01',
+        'expected_end_date': '2026-12-15',
         'lines': [
           {
             'product_id': 8,
@@ -80,6 +82,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Correct order draft'), findsOneWidget);
       expect(find.text('Saved customer'), findsOneWidget);
+      await tester.tap(find.text('Order schedule'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Expected end date'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('20'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('2026-12-20'), findsOneWidget);
+      await tester.tap(find.text('Order schedule'));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(TextFormField).first,
         'Corrected order',
@@ -89,7 +101,11 @@ void main() {
       await tester.pumpAndSettle();
       final saved = (await drafts.entries()).single;
       expect(saved['operation'], isNot('original'));
-      expect(saved['payload'], {...payload, 'title': 'Corrected order'});
+      expect(saved['payload'], {
+        ...payload,
+        'title': 'Corrected order',
+        'expected_end_date': '2026-12-20',
+      });
     },
   );
   testWidgets('Sales uses a shared inventory product on an order line', (

@@ -28,7 +28,13 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   late final _previous = widget.rejectedDraft?['payload'] as Json? ?? const {};
   late final _details = <String, String>{
     'currency': 'INR',
-    for (final key in ['title', 'currency', 'terms'])
+    for (final key in [
+      'title',
+      'currency',
+      'terms',
+      'expected_start_date',
+      'expected_end_date',
+    ])
       if (_previous[key] case final String value) key: value,
   };
   late final _lines = <Map<String, String>>[
@@ -93,6 +99,14 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
 
   Future<void> _save() async {
     if (_saving || !_form.currentState!.validate()) return;
+    final start = _details['expected_start_date'];
+    final end = _details['expected_end_date'];
+    if (start != null && end != null && start.compareTo(end) > 0) {
+      setState(
+        () => _error = 'Expected end date must be on or after the start date.',
+      );
+      return;
+    }
     final revision = widget.api.sessionRevision;
     final payload = <String, dynamic>{
       ..._details,
@@ -156,6 +170,21 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _chooseDate(String key, String label) async {
+    final selected = await showDatePicker(
+      context: context,
+      helpText: label,
+      initialDate: DateTime.tryParse(_details[key] ?? '') ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _details[key] = selected.toIso8601String().split('T').first;
+      _error = null;
+    });
   }
 
   Widget _field(
@@ -226,6 +255,33 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
           ),
           _field(_details, 'currency', 'Currency', maxLength: 3),
           _field(_details, 'terms', 'Terms', required: false, maxLength: 4000),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text('Order schedule'),
+            children: [
+              for (final (key, label) in const [
+                ('expected_start_date', 'Expected start date'),
+                ('expected_end_date', 'Expected end date'),
+              ])
+                ListTile(
+                  title: Text(label),
+                  subtitle: Text(_details[key] ?? 'Choose date'),
+                  onTap: _saving ? null : () => _chooseDate(key, label),
+                  trailing: !_details.containsKey(key)
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear $label',
+                          onPressed: _saving
+                              ? null
+                              : () => setState(() {
+                                  _details.remove(key);
+                                  _error = null;
+                                }),
+                          icon: const Icon(Icons.close),
+                        ),
+                ),
+            ],
+          ),
           for (final (index, line) in _lines.indexed)
             Column(
               key: ObjectKey(line),
