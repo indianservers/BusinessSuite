@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class SalesOrderPage extends StatefulWidget {
   const SalesOrderPage({
@@ -9,31 +10,112 @@ class SalesOrderPage extends StatefulWidget {
     required this.api,
     required this.summary,
     required this.offline,
+    this.cacheScope,
+    this.scopeHeaders = const {},
   });
   final ApiClient api;
   final Json summary;
   final bool offline;
+  final String? cacheScope;
+  final Map<String, String> scopeHeaders;
 
   @override
   State<SalesOrderPage> createState() => _SalesOrderPageState();
 }
 
 class _SalesOrderPageState extends State<SalesOrderPage> {
-  late Future<Json> _order = _load();
+  Json? _saved;
+  late Future<Json?> _order = _load();
 
-  Future<Json> _load() async {
-    if (widget.offline) return widget.summary;
-    return await widget.api.request(
-          'GET',
-          '/srm/sales-orders/${widget.summary['id']}',
-        )
-        as Json;
+  static const _orderFields = [
+    'order_number',
+    'title',
+    'currency',
+    'status',
+    'expected_start_date',
+    'expected_end_date',
+    'subtotal',
+    'discount_amount',
+    'tax_amount',
+    'total_amount',
+  ];
+  static const _lineFields = [
+    'description',
+    'item_code',
+    'quantity',
+    'unit_price',
+    'line_total',
+  ];
+
+  Future<Json?> _load() async {
+    final path = '/srm/sales-orders/${widget.summary['id']}';
+    final scope = widget.cacheScope;
+    final key = scope == null ? null : '$scope:$path';
+    final revision = widget.api.sessionRevision;
+    if (key != null) {
+      try {
+        final rows = await SuiteReadCache.read(key);
+        if (mounted &&
+            revision == widget.api.sessionRevision &&
+            rows?.length == 1) {
+          setState(() => _saved = rows!.single);
+        }
+      } catch (_) {
+        // Cached detail is optional when local storage is unavailable.
+      }
+    }
+    if (widget.offline || !mounted) return null;
+    if (revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    try {
+      final data =
+          await widget.api.request(
+                'GET',
+                path,
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+      if (revision != widget.api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      if (key != null) {
+        final lines = (data['lines'] as List? ?? []).whereType<Json>();
+        try {
+          await SuiteReadCache.write(key, [
+            {
+              for (final field in _orderFields) field: data[field],
+              'lines': [
+                for (final line in lines)
+                  {for (final field in _lineFields) field: line[field]},
+              ],
+            },
+          ]);
+        } catch (_) {
+          // Online detail remains available if its cache cannot be written.
+        }
+      }
+      return data;
+    } on ApiFailure catch (error) {
+      if (error.status == null ||
+          error.status == 429 ||
+          (error.status ?? 0) >= 500) {
+        return null;
+      }
+      if (key != null && const {401, 403, 404}.contains(error.status)) {
+        _saved = null;
+        try {
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sales Order Detail')),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder<Json?>(
       future: _order,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -52,10 +134,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             ),
           );
         }
-        final data = snapshot.data;
-        if (data == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        final pending = snapshot.connectionState != ConnectionState.done;
+        final detail = (pending ? null : snapshot.data) ?? _saved;
+        final data = detail ?? widget.summary;
         final currency = data['currency'] ?? '';
         final lines = (data['lines'] as List? ?? []).whereType<Json>();
         return ListView(
@@ -66,8 +147,20 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text('${data['title'] ?? ''}'),
-            if (widget.offline)
-              const ListTile(title: Text('Offline · Saved order summary')),
+            if (pending && !widget.offline) const LinearProgressIndicator(),
+            if ((widget.offline || !pending) && snapshot.data == null)
+              ListTile(
+                title: Text(
+                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${detail == null ? 'Saved order summary' : 'Saved order details'}',
+                ),
+                trailing: widget.offline
+                    ? null
+                    : TextButton(
+                        onPressed: () => setState(() => _order = _load()),
+                        child: const Text('Retry'),
+                      ),
+              ),
             for (final field in const {
               'status': 'Status',
               'expected_start_date': 'Expected start',
@@ -90,7 +183,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   title: Text(field.value),
                   trailing: Text('$currency ${data[field.key]}'.trim()),
                 ),
-            if (!widget.offline) ...[
+            if (detail != null) ...[
               const Divider(),
               Text(
                 'Line items',

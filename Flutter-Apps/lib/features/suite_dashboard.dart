@@ -1135,6 +1135,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? SalesOrderPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            scopeHeaders: widget.scopeHeaders,
                                             offline:
                                                 widget.offlineOnly ||
                                                 (cached && snapshot.hasError),

@@ -334,6 +334,38 @@ void main() {
     expect(find.text('INR 45.00'), findsOneWidget);
     expect(find.text('Line items'), findsNothing);
   });
+  testWidgets('order summary remains visible after a temporary API failure', (
+    tester,
+  ) async {
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/srm/sales-orders/8');
+        expect(request.headers['X-Suite-Branch'], '3');
+        return response({'detail': 'Unavailable'}, 503);
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          summary: const {'id': 8, 'order_number': 'SO-8'},
+          offline: false,
+          scopeHeaders: const {'X-Suite-Branch': '3'},
+        ),
+      ),
+    );
+    expect(find.text('SO-8'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('SO-8'), findsOneWidget);
+    expect(
+      find.text('Refresh unavailable · Saved order summary'),
+      findsOneWidget,
+    );
+    expect(find.text('Retry'), findsOneWidget);
+  });
   testWidgets(
     'native launcher opens authenticated module and settings routes',
     (tester) async {
