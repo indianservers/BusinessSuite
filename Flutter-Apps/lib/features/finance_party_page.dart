@@ -4,17 +4,31 @@ import '../core/api_client.dart';
 import '../core/models.dart';
 
 class FinancePartyPage extends StatefulWidget {
-  const FinancePartyPage({super.key, required this.api, required this.id});
+  const FinancePartyPage({
+    super.key,
+    required this.api,
+    required this.id,
+    this.summary,
+    this.offline = false,
+  });
   static const endpoint = '/fam/parties';
+  static const summaryFields = [
+    'legal_name',
+    'trade_name',
+    'party_code',
+    'party_type',
+  ];
   final ApiClient api;
   final int id;
+  final Json? summary;
+  final bool offline;
 
   @override
   State<FinancePartyPage> createState() => _FinancePartyPageState();
 }
 
 class _FinancePartyPageState extends State<FinancePartyPage> {
-  late Future<Json> _party = _read();
+  late Future<Json?> _party = _load();
   Future<Json>? _outstanding;
 
   Future<Json> _read([String suffix = '']) async =>
@@ -23,6 +37,25 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
             '${FinancePartyPage.endpoint}/${widget.id}$suffix',
           )
           as Json;
+
+  Future<Json?> _load({bool reconnect = false}) async {
+    if (widget.offline && !reconnect) return null;
+    try {
+      return await _read();
+    } on ApiFailure catch (error) {
+      if (widget.summary != null &&
+          (error.connectionFailure ||
+              error.status == 429 ||
+              (error.status ?? 0) >= 500)) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  void _refresh() => setState(() {
+    _party = _load(reconnect: true);
+  });
 
   void _loadOutstanding() {
     setState(() {
@@ -33,24 +66,24 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Party details')),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder<Json?>(
       future: _party,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        final loading = snapshot.connectionState != ConnectionState.done;
+        if (loading && widget.summary == null) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
           return ListTile(
             title: Text('${snapshot.error}'),
             trailing: TextButton(
-              onPressed: () => setState(() {
-                _party = _read();
-              }),
+              onPressed: _refresh,
               child: const Text('Retry'),
             ),
           );
         }
-        final party = snapshot.requireData;
+        final live = !loading && snapshot.data != null;
+        final party = (live ? snapshot.data : widget.summary) ?? const {};
         final contacts = (party['contacts'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -59,6 +92,15 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
               '${party['legal_name']}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (loading) const LinearProgressIndicator(),
+            if (!loading && !live)
+              ListTile(
+                title: const Text('Saved party summary'),
+                trailing: TextButton(
+                  onPressed: _refresh,
+                  child: const Text('Reconnect'),
+                ),
+              ),
             for (final field in const {
               'party_code': 'Party code',
               'party_type': 'Party type',
@@ -91,57 +133,59 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
                       : null,
                 ),
             ],
-            const Divider(),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      _PartyStatement(load: () => _read('/statement')),
-                ),
-              ),
-              child: const Text('View statement'),
-            ),
-            if (_outstanding == null)
+            if (live) ...[
+              const Divider(),
               OutlinedButton(
-                onPressed: _loadOutstanding,
-                child: const Text('View outstanding bills'),
-              )
-            else
-              FutureBuilder<Json>(
-                future: _outstanding,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const LinearProgressIndicator();
-                  }
-                  if (snapshot.hasError) {
-                    return ListTile(
-                      title: Text('${snapshot.error}'),
-                      trailing: TextButton(
-                        onPressed: _loadOutstanding,
-                        child: const Text('Retry bills'),
-                      ),
-                    );
-                  }
-                  final data = snapshot.requireData;
-                  final bills = (data['items'] as List? ?? [])
-                      .whereType<Json>();
-                  return Column(
-                    children: [
-                      ListTile(
-                        title: const Text('Outstanding'),
-                        subtitle: Text('${data['openBills']} open bills'),
-                        trailing: Text('${data['outstanding']}'),
-                      ),
-                      for (final bill in bills)
-                        ListTile(
-                          title: Text('${bill['bill_number']}'),
-                          subtitle: Text('Due ${bill['due_date']}'),
-                          trailing: Text('${bill['outstanding_amount']}'),
-                        ),
-                    ],
-                  );
-                },
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        _PartyStatement(load: () => _read('/statement')),
+                  ),
+                ),
+                child: const Text('View statement'),
               ),
+              if (_outstanding == null)
+                OutlinedButton(
+                  onPressed: _loadOutstanding,
+                  child: const Text('View outstanding bills'),
+                )
+              else
+                FutureBuilder<Json>(
+                  future: _outstanding,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const LinearProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return ListTile(
+                        title: Text('${snapshot.error}'),
+                        trailing: TextButton(
+                          onPressed: _loadOutstanding,
+                          child: const Text('Retry bills'),
+                        ),
+                      );
+                    }
+                    final data = snapshot.requireData;
+                    final bills = (data['items'] as List? ?? [])
+                        .whereType<Json>();
+                    return Column(
+                      children: [
+                        ListTile(
+                          title: const Text('Outstanding'),
+                          subtitle: Text('${data['openBills']} open bills'),
+                          trailing: Text('${data['outstanding']}'),
+                        ),
+                        for (final bill in bills)
+                          ListTile(
+                            title: Text('${bill['bill_number']}'),
+                            subtitle: Text('Due ${bill['due_date']}'),
+                            trailing: Text('${bill['outstanding_amount']}'),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+            ],
           ],
         );
       },

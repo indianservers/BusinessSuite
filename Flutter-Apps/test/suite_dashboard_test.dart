@@ -523,9 +523,16 @@ void main() {
             transport: dio,
           ),
           id: 4,
+          summary: const {'legal_name': 'Saved QA Supplier'},
+          offline: true,
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    expect(find.text('Saved QA Supplier'), findsOneWidget);
+    expect(requests, isEmpty);
+    expect(find.text('View statement'), findsNothing);
+    await tester.tap(find.text('Reconnect'));
     await tester.pumpAndSettle();
     expect(find.text('QA Supplier'), findsOneWidget);
     expect(find.text('Accounts desk'), findsOneWidget);

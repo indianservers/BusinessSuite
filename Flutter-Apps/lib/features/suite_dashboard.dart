@@ -291,7 +291,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       }
       return;
     }
-    final cache = app.grant == 'crm' || app.title == 'Sales & POS'
+    final cache =
+        app.grant == 'crm' ||
+            app.title == 'Sales & POS' ||
+            app.endpoint == FinancePartyPage.endpoint
         ? _localScope(access)
         : null;
     final grant = (access['grants'] as Json?)?['srm'] as Json?;
@@ -997,6 +1000,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'unit_code',
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
+              if (path == FinancePartyPage.endpoint)
+                ...FinancePartyPage.summaryFields,
             ])
               if (record[field] is String || record[field] is num)
                 field: record[field],
@@ -1424,6 +1429,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? FinancePartyPage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                            summary: item,
+                                            offline:
+                                                _offlineOnly ||
+                                                (cached && snapshot.hasError),
                                           )
                                         : InventoryProductPage(
                                             api: widget.controller.api,
@@ -1573,10 +1582,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('${snapshot.error}'),
-                TextButton(
-                  onPressed: _refresh,
-                  child: const Text('Retry'),
-                ),
+                TextButton(onPressed: _refresh, child: const Text('Retry')),
               ],
             ),
           );
