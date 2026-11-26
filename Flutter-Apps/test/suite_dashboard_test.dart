@@ -29,6 +29,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM pages and searches all authorized leads through the API', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final pages = <Object?>[];
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        switch (request.path) {
+          case '/notifications/unread-count':
+            return response({'unread': 0});
+          case '/access/me':
+            return response({
+              'companyId': 7,
+              'grants': {
+                'crm': {'enabled': true},
+              },
+            });
+          case '/crm/lead-management/leads':
+            expect(request.queryParameters['summary_only'], isTrue);
+            final page = request.queryParameters['page'];
+            pages.add(page);
+            final search = request.queryParameters['search'];
+            return response({
+              'items': [
+                {
+                  'id': 4,
+                  'full_name': search == 'example.test'
+                      ? 'Matched email lead'
+                      : 'Lead page $page',
+                },
+              ],
+              'total': search == null ? 2 : 1,
+              'perPage': 1,
+              'page': page,
+            });
+          default:
+            fail('Unexpected pathname ${request.path}');
+        }
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson({'id': 2, 'email': 'mobile@example.test'});
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('VyaparaCRM'));
+    await tester.tap(find.text('VyaparaCRM'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lead page 1'), findsOneWidget);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lead page 2'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'example.test');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.text('Matched email lead'), findsOneWidget);
+    expect(pages, [1, 2, 1]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant({TargetPlatform.iOS}));
   testWidgets('offline Sales screen reconnects in place through Refresh', (
     tester,
   ) async {

@@ -848,6 +848,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   }
 
   String _term = '';
+  String _crmSearch = '';
+  int _crmPage = 1;
+  bool _crmHasNext = false;
+  int _loadRevision = 0;
+  Timer? _searchDebounce;
+  bool get _isCrm => widget.path == CrmLeadPage.endpoint;
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
@@ -861,10 +867,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final cacheKey = _cacheKey;
     final api = widget.controller.api;
     final revision = api.sessionRevision;
+    final loadRevision = ++_loadRevision;
+    final crmPage = _crmPage;
+    final crmSearch = _crmSearch;
     if (cacheKey != null) {
       try {
         final cached = await SuiteReadCache.snapshot(cacheKey);
-        if (mounted && api.sessionRevision == revision && cached != null) {
+        if (mounted &&
+            api.sessionRevision == revision &&
+            loadRevision == _loadRevision &&
+            cached != null) {
           setState(() => _cached = cached.rows);
           final age = DateTime.now().difference(cached.savedAt);
           if (!reconnect &&
@@ -904,12 +916,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       data = await widget.controller.api.request(
         'GET',
         path,
-        query: widget.query,
+        query: {
+          ...widget.query,
+          if (_isCrm) 'page': crmPage,
+          if (_isCrm && crmSearch.isNotEmpty) 'search': crmSearch,
+        },
         scopeHeaders: widget.scopeHeaders,
       );
     } on ApiFailure catch (error) {
       if (cacheKey != null && (error.status == 401 || error.status == 403)) {
-        if (mounted) setState(() => _cached = null);
+        if (mounted && loadRevision == _loadRevision) {
+          setState(() => _cached = null);
+        }
         try {
           await SuiteReadCache.clear(cacheKey);
         } catch (_) {}
@@ -933,8 +951,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (api.sessionRevision != revision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
+    if (loadRevision != _loadRevision) return records;
     _offlineOnly = false;
-    if (cacheKey != null) {
+    if (_isCrm) {
+      final total = data is Json ? data['total'] : null;
+      final pageSize = data is Json ? data['perPage'] : null;
+      _crmHasNext =
+          total is int && pageSize is int && crmPage * pageSize < total;
+    }
+    if (cacheKey != null && (!_isCrm || (crmPage == 1 && crmSearch.isEmpty))) {
       final projection = [
         for (final record in records)
           {
@@ -977,9 +1002,42 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   }
 
   void _refresh() {
+    _searchDebounce?.cancel();
+    if (_isCrm && _crmSearch != _term) {
+      _crmSearch = _term;
+      _crmPage = 1;
+    }
     setState(() {
       _records = _load(reconnect: true);
     });
+  }
+
+  void _changeSearch(String value) {
+    setState(() => _term = value.trim());
+    if (!_isCrm) return;
+    _searchDebounce?.cancel();
+    if (_offlineOnly) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _crmSearch = _term;
+        _crmPage = 1;
+        _records = _load();
+      });
+    });
+  }
+
+  void _changeCrmPage(int offset) {
+    setState(() {
+      _crmPage += offset;
+      _records = _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -1128,11 +1186,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (rows == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (rows.isEmpty) {
+              if (rows.isEmpty && !_isCrm) {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null;
+              final loading = snapshot.connectionState != ConnectionState.done;
               final search =
+                  _isCrm ||
                   widget.cachePrefix != null ||
                   _stockAlerts ||
                   widget.path == GstInvoicePage.listEndpoint ||
@@ -1144,7 +1204,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       )!.compareTo(_stockNumber(b['current_quantity'])!),
                     ))
                   : rows;
-              final visible = _term.isEmpty
+              final visible = _term.isEmpty || (_isCrm && !cached)
                   ? candidates
                   : candidates
                         .where(
@@ -1168,7 +1228,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   .map((key) => item[key] ?? '')
                                   .join(' ')
                                   .toLowerCase()
-                                  .contains(_term),
+                                  .contains(_term.toLowerCase()),
                         )
                         .toList();
               return Column(
@@ -1189,12 +1249,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                       child: TextField(
-                        onChanged: (value) =>
-                            setState(() => _term = value.trim().toLowerCase()),
+                        onChanged: _changeSearch,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(LucideIcons.search),
                           labelText: switch (widget.path) {
-                            CrmLeadPage.endpoint => 'Search saved leads',
+                            CrmLeadPage.endpoint =>
+                              cached ? 'Search saved leads' : 'Search leads',
                             '/srm/inventory/items' ||
                             _stockSummaryPath => 'Search products',
                             GstInvoicePage.listEndpoint => 'Search invoices',
@@ -1209,6 +1269,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       _stockAlerts && _term.isEmpty
                           ? 'No low stock items'
                           : 'No matching records',
+                    ),
+                  if (_isCrm && !cached && (_crmPage > 1 || _crmHasNext))
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                          onPressed: loading || _crmPage <= 1
+                              ? null
+                              : () => _changeCrmPage(-1),
+                          child: const Text('Previous'),
+                        ),
+                        Text('Page $_crmPage'),
+                        TextButton(
+                          onPressed: loading || !_crmHasNext
+                              ? null
+                              : () => _changeCrmPage(1),
+                          child: const Text('Next'),
+                        ),
+                      ],
                     ),
                   Expanded(
                     child: ListView.builder(
