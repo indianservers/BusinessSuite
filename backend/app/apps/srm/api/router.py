@@ -4,8 +4,9 @@ from app.services.metrics.queries import count_rows_before_page
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -2755,7 +2756,27 @@ def _normalize_pos_order(db: Session, data: SRMSalesOrderCreate, org_id: int | N
 
 
 @router.post("/sales-orders", status_code=201)
-def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+def create_sales_order(
+    data: SRMSalesOrderCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("srm_manage", "srm_admin")),
+    offline_operation: UUID | None = Header(None, alias="X-Offline-Operation"),
+):
+    if isinstance(offline_operation, UUID):
+        from app.access.service import check_background_access
+        from app.shared.offline_operations import perform_offline_operation
+
+        check_background_access(db, current_user, "srm", "create")
+
+        def create_receipt():
+            order = create_sales_order_operation(data, db, current_user, commit=False)
+            return {"id": order["id"], "order_number": order["order_number"]}
+
+        return perform_offline_operation(
+            db, current_user, offline_operation, ("create_sales_order", _org(current_user)),
+            data.model_dump(mode="json"), create_receipt,
+            lambda receipt: get_sales_order_for_user(db, receipt["id"], current_user),
+        )
     return create_sales_order_operation(data, db, current_user)
 
 

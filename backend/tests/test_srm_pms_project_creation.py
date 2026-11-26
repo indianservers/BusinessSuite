@@ -1,7 +1,26 @@
+from uuid import uuid4
+
 from app.apps.project_management.models import PMSMilestone, PMSProject, PMSTask
 from app.apps.srm.models import SRMInvoice, SRMInvoiceLine, SRMProduct
 
 from tests.srm_test_utils import create_engagement_via_confirm, create_sales_order
+
+
+def test_mobile_sales_order_create_replays_without_duplicate(client, db, superuser_headers):
+    from app.shared.offline_operations import receipts
+
+    receipts.create(db.get_bind(), checkfirst=True)
+    path = "/api/v1/srm/sales-orders"
+    headers = {**superuser_headers, "X-Offline-Operation": str(uuid4())}
+    body = {"title": "Offline sales order", "lines": [{"description": "Consulting", "quantity": 2, "unit_price": 100}]}
+    first = client.post(path, headers=headers, json=body)
+    replay = client.post(path, headers=headers, json=body)
+    assert first.status_code == replay.status_code == 201
+    assert first.json() == replay.json()
+    assert client.post(path, headers=headers, json={**body, "title": "Different order"}).status_code == 409
+    matches = client.get(path, headers=superuser_headers, params={"summary_only": True, "search": body["title"]})
+    assert matches.status_code == 200
+    assert [row["id"] for row in matches.json()] == [first.json()["id"]]
 
 
 def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_headers):
