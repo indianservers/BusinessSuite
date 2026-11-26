@@ -22,6 +22,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('GST PDF export rejects a non-PDF server response', (
+    tester,
+  ) async {
+    var pdfRequests = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (request.path == '/srm/invoices/7') {
+          return response({'invoice_number': 'GST-7'});
+        }
+        expect(request.path, '/srm/invoices/7/pdf');
+        expect(request.responseType, ResponseType.bytes);
+        pdfRequests++;
+        return response({'detail': 'Not a PDF'});
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GstInvoicePage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          id: 7,
+          canExport: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save invoice PDF'));
+    await tester.pumpAndSettle();
+    expect(pdfRequests, 1);
+    expect(find.text('The server did not return a PDF.'), findsOneWidget);
+  });
   testWidgets(
     'GST updates manual lines and keeps source-backed lines read-only',
     (tester) async {

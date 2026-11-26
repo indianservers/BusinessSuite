@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
@@ -9,11 +13,13 @@ class GstInvoicePage extends StatefulWidget {
     required this.api,
     required this.id,
     this.canEdit = false,
+    this.canExport = false,
   });
   static const listEndpoint = '/srm/invoices';
   final ApiClient api;
   final int id;
   final bool canEdit;
+  final bool canExport;
 
   @override
   State<GstInvoicePage> createState() => _GstInvoicePageState();
@@ -21,8 +27,55 @@ class GstInvoicePage extends StatefulWidget {
 
 class _GstInvoicePageState extends State<GstInvoicePage> {
   late Future<Json> _invoice = _load();
+  bool _exporting = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   Future<Json> _load() async => await widget.api.request('GET', _path) as Json;
+
+  Future<void> _export(Json invoice) async {
+    if (_exporting) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    setState(() => _exporting = true);
+    try {
+      final result =
+          await api.request(
+                'GET',
+                '$_path/pdf',
+                responseType: ResponseType.bytes,
+                returnResponse: true,
+              )
+              as Response;
+      if (!mounted || api.sessionRevision != revision) return;
+      final data = result.data;
+      if (result.statusCode != 200 ||
+          data is! List<int> ||
+          data.length < 5 ||
+          String.fromCharCodes(data.take(5)) != '%PDF-') {
+        throw ApiFailure('The server did not return a PDF.');
+      }
+      final number = '${invoice['invoice_number'] ?? widget.id}'.replaceAll(
+        RegExp(r'[^A-Za-z0-9._-]'),
+        '_',
+      );
+      final saved = await FilePicker.saveFile(
+        fileName: 'Invoice-$number.pdf',
+        bytes: Uint8List.fromList(data),
+      );
+      if (mounted && saved != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Invoice PDF saved.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   Future<void> _editLine(Json line) async {
     final updated = await showDialog<Json>(
@@ -186,6 +239,12 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
               '${invoice['invoice_number']}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.canExport)
+              OutlinedButton.icon(
+                onPressed: _exporting ? null : () => _export(invoice),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: Text(_exporting ? 'Preparing PDF…' : 'Save invoice PDF'),
+              ),
             for (final field in const {
               'issue_date': 'Issue date',
               'due_date': 'Due date',

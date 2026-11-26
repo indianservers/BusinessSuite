@@ -288,6 +288,14 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         path: app.endpoint,
         cachePrefix: cache,
         showInventory: app.title == 'Sales & POS',
+        canExportInvoices:
+            app.title == 'Sales & POS' &&
+            (controller.user?.isSuperuser == true ||
+                access['managed'] != true ||
+                (((access['grants'] as Json?)?['srm'] as Json?)?['actions']
+                            as List?)
+                        ?.contains('export') ==
+                    true),
         offlineOnly: controller.offline,
       ),
     );
@@ -759,6 +767,7 @@ class _SuiteRecords extends StatefulWidget {
     this.scopeHeaders = const {},
     this.cachePrefix,
     this.showInventory = false,
+    this.canExportInvoices = false,
     this.offlineOnly = false,
   });
   final String title;
@@ -768,6 +777,7 @@ class _SuiteRecords extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cachePrefix;
   final bool showInventory;
+  final bool canExportInvoices;
   final bool offlineOnly;
 
   @override
@@ -967,6 +977,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'GST Billing',
                   controller: widget.controller,
                   path: GstInvoicePage.listEndpoint,
+                  canExportInvoices: widget.canExportInvoices,
                   offlineOnly: widget.offlineOnly,
                 ),
               ),
@@ -1192,6 +1203,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? GstInvoicePage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                            canExport: widget.canExportInvoices,
                                             canEdit:
                                                 widget
                                                         .controller
