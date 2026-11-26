@@ -1901,10 +1901,22 @@ void main() {
               'recent': [
                 {
                   'name': 'Approval workflow',
+                  'id': 12,
                   'application_id': 'automations',
                   'status': 'draft',
                 },
               ],
+            }),
+            '/power-apps/automations/12' => response({
+              'name': 'Approval workflow',
+              'version': 2,
+              'status': 'draft',
+              'definition': {
+                'trigger': {'type': 'manual'},
+                'nodes': [
+                  {'id': 'Review', 'type': 'approval'},
+                ],
+              },
             }),
             '/employees/' => response({
               'total': request.queryParameters['search'] == null ? 2 : 1,
@@ -2030,6 +2042,18 @@ void main() {
           await open('development');
           expect(find.text('Active automations'), findsOneWidget);
           expect(find.text('Approval workflow'), findsOneWidget);
+          await open('Approval workflow');
+          expect(find.text('Automation details'), findsOneWidget);
+          expect(find.text('Review'), findsOneWidget);
+          expect(
+            calls.any(
+              (r) =>
+                  r.path == '/power-apps/automations/12' &&
+                  r.queryParameters['environment'] == 'development',
+            ),
+            isTrue,
+          );
+          await back();
           expect(
             calls.any(
               (r) =>

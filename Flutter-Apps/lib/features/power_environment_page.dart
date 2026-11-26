@@ -8,11 +8,18 @@ class PowerEnvironmentPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.environment,
-  });
+  }) : _automationId = null;
+
+  const PowerEnvironmentPage._automation({
+    required this.api,
+    required this.environment,
+    required int id,
+  }) : _automationId = id;
 
   static const endpoint = '/power-apps/environments';
   final ApiClient api;
   final String environment;
+  final int? _automationId;
 
   @override
   State<PowerEnvironmentPage> createState() => _PowerEnvironmentPageState();
@@ -23,10 +30,13 @@ class _PowerEnvironmentPageState extends State<PowerEnvironmentPage> {
 
   Future<Json> _load() async {
     final revision = widget.api.sessionRevision;
+    final automation = widget._automationId;
     final data =
         await widget.api.request(
               'GET',
-              '/power-apps/overview',
+              automation == null
+                  ? '/power-apps/overview'
+                  : '/power-apps/automations/$automation',
               query: {'environment': widget.environment},
             )
             as Json;
@@ -38,7 +48,13 @@ class _PowerEnvironmentPageState extends State<PowerEnvironmentPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Power Apps · ${widget.environment}')),
+    appBar: AppBar(
+      title: Text(
+        widget._automationId == null
+            ? 'Power Apps · ${widget.environment}'
+            : 'Automation details',
+      ),
+    ),
     body: FutureBuilder<Json>(
       future: _overview,
       builder: (context, snapshot) {
@@ -57,6 +73,7 @@ class _PowerEnvironmentPageState extends State<PowerEnvironmentPage> {
           );
         }
         final data = snapshot.requireData;
+        if (widget._automationId != null) return _AutomationDetails(data: data);
         final counts = data['counts'] as Json? ?? const {};
         final recent = (data['recent'] as List? ?? [])
             .whereType<Json>()
@@ -91,10 +108,64 @@ class _PowerEnvironmentPageState extends State<PowerEnvironmentPage> {
                       resource['status'],
                     ].whereType<String>().join(' · '),
                   ),
+                  onTap:
+                      resource['application_id'] == 'automations' &&
+                          resource['id'] is int
+                      ? () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PowerEnvironmentPage._automation(
+                              api: widget.api,
+                              environment: widget.environment,
+                              id: resource['id'] as int,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
           ],
         );
       },
     ),
   );
+}
+
+class _AutomationDetails extends StatelessWidget {
+  const _AutomationDetails({required this.data});
+  final Json data;
+
+  @override
+  Widget build(BuildContext context) {
+    final definition = data['definition'] as Json? ?? const {};
+    final trigger = definition['trigger'] as Json?;
+    final nodes = (definition['nodes'] as List? ?? []).whereType<Json>();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          '${data['name'] ?? 'Automation'}',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        if (data['description'] case final String description
+            when description.isNotEmpty)
+          Text(description),
+        for (final (label, value) in [
+          ('Status', data['status']),
+          ('Version', data['version']),
+          ('Trigger', trigger?['type']),
+        ])
+          if (value != null)
+            ListTile(title: Text(label), subtitle: Text('$value')),
+        const Divider(),
+        Text('Workflow steps', style: Theme.of(context).textTheme.titleMedium),
+        if (nodes.isEmpty) const ListTile(title: Text('No workflow steps')),
+        for (final node in nodes)
+          ListTile(
+            title: Text('${node['label'] ?? node['id'] ?? 'Step'}'),
+            subtitle: Text(
+              [node['type'], node['component']].whereType<String>().join(' · '),
+            ),
+          ),
+      ],
+    );
+  }
 }
