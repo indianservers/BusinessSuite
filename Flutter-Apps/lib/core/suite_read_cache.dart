@@ -13,10 +13,17 @@ class SuiteReadCache {
     try {
       return await openDatabase(
         '${await getDatabasesPath()}/business_suite_read_cache.db',
-        version: 1,
+        version: 2,
         onCreate: (db, _) => db.execute(
-          'CREATE TABLE snapshots (scope TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, rows TEXT NOT NULL)',
+          'CREATE TABLE snapshots (scope TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, rows TEXT NOT NULL, invalidated INTEGER NOT NULL DEFAULT 0)',
         ),
+        onUpgrade: (db, oldVersion, _) async {
+          if (oldVersion < 2) {
+            await db.execute(
+              'ALTER TABLE snapshots ADD COLUMN invalidated INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+        },
       );
     } catch (_) {
       _opening = null;
@@ -28,9 +35,8 @@ class SuiteReadCache {
     return (await snapshot(scope))?.rows;
   }
 
-  static Future<({List<Json> rows, DateTime savedAt})?> snapshot(
-    String scope,
-  ) async {
+  static Future<({List<Json> rows, DateTime savedAt, bool invalidated})?>
+  snapshot(String scope) async {
     final entries = await (await _open()).query(
       'snapshots',
       where: 'scope = ? AND saved_at >= ?',
@@ -45,6 +51,7 @@ class SuiteReadCache {
     return (
       rows: (jsonDecode(entry['rows'] as String) as List).cast<Json>(),
       savedAt: DateTime.fromMillisecondsSinceEpoch(entry['saved_at'] as int),
+      invalidated: entry['invalidated'] == 1,
     );
   }
 
@@ -69,6 +76,13 @@ class SuiteReadCache {
 
   static Future<void> clear(String scope) async => (await _open()).delete(
     'snapshots',
+    where: 'scope = ?',
+    whereArgs: [scope],
+  );
+
+  static Future<void> invalidate(String scope) async => (await _open()).update(
+    'snapshots',
+    {'invalidated': 1},
     where: 'scope = ?',
     whereArgs: [scope],
   );

@@ -203,7 +203,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           mounted &&
           identical(_access, accessFuture) &&
           revision == controller.api.sessionRevision) {
-        await InventoryOfflineCreates(scope).sync(controller.api);
+        await InventoryOfflineCreates(
+          scope,
+          invalidate: SuiteReadCache.invalidate,
+        ).sync(controller.api);
       }
       if (_allowed(access, 'project_management') &&
           mounted &&
@@ -820,7 +823,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
   static const _listReuseWindow = Duration(seconds: 15);
   bool get _stockAlerts => widget.path == _stockSummaryPath;
-  bool get _inventory => widget.path == '/srm/inventory/items';
+  bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
   num? _stockNumber(Object? value) =>
       value is num ? value : num.tryParse('${value ?? ''}');
@@ -863,6 +866,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           final age = DateTime.now().difference(cached.savedAt);
           if (!reconnect &&
               !_offlineOnly &&
+              !cached.invalidated &&
               (_inventory || path == '/srm/sales-orders') &&
               !age.isNegative &&
               age < _listReuseWindow) {
@@ -1035,7 +1039,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 MaterialPageRoute<void>(
                   builder: (_) => InventoryDraftsPage(
                     api: widget.controller.api,
-                    drafts: InventoryOfflineCreates(widget.cachePrefix!),
+                    drafts: InventoryOfflineCreates(
+                      widget.cachePrefix!,
+                      invalidate: SuiteReadCache.invalidate,
+                    ),
                   ),
                 ),
               );
@@ -1073,7 +1080,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 builder: (_) => _SuiteRecords(
                   title: 'Inventory',
                   controller: widget.controller,
-                  path: '/srm/inventory/items',
+                  path: InventoryOfflineCreates.itemsEndpoint,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly,
                 ),

@@ -3,6 +3,7 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
+import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
@@ -230,7 +231,12 @@ void main() {
     (tester) async {
       const base = 'https://example.test/api/v1';
       final user = DateTime.now().microsecondsSinceEpoch;
-      final drafts = InventoryOfflineCreates('["$base",$user,7]');
+      final scope = '["$base",$user,7]';
+      final drafts = InventoryOfflineCreates(scope);
+      final inventoryKey = '$scope:${InventoryOfflineCreates.itemsEndpoint}';
+      await SuiteReadCache.write(inventoryKey, [
+        {'id': 2, 'sku': 'PREVIOUS'},
+      ]);
       final submissions = <RequestOptions>[];
       var connected = true;
       final dio = Dio()
@@ -318,8 +324,15 @@ void main() {
       expect(saved['product']['code'], 'QA-SKU');
       expect(submissions, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
-      final reopened = InventoryOfflineCreates('["$base",$user,7]');
+      final reopened = InventoryOfflineCreates(
+        scope,
+        invalidate: SuiteReadCache.invalidate,
+      );
       await reopened.sync(api);
+      expect(
+        (await SuiteReadCache.snapshot(inventoryKey))?.invalidated,
+        isFalse,
+      );
       expect(
         (await reopened.entries()).single['operation'],
         saved['operation'],
@@ -327,6 +340,9 @@ void main() {
       connected = true;
       await reopened.sync(api);
       expect(await reopened.entries(), isEmpty);
+      final snapshot = await SuiteReadCache.snapshot(inventoryKey);
+      expect(snapshot?.invalidated, isTrue);
+      expect(snapshot?.rows.single['sku'], 'PREVIOUS');
       expect(submissions, hasLength(2));
       for (final request in submissions) {
         expect(request.path, '/catalog/items');

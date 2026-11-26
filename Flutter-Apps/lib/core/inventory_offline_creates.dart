@@ -7,10 +7,14 @@ import 'api_client.dart';
 import 'models.dart';
 
 class InventoryOfflineCreates {
-  InventoryOfflineCreates(String scope)
-    : _key = 'inventory_creates_${Uri.encodeComponent(scope)}',
+  InventoryOfflineCreates(String scope, {this.invalidate})
+    : _scope = scope,
+      _key = 'inventory_creates_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}';
   final String _key, _company;
+  final String _scope;
+  final Future<void> Function(String)? invalidate;
+  static const itemsEndpoint = '/srm/inventory/items';
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
 
@@ -128,6 +132,11 @@ class InventoryOfflineCreates {
             },
             data: entry['product'],
           );
+          try {
+            await invalidate?.call('$_scope:$itemsEndpoint');
+          } catch (_) {
+            // The server accepted the draft even when local reads are unavailable.
+          }
           pending.remove(entry);
         } on ApiFailure catch (error) {
           if (error.status == null ||
