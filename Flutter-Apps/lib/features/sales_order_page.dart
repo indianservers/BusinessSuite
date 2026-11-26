@@ -43,7 +43,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               children: [
                 Text('${snapshot.error}', textAlign: TextAlign.center),
                 TextButton(
-                  onPressed: () => setState(() => _order = _load()),
+                  onPressed: () => setState(() {
+                    _order = _load();
+                  }),
                   child: const Text('Retry'),
                 ),
               ],

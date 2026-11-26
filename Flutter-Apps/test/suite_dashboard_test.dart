@@ -1,6 +1,7 @@
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/models.dart';
+import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
@@ -10,6 +11,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM lead edit sends the displayed record version', (
+    tester,
+  ) async {
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/crm/lead-management/leads/9');
+        if (request.method == 'GET') {
+          return response({'first_name': 'Before', 'version': 4});
+        }
+        expect(request.method, 'PATCH');
+        expect(request.data['version'], 4);
+        expect(request.data['values']['first_name'], 'After');
+        return response({'first_name': 'After', 'version': 5});
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmLeadPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          summary: const {'id': 9},
+          offline: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit lead name'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'After');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('After'), findsOneWidget);
+  });
   testWidgets('offline order summary opens without a network request', (
     tester,
   ) async {
@@ -96,7 +132,7 @@ void main() {
             }),
             '/power-apps/environments' ||
             '/employees/' ||
-            '/crm/leads' ||
+            '/crm/lead-management/leads' ||
             '/fam/parties' ||
             '/project-management/notes' => response([]),
             '/srm/sales-orders' => response([
@@ -170,7 +206,7 @@ void main() {
       for (final entry in {
         'Power Apps': '/power-apps/environments',
         'AI HRMS': '/employees/',
-        'VyaparaCRM': '/crm/leads',
+        'VyaparaCRM': '/crm/lead-management/leads',
         'Sales & POS': '/srm/sales-orders',
         'Finance & Accounting': '/fam/parties',
         'Notes': '/project-management/notes',

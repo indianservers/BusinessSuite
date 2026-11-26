@@ -9,6 +9,7 @@ import '../core/api_client.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
+import 'crm_lead_page.dart';
 import 'sales_order_page.dart';
 import 'workspace_page.dart';
 
@@ -52,7 +53,7 @@ const List<_App> _apps = [
     caption: 'Leads & customers',
     icon: LucideIcons.users,
     color: Color(0xff087c68),
-    endpoint: '/crm/leads',
+    endpoint: CrmLeadPage.endpoint,
   ),
   (
     grant: 'project_management',
@@ -223,7 +224,9 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               children: [
                 const Text('Could not load your applications.'),
                 TextButton(
-                  onPressed: () => setState(() => _access = _load()),
+                  onPressed: () => setState(() {
+                    _access = _load();
+                  }),
                   child: const Text('Try again'),
                 ),
               ],
@@ -249,7 +252,9 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             .toList();
         return RefreshIndicator(
           onRefresh: () async {
-            setState(() => _access = _load(reconnect: true));
+            setState(() {
+              _access = _load(reconnect: true);
+            });
             try {
               await _access;
             } catch (_) {
@@ -456,7 +461,9 @@ class _SuiteSettingsState extends State<_SuiteSettings> {
               return ListTile(
                 title: const Text('Could not load workspace settings'),
                 trailing: TextButton(
-                  onPressed: () => setState(() => _directory = _load()),
+                  onPressed: () => setState(() {
+                    _directory = _load();
+                  }),
                   child: const Text('Retry'),
                 ),
               );
@@ -685,6 +692,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'name',
               'first_name',
               'last_name',
+              'full_name',
+              'company_name',
               'order_number',
               'currency',
               'subtotal',
@@ -718,7 +727,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         IconButton(
           tooltip: 'Refresh',
           icon: const Icon(LucideIcons.refreshCw),
-          onPressed: () => setState(() => _records = _load()),
+          onPressed: () => setState(() {
+            _records = _load();
+          }),
         ),
         if (widget.showInventory)
           IconButton(
@@ -762,7 +773,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           textAlign: TextAlign.center,
                         ),
                         TextButton(
-                          onPressed: () => setState(() => _records = _load()),
+                          onPressed: () => setState(() {
+                            _records = _load();
+                          }),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -793,6 +806,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'status',
                                     'sku',
                                     'item_name',
+                                    'full_name',
+                                    'company_name',
                                   ]
                                   .map((key) => item[key] ?? '')
                                   .join(' ')
@@ -811,7 +826,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         decoration: InputDecoration(
                           prefixIcon: const Icon(LucideIcons.search),
                           labelText: switch (widget.path) {
-                            '/crm/leads' => 'Search saved leads',
+                            CrmLeadPage.endpoint => 'Search saved leads',
                             '/srm/inventory/items' => 'Search saved products',
                             _ => 'Search saved orders',
                           },
@@ -842,6 +857,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['title'] ??
                             item['name'] ??
                             item['legal_name'] ??
+                            item['full_name'] ??
                             item['order_number'] ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
@@ -855,12 +871,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           subtitle: subtitle.isEmpty ? null : Text(subtitle),
                           onTap:
                               (widget.path == '/srm/inventory/items' ||
-                                      widget.path == '/srm/sales-orders') &&
+                                      widget.path == '/srm/sales-orders' ||
+                                      widget.path == CrmLeadPage.endpoint) &&
                                   item['id'] is int
                               ? () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
                                     builder: (_) =>
-                                        widget.path == '/srm/sales-orders'
+                                        widget.path == CrmLeadPage.endpoint
+                                        ? CrmLeadPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            onSaved: () {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _records = _load();
+                                                });
+                                              }
+                                            },
+                                            offline:
+                                                widget.offlineOnly ||
+                                                (cached && snapshot.hasError),
+                                          )
+                                        : widget.path == '/srm/sales-orders'
                                         ? SalesOrderPage(
                                             api: widget.controller.api,
                                             summary: item,
@@ -928,7 +960,9 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               children: [
                 Text('${snapshot.error}'),
                 TextButton(
-                  onPressed: () => setState(() => _product = _load()),
+                  onPressed: () => setState(() {
+                    _product = _load();
+                  }),
                   child: const Text('Retry'),
                 ),
               ],
