@@ -215,7 +215,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             identical(_access, accessFuture) &&
             revision == controller.api.sessionRevision &&
             _canCreateOrder(access)) {
-          await SalesOrderDrafts(scope).sync(controller.api);
+          await SalesOrderDrafts(
+            scope,
+            invalidate: SuiteReadCache.invalidate,
+          ).sync(controller.api);
         }
       }
       if (_allowed(access, 'project_management') &&
@@ -935,7 +938,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool _usedSavedFallback = false;
   late final SalesOrderDrafts? _saleDrafts =
       widget.showInventory && widget.cachePrefix != null
-      ? SalesOrderDrafts(widget.cachePrefix!)
+      ? SalesOrderDrafts(
+          widget.cachePrefix!,
+          invalidate: SuiteReadCache.invalidate,
+        )
       : null;
   late final InventoryOfflineCreates? _inventoryDrafts =
       _inventory && widget.cachePrefix != null

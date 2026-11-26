@@ -201,12 +201,18 @@ void main() {
       await tester.tap(find.text('Save order draft'));
       await tester.pumpAndSettle();
       expect(requests, isEmpty);
-      final reopened = SalesOrderDrafts(scope);
+      final invalidated = <String>[];
+      final reopened = SalesOrderDrafts(
+        scope,
+        invalidate: (key) async => invalidated.add(key),
+      );
       final saved = (await reopened.entries()).single;
       await tester.runAsync(() => reopened.sync(api));
       expect(await reopened.entries(), hasLength(1));
+      expect(invalidated, isEmpty);
       await tester.runAsync(() => reopened.sync(api));
       expect(await reopened.entries(), isEmpty);
+      expect(invalidated, ['$scope:/srm/sales-orders']);
       expect(requests, hasLength(2));
       for (final request in requests) {
         expect(request.path, '/srm/sales-orders');

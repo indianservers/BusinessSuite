@@ -7,7 +7,7 @@ import 'models.dart';
 import 'suite_read_cache.dart';
 
 class SalesOrderDrafts {
-  SalesOrderDrafts(String scope)
+  SalesOrderDrafts(String scope, {this.invalidate})
     : _key = 'sales_order_drafts_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}',
       _scope = scope;
@@ -18,6 +18,7 @@ class SalesOrderDrafts {
   static const _storage = FlutterSecureStorage();
   static final _running = <String, Future<void>>{};
   final String _key, _company, _scope;
+  final Future<void> Function(String)? invalidate;
 
   Future<List<Json>> products(
     ApiClient api,
@@ -160,10 +161,7 @@ class SalesOrderDrafts {
       }
       drafts.remove(replaceRejected);
     }
-    drafts[operation] = {
-      'payload': payload,
-      'customer_name': ?customerName,
-    };
+    drafts[operation] = {'payload': payload, 'customer_name': ?customerName};
     await _write(drafts);
   });
 
@@ -206,6 +204,11 @@ class SalesOrderDrafts {
         }
         await _write(drafts);
         if (!drafts.containsKey(operation) && api.sessionRevision == revision) {
+          try {
+            await invalidate?.call('$_scope:$endpoint');
+          } catch (_) {
+            // The server has already accepted the draft.
+          }
           onUploaded?.call();
         }
       }
