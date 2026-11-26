@@ -1,5 +1,6 @@
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
@@ -22,6 +23,101 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets(
+    'Android creates a CRM lead from the offline dashboard and syncs it',
+    (tester) async {
+      const base = 'https://example.test/api/v1';
+      final id = DateTime.now().microsecondsSinceEpoch;
+      final queue = CrmOfflineEdits('["$base",$id,7]');
+      final submitted = <RequestOptions>[];
+      var connected = false;
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (!connected) {
+            throw DioException(
+              requestOptions: request,
+              type: DioExceptionType.connectionError,
+            );
+          }
+          if (request.path != CrmLeadPage.endpoint ||
+              request.method != 'POST') {
+            throw StateError('Unexpected request ${request.path}');
+          }
+          submitted.add(request);
+          return response({'id': 19}, 201);
+        });
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'device-qa',
+        'refresh_token': 'device-qa',
+      });
+      final identity = {'id': id, 'email': 'qa@example.test'};
+      await api.rememberSuite(identity, {
+        'companyId': 7,
+        'canCreateLead': true,
+        'grants': {
+          'crm': {'enabled': true},
+        },
+      });
+      final controller = AppController(api, suiteLogin: true)
+        ..loading = false
+        ..user = SessionUser.fromJson(identity)
+        ..offline = true;
+      Future<void> waitFor(Finder finder) async {
+        final deadline = DateTime.now().add(const Duration(seconds: 15));
+        while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(finder, findsOneWidget);
+      }
+
+      await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+      await waitFor(find.text('VyaparaCRM'));
+      await tester.ensureVisible(find.text('VyaparaCRM'));
+      await tester.tap(find.text('VyaparaCRM'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('New lead'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Android field lead',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final save = find.text('Save lead draft');
+      await tester.scrollUntilVisible(
+        save,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(save);
+      await waitFor(find.byTooltip('Lead drafts'));
+      final saved = (await queue.creations()).single;
+      expect(saved['values']['full_name'], 'Android field lead');
+      expect(submitted, isEmpty);
+      await tester.tap(find.byTooltip('Lead drafts'));
+      await waitFor(find.text('Android field lead'));
+      expect(find.text('Awaiting sync'), findsOneWidget);
+      connected = true;
+      await tester.tap(find.byTooltip('Sync lead drafts'));
+      await waitFor(find.text('No saved lead drafts'));
+      expect(submitted, hasLength(1));
+      expect(submitted.single.data, {
+        'values': {'full_name': 'Android field lead'},
+      });
+      expect(
+        'create:${submitted.single.headers['X-Offline-Operation']}',
+        saved['key'],
+      );
+      expect(await queue.creations(), isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('Android CRM combines saved pages without duplicate leads', (
     tester,
