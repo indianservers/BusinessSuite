@@ -40,6 +40,14 @@ void main() {
               type: DioExceptionType.connectionError,
             );
           }
+          if (request.path == CrmLeadPage.endpoint && request.method == 'GET') {
+            return response({
+              'items': [
+                if (submitted.isNotEmpty)
+                  {'id': 19, 'full_name': 'Android field lead'},
+              ],
+            });
+          }
           if (request.path != CrmLeadPage.endpoint ||
               request.method != 'POST') {
             throw StateError('Unexpected request ${request.path}');
@@ -115,6 +123,8 @@ void main() {
         saved['key'],
       );
       expect(await queue.creations(), isEmpty);
+      await tester.pageBack();
+      await waitFor(find.text('Android field lead'));
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );

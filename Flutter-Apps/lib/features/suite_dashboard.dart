@@ -1209,6 +1209,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   queue: queue,
                   api: widget.controller.api,
                   canEdit: widget.canCreateLead,
+                  onSynced: () {
+                    if (mounted) {
+                      _page = 1;
+                      _refresh();
+                    }
+                  },
                 ),
               ),
             ),

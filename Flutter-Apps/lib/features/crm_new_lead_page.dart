@@ -29,10 +29,12 @@ class CrmLeadDraftsPage extends StatefulWidget {
     required this.queue,
     required this.api,
     this.canEdit = false,
+    this.onSynced,
   });
   final CrmOfflineEdits queue;
   final ApiClient api;
   final bool canEdit;
+  final VoidCallback? onSynced;
 
   @override
   State<CrmLeadDraftsPage> createState() => _CrmLeadDraftsPageState();
@@ -85,6 +87,12 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
     }
   }
 
+  Future<void> _sync() => _run(() async {
+    var uploaded = false;
+    await widget.queue.sync(widget.api, onCreated: () => uploaded = true);
+    if (uploaded && mounted) widget.onSynced?.call();
+  });
+
   Future<void> _correct(Map<String, dynamic> draft) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
@@ -110,9 +118,7 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
       actions: [
         IconButton(
           tooltip: 'Sync lead drafts',
-          onPressed: _busy
-              ? null
-              : () => _run(() => widget.queue.sync(widget.api)),
+          onPressed: _busy ? null : _sync,
           icon: const Icon(Icons.sync),
         ),
       ],

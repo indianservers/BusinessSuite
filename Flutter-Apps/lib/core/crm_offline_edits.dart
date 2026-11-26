@@ -84,7 +84,7 @@ class CrmOfflineEdits {
     await _storage.write(key: _key, value: jsonEncode(rows));
   });
 
-  Future<void> sync(ApiClient api, {int? leadId}) {
+  Future<void> sync(ApiClient api, {int? leadId, void Function()? onCreated}) {
     final session = api.sessionRevision;
     return _serialized(() async {
       final rows = await _read();
@@ -117,6 +117,11 @@ class CrmOfflineEdits {
           if (creating) edit['status'] = failure.status;
         }
         await _storage.write(key: _key, value: jsonEncode(rows));
+        if (creating &&
+            !rows.containsKey(id) &&
+            session == api.sessionRevision) {
+          onCreated?.call();
+        }
       }
     });
   }

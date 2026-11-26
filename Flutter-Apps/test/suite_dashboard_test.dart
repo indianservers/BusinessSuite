@@ -105,10 +105,17 @@ void main() {
       final reopened = CrmOfflineEdits(scope);
       final saved = (await reopened.creations()).single;
       expect(saved['values']['full_name'], 'Field lead');
-      await tester.runAsync(() => reopened.sync(api));
+      var uploaded = 0;
+      await tester.runAsync(
+        () => reopened.sync(api, onCreated: () => uploaded++),
+      );
       expect(await reopened.creations(), hasLength(1));
-      await tester.runAsync(() => reopened.sync(api));
+      expect(uploaded, 0);
+      await tester.runAsync(
+        () => reopened.sync(api, onCreated: () => uploaded++),
+      );
       expect(await reopened.creations(), isEmpty);
+      expect(uploaded, 1);
       for (final request in attempts) {
         expect(request.path, CrmLeadPage.endpoint);
         expect(request.data, {
