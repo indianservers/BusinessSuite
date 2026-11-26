@@ -29,8 +29,10 @@ def perform_offline_operation(db, actor, operation_id, action, payload, apply, c
     insert = postgres_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
     reserved = db.execute(insert(receipts).values(
         actor_id=actor.id, operation_id=str(operation_id), fingerprint=fingerprint,
-    ).on_conflict_do_nothing(index_elements=["actor_id", "operation_id"]))
-    if not reserved.rowcount:
+    ).on_conflict_do_nothing(
+        index_elements=["actor_id", "operation_id"],
+    ).returning(receipts.c.operation_id)).scalar_one_or_none()
+    if reserved is None:
         previous = db.execute(select(receipts).where(*key)).mappings().one()
         if previous["fingerprint"] != fingerprint or previous["result"] is None:
             raise HTTPException(409, "This offline operation belongs to a different request.")
