@@ -882,7 +882,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _searchOnServer =>
       _isCrm || _inventory || widget.path == '/srm/sales-orders';
   late bool _offlineOnly = widget.offlineOnly;
-  late Future<List<Json>> _records = _load();
+  late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
   late final InventoryOfflineCreates? _inventoryDrafts =
       _inventory && widget.cachePrefix != null
@@ -907,6 +907,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   String? get _cacheKey => widget.cachePrefix == null
       ? null
       : '${widget.cachePrefix}:${widget.path}';
+
+  Future<List<Json>> _startLoad({bool reconnect = false}) {
+    final result = _load(reconnect: reconnect);
+    // FutureBuilder receives the same error even if the request finishes before it rebuilds.
+    result.ignore();
+    return result;
+  }
 
   Future<List<Json>> _load({bool reconnect = false}) async {
     final path = widget.path;
@@ -945,6 +952,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               searchTerm.isEmpty &&
               (_inventory ||
                   path == '/srm/sales-orders' ||
+                  path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
               !age.isNegative &&
               age < _listReuseWindow) {
@@ -1096,7 +1104,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmPage = 1;
     }
     setState(() {
-      _records = _load(reconnect: true);
+      _records = _startLoad(reconnect: true);
     });
   }
 
@@ -1110,7 +1118,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       setState(() {
         _serverSearch = _term;
         _crmPage = 1;
-        _records = _load();
+        _records = _startLoad();
       });
     });
   }
@@ -1118,7 +1126,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   void _changeCrmPage(int offset) {
     setState(() {
       _crmPage += offset;
-      _records = _load();
+      _records = _startLoad();
     });
   }
 
@@ -1190,7 +1198,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               );
               if (mounted) {
                 setState(() {
-                  _records = _load(reconnect: true);
+                  _records = _startLoad(reconnect: true);
                 });
               }
             },
@@ -1451,7 +1459,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             onSaved: () {
                                               if (mounted) {
                                                 setState(() {
-                                                  _records = _load();
+                                                  _records = _startLoad();
                                                 });
                                               }
                                             },
@@ -1493,6 +1501,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             id: item['id'] as int,
                                             summary: item,
                                             cacheScope: widget.cachePrefix,
+                                            onChanged: _refresh,
                                             offline: _offlineOnly,
                                             canExport: widget.canExportInvoices,
                                             canIssue: widget.canIssueInvoices,

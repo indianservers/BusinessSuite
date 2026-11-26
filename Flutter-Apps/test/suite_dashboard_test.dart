@@ -775,6 +775,7 @@ void main() {
     'issuing a GST invoice requires confirmation and reloads its status',
     (tester) async {
       var issued = false;
+      var changes = 0;
       final dio = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.method == 'POST') {
@@ -800,6 +801,7 @@ void main() {
             ),
             id: 7,
             canIssue: true,
+            onChanged: () => changes++,
           ),
         ),
       );
@@ -810,6 +812,7 @@ void main() {
       await tester.tap(find.text('Confirm issue'));
       await tester.pumpAndSettle();
       expect(find.text('issued'), findsOneWidget);
+      expect(changes, 1);
       expect(find.text('Issue invoice'), findsNothing);
     },
   );

@@ -19,6 +19,7 @@ class GstInvoicePage extends StatefulWidget {
     this.cacheScope,
     this.summary,
     this.offline = false,
+    this.onChanged,
   });
   static const listEndpoint = '/srm/invoices';
   final ApiClient api;
@@ -29,6 +30,7 @@ class GstInvoicePage extends StatefulWidget {
   final String? cacheScope;
   final Json? summary;
   final bool offline;
+  final VoidCallback? onChanged;
 
   static const summaryFields = [
     'invoice_number',
@@ -138,6 +140,18 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     _invoice = _load(reconnect: true);
   });
 
+  Future<void> _notifyChanged() async {
+    final scope = widget.cacheScope;
+    if (scope != null) {
+      try {
+        await SuiteReadCache.invalidate(
+          '$scope:${GstInvoicePage.listEndpoint}',
+        );
+      } catch (_) {}
+    }
+    if (mounted) widget.onChanged?.call();
+  }
+
   Future<void> _issue(Json invoice) async {
     if (_issuing) return;
     final api = widget.api;
@@ -175,6 +189,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Invoice issued.')));
+        await _notifyChanged();
       }
     } catch (error) {
       if (mounted && api.sessionRevision == revision) {
@@ -256,6 +271,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
         _invoice = Future.value((updated, false));
       });
       await _saveSnapshot(updated);
+      if (mounted) await _notifyChanged();
     }
   }
 
@@ -363,6 +379,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       setState(() {
         _invoice = _load();
       });
+      await _notifyChanged();
     }
   }
 
