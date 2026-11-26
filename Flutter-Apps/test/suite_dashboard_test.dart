@@ -1581,6 +1581,36 @@ void main() {
       expect((await edits.pending(9))?['values'], {'company_name': 'Acme'});
     },
   );
+  testWidgets('offline CRM lead reconnects in place', (tester) async {
+    var reads = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        reads++;
+        expect(request.path, '/crm/lead-management/leads/9');
+        return response({'first_name': 'Current lead', 'version': 5});
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmLeadPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
+          ),
+          summary: const {'id': 9, 'first_name': 'Saved lead', 'version': 4},
+          offline: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reads, 0);
+    expect(find.text('Saved lead'), findsOneWidget);
+    await tester.tap(find.text('Reconnect'));
+    await tester.pumpAndSettle();
+    expect(reads, 1);
+    expect(find.text('Current lead'), findsOneWidget);
+    expect(find.byTooltip('Refresh lead'), findsOneWidget);
+  });
   testWidgets('offline order opens locally and reconnects in place', (
     tester,
   ) async {

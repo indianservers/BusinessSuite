@@ -29,6 +29,7 @@ class CrmLeadPage extends StatefulWidget {
 
 class _CrmLeadPageState extends State<CrmLeadPage> {
   late Future<Json?> _lead = _load();
+  late bool _offline = widget.offline;
   Json? _saved;
   late Future<Json?> _pending = _readPending();
   int get _id => widget.summary['id'] as int;
@@ -64,7 +65,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
       if (!mounted) return;
       setState(() {
         _pending = _readPending();
-        if (!widget.offline) _lead = _load();
+        if (!_offline) _lead = _load();
       });
     } catch (_) {
       if (mounted) {
@@ -105,7 +106,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     }
   }
 
-  Future<Json?> _load() async {
+  Future<Json?> _load({bool reconnect = false}) async {
     final key = _cacheKey;
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -121,13 +122,14 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     if (revision != api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
-    if (widget.offline) return null;
+    if (_offline && !reconnect) return null;
     try {
       final lead = await api.request('GET', _path) as Json;
       if (revision != api.sessionRevision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
       await _saveDetails(lead);
+      if (mounted && _offline) setState(() => _offline = false);
       return lead;
     } on ApiFailure catch (error) {
       if (error.connectionFailure ||
@@ -152,7 +154,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
         : Future<void>.value();
     final ready = attempt.then<void>((_) {}, onError: (Object _) {});
     setState(() {
-      _lead = ready.then((_) => _load());
+      _lead = ready.then((_) => _load(reconnect: sync));
       _pending = ready.then((_) => _readPending());
     });
   }
@@ -311,7 +313,7 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
     appBar: AppBar(
       title: const Text('Lead details'),
       actions: [
-        if (!widget.offline)
+        if (!_offline)
           IconButton(
             tooltip: 'Refresh lead',
             onPressed: () => _refresh(sync: true),
@@ -350,13 +352,19 @@ class _CrmLeadPageState extends State<CrmLeadPage> {
               name.isNotEmpty ? name : '${lead['full_name'] ?? 'Lead'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            if (loading && !widget.offline) const LinearProgressIndicator(),
-            if (offline && (!loading || widget.offline))
+            if (loading) const LinearProgressIndicator(),
+            if (offline && !loading)
               ListTile(
                 title: Text(
-                  '${widget.offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_offline ? 'Offline' : 'Refresh unavailable'} · '
                   '${_saved == null ? 'Saved lead summary' : 'Saved lead details'}',
                 ),
+                trailing: _offline
+                    ? TextButton(
+                        onPressed: () => _refresh(sync: true),
+                        child: const Text('Reconnect'),
+                      )
+                    : null,
               ),
             for (final field in const {
               'company_name': 'Company',
