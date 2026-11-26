@@ -1656,6 +1656,7 @@ void main() {
             'currency': 'INR',
           },
           offline: true,
+          canEdit: true,
         ),
       ),
     );
@@ -1663,10 +1664,19 @@ void main() {
     expect(find.text('Offline · Saved order summary'), findsOneWidget);
     expect(find.text('INR 45.00'), findsOneWidget);
     expect(find.text('Line items'), findsNothing);
+    expect(find.text('Submit order for approval'), findsNothing);
+    final actions = <String>[];
     dio.httpClientAdapter = FakeAdapter((request) async {
+      if (request.method == 'POST') {
+        actions.add(request.path);
+        return response({
+          'status': actions.length == 1 ? 'approved' : 'confirmed',
+        });
+      }
       expect(request.path, '/srm/sales-orders/8');
       return response({
         'order_number': 'SO-8',
+        'status': 'draft',
         'lines': [
           {'description': 'Live order line'},
         ],
@@ -1676,6 +1686,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Live order line'), findsOneWidget);
     expect(find.text('Reconnect'), findsNothing);
+    for (final label in ['Submit order for approval', 'Confirm sales order']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, label));
+      await tester.pumpAndSettle();
+    }
+    expect(actions, [
+      '/srm/sales-orders/8/submit',
+      '/srm/sales-orders/8/confirm',
+    ]);
+    expect(find.text('confirmed'), findsOneWidget);
   });
   testWidgets('order summary remains visible after a temporary API failure', (
     tester,

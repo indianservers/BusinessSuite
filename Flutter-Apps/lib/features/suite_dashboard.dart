@@ -316,6 +316,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : const {},
         cachePrefix: cache,
         showInventory: app.title == 'Sales & POS',
+        canEditOrders: allowsSalesAction('edit'),
         canExportInvoices: allowsSalesAction('export'),
         canIssueInvoices:
             allowsSalesAction('approve') &&
@@ -813,6 +814,7 @@ class _SuiteRecords extends StatefulWidget {
     this.showInventory = false,
     this.canExportInvoices = false,
     this.canIssueInvoices = false,
+    this.canEditOrders = false,
     this.offlineOnly = false,
   });
   final String title;
@@ -824,6 +826,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool showInventory;
   final bool canExportInvoices;
   final bool canIssueInvoices;
+  final bool canEditOrders;
   final bool offlineOnly;
 
   @override
@@ -1427,6 +1430,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? SalesOrderPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            canEdit: widget.canEditOrders,
+                                            onChanged: _refresh,
                                             cacheScope: widget.cachePrefix,
                                             scopeHeaders: widget.scopeHeaders,
                                             offline:

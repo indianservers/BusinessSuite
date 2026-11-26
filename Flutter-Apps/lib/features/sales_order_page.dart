@@ -12,12 +12,16 @@ class SalesOrderPage extends StatefulWidget {
     required this.offline,
     this.cacheScope,
     this.scopeHeaders = const {},
+    this.canEdit = false,
+    this.onChanged,
   });
   final ApiClient api;
   final Json summary;
   final bool offline;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
+  final bool canEdit;
+  final VoidCallback? onChanged;
 
   @override
   State<SalesOrderPage> createState() => _SalesOrderPageState();
@@ -27,6 +31,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   Json? _saved;
   late bool _offline = widget.offline;
   late Future<Json?> _order = _load();
+  bool _saving = false;
+  String? _actionError;
+  String get _path => '/srm/sales-orders/${widget.summary['id']}';
 
   static const _orderFields = [
     'order_number',
@@ -51,15 +58,37 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'line_total',
   ];
 
-  Future<Json?> _load({bool reconnect = false}) async {
-    final path = '/srm/sales-orders/${widget.summary['id']}';
+  String? get _cacheKey {
     final scope = widget.cacheScope;
     final branch = widget.scopeHeaders['X-Suite-Branch'];
-    final key = scope == null
+    return scope == null
         ? null
         : branch == null
-        ? '$scope:$path'
-        : '$scope:$path:$branch';
+        ? '$scope:$_path'
+        : '$scope:$_path:$branch';
+  }
+
+  Future<void> _cacheDetails(Json data) async {
+    final key = _cacheKey;
+    if (key == null) return;
+    final lines = (data['lines'] as List? ?? []).whereType<Json>();
+    try {
+      await SuiteReadCache.write(key, [
+        {
+          for (final field in _orderFields) field: data[field],
+          'lines': [
+            for (final line in lines)
+              {for (final field in _lineFields) field: line[field]},
+          ],
+        },
+      ]);
+    } catch (_) {
+      // Online detail remains available if its cache cannot be written.
+    }
+  }
+
+  Future<Json?> _load({bool reconnect = false}) async {
+    final key = _cacheKey;
     final revision = widget.api.sessionRevision;
     if (key != null) {
       try {
@@ -81,29 +110,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       final data =
           await widget.api.request(
                 'GET',
-                path,
+                _path,
                 scopeHeaders: widget.scopeHeaders,
               )
               as Json;
       if (revision != widget.api.sessionRevision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
-      if (key != null) {
-        final lines = (data['lines'] as List? ?? []).whereType<Json>();
-        try {
-          await SuiteReadCache.write(key, [
-            {
-              for (final field in _orderFields) field: data[field],
-              'lines': [
-                for (final line in lines)
-                  {for (final field in _lineFields) field: line[field]},
-              ],
-            },
-          ]);
-        } catch (_) {
-          // Online detail remains available if its cache cannot be written.
-        }
-      }
+      await _cacheDetails(data);
       _offline = false;
       return data;
     } on ApiFailure catch (error) {
@@ -125,6 +139,61 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   void _refresh() => setState(() {
     _order = _load(reconnect: true);
   });
+
+  Future<void> _changeStatus(Json order, String action, String label) async {
+    final revision = widget.api.sessionRevision;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(label),
+        content: Text('Order ${order['order_number']}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true ||
+        !mounted ||
+        _saving ||
+        revision != widget.api.sessionRevision) {
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+    try {
+      final updated =
+          await widget.api.request(
+                'POST',
+                '$_path/$action',
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      final detail = {...order, ...updated};
+      setState(() {
+        _order = Future.value(detail);
+      });
+      widget.onChanged?.call();
+      await _cacheDetails(detail);
+    } on ApiFailure catch (error) {
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      setState(() {
+        _actionError = error.toString();
+        if (error.connectionFailure) _order = _load(reconnect: true);
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -148,6 +217,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         final data = detail ?? widget.summary;
         final currency = data['currency'] ?? '';
         final lines = (data['lines'] as List? ?? []).whereType<Json>();
+        final action = switch (snapshot.data?['status']) {
+          'draft' => ('submit', 'Submit order for approval'),
+          'approved' => ('confirm', 'Confirm sales order'),
+          _ => null,
+        };
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -156,6 +230,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text('${data['title'] ?? ''}'),
+            if (_actionError != null) Text(_actionError!),
+            if (!pending && widget.canEdit && action != null)
+              OutlinedButton(
+                onPressed: _saving
+                    ? null
+                    : () => _changeStatus(data, action.$1, action.$2),
+                child: Text(action.$2),
+              ),
             if (pending) const LinearProgressIndicator(),
             if (!pending && snapshot.data == null)
               ListTile(
