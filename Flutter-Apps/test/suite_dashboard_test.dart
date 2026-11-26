@@ -32,6 +32,57 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Sales uses a shared inventory product on an order line', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    RequestOptions? order;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (request.path == SalesOrderDrafts.productsEndpoint) {
+          expect(request.queryParameters['summary_only'], isTrue);
+          return response({
+            'items': [
+              {
+                'id': 8,
+                'item_name': 'Stock cable',
+                'sku': 'SKU-8',
+                'sales_rate': 75,
+              },
+            ],
+          });
+        }
+        order = request;
+        return response({'id': 17}, 201);
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await tester.pumpWidget(MaterialApp(home: NewSalesOrderPage(api: api)));
+    await tester.enterText(find.byType(TextFormField).first, 'Product order');
+    await tester.tap(find.text('Choose product'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stock cable'));
+    await tester.pumpAndSettle();
+    expect(find.text('75.00'), findsOneWidget);
+    await tester.tap(find.text('Create order'));
+    await tester.pumpAndSettle();
+    expect(order?.data['lines'], [
+      {
+        'quantity': '1',
+        'product_id': 8,
+        'description': 'Stock cable',
+        'item_code': 'SKU-8',
+        'service_type': 'product',
+        'unit_price': '75.00',
+      },
+    ]);
+  });
   testWidgets(
     'Sales saves an offline order and retries with its original receipt',
     (tester) async {

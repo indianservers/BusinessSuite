@@ -4,17 +4,65 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api_client.dart';
 import 'models.dart';
+import 'suite_read_cache.dart';
 
 class SalesOrderDrafts {
   SalesOrderDrafts(String scope)
     : _key = 'sales_order_drafts_${Uri.encodeComponent(scope)}',
-      _company = '${(jsonDecode(scope) as List)[2]}';
+      _company = '${(jsonDecode(scope) as List)[2]}',
+      _scope = scope;
 
   static const endpoint = '/srm/sales-orders';
   static const customersEndpoint = '/srm/business/customers';
+  static const productsEndpoint = '/srm/inventory/items';
   static const _storage = FlutterSecureStorage();
   static final _running = <String, Future<void>>{};
-  final String _key, _company;
+  final String _key, _company, _scope;
+
+  Future<List<Json>> products(
+    ApiClient api,
+    String search, {
+    required bool offline,
+  }) async {
+    final revision = api.sessionRevision;
+    if (!offline) {
+      try {
+        final data =
+            await api.request(
+                  'GET',
+                  productsEndpoint,
+                  query: {
+                    'summary_only': true,
+                    'page': 1,
+                    'per_page': 50,
+                    if (search.isNotEmpty) 'search': search,
+                  },
+                  scopeHeaders: {'X-Suite-Organization': _company},
+                )
+                as Json;
+        if (revision != api.sessionRevision) {
+          throw ApiFailure('Your session ended. Sign in again.', 401);
+        }
+        return (data['items'] as List).whereType<Json>().toList();
+      } on ApiFailure catch (error) {
+        if (!error.connectionFailure || revision != api.sessionRevision) {
+          rethrow;
+        }
+      }
+    }
+    final saved = await SuiteReadCache.read('$_scope:$productsEndpoint') ?? [];
+    if (revision != api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    final term = search.toLowerCase();
+    return saved
+        .where(
+          (row) => '${row['item_name']} ${row['sku']} ${row['barcode']}'
+              .toLowerCase()
+              .contains(term),
+        )
+        .toList();
+  }
 
   Future<Json> _read() async {
     final raw = await _storage.read(key: _key);

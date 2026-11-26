@@ -34,13 +34,37 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   Future<void> _chooseCustomer() async {
     final customer = await showDialog<Json>(
       context: context,
-      builder: (_) => _SalesCustomerPicker(
+      builder: (_) => _SalesRecordPicker(
         api: widget.api,
         drafts: widget.drafts,
         offline: widget.offline,
       ),
     );
     if (mounted && customer != null) setState(() => _customer = customer);
+  }
+
+  Future<void> _chooseProduct(int index) async {
+    final product = await showDialog<Json>(
+      context: context,
+      builder: (_) => _SalesRecordPicker(
+        api: widget.api,
+        drafts: widget.drafts,
+        offline: widget.offline,
+        product: true,
+      ),
+    );
+    if (!mounted || product == null) return;
+    final rate = num.tryParse('${product['sales_rate']}');
+    setState(
+      () => _lines[index] = {
+        ..._lines[index],
+        'product_id': '${product['id']}',
+        'description': product['item_name'] as String,
+        'item_code': product['sku'] as String? ?? '',
+        'service_type': 'product',
+        if (rate != null) 'unit_price': rate.toStringAsFixed(2),
+      },
+    );
   }
 
   Future<void> _save() async {
@@ -50,7 +74,14 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
       ..._details,
       if (_customer != null) 'customer_id': _customer!['id'],
       'currency': _details['currency']!.toUpperCase(),
-      'lines': [for (final line in _lines) Map<String, String>.of(line)],
+      'lines': [
+        for (final line in _lines)
+          <String, dynamic>{
+            ...line,
+            if (line['product_id'] case final String id)
+              'product_id': int.parse(id),
+          },
+      ],
     };
     setState(() {
       _saving = true;
@@ -173,6 +204,14 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
                       : null,
                 ),
                 _field(line, 'description', 'Description', maxLength: 500),
+                TextButton(
+                  onPressed: _saving ? null : () => _chooseProduct(index),
+                  child: Text(
+                    line['product_id'] == null
+                        ? 'Choose product'
+                        : 'Change product',
+                  ),
+                ),
                 _field(
                   line,
                   'quantity',
@@ -206,35 +245,49 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   );
 }
 
-class _SalesCustomerPicker extends StatefulWidget {
-  const _SalesCustomerPicker({
+class _SalesRecordPicker extends StatefulWidget {
+  const _SalesRecordPicker({
     required this.api,
     this.drafts,
     required this.offline,
+    this.product = false,
   });
   final ApiClient api;
   final SalesOrderDrafts? drafts;
   final bool offline;
+  final bool product;
 
   @override
-  State<_SalesCustomerPicker> createState() => _SalesCustomerPickerState();
+  State<_SalesRecordPicker> createState() => _SalesRecordPickerState();
 }
 
-class _SalesCustomerPickerState extends State<_SalesCustomerPicker> {
+class _SalesRecordPickerState extends State<_SalesRecordPicker> {
   late Future<List<Json>> _customers = _load('');
   String _search = '';
 
   Future<List<Json>> _load(String search) async {
     final drafts = widget.drafts;
     if (drafts != null) {
+      if (widget.product) {
+        return drafts.products(widget.api, search, offline: widget.offline);
+      }
       return drafts.customers(widget.api, search, offline: widget.offline);
     }
     final revision = widget.api.sessionRevision;
     final data =
         await widget.api.request(
               'GET',
-              SalesOrderDrafts.customersEndpoint,
-              query: {if (search.isNotEmpty) 'q': search},
+              widget.product
+                  ? SalesOrderDrafts.productsEndpoint
+                  : SalesOrderDrafts.customersEndpoint,
+              query: widget.product
+                  ? {
+                      'summary_only': true,
+                      'page': 1,
+                      'per_page': 50,
+                      if (search.isNotEmpty) 'search': search,
+                    }
+                  : {if (search.isNotEmpty) 'q': search},
             )
             as Json;
     if (revision != widget.api.sessionRevision) {
@@ -249,7 +302,7 @@ class _SalesCustomerPickerState extends State<_SalesCustomerPicker> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Choose customer'),
+    title: Text(widget.product ? 'Choose product' : 'Choose customer'),
     content: SizedBox(
       width: 360,
       height: 350,
@@ -261,10 +314,14 @@ class _SalesCustomerPickerState extends State<_SalesCustomerPicker> {
             onSubmitted: (_) => _searchCustomers(),
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: 'Customer name',
+              labelText: widget.product
+                  ? 'Product name, SKU or barcode'
+                  : 'Customer name',
               counterText: '',
               suffixIcon: IconButton(
-                tooltip: 'Search customers',
+                tooltip: widget.product
+                    ? 'Search products'
+                    : 'Search customers',
                 onPressed: _searchCustomers,
                 icon: const Icon(Icons.search),
               ),
@@ -284,18 +341,23 @@ class _SalesCustomerPickerState extends State<_SalesCustomerPicker> {
                 if (rows.isEmpty) {
                   return Center(
                     child: Text(
-                      widget.offline
-                          ? 'No matching saved customers'
-                          : 'No matching customers',
+                      'No matching ${widget.offline ? 'saved ' : ''}${widget.product ? 'products' : 'customers'}',
                     ),
                   );
                 }
                 return ListView(
                   children: [
                     for (final row in rows)
-                      if (row['id'] is int && row['name'] is String)
+                      if (row['id'] is int &&
+                          row[widget.product ? 'item_name' : 'name'] is String)
                         ListTile(
-                          title: Text(row['name'] as String),
+                          title: Text(
+                            row[widget.product ? 'item_name' : 'name']
+                                as String,
+                          ),
+                          subtitle: widget.product && row['sku'] is String
+                              ? Text(row['sku'] as String)
+                              : null,
                           onTap: () => Navigator.pop(context, row),
                         ),
                   ],
