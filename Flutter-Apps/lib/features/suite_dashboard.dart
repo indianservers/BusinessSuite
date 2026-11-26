@@ -1578,6 +1578,7 @@ class _EmployeeDetailsPage extends StatefulWidget {
 
 class _EmployeeDetailsPageState extends State<_EmployeeDetailsPage> {
   late Future<Json> _employee = _load();
+  Future<List<(String, String)?>>? _organizationLabels;
 
   Future<Json> _load() async {
     final revision = widget.api.sessionRevision;
@@ -1586,7 +1587,41 @@ class _EmployeeDetailsPageState extends State<_EmployeeDetailsPage> {
     if (revision != widget.api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
+    _organizationLabels = Future.wait([
+      if (employee['department_id'] case final int id)
+        _lookupLabel('Department', '/company/departments/', id, revision, {
+          if (employee['branch_id'] case final int branch) 'branch_id': branch,
+        }),
+      if (employee['designation_id'] case final int id)
+        _lookupLabel('Designation', '/company/designations/', id, revision, {
+          if (employee['department_id'] case final int department)
+            'department_id': department,
+        }),
+    ]);
     return employee;
+  }
+
+  Future<(String, String)?> _lookupLabel(
+    String label,
+    String path,
+    int id,
+    int revision,
+    Map<String, dynamic> query,
+  ) async {
+    try {
+      final items = await widget.api.request('GET', path, query: query);
+      if (revision != widget.api.sessionRevision || items is! List) return null;
+      final row = items
+          .whereType<Json>()
+          .where((item) => item['id'] == id)
+          .firstOrNull;
+      if (row?['name'] case final String name when name.isNotEmpty) {
+        return (label, name);
+      }
+    } catch (_) {
+      // Some directory users cannot view company configuration.
+    }
+    return null;
   }
 
   @override
@@ -1621,6 +1656,15 @@ class _EmployeeDetailsPageState extends State<_EmployeeDetailsPage> {
             Text(
               name.isEmpty ? 'Employee' : name,
               style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            FutureBuilder<List<(String, String)?>>(
+              future: _organizationLabels,
+              builder: (context, labels) => Column(
+                children: [
+                  for (final (label, name) in (labels.data ?? []).nonNulls)
+                    ListTile(title: Text(label), subtitle: Text(name)),
+                ],
+              ),
             ),
             for (final field in const {
               'employee_id': 'Employee code',

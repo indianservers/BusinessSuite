@@ -1906,7 +1906,15 @@ void main() {
               'last_name': 'Employee',
               'work_email': 'qa@example.test',
               'employment_type': 'Full-time',
+              'department_id': 10,
+              'designation_id': 15,
             }),
+            '/company/departments/' => response([
+              {'id': 10, 'name': 'Operations'},
+            ]),
+            '/company/designations/' => response([
+              {'id': 15, 'name': 'Coordinator'},
+            ]),
             '/srm/sales-orders' => response([
               {'id': 8, 'title': 'Sample order'},
             ]),
@@ -2020,6 +2028,8 @@ void main() {
           await open('Sample Employee');
           expect(find.text('Employee profile'), findsOneWidget);
           expect(find.text('Work email'), findsOneWidget);
+          expect(find.text('Operations'), findsOneWidget);
+          expect(find.text('Coordinator'), findsOneWidget);
           expect(calls.any((r) => r.path == '/employees/27'), isTrue);
           await back();
         }
