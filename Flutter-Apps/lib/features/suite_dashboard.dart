@@ -244,7 +244,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'companyId': access['companyId'],
             'companyName': access['companyName'],
             'grants': {
-              for (final key in ['crm', 'srm'])
+              for (final key in ['crm', 'srm', 'fam'])
                 key: {
                   'enabled': _allowed(access, key) && grants.containsKey(key),
                 },

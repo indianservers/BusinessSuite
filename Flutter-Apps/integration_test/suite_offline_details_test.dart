@@ -23,6 +23,88 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'Android reopens a cached Finance party from the offline dashboard',
+    (tester) async {
+      var connected = true;
+      final requests = <String>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request.path);
+          if (!connected) throw StateError('Offline request ${request.path}');
+          return switch (request.path) {
+            '/access/me' => response({
+              'companyId': 7,
+              'grants': {
+                'fam': {'enabled': true},
+              },
+            }),
+            '/notifications/unread-count' => response({'unread': 0}),
+            '/fam/parties' => response([
+              {
+                'id': 4,
+                'legal_name': 'Saved Android Supplier',
+                'party_code': 'ANDROID-4',
+              },
+            ]),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        });
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'device-qa',
+        'refresh_token': 'device-qa',
+      });
+      final user = SessionUser.fromJson({
+        'id': DateTime.now().microsecondsSinceEpoch,
+        'email': 'qa@example.test',
+      });
+      Future<void> openFinance(bool offline) async {
+        final controller = AppController(api, suiteLogin: true)
+          ..loading = false
+          ..user = user
+          ..offline = offline;
+        await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+        await tester.pumpAndSettle();
+        final finance = find.text('Finance & Accounting');
+        final deadline = DateTime.now().add(const Duration(seconds: 15));
+        while (finance.evaluate().isEmpty &&
+            DateTime.now().isBefore(deadline)) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(
+          finance,
+          findsOneWidget,
+          reason: 'offline=$offline, requests=$requests',
+        );
+        await tester.ensureVisible(finance);
+        await tester.tap(finance);
+        await tester.pumpAndSettle();
+      }
+
+      final supplier = find.text('Saved Android Supplier');
+      await openFinance(false);
+      expect(supplier, findsOneWidget);
+      expect(requests.where((path) => path == '/fam/parties'), hasLength(1));
+      expect(api.offlineSuite?['access']['grants']['fam']['enabled'], isTrue);
+      final onlineRequests = requests.length;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      connected = false;
+      await openFinance(true);
+      await tester.tap(supplier);
+      await tester.pumpAndSettle();
+      expect(find.text('Saved party summary'), findsOneWidget);
+      expect(find.text('ANDROID-4'), findsOneWidget);
+      expect(requests, hasLength(onlineRequests));
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('Android Sales reuses a fresh local list until Refresh', (
     tester,
   ) async {
