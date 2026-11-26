@@ -1892,8 +1892,13 @@ void main() {
             '/fam/parties' ||
             '/project-management/notes' => response([]),
             '/employees/' => response({
+              'total': request.queryParameters['search'] == null ? 2 : 1,
+              'per_page': 1,
               'items': [
-                {'id': 27, 'first_name': 'Sample', 'last_name': 'Employee'},
+                if (request.queryParameters['page'] == 2)
+                  {'id': 28, 'first_name': 'Next', 'last_name': 'Employee'}
+                else
+                  {'id': 27, 'first_name': 'Sample', 'last_name': 'Employee'},
               ],
             }),
             '/employees/27' => response({
@@ -1997,6 +2002,21 @@ void main() {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
         if (entry.key == 'AI HRMS') {
+          await tester.tap(find.text('Next'));
+          await tester.pumpAndSettle();
+          expect(find.text('Next Employee'), findsOneWidget);
+          await tester.enterText(find.byType(TextField), 'Sample');
+          await tester.pump(const Duration(milliseconds: 350));
+          await tester.pumpAndSettle();
+          expect(
+            calls.any(
+              (r) =>
+                  r.path == '/employees/' &&
+                  r.queryParameters['page'] == 1 &&
+                  r.queryParameters['search'] == 'Sample',
+            ),
+            isTrue,
+          );
           await open('Sample Employee');
           expect(find.text('Employee profile'), findsOneWidget);
           expect(find.text('Work email'), findsOneWidget);

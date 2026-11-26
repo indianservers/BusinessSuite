@@ -874,13 +874,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   String _term = '';
   String _serverSearch = '';
-  int _crmPage = 1;
-  bool _crmHasNext = false;
+  int _page = 1;
+  bool _hasNextPage = false;
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
+  bool get _isEmployees => widget.path == '/employees/';
+  bool get _hasPages => _isCrm || _isEmployees;
   bool get _searchOnServer =>
-      _isCrm || _inventory || widget.path == '/srm/sales-orders';
+      _hasPages || _inventory || widget.path == '/srm/sales-orders';
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
@@ -922,7 +924,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final api = widget.controller.api;
     final revision = api.sessionRevision;
     final loadRevision = ++_loadRevision;
-    final crmPage = _crmPage;
+    final page = _page;
     final searchTerm = _serverSearch;
     Future<void> loadSavedLeadPages() async {
       if (!_isCrm || cacheKey == null) return;
@@ -990,7 +992,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         path,
         query: {
           ...widget.query,
-          if (_isCrm) 'page': crmPage,
+          if (_hasPages) 'page': page,
           if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
         },
         scopeHeaders: widget.scopeHeaders,
@@ -1041,11 +1043,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (loadRevision != _loadRevision) return records;
     _offlineOnly = false;
     if (_inventory && searchTerm.isEmpty) unawaited(_prepareInventoryDrafts());
-    if (_isCrm) {
+    if (_hasPages) {
       final total = data is Json ? data['total'] : null;
-      final pageSize = data is Json ? data['perPage'] : null;
-      _crmHasNext =
-          total is int && pageSize is int && crmPage * pageSize < total;
+      final pageSize = data is Json
+          ? data['perPage'] ?? data['per_page']
+          : null;
+      _hasNextPage = total is int && pageSize is int && page * pageSize < total;
     }
     if (cacheKey != null && searchTerm.isEmpty) {
       final projection = [
@@ -1091,7 +1094,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           },
       ];
       try {
-        await SuiteReadCache.writePage(cacheKey, crmPage, projection);
+        await SuiteReadCache.writePage(cacheKey, page, projection);
       } catch (_) {}
     }
     return records;
@@ -1101,7 +1104,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     _searchDebounce?.cancel();
     if (_searchOnServer && _serverSearch != _term) {
       _serverSearch = _term;
-      _crmPage = 1;
+      _page = 1;
     }
     setState(() {
       _records = _startLoad(reconnect: true);
@@ -1117,15 +1120,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       if (!mounted) return;
       setState(() {
         _serverSearch = _term;
-        _crmPage = 1;
+        _page = 1;
         _records = _startLoad();
       });
     });
   }
 
-  void _changeCrmPage(int offset) {
+  void _changePage(int offset) {
     setState(() {
-      _crmPage += offset;
+      _page += offset;
       _records = _startLoad();
     });
   }
@@ -1318,6 +1321,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'legal_name',
                                     'trade_name',
                                     'party_code',
+                                    'employee_id',
                                     'status',
                                     'sku',
                                     'barcode',
@@ -1360,6 +1364,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             _stockSummaryPath => 'Search products',
                             GstInvoicePage.listEndpoint => 'Search invoices',
                             FinancePartyPage.endpoint => 'Search parties',
+                            '/employees/' => 'Search employees',
                             '/srm/sales-orders' =>
                               cached ? 'Search saved orders' : 'Search orders',
                             _ => 'Search saved orders',
@@ -1373,21 +1378,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           ? 'No low stock items'
                           : 'No matching records',
                     ),
-                  if (_isCrm && !cached && (_crmPage > 1 || _crmHasNext))
+                  if (_hasPages && !cached && (_page > 1 || _hasNextPage))
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         TextButton(
-                          onPressed: loading || _crmPage <= 1
+                          onPressed: loading || _page <= 1
                               ? null
-                              : () => _changeCrmPage(-1),
+                              : () => _changePage(-1),
                           child: const Text('Previous'),
                         ),
-                        Text('Page $_crmPage'),
+                        Text('Page $_page'),
                         TextButton(
-                          onPressed: loading || !_crmHasNext
+                          onPressed: loading || !_hasNextPage
                               ? null
-                              : () => _changeCrmPage(1),
+                              : () => _changePage(1),
                           child: const Text('Next'),
                         ),
                       ],
