@@ -319,6 +319,7 @@ class _NoteEditor extends StatefulWidget {
 }
 
 class _NoteEditorState extends State<_NoteEditor> {
+  late bool _offline = widget.offline;
   final _title = TextEditingController();
   final _body = TextEditingController();
   Map<String, dynamic>? _note;
@@ -336,8 +337,8 @@ class _NoteEditorState extends State<_NoteEditor> {
     if (_savedView) {
       return !_rich && (_note?['version'] is int) && widget.cache != null;
     }
-    if (widget.offline && widget.summary == null) return widget.cache != null;
-    return !widget.offline &&
+    if (_offline && widget.summary == null) return widget.cache != null;
+    return !_offline &&
         (widget.summary == null && _note == null ||
             _note?['can_edit'] == true && _note?['deleted_at'] == null);
   }
@@ -349,17 +350,25 @@ class _NoteEditorState extends State<_NoteEditor> {
     if (summary != null) _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool reconnect = false}) async {
+    if (_loading || _saving || _dirty) return;
     final revision = widget.api.sessionRevision;
     setState(() {
       _loading = true;
       _error = null;
     });
-    final cached = await widget.cache?.detail(widget.summary!['id']);
-    if (!mounted || revision != widget.api.sessionRevision) return;
-    if (cached != null) _show(cached, saved: true);
     try {
-      if (widget.offline) {
+      if (_note == null) {
+        Map<String, dynamic>? cached;
+        try {
+          cached = await widget.cache?.detail(widget.summary!['id']);
+        } catch (_) {
+          // The live read can proceed if local storage is unavailable.
+        }
+        if (!mounted || revision != widget.api.sessionRevision) return;
+        if (cached != null) _show(cached, saved: true);
+      }
+      if (_offline && !reconnect) {
         throw ApiFailure('Connect to refresh this note.');
       }
       final note =
@@ -369,8 +378,13 @@ class _NoteEditorState extends State<_NoteEditor> {
               )
               as Map<String, dynamic>;
       if (!mounted || revision != widget.api.sessionRevision) return;
+      _offline = false;
       _show(note, saved: false);
-      await widget.cache?.saveDetail(note);
+      try {
+        await widget.cache?.saveDetail(note);
+      } catch (_) {
+        // The server copy is already visible.
+      }
     } catch (error) {
       if (mounted && revision == widget.api.sessionRevision) {
         final denied =
@@ -444,7 +458,7 @@ class _NoteEditorState extends State<_NoteEditor> {
           ])
             key: note[key],
       };
-      if (_savedView || widget.offline) {
+      if (_savedView || _offline) {
         if (note == null) {
           await widget.cache!.enqueueNew(values);
         } else {
@@ -546,6 +560,14 @@ class _NoteEditorState extends State<_NoteEditor> {
       appBar: AppBar(
         title: Text(widget.summary == null ? 'New note' : 'Note'),
         actions: [
+          if (widget.summary != null)
+            IconButton(
+              tooltip: 'Refresh note',
+              onPressed: _loading || _saving || _dirty
+                  ? null
+                  : () => _load(reconnect: true),
+              icon: const Icon(Icons.refresh),
+            ),
           TextButton(
             onPressed: _editable && _dirty && !_saving ? _save : null,
             child: Text(_saving ? 'Saving…' : 'Save'),
@@ -581,7 +603,10 @@ class _NoteEditorState extends State<_NoteEditor> {
               ),
               Text(widget.summary?['preview'] as String? ?? ''),
             ] else
-              TextButton(onPressed: _load, child: const Text('Retry')),
+              TextButton(
+                onPressed: () => _load(reconnect: true),
+                child: const Text('Retry'),
+              ),
           ] else ...[
             TextField(
               controller: _title,

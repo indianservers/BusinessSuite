@@ -326,7 +326,7 @@ void main() {
           return response({
             'id': 1,
             'title': 'QA note',
-            'content': 'Full note',
+            'content': details == 2 ? 'Full note' : 'Edited on web',
             'can_edit': true,
             'version': 1,
           });
@@ -360,8 +360,22 @@ void main() {
       expect(listRequests, 1);
       await tester.tap(find.text('QA note'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Refresh note'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edited on web'), findsOneWidget);
       await tester.enterText(find.byType(TextField).first, 'Updated title');
       await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is IconButton && widget.tooltip == 'Refresh note',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
       expect(saves, 1);
