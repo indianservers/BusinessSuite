@@ -27,6 +27,8 @@ void main() {
     'HR attendance records mobile punches and refreshes from the server',
     (tester) async {
       final punches = <String>[];
+      final ranges = <Object?>[];
+      final months = <Object?>[];
       final dio = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           switch (request.path) {
@@ -38,8 +40,16 @@ void main() {
                 },
               });
             case '/attendance/my':
-              expect(request.queryParameters['from_date'], endsWith('-01'));
+              ranges.add(request.queryParameters['from_date']);
               return response([]);
+            case '/attendance/summary/monthly':
+              months.add(request.queryParameters['month']);
+              return response({
+                'present': 3,
+                'absent': 1,
+                'half_day': 2,
+                'overtime_hours': 4,
+              });
             case '/attendance/check-in':
               expect(request.method, 'POST');
               expect(request.data, {'source': 'Mobile'});
@@ -72,6 +82,25 @@ void main() {
       expect(find.text('Checked out'), findsOneWidget);
       expect(find.text('Check Out'), findsNothing);
       expect(punches, ['/attendance/check-in', '/attendance/check-out']);
+      expect(ranges.first, endsWith('-01'));
+      expect(
+        find.text('Present 3 · Absent 1 · Half day 2 · Overtime 4 h'),
+        findsOneWidget,
+      );
+      final localizations = MaterialLocalizations.of(
+        tester.element(find.byType(MyAttendancePage)),
+      );
+      await tester.tap(find.byIcon(Icons.date_range_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(localizations.inputDateModeButtonLabel));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.first, '02/03/2025');
+      await tester.enterText(fields.last, '02/08/2025');
+      await tester.tap(find.text(localizations.okButtonLabel));
+      await tester.pumpAndSettle();
+      expect(ranges.last, '2025-02-03');
+      expect(months.last, 2);
     },
   );
   testWidgets(

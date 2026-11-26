@@ -14,6 +14,8 @@ class MyAttendancePage extends StatefulWidget {
 class _MyAttendancePageState extends State<MyAttendancePage> {
   late Future<Json> _today = _loadToday();
   late Future<List<Json>> _history = _loadHistory();
+  late Future<Json> _summary = _loadSummary();
+  late DateTimeRange _period = _currentMonth();
   bool _saving = false;
   String? _message;
 
@@ -22,15 +24,46 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
 
   String _date(DateTime date) => date.toIso8601String().split('T').first;
 
-  Future<List<Json>> _loadHistory() async {
+  DateTimeRange _currentMonth() {
     final now = DateTime.now();
+    return DateTimeRange(
+      start: DateTime(now.year, now.month),
+      end: DateUtils.dateOnly(now),
+    );
+  }
+
+  Future<void> _changePeriod() async {
+    final selected = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(1900),
+      lastDate: DateUtils.dateOnly(DateTime.now()),
+      initialDateRange: _period,
+      helpText: 'Attendance period',
+    );
+    if (selected == null || !mounted || selected == _period) return;
+    setState(() {
+      _period = selected;
+      _history = _loadHistory();
+      _summary = _loadSummary();
+    });
+  }
+
+  Future<Json> _loadSummary() async =>
+      await widget.api.request(
+            'GET',
+            '/attendance/summary/monthly',
+            query: {'month': _period.start.month, 'year': _period.start.year},
+          )
+          as Json;
+
+  Future<List<Json>> _loadHistory() async {
     final rows =
         await widget.api.request(
               'GET',
               '/attendance/my',
               query: {
-                'from_date': _date(DateTime(now.year, now.month)),
-                'to_date': _date(now),
+                'from_date': _date(_period.start),
+                'to_date': _date(_period.end),
               },
             )
             as List;
@@ -41,6 +74,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
     setState(() {
       _today = _loadToday();
       _history = _loadHistory();
+      _summary = _loadSummary();
     });
   }
 
@@ -142,7 +176,45 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
         if (_message != null)
           Semantics(liveRegion: true, child: ListTile(title: Text(_message!))),
         const Divider(),
-        Text('This month', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          'Attendance history',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        OutlinedButton.icon(
+          onPressed: _changePeriod,
+          icon: const Icon(Icons.date_range_outlined),
+          label: Text('${_date(_period.start)} – ${_date(_period.end)}'),
+        ),
+        FutureBuilder<Json>(
+          future: _summary,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const LinearProgressIndicator();
+            }
+            if (snapshot.hasError) {
+              return ListTile(
+                title: const Text('Monthly summary unavailable'),
+                trailing: TextButton(
+                  onPressed: () => setState(() {
+                    _summary = _loadSummary();
+                  }),
+                  child: const Text('Retry summary'),
+                ),
+              );
+            }
+            final data = snapshot.requireData;
+            final month = MaterialLocalizations.of(
+              context,
+            ).formatMonthYear(_period.start);
+            return ListTile(
+              title: Text(month),
+              subtitle: Text(
+                'Present ${data['present'] ?? 0} · Absent ${data['absent'] ?? 0} · '
+                'Half day ${data['half_day'] ?? 0} · Overtime ${data['overtime_hours'] ?? 0} h',
+              ),
+            );
+          },
+        ),
         FutureBuilder<List<Json>>(
           future: _history,
           builder: (context, snapshot) {
@@ -155,7 +227,7 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
             final rows = snapshot.requireData;
             if (rows.isEmpty) {
               return const ListTile(
-                title: Text('No attendance records this month'),
+                title: Text('No attendance records in this period'),
               );
             }
             return Column(
@@ -165,8 +237,20 @@ class _MyAttendancePageState extends State<MyAttendancePage> {
                     title: Text(
                       '${row['attendance_date'] ?? row['date'] ?? ''}',
                     ),
-                    subtitle: Text('${row['status'] ?? ''}'),
-                    trailing: Text('${row['hours_worked'] ?? 0} hours'),
+                    subtitle: Text(
+                      [
+                        row['status'],
+                        if (row['check_in'] != null)
+                          'In ${_punchTime(row['check_in'])}',
+                        if (row['check_out'] != null)
+                          'Out ${_punchTime(row['check_out'])}',
+                        if (row['overtime_hours'] != null)
+                          'Overtime ${row['overtime_hours']} h',
+                      ].whereType<String>().join(' · '),
+                    ),
+                    trailing: Text(
+                      '${row['hours_worked'] ?? row['total_hours'] ?? 0} hours',
+                    ),
                   ),
               ],
             );
