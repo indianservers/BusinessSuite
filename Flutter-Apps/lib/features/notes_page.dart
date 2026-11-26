@@ -25,11 +25,13 @@ class NotesPage extends StatefulWidget {
 
 class _NotesPageState extends State<NotesPage> {
   List<Map<String, dynamic>> _notes = [];
+  List<Map<String, dynamic>> _creations = [];
   String _query = '';
   String _view = 'all';
   String? _error;
   bool _loading = true;
   bool _savedView = false;
+  bool _unreachable = false;
   int _request = 0;
   Timer? _debounce;
 
@@ -60,6 +62,7 @@ class _NotesPageState extends State<NotesPage> {
       if (view != 'all' && _savedView) {
         _notes = [];
         _savedView = false;
+        _unreachable = false;
       }
     });
     final saved = view == 'all' ? await widget.cache?.summaries() : null;
@@ -107,6 +110,10 @@ class _NotesPageState extends State<NotesPage> {
       final denied =
           error is ApiFailure && const {401, 403, 404}.contains(error.status);
       setState(() {
+        _unreachable =
+            widget.offline ||
+            error is ApiFailure &&
+                (error.connectionFailure || (error.status ?? 0) >= 500);
         if (denied || view != 'all') {
           _notes = [];
           _savedView = false;
@@ -115,6 +122,13 @@ class _NotesPageState extends State<NotesPage> {
         _loading = false;
       });
       if (denied) await widget.cache?.clear();
+    } finally {
+      if (current()) {
+        try {
+          final drafts = await widget.cache?.creations();
+          if (current()) setState(() => _creations = drafts ?? []);
+        } catch (_) {}
+      }
     }
   }
 
@@ -125,11 +139,53 @@ class _NotesPageState extends State<NotesPage> {
           api: widget.api,
           summary: summary,
           cache: widget.cache,
-          offline: widget.offline,
+          offline: widget.offline || _unreachable,
         ),
       ),
     );
     if (mounted && changed == true) await _load();
+  }
+
+  Future<void> _viewCreation(Map<String, dynamic> entry) async {
+    final values = entry['values'] as Map<String, dynamic>;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          (values['title'] as String).trim().isEmpty
+              ? 'Untitled note'
+              : values['title'] as String,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${entry['error'] ?? 'Saved on this device · Awaiting sync'}',
+              ),
+              const SizedBox(height: 12),
+              SelectableText(values['content'] as String),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          if (entry['error'] != null)
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Discard saved note'),
+            ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) {
+      await widget.cache?.discard(entry['key']);
+      if (mounted) await _load();
+    }
   }
 
   @override
@@ -159,7 +215,7 @@ class _NotesPageState extends State<NotesPage> {
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: widget.offline ? null : () => _open(),
+      onPressed: widget.offline && widget.cache == null ? null : () => _open(),
       icon: const Icon(Icons.add),
       label: const Text('New note'),
     ),
@@ -186,7 +242,7 @@ class _NotesPageState extends State<NotesPage> {
         if (_savedView) const Text('Saved private notes'),
         if (_error != null)
           Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
-        if (!_loading && _error == null && _notes.isEmpty)
+        if (!_loading && _error == null && _notes.isEmpty && _creations.isEmpty)
           const Text('No notes found'),
         Expanded(
           child: RefreshIndicator(
@@ -194,9 +250,29 @@ class _NotesPageState extends State<NotesPage> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 88),
-              itemCount: _notes.length,
+              itemCount:
+                  _notes.length +
+                  (_view == 'all' && _query.trim().isEmpty
+                      ? _creations.length
+                      : 0),
               itemBuilder: (context, index) {
-                final note = _notes[index];
+                final drafts = _view == 'all' && _query.trim().isEmpty
+                    ? _creations
+                    : const [];
+                if (index < drafts.length) {
+                  final draft = drafts[index] as Map<String, dynamic>;
+                  final title = (draft['values']['title'] as String).trim();
+                  return ListTile(
+                    title: Text(title.isEmpty ? 'Untitled note' : title),
+                    subtitle: Text(
+                      draft['error'] == null
+                          ? 'Saved · Awaiting sync'
+                          : 'Saved note needs review',
+                    ),
+                    onTap: () => _viewCreation(draft),
+                  );
+                }
+                final note = _notes[index - drafts.length];
                 return ListTile(
                   title: Text(
                     note['title'] as String? ?? 'Untitled note',
@@ -253,6 +329,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     if (_savedView) {
       return !_rich && (_note?['version'] is int) && widget.cache != null;
     }
+    if (widget.offline && widget.summary == null) return widget.cache != null;
     return !widget.offline &&
         (widget.summary == null && _note == null ||
             _note?['can_edit'] == true && _note?['deleted_at'] == null);
@@ -360,8 +437,12 @@ class _NoteEditorState extends State<_NoteEditor> {
           ])
             key: note[key],
       };
-      if (_savedView) {
-        await widget.cache!.enqueue(note!, values);
+      if (_savedView || widget.offline) {
+        if (note == null) {
+          await widget.cache!.enqueueNew(values);
+        } else {
+          await widget.cache!.enqueue(note, values);
+        }
         if (!mounted || revision != widget.api.sessionRevision) return;
         _dirty = false;
         _saving = false;

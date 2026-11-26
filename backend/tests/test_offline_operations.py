@@ -46,3 +46,18 @@ def test_task_create_and_status_replay(client, db, studio):
     assert response.status_code == 200, response.text
     assert client.patch(path, json=patch, headers=status_headers).json() == response.json()
     assert client.get(path, headers=headers).json()["status"] == "In Progress"
+
+
+def test_private_note_create_replays_without_duplicate(client, db, studio):
+    receipts.create(db.get_bind(), checkfirst=True)
+    _, _, _, headers, _, _, _, _, _ = studio
+    path = f"{BASE}/notes"
+    request_headers = {**headers, "X-Offline-Operation": str(uuid4())}
+    body = {"title": "Offline field notes", "content": "Private draft"}
+    first = client.post(path, headers=request_headers, json=body)
+    assert first.status_code == 201, first.text
+    replay = client.post(path, headers=request_headers, json=body)
+    assert replay.status_code == 201, replay.text
+    assert replay.json()["id"] == first.json()["id"]
+    assert client.post(path, headers=request_headers, json={**body, "title": "Another draft"}).status_code == 409
+    assert [row["id"] for row in client.get(path, headers=headers, params={"q": body["title"]}).json()] == [first.json()["id"]]

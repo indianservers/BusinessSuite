@@ -4,7 +4,8 @@ from datetime import date, datetime, timedelta, timezone
 from html import unescape
 import re
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request
+from uuid import UUID
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import or_, update, func, cast, String
 from sqlalchemy.orm import Session
@@ -217,14 +218,31 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
     return output
 
 
-@router.post("/notes", status_code=201)
-def create_note(data: NoteInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def _insert_note(data: NoteInput, db: Session, user: User):
     validate_links(db, data, user)
     note = PMSNote(owner_id=user.id, **data.model_dump())
     note.title = note.title.strip() or "Untitled note"
     db.add(note)
     db.flush()
     revision(db, note)
+    return note
+
+
+@router.post("/notes", status_code=201)
+def create_note(data: NoteInput, db: Session = Depends(get_db), user: User = Depends(get_current_user),
+                offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
+    if isinstance(offline_operation, UUID):
+        from app.shared.offline_operations import perform_offline_operation
+
+        receipt = perform_offline_operation(
+            db, user, offline_operation,
+            ("create_note", getattr(user, "organization_id", None)),
+            data.model_dump(mode="json"),
+            lambda: {"id": _insert_note(data, db, user).id},
+            lambda previous: owned(db, previous["id"], user),
+        )
+        return result(db, owned(db, receipt["id"], user), user)
+    note = _insert_note(data, db, user)
     db.commit()
     db.refresh(note)
     return result(db, note, user)

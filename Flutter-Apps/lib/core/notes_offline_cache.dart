@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
 import 'models.dart';
 import 'api_client.dart';
@@ -109,6 +110,18 @@ class NotesOfflineCache {
 
   Future<Json?> pending(Object? id) async => (await _edits())['$id'] as Json?;
 
+  Future<List<Json>> creations() async => [
+    for (final entry in (await _edits()).entries)
+      if (entry.key.startsWith('create:'))
+        {...entry.value as Json, 'key': entry.key},
+  ];
+
+  Future<void> enqueueNew(Json values) => _serial(() async {
+    final edits = await _edits();
+    edits['create:${const Uuid().v4()}'] = {'values': values};
+    await _storeEdits(edits);
+  });
+
   Future<void> enqueue(Json note, Json values) => _serial(() async {
     final id = note['id'];
     if (id is! int || note['version'] is! int || !_eligible(note)) {
@@ -138,12 +151,19 @@ class NotesOfflineCache {
         if (!api.hasSession || api.sessionRevision != revision) return;
         final edit = edits[id] as Json;
         if (edit['error'] != null) continue;
+        final create = id.startsWith('create:');
         try {
           final note =
               await api.request(
-                    'PUT',
-                    '/project-management/notes/$id',
-                    scopeHeaders: {'X-Suite-Organization': _company},
+                    create ? 'POST' : 'PUT',
+                    create
+                        ? '/project-management/notes'
+                        : '/project-management/notes/$id',
+                    scopeHeaders: {
+                      'X-Suite-Organization': _company,
+                      if (create)
+                        'X-Offline-Operation': id.substring('create:'.length),
+                    },
                     data: edit['values'],
                   )
                   as Json;

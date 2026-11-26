@@ -29,6 +29,58 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('offline Notes creation retries with the same operation ID', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",2,7]');
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((_) async {
+        fail('Offline creation should not call the server');
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache, offline: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New note'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).first,
+      'Offline created note',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Offline created note'), findsOneWidget);
+    final operations = <Object?>[];
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.path, '/project-management/notes');
+      expect(request.method, 'POST');
+      expect(request.data['title'], 'Offline created note');
+      operations.add(request.headers['X-Offline-Operation']);
+      return operations.length == 1
+          ? response({'detail': 'Offline'}, 503)
+          : response({'id': 5}, 201);
+    });
+    await tester.runAsync(() => cache.sync(api));
+    expect(await cache.creations(), hasLength(1));
+    await tester.runAsync(() => cache.sync(api));
+    expect(operations, hasLength(2));
+    expect(operations.first, isNotNull);
+    expect(operations.first, operations.last);
+    expect(await cache.creations(), isEmpty);
+  });
   testWidgets('Notes queues an offline edit and preserves a conflict', (
     tester,
   ) async {
