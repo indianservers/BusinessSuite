@@ -19,6 +19,10 @@ class InventoryDraftsPage extends StatefulWidget {
 
 class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
+  late Future<List<Json>> _branches = widget.drafts.writableBranches(
+    widget.api,
+  );
+  int? _branchId;
   var _form = GlobalKey<FormState>();
   final _scroll = ScrollController();
   String _name = '', _sku = '', _currency = '';
@@ -78,15 +82,27 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
 
   Future<void> _queue() async {
     if (!_form.currentState!.validate()) return;
+    final branch = _branchId;
+    if (branch == null) {
+      setState(() => _message = 'Choose the destination branch.');
+      return;
+    }
     await _run(() async {
-      await widget.drafts.enqueue({
-        'kind': 'product',
-        'name': _name.trim(),
-        'code': _sku.trim(),
-        'currency': _currency.trim().toUpperCase(),
-        ..._details,
-        'track_inventory': _trackInventory,
-      }, replaceRejected: _editingOperation);
+      if (!(await _branches).any((item) => item['id'] == branch)) {
+        throw StateError('Choose a writable destination branch.');
+      }
+      await widget.drafts.enqueue(
+        {
+          'kind': 'product',
+          'name': _name.trim(),
+          'code': _sku.trim(),
+          'currency': _currency.trim().toUpperCase(),
+          ..._details,
+          'track_inventory': _trackInventory,
+        },
+        branchId: branch,
+        replaceRejected: _editingOperation,
+      );
       if (mounted) _loadForm();
     }, 'Product draft saved on this device.');
   }
@@ -96,6 +112,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
     setState(() {
       _form = GlobalKey<FormState>();
       _editingOperation = entry?['operation'] as String?;
+      _branchId = entry?['branch'] as int?;
       _name = product['name'] as String? ?? '';
       _sku = product['code'] as String? ?? '';
       _currency = product['currency'] as String? ?? '';
@@ -200,6 +217,56 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
           key: _form,
           child: Column(
             children: [
+              FutureBuilder<List<Json>>(
+                future: _branches,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return ListTile(
+                      title: const Text('Destination branches unavailable'),
+                      subtitle: Text('${snapshot.error}'),
+                      trailing: TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => setState(() {
+                                _branches = widget.drafts.writableBranches(
+                                  widget.api,
+                                );
+                              }),
+                        child: const Text('Retry'),
+                      ),
+                    );
+                  }
+                  final branches = snapshot.data;
+                  if (branches == null) return const LinearProgressIndicator();
+                  if (branches.isEmpty) {
+                    return const Text('No writable branches available.');
+                  }
+                  final selected =
+                      branches.any((branch) => branch['id'] == _branchId)
+                      ? _branchId
+                      : null;
+                  return DropdownButtonFormField<int>(
+                    key: ValueKey(selected),
+                    initialValue: selected,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Destination branch',
+                    ),
+                    items: [
+                      for (final branch in branches)
+                        DropdownMenuItem(
+                          value: branch['id'] as int,
+                          child: Text('${branch['name']}'),
+                        ),
+                    ],
+                    onChanged: _busy
+                        ? null
+                        : (value) => setState(() => _branchId = value),
+                    validator: (value) =>
+                        value == null ? 'Choose the destination branch.' : null,
+                  );
+                },
+              ),
               TextFormField(
                 initialValue: _name,
                 maxLength: 180,
@@ -296,14 +363,14 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                   ListTile(
                     title: Text('${entry['product']['name']}'),
                     subtitle: SelectableText(
-                      '${entry['product']['code']} · ${entry['error'] ?? 'Awaiting sync'}',
+                      '${entry['product']['code']} · ${entry['error'] ?? (entry['branch'] == null ? 'Choose a destination branch' : 'Awaiting sync')}',
                     ),
-                    trailing: entry['error'] == null
+                    trailing: entry['error'] == null && entry['branch'] != null
                         ? null
                         : Wrap(
                             children: [
                               IconButton(
-                                tooltip: 'Edit rejected draft',
+                                tooltip: 'Edit draft',
                                 icon: const Icon(Icons.edit_outlined),
                                 onPressed: _busy || _editingOperation != null
                                     ? null
@@ -323,7 +390,9 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                             ],
                           ),
                   ),
-                if (entries.any((entry) => entry['error'] == null))
+                if (entries.any(
+                  (entry) => entry['error'] == null && entry['branch'] != null,
+                ))
                   OutlinedButton(
                     onPressed: _busy
                         ? null

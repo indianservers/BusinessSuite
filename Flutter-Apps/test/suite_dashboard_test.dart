@@ -26,7 +26,7 @@ void main() {
       'name': 'Sample product',
       'code': 'SAMPLE-1',
       'currency': 'INR',
-    });
+    }, branchId: 4);
     final queue = InventoryOfflineCreates(scope);
     final operations = <String>[];
     final dio = Dio()
@@ -35,6 +35,7 @@ void main() {
         expect(request.path, '/catalog/items');
         expect(request.queryParameters['source'], 'srm');
         expect(request.headers['X-Suite-Organization'], '7');
+        expect(request.headers['X-Suite-Branch'], '4');
         operations.add(request.headers['X-Offline-Operation'] as String);
         if (operations.length == 1) {
           throw DioException(

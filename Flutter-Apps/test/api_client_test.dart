@@ -69,11 +69,13 @@ void main() {
       });
       final drafts = InventoryOfflineCreates('["server",1,8]');
       final product = {'kind': 'product', 'name': 'Phone QA', 'code': 'QA'};
-      await drafts.enqueue(product);
+      await drafts.enqueue(product, branchId: 3);
       final initial = (await drafts.entries()).single['operation'];
       var status = 503;
       final sent = <Object?>[];
       dio.httpClientAdapter = FakeAdapter((request) async {
+        expect(request.headers['X-Suite-Branch'], '3');
+        expect(request.headers['X-Suite-Organization'], '8');
         sent.add(request.headers['X-Offline-Operation']);
         return response({'detail': 'Test response'}, status);
       });
@@ -83,16 +85,21 @@ void main() {
       );
       expect((await drafts.entries()).single['error'], isNull);
       await expectLater(
-        drafts.enqueue(product, replaceRejected: initial as String),
+        drafts.enqueue(
+          product,
+          branchId: 3,
+          replaceRejected: initial as String,
+        ),
         throwsStateError,
       );
       status = 422;
       await drafts.sync(api);
       expect((await drafts.entries()).single['error'], isNotNull);
-      await drafts.enqueue({
-        ...product,
-        'name': 'Corrected',
-      }, replaceRejected: initial);
+      await drafts.enqueue(
+        {...product, 'name': 'Corrected'},
+        branchId: 3,
+        replaceRejected: initial,
+      );
       final corrected = (await drafts.entries()).single['operation'];
       expect(corrected, isNot(initial));
       status = 201;

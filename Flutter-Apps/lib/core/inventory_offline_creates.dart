@@ -19,6 +19,35 @@ class InventoryOfflineCreates {
     return raw == null ? [] : (jsonDecode(raw) as List).cast<Json>();
   }
 
+  Future<List<Json>> writableBranches(ApiClient api) async {
+    final cacheKey = '${_key}_branches';
+    try {
+      final data =
+          await api.request(
+                'GET',
+                '/branches/context',
+                scopeHeaders: {'X-Suite-Organization': _company},
+              )
+              as Json;
+      final branches = (data['branches'] as List)
+          .whereType<Json>()
+          .where(
+            (branch) =>
+                branch['id'] is int &&
+                branch['can_write'] == true &&
+                branch['is_active'] == true,
+          )
+          .toList();
+      await _storage.write(key: cacheKey, value: jsonEncode(branches));
+      return branches;
+    } on ApiFailure catch (error) {
+      if (error.status != null && error.status! < 500) rethrow;
+      final raw = await _storage.read(key: cacheKey);
+      if (raw == null) rethrow;
+      return (jsonDecode(raw) as List).cast<Json>();
+    }
+  }
+
   Future<void> _serialized(Future<void> Function() action) async {
     final previous = _running[_key] ?? Future<void>.value();
     final next = previous.then(
@@ -33,34 +62,45 @@ class InventoryOfflineCreates {
     }
   }
 
-  Future<void> enqueue(Json product, {String? replaceRejected}) =>
-      _serialized(() async {
-        final pending = await entries();
-        final replacementIndex = replaceRejected == null
-            ? -1
-            : pending.indexWhere(
-                (entry) =>
-                    entry['operation'] == replaceRejected &&
-                    entry['error'] != null,
-              );
-        if (replaceRejected != null && replacementIndex == -1) {
-          throw StateError('This rejected draft is no longer available.');
-        }
-        if (pending.any(
-          (entry) =>
-              entry['operation'] != replaceRejected &&
-              (entry['product'] as Json)['code'] == product['code'],
-        )) {
-          throw StateError('An unsynced product already uses this SKU.');
-        }
-        final entry = {'operation': const Uuid().v4(), 'product': product};
-        if (replacementIndex == -1) {
-          pending.add(entry);
-        } else {
-          pending[replacementIndex] = entry;
-        }
-        await _storage.write(key: _key, value: jsonEncode(pending));
-      });
+  Future<void> enqueue(
+    Json product, {
+    required int branchId,
+    String? replaceRejected,
+  }) => _serialized(() async {
+    final pending = await entries();
+    final replacementIndex = replaceRejected == null
+        ? -1
+        : pending.indexWhere(
+            (entry) =>
+                entry['operation'] == replaceRejected &&
+                (entry['error'] != null || entry['branch'] == null),
+          );
+    if (replaceRejected != null && replacementIndex == -1) {
+      throw StateError('This rejected draft is no longer available.');
+    }
+    if (pending.any(
+      (entry) =>
+          entry['operation'] != replaceRejected &&
+          (entry['product'] as Json)['code'] == product['code'],
+    )) {
+      throw StateError('An unsynced product already uses this SKU.');
+    }
+    final legacy =
+        replacementIndex >= 0 &&
+        pending[replacementIndex]['branch'] == null &&
+        pending[replacementIndex]['error'] == null;
+    final entry = {
+      'operation': legacy ? replaceRejected : const Uuid().v4(),
+      'product': product,
+      'branch': branchId,
+    };
+    if (replacementIndex == -1) {
+      pending.add(entry);
+    } else {
+      pending[replacementIndex] = entry;
+    }
+    await _storage.write(key: _key, value: jsonEncode(pending));
+  });
 
   Future<void> discard(String operation) => _serialized(() async {
     final pending = await entries();
@@ -74,7 +114,8 @@ class InventoryOfflineCreates {
       final pending = await entries();
       for (final entry in pending.toList()) {
         if (!api.hasSession || revision != api.sessionRevision) return;
-        if (entry['error'] != null) continue;
+        final branch = entry['branch'];
+        if (entry['error'] != null || branch is! int) continue;
         try {
           await api.request(
             'POST',
@@ -82,6 +123,7 @@ class InventoryOfflineCreates {
             query: {'source': 'srm'},
             scopeHeaders: {
               'X-Suite-Organization': _company,
+              'X-Suite-Branch': '$branch',
               'X-Offline-Operation': entry['operation'] as String,
             },
             data: entry['product'],
