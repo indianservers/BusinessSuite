@@ -22,6 +22,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'GST updates manual lines and keeps source-backed lines read-only',
+    (tester) async {
+      final line = {
+        'id': 2,
+        'description': 'Manual work',
+        'quantity': '1',
+        'unit_price': '100',
+        'discount_amount': '0',
+        'tax_amount': '18',
+      };
+      final invoice = {
+        'invoice_number': 'GST-7',
+        'status': 'draft',
+        'currency': 'INR',
+        'lines': [
+          line,
+          {
+            'id': 3,
+            'description': 'Reserved work',
+            'source_type': 'sales_order',
+          },
+        ],
+      };
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') return response(invoice);
+          expect(request.method, 'PATCH');
+          expect(request.path, '/srm/business/invoices/7/lines/2');
+          expect(
+            request.data,
+            {...line}
+              ..remove('id')
+              ..['quantity'] = '2',
+          );
+          return response({
+            ...invoice,
+            'total_amount': '218.00',
+            'lines': [
+              {...line, 'quantity': '2'},
+            ],
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GstInvoicePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            id: 7,
+            canEdit: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Edit draft line'), findsOneWidget);
+      await tester.tap(find.byTooltip('Edit draft line'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(1), '2');
+      await tester.tap(find.text('Save line'));
+      await tester.pumpAndSettle();
+      expect(find.text('INR 218.00'), findsOneWidget);
+      expect(find.text('Quantity 2'), findsOneWidget);
+    },
+  );
   testWidgets('GST draft date editing sends only the changed date', (
     tester,
   ) async {
