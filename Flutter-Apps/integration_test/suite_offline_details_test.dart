@@ -69,12 +69,14 @@ void main() {
         'id': DateTime.now().microsecondsSinceEpoch,
         'email': 'qa@example.test',
       });
-      Future<void> openFinance(bool offline) async {
-        final controller = AppController(api, suiteLogin: true)
-          ..loading = false
-          ..user = user
-          ..offline = offline;
-        await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+      Future<void> openFinance(bool offline, {bool launch = true}) async {
+        if (launch) {
+          final controller = AppController(api, suiteLogin: true)
+            ..loading = false
+            ..user = user
+            ..offline = offline;
+          await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+        }
         await tester.pumpAndSettle();
         final finance = find.text('Finance & Accounting');
         final deadline = DateTime.now().add(const Duration(seconds: 15));
@@ -97,6 +99,11 @@ void main() {
       expect(supplier, findsOneWidget);
       expect(requests.where((path) => path == '/fam/parties'), hasLength(1));
       expect(api.offlineSuite?['access']['grants']['fam']['enabled'], isTrue);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await openFinance(false, launch: false);
+      expect(supplier, findsOneWidget);
+      expect(requests.where((path) => path == '/fam/parties'), hasLength(1));
       final onlineRequests = requests.length;
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

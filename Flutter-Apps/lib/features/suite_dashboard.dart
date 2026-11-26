@@ -891,7 +891,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               !_offlineOnly &&
               !cached.invalidated &&
               searchTerm.isEmpty &&
-              (_inventory || path == '/srm/sales-orders') &&
+              (_inventory ||
+                  path == '/srm/sales-orders' ||
+                  path == FinancePartyPage.endpoint) &&
               !age.isNegative &&
               age < _listReuseWindow) {
             return cached.rows;
