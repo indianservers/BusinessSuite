@@ -27,6 +27,7 @@ class NotesPage extends StatefulWidget {
 class _NotesPageState extends State<NotesPage> {
   List<Map<String, dynamic>> _notes = [];
   List<Map<String, dynamic>> _creations = [];
+  Map<int, Map<String, dynamic>> _pendingEdits = {};
   String _query = '';
   String _view = 'all';
   String? _error;
@@ -70,15 +71,23 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = false;
       }
     });
-    final saved = view == 'all' ? await widget.cache?.summaries() : null;
+    List<Map<String, dynamic>>? saved;
+    try {
+      if (view == 'all') saved = await widget.cache?.summaries();
+      final pending = await widget.cache?.pendingEdits();
+      if (current()) setState(() => _pendingEdits = pending ?? {});
+    } catch (_) {
+      // Continue to the server when the device store is unavailable.
+    }
     if (!current()) return;
-    if (saved != null && saved.isNotEmpty) {
+    final savedNotes = saved;
+    if (savedNotes != null && savedNotes.isNotEmpty) {
       final term = query.toLowerCase();
       setState(() {
         _savedView = true;
-        _notes = saved
+        _notes = savedNotes
             .where(
-              (note) => '${note['title']} ${note['preview']}'
+              (note) => '${_titleFor(note)} ${_previewFor(note)}'
                   .toLowerCase()
                   .contains(term),
             )
@@ -134,11 +143,34 @@ class _NotesPageState extends State<NotesPage> {
       if (current()) {
         try {
           final drafts = await widget.cache?.creations();
-          if (current()) setState(() => _creations = drafts ?? []);
+          final pending = await widget.cache?.pendingEdits();
+          if (current()) {
+            setState(() {
+              _creations = drafts ?? [];
+              _pendingEdits = pending ?? {};
+            });
+          }
         } catch (_) {}
       }
     }
   }
+
+  Map<String, dynamic>? _pendingFor(Map<String, dynamic> note) =>
+      note['can_edit'] == true &&
+          note['visibility_scope'] == 'private' &&
+          note['visibility'] == 'private'
+      ? _pendingEdits[note['id']]
+      : null;
+
+  String _titleFor(Map<String, dynamic> note) =>
+      (_pendingFor(note)?['values']['title'] as String?) ??
+      (note['title'] as String?) ??
+      'Untitled note';
+
+  String _previewFor(Map<String, dynamic> note) =>
+      (_pendingFor(note)?['values']['content'] as String?) ??
+      (note['preview'] as String?) ??
+      '';
 
   void _open([Map<String, dynamic>? summary]) async {
     final changed = await Navigator.of(context).push<bool>(
@@ -281,17 +313,30 @@ class _NotesPageState extends State<NotesPage> {
                   );
                 }
                 final note = _notes[index - drafts.length];
+                final pending = _pendingFor(note);
                 return ListTile(
                   title: Text(
-                    note['title'] as String? ?? 'Untitled note',
+                    _titleFor(note),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    note['preview'] as String? ?? '',
+                    _previewFor(note),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  trailing: pending == null
+                      ? null
+                      : Tooltip(
+                          message: pending['error'] == null
+                              ? 'Awaiting sync'
+                              : 'Saved edit needs review',
+                          child: Icon(
+                            pending['error'] == null
+                                ? Icons.cloud_upload_outlined
+                                : Icons.error_outline,
+                          ),
+                        ),
                   onTap: () => _open(note),
                 );
               },

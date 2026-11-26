@@ -114,6 +114,11 @@ class NotesOfflineCache {
 
   Future<Json?> pending(Object? id) async => (await _edits())['$id'] as Json?;
 
+  Future<Map<int, Json>> pendingEdits() async => {
+    for (final entry in (await _edits()).entries)
+      if (int.tryParse(entry.key) case final int id) id: entry.value as Json,
+  };
+
   Future<List<Json>> creations() async => [
     for (final entry in (await _edits()).entries)
       if (entry.key.startsWith('create:'))

@@ -325,6 +325,8 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
         expect((await cache.pending(1))?['values']['content'], 'Offline edit');
+        expect(find.text('Offline edit'), findsOneWidget);
+        expect(find.byTooltip('Awaiting sync'), findsOneWidget);
         dio.httpClientAdapter = FakeAdapter((request) async {
           if (request.method == 'GET') {
             return response({...private, 'content': 'Web edit'});
