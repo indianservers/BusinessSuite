@@ -884,6 +884,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _load();
   List<Json>? _cached;
+  late final InventoryOfflineCreates? _inventoryDrafts =
+      _inventory && widget.cachePrefix != null
+      ? InventoryOfflineCreates(
+          widget.cachePrefix!,
+          invalidate: SuiteReadCache.invalidate,
+        )
+      : null;
+  bool _branchesPrepared = false;
+
+  Future<void> _prepareInventoryDrafts() async {
+    final drafts = _inventoryDrafts;
+    if (drafts == null || _branchesPrepared) return;
+    _branchesPrepared = true;
+    try {
+      await drafts.writableBranches(widget.controller.api);
+    } catch (_) {
+      _branchesPrepared = false;
+    }
+  }
+
   String? get _cacheKey => widget.cachePrefix == null
       ? null
       : '${widget.cachePrefix}:${widget.path}';
@@ -1012,6 +1032,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (loadRevision != _loadRevision) return records;
     _offlineOnly = false;
+    if (_inventory && searchTerm.isEmpty) unawaited(_prepareInventoryDrafts());
     if (_isCrm) {
       final total = data is Json ? data['total'] : null;
       final pageSize = data is Json ? data['perPage'] : null;
@@ -1153,7 +1174,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
-        if (_inventory && widget.cachePrefix != null)
+        if (_inventoryDrafts != null)
           IconButton(
             tooltip: 'Product drafts',
             icon: const Icon(LucideIcons.packagePlus),
@@ -1163,10 +1184,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   builder: (_) => InventoryDraftsPage(
                     offline: _offlineOnly,
                     api: widget.controller.api,
-                    drafts: InventoryOfflineCreates(
-                      widget.cachePrefix!,
-                      invalidate: SuiteReadCache.invalidate,
-                    ),
+                    drafts: _inventoryDrafts,
                   ),
                 ),
               );
