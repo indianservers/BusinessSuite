@@ -25,9 +25,10 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   testWidgets(
-    'HR leave applies through the shared API and refreshes the request list',
+    'HR leave applies and confirms cancellation through the shared API',
     (tester) async {
       var submitted = false;
+      var cancelled = false;
       const type = {
         'id': 2,
         'name': 'Annual leave',
@@ -47,11 +48,12 @@ void main() {
               return response([
                 if (submitted)
                   {
+                    'id': 8,
                     'leave_type': type,
                     'from_date': '2026-12-01',
                     'to_date': '2026-12-02',
                     'days_count': 2,
-                    'status': 'Pending',
+                    'status': cancelled ? 'Cancelled' : 'Pending',
                   },
               ]);
             case '/leave/apply':
@@ -64,6 +66,10 @@ void main() {
               });
               submitted = true;
               return response({'id': 8}, 201);
+            case '/leave/requests/8/cancel':
+              expect(request.method, 'PUT');
+              cancelled = true;
+              return response({'message': 'Leave request cancelled'});
             default:
               fail('Unexpected request ${request.path}');
           }
@@ -106,6 +112,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(submitted, isTrue);
       expect(find.text('Pending'), findsOneWidget);
+      await tester.tap(find.text('Pending'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel request'));
+      await tester.pumpAndSettle();
+      expect(cancelled, isFalse);
+      await tester.tap(find.text('Confirm cancellation'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cancelled'), findsOneWidget);
     },
   );
   testWidgets(

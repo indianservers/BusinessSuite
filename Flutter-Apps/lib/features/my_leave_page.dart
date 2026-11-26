@@ -17,6 +17,7 @@ class _MyLeavePageState extends State<MyLeavePage> {
   late Future<List<Json>> _requests = _readRequests();
   int _page = 1;
   bool _applying = false;
+  bool _cancelling = false;
 
   Future<List<Json>> _read(String path, {Map<String, dynamic>? query}) async =>
       (await widget.api.request('GET', path, query: query) as List)
@@ -73,6 +74,101 @@ class _MyLeavePageState extends State<MyLeavePage> {
 
   String _name(Json row) =>
       '${(row['leave_type'] as Json?)?['name'] ?? 'Leave type ${row['leave_type_id']}'}';
+
+  Future<void> _openRequest(Json row) async {
+    if (_cancelling) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_name(row)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${row['from_date']} – ${row['to_date']}'),
+              Text('${row['days_count']} days · ${row['status']}'),
+              if (row['reason'] case final String reason when reason.isNotEmpty)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Reason'),
+                  subtitle: Text(reason),
+                ),
+              if (row['review_remarks'] case final String remarks
+                  when remarks.isNotEmpty)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Review remarks'),
+                  subtitle: Text(remarks),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          if (row['status'] == 'Pending' && row['id'] is int)
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cancel request'),
+            ),
+        ],
+      ),
+    );
+    if (!mounted ||
+        confirmed != true ||
+        _cancelling ||
+        api.sessionRevision != revision) {
+      return;
+    }
+    final cancel = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel this leave request?'),
+        content: const Text('The request will be withdrawn from approval.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep request'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm cancellation'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted ||
+        cancel != true ||
+        _cancelling ||
+        api.sessionRevision != revision) {
+      return;
+    }
+    setState(() => _cancelling = true);
+    try {
+      await api.request('PUT', '/leave/requests/${row['id']}/cancel');
+      if (mounted && api.sessionRevision == revision) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Leave request cancelled.')),
+        );
+      }
+    } catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _cancelling = false);
+        if (api.sessionRevision == revision) _refresh();
+      }
+    }
+  }
 
   Widget _section(
     Future<List<Json>> future,
@@ -140,6 +236,7 @@ class _MyLeavePageState extends State<MyLeavePage> {
                     '${row['from_date']} – ${row['to_date']} · ${row['days_count']} days',
                   ),
                   trailing: Text('${row['status']}'),
+                  onTap: _cancelling ? null : () => _openRequest(row),
                 ),
               if (_page > 1 || rows.length == _pageSize)
                 Row(
