@@ -7,6 +7,7 @@ import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
 import 'package:business_suite_mobile/features/branch_membership_page.dart';
@@ -29,6 +30,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('native CRM creates a lead through the shared write API', (
+    tester,
+  ) async {
+    final requests = <RequestOptions>[];
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        requests.add(request);
+        return response({'id': 17}, 201);
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    bool? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                saved = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute<bool>(
+                    builder: (_) => CrmNewLeadPage(api: api),
+                  ),
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '  Sample Lead  ');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Sample company');
+    await tester.ensureVisible(find.text('Create lead'));
+    await tester.tap(find.text('Create lead'));
+    await tester.pumpAndSettle();
+    expect(saved, isTrue);
+    expect(requests.single.path, CrmLeadPage.endpoint);
+    expect(requests.single.method, 'POST');
+    expect(requests.single.data, {
+      'values': {'full_name': 'Sample Lead', 'company_name': 'Sample company'},
+    });
+  });
   testWidgets('CRM pages and searches all authorized leads through the API', (
     tester,
   ) async {

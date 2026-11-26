@@ -13,6 +13,7 @@ import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
+import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
@@ -299,6 +300,8 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         ? _localScope(access)
         : null;
     final grant = (access['grants'] as Json?)?['srm'] as Json?;
+    final crmGrant = (access['grants'] as Json?)?['crm'] as Json?;
+    const leadPermissions = {'crm_manage', 'crm_admin', 'crm_leads_manage'};
     bool allowsSalesAction(String action) =>
         app.title == 'Sales & POS' &&
         (controller.user?.isSuperuser == true ||
@@ -316,6 +319,20 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,
+        canCreateLead:
+            app.grant == 'crm' &&
+            (controller.user?.isSuperuser == true ||
+                (access['managed'] == true
+                    ? (crmGrant?['actions'] as List?)?.contains('create') ==
+                              true &&
+                          (crmGrant?['permissions'] as List?)?.any(
+                                leadPermissions.contains,
+                              ) ==
+                              true
+                    : controller.user?.permissions.any(
+                            leadPermissions.contains,
+                          ) ==
+                          true)),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
         canCreateOrderInvoices:
@@ -828,6 +845,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canExportInvoices = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
+    this.canCreateLead = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
   });
@@ -841,6 +859,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canExportInvoices;
   final bool canIssueInvoices;
   final bool canEditOrders;
+  final bool canCreateLead;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
 
@@ -1155,6 +1174,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     appBar: AppBar(
       title: Text(widget.title),
       actions: [
+        if (_isCrm && widget.canCreateLead && !_offlineOnly)
+          IconButton(
+            tooltip: 'New lead',
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute<bool>(
+                  builder: (_) => CrmNewLeadPage(api: widget.controller.api),
+                ),
+              );
+              if (created == true && mounted) {
+                _page = 1;
+                _refresh();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Lead created.')),
+                );
+              }
+            },
+          ),
         if (widget.path == '/employees/')
           IconButton(
             tooltip: 'My Leave',
