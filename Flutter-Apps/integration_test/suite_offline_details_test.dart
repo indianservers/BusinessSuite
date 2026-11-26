@@ -4,6 +4,8 @@ import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
+import 'package:business_suite_mobile/features/my_attendance_page.dart';
+import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:dio/dio.dart';
@@ -15,6 +17,65 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Android HRMS shows attendance and leave from the shared API', (
+    tester,
+  ) async {
+    var checkedIn = false;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        switch (request.path) {
+          case '/attendance/today':
+            return response({
+              'attendance': {if (checkedIn) 'check_in': '2026-11-27T08:00:00Z'},
+            });
+          case '/attendance/check-in':
+            expectSync(request.method, 'POST');
+            expectSync(request.data, {'source': 'Mobile'});
+            checkedIn = true;
+            return response({});
+          case '/attendance/my':
+          case '/leave/my-requests':
+            return response([]);
+          case '/attendance/summary/monthly':
+            return response({'present': 1});
+          case '/leave/balance':
+            return response([
+              {
+                'leave_type': {'name': 'QA Annual leave'},
+                'available': 8,
+                'used': 2,
+                'pending': 0,
+              },
+            ]);
+          default:
+            throw StateError('Unexpected request ${request.path}');
+        }
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    Future<void> waitFor(Finder element) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (element.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(element, findsOneWidget);
+    }
+
+    await tester.pumpWidget(MaterialApp(home: MyAttendancePage(api: api)));
+    final checkIn = find.text('Check In');
+    await waitFor(checkIn);
+    await tester.tap(checkIn);
+    await waitFor(find.text('Check Out'));
+    expect(checkedIn, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(MaterialApp(home: MyLeavePage(api: api)));
+    await waitFor(find.text('QA Annual leave'));
+    expect(find.text('8 days available'), findsOneWidget);
+  });
 
   testWidgets(
     'Android queues and retries an offline product in its selected branch',
